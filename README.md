@@ -443,9 +443,9 @@ ReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
         }
     }
 
-    function disposeDest() {
+    function disposeDest(reason) {
         // ISSUE: should this be preventable via an option or via `options.close`?
-        dest.dispose();
+        dest.dispose(reason);
     }
 };
 ```
@@ -566,4 +566,39 @@ function pullSourceToReadableStream(source) {
 ```
 
 Note how in both cases, if data is available synchronously (e.g. because `ondata` or `read` are called synchronously), the data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. Similarly, if data is pushed from the push source twice in a row, it will be available to two subsequent `readableStream.read()` calls before `readableStream.readableState` becomes `"waiting"`. And if data is requested from the readable stream wrapping the pull source twice in a row, it will immediately forward those requests to the underlying pull source, so that if it is ready synchronously, the data will be returned.
+
+## BaseWritableStream
+
+Writable streams are a bit simpler than readable streams, but still are complicated by the need to buffer fast writes.
+
+```
+class WritableStream {
+    constructor({
+        function write = () => {},
+        function close = () => {},
+        function dispose = close
+    })
+
+    // Writing data to the underlying sink
+    Promise<undefined> write(any data)
+    Promise<undefined> waitForWritable()
+    get WritableStreamState writableState
+
+    // Close off the underlying sink gracefully; we are done.
+    Promise<undefined> close()
+
+    // Close off the underlying sink forcefully; everything written so far is suspect.
+    Promise<undefined> dispose(any reason)
+
+    // Useful helpers
+    get Promise<undefined> closed
+}
+
+enum WritableStreamState {
+    "writable" // buffer is not yet full; write at will
+    "waiting"  // buffer is full; you should call waitForWritable
+    "closed"   // underlying sink has been closed; no more writing
+    "errored"  // writing to the stream errored so the stream is now dead
+}
+```
 
