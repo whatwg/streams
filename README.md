@@ -240,5 +240,203 @@ In extensible web fashion, we will build up to a fully-featured streams from a f
 - `ReadableStreamWatcher`
    - An `EventTarget` (or similar?) which taps into a given readable stream and emit `"data"`, `"error"`, and `"end"` events for those which wish to watch its progress.
    - This could be implemented entirely in user-land, but is provided to solve a common use case.
-- `WritableStreamWater`
+- `WritableStreamWatcher`
    - Same thing as `ReadableStreamWatcher`, but for writable streams, with `"data"`, `"error"`, `"close"`.
+
+## BaseReadableStream
+
+The interface here is specified in a very loose "JSIDL" definition language. It is meant to invoke ECMAScript semantics and to ensure nobody interprets this API as conforming to WebIDL conventions, since formalization of this specification will use ECMAScript semantics instead of WebIDL ones. (For example, parameters will not be type-validated, but simply used; if they don't implement the appropriate interface, using them will cause errors to be thrown appropriately.)
+
+```
+class BaseReadableStream {
+    constructor({
+        function initialize = () => {},
+        function pull = () => {},
+        function abort = () => {}
+    })
+
+    // Reading data from the underlying source
+    any read()
+    Promise<undefined> waitForReadable()
+    get ReadableStreamState readableState
+
+    // Composing with writable streams
+    WritableStream pipe(WritableStream dest, { ToBoolean close = true } = {})
+
+    // Stop accumulating data
+    void abort(any reason)
+
+    // Useful helper
+    get Promise<undefined> finished
+
+    // Internal properties
+    Array [[buffer]] = []
+    boolean [[finished]] = false
+    boolean [[errored]] = false
+    any [[error]]
+    Promise<undefined> [[readablePromise]]
+    Promise<undefined> [[finishedPromise]]
+    function [[abort]]
+    function [[pull]]
+
+    // Internal methods
+    [[push]](any data)
+    [[finish]]()
+    [[error]](any e)
+}
+
+enum ReadableStreamState {
+    "readable" // buffer has something in it; read at will
+    "waiting"  // buffer is empty; call waitForReadable
+    "finished" // no more data available
+    "errored"  // reading from the stream errored so the stream is now dead
+}
+```
+
+### Internal State of the BaseReadableStream
+
+#### `[[buffer]]`
+
+The `[[buffer]]` internal property is where data from the underlying data source is accumulated. The buffer never stops accepting data, but in `BaseReadableStream`, it is considered "full" as soon as any data is present.
+
+#### `[[push]](data)`
+
+The `[[push]]` internal method:
+
+1. Pushes `data` onto `[[buffer]]`, for later retrieval by `read`.
+1. Resolves `[[readablePromise]]` with `undefined`, so that anyone waiting for the stream to become readable is notified.
+1. Returns `false`, giving feedback to the stream author that they should pause any underlying push data sources, since as mentioned the buffer is considered "full" as soon as any data is pushed to it.
+
+#### `[[readablePromise]]`
+
+This is simply the promise returned by the `waitForReadable()` public API. When the buffer is drained, it is reset to a new pending promise, so that subsequent calls to `waitForReadable()` know to wait.
+
+#### `[[finish]]()`, `[[finished]]`
+
+The `[[finish]]` internal method:
+
+1. If `[[finished]]` is `true`, return.
+1. Sets `[[finished]]` to `true` so that when `readableState` is requested, `"finished"` is returned.
+1. Let `[[readablePromise]]` be a new promise rejected with an error indicating that the stream is already finished.
+1. Resolves `[[finishedPromise]]` with `undefined`.
+
+#### `[[error]](e)`, `[[error]]`, `[[errored]]`
+
+The `[[error]]` internal method:
+
+1. Sets `[[errored]]` to `true`.
+1. Sets `[[error]]` to `e`.
+1. Rejects `[[finishedPromise]]` with `e`.
+1. Rejects `[[readablePromise]]` with `e`.
+1. Clears `[[buffer]]`.
+
+#### `[[abort]]` and `[[pull]]`
+
+The `[[abort]]` and `[[pull]]` internal properties simply store the functions provided in the constructor for reacting to a public `abort` or `read` call.
+
+### Properties of the BaseReadableStream prototype
+
+#### constructor({ start, pull, abort })
+
+The constructor is passed several functions, all optional:
+
+- `start` is typically passed when adapting a push-based data source, as it is called immediately so it can set up any relevant event listeners.
+- `pull` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls.
+- `abort` is called when the readable stream is aborted, and should perform whatever source-specific steps are necessary to clean up and stop reading.
+
+Both `start` and `pull` are given the ability to manipulate the stream's internal buffer and state by being passed the `[[push]]`, `[[finish]]`, and `[[error]]` functions.
+
+1. Set `[[abort]]` to `abort`.
+1. Set `[[pull]]` to `pull`.
+1. Let `[[readablePromise]]` be a newly-created promise object.
+1. Let `[[finishedPromise]]` be a newly-created promise object.
+1. Call `start([[push]], [[finish]], [[error]])`.
+
+#### get readableState
+
+1. If `[[errored]]` is `true`, return `"errored"`
+1. If `[[buffer]]` is empty,
+    1. If `[[finished]]` is `true`, return `"finished"`
+    1. Return `"waiting"`
+1. Return `"readable"`
+
+#### read()
+
+1. If `[[errored]]` is `true`, throw `[[error]]`.
+1. If `[[buffer]]` is empty, throw an error.
+    - ISSUE: Should we throw different errors for done-and-empty vs. waiting-and-empty?
+    - ISSUE: Should we return a sentinel (like `undefined`) instead?
+1. Let `result` be the result of shift the first element off `[[buffer]]`.
+1. If `[[buffer]]` is now empty, set `[[readablePromise]]` to a newly-created promise object.
+1. Return `result`.
+
+#### waitForReadable()
+
+1. Return `[[readablePromise]]`.
+
+#### abort(reason)
+
+1. Call `[[abort]](reason)`.
+1. Clear `[[buffer]]`.
+1. Call `[[finish]]()`.
+1. Reject `[[readablePromise]]` with `reason`.
+1. Let `[[readablePromise]]` be a new promise rejected with `reason`.
+
+#### get finished
+
+1. Return `[[finishedPromise]]`.
+
+#### pipe(dest, { close })
+
+```js
+ReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
+    const source = this;
+    close = Boolean(close);
+
+    fillDest();
+    return dest;
+
+    function fillDest() {
+        while (dest.state === "writable") {
+            pumpSource();
+        }
+
+        if (dest.state === "waiting") {
+            dest.waitForWritable().then(fillDest, abortSource);
+        } else {
+            // Source has either been closed by someone else, or has errored.
+            // Either way, we're not going to be able to do anything else useful.
+            abortSource();
+        }
+    }
+
+    function pumpSource() {
+        while (source.state === "readable") {
+            dest.write(source.read()).catch(abortSource);
+        }
+
+        if (source.state === "waiting") {
+            source.waitForReadable().then(pump, disposeDest);
+        } else if (source.state === "finished") {
+            closeDest();
+        } else {
+            disposeDest();
+        }
+    }
+
+    function abortSource {
+        source.abort();
+    }
+
+    function closeDest() {
+        if (close) {
+            dest.close();
+        }
+    }
+
+    function disposeDest() {
+        // ISSUE: should this be preventable via an option or via `options.close`?
+        dest.dispose();
+    }
+};
+```
