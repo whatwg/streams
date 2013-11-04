@@ -49,6 +49,85 @@ In general, a pull-based data source can be modeled as:
 - An `open` function that returns a descriptor for the source
 - A `read(cb)` function that can call `cb` either synchronously or asynchronously, with either `(err, null)` or `(null, data)`
 
+#### Consuming Streams
+
+**You must not lose data.**
+
+A common problem with push-based data sources is that they make it very easy to lose data if you do not immediately process it.
+
+For example, Node.js's "streams1" (version 0.6 and below) presented a push-based API that mapped directly to the underlying data source. So a stream for incoming HTTP POST request data would fire `"data"` events continually. A common problem was the desire to perform some asynchronous action, such as authentication, before consuming the stream. But while this asynchronous authentication was taking place, data events would be fired and lost. Worse, calling `pause()` on the request stream did not work, because the pause mapped directly to the underlying TCP primitive, which is only advisory. This forced authors to manually buffer incoming requests, which was easy to do incorrectly or inefficiently.
+
+The solution is to move the buffering logic into the stream primitive itself, removing the error-prone and easy-to-forget process it forces upon consumers. If you stop there, you end up with a push stream with  `pause()` and `resume()` methods that are not advisory, i.e. they reliably stop the flow of `"data"`, `"end"`, and `"close"` events. However, you can take this further, and use your internal buffer to unify both push- and pull-based data sources into a single pull-based streaming API.
+
+#### Composing Streams
+
+**You must be able to pipe streams to each other.**
+
+The primary way of consuming streams is to pipe them to each other. This is the essence of streaming APIs: getting data from a readable stream to a writable one, while buffering as little data as possible in memory.
+
+```js
+fs.createReadStream("source.txt")
+    .pipe(fs.createWriteStream("dest.txt"));
+
+http.get("http://example.com")
+    .pipe(fs.createWriteStream("dest.txt"));
+```
+
+**You must be able to transform streams via the pipe chain**
+
+A naturally-arising concept is a *transform stream*, i.e. a stream that is both readable and writable, such that when data is written to it, transformed data is written out the other side. Note that the transform is rarely one-to-one; for example a compression algorithm can be represented as a transform stream that reads much more than it writes.
+
+```js
+fs.createReadStream("source.zip")
+    .pipe(zlib.createGzipDecompressor(options))
+    .pipe(fs.createWriteStream("dest/"));
+
+fs.createReadStream("index.html")
+    .pipe(zlib.createGzipCompressor(options))
+    .pipe(httpServerResponse);
+
+http.get("http://example.com/video.mp4")
+    .pipe(videoProcessingWebWorker)
+    .pipe(document.query("video"));
+
+fs.createReadStream("source.txt")
+    .pipe(new StringDecoder("utf-8"))
+    .pipe(database1.queryExecutor)
+    .pipe(database2.tableWriter("table"));
+```
+
+**You must be able to communicate backpressure.**
+
+_Backpressure_ is roughly the act of letting the slowest writable stream in the chain govern the rate at which data is consumed from the ultimate data source. If this data source is pull-based, this means not pulling data any faster than required; if the data source is push-baed, this means issuing a pause signal when too much data has already been pushed but not yet flushed through the stream chain.
+
+The exact strategy for applying backpressure can be a quite subtle matter, and will depend on whether you want your stream API to present a pull- or push-based interface. Assuming a pull-based stream interface, the most naïve backpressure strategy is:
+
+- When adapting pull sources, pull data when requested, but never proactively.
+- When adapting push sources, send a start signal when data is requested, and once the data arrives, send a stop signal.
+
+These strategies are enough for a generic case, but performance wins can be had by allowing some in-memory buffering, limited by a specified *high water mark*. This more advanced strategy consists of:
+
+- When adapting pull sources, proactively pull data into an internal buffer until it accumulates to the high water mark, so that it is available immediately when requested. Once the buffer is drained, resume proactively pulling in data.
+- When adapting push sources, send a start signal immediately, and accumulate data as it arrives until it reaches the high water mark. When it does so, send the stop signal. Once the buffer is drained, send the start signal again.
+
+You can introduce an even more advanced strategy by adding a *low water mark*, which modifies the above by resuming data collection once the buffer reaches the low water mark instead of once the buffer is entirely drained.
+
+**You must be able to pipe a stream to more than one writable stream.**
+
+Many use cases requiring piping a stream to more than one destination, e.g. a HTTP response both to a user and to a disk cache, or a stream of video data both to the local user and across an HTTP connection.
+
+The simplest way to implement this is by introduce a "tee" duplex stream, such that writing to it writes to two separate destination streams. Then, piping to two writable streams is done by piping to a tee stream wrapping those two. However, requiring users to remember this can be a footgun, and it may be advisable to automatically create a tee stream for them.
+
+The tee stream can use a number of strategies to govern how the speed of its outputs affect the backpressure signals it gives off, but the simplest strategy is to pass aggregate backpressure signals directly up the chain, thus letting the speed of the slowest output determine the speed of the tee.
+
+#### Other
+
+**You must be able to create streams that represent "duplex" data sources.**
+
+A common I/O abstraction is a data source that is both readable and writable, but the input and output are not related. For example, communication along a TCP socket connection can be bidirectional, but in general the data you read form the socket is not governed by the data you write to it.
+
+The most natural way to enable this concept is to allow readable and writable stream interfaces to both be implemented, by ensuring they do not overlap (e.g. don't both have a `"state"` property).
+
 
 ## A Stream Toolbox
 
@@ -62,6 +141,7 @@ In extensible web fashion, we will build up to a fully-featured streams from a f
 - `BufferingStrategyReadableStream`
     - Derives from `BaseReadableStream`
     - Adds the ability to customize the buffering and backpressure strategy, overriding the basic one.
+    - ISSUE: could I make this a transform stream? Seems like it should be, but not sure how exactly.
 - `ReadableStream`
     - Derives from `BufferingStrategyReadableStream`.
     - Supports piping to more than one destination, by using the `SplitterStream` transform stream within its `pipe` method.
