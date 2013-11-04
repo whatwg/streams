@@ -44,8 +44,11 @@ An example of a pull-based data source is a file descriptor. (TODO: someone expl
 
 In general, a pull-based data source can be modeled as:
 
-- An `open` function that returns a descriptor for the source
-- A `read(cb)` function that can call `cb` either synchronously or asynchronously, with either `(err, null)` or `(null, data)`
+- An `open(cb)` method that gains access to the source; it can call `cb` either synchronous or asynchronously, with either `(err)` or `(null)`.
+- A `read(cb)` function method that gets data from the source; can call `cb` either synchronously or asynchronously, with either `(err, null, null)` or `(null, true, null)` indicating there is no more data or `(null, false, data)` indicating there is data.
+- A `close()` method that releases access to the source (necessary to call only if all data has not already been read).
+
+TODO: is this an accurate model? Should `close` be async/error-prone too?
 
 **You must not lose data.**
 
@@ -316,8 +319,9 @@ This is simply the promise returned by the `waitForReadable()` public API. When 
 The `[[finish]]` internal method:
 
 1. If `[[finished]]` is `true`, return.
-1. Sets `[[finished]]` to `true` so that when `readableState` is requested, `"finished"` is returned.
+1. Sets `[[finished]]` to `true` so that when `readableState` is requested, `"finished"` is returned once the buffer is empty.
 1. Let `[[readablePromise]]` be a new promise rejected with an error indicating that the stream is already finished.
+    - NOTE: existing promises handed out by `waitForReadable` will stay pending forever.
 1. Resolves `[[finishedPromise]]` with `undefined`.
 
 #### `[[error]](e)`, `[[error]]`, `[[errored]]`
@@ -340,8 +344,8 @@ The `[[abort]]` and `[[pull]]` internal properties simply store the functions pr
 
 The constructor is passed several functions, all optional:
 
-- `start` is typically passed when adapting a push-based data source, as it is called immediately so it can set up any relevant event listeners.
-- `pull` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls.
+- `start` is typically used to adapting a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
+- `pull` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources.
 - `abort` is called when the readable stream is aborted, and should perform whatever source-specific steps are necessary to clean up and stop reading.
 
 Both `start` and `pull` are given the ability to manipulate the stream's internal buffer and state by being passed the `[[push]]`, `[[finish]]`, and `[[error]]` functions.
@@ -363,6 +367,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 #### read()
 
 1. If `[[errored]]` is `true`, throw `[[error]]`.
+1. Call `pull([[push]], [[finish]], [[error]])`.
 1. If `[[buffer]]` is empty, throw an error.
     - ISSUE: Should we throw different errors for done-and-empty vs. waiting-and-empty?
     - ISSUE: Should we return a sentinel (like `undefined`) instead?
@@ -440,3 +445,121 @@ ReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
     }
 };
 ```
+
+### Example Usage
+
+Although the by-far most common way of consuming a readable stream will be to pipe it to a writable stream, it is useful to see some examples to understand how the underlying primitives work. For example, this function writes the contents of a readable stream to the console as fast as it can. Note that it because of how our reading API is designed, there is no asynchronous delay imposed if data chunks are available immediately, or several chunks are available in sequence.
+
+```js
+function streamToConsole(readable) {
+    pump();
+
+    function pump() {
+        while (source.state === "readable") {
+            console.log(source.read());
+        }
+
+        if (source.state === "finished") {
+            console.log("--- all done!");
+        } else {
+            // If we're in an error state, the returned promise will be rejected with that error,
+            // so no need to handle "waiting" vs. "errored" separately.
+            source.waitForReadable().then(pump, e => console.error(e));
+        }
+    }
+}
+```
+
+As another example, this function uses the reading APIs to buffer the entire stream in memory and give a promise for the results, defeating the purpose of streams but educating us while doing so:
+
+```js
+function readableStreamToArray(readable) {
+    return new Promise((resolve, reject) => {
+        var chunks = [];
+
+        readable.finished.then(() => resolve(chunks), reject);
+        pump();
+
+        function pump() {
+            while (source.state === "readable") {
+                chunks.push(source.read());
+            }
+
+            if (source.state === "waiting") {
+                source.waitForReadable().then(pump);
+            }
+
+            // All other cases will go through `readable.finished.then(...)` above.
+        }
+    });
+}
+```
+
+### Example Creation
+
+As mentioned, it is important for a readable stream API to be able to support both push- and pull-based data sources. We give one example of each.
+
+```js
+function pushSourceToReadableStream(source) {
+    // Assume a generic push source as in the Requirements section:
+    // `readStart`, `readStop`, `ondata`, `onend`, `onerror`.
+
+    return new BaseReadableStream({
+        start(push, finish, error) {
+            source.ondata = chunk => {
+                if (!push(chunk)) {
+                    source.readStop();
+                }
+            };
+
+            source.onend = finish;
+
+            source.onerror = error;
+        },
+
+        pull() {
+            source.readStart();
+        },
+
+        abort() {
+            source.readStop();
+        }
+    });
+}
+```
+
+```js
+function pullSourceToReadableStream(source) {
+    // Assume a generic pull source as in the Requirements section:
+    // `open(cb)`, `read(cb)`, `close()`.
+
+    return new BaseReadableStream({
+        start(push, finish, error) {
+            open(err => {
+                if (err) {
+                    error(err);
+                }
+            });
+        },
+
+        pull(push, finish, error) {
+            read((err, done, data) => {
+                if (err) {
+                    error(err);
+                } else if (done) {
+                    finish();
+                } else {
+                    push(data);
+                }
+            });
+        },
+
+        abort() {
+            close();
+        }
+    });
+}
+```
+
+Note how in both cases, if data is available synchronously (e.g. because `ondata` or `read` are called synchronously), the data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. Similarly, if data is pushed from the push source twice in a row, it will be available to two subsequent `readableStream.read()` calls before `readableStream.readableState` becomes `"waiting"`. And if data is requested from the readable stream wrapping the pull source twice in a row, it will immediately forward those requests to the underlying pull source, so that if it is ready synchronously, the data will be returned.
+
