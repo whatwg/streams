@@ -199,26 +199,46 @@ For a readable stream, this means that all data has been read from the underlyin
 
 Note that this type of occurrence, which happens exactly once, either succeeds or fails, and is convenient to be able to subscribe to at any time (even if it has already occurred), fits perfectly with promises, as opposed to e.g. events.
 
+**You must have a way of passively watching data pass through a stream.**
+
+This is commonly used for analytics or progress reporting. You wish to observe data flowing, either from a readable stream or to a writable stream, but not interfere with the flow, backpressure, or buffering strategy in any way.
+
+A convenient interface for this is an evented one. However, marrying an evented API to a stream API presents many problems, and was widely considered a huge mistake by the Node.js core team. (For example, there are now two sources of truth about what data stream holds, and since traditional event emitters allow anyone to emit events on them, the second one is unreliable.) A better strategy may be using AOP-style "wrapping" of `read` or `write` calls to notify a separately-managed event emitter.
 
 ## A Stream Toolbox
 
 In extensible web fashion, we will build up to a fully-featured streams from a few basic primitives:
 
+### Readable Streams
+
 - `BaseReadableStream`
     - Has a very simple backpressure strategy, communicating to the underlying data source that it should stop supplying data immediately after it pushes some onto the stream's underlying buffer. (In other words, it has a "high water mark" of zero.)
     - Support piping to only one destination.
+- `ReadableStream`
+    - A higher-level API used by most creators of readable streams.
+    - Adds the ability to customize the buffering and backpressure strategy, overriding the basic one.
+    - Supports piping to more than one destination, by using the `TeeStream` transform stream within its `pipe` method.
+
+### WritableStreams
+
+- `BaseWritableStream`
+    - Has a very simple backpressure strategy, communicating that it is "full" immediately after any data is written (but becoming ready to write again after the asynchronous write completes).
+- `WritableStream`
+    - A higher-level API used by most creators of writable streams.
+    - Adds the ability to customize the buffering and backpressure strategy, overriding the basic one.
+
+### Helpers
+
 - `TeeStream`
     - A writable stream, created from two writable streams, such that writing to it writes to the two destination streams.
-- `BufferingStrategyReadableStream`
-    - Derives from `BaseReadableStream`
-    - Adds the ability to customize the buffering and backpressure strategy, overriding the basic one.
-    - ISSUE: could I make this a transform stream? Seems like it should be, but not sure how exactly.
-- `ReadableStream`
-    - Derives from `BufferingStrategyReadableStream`.
-    - Supports piping to more than one destination, by using the `TeeStream` transform stream within its `pipe` method.
 - `lengthBufferingStrategy`
     - A buffering strategy that uses the `length` property of incoming objects to compute how they contribute to reaching the designated high water mark.
     - Useful mostly for streams of `ArrayBuffer`s and strings.
 - `countBufferingStrategy`
     - A buffering strategy that assumes each incoming object contributes the same amount to reaching the designated high water mark.
     - Useful for streams of objects.
+- `ReadableStreamWatcher`
+   - An `EventTarget` (or similar?) which taps into a given readable stream and emit `"data"`, `"error"`, and `"end"` events for those which wish to watch its progress.
+   - This could be implemented entirely in user-land, but is provided to solve a common use case.
+- `WritableStreamWater`
+   - Same thing as `ReadableStreamWatcher`, but for writable streams, with `"data"`, `"error"`, `"close"`.
