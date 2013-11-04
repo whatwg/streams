@@ -100,7 +100,9 @@ _NOTE: a transform stream is not always the most efficient or straightforward ab
 
 **You must be able to communicate backpressure.**
 
-_Backpressure_ is roughly the act of letting the slowest writable stream in the chain govern the rate at which data is consumed from the ultimate data source. If this data source is pull-based, this means not pulling data any faster than required; if the data source is push-baed, this means issuing a pause signal when too much data has already been pushed but not yet flushed through the stream chain.
+_Backpressure_ is roughly the act of letting the slowest writable stream in the chain govern the rate at which data is consumed from the ultimate data source. This is necessary to make sure a program has a reasonable upper bound on memory usage as it buffers to prevent losing data. Without backpressure, slow writable streams in the chain will either cause memory usage to balloon as buffered data grows without limit, or will cause data loss if the buffers are capped at a hard limit.
+
+If this data source is pull-based, this means not pulling data any faster than required; if the data source is push-baed, this means issuing a pause signal when too much data has already been pushed but not yet flushed through the stream chain.
 
 The exact strategy for applying backpressure can be a quite subtle matter, and will depend on whether you want your stream API to present a pull- or push-based interface. Assuming a pull-based stream interface, the most naïve backpressure strategy is:
 
