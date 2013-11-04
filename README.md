@@ -102,7 +102,7 @@ _NOTE: a transform stream is not always the most efficient or straightforward ab
 
 _Backpressure_ is roughly the act of letting the slowest writable stream in the chain govern the rate at which data is consumed from the ultimate data source. This is necessary to make sure a program has a reasonable upper bound on memory usage as it buffers to prevent losing data. Without backpressure, slow writable streams in the chain will either cause memory usage to balloon as buffered data grows without limit, or will cause data loss if the buffers are capped at a hard limit.
 
-If this data source is pull-based, this means not pulling data any faster than required; if the data source is push-baed, this means issuing a pause signal when too much data has already been pushed but not yet flushed through the stream chain.
+If this data source is pull-based, this means not pulling data any faster than required; if the data source is push-based, this means issuing a pause signal when too much data has already been pushed but not yet flushed through the stream chain.
 
 The exact strategy for applying backpressure can be a quite subtle matter, and will depend on whether you want your stream API to present a pull- or push-based interface. Assuming a pull-based stream interface, the most naïve backpressure strategy is:
 
@@ -126,11 +126,13 @@ The tee stream can use a number of strategies to govern how the speed of its out
 
 #### Other
 
-**You must be able to create streams that represent "duplex" data sources.**
+**You must be able to create representions of "duplex" data sources.**
 
 A common I/O abstraction is a data source that is both readable and writable, but the input and output are not related. For example, communication along a TCP socket connection can be bidirectional, but in general the data you read form the socket is not governed by the data you write to it.
 
-The most natural way to enable this concept is to allow readable and writable stream interfaces to both be implemented, by ensuring they do not overlap (e.g. don't both have a `"state"` property).
+One way enable this concept is to allow readable and writable stream interfaces to both be implemented, by ensuring they do not overlap (e.g. don't both have a `"state"` property or `"error"` event). Thus these duplex interfaces are simple streams that are both readable and writable, so e.g. you would be able to do both `socket.read()` and `socket.write(data)`.
+
+Another way is to demand that such duplex interfaces represent their readable and writable streams separately, e.g. via `in` and `out` properties. In this case you would do `socket.in.read()` and `socket.out.write(data)`. This may feel more awkward for certain cases (like a TCP socket), but more natural in others (like a terminal, which traditionally has both stdout and stdin). It also has the advantage of allowing you to hand out the readable interface without granting write access, or vice-versa.
 
 
 ## A Stream Toolbox
