@@ -276,6 +276,7 @@ class BaseReadableStream {
     Array [[buffer]] = []
     boolean [[finished]] = false
     boolean [[errored]] = false
+    boolean [[pulling]] = false
     any [[error]]
     Promise<undefined> [[readablePromise]]
     Promise<undefined> [[finishedPromise]]
@@ -302,12 +303,13 @@ enum ReadableStreamState {
 
 The `[[buffer]]` internal property is where data from the underlying data source is accumulated. The buffer never stops accepting data, but in `BaseReadableStream`, it is considered "full" as soon as any data is present.
 
-#### `[[push]](data)`
+#### `[[push]](data)` and `[[pulling]]`
 
 The `[[push]]` internal method:
 
 1. Pushes `data` onto `[[buffer]]`, for later retrieval by `read`.
 1. Resolves `[[readablePromise]]` with `undefined`, so that anyone waiting for the stream to become readable is notified.
+1. Sets `[[pulling]]` to `false`, to indicate enough data has been pushed that, when data is next requested via `read()`, it is time to call `[[pull]]` again.
 1. Returns `false`, giving feedback to the stream author that they should pause any underlying push data sources, since as mentioned the buffer is considered "full" as soon as any data is pushed to it.
 
 #### `[[readablePromise]]`
@@ -344,9 +346,9 @@ The `[[abort]]` and `[[pull]]` internal properties simply store the functions pr
 
 The constructor is passed several functions, all optional:
 
-- `start` is typically used to adapting a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
-- `pull` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources.
-- `abort` is called when the readable stream is aborted, and should perform whatever source-specific steps are necessary to clean up and stop reading.
+- `start(push, finish, error)` is typically used to adapting a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
+- `pull(push, finish, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `push` function is called.
+- `abort(reason)` is called when the readable stream is aborted, and should perform whatever source-specific steps are necessary to clean up and stop reading. It is given the abort reason that was given to the stream when calling the public `abort` method, if any.
 
 Both `start` and `pull` are given the ability to manipulate the stream's internal buffer and state by being passed the `[[push]]`, `[[finish]]`, and `[[error]]` functions.
 
@@ -367,7 +369,9 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 #### read()
 
 1. If `[[errored]]` is `true`, throw `[[error]]`.
-1. Call `pull([[push]], [[finish]], [[error]])`.
+1. If `[[pulling]]` is `false`,
+    1. Set `[[pulling]]` to `true`.
+    1. Call `pull([[push]], [[finish]], [[error]])`.
 1. If `[[buffer]]` is empty, throw an error.
     - ISSUE: Should we throw different errors for done-and-empty vs. waiting-and-empty?
     - ISSUE: Should we return a sentinel (like `undefined`) instead?
@@ -409,7 +413,7 @@ ReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
         if (dest.state === "waiting") {
             dest.waitForWritable().then(fillDest, abortSource);
         } else {
-            // Source has either been closed by someone else, or has errored.
+            // Source has either been closed by someone else, or has errored in the course of someone else writing.
             // Either way, we're not going to be able to do anything else useful.
             abortSource();
         }
@@ -429,8 +433,8 @@ ReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
         }
     }
 
-    function abortSource {
-        source.abort();
+    function abortSource(reason) {
+        source.abort(reason);
     }
 
     function closeDest() {
