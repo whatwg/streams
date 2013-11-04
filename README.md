@@ -413,8 +413,9 @@ ReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
         if (dest.state === "waiting") {
             dest.waitForWritable().then(fillDest, abortSource);
         } else {
-            // Source has either been closed by someone else, or has errored in the course of someone else writing.
-            // Either way, we're not going to be able to do anything else useful.
+            // Source has either been closed by someone else, or has errored in the course of
+            // someone else writing. Either way, we're not going to be able to do anything
+            // else useful.
             abortSource();
         }
     }
