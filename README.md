@@ -8,7 +8,9 @@ Both low-level generic streams, with customizable buffering strategy, and high-l
 
 ## Status
 
-This document is undergoing heavy revision. Please peruse and comment on the repository's issues.
+This document is undergoing heavy revision. Its most useful section right now is the [requirements](#requirements), which show what a useful stream API must solve. It contains a [list of APIs](#a-stream-toolbox) that address these requirements, but most of them are not fully fleshed out yet.
+
+In terms of concrete APIs, the [`BaseReadableStream`](#basereadablestream) class is fairly complete, with its internal state machine entirely specified. The [`BaseWritableStream`](#basewritablestream)'s definition is given, but its behavior is still being translated from my head to this repository. The building blocks and higher-level abstractions mentioned in the toolbox are not yet specified in detail.
 
 ## Requirements
 
@@ -241,7 +243,7 @@ In extensible web fashion, we will build up to a fully-featured streams from a f
     - A buffering strategy that assumes each incoming object contributes the same amount to reaching the designated high water mark.
     - Useful for streams of objects.
 - `ReadableStreamWatcher`
-   - An `EventTarget` (or similar?) which taps into a given readable stream and emit `"data"`, `"error"`, and `"end"` events for those which wish to watch its progress.
+   - An `EventTarget` (or similar?) which taps into a given readable stream and emit `"data"`, `"error"`, and `"finished"` events for those which wish to watch its progress.
    - This could be implemented entirely in user-land, but is provided to solve a common use case.
 - `WritableStreamWatcher`
    - Same thing as `ReadableStreamWatcher`, but for writable streams, with `"data"`, `"error"`, `"close"`.
