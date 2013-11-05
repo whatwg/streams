@@ -255,7 +255,7 @@ The interface here is specified in a very loose "JSIDL" definition language. It 
 ```
 class BaseReadableStream {
     constructor({
-        function initialize = () => {},
+        function start = () => {},
         function pull = () => {},
         function abort = () => {}
     })
