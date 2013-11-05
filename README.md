@@ -374,9 +374,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `[[pulling]]` is `false`,
     1. Set `[[pulling]]` to `true`.
     1. Call `pull([[push]], [[finish]], [[error]])`.
-1. If `[[buffer]]` is empty, throw an error.
-    - ISSUE: Should we throw different errors for done-and-empty vs. waiting-and-empty?
-    - ISSUE: Should we return a sentinel (like `undefined`) instead?
+1. If `[[buffer]]` is empty return `ReadableStream.BUFFER_IS_EMPTY` constant.
 1. Let `result` be the result of shift the first element off `[[buffer]]`.
 1. If `[[buffer]]` is now empty, set `[[readablePromise]]` to a newly-created promise object.
 1. Return `result`.
