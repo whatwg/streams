@@ -113,7 +113,7 @@ http.get("http://example.com")
     .pipe(fs.createWriteStream("dest.txt"));
 ```
 
-**You must be able to transform streams via the pipe chain**
+**You must be able to transform streams via the pipe chain**-
 
 A naturally-arising concept is a *transform stream*, i.e. a stream that is both readable and writable, such that when data is written to it, transformed data is written out the other side. Note that the transform is rarely one-to-one; for example a compression algorithm can be represented as a transform stream that reads much more than it writes.
 
@@ -318,7 +318,7 @@ The `[[push]]` internal method:
 
 This is simply the promise returned by the `waitForReadable()` public API. When the buffer is drained, it is reset to a new pending promise, so that subsequent calls to `waitForReadable()` know to wait.
 
-#### `[[finish]]()`, `[[finished]]`
+#### `[[finish]](bool)`, `[[finished]]`
 
 The `[[finish]]` internal method:
 
@@ -326,7 +326,7 @@ The `[[finish]]` internal method:
 1. Sets `[[finished]]` to `true` so that when `readableState` is requested, `"finished"` is returned once the buffer is empty.
 1. Let `[[readablePromise]]` be a new promise rejected with an error indicating that the stream is already finished.
     - NOTE: existing promises handed out by `waitForReadable` will stay pending forever.
-1. Resolves `[[finishedPromise]]` with `undefined`.
+1. Resolves `[[finishedPromise]]` with `false` if `bool` is `false` otherwise `true`.
 
 #### `[[error]](e)`, `[[error]]`, `[[errored]]`
 
@@ -389,7 +389,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 1. Call `[[abort]](reason)`.
 1. Clear `[[buffer]]`.
-1. Call `[[finish]]()`.
+1. Call `[[finish]](false)`.
 1. Reject `[[readablePromise]]` with `reason`.
 1. Let `[[readablePromise]]` be a new promise rejected with `reason`.
 
