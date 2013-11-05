@@ -336,7 +336,6 @@ The `[[error]]` internal method:
 1. Sets `[[error]]` to `e`.
 1. Rejects `[[finishedPromise]]` with `e`.
 1. Rejects `[[readablePromise]]` with `e`.
-1. Clears `[[buffer]]`.
 
 #### `[[abort]]` and `[[pull]]`
 
