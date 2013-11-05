@@ -570,6 +570,10 @@ function pullSourceToReadableStream(source) {
                 if (err) {
                     error(err);
                 }
+                
+                // let BaseReadableStream know we are open
+                // and can start pulling
+                push()
             });
         },
 
