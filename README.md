@@ -462,22 +462,46 @@ function streamToConsole(readable) {
     pump();
 
     function pump() {
-        while (source.state === "readable") {
-            console.log(source.read());
+        while (readable.state === "readable") {
+            console.log(readable.read());
         }
 
-        if (source.state === "finished") {
+        if (readable.state === "finished") {
             console.log("--- all done!");
         } else {
             // If we're in an error state, the returned promise will be rejected with that error,
             // so no need to handle "waiting" vs. "errored" separately.
-            source.waitForReadable().then(pump, e => console.error(e));
+            readable.waitForReadable().then(pump, e => console.error(e));
         }
     }
 }
 ```
 
-As another example, this function uses the reading APIs to buffer the entire stream in memory and give a promise for the results, defeating the purpose of streams but educating us while doing so:
+As another example, this helper function will return a promise for the next available piece of data from a given readable stream. This introduces an artificial delay if there is already data buffered, but can provide a convenient interface for simple chunk-by-chunk consumption, as one might do e.g. when streaming database records.
+
+```js
+function getNext(readable) {
+    return new Promise((resolve, reject) => {
+        if (readable.state === "waiting") {
+            resolve(readable.waitForReadable().then(() => readable.read()));
+        } else {
+            // If the state is `"errored"` or `"finished"`, the appropriate error will be thrown,
+            // which by the semantics of the Promise constructor causes the desired rejection.
+            resolve(readable.read());
+        }
+    });
+}
+
+// Usage with a promise-generator bridge like Q or TaskJS:
+Q.spawn(function* () {
+    while (myStream.state !== "finished") {
+        const data = yield getNext(myStream);
+        // do something with `data`.
+    }
+});
+```
+
+As a final example, this function uses the reading APIs to buffer the entire stream in memory and give a promise for the results, defeating the purpose of streams but educating us while doing so:
 
 ```js
 function readableStreamToArray(readable) {
@@ -488,12 +512,12 @@ function readableStreamToArray(readable) {
         pump();
 
         function pump() {
-            while (source.state === "readable") {
-                chunks.push(source.read());
+            while (readable.state === "readable") {
+                chunks.push(readable.read());
             }
 
-            if (source.state === "waiting") {
-                source.waitForReadable().then(pump);
+            if (readable.state === "waiting") {
+                readable.waitForReadable().then(pump);
             }
 
             // All other cases will go through `readable.finished.then(...)` above.
