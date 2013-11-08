@@ -599,7 +599,7 @@ Note how in both cases, if data is available synchronously (e.g. because `ondata
 Writable streams are a bit simpler than readable streams, but still are complicated by the need to buffer fast writes.
 
 ```
-class WritableStream {
+class BaseWritableStream {
     constructor({
         function write = () => {},
         function close = () => {},
