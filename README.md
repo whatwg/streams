@@ -408,11 +408,11 @@ ReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
     return dest;
 
     function fillDest() {
-        while (dest.state === "writable") {
+        while (dest.writableState === "writable") {
             pumpSource();
         }
 
-        if (dest.state === "waiting") {
+        if (dest.writableState === "waiting") {
             dest.waitForWritable().then(fillDest, abortSource);
         } else {
             // Source has either been closed by someone else, or has errored in the course of
@@ -423,13 +423,13 @@ ReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
     }
 
     function pumpSource() {
-        while (source.state === "readable") {
+        while (source.readableState === "readable") {
             dest.write(source.read()).catch(abortSource);
         }
 
-        if (source.state === "waiting") {
+        if (source.readableState === "waiting") {
             source.waitForReadable().then(pump, disposeDest);
-        } else if (source.state === "finished") {
+        } else if (source.readableState === "finished") {
             closeDest();
         } else {
             disposeDest();
@@ -462,11 +462,11 @@ function streamToConsole(readable) {
     pump();
 
     function pump() {
-        while (readable.state === "readable") {
+        while (readable.readableState === "readable") {
             console.log(readable.read());
         }
 
-        if (readable.state === "finished") {
+        if (readable.readableState === "finished") {
             console.log("--- all done!");
         } else {
             // If we're in an error state, the returned promise will be rejected with that error,
@@ -482,7 +482,7 @@ As another example, this helper function will return a promise for the next avai
 ```js
 function getNext(readable) {
     return new Promise((resolve, reject) => {
-        if (readable.state === "waiting") {
+        if (readable.readableState === "waiting") {
             resolve(readable.waitForReadable().then(() => readable.read()));
         } else {
             // If the state is `"errored"` or `"finished"`, the appropriate error will be thrown,
@@ -494,7 +494,7 @@ function getNext(readable) {
 
 // Usage with a promise-generator bridge like Q or TaskJS:
 Q.spawn(function* () {
-    while (myStream.state !== "finished") {
+    while (myStream.readableState !== "finished") {
         const data = yield getNext(myStream);
         // do something with `data`.
     }
@@ -512,11 +512,11 @@ function readableStreamToArray(readable) {
         pump();
 
         function pump() {
-            while (readable.state === "readable") {
+            while (readable.readableState === "readable") {
                 chunks.push(readable.read());
             }
 
-            if (readable.state === "waiting") {
+            if (readable.readableState === "waiting") {
                 readable.waitForReadable().then(pump);
             }
 
