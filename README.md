@@ -324,9 +324,9 @@ The `[[finish]]` internal method:
 
 1. If `[[finished]]` is `true`, return.
 1. Sets `[[finished]]` to `true` so that when `readableState` is requested, `"finished"` is returned once the buffer is empty.
-1. Let `[[readablePromise]]` be a new promise rejected with an error indicating that the stream is already finished.
+1. Once the buffer is empty, let `[[readablePromise]]` be a new promise rejected with an error indicating that the stream is already finished.
     - NOTE: existing promises handed out by `waitForReadable` will stay pending forever.
-1. Resolves `[[finishedPromise]]` with `undefined`.
+1. Once the buffer is empty, Resolves `[[finishedPromise]]` with `undefined`.
 
 #### `[[error]](e)`, `[[error]]`, `[[errored]]`
 
