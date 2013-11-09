@@ -276,12 +276,14 @@ class BaseReadableStream {
 
     // Internal properties
     Array [[buffer]] = []
+    boolean [[started]] = false
     boolean [[draining]] = false
     boolean [[pulling]] = false
     string [[readableState]] = "waiting"
     any [[error]]
     Promise<undefined> [[readablePromise]]
     Promise<undefined> [[finishedPromise]]
+    Promise [[startedPromise]]
     function [[onAbort]]
     function [[onPull]]
 
@@ -339,7 +341,10 @@ enum ReadableStreamState {
 #### `[[callPull]]()`
 
 1. If `[[pulling]]` is `true`, return.
-1. Call `[[onPull]]([[push]], [[finish]], [[error]])`.
+1. If `[[started]]` is `false`,
+    1. When/if `[[startedPromise]]` is fulfilled, call `[[onPull]]([[push]], [[finish]], [[error]])`.
+1. If `[[started]]` is `true`,
+    1. Call `[[onPull]]([[push]], [[finish]], [[error]])`.
 
 ### Properties of the BaseReadableStream prototype
 
@@ -357,7 +362,9 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. Set `[[onPull]]` to `pull`.
 1. Let `[[readablePromise]]` be a newly-created promise object.
 1. Let `[[finishedPromise]]` be a newly-created promise object.
-1. Call `start([[push]], [[finish]], [[error]])`.
+1. Call `start([[push]], [[finish]], [[error]])` and let `[[startedPromise]]` be the result of casting the return value to a promise.
+1. When/if `[[startedPromise]]` is fulfilled, set `[[started]]` to `true`.
+1. When/if `[[startedPromise]]` is rejected with reason `r`, call `[[error]](r)`.
 
 #### get readableState
 
@@ -578,9 +585,12 @@ function pullSourceToReadableStream(source) {
 
     return new BaseReadableStream({
         start(push, finish, error) {
-            open(err => {
-                if (err) {
-                    error(err);
+            return new Promise(resolve => {
+                open(err => {
+                    if (err) {
+                        error(err);
+                    }
+                    resolve();
                 }
             });
         },
