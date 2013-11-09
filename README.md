@@ -276,19 +276,20 @@ class BaseReadableStream {
 
     // Internal properties
     Array [[buffer]] = []
-    boolean [[finished]] = false
-    boolean [[errored]] = false
+    boolean [[draining]] = false
     boolean [[pulling]] = false
+    string [[readableState]] = "waiting"
     any [[error]]
     Promise<undefined> [[readablePromise]]
     Promise<undefined> [[finishedPromise]]
-    function [[abort]]
-    function [[pull]]
+    function [[onAbort]]
+    function [[onPull]]
 
     // Internal methods
     [[push]](any data)
     [[finish]]()
     [[error]](any e)
+    [[callPull]]()
 }
 
 enum ReadableStreamState {
@@ -299,48 +300,46 @@ enum ReadableStreamState {
 }
 ```
 
-### Internal State of the BaseReadableStream
+### Internal Methods of BaseReadableStream
 
-#### `[[buffer]]`
+#### `[[push]](data)`
 
-The `[[buffer]]` internal property is where data from the underlying data source is accumulated. The buffer never stops accepting data, but in `BaseReadableStream`, it is considered "full" as soon as any data is present.
+1. If `[[readableState]]` is `"waiting"`,
+    1. Push `data` onto `[[buffer]]`.
+    1. Set `[[pulling]]` to `false`.
+    1. Resolve `[[readablePromise]]` with `undefined`.
+    1. Set `[[readableState]]` to `"readable"`.
+1. If `[[readableState]]` is `"readable"`,
+    1. Push `data` onto `[[buffer]]`.
+    1. Set `[[pulling]]` to `false`.
 
-#### `[[push]](data)` and `[[pulling]]`
+#### `[[finish]]()`
 
-The `[[push]]` internal method:
+1. If `[[readableState]]` is `"waiting"`,
+    1. Reject `[[readablePromise]]` with an error saying that the stream has already been completely read.
+    1. Resolve `[[finishedPromise]]` with `undefined`.
+    1. Set `[[readableState]]` to `"finished"`.
+1. If `[[readableState]]` is `"readable"`,
+    1. Set `[[draining]]` to `true`.
 
-1. Pushes `data` onto `[[buffer]]`, for later retrieval by `read`.
-1. Resolves `[[readablePromise]]` with `undefined`, so that anyone waiting for the stream to become readable is notified.
-1. Sets `[[pulling]]` to `false`, to indicate enough data has been pushed that, when data is next requested via `read()`, it is time to call `[[pull]]` again.
-1. Returns `false`, giving feedback to the stream author that they should pause any underlying push data sources, since as mentioned the buffer is considered "full" as soon as any data is pushed to it.
+#### `[[error]](e)`
 
-#### `[[readablePromise]]`
+1. If `[[readableState]]` is `"waiting"`,
+    1. Set `[[error]]` to `e`.
+    1. Reject `[[finishedPromise]]` with `e`.
+    1. Reject `[[readablePromise]]` with `e`.
+    1. Set `[[readableState]]` to `"errored"`.
+1. If `[[readableState]]` is `"readable"`,
+    1. Clear `[[buffer]]`.
+    1. Set `[[error]]` to `e`.
+    1. Let `[[readablePromise]]` be a newly-created promise object rejected with `e`.
+    1. Reject `[[finishedPromise]]` with `e`.
+    1. Set `[[readableState]]` to `"errored"`.
 
-This is simply the promise returned by the `waitForReadable()` public API. When the buffer is drained, it is reset to a new pending promise, so that subsequent calls to `waitForReadable()` know to wait.
+#### `[[callPull]]()`
 
-#### `[[finish]]()`, `[[finished]]`
-
-The `[[finish]]` internal method:
-
-1. If `[[finished]]` is `true`, return.
-1. Sets `[[finished]]` to `true` so that when `readableState` is requested, `"finished"` is returned once the buffer is empty.
-1. Let `[[readablePromise]]` be a new promise rejected with an error indicating that the stream is already finished.
-    - NOTE: existing promises handed out by `waitForReadable` will stay pending forever.
-1. Resolves `[[finishedPromise]]` with `undefined`.
-
-#### `[[error]](e)`, `[[error]]`, `[[errored]]`
-
-The `[[error]]` internal method:
-
-1. Sets `[[errored]]` to `true`.
-1. Sets `[[error]]` to `e`.
-1. Rejects `[[finishedPromise]]` with `e`.
-1. Rejects `[[readablePromise]]` with `e`.
-1. Clears `[[buffer]]`.
-
-#### `[[abort]]` and `[[pull]]`
-
-The `[[abort]]` and `[[pull]]` internal properties simply store the functions provided in the constructor for reacting to a public `abort` or `read` call.
+1. If `[[pulling]]` is `true`, return.
+1. Call `[[onPull]]([[push]], [[finish]], [[error]])`.
 
 ### Properties of the BaseReadableStream prototype
 
@@ -354,44 +353,57 @@ The constructor is passed several functions, all optional:
 
 Both `start` and `pull` are given the ability to manipulate the stream's internal buffer and state by being passed the `[[push]]`, `[[finish]]`, and `[[error]]` functions.
 
-1. Set `[[abort]]` to `abort`.
-1. Set `[[pull]]` to `pull`.
+1. Set `[[onAbort]]` to `abort`.
+1. Set `[[onPull]]` to `pull`.
 1. Let `[[readablePromise]]` be a newly-created promise object.
 1. Let `[[finishedPromise]]` be a newly-created promise object.
 1. Call `start([[push]], [[finish]], [[error]])`.
 
 #### get readableState
 
-1. If `[[errored]]` is `true`, return `"errored"`
-1. If `[[buffer]]` is empty,
-    1. If `[[finished]]` is `true`, return `"finished"`
-    1. Return `"waiting"`
-1. Return `"readable"`
+1. Return `[[readableState]]`.
 
 #### read()
 
-1. If `[[errored]]` is `true`, throw `[[error]]`.
-1. If `[[pulling]]` is `false`,
-    1. Set `[[pulling]]` to `true`.
-    1. Call `pull([[push]], [[finish]], [[error]])`.
-1. If `[[buffer]]` is empty, throw an error.
-    - ISSUE: Should we throw different errors for done-and-empty vs. waiting-and-empty?
-    - ISSUE: Should we return a sentinel (like `undefined`) instead?
-1. Let `result` be the result of shift the first element off `[[buffer]]`.
-1. If `[[buffer]]` is now empty, set `[[readablePromise]]` to a newly-created promise object.
-1. Return `result`.
+1. If `[[readableState]]` is `"waiting"`,
+    1. Throw an error indicating that the stream does not have any data available yet.
+1. If `[[readableState]]` is `"readable"`,
+    1. Assert: `[[buffer]]` is not empty.
+    1. Let `data` be the result of shifting an element off of the front of `[[buffer]]`.
+    1. If `[[buffer]]` is now empty,
+        1. If `[[draining]]` is `true`,
+            1. Resolve `[[finishedPromise]]` with `undefined`.
+            1. Let `[[readablePromise]]` be a newly-created promise rejected with an error saying that the stream has already been completely read.
+            1. Set `[[readableState]]` to `"finished"`.
+        1. If `[[draining]]` is `false`,
+            1. Set `[[readableState]]` to `"waiting"`.
+            1. Let `[[readablePromise]]` be a newly-created pending promise.
+            1. `[[callPull]]()`.
+    1. Return `data`.
+1. If `[[readableState]]` is `"errored"`,
+    1. Throw `[[error]]`.
+1. If `[[readableState]]` is `"finished"`,
+    1. Throw an error indicating that the stream has already been completely read.
 
 #### waitForReadable()
 
+1. If `[[readableState]]` is `"waiting"`,
+    1. `[[callPull]]()`.
 1. Return `[[readablePromise]]`.
 
 #### abort(reason)
 
-1. Call `[[abort]](reason)`.
-1. Clear `[[buffer]]`.
-1. Call `[[finish]]()`.
-1. Reject `[[readablePromise]]` with `reason`.
-1. Let `[[readablePromise]]` be a new promise rejected with `reason`.
+1. If `[[readableState]]` is `"waiting"`,
+    1. Call `[[onAbort]](reason)`.
+    1. Resolve `[[finishedPromise]]` with `undefined`.
+    1. Reject `[[readablePromise]]` with `reason`.
+    1. Set `[[readableState]]` to `"finished"`.
+1. If `[[readableState]]` is `"readable"`,
+    1. Call `[[onAbort]](reason)`.
+    1. Resolve `[[finishedPromise]]` with `undefined`.
+    1. Let `[[readablePromise]]` be a newly-created promise rejected with `reason`.
+    1. Clear `[[buffer]]`.
+    1. Set `[[readableState]]` to `"finished"`.
 
 #### get finished
 
