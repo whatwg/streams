@@ -74,7 +74,7 @@ Most underlying data sinks are designed to work well with only one concurrent wr
 
 On the other hand, incoming data, either produced manually or piped from a readable stream, has no respect for the limits of the underlying sink. If you are piping from a fast filesystem to a slow network connection, it is quite likely new data will be available from the filesystem before the network responds that it has successfully delivered the first chunk you wrote to it. Forcing users of your writable stream API to juggle this state is an undue and error-prone burden. Worse, users can sometimes get away with ignoring this concern, e.g. if they usually pipe a slow source to a fast one, there will be no problems, until one day they pipe to a network filesystem instead of a local one, and writes are suddenly delivered concurrently or out of order.
 
-Thus it is the duty of a writable stream API to prevent an easy interface for writing data to it at any speed, but buffering incoming data and only forwarding it to the underlying sink one chunk at a time, and only after the previous write completed successfully.
+Thus it is the duty of a writable stream API to provide an easy interface for writing data to it at any speed, but buffering incoming data and only forwarding it to the underlying sink one chunk at a time, and only after the previous write completed successfully.
 
 This leads to a natural quantification of how "slow" a writable stream is in terms of how full its write buffer is. This measure of slowness can be used to propagate backpressure signals to anyone writing data to the writable stream; see below for more details.
 
@@ -160,7 +160,7 @@ You can introduce an even more advanced strategy by adding a *low water mark*, w
 
 Many use cases requiring piping a stream to more than one destination, e.g. a HTTP response both to a user and to a disk cache, or a stream of video data both to the local user and across an HTTP connection.
 
-The simplest way to implement this is by introduce a "tee" duplex stream, such that writing to it writes to two separate destination streams. Then, piping to two writable streams is done by piping to a tee stream wrapping those two. However, requiring users to remember this can be a footgun, and it may be advisable to automatically create a tee stream for them.
+The simplest way to implement this is by introducing a "tee" duplex stream, such that writing to it writes to two separate destination streams. Then, piping to two writable streams is done by piping to a tee stream wrapping those two. However, requiring users to remember this can be a footgun, and it may be advisable to automatically create a tee stream for them.
 
 The tee stream can use a number of strategies to govern how the speed of its outputs affect the backpressure signals it gives off, but the simplest strategy is to pass aggregate backpressure signals directly up the chain, thus letting the speed of the slowest output determine the speed of the tee.
 
