@@ -146,13 +146,23 @@ If this data source is pull-based, this means not pulling data any faster than r
 
 The exact strategy for applying backpressure can be a quite subtle matter, and will depend on whether you want your stream API to present a pull- or push-based interface. Assuming a pull-based stream interface, the most naïve backpressure strategy is:
 
-- When adapting pull sources, pull data when requested, but never proactively.
-- When adapting push sources, send a start signal when data is requested, and once the data arrives, send a stop signal.
+- _When the stream is based on a pull source:_
+  - When a consumer signals it is ready to read data from the stream object, pull data from the source into the stream's internal buffer so that it can be read.
+  - Never load data into the stream from the source before the user signals interest.
+- _When the stream is based on a push source:_
+  - When a consumer signals it is ready to read data from the stream object, send a start signal to the source.
+  - Once the data arrives, store it in the stream's internal buffer so it can be read, and send a stop signal to the source.
 
 These strategies are enough for a generic case, but performance wins can be had by allowing some in-memory buffering, limited by a specified *high water mark*. This more advanced strategy consists of:
 
-- When adapting pull sources, proactively pull data into an internal buffer until it accumulates to the high water mark, so that it is available immediately when requested. Once the buffer is drained, resume proactively pulling in data.
-- When adapting push sources, send a start signal immediately, and accumulate data as it arrives until it reaches the high water mark. When it does so, send the stop signal. Once the buffer is drained, send the start signal again.
+- _When the stream is based on a pull source:_
+  - Proactively pull data from the source into the stream's internal buffer, even before the consumer signals that it wants to read from the stream object.
+  - Do so until the pulled data accumulates up to the stream's high water mark. This makes the data available immediately when requested by consumers of the stream.
+  - After the consumer reads all of the data from the internal buffer, we say that the buffer is drained; in this event, go back to proactively pulling data into the buffer from the source.
+- _When the stream is based on a push source:_
+  - Send a start signal to the source immediately, even before the consumer signals that it wants to read from the stream object.
+  - As data is pushed from the source, accumulate it in the stream's internal buffer, up to the high water mark. Once the high  water mark is reached, send a stop signal to the source.
+  - After the stream's buffer is drained, send a start signal to the source.
 
 You can introduce an even more advanced strategy by adding a *low water mark*, which modifies the above by resuming data collection once the buffer reaches the low water mark instead of once the buffer is entirely drained.
 
