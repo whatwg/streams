@@ -260,7 +260,9 @@ In extensible web fashion, we will build up to a fully-featured streams from a f
 
 ## BaseReadableStream
 
-The interface here is specified in a very loose "JSIDL" definition language. It is meant to invoke ECMAScript semantics and to ensure nobody interprets this API as conforming to WebIDL conventions, since formalization of this specification will use ECMAScript semantics instead of WebIDL ones. (For example, parameters will not be type-validated, but simply used; if they don't implement the appropriate interface, using them will cause errors to be thrown appropriately.)
+**Note on conventions:** The interface here is specified in a very loose definition language. It is meant to invoke ECMAScript semantics and to ensure nobody interprets this API as conforming to WebIDL conventions, since formalization of this specification will use ECMAScript semantics instead of WebIDL ones. For example, parameters will not be type-validated, but simply used; if they don't implement the appropriate interface, using them will cause errors to be thrown appropriately. This will allow e.g. piping to ad-hoc user-constructed writable streams consisting of object literals with a few specific methods, or better subclassing, or application of generic methods to user-constructed streams.
+
+In other words, over time the definition given below will disappear, replaced with interface definitions as in the ECMAScript spec (see [Map](http://people.mozilla.org/%7Ejorendorff/es6-draft.html#sec-properties-of-the-map-prototype-object) and [Promise](https://github.com/domenic/promises-unwrapping#properties-of-the-promise-prototype-object)). So don't worry too much about the dialect it's written in, except insofar as it should help understanding.
 
 ```
 class BaseReadableStream {
@@ -276,6 +278,7 @@ class BaseReadableStream {
     get ReadableStreamState readableState
 
     // Composing with writable streams
+    // NB: the return value is actually whatever `dest` is. Hard to express in IDL.
     WritableStream pipe(WritableStream dest, { ToBoolean close = true } = {})
 
     // Stop accumulating data
