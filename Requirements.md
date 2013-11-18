@@ -16,27 +16,11 @@ A _push-based_ data source is one which, while the flow is turned on, pushes dat
 
 An example of a push-based data source is a TCP socket. (TODO: someone who knows TCP better explain exactly the way in which it pushes data, and what "pausing" means in that context and why it is advisory.)
 
-In general, a push-based data source can be modeled as:
-
-- A `readStart` method that starts the flow of data
-- A `readStop` method that sends an advisory signal to stop the flow of data
-- A `ondata` handler that fires when new data is pushed from the source
-- A `onend` handler that fires when the source has no more data
-- A `onerror` handler that fires when the source signals an error getting data
-
 ### You must be able to efficiently adapt existing _pull_-based data sources into a uniform streaming interface.
 
 A _pull-based_ data source is one which you must request data from. The data may be available synchronously, or asynchronously. It is important not to let this [zalgo-esque](http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony) implementation detail leak into the semantics of the uniform stream API, but at the same time, it is preferable not to impose a delay on consumers if the data is available synchronously.
 
 An example of a pull-based data source is a file descriptor. (TODO: someone explain how this maps to C-level APIs.)
-
-In general, a pull-based data source can be modeled as:
-
-- An `open(cb)` method that gains access to the source; it can call `cb` either synchronous or asynchronously, with either `(err)` or `(null)`.
-- A `read(cb)` function method that gets data from the source; can call `cb` either synchronously or asynchronously, with either `(err, null, null)` or `(null, true, null)` indicating there is no more data or `(null, false, data)` indicating there is data.
-- A `close()` method that releases access to the source (necessary to call only if all data has not already been read).
-
-TODO: is this an accurate model? Should `close` be async/error-prone too?
 
 ### You must not lose data.
 

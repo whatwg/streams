@@ -437,72 +437,123 @@ function readableStreamToArray(readable) {
 
 As mentioned, it is important for a readable stream API to be able to support both push- and pull-based data sources. We give one example of each.
 
+#### Adapting a Push-Based Data Source
+
+In general, a push-based data source can be modeled as:
+
+- A `readStart` method that starts the flow of data
+- A `readStop` method that sends an advisory signal to stop the flow of data
+- A `ondata` handler that fires when new data is pushed from the source
+- A `onend` handler that fires when the source has no more data
+- A `onerror` handler that fires when the source signals an error getting data
+
+As an aside, this is pretty close to the existing HTML [`WebSocket` interface](http://www.whatwg.org/specs/web-apps/current-work/multipage/network.html#the-websocket-interface), with the exception that `WebSocket` does not give any method of pausing or resuming the flow of data.
+
+Let's assume we have some raw C++ socket object or similar, which presents the above API. The data it delivers via `ondata` comes in the form of `ArrayBuffer`s. We wish to create a class that wraps that C++ interface into a stream, with a configurable high-water mark set to a reasonable default. This is how you would do it:
+
 ```js
-function pushSourceToReadableStream(source) {
-    // Assume a generic push source as in the Requirements section:
-    // `readStart`, `readStop`, `ondata`, `onend`, `onerror`.
+class StreamingSocket extends ReadableStream {
+    constructor(host, port, { highWaterMark = 16 * 1024 } = {}) {
+        const rawSocket = createRawSocketObject(host, port);
+        super({
+            start(push, finish, error) {
+                rawSocket.ondata = chunk => {
+                    if (!push(chunk)) {
+                        rawSocket.readStop();
+                    }
+                };
 
-    return new ReadableStream({
-        start(push, finish, error) {
-            source.ondata = chunk => {
-                if (!push(chunk)) {
-                    source.readStop();
+                rawSocket.onend = finish;
+
+                rawSocket.onerror = error;
+            },
+
+            pull() {
+                rawSocket.readStart();
+            },
+
+            abort() {
+                rawSocket.readStop();
+            },
+
+            strategy: {
+                count(incomingArrayBuffer) {
+                    return incomingArrayBuffer.length;
+                },
+
+                needsMoreData(bufferSize) {
+                    return bufferSize < highWaterMark;
                 }
-            };
-
-            source.onend = finish;
-
-            source.onerror = error;
-        },
-
-        pull() {
-            source.readStart();
-        },
-
-        abort() {
-            source.readStop();
-        }
-    });
+            }
+        });
+    }
 }
 ```
 
-```js
-function pullSourceToReadableStream(source) {
-    // Assume a generic pull source as in the Requirements section:
-    // `open(cb)`, `read(cb)`, `close()`.
+By leveraging the `ReadableStream` base class, and supplying its super-constructor with the appropriate adapter functions and backpressure strategy, we've created a fully-functioning stream wrapping our raw socket API. It will automatically fill the internal buffer as data is fired into it, preventing any loss that would occur in the simple evented model. If the buffer fills up to the high water mark (defaulting to 16 KiB), it will send a signal to the underlying socket that it should stop sending us data. And once the consumer drains it of all its data, it will send the start signal back, resuming the flow of data.
 
-    return new ReadableStream({
-        start(push, finish, error) {
-            return new Promise(resolve => {
-                open(err => {
+Note how, if data is available synchronously because `ondata` was called synchronously, the data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. Similarly, if `ondata` is called twice in a row, the pushed data will be available to two subsequent `readableStream.read()` calls before `readableStream.readableState` becomes `"waiting"`.
+
+#### Adapting a Pull-Based Data Source
+
+In general, a pull-based data source can be modeled as:
+
+- An `open(cb)` method that gains access to the source; it can call `cb` either synchronous or asynchronously, with either `(err)` or `(null)`.
+- A `read(cb)` function method that gets data from the source; can call `cb` either synchronously or asynchronously, with either `(err, null, null)` or `(null, true, null)` indicating there is no more data or `(null, false, data)` indicating there is data.
+- A `close()` method that releases access to the source (necessary to call only if all data has not already been read).
+
+Let's assume that we have some raw C++ file handle API matching this type of setup. Here is how we would adapt that into a readable stream:
+
+```js
+class ReadableFile extends ReadableStream {
+    constructor(filename, { highWaterMark = 16 * 1024 } = {}) {
+        const fileHandle = createRawFileHandle(filename);
+
+        super({
+            start(push, finish, error) {
+                return new Promise(resolve => {
+                    fileHandle.open(err => {
+                        if (err) {
+                            error(err);
+                        }
+                        resolve();
+                    });
+                });
+            },
+
+            pull(push, finish, error) {
+                fileHandle.read((err, done, data) => {
                     if (err) {
                         error(err);
+                    } else if (done) {
+                        finish();
+                    } else {
+                        push(data);
                     }
-                    resolve();
-                }
-            });
-        },
+                });
+            },
 
-        pull(push, finish, error) {
-            read((err, done, data) => {
-                if (err) {
-                    error(err);
-                } else if (done) {
-                    finish();
-                } else {
-                    push(data);
-                }
-            });
-        },
+            abort() {
+                fileHandle.close();
+            },
 
-        abort() {
-            close();
-        }
-    });
+            strategy: {
+                count(incomingArrayBuffer) {
+                    return incomingArrayBuffer.length;
+                },
+
+                needsMoreData(bufferSize) {
+                    return bufferSize < highWaterMark;
+                }
+            }
+        });
+    }
 }
 ```
 
-Note how in both cases, if data is available synchronously (e.g. because `ondata` or `read` are called synchronously), the data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. Similarly, if data is pushed from the push source twice in a row, it will be available to two subsequent `readableStream.read()` calls before `readableStream.readableState` becomes `"waiting"`. And if data is requested from the readable stream wrapping the pull source twice in a row, it will immediately forward those requests to the underlying pull source, so that if it is ready synchronously, the data will be returned.
+As before, we leverage the `ReadableStream` base class to do most of the work. Our adapter functions, in this case, don't set up event listeners as they would for a push source; instead, they directly forward the desired operations of opening the file handle and reading from it down to the underlying API.
+
+Again note how, if data is available synchronously because `fileHandle.read` called its callback synchronously, that data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. And if data is requested from the `ReadableFile` instance twice in a row, it will immediately forward those requests to the underlying file handle, so that if it is ready synchronously (because e.g. the OS has recently buffered this file in memory), the data will be returned instantly, within that same turn.
 
 ## Writable Stream APIs
 
