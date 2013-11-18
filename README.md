@@ -309,7 +309,58 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
 };
 ```
 
-#### Example Usage
+### ReadableStream
+
+```
+class ReadableStream extends BaseReadableStream {
+    // Adds a backpressure strategy argument.
+    constructor({
+        function start = () => {},
+        function pull = () => {},
+        function abort = () => {},
+        strategy: { function count, function needsMoreData }
+    })
+
+    // Overriden to do bookkeeping for the backpressure strategy
+    any read()
+
+    // Supports multi-pipe by default, overriding base behavior.
+    WritableStream pipe(WritableStream dest, { ToBoolean close = true } = {})
+
+    // Overriden to take into account the backpressure strategy.
+    // You can also think of this as part of the constructor override, i.e. it passes
+    //   in a different function to `start` and `pull`.
+    [[push]](data)
+}
+```
+
+#### Internal Methods of ReadableStream
+
+##### `[[push]](data)`
+
+1. Call `BaseReadableStream`'s version of `[[push]](data)`.
+1. If `[[readableState]]` is now `"readable"`,
+    1. Add `[[strategy]].count(data)` to `[[bufferSize]]`.
+    1. Return `[[strategy]].needsMoreData([[bufferSize]])`.
+
+#### Properties of the ReadableStream Prototype
+
+##### `constructor({ start, pull, abort, strategy })`
+
+1. Set `[[strategy]]` to `strategy`.
+1. Call `super({ start, pull, abort })`.
+
+##### `read()`
+
+1. Let `data` be `super()`.
+1. Subtract `[[strategy]].count(data)` from `[[bufferSize]]`.
+1. Return `data`.
+
+##### `pipe(dest, { close })`
+
+TODO
+
+### Example Usage
 
 Although the by-far most common way of consuming a readable stream will be to pipe it to a writable stream, it is useful to see some examples to understand how the underlying primitives work. For example, this function writes the contents of a readable stream to the console as fast as it can. Note that it because of how our reading API is designed, there is no asynchronous delay imposed if data chunks are available immediately, or several chunks are available in sequence.
 
@@ -382,7 +433,7 @@ function readableStreamToArray(readable) {
 }
 ```
 
-#### Example Creation
+### Example Creation
 
 As mentioned, it is important for a readable stream API to be able to support both push- and pull-based data sources. We give one example of each.
 
@@ -391,7 +442,7 @@ function pushSourceToReadableStream(source) {
     // Assume a generic push source as in the Requirements section:
     // `readStart`, `readStop`, `ondata`, `onend`, `onerror`.
 
-    return new BaseReadableStream({
+    return new ReadableStream({
         start(push, finish, error) {
             source.ondata = chunk => {
                 if (!push(chunk)) {
@@ -420,7 +471,7 @@ function pullSourceToReadableStream(source) {
     // Assume a generic pull source as in the Requirements section:
     // `open(cb)`, `read(cb)`, `close()`.
 
-    return new BaseReadableStream({
+    return new ReadableStream({
         start(push, finish, error) {
             return new Promise(resolve => {
                 open(err => {
