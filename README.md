@@ -69,10 +69,10 @@ In extensible web fashion, we will build up to a fully-featured streams from a f
 
 - `TeeStream`
     - A writable stream, created from two writable streams, such that writing to it writes to the two destination streams.
-- `lengthBufferingStrategy`
+- `LengthBufferingStrategy`
     - A buffering strategy that uses the `length` property of incoming objects to compute how they contribute to reaching the designated high water mark.
     - Useful mostly for streams of `ArrayBuffer`s and strings.
-- `countBufferingStrategy`
+- `CountBufferingStrategy`
     - A buffering strategy that assumes each incoming object contributes the same amount to reaching the designated high water mark.
     - Useful for streams of objects.
 - `ReadableStreamWatcher`
@@ -592,6 +592,57 @@ enum WritableStreamState {
 }
 ```
 
+## Helper APIs
+
+### LengthBufferingStrategy
+
+A common buffering strategy when dealing with binary or string data is to wait until the accumulated `length` properties of the incoming data reaches a specified `highWaterMark`. As such, this is provided as a built-in helper along with the stream APIs.
+
+```js
+class LengthBufferingStrategy {
+    constructor({ highWaterMark }) {
+        this.highWaterMark = Number(highWaterMark);
+
+        if (Number.isNaN(this.highWaterMark) || this.highWaterMark < 0) {
+            throw new RangeError("highWaterMark must be a nonnegative number.");
+        }
+    }
+
+    count(chunk) {
+        return chunk.length;
+    }
+
+    needsMoreData(bufferSize) {
+        return bufferSize < this.highWaterMark;
+    }
+}
+```
+
+Note that both of the examples of [creating readable streams](#example-creation) could have used this, replacing their `strategy:` option with `strategy: new LengthBufferingStrategy({ highWaterMark })`.
+
+### CountBufferingStrategy
+
+A common buffering strategy when dealing with object streams is to simply count the number of objects that have been accumulated so far, waiting until this number reaches a specified `highWaterMark`. As such, this strategy is also provided as a built-in helper.
+
+```js
+class CountBufferingStrategy {
+    constructor({ highWaterMark }) {
+        this.highWaterMark = Number(highWaterMark);
+
+        if (Number.isNaN(this.highWaterMark) || this.highWaterMark < 0) {
+            throw new RangeError("highWaterMark must be a nonnegative number.");
+        }
+    }
+
+    count(chunk) {
+        return 1;
+    }
+
+    needsMoreData(bufferSize) {
+        return bufferSize < this.highWaterMark;
+    }
+}
+```
 
 ---
 
