@@ -267,11 +267,9 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
     return dest;
 
     function fillDest() {
-        while (dest.writableState === "writable") {
+        if (dest.writableState === "writable") {
             pumpSource();
-        }
-
-        if (dest.writableState === "waiting") {
+        } else if (dest.writableState === "waiting") {
             dest.waitForWritable().then(fillDest, abortSource);
         } else {
             // Source has either been closed by someone else, or has errored in the course of
@@ -282,12 +280,11 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
     }
 
     function pumpSource() {
-        while (source.readableState === "readable") {
+        if (source.readableState === "readable") {
             dest.write(source.read()).catch(abortSource);
-        }
-
-        if (source.readableState === "waiting") {
-            source.waitForReadable().then(pump, disposeDest);
+            fillDest();
+        } else if (source.readableState === "waiting") {
+            source.waitForReadable().then(fillDest, disposeDest);
         } else if (source.readableState === "finished") {
             closeDest();
         } else {
