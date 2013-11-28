@@ -331,6 +331,9 @@ class ReadableStream extends BaseReadableStream {
     // You can also think of this as part of the constructor override, i.e. it passes
     //   in a different function to `start` and `pull`.
     [[push]](data)
+
+    // Internal tee stream used by pipe
+    [[tee]] = undefined
 }
 ```
 
@@ -358,7 +361,11 @@ class ReadableStream extends BaseReadableStream {
 
 ##### `pipe(dest, { close })`
 
-TODO
+1. Let `alreadyPiping` be `true`.
+1. If `[[tee]]` is `undefined`, let `[[tee]]` be a new `TeeStream` and set `alreadyPiping` to `false`.
+1. Call `[[tee]].addOut(dest, { close })`.
+1. If `alreadyPiping` is `false`, call `super([[tee]], { close: true })`.
+1. Return `dest`.
 
 ### Example Usage
 
@@ -593,6 +600,35 @@ enum WritableStreamState {
 ```
 
 ## Helper APIs
+
+### TeeStream
+
+A "tee stream" is a writable stream which, when written to, itself writes to multiple destinations. It aggregates backpressure and abort signals from those destinations, propagating the appropriate aggregate signals backward.
+
+```js
+class TeeStream extends BaseWritableStream {
+    constructor() {
+        this.[[outputs]] = [];
+
+        super({
+            write(data) {
+                return Promise.all(this.[[outputs]].map(o => o.dest.write(data)));
+            },
+            close() {
+                const outputsToClose = this.[[outputs]].filter(o => o.close);
+                return Promise.all(outputsToClose.map(o => o.dest.write(data)));
+            },
+            dispose(reason) {
+                return Promise.all(this.[[outputs]].map(o => o.dest.dispose(reason)));
+            }
+        });
+    }
+
+    addOut(dest, { close = true } = {}) {
+        this.[[outputs]].push({ dest, close });
+    }
+}
+```
 
 ### LengthBufferingStrategy
 
