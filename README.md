@@ -590,7 +590,6 @@ class BaseWritableStream {
     get Promise<undefined> closed
 
     // Internal methods
-    [[signalDone]]()
     [[error]](any e)
     [[doClose]]()
     [[doDispose]](r)
@@ -598,12 +597,11 @@ class BaseWritableStream {
 
     // Internal properties
     Array [[buffer]] = []
-    string [[internalState]] = "starting"
+    string [[writableState]] = "waiting"
     any [[storedError]]
     Promise<undefined> [[currentWritePromise]]
     Promise<undefined> [[writablePromise]]
     Promise<undefined> [[closedPromise]]
-    Promise<undefined> [[startedPromise]]
     function [[onWrite]]
     function [[onClose]]
     function [[onDispose]]
@@ -617,27 +615,6 @@ enum WritableStreamState {
     "errored"  // the sink errored so the stream is now dead
 }
 ```
-
-#### Internal States of a Writable Stream
-
-The internal state machine of a writable stream contains more bookkeeping states than the exposed `writableState` property exposes.
-
-- Starting: the constructor's `start` option has been called, but the returned promise hasn't settled yet; no calls to the `write()` method have occurred yet.
-- Queued: the promise returned from `start` hasn't settled yet, but the `write()` method has been called to queue up some data in the internal buffer.
-- Writable: the internal buffer is empty and no write operations are outstanding.
-- Writing: the underlying sink is being written to, so all incoming writes must be buffered.
-- Draining: the `.close()` method has been called, but there is still data in the internal buffer and/or outstanding write operations that have not signaled completion.
-- Ending: Either the `.close()` method has been called, and all data has been flushed out of the internal buffer, or the `.dispose()` method has been called; however, the promise returned from the `close` (or `dispose`) constructor option has not yet settled.
-- Closed: The underlying sink was successfully closed or disposed, and no further write operations are possible.
-- Errored: An error occurred opening, writing to, closing, or disposing of the underlying sink, and no further operations are possible.
-
-The mapping to external states is captured by the `writableState` getter:
-
-- `"writable"`: writable
-- `"waiting"`: starting, queued, writing
-- `"closing"`: draining, ending
-- `"closed": closed
-- `"errored": errored
 
 #### Properties of the BaseWritableStream prototype
 
@@ -656,11 +633,14 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Set `[[onClose]]` to `close`.
 1. Set `[[onDispose]]` to `dispose`.
 1. Let `[[writablePromise]]` be a newly-created pending promise.
-1. Call `start()` and let `[[startedPromise]]` be the result of casting the return value to a promise.
-1. When/if `[[startedPromise]]` is fulfilled,
-    1. If `[[internalState]]` is `"starting"`, set `[[internalState]]` to `"writable"`.
-    1. Resolve `[[writablePromise]]` with `undefined`.
-1. When/if `[[startedPromise]]` is rejected with reason `r`, call `[[error]](r)`.
+1. Call `start()` and let `startedPromise` be the result of casting the return value to a promise.
+1. When/if `startedPromise` is fulfilled,
+    1. If `[[buffer]]` is empty,
+        1. Set `[[writableState]]` to `"writable"`.
+        1. Resolve `[[writablePromise]]` with `undefined`.
+    1. Otherwise,
+        1. Call `[[doNextWrite]]()`.
+1. When/if `startedPromise` is rejected with reason `r`, call `[[error]](r)`.
 
 ##### get closed
 
@@ -668,60 +648,54 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ##### get writableState
 
-1. If `[[internalState]]` is `"starting"`, `"queued"`, or `"writing"`, return `"waiting"`.
-1. If `[[internalState]]` is `"draining"` or `"ending"`, return `"closing".
-1. Return `[[internalState]]`.
+1. Return `[[writableState]]`.
 
 ##### write(data)
 
-1. Let `p` be a newly created promise.
-1. If `[[internalState]]` is `"starting"`,
-    1. Push `{ p, data }` onto `[[buffer]]`.
-    1. Set `[[internalState]]` to `"queued"`.
-1. If `[[internalState]]` is `"queued"`,
-    1. Push `{ p, data }` onto `[[buffer]]`.
-1. If `[[internalState]]` is `"writable"`,
-    1. Push `{ p, data }` onto `[[buffer]]`.
+1. Let `promise` be a newly-created pending promise.
+1. If `[[writableState]]` is `"writable"`,
+    1. Push `{ type: "data", promise, data }` onto `[[buffer]]`.
+    1. Set `[[writableState]]` to `"waiting"`.
+    1. Set `[[writablePromise]]` to be a newly-created pending promise.
     1. Call `[[doNextWrite]]()`.
-1. If `[[internalState]]` is `"writing"`,
-    1. Push `{ p, data }` onto `[[buffer]]`.
-1. If `[[internalState]]` is `"draining"` or `"ending"`,
-    1. Reject `p` with an error indicating that you cannot write while the stream is closing.
-1. If `[[internalState]]` is `"closed"`,
-    1. Reject `p` with an error indicating that you cannot write after the stream has been closed.
-1. If `[[internalState]]` is `"errored"`,
-    1. Reject `p` with `[[storedError]]`.
-1. Return `p`.
+    1. Return `promise`.
+1. If `[[writableState]]` is `"waiting"`,
+    1. Push `{ type: "data", promise, data }` onto `[[buffer]]`.
+    1. Return `promise`.
+1. If `[[writableState]]` is `"closing"`,
+    1. Return a promise rejected with an error indicating that you cannot write while the stream is closing.
+1. If `[[writableState]]` is `"closed"`,
+    1. Return a promise rejected with an error indicating that you cannot write after the stream has been closed.
+1. If `[[writableState]]` is `"errored"`,
+    1. Return a promise rejected with `[[storedError]]`.
 
 ##### close()
 
-1. If `[[internalState]]` is `"starting"`,
-    1. Set `[[internalState]]` to `"ending"`.
-    1. Return `[[startingPromise]].then([[onClose]])`.
-1. If `[[internalState]]` is `"queued"`,
-    1. Set `[[internalState]]` to `"draining"`.
-    1. Return `[[startingPromise]].then([[doNextWrite]])`.
-1. If `[[internalState]]` is `"writable"`,
+1. If `[[writableState]]` is `"writable"`,
+    1. Set `[[writableState]]` to `"closing"`.
     1. Return `[[doClose]]()`.
-1. If `[[internalState]]` is `"writing"`,
-    1. Set `[[internalState]]` to `"draining"`.
-1. If `[[internalState]]` is `"draining"` or `"ending"`,
+1. If `[[writableState]]` is `"waiting"`,
+    1. Set `[[writableState]]` to `"closing"`.
+    1. Let `promise` be a newly-created pending promise.
+    1. Push `{ type: "close", promise, data: undefined }` onto `[[buffer]]`.
+1. If `[[writableState]]` is `"closing"`,
     1. Return a promise rejected with an error indicating that you cannot close a stream that is already closing.
-1. If `[[internalState]]` is `"closed"`,
+1. If `[[writableState]]` is `"closed"`,
     1. Return a promise rejected with an error indicating that you cannot close a stream that is already closed.
-1. If `[[internalState]]` is `"errored"`,
+1. If `[[writableState]]` is `"errored"`,
     1. Return a promise rejected with `[[storedError]]`.
 
 ##### dispose(r)
 
-1. If `[[internalState]]` is `"starting"`, `"queued"`, `"writable"`, or `"writing"`
+1. If `[[writableState]]` is `"writable"`,
+    1. Set `[[writableState]]` to `"closing"`.
     1. Return `[[doDispose]](r)`.
-1. If `[[internalState]]` is `"draining"` or `"ending"`,
-    1. Return a promise rejected with an error indicating that you cannot close a stream that is already closing.
-1. If `[[internalState]]` is `"closed"`,
-    1. Return a promise rejected with an error indicating that you cannot close a stream that is already closed.
-1. If `[[internalState]]` is `"errored"`,
-    1. Return a promise rejected with `[[storedError]]`.
+1. If `[[writableState]]` is `"waiting"`, or if `[[writableState]]` is `"closing"` and `[[buffer]]` is not empty,
+    1. Set `[[writableState]]` to `"closing"`.
+    1. For each entry `{ type, promise, data }` in `[[buffer]]`, reject `promise` with `r`.
+    1. Clear `[[buffer]]`.
+    1. Return `[[doDispose]](r)`.
+1. Return a promise resolved with `undefined`.
 
 ##### waitForWritable()
 
@@ -729,66 +703,66 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 #### Internal Methods of BaseWritableStream
 
-##### `[[signalDone]]()`
-
-1. Assert: `[[internalState]]` is not `"starting"` or `"queued"`.
-1. If `[[internalState]]` is `"writable",
-    1. Do nothing. (This occurs only if the user calls `done` twice from a single call to the `write` constructor option.)
-1. If `[[internalState]]` is `"writing"`,
-    1. Resolve `[[currentWritePromise]]` with `undefined`.
-    1. If `[[buffer]]` is empty,
-        1. Set `[[internalState]]` to `"writable"`.
-        1. Resolve `[[writablePromise]]` with `undefined`.
-    1. If `[[buffer]]` is not empty,
-        1. Call `[[doNextWrite]]()`.
-1. If `[[internalState]]` is `"draining"`,
-    1. Resolve `[[currentWritePromise]]` with `undefined`.
-    1. If `[[buffer]]` is empty,
-        1. Call `[[doClose]]()`.
-    1. If `[[buffer]]` is not empty,
-        1. Call `[[doNextWrite]]()`.
-1. If `[[internalState]]` is `"ending"`, `"closed"`, or `"errored"`,
-    1. Do nothing. (This only occurs if the user calls `done` twice from a single call to the `write` constructor option, or after calling `error`.)
-
 ##### `[[error]](e)`
 
-1. If `[[internalState]]` is not `"closed"` or `"errored"`,
+1. If `[[writableState]]` is not `"closed"` or `"errored"`,
     1. Reject `[[writablePromise]]` with `e`.
     1. Reject `[[closedPromise]]` with `e`.
-    1. If `[[currentWritePromise]]` is not `undefined, reject `[[currentWritePromise]]` with `e`.
+    1. For each entry `{ type, promise, data }` in `[[buffer]]`, reject `promise` with `r`.
     1. Set `[[storedError]]` to `e`.
-    1. Set `[[internalState]]` to `"errored"`.
+    1. Set `[[writableState]]` to `"errored"`.
 
 ##### `[[doClose]]()`
 
-1. Set `[[internalState]]` to `"ending"`,
 1. Reject `[[writablePromise]]` with an error saying that the stream has been closed.
 1. Call `[[onClose]]()`.
 1. If the call throws an exception `e`, call `[[error]](e)` and return a promise rejected with `e`.
-1. Otherwise, let `[[closedPromise]]` be the result of casting the return value to a promise.
-1. When/if `[[closedPromise]]` is fulfilled, set `[[internalState]]` to `"closed"`.
-1. When/if `[[closedPromise]]` is rejected with reason `r`, call `[[error]](r)`.
+1. Otherwise, let `closeResult` be the result of casting the return value to a promise.
+1. When/if `closeResult` is fulfilled,
+    1. Set `[[writableState]]` to `"closed"`.
+    1. Resolve `[[closedPromise]]` with `undefined`.
+1. When/if `closeResult` is rejected with reason `r`, call `[[error]](r)`.
 1. Return `[[closedPromise]]`.
 
 ##### `[[doDispose]](r)`
 
-1. Set `[[internalState]]` to `"ending"`,
 1. Reject `[[writablePromise]]` with `r`.
 1. Call `[[onDispose]](r)`.
 1. If the call throws an exception `e`, call `[[error]](e)` and return a promise rejected with `e`.
-1. Otherwise, let `[[closedPromise]]` be the result of casting the return value to a promise.
-1. When/if `[[closedPromise]]` is fulfilled, set `[[internalState]]` to `"closed"`.
-1. When/if `[[closedPromise]]` is rejected with reason `r`, call `[[error]](r)`.
+1. Otherwise, let `disposeResult` be the result of casting the return value to a promise.
+1. When/if `disposeResult` is fulfilled,
+    1. Set `[[writableState]]` to `"closed"`.
+    1. Resolve `[[closedPromise]]` with `undefined`.
+1. When/if `disposeResult` is rejected with reason `r`, call `[[error]](r)`.
 1. Return `[[closedPromise]]`.
 
 ##### `[[doNextWrite]]()`
 
 1. Assert: `[[buffer]]` is not empty.
-1. Shift `{ p, data }` off of `[[buffer]]`.
-1. Set `[[currentWritePromise]]` to `p`.
-1. Set `[[writablePromise]]` to a newly-created pending promise.
-1. Call `[[onWrite]](data, [[signalDone]], [[error]])`.
+1. Assert: `[[writableState]]` is `"waiting"` or `"closing"`.
+1. Shift `{ type, promise, data }` off of `[[buffer]]`.
+1. If `type` is `"close"`,
+    1. Assert: `[[writableState]]` is `"closing"`.
+    1. Call `[[doClose]]()`.
+    1. Return.
+1. Assert: `type` must be `"data"`.
+1. Set `[[currentWritePromise]]` to `promise`.
+1. Let `signalDone` be a new function of zero arguments, closing over `this` and `promise`, that performs the following steps:
+    1. If `this.[[currentWritePromise]]` is not `promise`, return.
+    1. Set `this.[[currentWritePromise]]` to `undefined`.
+    1. If `this.[[writableState]]` is `"waiting"`,
+        1. Resolve `promise` with `undefined`.
+        1. If `this.[[buffer]]` is not empty, call `this.[[doNextWrite]]()`.
+        1. If `this.[[buffer]]` is empty,
+            1. Set `this.[[writableState]]` to `"writable"`.
+            1. Resolve `this.[[writablePromise]]` with `undefined`.
+    1. If `this.[[writableState]]` is `"closing"`,
+        1. Resolve `promise` with `undefined`.
+        1. If `this.[[buffer]]` is not empty, call `this.[[doNextWrite]]()`.
+1. Call `[[onWrite]](data, signalDone, [[error]])`.
 1. If the call throws an exception `e`, call `[[error]](e)`.
+
+Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been disposed, then `signalDone` ends up doing nothing.
 
 ## Helper APIs
 
