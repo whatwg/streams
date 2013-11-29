@@ -152,65 +152,65 @@ The constructor is passed several functions, all optional:
 - `pull(push, finish, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `push` function is called.
 - `abort(reason)` is called when the readable stream is aborted, and should perform whatever source-specific steps are necessary to clean up and stop reading. It is given the abort reason that was given to the stream when calling the public `abort` method, if any.
 
-Both `start` and `pull` are given the ability to manipulate the stream's internal buffer and state by being passed the `[[push]]`, `[[finish]]`, and `[[error]]` functions.
+Both `start` and `pull` are given the ability to manipulate the stream's internal buffer and state by being passed the `this.[[push]]`, `this.[[finish]]`, and `this.[[error]]` functions.
 
-1. Set `[[onAbort]]` to `abort`.
-1. Set `[[onPull]]` to `pull`.
-1. Let `[[readablePromise]]` be a newly-created promise object.
-1. Let `[[finishedPromise]]` be a newly-created promise object.
-1. Call `start([[push]], [[finish]], [[error]])` and let `[[startedPromise]]` be the result of casting the return value to a promise.
-1. When/if `[[startedPromise]]` is fulfilled, set `[[started]]` to `true`.
-1. When/if `[[startedPromise]]` is rejected with reason `r`, call `[[error]](r)`.
+1. Set `this.[[onAbort]]` to `abort`.
+1. Set `this.[[onPull]]` to `pull`.
+1. Let `this.[[readablePromise]]` be a newly-created pending promise.
+1. Let `this.[[finishedPromise]]` be a newly-created pending promise.
+1. Call `start(this.[[push]], this.[[finish]], this.[[error]])` and let `this.[[startedPromise]]` be the result of casting the return value to a promise.
+1. When/if `this.[[startedPromise]]` is fulfilled, set `this.[[started]]` to `true`.
+1. When/if `this.[[startedPromise]]` is rejected with reason `r`, call `this.[[error]](r)`.
 
 ##### get readableState
 
-1. Return `[[readableState]]`.
+1. Return `this.[[readableState]]`.
 
 ##### read()
 
-1. If `[[readableState]]` is `"waiting"`,
+1. If `this.[[readableState]]` is `"waiting"`,
     1. Throw an error indicating that the stream does not have any data available yet.
-1. If `[[readableState]]` is `"readable"`,
-    1. Assert: `[[buffer]]` is not empty.
-    1. Let `data` be the result of shifting an element off of the front of `[[buffer]]`.
-    1. If `[[buffer]]` is now empty,
-        1. If `[[draining]]` is `true`,
-            1. Resolve `[[finishedPromise]]` with `undefined`.
-            1. Let `[[readablePromise]]` be a newly-created promise rejected with an error saying that the stream has already been completely read.
-            1. Set `[[readableState]]` to `"finished"`.
-        1. If `[[draining]]` is `false`,
-            1. Set `[[readableState]]` to `"waiting"`.
-            1. Let `[[readablePromise]]` be a newly-created pending promise.
-            1. `[[callPull]]()`.
+1. If `this.[[readableState]]` is `"readable"`,
+    1. Assert: `this.[[buffer]]` is not empty.
+    1. Let `data` be the result of shifting an element off of the front of `this.[[buffer]]`.
+    1. If `this.[[buffer]]` is now empty,
+        1. If `this.[[draining]]` is `true`,
+            1. Resolve `this.[[finishedPromise]]` with `undefined`.
+            1. Let `this.[[readablePromise]]` be a newly-created promise rejected with an error saying that the stream has already been completely read.
+            1. Set `this.[[readableState]]` to `"finished"`.
+        1. If `this.[[draining]]` is `false`,
+            1. Set `this.[[readableState]]` to `"waiting"`.
+            1. Let `this.[[readablePromise]]` be a newly-created pending promise.
+            1. `this.[[callPull]]()`.
     1. Return `data`.
-1. If `[[readableState]]` is `"errored"`,
-    1. Throw `[[storedError]]`.
-1. If `[[readableState]]` is `"finished"`,
+1. If `this.[[readableState]]` is `"errored"`,
+    1. Throw `this.[[storedError]]`.
+1. If `this.[[readableState]]` is `"finished"`,
     1. Throw an error indicating that the stream has already been completely read.
 
 ##### waitForReadable()
 
-1. If `[[readableState]]` is `"waiting"`,
-    1. `[[callPull]]()`.
-1. Return `[[readablePromise]]`.
+1. If `this.[[readableState]]` is `"waiting"`,
+    1. Call `this.[[callPull]]()`.
+1. Return `this.[[readablePromise]]`.
 
 ##### abort(reason)
 
-1. If `[[readableState]]` is `"waiting"`,
-    1. Call `[[onAbort]](reason)`.
-    1. Resolve `[[finishedPromise]]` with `undefined`.
-    1. Reject `[[readablePromise]]` with `reason`.
-    1. Set `[[readableState]]` to `"finished"`.
-1. If `[[readableState]]` is `"readable"`,
-    1. Call `[[onAbort]](reason)`.
-    1. Resolve `[[finishedPromise]]` with `undefined`.
-    1. Let `[[readablePromise]]` be a newly-created promise rejected with `reason`.
-    1. Clear `[[buffer]]`.
-    1. Set `[[readableState]]` to `"finished"`.
+1. If `this.[[readableState]]` is `"waiting"`,
+    1. Call `this.[[onAbort]](reason)`.
+    1. Resolve `this.[[finishedPromise]]` with `undefined`.
+    1. Reject `this.[[readablePromise]]` with `reason`.
+    1. Set `this.[[readableState]]` to `"finished"`.
+1. If `this.[[readableState]]` is `"readable"`,
+    1. Call `this.[[onAbort]](reason)`.
+    1. Resolve `this.[[finishedPromise]]` with `undefined`.
+    1. Let `this.[[readablePromise]]` be a newly-created promise rejected with `reason`.
+    1. Clear `this.[[buffer]]`.
+    1. Set `this.[[readableState]]` to `"finished"`.
 
 ##### get finished
 
-1. Return `[[finishedPromise]]`.
+1. Return `this.[[finishedPromise]]`.
 
 ##### pipe(dest, { close })
 
@@ -269,45 +269,45 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
 
 ##### `[[push]](data)`
 
-1. If `[[readableState]]` is `"waiting"`,
-    1. Push `data` onto `[[buffer]]`.
-    1. Set `[[pulling]]` to `false`.
-    1. Resolve `[[readablePromise]]` with `undefined`.
-    1. Set `[[readableState]]` to `"readable"`.
-1. If `[[readableState]]` is `"readable"`,
-    1. Push `data` onto `[[buffer]]`.
-    1. Set `[[pulling]]` to `false`.
+1. If `this.[[readableState]]` is `"waiting"`,
+    1. Push `data` onto `this.[[buffer]]`.
+    1. Set `this.[[pulling]]` to `false`.
+    1. Resolve `this.[[readablePromise]]` with `undefined`.
+    1. Set `this.[[readableState]]` to `"readable"`.
+1. If `this.[[readableState]]` is `"readable"`,
+    1. Push `data` onto `this.[[buffer]]`.
+    1. Set `this.[[pulling]]` to `false`.
 
 ##### `[[finish]]()`
 
-1. If `[[readableState]]` is `"waiting"`,
-    1. Reject `[[readablePromise]]` with an error saying that the stream has already been completely read.
-    1. Resolve `[[finishedPromise]]` with `undefined`.
-    1. Set `[[readableState]]` to `"finished"`.
-1. If `[[readableState]]` is `"readable"`,
-    1. Set `[[draining]]` to `true`.
+1. If `this.[[readableState]]` is `"waiting"`,
+    1. Reject `this.[[readablePromise]]` with an error saying that the stream has already been completely read.
+    1. Resolve `this.[[finishedPromise]]` with `undefined`.
+    1. Set `this.[[readableState]]` to `"finished"`.
+1. If `this.[[readableState]]` is `"readable"`,
+    1. Set `this.[[draining]]` to `true`.
 
 ##### `[[error]](e)`
 
-1. If `[[readableState]]` is `"waiting"`,
-    1. Set `[[storedError]]` to `e`.
-    1. Reject `[[finishedPromise]]` with `e`.
-    1. Reject `[[readablePromise]]` with `e`.
-    1. Set `[[readableState]]` to `"errored"`.
-1. If `[[readableState]]` is `"readable"`,
-    1. Clear `[[buffer]]`.
-    1. Set `[[storedError]]` to `e`.
-    1. Let `[[readablePromise]]` be a newly-created promise object rejected with `e`.
-    1. Reject `[[finishedPromise]]` with `e`.
-    1. Set `[[readableState]]` to `"errored"`.
+1. If `this.[[readableState]]` is `"waiting"`,
+    1. Set `this.[[storedError]]` to `e`.
+    1. Reject `this.[[finishedPromise]]` with `e`.
+    1. Reject `this.[[readablePromise]]` with `e`.
+    1. Set `this.[[readableState]]` to `"errored"`.
+1. If `this.[[readableState]]` is `"readable"`,
+    1. Clear `this.[[buffer]]`.
+    1. Set `this.[[storedError]]` to `e`.
+    1. Let `this.[[readablePromise]]` be a newly-created promise object rejected with `e`.
+    1. Reject `this.[[finishedPromise]]` with `e`.
+    1. Set `this.[[readableState]]` to `"errored"`.
 
 ##### `[[callPull]]()`
 
-1. If `[[pulling]]` is `true`, return.
-1. If `[[started]]` is `false`,
-    1. When/if `[[startedPromise]]` is fulfilled, call `[[onPull]]([[push]], [[finish]], [[error]])`.
-1. If `[[started]]` is `true`,
-    1. Call `[[onPull]]([[push]], [[finish]], [[error]])`.
+1. If `this.[[pulling]]` is `true`, return.
+1. If `this.[[started]]` is `false`,
+    1. When/if `this.[[startedPromise]]` is fulfilled, call `this.[[onPull]](this.[[push]], this.[[finish]], this.[[error]])`.
+1. If `this.[[started]]` is `true`,
+    1. Call `this.[[onPull]](this.[[push]], this.[[finish]], this.[[error]])`.
 
 ### ReadableStream
 
@@ -341,30 +341,30 @@ class ReadableStream extends BaseReadableStream {
 
 ##### `[[push]](data)`
 
-1. Call `BaseReadableStream`'s version of `[[push]](data)`.
-1. If `[[readableState]]` is now `"readable"`,
-    1. Add `[[strategy]].count(data)` to `[[bufferSize]]`.
-    1. Return `[[strategy]].needsMoreData([[bufferSize]])`.
+1. Call `BaseReadableStream`'s version of `this.[[push]](data)`.
+1. If `this.[[readableState]]` is now `"readable"`,
+    1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
+    1. Return `this.[[strategy]].needsMoreData(this.[[bufferSize]])`.
 
 #### Properties of the ReadableStream Prototype
 
 ##### `constructor({ start, pull, abort, strategy })`
 
-1. Set `[[strategy]]` to `strategy`.
+1. Set `this.[[strategy]]` to `strategy`.
 1. Call `super({ start, pull, abort })`.
 
 ##### `read()`
 
 1. Let `data` be `super()`.
-1. Subtract `[[strategy]].count(data)` from `[[bufferSize]]`.
+1. Subtract `this.[[strategy]].count(data)` from `this.[[bufferSize]]`.
 1. Return `data`.
 
 ##### `pipe(dest, { close })`
 
 1. Let `alreadyPiping` be `true`.
-1. If `[[tee]]` is `undefined`, let `[[tee]]` be a new `TeeStream` and set `alreadyPiping` to `false`.
-1. Call `[[tee]].addOut(dest, { close })`.
-1. If `alreadyPiping` is `false`, call `super([[tee]], { close: true })`.
+1. If `this.[[tee]]` is `undefined`, let `this.[[tee]]` be a new `TeeStream` and set `alreadyPiping` to `false`.
+1. Call `this.[[tee]].addOut(dest, { close })`.
+1. If `alreadyPiping` is `false`, call `super(this.[[tee]], { close: true })`.
 1. Return `dest`.
 
 ### Example Usage
@@ -629,124 +629,124 @@ The constructor is passed several functions, all optional:
 
 In reaction to calls to the stream's `.write()` method, the `write` constructor option is given data from the internal buffer, along with the means to signal that the data has been successfully or unsuccessfully written.
 
-1. Set `[[onWrite]]` to `write`.
-1. Set `[[onClose]]` to `close`.
-1. Set `[[onDispose]]` to `dispose`.
-1. Let `[[writablePromise]]` be a newly-created pending promise.
+1. Set `this.[[onWrite]]` to `write`.
+1. Set `this.[[onClose]]` to `close`.
+1. Set `this.[[onDispose]]` to `dispose`.
+1. Let `this.[[writablePromise]]` be a newly-created pending promise.
 1. Call `start()` and let `startedPromise` be the result of casting the return value to a promise.
 1. When/if `startedPromise` is fulfilled,
-    1. If `[[buffer]]` is empty,
-        1. Set `[[writableState]]` to `"writable"`.
-        1. Resolve `[[writablePromise]]` with `undefined`.
+    1. If `this.[[buffer]]` is empty,
+        1. Set `this.[[writableState]]` to `"writable"`.
+        1. Resolve `this.[[writablePromise]]` with `undefined`.
     1. Otherwise,
-        1. Call `[[doNextWrite]]()`.
-1. When/if `startedPromise` is rejected with reason `r`, call `[[error]](r)`.
+        1. Call `this.[[doNextWrite]]()`.
+1. When/if `startedPromise` is rejected with reason `r`, call `this.[[error]](r)`.
 
 ##### get closed
 
-1. Return `[[closedPromise]]`.
+1. Return `this.[[closedPromise]]`.
 
 ##### get writableState
 
-1. Return `[[writableState]]`.
+1. Return `this.[[writableState]]`.
 
 ##### write(data)
 
 1. Let `promise` be a newly-created pending promise.
-1. If `[[writableState]]` is `"writable"`,
-    1. Push `{ type: "data", promise, data }` onto `[[buffer]]`.
-    1. Set `[[writableState]]` to `"waiting"`.
-    1. Set `[[writablePromise]]` to be a newly-created pending promise.
-    1. Call `[[doNextWrite]]()`.
+1. If `this.[[writableState]]` is `"writable"`,
+    1. Push `{ type: "data", promise, data }` onto `this.[[buffer]]`.
+    1. Set `this.[[writableState]]` to `"waiting"`.
+    1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
+    1. Call `this.[[doNextWrite]]()`.
     1. Return `promise`.
-1. If `[[writableState]]` is `"waiting"`,
-    1. Push `{ type: "data", promise, data }` onto `[[buffer]]`.
+1. If `this.[[writableState]]` is `"waiting"`,
+    1. Push `{ type: "data", promise, data }` onto `this.[[buffer]]`.
     1. Return `promise`.
-1. If `[[writableState]]` is `"closing"`,
+1. If `this.[[writableState]]` is `"closing"`,
     1. Return a promise rejected with an error indicating that you cannot write while the stream is closing.
-1. If `[[writableState]]` is `"closed"`,
+1. If `this.[[writableState]]` is `"closed"`,
     1. Return a promise rejected with an error indicating that you cannot write after the stream has been closed.
-1. If `[[writableState]]` is `"errored"`,
-    1. Return a promise rejected with `[[storedError]]`.
+1. If `this.[[writableState]]` is `"errored"`,
+    1. Return a promise rejected with `this.[[storedError]]`.
 
 ##### close()
 
-1. If `[[writableState]]` is `"writable"`,
-    1. Set `[[writableState]]` to `"closing"`.
-    1. Return `[[doClose]]()`.
-1. If `[[writableState]]` is `"waiting"`,
-    1. Set `[[writableState]]` to `"closing"`.
+1. If `this.[[writableState]]` is `"writable"`,
+    1. Set `this.[[writableState]]` to `"closing"`.
+    1. Return `this.[[doClose]]()`.
+1. If `this.[[writableState]]` is `"waiting"`,
+    1. Set `this.[[writableState]]` to `"closing"`.
     1. Let `promise` be a newly-created pending promise.
-    1. Push `{ type: "close", promise, data: undefined }` onto `[[buffer]]`.
-1. If `[[writableState]]` is `"closing"`,
+    1. Push `{ type: "close", promise, data: undefined }` onto `this.[[buffer]]`.
+1. If `this.[[writableState]]` is `"closing"`,
     1. Return a promise rejected with an error indicating that you cannot close a stream that is already closing.
-1. If `[[writableState]]` is `"closed"`,
+1. If `this.[[writableState]]` is `"closed"`,
     1. Return a promise rejected with an error indicating that you cannot close a stream that is already closed.
-1. If `[[writableState]]` is `"errored"`,
-    1. Return a promise rejected with `[[storedError]]`.
+1. If `this.[[writableState]]` is `"errored"`,
+    1. Return a promise rejected with `this.[[storedError]]`.
 
 ##### dispose(r)
 
-1. If `[[writableState]]` is `"writable"`,
-    1. Set `[[writableState]]` to `"closing"`.
-    1. Return `[[doDispose]](r)`.
-1. If `[[writableState]]` is `"waiting"`, or if `[[writableState]]` is `"closing"` and `[[buffer]]` is not empty,
-    1. Set `[[writableState]]` to `"closing"`.
-    1. For each entry `{ type, promise, data }` in `[[buffer]]`, reject `promise` with `r`.
-    1. Clear `[[buffer]]`.
-    1. Return `[[doDispose]](r)`.
+1. If `this.[[writableState]]` is `"writable"`,
+    1. Set `this.[[writableState]]` to `"closing"`.
+    1. Return `this.[[doDispose]](r)`.
+1. If `this.[[writableState]]` is `"waiting"`, or if `this.[[writableState]]` is `"closing"` and `this.[[buffer]]` is not empty,
+    1. Set `this.[[writableState]]` to `"closing"`.
+    1. For each entry `{ type, promise, data }` in `this.[[buffer]]`, reject `promise` with `r`.
+    1. Clear `this.[[buffer]]`.
+    1. Return `this.[[doDispose]](r)`.
 1. Return a promise resolved with `undefined`.
 
 ##### waitForWritable()
 
-1. Return `[[writablePromise]]`.
+1. Return `this.[[writablePromise]]`.
 
 #### Internal Methods of BaseWritableStream
 
 ##### `[[error]](e)`
 
-1. If `[[writableState]]` is not `"closed"` or `"errored"`,
-    1. Reject `[[writablePromise]]` with `e`.
-    1. Reject `[[closedPromise]]` with `e`.
-    1. For each entry `{ type, promise, data }` in `[[buffer]]`, reject `promise` with `r`.
-    1. Set `[[storedError]]` to `e`.
-    1. Set `[[writableState]]` to `"errored"`.
+1. If `this.[[writableState]]` is not `"closed"` or `"errored"`,
+    1. Reject `this.[[writablePromise]]` with `e`.
+    1. Reject `this.[[closedPromise]]` with `e`.
+    1. For each entry `{ type, promise, data }` in `this.[[buffer]]`, reject `promise` with `r`.
+    1. Set `this.[[storedError]]` to `e`.
+    1. Set `this.[[writableState]]` to `"errored"`.
 
 ##### `[[doClose]]()`
 
-1. Reject `[[writablePromise]]` with an error saying that the stream has been closed.
-1. Call `[[onClose]]()`.
-1. If the call throws an exception `e`, call `[[error]](e)` and return a promise rejected with `e`.
+1. Reject `this.[[writablePromise]]` with an error saying that the stream has been closed.
+1. Call `this.[[onClose]]()`.
+1. If the call throws an exception `e`, call `this.[[error]](e)` and return a promise rejected with `e`.
 1. Otherwise, let `closeResult` be the result of casting the return value to a promise.
 1. When/if `closeResult` is fulfilled,
-    1. Set `[[writableState]]` to `"closed"`.
-    1. Resolve `[[closedPromise]]` with `undefined`.
-1. When/if `closeResult` is rejected with reason `r`, call `[[error]](r)`.
-1. Return `[[closedPromise]]`.
+    1. Set `this.[[writableState]]` to `"closed"`.
+    1. Resolve `this.[[closedPromise]]` with `undefined`.
+1. When/if `closeResult` is rejected with reason `r`, call `this.[[error]](r)`.
+1. Return `this.[[closedPromise]]`.
 
 ##### `[[doDispose]](r)`
 
-1. Reject `[[writablePromise]]` with `r`.
-1. Call `[[onDispose]](r)`.
-1. If the call throws an exception `e`, call `[[error]](e)` and return a promise rejected with `e`.
+1. Reject `this.[[writablePromise]]` with `r`.
+1. Call `this.[[onDispose]](r)`.
+1. If the call throws an exception `e`, call `this.[[error]](e)` and return a promise rejected with `e`.
 1. Otherwise, let `disposeResult` be the result of casting the return value to a promise.
 1. When/if `disposeResult` is fulfilled,
-    1. Set `[[writableState]]` to `"closed"`.
-    1. Resolve `[[closedPromise]]` with `undefined`.
-1. When/if `disposeResult` is rejected with reason `r`, call `[[error]](r)`.
-1. Return `[[closedPromise]]`.
+    1. Set `this.[[writableState]]` to `"closed"`.
+    1. Resolve `this.[[closedPromise]]` with `undefined`.
+1. When/if `disposeResult` is rejected with reason `r`, call `this.[[error]](r)`.
+1. Return `this.[[closedPromise]]`.
 
 ##### `[[doNextWrite]]()`
 
-1. Assert: `[[buffer]]` is not empty.
-1. Assert: `[[writableState]]` is `"waiting"` or `"closing"`.
-1. Shift `{ type, promise, data }` off of `[[buffer]]`.
+1. Assert: `this.[[buffer]]` is not empty.
+1. Assert: `this.[[writableState]]` is `"waiting"` or `"closing"`.
+1. Shift `{ type, promise, data }` off of `this.[[buffer]]`.
 1. If `type` is `"close"`,
-    1. Assert: `[[writableState]]` is `"closing"`.
-    1. Call `[[doClose]]()`.
+    1. Assert: `this.[[writableState]]` is `"closing"`.
+    1. Call `this.[[doClose]]()`.
     1. Return.
 1. Assert: `type` must be `"data"`.
-1. Set `[[currentWritePromise]]` to `promise`.
+1. Set `this.[[currentWritePromise]]` to `promise`.
 1. Let `signalDone` be a new function of zero arguments, closing over `this` and `promise`, that performs the following steps:
     1. If `this.[[currentWritePromise]]` is not `promise`, return.
     1. Set `this.[[currentWritePromise]]` to `undefined`.
@@ -759,8 +759,8 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. If `this.[[writableState]]` is `"closing"`,
         1. Resolve `promise` with `undefined`.
         1. If `this.[[buffer]]` is not empty, call `this.[[doNextWrite]]()`.
-1. Call `[[onWrite]](data, signalDone, [[error]])`.
-1. If the call throws an exception `e`, call `[[error]](e)`.
+1. Call `this.[[onWrite]](data, signalDone, [[error]])`.
+1. If the call throws an exception `e`, call `this.[[error]](e)`.
 
 Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been disposed, then `signalDone` ends up doing nothing.
 
