@@ -8,9 +8,11 @@ Both low-level generic streams, with customizable buffering strategy, and high-l
 
 ## Status
 
-This specification is undergoing heavy revision. The most useful product right now is the [requirements document](Requirements.md), which show what a useful stream API must solve. It contains a [list of APIs](#stream-apis-overview) that address these requirements, but most of them are not fully fleshed out yet.
+This specification is still a work in progress, but the major ideas are now there. We have a solid [requirements document](Requirements.md), which show what a useful stream API must solve. The most important APIs, for readable and writable streams, are present, with their internal state machines fully fleshed out. Additional APIs for multi-destiniation pipe and differing backpressure strategies are also included.
 
-In terms of concrete APIs, the [`BaseReadableStream`](#basereadablestream) class is fairly complete, with its internal state machine entirely specified. The [`BaseWritableStream`](#basewritablestream)'s definition is given, but its behavior is still being translated from my head to this repository. The building blocks and higher-level abstractions mentioned in the toolbox are not yet specified in detail.
+There is still work to be done, however. Some more helper APIs are necessary to provide a good foundation for streams on the web platform, and although most of them are outlined, they have not all been fleshed out. And the spec certainly needs some polish to make it more pleasant to read and tie everything together.
+
+Please join us in the [issue tracker](https://github.com/whatwg/streams/issues) to help pin down and complete the remaining tasks!
 
 ## Requirements
 
