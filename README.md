@@ -506,8 +506,8 @@ Note how, if data is available synchronously because `ondata` was called synchro
 In general, a pull-based data source can be modeled as:
 
 - An `open(cb)` method that gains access to the source; it can call `cb` either synchronous or asynchronously, with either `(err)` or `(null)`.
-- A `read(cb)` function method that gets data from the source; can call `cb` either synchronously or asynchronously, with either `(err, null, null)` or `(null, true, null)` indicating there is no more data or `(null, false, data)` indicating there is data.
-- A `close()` method that releases access to the source (necessary to call only if all data has not already been read).
+- A `read(cb)` function method that gets data from the source; can call `cb` either synchronously or asynchronously, with either `(err, null, null)` indicating an error, or `(null, true, null)` indicating there is no more data, or `(null, false, data)` indicating there is data.
+- A `close(cb)` method that releases access to the source; can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`.
 
 Let's assume that we have some raw C++ file handle API matching this type of setup. Here is how we would adapt that into a readable stream:
 
@@ -517,11 +517,11 @@ class ReadableFile extends ReadableStream {
         const fileHandle = createRawFileHandle(filename);
 
         super({
-            start(push, finish, error) {
-                return new Promise(resolve => {
+            start() {
+                return new Promise((resolve, reject) => {
                     fileHandle.open(err => {
                         if (err) {
-                            error(err);
+                            reject(err);
                         }
                         resolve();
                     });
@@ -533,7 +533,12 @@ class ReadableFile extends ReadableStream {
                     if (err) {
                         error(err);
                     } else if (done) {
-                        finish();
+                        fileHandle.close(err => {
+                            if (err) {
+                                error(err);
+                            }
+                            finish();
+                        });
                     } else {
                         push(data);
                     }
