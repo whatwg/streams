@@ -142,50 +142,6 @@ enum ReadableStreamState {
 }
 ```
 
-#### Internal Methods of BaseReadableStream
-
-##### `[[push]](data)`
-
-1. If `[[readableState]]` is `"waiting"`,
-    1. Push `data` onto `[[buffer]]`.
-    1. Set `[[pulling]]` to `false`.
-    1. Resolve `[[readablePromise]]` with `undefined`.
-    1. Set `[[readableState]]` to `"readable"`.
-1. If `[[readableState]]` is `"readable"`,
-    1. Push `data` onto `[[buffer]]`.
-    1. Set `[[pulling]]` to `false`.
-
-##### `[[finish]]()`
-
-1. If `[[readableState]]` is `"waiting"`,
-    1. Reject `[[readablePromise]]` with an error saying that the stream has already been completely read.
-    1. Resolve `[[finishedPromise]]` with `undefined`.
-    1. Set `[[readableState]]` to `"finished"`.
-1. If `[[readableState]]` is `"readable"`,
-    1. Set `[[draining]]` to `true`.
-
-##### `[[error]](e)`
-
-1. If `[[readableState]]` is `"waiting"`,
-    1. Set `[[storedError]]` to `e`.
-    1. Reject `[[finishedPromise]]` with `e`.
-    1. Reject `[[readablePromise]]` with `e`.
-    1. Set `[[readableState]]` to `"errored"`.
-1. If `[[readableState]]` is `"readable"`,
-    1. Clear `[[buffer]]`.
-    1. Set `[[storedError]]` to `e`.
-    1. Let `[[readablePromise]]` be a newly-created promise object rejected with `e`.
-    1. Reject `[[finishedPromise]]` with `e`.
-    1. Set `[[readableState]]` to `"errored"`.
-
-##### `[[callPull]]()`
-
-1. If `[[pulling]]` is `true`, return.
-1. If `[[started]]` is `false`,
-    1. When/if `[[startedPromise]]` is fulfilled, call `[[onPull]]([[push]], [[finish]], [[error]])`.
-1. If `[[started]]` is `true`,
-    1. Call `[[onPull]]([[push]], [[finish]], [[error]])`.
-
 #### Properties of the BaseReadableStream prototype
 
 ##### constructor({ start, pull, abort })
@@ -308,6 +264,50 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
     }
 };
 ```
+
+#### Internal Methods of BaseReadableStream
+
+##### `[[push]](data)`
+
+1. If `[[readableState]]` is `"waiting"`,
+    1. Push `data` onto `[[buffer]]`.
+    1. Set `[[pulling]]` to `false`.
+    1. Resolve `[[readablePromise]]` with `undefined`.
+    1. Set `[[readableState]]` to `"readable"`.
+1. If `[[readableState]]` is `"readable"`,
+    1. Push `data` onto `[[buffer]]`.
+    1. Set `[[pulling]]` to `false`.
+
+##### `[[finish]]()`
+
+1. If `[[readableState]]` is `"waiting"`,
+    1. Reject `[[readablePromise]]` with an error saying that the stream has already been completely read.
+    1. Resolve `[[finishedPromise]]` with `undefined`.
+    1. Set `[[readableState]]` to `"finished"`.
+1. If `[[readableState]]` is `"readable"`,
+    1. Set `[[draining]]` to `true`.
+
+##### `[[error]](e)`
+
+1. If `[[readableState]]` is `"waiting"`,
+    1. Set `[[storedError]]` to `e`.
+    1. Reject `[[finishedPromise]]` with `e`.
+    1. Reject `[[readablePromise]]` with `e`.
+    1. Set `[[readableState]]` to `"errored"`.
+1. If `[[readableState]]` is `"readable"`,
+    1. Clear `[[buffer]]`.
+    1. Set `[[storedError]]` to `e`.
+    1. Let `[[readablePromise]]` be a newly-created promise object rejected with `e`.
+    1. Reject `[[finishedPromise]]` with `e`.
+    1. Set `[[readableState]]` to `"errored"`.
+
+##### `[[callPull]]()`
+
+1. If `[[pulling]]` is `true`, return.
+1. If `[[started]]` is `false`,
+    1. When/if `[[startedPromise]]` is fulfilled, call `[[onPull]]([[push]], [[finish]], [[error]])`.
+1. If `[[started]]` is `true`,
+    1. Call `[[onPull]]([[push]], [[finish]], [[error]])`.
 
 ### ReadableStream
 
