@@ -334,10 +334,33 @@ class ReadableStream extends BaseReadableStream {
     //   in a different function to `start` and `pull`.
     [[push]](data)
 
-    // Internal tee stream used by pipe
-    [[tee]] = undefined
+    // Internal properties
+    [[tee]]
+    [[strategy]]
+    [[bufferSize]] = 0
 }
 ```
+
+#### Properties of the ReadableStream Prototype
+
+##### constructor({ start, pull, abort, strategy })
+
+1. Set `this.[[strategy]]` to `strategy`.
+1. Call `super({ start, pull, abort })`.
+
+##### read()
+
+1. Let `data` be `super()`.
+1. Subtract `this.[[strategy]].count(data)` from `this.[[bufferSize]]`.
+1. Return `data`.
+
+##### pipe(dest, { close })
+
+1. Let `alreadyPiping` be `true`.
+1. If `this.[[tee]]` is `undefined`, let `this.[[tee]]` be a new `TeeStream` and set `alreadyPiping` to `false`.
+1. Call `this.[[tee]].addOut(dest, { close })`.
+1. If `alreadyPiping` is `false`, call `super(this.[[tee]], { close: true })`.
+1. Return `dest`.
 
 #### Internal Methods of ReadableStream
 
@@ -347,27 +370,6 @@ class ReadableStream extends BaseReadableStream {
 1. If `this.[[readableState]]` is now `"readable"`,
     1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
     1. Return `this.[[strategy]].needsMoreData(this.[[bufferSize]])`.
-
-#### Properties of the ReadableStream Prototype
-
-##### `constructor({ start, pull, abort, strategy })`
-
-1. Set `this.[[strategy]]` to `strategy`.
-1. Call `super({ start, pull, abort })`.
-
-##### `read()`
-
-1. Let `data` be `super()`.
-1. Subtract `this.[[strategy]].count(data)` from `this.[[bufferSize]]`.
-1. Return `data`.
-
-##### `pipe(dest, { close })`
-
-1. Let `alreadyPiping` be `true`.
-1. If `this.[[tee]]` is `undefined`, let `this.[[tee]]` be a new `TeeStream` and set `alreadyPiping` to `false`.
-1. Call `this.[[tee]].addOut(dest, { close })`.
-1. If `alreadyPiping` is `false`, call `super(this.[[tee]], { close: true })`.
-1. Return `dest`.
 
 ### Example Usage
 
