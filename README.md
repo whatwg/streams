@@ -66,6 +66,9 @@ In extensible web fashion, we will build up to a fully-featured streams from a f
 - `WritableStream`
     - A higher-level API used by most creators of writable streams.
     - Adds the ability to customize the buffering and backpressure strategy, overriding the basic one.
+- `CorkableWritableStream`
+    - Is provided upon creation with a way to write a batch of data at once.
+    - Adds the ability to `cork()` and `uncork()` the stream; while the stream is corked, no data is actually written until it is uncorked, at which time a batch-write is performed.
 
 #### Helpers
 
@@ -788,7 +791,7 @@ class WritableStream extends BaseWritableStream {
     })
 
     // Overriden to take into account backpressure strategy
-    write(data)
+    Promise<undefined> write(data)
 
     // Overriden to take into account backpressure strategy.
     // You can also think of this as part of the the constructor and write override.
@@ -828,6 +831,34 @@ class WritableStream extends BaseWritableStream {
 
 1. Subtract `this.[[strategy]].count(data)` from `this.[[bufferSize]]`.
 1. Return the result of calling `BaseWritableStream`'s version of `this.[[doNextWrite]]({ type, promise, data })`.
+
+### CorkableWritableStream
+
+```js
+class CorkableWritableStream extends WritableStream {
+    // Adds a writev argument.
+    constructor({
+        function start = () => {},
+        function write = () => {},
+        function writev = () => {},
+        function close = () => {},
+        function dispose = close,
+        strategy: { function count, function needsMoreData }
+    })
+
+    // New methods
+    void cork()
+    void uncork()
+
+    // Overriden to take into account corking
+    Promise<undefined> write(data)
+    Promise<undefined> close()
+
+    // TODO: internal properties and overrides to support corking
+}
+```
+
+TODO!
 
 ## Helper APIs
 
