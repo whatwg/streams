@@ -135,10 +135,10 @@ class BaseReadableStream {
 }
 
 enum ReadableStreamState {
-    "readable" // buffer has something in it; read at will
-    "waiting"  // buffer is empty; call waitForReadable
-    "finished" // no more data available
-    "errored"  // reading from the stream errored so the stream is now dead
+    "readable"  // the buffer has something in it; read at will
+    "waiting"   // the source is not ready or the buffer is empty; you should call waitForReadable
+    "finished"  // all data has been read from both the source and the buffer
+    "errored"   // the source errored so the stream is now dead
 }
 ```
 
@@ -608,8 +608,8 @@ class BaseWritableStream {
 }
 
 enum WritableStreamState {
-    "writable" // the sink is ready buffer is not yet full; write at will
-    "waiting"  // the sink is not ready or buffer is full; you should call waitForWritable
+    "writable" // the sink is ready and the buffer is not yet full; write at will
+    "waiting"  // the sink is not ready or the buffer is full; you should call waitForWritable
     "closing"  // the sink is being closed; no more writing
     "closed"   // the sink has been closed
     "errored"  // the sink errored so the stream is now dead
