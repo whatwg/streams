@@ -16,7 +16,7 @@
         <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">Waiting</tspan>
       </text>
       <text x="60.0" style="text-anchor: middle" y="12.8">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">(starting = true)</tspan>
+        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">(started = false)</tspan>
       </text>
     </g>
   </g>
@@ -34,7 +34,7 @@
         <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">Waiting</tspan>
       </text>
       <text x="60.0" style="text-anchor: middle" y="12.8">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">(starting = false)</tspan>
+        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">(started = true)</tspan>
       </text>
     </g>
   </g>
