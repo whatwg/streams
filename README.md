@@ -198,6 +198,8 @@ function makeStreamingFile(filename) {
         }
     });
 }
+
+var file = makeStreamingFile("/example/path/on/fs.txt");
 ```
 
 Here we see that the tables are reversed, and the most interesting work is done in the `pull` constructor parameter. `start` simply returns a new promise which is fulfilled if the file handle opens successfully, or is rejected if there is an error doing so. Whereas `pull` proxies requests for more data to the underlying file handle, using the `push`, `finish`, and `error` functions to manipulate the stream's internal buffer and state.
@@ -273,7 +275,7 @@ In addition to calling the `abort` functionality given in the stream's construct
 
 As you've probably gathered from the above explanations, readable streams have a fairly complex internal state machine, which is responsible for keeping track of the internal buffer, and initiating appropriate actions in response to calls to a stream's methods. This can be roughly summarized in the following diagram:
 
-![A state machine diagram of a readable stream, showing transitions between waiting (starting = true), waiting (starting = false), readable (draining = false), readable (draining = true), finished, and errored states.](readable-stream.svg)
+![A state machine diagram of a readable stream, showing transitions between waiting (starting = true), waiting (starting = false), readable (draining = false), readable (draining = true), finished, and errored states.](https://rawgithub.com/whatwg/streams/master/readable-stream.svg)
 
 Here we denote methods of the stream called by external consumers `in monospace`; constructor methods **in bold**, and capabilities handed to constructor methods *in italic*.
 
