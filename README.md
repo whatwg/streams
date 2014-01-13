@@ -165,7 +165,7 @@ In general, a pull-based data source can be modeled as:
 Let's assume that we have some raw C++ file handle API matching this type of setup. This is a simplified version of how you could create a `ReadableStream` wrapping this raw file handle object. (Again, see the examples document for more.)
 
 ```js
-function makeStreamingFile(filename) {
+function makeStreamingReadableFile(filename) {
     const fileHandle = createRawFileHandle(filename);
 
     return new ReadableStream({
@@ -199,7 +199,7 @@ function makeStreamingFile(filename) {
     });
 }
 
-var file = makeStreamingFile("/example/path/on/fs.txt");
+var file = makeStreamingReadableFile("/example/path/on/fs.txt");
 ```
 
 Here we see that the tables are reversed, and the most interesting work is done in the `pull` constructor parameter. `start` simply returns a new promise which is fulfilled if the file handle opens successfully, or is rejected if there is an error doing so. Whereas `pull` proxies requests for more data to the underlying file handle, using the `push`, `finish`, and `error` functions to manipulate the stream's internal buffer and state.
@@ -252,9 +252,9 @@ Once all the available data is read from the stream's internal buffer, the strea
 
 ### Other APIs on Readable Streams
 
-Besides the constructor pattern, the `pipe` method for piping a readable stream into a writable stream, and the `read()`/`waitForReadable()`/`readableState` primitives for reading raw data, a readable stream provides two more APIs: `finished` and abort(reason)`.
+Besides the constructor pattern, the `pipe` method for piping a readable stream into a writable stream, and the `read()`/`waitForReadable()`/`readableState` primitives for reading raw data, a readable stream provides two more APIs: `finished` and `abort(reason)`.
 
-`finished` is a simple convenience API: it's a promise that becomes fulfilled when the stream has been completely read (`readableState` of `"finished"`), or becomes rejected if some error occurs in the stream (`readableState` of `"error"`).
+`finished` is a simple convenience API: it's a promise that becomes fulfilled when the stream has been completely read (`readableState` of `"finished"`), or becomes rejected if some error occurs in the stream (`readableState` of `"errored"`).
 
 The abort API is a bit more subtle. It allows consumers to communicate a *loss of interest* in the stream's data; you could use this, for example, to abort a file download if the user clicks "Cancel." The main functionality of abort is handled by another constructor parameter, alongside `start` and `pull`: for example, we might extend our above socket stream with an `abort` parameter like so:
 
@@ -269,7 +269,7 @@ return new ReadableStream({
 });
 ```
 
-In addition to calling the `abort` functionality given in the stream's constructor, a readable stream's `abort(reason)` method cleans up the stream's internal buffer and ensures that the `pull` constructor parameter is never called again. It Puts the stream in the `"finished"` state—aborting is not considered an error—but any further attempts to `read()` will result in `reason` being thrown, and attempts to call `waitForReadable()` will give a promise rejected with `reason`.
+In addition to calling the `abort` functionality given in the stream's constructor, a readable stream's `abort(reason)` method cleans up the stream's internal buffer and ensures that the `pull` constructor parameter is never called again. It puts the stream in the `"finished"` state—aborting is not considered an error—but any further attempts to `read()` will result in `reason` being thrown, and attempts to call `waitForReadable()` will give a promise rejected with `reason`.
 
 ### The Readable Stream State Diagram
 
@@ -563,9 +563,171 @@ class ReadableStream extends BaseReadableStream {
     1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
     1. Return `this.[[strategy]].needsMoreData(this.[[bufferSize]])`.
 
-## Writable Stream APIs
+## Writable Streams
 
-### BaseWritableStream
+The *writable stream* abstraction represents a *sink* for data, to which you can write. In other words, data comes *in* to a writable stream. After a writable stream is created, two fundamental operations can be performed on it: data can be written to it, and the stream can be closed, allowing any underlying resources to be released.
+
+The complexity of the writable stream API comes from the fact that, in general, the underlying data sink for a writable stream will not be equipped to deal with concurrent writes; the expectation is that a write must complete, successfully, before more data can be written. Such a constraint is too restrictive for a higher-level streaming API: new incoming data will often be ready before the previous data has been successfully written. A vivid example of this would be piping from a fast readable file stream to a slower writable network socket stream. Thus, the writable stream API abstracts away this complication by using an internal buffer of queued writes, which it forwards to the underlying sink one write at a time.
+
+The `WritableStream` constructor accepts a variety of options that dictate how the stream will react to various situations. The implementation takes care to coordinate these operations, so that e.g. `write` is never called before the promise returned by `start` fulfills, and `close` is only called after all `write`s have succeeded.
+
+### Example: Using the `WritableStream` Constructor
+
+To illustrate how the `WritableStream` constructor works, consider the following example. In general, a data sink can be modeled as:
+
+* An `open(cb)` method that gains access to the sink; it can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`.
+* A `write(data, cb)` method that writes `data` to the sink; it can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`. Importantly, it will fail if you call it indiscriminately; you must wait for the callback to come back—possibly synchronously—with a success before calling it again.
+* A `close(cb)` method that releases access to the sink; it can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`.
+
+Let's assume we have some raw C++ file handle API matching this type of setup. This is a simplified version of how you could create a `WritableStream` wrapping this raw file handle object.
+
+````js
+function makeStreamingWritableFile(filename) {
+    const fileHandle = createRawFileHandle(filename);
+
+    return new WritableStream({
+        start() {
+            return new Promise((resolve, reject) => {
+                fileHandle.open(err => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            });
+        },
+
+        write(data, done, error) {
+            fileHandle.write(data, err => {
+                if (err) {
+                    error(err);
+                }
+                done();
+            });
+        },
+
+        close() {
+            return new Promise((resolve, reject) => {
+                fileHandle.close(err => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            });
+        }
+    });
+}
+
+var file = makeStreamingWritableFile("/example/path/on/fs.txt");
+```
+
+As you can see, this is fairly straightforward: we simply supply constructor parameters that adapt the raw file handle API into an expected form. The writable stream's internal mechanisms will take care of the rest, ensuring that these supplied operations are queued and sequenced correctly when a consumer writes to the resulting writable stream.
+
+Here we start to see our first glimpse of how backpressure signals are given off by a writable stream. The above code makes it clear that, if a particular call to `fileHandle.write` takes a longer time, `done` will be called later. In the meantime, users of the writable stream may have queued up additional writes, which are stored in the stream's internal buffer. The accumulation of this buffer can move the stream into a "waiting" state, which is a signal to users of the stream that they should back off and stop writing if possible.
+
+### Examples: Using a Writable Stream
+
+Once you have a writable stream wrapping whatever low-level sink you hope to write to, you can now use the writable stream API to easily and efficiently write to it. All of the low-level concerns about proper order of operations are greatly simplified by the stream's internal state machine, leaving you with an easier-to-use higher-level API.
+
+#### Using `pipe`
+
+The primary means of using a writable stream is by piping a readable stream into it. This will automatically take care of backpressure for you, as it only reads from the readable stream as fast as the writable stream is able to handle it—which, as we showed above, depends on how fast the underlying sink is able to accept data.
+
+Again, we emphasize that using pipe is the 90% case: you will rarely, if ever, have to write to a writable stream yourself. You will instead pipe to it from a readable stream, just as before:
+
+```js
+readableStream.pipe(writeableStream).closed
+    .then(() => console.log("All written!"))
+    .catch(err => console.error("Something went wrong!", err));
+```
+
+#### Using `write()`/`waitForWritable()`/`writableState`/`close()`
+
+If you do need to write to a writable stream directly, you'll want to employ a similar pattern to dealing with a readable stream: alternating between calls to `write()` while the stream has a `writableState` of `"writable"`, with calls to `waitForWritable()` once it reaches a `writableState` of `"waiting"`. For example, this function writes an array of data chunks into a writable stream, pausing to log a message if the writable stream needs a break.
+
+```js
+function writeArrayToStreamWithBreaks(array, writableStream) {
+    pump();
+
+    var index = 0;
+
+    function pump() {
+        while (index < array.length && writableStream.writableState === "writable") {
+            writableStream.write(array[index++]).catch(e => console.error(e));
+        }
+
+        if (index === array.length) {
+            writableStream.close().then(() => console.log("All done!"))
+                                  .catch(e => console.error("Error with the stream", e));
+        } else if (writableStream.writableState === "waiting") {
+            console.log("Waiting until all queued writes have been flushed through before writing again.");
+            writableStream.waitForWritable().then(pump, e => console.error(e));
+        }
+    }
+}
+```
+
+If the writable stream is in a writable state, and we have more data to write, then we do so until one of those conditions becomes false, using a `while` loop to continually call `writableStream.write(data)` as long as that is true. Eventually, either we will run out of data, or the stream will no longer be writable. If we ran out of data, then we close the stream, being sure to wait for successful completion of the close operation before announcing our success. If we haven't run out of data, then the stream must have transitioned to a waiting state, meaning that its internal buffer is getting full, and we should pause if possible. We log a message to that effect, then call `writableStream.waitForWritable()` to get a promise that will be fuflilled when all the previously-queued writes have been flushed to the underlying sink. When this happens, the stream will be back in a writable state, and we continue that process.
+
+#### Ignoring `writableState`
+
+The previous example was somewhat silly, as we didn't effectively use the information that the writable stream's internal buffer was full. Typically, you would use that information to communicate a backpressure signal to a data source, possibly through the readable stream API's mechanisms for automatically doing this if you don't call `read()`. (Indeed, this very process can be seen, in its most generic form, in the `pipe` method of `BaseReadableStream`.) If the data is already in memory anyway, there's nothing to be gained by delaying calls to `write()` until the stream signals it is writable; there's nowhere to signal backpressure to.
+
+With that in mind, here is a much simpler version of our above function, which has the same effect, except it doesn't notify us about the stream's queued writes buffer.
+
+```js
+function writeArrayToStream(array, writableStream) {
+    array.forEach(function (chunk) {
+        writableStream.write(chunk);
+    });
+
+    writableStream.close().then(() => console.log("All done!"))
+                          .catch(e => console.error("Error with the stream", e));
+}
+```
+
+This function simply queues all the writes immediately, counting on the stream implementation to deliver them as appropriate, and then listens for success or failure by attaching to the return value of the `close()` promise. The lesson of this example is that the `writableState` property is merely informational, and can be used usefully, but it is not necessary to consult it before writing to the stream.
+
+Note how we don't even add handlers for the promises returned by `writableStream.write(chunk)`. Instead, we just add handlers to the promise returned from `writableStream.close()`. This works out, because if any errors were to occur while writing to the stream, they would cause `close()` to return a promise rejected with that error.
+
+### Other APIs on Writable Streams
+
+Besides the constructor pattern, the `write(data)`/`waitForWritable()`/`writableState` primitives for writing, and the `close()` primitive for closing the underlying sink, a writable stream provides two more APIs: `closed` and `dispose(reason)`.
+
+`closed` is simply a convenience API: it's a promise that becomes fulfilled when the stream has been successfully closed (`writableState` of `"closed"`), or becomes rejected if some error occurs while starting, writing to, or closing the stream (`writableState` of `"errored"`).
+
+The `dispose` API allows users to communicate a *forceful closes* of the stream; this could be useful, for example, to stop a file upload if the user clicks "Cancel." Disposing a stream will clear any queued writes (and close operations), and then call the `dispose` constructor parameter immediately. By default the `dispose` constructor parameter will simply do whatever the user passed in for the `close` constructor parameter, but by passing a customized function, the creator of the stream can react to forceful closes differently than normal ones. For example, we might extend our above file stream with a `dispose` parameter that deletes the file if it was newly created by this write operation:
+
+```
+return new WritableStream({
+    start() { /* as before */ },
+    write(data, done, error) { /* as before */ },
+    close() { /* as before */ },
+    dispose() {
+        if (fileHandle.isNew) {
+            deleteFileHandle(fileHandle, err => {
+                if (err) {
+                    reject(err);
+                }
+                resolve();
+            });
+        }
+    }
+});
+```
+
+Calling `dispose(reason)` puts the writable stream into a `"closed"` state—disposal is not considered an error—but any further attempts to call `write()`, `waitForWritable()`, or `close()` will immediately return a promise rejected with `reason`.
+
+### The Writable Stream State Diagram
+
+As with readable streams, we can summarize the internal state machine of writable streams in the following diagram:
+
+TODO
+
+### Writable Stream APIs
+
+#### BaseWritableStream
 
 ```
 class BaseWritableStream {
@@ -617,9 +779,9 @@ enum WritableStreamState {
 }
 ```
 
-#### Properties of the BaseWritableStream prototype
+##### Properties of the BaseWritableStream prototype
 
-##### constructor({ start, write, close, dispose })
+###### constructor({ start, write, close, dispose })
 
 The constructor is passed several functions, all optional:
 
@@ -644,15 +806,15 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
         1. Call `this.[[doNextWrite]](entry)`.
 1. When/if `startedPromise` is rejected with reason `r`, call `this.[[error]](r)`.
 
-##### get closed
+###### get closed
 
 1. Return `this.[[closedPromise]]`.
 
-##### get writableState
+###### get writableState
 
 1. Return `this.[[writableState]]`.
 
-##### write(data)
+###### write(data)
 
 1. Let `promise` be a newly-created pending promise.
 1. If `this.[[writableState]]` is `"writable"`,
@@ -670,7 +832,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If `this.[[writableState]]` is `"errored"`,
     1. Return a promise rejected with `this.[[storedError]]`.
 
-##### close()
+###### close()
 
 1. If `this.[[writableState]]` is `"writable"`,
     1. Set `this.[[writableState]]` to `"closing"`.
@@ -686,7 +848,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If `this.[[writableState]]` is `"errored"`,
     1. Return a promise rejected with `this.[[storedError]]`.
 
-##### dispose(r)
+###### dispose(r)
 
 1. If `this.[[writableState]]` is `"writable"`,
     1. Set `this.[[writableState]]` to `"closing"`.
@@ -698,13 +860,13 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Return `this.[[doDispose]](r)`.
 1. Return a promise resolved with `undefined`.
 
-##### waitForWritable()
+###### waitForWritable()
 
 1. Return `this.[[writablePromise]]`.
 
 #### Internal Methods of BaseWritableStream
 
-##### `[[error]](e)`
+###### `[[error]](e)`
 
 1. If `this.[[writableState]]` is not `"closed"` or `"errored"`,
     1. Reject `this.[[writablePromise]]` with `e`.
@@ -713,7 +875,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Set `this.[[storedError]]` to `e`.
     1. Set `this.[[writableState]]` to `"errored"`.
 
-##### `[[doClose]]()`
+###### `[[doClose]]()`
 
 1. Reject `this.[[writablePromise]]` with an error saying that the stream has been closed.
 1. Call `this.[[onClose]]()`.
@@ -725,7 +887,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. When/if `closeResult` is rejected with reason `r`, call `this.[[error]](r)`.
 1. Return `this.[[closedPromise]]`.
 
-##### `[[doDispose]](r)`
+###### `[[doDispose]](r)`
 
 1. Reject `this.[[writablePromise]]` with `r`.
 1. Call `this.[[onDispose]](r)`.
@@ -737,7 +899,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. When/if `disposeResult` is rejected with reason `r`, call `this.[[error]](r)`.
 1. Return `this.[[closedPromise]]`.
 
-##### `[[doNextWrite]]({ type, promise, data })`
+###### `[[doNextWrite]]({ type, promise, data })`
 
 1. If `type` is `"close"`,
     1. Assert: `this.[[writableState]]` is `"closing"`.
@@ -766,7 +928,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been disposed, then `signalDone` ends up doing nothing.
 
-### WritableStream
+#### WritableStream
 
 ```js
 class WritableStream extends BaseWritableStream {
@@ -791,14 +953,14 @@ class WritableStream extends BaseWritableStream {
 }
 ```
 
-#### Properties of the WritableStream Prototype
+##### Properties of the WritableStream Prototype
 
-##### constructor({ start, write, close, dispose, strategy })
+###### constructor({ start, write, close, dispose, strategy })
 
 1. Set `this.[[strategy]]` to `strategy`.
 1. Call `super({ start, write, close, dispose })`.
 
-##### write(data)
+###### write(data)
 
 1. If `this.[[writableState]]` is `"writable"` or `"waiting"`,
     1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
@@ -814,14 +976,14 @@ class WritableStream extends BaseWritableStream {
     1. Return `promise`.
 1. Return `super(data)`.
 
-#### Internal Methods of WritableStream
+##### Internal Methods of WritableStream
 
-##### `[[doNextWrite]]({ type, promise, data })`
+###### `[[doNextWrite]]({ type, promise, data })`
 
 1. Subtract `this.[[strategy]].count(data)` from `this.[[bufferSize]]`.
 1. Return the result of calling `BaseWritableStream`'s version of `this.[[doNextWrite]]({ type, promise, data })`.
 
-### CorkableWritableStream
+#### CorkableWritableStream
 
 ```js
 class CorkableWritableStream extends WritableStream {
