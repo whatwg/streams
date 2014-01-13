@@ -92,9 +92,196 @@ The interfaces here are specified in a very loose definition language. This lang
 
 In other words, over time the definitions given below will disappear, replaced with interface definitions as in the ECMAScript spec (see [Map](http://people.mozilla.org/%7Ejorendorff/es6-draft.html#sec-properties-of-the-map-prototype-object) and [Promise](https://github.com/domenic/promises-unwrapping#properties-of-the-promise-prototype-object)). So don't worry too much about the dialect it's written in, except insofar as it should help or hinder understanding.
 
-## Readable Stream APIs
+## Readable Streams
 
-### BaseReadableStream
+The *readable stream* abstraction represents a *source* of data, from which you can read. In other words, data comes *out* of a readable stream. At the lower level of the I/O sources which readable streams abstract, there are generally two types of sources: *push sources* and *pull sources*. The readable stream APIs presented here are designed to allow wrapping of both types of sources behind a single, unified interface.
+
+A push source, e.g. a TCP socket, will push data at you; this is somewhat comparable to the higher-level event emitter abstraction. It may also provide a mechanism for pausing and resuming the flow of data (in the TCP socket example, by changing the TCP window size). The process of communicating this pause signal to the source, when more data is being pushed than the ultimate consumer can handle, is called *backpressure*. Backpressure can propagate through a piped-together chain of streams: that is, if the ultimate consumer chooses not to read from the final readable stream in the chain, then the mechanisms of the stream API will propagate this backward through the chain to the original source readable stream, which then sends the pause signal to the push source.
+
+A pull source, e.g. a file handle, requires you to request data from it. The data may be available synchronously (e.g. held in OS memory buffers), or asynchronously. Pull sources are generally simpler to work with, as backpressure is achieved almost automatically. In a piped-together chain of streams where the original readable stream wraps a pull source, read requests are propagated from the ultimate consumer's read of the final readable stream in the chain, all the way back to the original source readable stream.
+
+A final consideration when dealing with readable streams is the *buffering strategy*, which is closely related to how backpressure is handled. First, we note that for push sources, a stream must maintain an internal buffer of data that has been pushed from the source but not yet read out of the stream. The most naive strategy is, once this buffer becomes nonempty, to attempt to pause the underlying source—and once it is drained, to resume the flow of data. Similarly, we consider pull sources: the most naive strategy does not employ a buffer, but simply pulls from the source whenever the stream is read from. It is exactly these naive buffering strategies that are implemented by the `BaseReadableStream` API, which is a lower-level building block designed to wrap pull and push sources into a uniform API. The higher-level `ReadableStream` API allows the implementation of more complex buffering strategies, based on *high water marks*. For readable streams wrapping push sources, a high water mark denotes the level to which the buffer is allowed to fill before trying to pause the push source: this allows the accumulation of some incoming data in memory without impeding the flow from the source, so that it can be flushed through the system more quickly when the consumer is ready to read from the stream. For readable streams wrapping pull sources, a high water mark denotes how much data should be "proactively" pulled into a buffer, even before that data is read out of the stream; this allows larger pulls from the source.
+
+Together, these considerations form the foundation of our readable streams API. It is designed to allow wrapping of both pull and push sources into a single `ReadableStream` abstraction. To accomplish this, the API uses the *revealing constructor pattern*, pioneered by the promises specification (TODO: link to blog post). The constructor of a given stream instance is supplied with two functions, `start` and `pull`, which each are given the parameters `(push, finish, error)` representing capabilities tied to the internals of the stream. (Typically, streams wrapping push sources will put most of their logic in `start`, while those wrapping pull sources will put most of their logic in `pull`.) By mediating all access to the internal state machine through these three functions, the stream's internal state and bookkeeping can be kept private, allowing nobody but the original producer of the stream to insert data into it.
+
+### Examples: Using the `ReadableStream` constructor
+
+To illustrate what we mean by this constructor pattern, consider the following examples.
+
+#### Adapting a Push-Based Data Source
+
+In general, a push-based data source can be modeled as:
+
+- A `readStart` method that starts the flow of data
+- A `readStop` method that sends an advisory signal to stop the flow of data
+- A `ondata` handler that fires when new data is pushed from the source
+- A `onend` handler that fires when the source has no more data
+- A `onerror` handler that fires when the source signals an error getting data
+
+As an aside, this is pretty close to the existing HTML [`WebSocket` interface](http://www.whatwg.org/specs/web-apps/current-work/multipage/network.html#the-websocket-interface), with the exception that `WebSocket` does not give any method of pausing or resuming the flow of data.
+
+Let's assume we have some raw C++ socket object or similar, which presents the above API. This is a simplified version of how you could create a `ReadableStream` wrapping this raw socket object. (For a more complete version, see [the examples document][Examples.md].)
+
+```js
+function makeStreamingSocket(host, port) {
+    const rawSocket = createRawSocketObject(host, port);
+
+    return new ReadableStream({
+        start(push, finish, error) {
+            rawSocket.ondata = chunk => {
+                if (!push(chunk)) {
+                    rawSocket.readStop();
+                }
+            };
+
+            rawSocket.onend = finish;
+
+            rawSocket.onerror = error;
+        },
+
+        pull() {
+            rawSocket.readStart();
+        }
+    });
+}
+
+var socket = makeStreamingSocket("http://example.com", 80);
+```
+
+Here we see a pattern very typical of readable streams that wrap push sources: they do most of their work in the `start` constructor parameter. There, it sets up listeners to call `push` with any incoming data; to call `finish` if the source has no more data; and to call `error` if the source errors. These three functions—`push`, `finish`, and `error`—are given to the supplied `start` parameter, allowing `start` to push onto the internal buffer and otherwise manipulate internal state. `start` is called immediately upon creation of the readable stream, so you can be sure that these listeners were attached immediately after the `rawSocket` object was created.
+
+Note how the `ondata` handler checks the return value of the `push` function, and if it's falsy, it tries to stop the flow of data from the raw socket. `push` returns a boolean that is `true` only if the stream's internal buffer has not yet been filled. If the return value is instead `false`, that means the buffer is full: a backpressure signal. Thus we call `rawSocket.readStop()` to propagate this backpressure signal to the underlying socket.
+
+Finally, we come to the `pull` constructor parameter. `pull` is called whenever the stream's internal buffer has been emptied, but the consumer still wants more data. In this case of a push source, the correct action is to ensure that data is flowing from the raw socket, in case it had been previously paused.
+
+#### Adapting a Pull-Based Data Source
+
+In general, a pull-based data source can be modeled as:
+
+- An `open(cb)` method that gains access to the source; it can call `cb` either synchronous or asynchronously, with either `(err)` or `(null)`.
+- A `read(cb)` function method that gets data from the source; can call `cb` either synchronously or asynchronously, with either `(err, null, null)` indicating an error, or `(null, true, null)` indicating there is no more data, or `(null, false, data)` indicating there is data.
+- A `close(cb)` method that releases access to the source; can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`.
+
+Let's assume that we have some raw C++ file handle API matching this type of setup. This is a simplified version of how you could create a `ReadableStream` wrapping this raw file handle object. (Again, see the examples document for more.)
+
+```js
+function makeStreamingFile(filename) {
+    const fileHandle = createRawFileHandle(filename);
+
+    return new ReadableStream({
+        start() {
+            return new Promise((resolve, reject) => {
+                fileHandle.open(err => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            });
+        },
+
+        pull(push, finish, error) {
+            fileHandle.read((err, done, data) => {
+                if (err) {
+                    error(err);
+                } else if (done) {
+                    fileHandle.close(err => {
+                        if (err) {
+                            error(err);
+                        }
+                        finish();
+                    });
+                } else {
+                    push(data);
+                }
+            });
+        }
+    });
+}
+```
+
+Here we see that the tables are reversed, and the most interesting work is done in the `pull` constructor parameter. `start` simply returns a new promise which is fulfilled if the file handle opens successfully, or is rejected if there is an error doing so. Whereas `pull` proxies requests for more data to the underlying file handle, using the `push`, `finish`, and `error` functions to manipulate the stream's internal buffer and state.
+
+### Examples: Consuming a Readable Stream
+
+In the previous section, we discussed how to create readable streams wrapping arbitrary data sources. The beauty of this approach is that, once you have such a readable stream, you can interface with it using the same simple API, no matter where it came from—and all the low-level concerns like buffering, backpressure, or what type of data source you're dealing with are abstracted away.
+
+#### Using `pipe`
+
+The primary means of consuming a readable stream is through its `pipe` method, which accepts a writable stream, and manages the complex dance required for writing data to the writable stream only as fast as it can accept. The writable stream's  rate of intake is used to govern how fast data is read from the readable stream, thus taking care of the propagation of backpressure signals. A typical pipe scenario might look like:
+
+```js
+readableStream.pipe(writeableStream).closed
+    .then(() => console.log("All written!"))
+    .catch(err => console.error("Something went wrong!", err));
+```
+
+90% of the time, this is all that will be required: you will rarely, if ever, have to read from a readable stream yourself. Simply piping to a writable stream, and letting the `pipe` algorithm take care of all the associated complexity, is often enough.
+
+#### Using `read()`/`waitForReadable()`/`readableState`
+
+For those times when you do need to consume a readable stream directly, the usual pattern is to pump it, alternating between using the `read()` and `waitForReadable()` methods by consulting its `readableState` property. For example, this function writes the contents of a readable stream to the console as fast as it can.
+
+```js
+function streamToConsole(readableStream) {
+    pump();
+
+    function pump() {
+        while (readableStream.readableState === "readable") {
+            console.log(readableStream.read());
+        }
+
+        if (readableStream.readableState === "finished") {
+            console.log("--- all done!");
+        } else {
+            // If we're in an error state, the returned promise will be rejected with that error,
+            // so no need to handle "waiting" vs. "errored" separately.
+            readableStream.waitForReadable().then(pump, e => console.error(e));
+        }
+    }
+}
+```
+
+This function essentially handles each possible state of the stream separately. If the stream is in the `"waiting"` state, meaning there's no data available yet, we call `readableStream.waitForReadable()` to get a promise that will be fulfilled when data becomes available. (This has the side effect of signaling to the stream that we are ready for data, which the stream might use to resume the flow from any underlying data sources.)
+
+Once data is available, the stream transitions to the `"readable"` state. We use a `while` loop to continue to read chunks of data for as long as they are still available; typically this will only be a few iterations. (Sometimes people get confused at this point, thinking that this is a kind of blocking polling loop; it is not. It simply makes sure to empty the internal buffer of all available chunks.) Note that `readableStream.read()` synchronously returns the available data to us from the stream's internal buffer. This is especially important since often the OS is able to supply us with data synchronously; a synchronous `read` method thus gives the best possible performance.
+
+Once all the available data is read from the stream's internal buffer, the stream can go back to `"waiting"`, as more data is retrieved from the underlying source. The stream will alternate between `"waiting"` and `"readable"` until at some point it transitions to either `"finished"` or `"errored"` states. In either of those cases, we log the event to the console, and are done!
+
+### Other APIs on Readable Streams
+
+Besides the constructor pattern, the `pipe` method for piping a readable stream into a writable stream, and the `read()`/`waitForReadable()`/`readableState` primitives for reading raw data, a readable stream provides two more APIs: `finished` and abort(reason)`.
+
+`finished` is a simple convenience API: it's a promise that becomes fulfilled when the stream has been completely read (`readableState` of `"finished"`), or becomes rejected if some error occurs in the stream (`readableState` of `"error"`).
+
+The abort API is a bit more subtle. It allows consumers to communicate a *loss of interest* in the stream's data; you could use this, for example, to abort a file download if the user clicks "Cancel." The main functionality of abort is handled by another constructor parameter, alongside `start` and `pull`: for example, we might extend our above socket stream with an `abort` parameter like so:
+
+```js
+return new ReadableStream({
+    start(push, finish, error) { /* as before */ },
+    pull() { /* as before */ }
+    abort() {
+        rawSocket.readStop();
+        rawSocket = null;
+    }
+});
+```
+
+In addition to calling the `abort` functionality given in the stream's constructor, a readable stream's `abort(reason)` method cleans up the stream's internal buffer and ensures that the `pull` constructor parameter is never called again. It Puts the stream in the `"finished"` state—aborting is not considered an error—but any further attempts to `read()` will result in `reason` being thrown, and attempts to call `waitForReadable()` will give a promise rejected with `reason`.
+
+### The Readable Stream State Diagram
+
+As you've probably gathered from the above explanations, readable streams have a fairly complex internal state machine, which is responsible for keeping track of the internal buffer, and initiating appropriate actions in response to calls to a stream's methods. This can be roughly summarized in the following diagram:
+
+![A state machine diagram of a readable stream, showing transitions between waiting (starting = true), waiting (starting = false), readable (draining = false), readable (draining = true), finished, and errored states.](readable-stream.svg)
+
+Here we denote methods of the stream called by external consumers `in monospace`; constructor methods **in bold**, and capabilities handed to constructor methods *in italic*.
+
+### Readable Stream APIs
+
+Without further adieu, we describe the `BaseReadableStream` and `ReadableStream` APIs, including the internal algorithms they use to manage the stream state and buffer.
+
+#### BaseReadableStream
 
 ```
 class BaseReadableStream {
@@ -147,9 +334,9 @@ enum ReadableStreamState {
 }
 ```
 
-#### Properties of the BaseReadableStream prototype
+##### Properties of the BaseReadableStream prototype
 
-##### constructor({ start, pull, abort })
+###### constructor({ start, pull, abort })
 
 The constructor is passed several functions, all optional:
 
@@ -167,11 +354,11 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. When/if `this.[[startedPromise]]` is fulfilled, set `this.[[started]]` to `true`.
 1. When/if `this.[[startedPromise]]` is rejected with reason `r`, call `this.[[error]](r)`.
 
-##### get readableState
+###### get readableState
 
 1. Return `this.[[readableState]]`.
 
-##### read()
+###### read()
 
 1. If `this.[[readableState]]` is `"waiting"`,
     1. Throw an error indicating that the stream does not have any data available yet.
@@ -193,13 +380,13 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `this.[[readableState]]` is `"finished"`,
     1. Throw an error indicating that the stream has already been completely read.
 
-##### waitForReadable()
+###### waitForReadable()
 
 1. If `this.[[readableState]]` is `"waiting"`,
     1. Call `this.[[callPull]]()`.
 1. Return `this.[[readablePromise]]`.
 
-##### abort(reason)
+###### abort(reason)
 
 1. If `this.[[readableState]]` is `"waiting"`,
     1. Call `this.[[onAbort]](reason)`.
@@ -213,11 +400,11 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
     1. Clear `this.[[buffer]]`.
     1. Set `this.[[readableState]]` to `"finished"`.
 
-##### get finished
+###### get finished
 
 1. Return `this.[[finishedPromise]]`.
 
-##### pipe(dest, { close })
+###### pipe(dest, { close })
 
 ```js
 BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
@@ -270,9 +457,9 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
 };
 ```
 
-#### Internal Methods of BaseReadableStream
+##### Internal Methods of BaseReadableStream
 
-##### `[[push]](data)`
+###### `[[push]](data)`
 
 1. If `this.[[readableState]]` is `"waiting"`,
     1. Push `data` onto `this.[[buffer]]`.
@@ -283,7 +470,7 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
     1. Push `data` onto `this.[[buffer]]`.
     1. Set `this.[[pulling]]` to `false`.
 
-##### `[[finish]]()`
+###### `[[finish]]()`
 
 1. If `this.[[readableState]]` is `"waiting"`,
     1. Reject `this.[[readablePromise]]` with an error saying that the stream has already been completely read.
@@ -292,7 +479,7 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
 1. If `this.[[readableState]]` is `"readable"`,
     1. Set `this.[[draining]]` to `true`.
 
-##### `[[error]](e)`
+###### `[[error]](e)`
 
 1. If `this.[[readableState]]` is `"waiting"`,
     1. Set `this.[[storedError]]` to `e`.
@@ -306,7 +493,7 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
     1. Reject `this.[[finishedPromise]]` with `e`.
     1. Set `this.[[readableState]]` to `"errored"`.
 
-##### `[[callPull]]()`
+###### `[[callPull]]()`
 
 1. If `this.[[pulling]]` is `true`, return.
 1. If `this.[[started]]` is `false`,
@@ -314,7 +501,7 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
 1. If `this.[[started]]` is `true`,
     1. Call `this.[[onPull]](this.[[push]], this.[[finish]], this.[[error]])`.
 
-### ReadableStream
+#### ReadableStream
 
 ```
 class ReadableStream extends BaseReadableStream {
@@ -344,20 +531,20 @@ class ReadableStream extends BaseReadableStream {
 }
 ```
 
-#### Properties of the ReadableStream Prototype
+##### Properties of the ReadableStream Prototype
 
-##### constructor({ start, pull, abort, strategy })
+###### constructor({ start, pull, abort, strategy })
 
 1. Set `this.[[strategy]]` to `strategy`.
 1. Call `super({ start, pull, abort })`.
 
-##### read()
+###### read()
 
 1. Let `data` be `super()`.
 1. Subtract `this.[[strategy]].count(data)` from `this.[[bufferSize]]`.
 1. Return `data`.
 
-##### pipe(dest, { close })
+###### pipe(dest, { close })
 
 1. Let `alreadyPiping` be `true`.
 1. If `this.[[tee]]` is `undefined`, let `this.[[tee]]` be a new `TeeStream` and set `alreadyPiping` to `false`.
@@ -365,214 +552,14 @@ class ReadableStream extends BaseReadableStream {
 1. If `alreadyPiping` is `false`, call `super(this.[[tee]], { close: true })`.
 1. Return `dest`.
 
-#### Internal Methods of ReadableStream
+##### Internal Methods of ReadableStream
 
-##### `[[push]](data)`
+###### `[[push]](data)`
 
 1. Call `BaseReadableStream`'s version of `this.[[push]](data)`.
 1. If `this.[[readableState]]` is now `"readable"`,
     1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
     1. Return `this.[[strategy]].needsMoreData(this.[[bufferSize]])`.
-
-### Example Usage
-
-Although the by-far most common way of consuming a readable stream will be to pipe it to a writable stream, it is useful to see some examples to understand how the underlying primitives work. For example, this function writes the contents of a readable stream to the console as fast as it can. Note that it because of how our reading API is designed, there is no asynchronous delay imposed if data chunks are available immediately, or several chunks are available in sequence.
-
-```js
-function streamToConsole(readable) {
-    pump();
-
-    function pump() {
-        while (readable.readableState === "readable") {
-            console.log(readable.read());
-        }
-
-        if (readable.readableState === "finished") {
-            console.log("--- all done!");
-        } else {
-            // If we're in an error state, the returned promise will be rejected with that error,
-            // so no need to handle "waiting" vs. "errored" separately.
-            readable.waitForReadable().then(pump, e => console.error(e));
-        }
-    }
-}
-```
-
-As another example, this helper function will return a promise for the next available piece of data from a given readable stream. This introduces an artificial delay if there is already data buffered, but can provide a convenient interface for simple chunk-by-chunk consumption, as one might do e.g. when streaming database records.
-
-```js
-function getNext(readable) {
-    return new Promise((resolve, reject) => {
-        if (readable.readableState === "waiting") {
-            resolve(readable.waitForReadable().then(() => readable.read()));
-        } else {
-            // If the state is `"errored"` or `"finished"`, the appropriate error will be thrown,
-            // which by the semantics of the Promise constructor causes the desired rejection.
-            resolve(readable.read());
-        }
-    });
-}
-
-// Usage with a promise-generator bridge like Q or TaskJS:
-Q.spawn(function* () {
-    while (myStream.readableState !== "finished") {
-        const data = yield getNext(myStream);
-        // do something with `data`.
-    }
-});
-```
-
-As a final example, this function uses the reading APIs to buffer the entire stream in memory and give a promise for the results, defeating the purpose of streams but educating us while doing so:
-
-```js
-function readableStreamToArray(readable) {
-    return new Promise((resolve, reject) => {
-        var chunks = [];
-
-        readable.finished.then(() => resolve(chunks), reject);
-        pump();
-
-        function pump() {
-            while (readable.readableState === "readable") {
-                chunks.push(readable.read());
-            }
-
-            if (readable.readableState === "waiting") {
-                readable.waitForReadable().then(pump);
-            }
-
-            // All other cases will go through `readable.finished.then(...)` above.
-        }
-    });
-}
-```
-
-### Example Creation
-
-As mentioned, it is important for a readable stream API to be able to support both push- and pull-based data sources. We give one example of each.
-
-#### Adapting a Push-Based Data Source
-
-In general, a push-based data source can be modeled as:
-
-- A `readStart` method that starts the flow of data
-- A `readStop` method that sends an advisory signal to stop the flow of data
-- A `ondata` handler that fires when new data is pushed from the source
-- A `onend` handler that fires when the source has no more data
-- A `onerror` handler that fires when the source signals an error getting data
-
-As an aside, this is pretty close to the existing HTML [`WebSocket` interface](http://www.whatwg.org/specs/web-apps/current-work/multipage/network.html#the-websocket-interface), with the exception that `WebSocket` does not give any method of pausing or resuming the flow of data.
-
-Let's assume we have some raw C++ socket object or similar, which presents the above API. The data it delivers via `ondata` comes in the form of `ArrayBuffer`s. We wish to create a class that wraps that C++ interface into a stream, with a configurable high-water mark set to a reasonable default. This is how you would do it:
-
-```js
-class StreamingSocket extends ReadableStream {
-    constructor(host, port, { highWaterMark = 16 * 1024 } = {}) {
-        const rawSocket = createRawSocketObject(host, port);
-        super({
-            start(push, finish, error) {
-                rawSocket.ondata = chunk => {
-                    if (!push(chunk)) {
-                        rawSocket.readStop();
-                    }
-                };
-
-                rawSocket.onend = finish;
-
-                rawSocket.onerror = error;
-            },
-
-            pull() {
-                rawSocket.readStart();
-            },
-
-            abort() {
-                rawSocket.readStop();
-            },
-
-            strategy: {
-                count(incomingArrayBuffer) {
-                    return incomingArrayBuffer.length;
-                },
-
-                needsMoreData(bufferSize) {
-                    return bufferSize < highWaterMark;
-                }
-            }
-        });
-    }
-}
-```
-
-By leveraging the `ReadableStream` base class, and supplying its super-constructor with the appropriate adapter functions and backpressure strategy, we've created a fully-functioning stream wrapping our raw socket API. It will automatically fill the internal buffer as data is fired into it, preventing any loss that would occur in the simple evented model. If the buffer fills up to the high water mark (defaulting to 16 KiB), it will send a signal to the underlying socket that it should stop sending us data. And once the consumer drains it of all its data, it will send the start signal back, resuming the flow of data.
-
-Note how, if data is available synchronously because `ondata` was called synchronously, the data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. Similarly, if `ondata` is called twice in a row, the pushed data will be available to two subsequent `readableStream.read()` calls before `readableStream.readableState` becomes `"waiting"`.
-
-#### Adapting a Pull-Based Data Source
-
-In general, a pull-based data source can be modeled as:
-
-- An `open(cb)` method that gains access to the source; it can call `cb` either synchronous or asynchronously, with either `(err)` or `(null)`.
-- A `read(cb)` function method that gets data from the source; can call `cb` either synchronously or asynchronously, with either `(err, null, null)` indicating an error, or `(null, true, null)` indicating there is no more data, or `(null, false, data)` indicating there is data.
-- A `close(cb)` method that releases access to the source; can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`.
-
-Let's assume that we have some raw C++ file handle API matching this type of setup. Here is how we would adapt that into a readable stream:
-
-```js
-class ReadableFile extends ReadableStream {
-    constructor(filename, { highWaterMark = 16 * 1024 } = {}) {
-        const fileHandle = createRawFileHandle(filename);
-
-        super({
-            start() {
-                return new Promise((resolve, reject) => {
-                    fileHandle.open(err => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-                });
-            },
-
-            pull(push, finish, error) {
-                fileHandle.read((err, done, data) => {
-                    if (err) {
-                        error(err);
-                    } else if (done) {
-                        fileHandle.close(err => {
-                            if (err) {
-                                error(err);
-                            }
-                            finish();
-                        });
-                    } else {
-                        push(data);
-                    }
-                });
-            },
-
-            abort() {
-                fileHandle.close();
-            },
-
-            strategy: {
-                count(incomingArrayBuffer) {
-                    return incomingArrayBuffer.length;
-                },
-
-                needsMoreData(bufferSize) {
-                    return bufferSize < highWaterMark;
-                }
-            }
-        });
-    }
-}
-```
-
-As before, we leverage the `ReadableStream` base class to do most of the work. Our adapter functions, in this case, don't set up event listeners as they would for a push source; instead, they directly forward the desired operations of opening the file handle and reading from it down to the underlying API.
-
-Again note how, if data is available synchronously because `fileHandle.read` called its callback synchronously, that data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. And if data is requested from the `ReadableFile` instance twice in a row, it will immediately forward those requests to the underlying file handle, so that if it is ready synchronously (because e.g. the OS has recently buffered this file in memory), the data will be returned instantly, within that same turn.
 
 ## Writable Stream APIs
 
