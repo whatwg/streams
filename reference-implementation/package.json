@@ -1,0 +1,36 @@
+{
+  "name": "dom-streams-strawman",
+  "version": "0.0.0",
+  "description": "ES5 Node candidate implementation / testbed for WHATWG streams proposal",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/othiym23/streams.git"
+  },
+  "keywords": [
+    "streams",
+    "whatwg",
+    "w3c",
+    "strawman",
+    "reference"
+  ],
+  "author": "Domenic Denicola <domenic@domenicdenicola.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/othiym23/streams/issues"
+  },
+  "homepage": "https://github.com/othiym23/streams",
+  "dependencies": {
+    "es6-promise": "~0.1.1"
+  },
+  "devDependencies": {
+    "tape": "~2.3.2",
+    "tap": "~0.4.8"
+  }
+}
