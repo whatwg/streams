@@ -33,8 +33,8 @@ The JavaScript community has extensive experience with streaming primitives, whi
     - You must be able to transform streams via the pipe chain.
     - You must be able to communicate backpressure.
     - You must be able to pipe a stream to more than one writable stream.
-    - You must be able to communicate dispose signals up a pipe chain.
-    - You must be able to communicate dispose signals down a pipe chain.
+    - You must be able to communicate abort signals up a pipe chain.
+    - You must be able to communicate abort signals down a pipe chain.
 - Other
     - The stream API should be agnostic to what type of data is being streamed.
     - You must be able to create representions of "duplex" data sources.
@@ -252,26 +252,26 @@ Once all the available data is read from the stream's internal buffer, the strea
 
 ### Other APIs on Readable Streams
 
-Besides the constructor pattern, the `pipeTo` method for piping a readable stream into a writable stream, and the `read()`/`wait()`/`state` primitives for reading raw data, a readable stream provides three more APIs: `pipeThrough`, `closed`, and `dispose(reason)`.
+Besides the constructor pattern, the `pipeTo` method for piping a readable stream into a writable stream, and the `read()`/`wait()`/`state` primitives for reading raw data, a readable stream provides three more APIs: `pipeThrough`, `closed`, and `abort(reason)`.
 
 `pipeThrough` is a mechanism for piping readable streams through *transform streams*, which are represented as `{ in, out }` pairs where `in` is a writable stream and `out` is a readable stream. Transform streams could have predefined translation logic, e.g. a string decoder whose `in` writable stream takes `ArrayBuffer` instances and whose `out` readable stream gives back strings; or they could be dynamic transformations, for example a web worker or child process which reacts to data flowing to its `in` side in order to decide what to give from its `out` side.
 
 `closed` is a simple convenience API: it's a promise that becomes fulfilled when the stream has been completely read (`state` of `"closed"`), or becomes rejected if some error occurs in the stream (`state` of `"errored"`).
 
-The dispose API is a bit more subtle. It allows consumers to communicate a *loss of interest* in the stream's data; you could use this, for example, to dispose a file download stream if the user clicks "Cancel." The main functionality of dispose is handled by another constructor parameter, alongside `start` and `pull`: for example, we might extend our above socket stream with an `dispose` parameter like so:
+The abort API is a bit more subtle. It allows consumers to communicate a *loss of interest* in the stream's data; you could use this, for example, to abort a file download stream if the user clicks "Cancel." The main functionality of abort is handled by another constructor parameter, alongside `start` and `pull`: for example, we might extend our above socket stream with an `abort` parameter like so:
 
 ```js
 return new ReadableStream({
     start(push, close, error) { /* as before */ },
     pull() { /* as before */ }
-    dispose() {
+    abort() {
         rawSocket.readStop();
         rawSocket = null;
     }
 });
 ```
 
-In addition to calling the `dispose` functionality given in the stream's constructor, a readable stream's `dispose(reason)` method cleans up the stream's internal buffer and ensures that the `pull` constructor parameter is never called again. It puts the stream in the `"closed"` state—disposing is not considered an error—but any further attempts to `read()` will result in `reason` being thrown, and attempts to call `wait()` will give a promise rejected with `reason`.
+In addition to calling the `abort` function given in the stream's constructor, a readable stream's `abort(reason)` method cleans up the stream's internal buffer and ensures that the `pull` constructor parameter is never called again. It puts the stream in the `"closed"` state—aborting is not considered an error—but any further attempts to `read()` will result in `reason` being thrown, and attempts to call `wait()` will give a promise rejected with `reason`.
 
 ### The Readable Stream State Diagram
 
@@ -292,7 +292,7 @@ class BaseReadableStream {
     constructor({
         function start = () => {},
         function pull = () => {},
-        function dispose = () => {}
+        function abort = () => {}
     })
 
     // Reading data from the underlying source
@@ -308,7 +308,7 @@ class BaseReadableStream {
     )
 
     // Stop accumulating data
-    void dispose(any reason)
+    void abort(any reason)
 
     // Useful helper
     get Promise<undefined> closed
@@ -323,7 +323,7 @@ class BaseReadableStream {
     Promise<undefined> [[readablePromise]]
     Promise<undefined> [[closedPromise]]
     Promise [[startedPromise]]
-    function [[onDispose]]
+    function [[onAbort]]
     function [[onPull]]
 
     // Internal methods
@@ -343,17 +343,17 @@ enum ReadableStreamState {
 
 ##### Properties of the BaseReadableStream prototype
 
-###### constructor({ start, pull, dispose })
+###### constructor({ start, pull, abort })
 
 The constructor is passed several functions, all optional:
 
 - `start(push, close, error)` is typically used to adapting a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
 - `pull(push, close, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `push` function is called.
-- `dispose(reason)` is called when the readable stream is disposed, and should perform whatever source-specific steps are necessary to clean up and stop reading. It is given the dispose reason that was given to the stream when calling the public `dispose` method, if any.
+- `abort(reason)` is called when the readable stream is aborted, and should perform whatever source-specific steps are necessary to clean up and stop reading. It is given the abort reason that was given to the stream when calling the public `abort` method, if any.
 
 Both `start` and `pull` are given the ability to manipulate the stream's internal buffer and state by being passed the `this.[[push]]`, `this.[[close]]`, and `this.[[error]]` functions.
 
-1. Set `this.[[onDispose]]` to `dispose`.
+1. Set `this.[[onAbort]]` to `abort`.
 1. Set `this.[[onPull]]` to `pull`.
 1. Let `this.[[readablePromise]]` be a newly-created pending promise.
 1. Let `this.[[closedPromise]]` be a newly-created pending promise.
@@ -393,15 +393,15 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
     1. Call `this.[[callPull]]()`.
 1. Return `this.[[readablePromise]]`.
 
-###### dispose(reason)
+###### abort(reason)
 
 1. If `this.[[state]]` is `"waiting"`,
-    1. Call `this.[[onDispose]](reason)`.
+    1. Call `this.[[onAbort]](reason)`.
     1. Resolve `this.[[closedPromise]]` with `undefined`.
     1. Reject `this.[[readablePromise]]` with `reason`.
     1. Set `this.[[state]]` to `"closed"`.
 1. If `this.[[state]]` is `"readable"`,
-    1. Call `this.[[onDispose]](reason)`.
+    1. Call `this.[[onAbort]](reason)`.
     1. Resolve `this.[[closedPromise]]` with `undefined`.
     1. Let `this.[[readablePromise]]` be a newly-created promise rejected with `reason`.
     1. Clear `this.[[buffer]]`.
@@ -425,30 +425,30 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
         if (dest.state === "writable") {
             pumpSource();
         } else if (dest.state === "waiting") {
-            dest.wait().then(fillDest, disposeSource);
+            dest.wait().then(fillDest, abortSource);
         } else {
             // Source has either been closed by someone else, or has errored in the course of
             // someone else writing. Either way, we're not going to be able to do anything
             // else useful.
-            disposeSource();
+            abortSource();
         }
     }
 
     function pumpSource() {
         if (source.state === "readable") {
-            dest.write(source.read()).catch(disposeSource);
+            dest.write(source.read()).catch(abortSource);
             fillDest();
         } else if (source.state === "waiting") {
-            source.wait().then(fillDest, disposeDest);
+            source.wait().then(fillDest, abortDest);
         } else if (source.state === "closed") {
             closeDest();
         } else {
-            disposeDest();
+            abortDest();
         }
     }
 
-    function disposeSource(reason) {
-        source.dispose(reason);
+    function abortSource(reason) {
+        source.abort(reason);
     }
 
     function closeDest() {
@@ -457,9 +457,9 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
         }
     }
 
-    function disposeDest(reason) {
+    function abortDest(reason) {
         // ISSUE: should this be preventable via an option or via `options.close`?
-        dest.dispose(reason);
+        dest.abort(reason);
     }
 };
 ```
@@ -526,7 +526,7 @@ class ReadableStream extends BaseReadableStream {
     constructor({
         function start = () => {},
         function pull = () => {},
-        function dispose = () => {},
+        function abort = () => {},
         strategy: { function count, function needsMoreData }
     })
 
@@ -550,10 +550,10 @@ class ReadableStream extends BaseReadableStream {
 
 ##### Properties of the ReadableStream Prototype
 
-###### constructor({ start, pull, dispose, strategy })
+###### constructor({ start, pull, abort, strategy })
 
 1. Set `this.[[strategy]]` to `strategy`.
-1. Call `super({ start, pull, dispose })`.
+1. Call `super({ start, pull, abort })`.
 
 ###### read()
 
@@ -708,18 +708,18 @@ Note how we don't even add handlers for the promises returned by `writableStream
 
 ### Other APIs on Writable Streams
 
-Besides the constructor pattern, the `write(data)`/`wait()`/`state` primitives for writing, and the `close()` primitive for closing the underlying sink, a writable stream provides two more APIs: `closed` and `dispose(reason)`.
+Besides the constructor pattern, the `write(data)`/`wait()`/`state` primitives for writing, and the `close()` primitive for closing the underlying sink, a writable stream provides two more APIs: `closed` and `abort(reason)`.
 
 `closed` is simply a convenience API: it's a promise that becomes fulfilled when the stream has been successfully closed (`state` of `"closed"`), or becomes rejected if some error occurs while starting, writing to, or closing the stream (`state` of `"errored"`).
 
-The `dispose` API allows users to communicate a *forceful closes* of the stream; this could be useful, for example, to stop a file upload if the user clicks "Cancel." Disposing a stream will clear any queued writes (and close operations), and then call the `dispose` constructor parameter immediately. By default the `dispose` constructor parameter will simply do whatever the user passed in for the `close` constructor parameter, but by passing a customized function, the creator of the stream can react to forceful closes differently than normal ones. For example, we might extend our above file stream with a `dispose` parameter that deletes the file if it was newly created by this write operation:
+The `abort` API allows users to communicate a *forceful closes* of the stream; this could be useful, for example, to stop a file upload if the user clicks "Cancel." Aborting a stream will clear any queued writes (and close operations), and then call the `abort` constructor parameter immediately. By default the `abort` constructor parameter will simply do whatever the user passed in for the `close` constructor parameter, but by passing a customized function, the creator of the stream can react to forceful closes differently than normal ones. For example, we might extend our above file stream with a `abort` parameter that deletes the file if it was newly created by this write operation:
 
 ```
 return new WritableStream({
     start() { /* as before */ },
     write(data, done, error) { /* as before */ },
     close() { /* as before */ },
-    dispose() {
+    abort() {
         if (fileHandle.isNew) {
             deleteFileHandle(fileHandle, err => {
                 if (err) {
@@ -732,7 +732,7 @@ return new WritableStream({
 });
 ```
 
-Calling `dispose(reason)` puts the writable stream into a `"closed"` state—disposal is not considered an error—but any further attempts to call `write()`, `wait()`, or `close()` will immediately return a promise rejected with `reason`.
+Calling `abort(reason)` puts the writable stream into a `"closed"` state—aborting is not considered an error—but any further attempts to call `write()`, `wait()`, or `close()` will immediately return a promise rejected with `reason`.
 
 ### The Writable Stream State Diagram
 
@@ -750,7 +750,7 @@ class BaseWritableStream {
         function start = () => {},
         function write = () => {},
         function close = () => {},
-        function dispose = close
+        function abort = close
     })
 
     // Writing data to the underlying sink
@@ -762,7 +762,7 @@ class BaseWritableStream {
     Promise<undefined> close()
 
     // Close off the underlying sink forcefully; everything written so far is suspect.
-    Promise<undefined> dispose(any reason)
+    Promise<undefined> abort(any reason)
 
     // Useful helpers
     get Promise<undefined> closed
@@ -770,7 +770,7 @@ class BaseWritableStream {
     // Internal methods
     [[error]](any e)
     [[doClose]]()
-    [[doDispose]](r)
+    [[doAbort]](r)
     [[doNextWrite]]({ type, promise, data })
 
     // Internal properties
@@ -782,7 +782,7 @@ class BaseWritableStream {
     Promise<undefined> [[closedPromise]]
     function [[onWrite]]
     function [[onClose]]
-    function [[onDispose]]
+    function [[onAbort]]
 }
 
 enum WritableStreamState {
@@ -796,20 +796,20 @@ enum WritableStreamState {
 
 ##### Properties of the BaseWritableStream prototype
 
-###### constructor({ start, write, close, dispose })
+###### constructor({ start, write, close, abort })
 
 The constructor is passed several functions, all optional:
 
 * `start()` is called when the writable stream is created, and should open the underlying writable sink. If this process is asynchronous, it can return a promise to signal success or failure.
-* `write(data, done, error)` should write `data` to the underlying sink. It can call its `done` or `error` parameters, either synchronously or asynchronously, to respectively signal that the underlying resource is ready for more data or that an error occurred writing. The stream implementation guarantees that this function will be called only after previous writes have succeeded (i.e. called their `done` parameter), and never after `close` or `dispose` is called.
+* `write(data, done, error)` should write `data` to the underlying sink. It can call its `done` or `error` parameters, either synchronously or asynchronously, to respectively signal that the underlying resource is ready for more data or that an error occurred writing. The stream implementation guarantees that this function will be called only after previous writes have succeeded (i.e. called their `done` parameter), and never after `close` or `abort` is called.
 * `close()` should close the underlying sink. If this process is asynchronous, it can return a promise to signal success or failure. The stream implementation guarantees that this function will be called only after all queued-up writes have succeeded.
-* `dispose(reason)` is an abrupt close, signaling that all data written so far is suspect. It should clean up underlying resources, much like `close`, but perhaps with some custom handling. It is sometimes given a reason for this abrupt close as a parameter. Unlike `close`, `dispose` will be called even if writes are queued up, throwing away that data.
+* `abort(reason)` is an abrupt close, signaling that all data written so far is suspect. It should clean up underlying resources, much like `close`, but perhaps with some custom handling. It is sometimes given a reason for this abrupt close as a parameter. Unlike `close`, `abort` will be called even if writes are queued up, throwing away that data.
 
 In reaction to calls to the stream's `.write()` method, the `write` constructor option is given data from the internal buffer, along with the means to signal that the data has been successfully or unsuccessfully written.
 
 1. Set `this.[[onWrite]]` to `write`.
 1. Set `this.[[onClose]]` to `close`.
-1. Set `this.[[onDispose]]` to `dispose`.
+1. Set `this.[[onAbort]]` to `abort`.
 1. Let `this.[[writablePromise]]` be a newly-created pending promise.
 1. Call `start()` and let `startedPromise` be the result of casting the return value to a promise.
 1. When/if `startedPromise` is fulfilled,
@@ -863,16 +863,16 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If `this.[[state]]` is `"errored"`,
     1. Return a promise rejected with `this.[[storedError]]`.
 
-###### dispose(r)
+###### abort(r)
 
 1. If `this.[[state]]` is `"writable"`,
     1. Set `this.[[state]]` to `"closing"`.
-    1. Return `this.[[doDispose]](r)`.
+    1. Return `this.[[doAbort]](r)`.
 1. If `this.[[state]]` is `"waiting"`, or if `this.[[state]]` is `"closing"` and `this.[[buffer]]` is not empty,
     1. Set `this.[[state]]` to `"closing"`.
     1. For each entry `{ type, promise, data }` in `this.[[buffer]]`, reject `promise` with `r`.
     1. Clear `this.[[buffer]]`.
-    1. Return `this.[[doDispose]](r)`.
+    1. Return `this.[[doAbort]](r)`.
 1. Return a promise resolved with `undefined`.
 
 ###### wait()
@@ -902,16 +902,16 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. When/if `closeResult` is rejected with reason `r`, call `this.[[error]](r)`.
 1. Return `this.[[closedPromise]]`.
 
-###### `[[doDispose]](r)`
+###### `[[doAbort]](r)`
 
 1. Reject `this.[[writablePromise]]` with `r`.
-1. Call `this.[[onDispose]](r)`.
+1. Call `this.[[onAbort]](r)`.
 1. If the call throws an exception `e`, call `this.[[error]](e)` and return a promise rejected with `e`.
-1. Otherwise, let `disposeResult` be the result of casting the return value to a promise.
-1. When/if `disposeResult` is fulfilled,
+1. Otherwise, let `abortResult` be the result of casting the return value to a promise.
+1. When/if `abortResult` is fulfilled,
     1. Set `this.[[state]]` to `"closed"`.
     1. Resolve `this.[[closedPromise]]` with `undefined`.
-1. When/if `disposeResult` is rejected with reason `r`, call `this.[[error]](r)`.
+1. When/if `abortResult` is rejected with reason `r`, call `this.[[error]](r)`.
 1. Return `this.[[closedPromise]]`.
 
 ###### `[[doNextWrite]]({ type, promise, data })`
@@ -941,7 +941,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Call `this.[[onWrite]](data, signalDone, [[error]])`.
 1. If the call throws an exception `e`, call `this.[[error]](e)`.
 
-Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been disposed, then `signalDone` ends up doing nothing.
+Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been aborted, then `signalDone` ends up doing nothing.
 
 #### WritableStream
 
@@ -952,7 +952,7 @@ class WritableStream extends BaseWritableStream {
         function start = () => {},
         function write = () => {},
         function close = () => {},
-        function dispose = close,
+        function abort = close,
         strategy: { function count, function needsMoreData }
     })
 
@@ -970,10 +970,10 @@ class WritableStream extends BaseWritableStream {
 
 ##### Properties of the WritableStream Prototype
 
-###### constructor({ start, write, close, dispose, strategy })
+###### constructor({ start, write, close, abort, strategy })
 
 1. Set `this.[[strategy]]` to `strategy`.
-1. Call `super({ start, write, close, dispose })`.
+1. Call `super({ start, write, close, abort })`.
 
 ###### write(data)
 
@@ -1008,7 +1008,7 @@ class CorkableWritableStream extends WritableStream {
         function write = () => {},
         function writev = () => {},
         function close = () => {},
-        function dispose = close,
+        function abort = close,
         strategy: { function count, function needsMoreData }
     })
 
@@ -1030,7 +1030,7 @@ TODO!
 
 ### TeeStream
 
-A "tee stream" is a writable stream which, when written to, itself writes to multiple destinations. It aggregates backpressure and dispose signals from those destinations, propagating the appropriate aggregate signals backward.
+A "tee stream" is a writable stream which, when written to, itself writes to multiple destinations. It aggregates backpressure and abort signals from those destinations, propagating the appropriate aggregate signals backward.
 
 ```js
 class TeeStream extends BaseWritableStream {
@@ -1045,8 +1045,8 @@ class TeeStream extends BaseWritableStream {
                 const outputsToClose = this.[[outputs]].filter(o => o.close);
                 return Promise.all(outputsToClose.map(o => o.dest.write(data)));
             },
-            dispose(reason) {
-                return Promise.all(this.[[outputs]].map(o => o.dest.dispose(reason)));
+            abort(reason) {
+                return Promise.all(this.[[outputs]].map(o => o.dest.abort(reason)));
             }
         });
     }
