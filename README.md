@@ -1107,6 +1107,12 @@ class CountBufferingStrategy {
 }
 ```
 
+## Acknowledgments
+
+The editor would like to thank Bert Belder, Marcos Caceres, Tim Caswell, Forbes Lindesay, Thorsten Lorenz, Jens Nockert, Trevor Norris, Dominic Tarr, Takeshi Yoshino, and tzik for their contributions to this specification.
+
+Special thanks to: Isaac Schlueter for his pioneering work on JavaScript streams in Node.js; Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward; and Gorgi Kosev for his breakthrough idea of separating `pipe` into two methods, thus resolving a [major sticking point](https://github.com/whatwg/streams/issues/44).
+
 ---
 
 <p xmlns:dct="http://purl.org/dc/terms/" xmlns:vcard="http://www.w3.org/2001/vcard-rdf/3.0#">
