@@ -77,10 +77,10 @@ The primary way of consuming streams is to pipe them to each other. This is the 
 
 ```js
 fs.createReadStream("source.txt")
-    .pipe(fs.createWriteStream("dest.txt"));
+    .pipeTo(fs.createWriteStream("dest.txt"));
 
 http.get("http://example.com")
-    .pipe(fs.createWriteStream("dest.txt"));
+    .pipeTo(fs.createWriteStream("dest.txt"));
 ```
 
 ### You must be able to transform streams via the pipe chain.
@@ -89,22 +89,24 @@ A naturally-arising concept is a *transform stream*, i.e. a stream that is both 
 
 ```js
 fs.createReadStream("source.zip")
-    .pipe(zlib.createGzipDecompressor(options))
-    .pipe(fs.createWriteStream("dest/"));
+    .pipeThrough(zlib.createGzipDecompressor(options))
+    .pipeTo(fs.createWriteStream("dest/"));
 
 fs.createReadStream("index.html")
-    .pipe(zlib.createGzipCompressor(options))
-    .pipe(httpServerResponse);
+    .pipeThrough(zlib.createGzipCompressor(options))
+    .pipeTo(httpServerResponse);
 
 http.get("http://example.com/video.mp4")
-    .pipe(videoProcessingWebWorker)
-    .pipe(document.query("video"));
+    .pipeThrough(videoProcessingWebWorker)
+    .pipeTo(document.query("video"));
 
 fs.createReadStream("source.txt")
-    .pipe(new StringDecoder("utf-8"))
-    .pipe(database1.queryExecutor)
-    .pipe(database2.tableWriter("table"));
+    .pipeThrough(new StringDecoder("utf-8"))
+    .pipeThrough(database1.queryExecutor)
+    .pipeTo(database2.tableWriter("table"));
 ```
+
+Here we illustrate the difference between piping *through* a transform stream, versus piping *to* a writable stream, by splitting that functionality into two separate methods.
 
 _NOTE: a transform stream is not always the most efficient or straightforward abstraction, although it may fit nicely into a pipe chain. For example, the `StringDecoder` transform above is a synchronous transformation, and the transform stream machinery is possibly overkill. A simpler approach might be a simple function that takes a readable stream of `ArrayBuffer`s and returns a readable stream of strings, by wrapping the appropriate methods to synchronous transformation._
 

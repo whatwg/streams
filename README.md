@@ -57,7 +57,7 @@ In extensible web fashion, we will build up to a fully-featured streams from a f
 - `ReadableStream`
     - A higher-level API used by most creators of readable streams.
     - Adds the ability to customize the buffering and backpressure strategy, overriding the basic one.
-    - Supports piping to more than one destination, by using the `TeeStream` transform stream within its `pipe` method.
+    - Supports piping to more than one destination, by using the `TeeStream` transform stream within its `pipeTo` method.
 
 #### WritableStreams
 
@@ -208,17 +208,17 @@ Here we see that the tables are reversed, and the most interesting work is done 
 
 In the previous section, we discussed how to create readable streams wrapping arbitrary data sources. The beauty of this approach is that, once you have such a readable stream, you can interface with it using the same simple API, no matter where it came from—and all the low-level concerns like buffering, backpressure, or what type of data source you're dealing with are abstracted away.
 
-#### Using `pipe`
+#### Using `pipeTo`
 
-The primary means of consuming a readable stream is through its `pipe` method, which accepts a writable stream, and manages the complex dance required for writing data to the writable stream only as fast as it can accept. The writable stream's  rate of intake is used to govern how fast data is read from the readable stream, thus taking care of the propagation of backpressure signals. A typical pipe scenario might look like:
+The primary means of consuming a readable stream is through its `pipeTo` method, which accepts a writable stream, and manages the complex dance required for writing data to the writable stream only as fast as it can accept. The writable stream's  rate of intake is used to govern how fast data is read from the readable stream, thus taking care of the propagation of backpressure signals. A typical pipe scenario might look like:
 
 ```js
-readableStream.pipe(writeableStream).closed
+readableStream.pipeTo(writeableStream).closed
     .then(() => console.log("All written!"))
     .catch(err => console.error("Something went wrong!", err));
 ```
 
-90% of the time, this is all that will be required: you will rarely, if ever, have to read from a readable stream yourself. Simply piping to a writable stream, and letting the `pipe` algorithm take care of all the associated complexity, is often enough.
+90% of the time, this is all that will be required: you will rarely, if ever, have to read from a readable stream yourself. Simply piping to a writable stream, and letting the pipe algorithm take care of all the associated complexity, is often enough.
 
 #### Using `read()`/`wait()`/`state`
 
@@ -252,7 +252,9 @@ Once all the available data is read from the stream's internal buffer, the strea
 
 ### Other APIs on Readable Streams
 
-Besides the constructor pattern, the `pipe` method for piping a readable stream into a writable stream, and the `read()`/`wait()`/`state` primitives for reading raw data, a readable stream provides two more APIs: `closed` and `dispose(reason)`.
+Besides the constructor pattern, the `pipeTo` method for piping a readable stream into a writable stream, and the `read()`/`wait()`/`state` primitives for reading raw data, a readable stream provides three more APIs: `pipeThrough`, `closed`, and `dispose(reason)`.
+
+`pipeThrough` is a mechanism for piping readable streams through *transform streams*, which are represented as `{ in, out }` pairs where `in` is a writable stream and `out` is a readable stream. Transform streams could have predefined translation logic, e.g. a string decoder whose `in` writable stream takes `ArrayBuffer` instances and whose `out` readable stream gives back strings; or they could be dynamic transformations, for example a web worker or child process which reacts to data flowing to its `in` side in order to decide what to give from its `out` side.
 
 `closed` is a simple convenience API: it's a promise that becomes fulfilled when the stream has been completely read (`state` of `"closed"`), or becomes rejected if some error occurs in the stream (`state` of `"errored"`).
 
@@ -298,9 +300,12 @@ class BaseReadableStream {
     Promise<undefined> wait()
     get ReadableStreamState state
 
-    // Composing with writable streams
-    // NB: the return value is actually whatever `dest` is. Hard to express in IDL.
-    WritableStream pipe(WritableStream dest, { ToBoolean close = true } = {})
+    // Composing with other streams
+    WritableStream pipeTo(WritableStream dest, { ToBoolean close = true } = {})
+    ReadableStream pipeThrough(
+        { WritableStream in, ReadableStream out },
+        { ToBoolean close = true } = {}
+    )
 
     // Stop accumulating data
     void dispose(any reason)
@@ -406,10 +411,10 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 1. Return `this.[[closedPromise]]`.
 
-###### pipe(dest, { close })
+###### pipeTo(dest, { close })
 
 ```js
-BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
+BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
     const source = this;
     close = Boolean(close);
 
@@ -458,6 +463,16 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
     }
 };
 ```
+
+###### pipeThrough({ in, out }, { close })
+
+```js
+BaseReadableStream.prototype.pipeThrough = ({ in, out }, { close = true } = {}) => {
+    this.pipeTo(transform.in);
+    return transform.out;
+};
+```
+
 
 ##### Internal Methods of BaseReadableStream
 
@@ -519,7 +534,7 @@ class ReadableStream extends BaseReadableStream {
     any read()
 
     // Supports multi-pipe by default, overriding base behavior.
-    WritableStream pipe(WritableStream dest, { ToBoolean close = true } = {})
+    WritableStream pipeTo(WritableStream dest, { ToBoolean close = true } = {})
 
     // Overriden to take into account the backpressure strategy.
     // You can also think of this as part of the constructor override, i.e. it passes
@@ -546,7 +561,7 @@ class ReadableStream extends BaseReadableStream {
 1. Subtract `this.[[strategy]].count(data)` from `this.[[bufferSize]]`.
 1. Return `data`.
 
-###### pipe(dest, { close })
+###### pipeTo(dest, { close })
 
 1. Let `alreadyPiping` be `true`.
 1. If `this.[[tee]]` is `undefined`, let `this.[[tee]]` be a new `TeeStream` and set `alreadyPiping` to `false`.
@@ -630,14 +645,14 @@ Here we start to see our first glimpse of how backpressure signals are given off
 
 Once you have a writable stream wrapping whatever low-level sink you hope to write to, you can now use the writable stream API to easily and efficiently write to it. All of the low-level concerns about proper order of operations are greatly simplified by the stream's internal state machine, leaving you with an easier-to-use higher-level API.
 
-#### Using `pipe`
+#### Using `pipeTo`
 
 The primary means of using a writable stream is by piping a readable stream into it. This will automatically take care of backpressure for you, as it only reads from the readable stream as fast as the writable stream is able to handle it—which, as we showed above, depends on how fast the underlying sink is able to accept data.
 
-Again, we emphasize that using pipe is the 90% case: you will rarely, if ever, have to write to a writable stream yourself. You will instead pipe to it from a readable stream, just as before:
+Again, we emphasize that piping is the 90% case: you will rarely, if ever, have to write to a writable stream yourself. You will instead pipe to it from a readable stream, just as before:
 
 ```js
-readableStream.pipe(writeableStream).closed
+readableStream.pipeTo(writeableStream).closed
     .then(() => console.log("All written!"))
     .catch(err => console.error("Something went wrong!", err));
 ```
