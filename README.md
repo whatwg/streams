@@ -615,7 +615,12 @@ function makeStreamingWritableFile(filename) {
         write(data, done, error) {
             fileHandle.write(data, err => {
                 if (err) {
-                    error(err);
+                    fileHandle.close(closeErr => {
+                        if (closeErr) {
+                            error(closeErr);
+                        }
+                        error(err);
+                    });
                 }
                 done();
             });
@@ -687,7 +692,7 @@ If the writable stream is in a writable state, and we have more data to write, t
 
 #### Ignoring `state`
 
-The previous example was somewhat silly, as we didn't effectively use the information that the writable stream's internal buffer was full. Typically, you would use that information to communicate a backpressure signal to a data source, possibly through the readable stream API's mechanisms for automatically doing this if you don't call `read()`. (Indeed, this very process can be seen, in its most generic form, in the `pipe` method of `BaseReadableStream`.) If the data is already in memory anyway, there's nothing to be gained by delaying calls to `write()` until the stream signals it is writable; there's nowhere to signal backpressure to.
+The previous example was somewhat silly, as we didn't effectively use the information that the writable stream's internal buffer was full. Typically, you would use that information to communicate a backpressure signal to a data source, possibly through the readable stream API's mechanisms for automatically doing this if you don't call `read()`. (Indeed, this very process can be seen, in its most generic form, in the `pipeTo` method of `BaseReadableStream`.) If the data is already in memory anyway, there's nothing to be gained by delaying calls to `write()` until the stream signals it is writable; there's nowhere to signal backpressure to.
 
 With that in mind, here is a much simpler version of our above function, which has the same effect, except it doesn't notify us about the stream's queued writes buffer.
 
