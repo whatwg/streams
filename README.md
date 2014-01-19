@@ -33,8 +33,8 @@ The JavaScript community has extensive experience with streaming primitives, whi
     - You must be able to transform streams via the pipe chain.
     - You must be able to communicate backpressure.
     - You must be able to pipe a stream to more than one writable stream.
-    - You must be able to communicate "abort" signals up a pipe chain.
-    - You must be able to communicate "dispose" signals down a pipe chain.
+    - You must be able to communicate dispose signals up a pipe chain.
+    - You must be able to communicate dispose signals down a pipe chain.
 - Other
     - The stream API should be agnostic to what type of data is being streamed.
     - You must be able to create representions of "duplex" data sources.
@@ -81,10 +81,10 @@ In extensible web fashion, we will build up to a fully-featured streams from a f
     - A buffering strategy that assumes each incoming object contributes the same amount to reaching the designated high water mark.
     - Useful for streams of objects.
 - `ReadableStreamWatcher`
-   - An `EventTarget` (or similar?) which taps into a given readable stream and emit `"data"`, `"error"`, and `"finished"` events for those which wish to watch its progress.
+   - An `EventTarget` (or similar?) which taps into a given readable stream and emit `"data"`, `"error"`, and `"closed"` events for those which wish to watch its progress.
    - This could be implemented entirely in user-land, but is provided to solve a common use case.
 - `WritableStreamWatcher`
-   - Same thing as `ReadableStreamWatcher`, but for writable streams, with `"data"`, `"error"`, `"close"`.
+   - Same thing as `ReadableStreamWatcher`, but for writable streams.
 
 ### A Note on Conventions
 
@@ -102,7 +102,7 @@ A pull source, e.g. a file handle, requires you to request data from it. The dat
 
 A final consideration when dealing with readable streams is the *buffering strategy*, which is closely related to how backpressure is handled. First, we note that for push sources, a stream must maintain an internal buffer of data that has been pushed from the source but not yet read out of the stream. The most naive strategy is, once this buffer becomes nonempty, to attempt to pause the underlying source—and once it is drained, to resume the flow of data. Similarly, we consider pull sources: the most naive strategy does not employ a buffer, but simply pulls from the source whenever the stream is read from. It is exactly these naive buffering strategies that are implemented by the `BaseReadableStream` API, which is a lower-level building block designed to wrap pull and push sources into a uniform API. The higher-level `ReadableStream` API allows the implementation of more complex buffering strategies, based on *high water marks*. For readable streams wrapping push sources, a high water mark denotes the level to which the buffer is allowed to fill before trying to pause the push source: this allows the accumulation of some incoming data in memory without impeding the flow from the source, so that it can be flushed through the system more quickly when the consumer is ready to read from the stream. For readable streams wrapping pull sources, a high water mark denotes how much data should be "proactively" pulled into a buffer, even before that data is read out of the stream; this allows larger pulls from the source.
 
-Together, these considerations form the foundation of our readable streams API. It is designed to allow wrapping of both pull and push sources into a single `ReadableStream` abstraction. To accomplish this, the API uses the *revealing constructor pattern*, pioneered by the promises specification (TODO: link to blog post). The constructor of a given stream instance is supplied with two functions, `start` and `pull`, which each are given the parameters `(push, finish, error)` representing capabilities tied to the internals of the stream. (Typically, streams wrapping push sources will put most of their logic in `start`, while those wrapping pull sources will put most of their logic in `pull`.) By mediating all access to the internal state machine through these three functions, the stream's internal state and bookkeeping can be kept private, allowing nobody but the original producer of the stream to insert data into it.
+Together, these considerations form the foundation of our readable streams API. It is designed to allow wrapping of both pull and push sources into a single `ReadableStream` abstraction. To accomplish this, the API uses the *revealing constructor pattern*, pioneered by the promises specification (TODO: link to blog post). The constructor of a given stream instance is supplied with two functions, `start` and `pull`, which each are given the parameters `(push, close, error)` representing capabilities tied to the internals of the stream. (Typically, streams wrapping push sources will put most of their logic in `start`, while those wrapping pull sources will put most of their logic in `pull`.) By mediating all access to the internal state machine through these three functions, the stream's internal state and bookkeeping can be kept private, allowing nobody but the original producer of the stream to insert data into it.
 
 ### Examples: Using the `ReadableStream` constructor
 
@@ -120,21 +120,21 @@ In general, a push-based data source can be modeled as:
 
 As an aside, this is pretty close to the existing HTML [`WebSocket` interface](http://www.whatwg.org/specs/web-apps/current-work/multipage/network.html#the-websocket-interface), with the exception that `WebSocket` does not give any method of pausing or resuming the flow of data.
 
-Let's assume we have some raw C++ socket object or similar, which presents the above API. This is a simplified version of how you could create a `ReadableStream` wrapping this raw socket object. (For a more complete version, see [the examples document][Examples.md].)
+Let's assume we have some raw C++ socket object or similar, which presents the above API. This is a simplified version of how you could create a `ReadableStream` wrapping this raw socket object. (For a more complete version, see [the examples document](Examples.md).)
 
 ```js
 function makeStreamingSocket(host, port) {
     const rawSocket = createRawSocketObject(host, port);
 
     return new ReadableStream({
-        start(push, finish, error) {
+        start(push, close, error) {
             rawSocket.ondata = chunk => {
                 if (!push(chunk)) {
                     rawSocket.readStop();
                 }
             };
 
-            rawSocket.onend = finish;
+            rawSocket.onend = close;
 
             rawSocket.onerror = error;
         },
@@ -148,7 +148,7 @@ function makeStreamingSocket(host, port) {
 var socket = makeStreamingSocket("http://example.com", 80);
 ```
 
-Here we see a pattern very typical of readable streams that wrap push sources: they do most of their work in the `start` constructor parameter. There, it sets up listeners to call `push` with any incoming data; to call `finish` if the source has no more data; and to call `error` if the source errors. These three functions—`push`, `finish`, and `error`—are given to the supplied `start` parameter, allowing `start` to push onto the internal buffer and otherwise manipulate internal state. `start` is called immediately upon creation of the readable stream, so you can be sure that these listeners were attached immediately after the `rawSocket` object was created.
+Here we see a pattern very typical of readable streams that wrap push sources: they do most of their work in the `start` constructor parameter. There, it sets up listeners to call `push` with any incoming data; to call `close` if the source has no more data; and to call `error` if the source errors. These three functions—`push`, `close`, and `error`—are given to the supplied `start` parameter, allowing `start` to push onto the internal buffer and otherwise manipulate internal state. `start` is called immediately upon creation of the readable stream, so you can be sure that these listeners were attached immediately after the `rawSocket` object was created.
 
 Note how the `ondata` handler checks the return value of the `push` function, and if it's falsy, it tries to stop the flow of data from the raw socket. `push` returns a boolean that is `true` only if the stream's internal buffer has not yet been filled. If the return value is instead `false`, that means the buffer is full: a backpressure signal. Thus we call `rawSocket.readStop()` to propagate this backpressure signal to the underlying socket.
 
@@ -180,7 +180,7 @@ function makeStreamingReadableFile(filename) {
             });
         },
 
-        pull(push, finish, error) {
+        pull(push, close, error) {
             fileHandle.read((err, done, data) => {
                 if (err) {
                     error(err);
@@ -189,7 +189,7 @@ function makeStreamingReadableFile(filename) {
                         if (err) {
                             error(err);
                         }
-                        finish();
+                        close();
                     });
                 } else {
                     push(data);
@@ -202,7 +202,7 @@ function makeStreamingReadableFile(filename) {
 var file = makeStreamingReadableFile("/example/path/on/fs.txt");
 ```
 
-Here we see that the tables are reversed, and the most interesting work is done in the `pull` constructor parameter. `start` simply returns a new promise which is fulfilled if the file handle opens successfully, or is rejected if there is an error doing so. Whereas `pull` proxies requests for more data to the underlying file handle, using the `push`, `finish`, and `error` functions to manipulate the stream's internal buffer and state.
+Here we see that the tables are reversed, and the most interesting work is done in the `pull` constructor parameter. `start` simply returns a new promise which is fulfilled if the file handle opens successfully, or is rejected if there is an error doing so. Whereas `pull` proxies requests for more data to the underlying file handle, using the `push`, `close`, and `error` functions to manipulate the stream's internal buffer and state.
 
 ### Examples: Consuming a Readable Stream
 
@@ -220,62 +220,62 @@ readableStream.pipe(writeableStream).closed
 
 90% of the time, this is all that will be required: you will rarely, if ever, have to read from a readable stream yourself. Simply piping to a writable stream, and letting the `pipe` algorithm take care of all the associated complexity, is often enough.
 
-#### Using `read()`/`waitForReadable()`/`readableState`
+#### Using `read()`/`wait()`/`state`
 
-For those times when you do need to consume a readable stream directly, the usual pattern is to pump it, alternating between using the `read()` and `waitForReadable()` methods by consulting its `readableState` property. For example, this function writes the contents of a readable stream to the console as fast as it can.
+For those times when you do need to consume a readable stream directly, the usual pattern is to pump it, alternating between using the `read()` and `wait()` methods by consulting its `state` property. For example, this function writes the contents of a readable stream to the console as fast as it can.
 
 ```js
 function streamToConsole(readableStream) {
     pump();
 
     function pump() {
-        while (readableStream.readableState === "readable") {
+        while (readableStream.state === "readable") {
             console.log(readableStream.read());
         }
 
-        if (readableStream.readableState === "finished") {
+        if (readableStream.state === "closed") {
             console.log("--- all done!");
         } else {
             // If we're in an error state, the returned promise will be rejected with that error,
             // so no need to handle "waiting" vs. "errored" separately.
-            readableStream.waitForReadable().then(pump, e => console.error(e));
+            readableStream.wait().then(pump, e => console.error(e));
         }
     }
 }
 ```
 
-This function essentially handles each possible state of the stream separately. If the stream is in the `"waiting"` state, meaning there's no data available yet, we call `readableStream.waitForReadable()` to get a promise that will be fulfilled when data becomes available. (This has the side effect of signaling to the stream that we are ready for data, which the stream might use to resume the flow from any underlying data sources.)
+This function essentially handles each possible state of the stream separately. If the stream is in the `"waiting"` state, meaning there's no data available yet, we call `readableStream.wait()` to get a promise that will be fulfilled when data becomes available. (This has the side effect of signaling to the stream that we are ready for data, which the stream might use to resume the flow from any underlying data sources.)
 
 Once data is available, the stream transitions to the `"readable"` state. We use a `while` loop to continue to read chunks of data for as long as they are still available; typically this will only be a few iterations. (Sometimes people get confused at this point, thinking that this is a kind of blocking polling loop; it is not. It simply makes sure to empty the internal buffer of all available chunks.) Note that `readableStream.read()` synchronously returns the available data to us from the stream's internal buffer. This is especially important since often the OS is able to supply us with data synchronously; a synchronous `read` method thus gives the best possible performance.
 
-Once all the available data is read from the stream's internal buffer, the stream can go back to `"waiting"`, as more data is retrieved from the underlying source. The stream will alternate between `"waiting"` and `"readable"` until at some point it transitions to either `"finished"` or `"errored"` states. In either of those cases, we log the event to the console, and are done!
+Once all the available data is read from the stream's internal buffer, the stream can go back to `"waiting"`, as more data is retrieved from the underlying source. The stream will alternate between `"waiting"` and `"readable"` until at some point it transitions to either `"closed"` or `"errored"` states. In either of those cases, we log the event to the console, and are done!
 
 ### Other APIs on Readable Streams
 
-Besides the constructor pattern, the `pipe` method for piping a readable stream into a writable stream, and the `read()`/`waitForReadable()`/`readableState` primitives for reading raw data, a readable stream provides two more APIs: `finished` and `abort(reason)`.
+Besides the constructor pattern, the `pipe` method for piping a readable stream into a writable stream, and the `read()`/`wait()`/`state` primitives for reading raw data, a readable stream provides two more APIs: `closed` and `dispose(reason)`.
 
-`finished` is a simple convenience API: it's a promise that becomes fulfilled when the stream has been completely read (`readableState` of `"finished"`), or becomes rejected if some error occurs in the stream (`readableState` of `"errored"`).
+`closed` is a simple convenience API: it's a promise that becomes fulfilled when the stream has been completely read (`state` of `"closed"`), or becomes rejected if some error occurs in the stream (`state` of `"errored"`).
 
-The abort API is a bit more subtle. It allows consumers to communicate a *loss of interest* in the stream's data; you could use this, for example, to abort a file download if the user clicks "Cancel." The main functionality of abort is handled by another constructor parameter, alongside `start` and `pull`: for example, we might extend our above socket stream with an `abort` parameter like so:
+The dispose API is a bit more subtle. It allows consumers to communicate a *loss of interest* in the stream's data; you could use this, for example, to dispose a file download stream if the user clicks "Cancel." The main functionality of dispose is handled by another constructor parameter, alongside `start` and `pull`: for example, we might extend our above socket stream with an `dispose` parameter like so:
 
 ```js
 return new ReadableStream({
-    start(push, finish, error) { /* as before */ },
+    start(push, close, error) { /* as before */ },
     pull() { /* as before */ }
-    abort() {
+    dispose() {
         rawSocket.readStop();
         rawSocket = null;
     }
 });
 ```
 
-In addition to calling the `abort` functionality given in the stream's constructor, a readable stream's `abort(reason)` method cleans up the stream's internal buffer and ensures that the `pull` constructor parameter is never called again. It puts the stream in the `"finished"` state—aborting is not considered an error—but any further attempts to `read()` will result in `reason` being thrown, and attempts to call `waitForReadable()` will give a promise rejected with `reason`.
+In addition to calling the `dispose` functionality given in the stream's constructor, a readable stream's `dispose(reason)` method cleans up the stream's internal buffer and ensures that the `pull` constructor parameter is never called again. It puts the stream in the `"closed"` state—disposing is not considered an error—but any further attempts to `read()` will result in `reason` being thrown, and attempts to call `wait()` will give a promise rejected with `reason`.
 
 ### The Readable Stream State Diagram
 
 As you've probably gathered from the above explanations, readable streams have a fairly complex internal state machine, which is responsible for keeping track of the internal buffer, and initiating appropriate actions in response to calls to a stream's methods. This can be roughly summarized in the following diagram:
 
-![A state machine diagram of a readable stream, showing transitions between waiting (starting = true), waiting (starting = false), readable (draining = false), readable (draining = true), finished, and errored states.](https://rawgithub.com/whatwg/streams/master/readable-stream.svg)
+![A state machine diagram of a readable stream, showing transitions between waiting (starting = true), waiting (starting = false), readable (draining = false), readable (draining = true), closed, and errored states.](https://rawgithub.com/whatwg/streams/master/readable-stream.svg)
 
 Here we denote methods of the stream called by external consumers `in monospace`; constructor methods **in bold**, and capabilities handed to constructor methods *in italic*.
 
@@ -290,121 +290,121 @@ class BaseReadableStream {
     constructor({
         function start = () => {},
         function pull = () => {},
-        function abort = () => {}
+        function dispose = () => {}
     })
 
     // Reading data from the underlying source
     any read()
-    Promise<undefined> waitForReadable()
-    get ReadableStreamState readableState
+    Promise<undefined> wait()
+    get ReadableStreamState state
 
     // Composing with writable streams
     // NB: the return value is actually whatever `dest` is. Hard to express in IDL.
     WritableStream pipe(WritableStream dest, { ToBoolean close = true } = {})
 
     // Stop accumulating data
-    void abort(any reason)
+    void dispose(any reason)
 
     // Useful helper
-    get Promise<undefined> finished
+    get Promise<undefined> closed
 
     // Internal properties
     Array [[buffer]] = []
     boolean [[started]] = false
     boolean [[draining]] = false
     boolean [[pulling]] = false
-    string [[readableState]] = "waiting"
+    string [[state]] = "waiting"
     any [[storedError]]
     Promise<undefined> [[readablePromise]]
-    Promise<undefined> [[finishedPromise]]
+    Promise<undefined> [[closedPromise]]
     Promise [[startedPromise]]
-    function [[onAbort]]
+    function [[onDispose]]
     function [[onPull]]
 
     // Internal methods
     [[push]](any data)
-    [[finish]]()
+    [[close]]()
     [[error]](any e)
     [[callPull]]()
 }
 
 enum ReadableStreamState {
     "readable"  // the buffer has something in it; read at will
-    "waiting"   // the source is not ready or the buffer is empty; you should call waitForReadable
-    "finished"  // all data has been read from both the source and the buffer
+    "waiting"   // the source is not ready or the buffer is empty; you should call wait
+    "closed"  // all data has been read from both the source and the buffer
     "errored"   // the source errored so the stream is now dead
 }
 ```
 
 ##### Properties of the BaseReadableStream prototype
 
-###### constructor({ start, pull, abort })
+###### constructor({ start, pull, dispose })
 
 The constructor is passed several functions, all optional:
 
-- `start(push, finish, error)` is typically used to adapting a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
-- `pull(push, finish, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `push` function is called.
-- `abort(reason)` is called when the readable stream is aborted, and should perform whatever source-specific steps are necessary to clean up and stop reading. It is given the abort reason that was given to the stream when calling the public `abort` method, if any.
+- `start(push, close, error)` is typically used to adapting a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
+- `pull(push, close, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `push` function is called.
+- `dispose(reason)` is called when the readable stream is disposed, and should perform whatever source-specific steps are necessary to clean up and stop reading. It is given the dispose reason that was given to the stream when calling the public `dispose` method, if any.
 
-Both `start` and `pull` are given the ability to manipulate the stream's internal buffer and state by being passed the `this.[[push]]`, `this.[[finish]]`, and `this.[[error]]` functions.
+Both `start` and `pull` are given the ability to manipulate the stream's internal buffer and state by being passed the `this.[[push]]`, `this.[[close]]`, and `this.[[error]]` functions.
 
-1. Set `this.[[onAbort]]` to `abort`.
+1. Set `this.[[onDispose]]` to `dispose`.
 1. Set `this.[[onPull]]` to `pull`.
 1. Let `this.[[readablePromise]]` be a newly-created pending promise.
-1. Let `this.[[finishedPromise]]` be a newly-created pending promise.
-1. Call `start(this.[[push]], this.[[finish]], this.[[error]])` and let `this.[[startedPromise]]` be the result of casting the return value to a promise.
+1. Let `this.[[closedPromise]]` be a newly-created pending promise.
+1. Call `start(this.[[push]], this.[[close]], this.[[error]])` and let `this.[[startedPromise]]` be the result of casting the return value to a promise.
 1. When/if `this.[[startedPromise]]` is fulfilled, set `this.[[started]]` to `true`.
 1. When/if `this.[[startedPromise]]` is rejected with reason `r`, call `this.[[error]](r)`.
 
-###### get readableState
+###### get state
 
-1. Return `this.[[readableState]]`.
+1. Return `this.[[state]]`.
 
 ###### read()
 
-1. If `this.[[readableState]]` is `"waiting"`,
+1. If `this.[[state]]` is `"waiting"`,
     1. Throw an error indicating that the stream does not have any data available yet.
-1. If `this.[[readableState]]` is `"readable"`,
+1. If `this.[[state]]` is `"readable"`,
     1. Assert: `this.[[buffer]]` is not empty.
     1. Let `data` be the result of shifting an element off of the front of `this.[[buffer]]`.
     1. If `this.[[buffer]]` is now empty,
         1. If `this.[[draining]]` is `true`,
-            1. Resolve `this.[[finishedPromise]]` with `undefined`.
+            1. Resolve `this.[[closedPromise]]` with `undefined`.
             1. Let `this.[[readablePromise]]` be a newly-created promise rejected with an error saying that the stream has already been completely read.
-            1. Set `this.[[readableState]]` to `"finished"`.
+            1. Set `this.[[state]]` to `"closed"`.
         1. If `this.[[draining]]` is `false`,
-            1. Set `this.[[readableState]]` to `"waiting"`.
+            1. Set `this.[[state]]` to `"waiting"`.
             1. Let `this.[[readablePromise]]` be a newly-created pending promise.
             1. `this.[[callPull]]()`.
     1. Return `data`.
-1. If `this.[[readableState]]` is `"errored"`,
+1. If `this.[[state]]` is `"errored"`,
     1. Throw `this.[[storedError]]`.
-1. If `this.[[readableState]]` is `"finished"`,
+1. If `this.[[state]]` is `"closed"`,
     1. Throw an error indicating that the stream has already been completely read.
 
-###### waitForReadable()
+###### wait()
 
-1. If `this.[[readableState]]` is `"waiting"`,
+1. If `this.[[state]]` is `"waiting"`,
     1. Call `this.[[callPull]]()`.
 1. Return `this.[[readablePromise]]`.
 
-###### abort(reason)
+###### dispose(reason)
 
-1. If `this.[[readableState]]` is `"waiting"`,
-    1. Call `this.[[onAbort]](reason)`.
-    1. Resolve `this.[[finishedPromise]]` with `undefined`.
+1. If `this.[[state]]` is `"waiting"`,
+    1. Call `this.[[onDispose]](reason)`.
+    1. Resolve `this.[[closedPromise]]` with `undefined`.
     1. Reject `this.[[readablePromise]]` with `reason`.
-    1. Set `this.[[readableState]]` to `"finished"`.
-1. If `this.[[readableState]]` is `"readable"`,
-    1. Call `this.[[onAbort]](reason)`.
-    1. Resolve `this.[[finishedPromise]]` with `undefined`.
+    1. Set `this.[[state]]` to `"closed"`.
+1. If `this.[[state]]` is `"readable"`,
+    1. Call `this.[[onDispose]](reason)`.
+    1. Resolve `this.[[closedPromise]]` with `undefined`.
     1. Let `this.[[readablePromise]]` be a newly-created promise rejected with `reason`.
     1. Clear `this.[[buffer]]`.
-    1. Set `this.[[readableState]]` to `"finished"`.
+    1. Set `this.[[state]]` to `"closed"`.
 
-###### get finished
+###### get closed
 
-1. Return `this.[[finishedPromise]]`.
+1. Return `this.[[closedPromise]]`.
 
 ###### pipe(dest, { close })
 
@@ -417,33 +417,33 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
     return dest;
 
     function fillDest() {
-        if (dest.writableState === "writable") {
+        if (dest.state === "writable") {
             pumpSource();
-        } else if (dest.writableState === "waiting") {
-            dest.waitForWritable().then(fillDest, abortSource);
+        } else if (dest.state === "waiting") {
+            dest.wait().then(fillDest, disposeSource);
         } else {
             // Source has either been closed by someone else, or has errored in the course of
             // someone else writing. Either way, we're not going to be able to do anything
             // else useful.
-            abortSource();
+            disposeSource();
         }
     }
 
     function pumpSource() {
-        if (source.readableState === "readable") {
-            dest.write(source.read()).catch(abortSource);
+        if (source.state === "readable") {
+            dest.write(source.read()).catch(disposeSource);
             fillDest();
-        } else if (source.readableState === "waiting") {
-            source.waitForReadable().then(fillDest, disposeDest);
-        } else if (source.readableState === "finished") {
+        } else if (source.state === "waiting") {
+            source.wait().then(fillDest, disposeDest);
+        } else if (source.state === "closed") {
             closeDest();
         } else {
             disposeDest();
         }
     }
 
-    function abortSource(reason) {
-        source.abort(reason);
+    function disposeSource(reason) {
+        source.dispose(reason);
     }
 
     function closeDest() {
@@ -463,45 +463,45 @@ BaseReadableStream.prototype.pipe = (dest, { close = true } = {}) => {
 
 ###### `[[push]](data)`
 
-1. If `this.[[readableState]]` is `"waiting"`,
+1. If `this.[[state]]` is `"waiting"`,
     1. Push `data` onto `this.[[buffer]]`.
     1. Set `this.[[pulling]]` to `false`.
     1. Resolve `this.[[readablePromise]]` with `undefined`.
-    1. Set `this.[[readableState]]` to `"readable"`.
-1. If `this.[[readableState]]` is `"readable"`,
+    1. Set `this.[[state]]` to `"readable"`.
+1. If `this.[[state]]` is `"readable"`,
     1. Push `data` onto `this.[[buffer]]`.
     1. Set `this.[[pulling]]` to `false`.
 
-###### `[[finish]]()`
+###### `[[close]]()`
 
-1. If `this.[[readableState]]` is `"waiting"`,
+1. If `this.[[state]]` is `"waiting"`,
     1. Reject `this.[[readablePromise]]` with an error saying that the stream has already been completely read.
-    1. Resolve `this.[[finishedPromise]]` with `undefined`.
-    1. Set `this.[[readableState]]` to `"finished"`.
-1. If `this.[[readableState]]` is `"readable"`,
+    1. Resolve `this.[[closedPromise]]` with `undefined`.
+    1. Set `this.[[state]]` to `"closed"`.
+1. If `this.[[state]]` is `"readable"`,
     1. Set `this.[[draining]]` to `true`.
 
 ###### `[[error]](e)`
 
-1. If `this.[[readableState]]` is `"waiting"`,
+1. If `this.[[state]]` is `"waiting"`,
     1. Set `this.[[storedError]]` to `e`.
-    1. Reject `this.[[finishedPromise]]` with `e`.
+    1. Reject `this.[[closedPromise]]` with `e`.
     1. Reject `this.[[readablePromise]]` with `e`.
-    1. Set `this.[[readableState]]` to `"errored"`.
-1. If `this.[[readableState]]` is `"readable"`,
+    1. Set `this.[[state]]` to `"errored"`.
+1. If `this.[[state]]` is `"readable"`,
     1. Clear `this.[[buffer]]`.
     1. Set `this.[[storedError]]` to `e`.
     1. Let `this.[[readablePromise]]` be a newly-created promise object rejected with `e`.
-    1. Reject `this.[[finishedPromise]]` with `e`.
-    1. Set `this.[[readableState]]` to `"errored"`.
+    1. Reject `this.[[closedPromise]]` with `e`.
+    1. Set `this.[[state]]` to `"errored"`.
 
 ###### `[[callPull]]()`
 
 1. If `this.[[pulling]]` is `true`, return.
 1. If `this.[[started]]` is `false`,
-    1. When/if `this.[[startedPromise]]` is fulfilled, call `this.[[onPull]](this.[[push]], this.[[finish]], this.[[error]])`.
+    1. When/if `this.[[startedPromise]]` is fulfilled, call `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
 1. If `this.[[started]]` is `true`,
-    1. Call `this.[[onPull]](this.[[push]], this.[[finish]], this.[[error]])`.
+    1. Call `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
 
 #### ReadableStream
 
@@ -511,7 +511,7 @@ class ReadableStream extends BaseReadableStream {
     constructor({
         function start = () => {},
         function pull = () => {},
-        function abort = () => {},
+        function dispose = () => {},
         strategy: { function count, function needsMoreData }
     })
 
@@ -535,10 +535,10 @@ class ReadableStream extends BaseReadableStream {
 
 ##### Properties of the ReadableStream Prototype
 
-###### constructor({ start, pull, abort, strategy })
+###### constructor({ start, pull, dispose, strategy })
 
 1. Set `this.[[strategy]]` to `strategy`.
-1. Call `super({ start, pull, abort })`.
+1. Call `super({ start, pull, dispose })`.
 
 ###### read()
 
@@ -559,7 +559,7 @@ class ReadableStream extends BaseReadableStream {
 ###### `[[push]](data)`
 
 1. Call `BaseReadableStream`'s version of `this.[[push]](data)`.
-1. If `this.[[readableState]]` is now `"readable"`,
+1. If `this.[[state]]` is now `"readable"`,
     1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
     1. Return `this.[[strategy]].needsMoreData(this.[[bufferSize]])`.
 
@@ -642,9 +642,9 @@ readableStream.pipe(writeableStream).closed
     .catch(err => console.error("Something went wrong!", err));
 ```
 
-#### Using `write()`/`waitForWritable()`/`writableState`/`close()`
+#### Using `write()`/`wait()`/`state`/`close()`
 
-If you do need to write to a writable stream directly, you'll want to employ a similar pattern to dealing with a readable stream: alternating between calls to `write()` while the stream has a `writableState` of `"writable"`, with calls to `waitForWritable()` once it reaches a `writableState` of `"waiting"`. For example, this function writes an array of data chunks into a writable stream, pausing to log a message if the writable stream needs a break.
+If you do need to write to a writable stream directly, you'll want to employ a similar pattern to dealing with a readable stream: alternating between calls to `write()` while the stream has a `state` of `"writable"`, with calls to `wait()` once it reaches a `state` of `"waiting"`. For example, this function writes an array of data chunks into a writable stream, pausing to log a message if the writable stream needs a break.
 
 ```js
 function writeArrayToStreamWithBreaks(array, writableStream) {
@@ -653,24 +653,24 @@ function writeArrayToStreamWithBreaks(array, writableStream) {
     var index = 0;
 
     function pump() {
-        while (index < array.length && writableStream.writableState === "writable") {
+        while (index < array.length && writableStream.state === "writable") {
             writableStream.write(array[index++]).catch(e => console.error(e));
         }
 
         if (index === array.length) {
             writableStream.close().then(() => console.log("All done!"))
                                   .catch(e => console.error("Error with the stream", e));
-        } else if (writableStream.writableState === "waiting") {
+        } else if (writableStream.state === "waiting") {
             console.log("Waiting until all queued writes have been flushed through before writing again.");
-            writableStream.waitForWritable().then(pump, e => console.error(e));
+            writableStream.wait().then(pump, e => console.error(e));
         }
     }
 }
 ```
 
-If the writable stream is in a writable state, and we have more data to write, then we do so until one of those conditions becomes false, using a `while` loop to continually call `writableStream.write(data)` as long as that is true. Eventually, either we will run out of data, or the stream will no longer be writable. If we ran out of data, then we close the stream, being sure to wait for successful completion of the close operation before announcing our success. If we haven't run out of data, then the stream must have transitioned to a waiting state, meaning that its internal buffer is getting full, and we should pause if possible. We log a message to that effect, then call `writableStream.waitForWritable()` to get a promise that will be fuflilled when all the previously-queued writes have been flushed to the underlying sink. When this happens, the stream will be back in a writable state, and we continue that process.
+If the writable stream is in a writable state, and we have more data to write, then we do so until one of those conditions becomes false, using a `while` loop to continually call `writableStream.write(data)` as long as that is true. Eventually, either we will run out of data, or the stream will no longer be writable. If we ran out of data, then we close the stream, being sure to wait for successful completion of the close operation before announcing our success. If we haven't run out of data, then the stream must have transitioned to a waiting state, meaning that its internal buffer is getting full, and we should pause if possible. We log a message to that effect, then call `writableStream.wait()` to get a promise that will be fuflilled when all the previously-queued writes have been flushed to the underlying sink. When this happens, the stream will be back in a writable state, and we continue that process.
 
-#### Ignoring `writableState`
+#### Ignoring `state`
 
 The previous example was somewhat silly, as we didn't effectively use the information that the writable stream's internal buffer was full. Typically, you would use that information to communicate a backpressure signal to a data source, possibly through the readable stream API's mechanisms for automatically doing this if you don't call `read()`. (Indeed, this very process can be seen, in its most generic form, in the `pipe` method of `BaseReadableStream`.) If the data is already in memory anyway, there's nothing to be gained by delaying calls to `write()` until the stream signals it is writable; there's nowhere to signal backpressure to.
 
@@ -687,15 +687,15 @@ function writeArrayToStream(array, writableStream) {
 }
 ```
 
-This function simply queues all the writes immediately, counting on the stream implementation to deliver them as appropriate, and then listens for success or failure by attaching to the return value of the `close()` promise. The lesson of this example is that the `writableState` property is merely informational, and can be used usefully, but it is not necessary to consult it before writing to the stream.
+This function simply queues all the writes immediately, counting on the stream implementation to deliver them as appropriate, and then listens for success or failure by attaching to the return value of the `close()` promise. The lesson of this example is that the `state` property is merely informational, and can be used usefully, but it is not necessary to consult it before writing to the stream.
 
 Note how we don't even add handlers for the promises returned by `writableStream.write(chunk)`. Instead, we just add handlers to the promise returned from `writableStream.close()`. This works out, because if any errors were to occur while writing to the stream, they would cause `close()` to return a promise rejected with that error.
 
 ### Other APIs on Writable Streams
 
-Besides the constructor pattern, the `write(data)`/`waitForWritable()`/`writableState` primitives for writing, and the `close()` primitive for closing the underlying sink, a writable stream provides two more APIs: `closed` and `dispose(reason)`.
+Besides the constructor pattern, the `write(data)`/`wait()`/`state` primitives for writing, and the `close()` primitive for closing the underlying sink, a writable stream provides two more APIs: `closed` and `dispose(reason)`.
 
-`closed` is simply a convenience API: it's a promise that becomes fulfilled when the stream has been successfully closed (`writableState` of `"closed"`), or becomes rejected if some error occurs while starting, writing to, or closing the stream (`writableState` of `"errored"`).
+`closed` is simply a convenience API: it's a promise that becomes fulfilled when the stream has been successfully closed (`state` of `"closed"`), or becomes rejected if some error occurs while starting, writing to, or closing the stream (`state` of `"errored"`).
 
 The `dispose` API allows users to communicate a *forceful closes* of the stream; this could be useful, for example, to stop a file upload if the user clicks "Cancel." Disposing a stream will clear any queued writes (and close operations), and then call the `dispose` constructor parameter immediately. By default the `dispose` constructor parameter will simply do whatever the user passed in for the `close` constructor parameter, but by passing a customized function, the creator of the stream can react to forceful closes differently than normal ones. For example, we might extend our above file stream with a `dispose` parameter that deletes the file if it was newly created by this write operation:
 
@@ -717,7 +717,7 @@ return new WritableStream({
 });
 ```
 
-Calling `dispose(reason)` puts the writable stream into a `"closed"` state—disposal is not considered an error—but any further attempts to call `write()`, `waitForWritable()`, or `close()` will immediately return a promise rejected with `reason`.
+Calling `dispose(reason)` puts the writable stream into a `"closed"` state—disposal is not considered an error—but any further attempts to call `write()`, `wait()`, or `close()` will immediately return a promise rejected with `reason`.
 
 ### The Writable Stream State Diagram
 
@@ -740,8 +740,8 @@ class BaseWritableStream {
 
     // Writing data to the underlying sink
     Promise<undefined> write(any data)
-    Promise<undefined> waitForWritable()
-    get WritableStreamState writableState
+    Promise<undefined> wait()
+    get WritableStreamState state
 
     // Close off the underlying sink gracefully; we are done.
     Promise<undefined> close()
@@ -760,7 +760,7 @@ class BaseWritableStream {
 
     // Internal properties
     Array [[buffer]] = []
-    string [[writableState]] = "waiting"
+    string [[state]] = "waiting"
     any [[storedError]]
     Promise<undefined> [[currentWritePromise]]
     Promise<undefined> [[writablePromise]]
@@ -772,7 +772,7 @@ class BaseWritableStream {
 
 enum WritableStreamState {
     "writable" // the sink is ready and the buffer is not yet full; write at will
-    "waiting"  // the sink is not ready or the buffer is full; you should call waitForWritable
+    "waiting"  // the sink is not ready or the buffer is full; you should call wait
     "closing"  // the sink is being closed; no more writing
     "closed"   // the sink has been closed
     "errored"  // the sink errored so the stream is now dead
@@ -799,7 +799,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Call `start()` and let `startedPromise` be the result of casting the return value to a promise.
 1. When/if `startedPromise` is fulfilled,
     1. If `this.[[buffer]]` is empty,
-        1. Set `this.[[writableState]]` to `"writable"`.
+        1. Set `this.[[state]]` to `"writable"`.
         1. Resolve `this.[[writablePromise]]` with `undefined`.
     1. Otherwise,
         1. Shift `entry` off of `this.[[buffer]]`.
@@ -810,57 +810,57 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 1. Return `this.[[closedPromise]]`.
 
-###### get writableState
+###### get state
 
-1. Return `this.[[writableState]]`.
+1. Return `this.[[state]]`.
 
 ###### write(data)
 
 1. Let `promise` be a newly-created pending promise.
-1. If `this.[[writableState]]` is `"writable"`,
-    1. Set `this.[[writableState]]` to `"waiting"`.
+1. If `this.[[state]]` is `"writable"`,
+    1. Set `this.[[state]]` to `"waiting"`.
     1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
     1. Call `this.[[doNextWrite]]({ type: "data", promise, data })`.
     1. Return `promise`.
-1. If `this.[[writableState]]` is `"waiting"`,
+1. If `this.[[state]]` is `"waiting"`,
     1. Push `{ type: "data", promise, data }` onto `this.[[buffer]]`.
     1. Return `promise`.
-1. If `this.[[writableState]]` is `"closing"`,
+1. If `this.[[state]]` is `"closing"`,
     1. Return a promise rejected with an error indicating that you cannot write while the stream is closing.
-1. If `this.[[writableState]]` is `"closed"`,
+1. If `this.[[state]]` is `"closed"`,
     1. Return a promise rejected with an error indicating that you cannot write after the stream has been closed.
-1. If `this.[[writableState]]` is `"errored"`,
+1. If `this.[[state]]` is `"errored"`,
     1. Return a promise rejected with `this.[[storedError]]`.
 
 ###### close()
 
-1. If `this.[[writableState]]` is `"writable"`,
-    1. Set `this.[[writableState]]` to `"closing"`.
+1. If `this.[[state]]` is `"writable"`,
+    1. Set `this.[[state]]` to `"closing"`.
     1. Return `this.[[doClose]]()`.
-1. If `this.[[writableState]]` is `"waiting"`,
-    1. Set `this.[[writableState]]` to `"closing"`.
+1. If `this.[[state]]` is `"waiting"`,
+    1. Set `this.[[state]]` to `"closing"`.
     1. Let `promise` be a newly-created pending promise.
     1. Push `{ type: "close", promise, data: undefined }` onto `this.[[buffer]]`.
-1. If `this.[[writableState]]` is `"closing"`,
+1. If `this.[[state]]` is `"closing"`,
     1. Return a promise rejected with an error indicating that you cannot close a stream that is already closing.
-1. If `this.[[writableState]]` is `"closed"`,
+1. If `this.[[state]]` is `"closed"`,
     1. Return a promise rejected with an error indicating that you cannot close a stream that is already closed.
-1. If `this.[[writableState]]` is `"errored"`,
+1. If `this.[[state]]` is `"errored"`,
     1. Return a promise rejected with `this.[[storedError]]`.
 
 ###### dispose(r)
 
-1. If `this.[[writableState]]` is `"writable"`,
-    1. Set `this.[[writableState]]` to `"closing"`.
+1. If `this.[[state]]` is `"writable"`,
+    1. Set `this.[[state]]` to `"closing"`.
     1. Return `this.[[doDispose]](r)`.
-1. If `this.[[writableState]]` is `"waiting"`, or if `this.[[writableState]]` is `"closing"` and `this.[[buffer]]` is not empty,
-    1. Set `this.[[writableState]]` to `"closing"`.
+1. If `this.[[state]]` is `"waiting"`, or if `this.[[state]]` is `"closing"` and `this.[[buffer]]` is not empty,
+    1. Set `this.[[state]]` to `"closing"`.
     1. For each entry `{ type, promise, data }` in `this.[[buffer]]`, reject `promise` with `r`.
     1. Clear `this.[[buffer]]`.
     1. Return `this.[[doDispose]](r)`.
 1. Return a promise resolved with `undefined`.
 
-###### waitForWritable()
+###### wait()
 
 1. Return `this.[[writablePromise]]`.
 
@@ -868,12 +868,12 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ###### `[[error]](e)`
 
-1. If `this.[[writableState]]` is not `"closed"` or `"errored"`,
+1. If `this.[[state]]` is not `"closed"` or `"errored"`,
     1. Reject `this.[[writablePromise]]` with `e`.
     1. Reject `this.[[closedPromise]]` with `e`.
     1. For each entry `{ type, promise, data }` in `this.[[buffer]]`, reject `promise` with `r`.
     1. Set `this.[[storedError]]` to `e`.
-    1. Set `this.[[writableState]]` to `"errored"`.
+    1. Set `this.[[state]]` to `"errored"`.
 
 ###### `[[doClose]]()`
 
@@ -882,7 +882,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If the call throws an exception `e`, call `this.[[error]](e)` and return a promise rejected with `e`.
 1. Otherwise, let `closeResult` be the result of casting the return value to a promise.
 1. When/if `closeResult` is fulfilled,
-    1. Set `this.[[writableState]]` to `"closed"`.
+    1. Set `this.[[state]]` to `"closed"`.
     1. Resolve `this.[[closedPromise]]` with `undefined`.
 1. When/if `closeResult` is rejected with reason `r`, call `this.[[error]](r)`.
 1. Return `this.[[closedPromise]]`.
@@ -894,7 +894,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If the call throws an exception `e`, call `this.[[error]](e)` and return a promise rejected with `e`.
 1. Otherwise, let `disposeResult` be the result of casting the return value to a promise.
 1. When/if `disposeResult` is fulfilled,
-    1. Set `this.[[writableState]]` to `"closed"`.
+    1. Set `this.[[state]]` to `"closed"`.
     1. Resolve `this.[[closedPromise]]` with `undefined`.
 1. When/if `disposeResult` is rejected with reason `r`, call `this.[[error]](r)`.
 1. Return `this.[[closedPromise]]`.
@@ -902,7 +902,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 ###### `[[doNextWrite]]({ type, promise, data })`
 
 1. If `type` is `"close"`,
-    1. Assert: `this.[[writableState]]` is `"closing"`.
+    1. Assert: `this.[[state]]` is `"closing"`.
     1. Call `this.[[doClose]]()`.
     1. Return.
 1. Assert: `type` must be `"data"`.
@@ -910,15 +910,15 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Let `signalDone` be a new function of zero arguments, closing over `this` and `promise`, that performs the following steps:
     1. If `this.[[currentWritePromise]]` is not `promise`, return.
     1. Set `this.[[currentWritePromise]]` to `undefined`.
-    1. If `this.[[writableState]]` is `"waiting"`,
+    1. If `this.[[state]]` is `"waiting"`,
         1. Resolve `promise` with `undefined`.
         1. If `this.[[buffer]]` is not empty,
             1. Shift `entry` off of `this.[[buffer]]`.
             1. Call `this.[[doNextWrite]](entry)`.
         1. If `this.[[buffer]]` is empty,
-            1. Set `this.[[writableState]]` to `"writable"`.
+            1. Set `this.[[state]]` to `"writable"`.
             1. Resolve `this.[[writablePromise]]` with `undefined`.
-    1. If `this.[[writableState]]` is `"closing"`,
+    1. If `this.[[state]]` is `"closing"`,
         1. Resolve `promise` with `undefined`.
         1. If `this.[[buffer]]` is not empty,
             1. Shift `entry` off of `this.[[buffer]]`.
@@ -962,12 +962,12 @@ class WritableStream extends BaseWritableStream {
 
 ###### write(data)
 
-1. If `this.[[writableState]]` is `"writable"` or `"waiting"`,
+1. If `this.[[state]]` is `"writable"` or `"waiting"`,
     1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
-1. If `this.[[writableState]]` is `"writable"`,
+1. If `this.[[state]]` is `"writable"`,
     1. Let `promise` be a newly-created pending promise.
     1. If `ToBoolean(this.[[strategy]].needsMoreData(this.[[bufferSize]]))` is `false`,
-        1. Set `this.[[writableState]]` to `"waiting"`.
+        1. Set `this.[[state]]` to `"waiting"`.
         1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
     1. If `this.[[buffer]]` is empty,
         1. Call `this.[[doNextWrite]]({ type: "data", promise, data })`.
@@ -1015,7 +1015,7 @@ TODO!
 
 ### TeeStream
 
-A "tee stream" is a writable stream which, when written to, itself writes to multiple destinations. It aggregates backpressure and abort signals from those destinations, propagating the appropriate aggregate signals backward.
+A "tee stream" is a writable stream which, when written to, itself writes to multiple destinations. It aggregates backpressure and dispose signals from those destinations, propagating the appropriate aggregate signals backward.
 
 ```js
 class TeeStream extends BaseWritableStream {

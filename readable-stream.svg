@@ -64,7 +64,7 @@
     <path d="M110.0,0 Q120.0,0 120.0,10 L120.0,50.0 Q120.0,60.0 110.0,60.0 L10,60.0 Q0,60.0 0,50.0 L0,10 Q0,0 10,0 Z" stroke="#333333" stroke-width="2" fill="#ffffff" />
     <g transform="translate(0.0,35.0)">
       <text x="60.0" style="text-anchor: middle" y="-2.0">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">Finished</tspan>
+        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">Closed</tspan>
       </text>
     </g>
   </g>
@@ -122,10 +122,10 @@
     <g transform="translate(0.0,70.0) rotate(270.0)">
       <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
     </g>
-    <g transform="translate(0.0,15.0)">
+    <g transform="translate(0.0,35.0)">
       <rect fill="#ffffff" x="-22.5" y="-9.0" width="45.0" height="14" />
       <text x="0.0" style="text-anchor: middle" y="2.0">
-        <tspan font-size="12px" font-family="Arial" fill="#000000" font-style="italic">finish()</tspan>
+        <tspan font-size="12px" font-family="Arial" fill="#000000" font-style="italic">close()</tspan>
       </text>
     </g>
   </g>
@@ -165,10 +165,10 @@
     <g transform="translate(0.0,520.0) rotate(180.0)">
       <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
     </g>
-    <g transform="translate(-120.0,240.0)">
+    <g transform="translate(-120.0,460.0)">
       <rect fill="#ffffff" x="-53.0" y="-9.0" width="106.0" height="14" />
       <text x="0.0" style="text-anchor: middle" y="2.0">
-        <tspan font-size="12px" font-family="Courier" fill="#000000">.abort(reason)</tspan>
+        <tspan font-size="12px" font-family="Courier" fill="#000000">.dispose(reason)</tspan>
       </text>
     </g>
   </g>
