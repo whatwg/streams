@@ -205,3 +205,166 @@ const myFileStream = new ReadableFile("/example/path/on/fs.txt");
 As before, we leverage the `ReadableStream` base class to do most of the work. Our adapter functions, in this case, don't set up event listeners as they would for a push source; instead, they directly forward the desired operations of opening the file handle and reading from it down to the underlying API.
 
 Again note how, if data is available synchronously because `fileHandle.read` called its callback synchronously, that data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. And if data is requested from the `ReadableFile` instance twice in a row, it will immediately forward those requests to the underlying file handle, so that if it is ready synchronously (because e.g. the OS has recently buffered this file in memory), the data will be returned instantly, within that same turn of the event loop.
+
+## Writable Streams
+
+### Usage
+
+#### Writing as Fast as You Can
+
+Since writable streams will automatically buffer any incoming writes, taking care to send the data to the underlying sink in sequence, you can indiscriminately write to a writable stream without much ceremony:
+
+```js
+function writeArrayToStream(array, writableStream) {
+    array.forEach(function (chunk) {
+        writableStream.write(chunk);
+    });
+
+    return writableStream.close();
+}
+
+writeArrayToStream([1, 2, 3, 4, 5], myStream)
+    .then(() => console.log("All done!"))
+    .catch(e => console.error("Error with the stream: " + e));
+```
+
+Note how, even though a given call to `write` returns a promise signaling the success or failure of a given write, we don't need to wait for success before writing the next chunk; the underlying implementation will ensure that this happens for us. Similarly, we don't need to attach a rejection handler to the promise returned from each `write` call, since any errors that occur along the way will cause the writing process to abort and thus `close()` will return that error.
+
+#### Reporting Incremental Progress
+
+Even if we queue up all our writes immediately, we can still add handlers to report when they succeed or fail.
+
+```js
+function writeArrayToStreamWithReporting(array, writableStream) {
+    array.forEach(function (chunk) {
+        writableStream.write(chunk)
+            .then(() => console.log("Wrote " + chunk + " successfully"))
+            .catch(e => console.error("Failed to write " + chunk + "; error was " + e));
+    });
+
+    return writableStream.close();
+}
+
+writeArrayToStream([1, 2, 3], myStream)
+    .then(() => console.log("All done!"))
+    .catch(e => console.error("Error with the stream: " + e));
+```
+
+Let's say `myStream` was able to successfully write all of the chunks. Then you'd get an output like:
+
+```
+Wrote 1 successfully
+Wrote 2 successfully
+Wrote 3 successfully
+All done!
+```
+
+Whereas, let's say it was able to write chunk 1, but failed to write chunk 2, giving an error of `"Disk full"`. In that case, the call to `write` for chunk 3 would also fail with this error, as would the call to `close`:
+
+```
+Wrote 1 successfully
+Failed to write 2; error was "Disk full"
+Failed to write 3; error was "Disk full"
+Error with the stream: "Disk full"
+```
+
+#### Paying Attention to Backpressure Signals
+
+The above two examples used the writable streams internal buffer to indiscriminately write to it, counting on the stream itself to handle an excessive number of writes (i.e., more than could be reasonably written to the underlying sink). In reality, the underlying sink will be communicating backpressure signals back to you through the writable stream's `state` property. When the stream's `state` property is `"writable"`, the stream is ready to accept more data—but when it is `"waiting"`, you should, if possible, avoid writing more data.
+
+It's a little hard to come up with a realistic example where you can do something useful with this information, since most of them involve readable streams, and in that case, you should just be piping the streams together. But here's one that's only slightly contrived, where we imagine prompting the user for input via a promise-returning `prompt()` function—and disallowing the user from entering more input until the writable stream is ready to accept it.
+
+```js
+function promptAndWrite(myStream) {
+    if (writableStream.state === "writable") {
+        prompt("Enter data to write to the stream").then(data => {
+            if (data !== "DONE") {
+                writableStream.write(data);
+                promptAndWrite();
+            } else {
+                writableStream.close()
+                    .then(() => console.log("Successfully closed"))
+                    .catch(e => console.error("Failed to close: ", e));
+            }
+        });
+    } else if (writableStream.state === "waiting") {
+        console.log("Waiting for the stream to flush to the underlying sink, please hold...");
+        writableStream.wait()
+            .then(promptAndWrite)
+            .catch(e => console.error("While flushing, an error occurred: ", e));
+    } else if (writableStream.state === "errored") {
+        console.error("Error writing; this session is over!");
+    }
+}
+
+promptAndWrite(myStream);
+```
+
+
+### Creation
+
+Writable streams are generally easier to wrap around their underlying sinks than readable ones are around their underlying sources, since you don't have to deal with the push-vs.-pull dichotomy.
+
+#### Adapting a Generic Data Sink
+
+In general, a data sink can be modeled as:
+
+* An `open(cb)` method that gains access to the sink; it can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`.
+* A `write(data, cb)` method that writes `data` to the sink; it can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`. Importantly, it will fail if you call it indiscriminately; you must wait for the callback to come back—possibly synchronously—with a success before calling it again.
+* A `close(cb)` method that releases access to the sink; it can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`.
+
+Let's assume we have some raw C++ file handle API matching this type of setup. Here is how we would adapt that into a writable stream:
+
+````js
+class WritableFile extends WritableStream {
+    constructor(filename, { highWaterMark = 16 * 1024} = {}) {
+        const fileHandle = createRawFileHandle(filename);
+
+        super({
+            start() {
+                return new Promise((resolve, reject) => {
+                    fileHandle.open(err => {
+                        if (err) {
+                            reject(err);
+                        }
+                        resolve();
+                    });
+                });
+            },
+
+            write(data, done, error) {
+                fileHandle.write(data, err => {
+                    if (err) {
+                        fileHandle.close(closeErr => {
+                            if (closeErr) {
+                                error(closeErr);
+                            }
+                            error(err);
+                        });
+                    }
+                    done();
+                });
+            },
+
+            close() {
+                return new Promise((resolve, reject) => {
+                    fileHandle.close(err => {
+                        if (err) {
+                            reject(err);
+                        }
+                        resolve();
+                    });
+                });
+            },
+
+            strategy: new LengthBufferingStrategy({ highWaterMark })
+        });
+    }
+}
+
+var file = new WritableFile("/example/path/on/fs.txt");
+```
+
+As you can see, this is fairly straightforward: we simply supply constructor parameters that adapt the raw file handle API into an expected form. The writable stream's internal mechanisms will take care of the rest, ensuring that these supplied operations are queued and sequenced correctly when a consumer writes to the resulting writable stream. Most of the boilerplate here comes from adapting callback-based APIs into promise-based ones, really.
+
+Note how backpressure signals are given off by a writable stream. If a particular call to `fileHandle.write` takes a longer time, `done` will be called later. In the meantime, users of the writable stream may have queued up additional writes, which are stored in the stream's internal buffer. The accumulation of this buffer can move the stream into a "waiting" state, according to the `strategy` parameter, which is a signal to users of the stream that they should back off and stop writing if possible—as seen in our above usage examples.

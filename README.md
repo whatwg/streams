@@ -681,7 +681,7 @@ function writeArrayToStreamWithBreaks(array, writableStream) {
             writableStream.close().then(() => console.log("All done!"))
                                   .catch(e => console.error("Error with the stream", e));
         } else if (writableStream.state === "waiting") {
-            console.log("Waiting until all queued writes have been flushed through before writing again.");
+            console.log("Waiting until all queued writes have been flushed through.");
             writableStream.wait().then(pump, e => console.error(e));
         }
     }
