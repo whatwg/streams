@@ -21,7 +21,7 @@ function streamToConsole(readable) {
             console.log(readable.read());
         }
 
-        if (readable.readableState === "finished") {
+        if (readable.readableState === "closed") {
             console.log("--- all done!");
         } else {
             // If we're in an error state, the returned promise will be rejected with that error,
@@ -42,7 +42,7 @@ function getNext(readable) {
         if (readable.readableState === "waiting") {
             resolve(readable.waitForReadable().then(() => readable.read()));
         } else {
-            // If the state is `"errored"` or `"finished"`, the appropriate error will be thrown,
+            // If the state is `"errored"` or `"closed"`, the appropriate error will be thrown,
             // which by the semantics of the Promise constructor causes the desired rejection.
             resolve(readable.read());
         }
@@ -51,7 +51,7 @@ function getNext(readable) {
 
 // Usage with a promise-generator bridge like Q or TaskJS:
 Q.spawn(function* () {
-    while (myStream.readableState !== "finished") {
+    while (myStream.readableState !== "closed") {
         const data = yield getNext(myStream);
         // do something with `data`.
     }
@@ -67,7 +67,7 @@ function readableStreamToArray(readable) {
     return new Promise((resolve, reject) => {
         var chunks = [];
 
-        readable.finished.then(() => resolve(chunks), reject);
+        readable.closed.then(() => resolve(chunks), reject);
         pump();
 
         function pump() {
@@ -79,7 +79,7 @@ function readableStreamToArray(readable) {
                 readable.waitForReadable().then(pump);
             }
 
-            // All other cases will go through `readable.finished.then(...)` above.
+            // All other cases will go through `readable.closed.then(...)` above.
         }
     });
 }
