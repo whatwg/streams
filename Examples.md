@@ -17,16 +17,16 @@ function streamToConsole(readable) {
     pump();
 
     function pump() {
-        while (readable.readableState === "readable") {
+        while (readable.state === "readable") {
             console.log(readable.read());
         }
 
-        if (readable.readableState === "closed") {
+        if (readable.state === "closed") {
             console.log("--- all done!");
         } else {
             // If we're in an error state, the returned promise will be rejected with that error,
             // so no need to handle "waiting" vs. "errored" separately.
-            readable.waitForReadable().then(pump, e => console.error(e));
+            readable.wait().then(pump, e => console.error(e));
         }
     }
 }
@@ -39,8 +39,8 @@ As another example, this helper function will return a promise for the next avai
 ```js
 function getNext(readable) {
     return new Promise((resolve, reject) => {
-        if (readable.readableState === "waiting") {
-            resolve(readable.waitForReadable().then(() => readable.read()));
+        if (readable.state === "waiting") {
+            resolve(readable.wait().then(() => readable.read()));
         } else {
             // If the state is `"errored"` or `"closed"`, the appropriate error will be thrown,
             // which by the semantics of the Promise constructor causes the desired rejection.
@@ -51,7 +51,7 @@ function getNext(readable) {
 
 // Usage with a promise-generator bridge like Q or TaskJS:
 Q.spawn(function* () {
-    while (myStream.readableState !== "closed") {
+    while (myStream.state !== "closed") {
         const data = yield getNext(myStream);
         // do something with `data`.
     }
@@ -71,12 +71,12 @@ function readableStreamToArray(readable) {
         pump();
 
         function pump() {
-            while (readable.readableState === "readable") {
+            while (readable.state === "readable") {
                 chunks.push(readable.read());
             }
 
-            if (readable.readableState === "waiting") {
-                readable.waitForReadable().then(pump);
+            if (readable.state === "waiting") {
+                readable.wait().then(pump);
             }
 
             // All other cases will go through `readable.closed.then(...)` above.
@@ -144,7 +144,7 @@ const mySocketStream = new StreamingSocket("http://example.com", 80);
 
 By leveraging the `ReadableStream` base class, and supplying its super-constructor with the appropriate adapter functions and backpressure strategy, we've created a fully-functioning stream wrapping our raw socket API. It will automatically fill the internal buffer as data is fired into it, preventing any loss that would occur in the simple evented model. If the buffer fills up to the high water mark (defaulting to 16 KiB), it will send a signal to the underlying socket that it should stop sending us data. And once the consumer drains it of all its data, it will send the start signal back, resuming the flow of data.
 
-Note how, if data is available synchronously because `ondata` was called synchronously, the data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. Similarly, if `ondata` is called twice in a row, the pushed data will be available to two subsequent `readableStream.read()` calls before `readableStream.readableState` becomes `"waiting"`.
+Note how, if data is available synchronously because `ondata` was called synchronously, the data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. Similarly, if `ondata` is called twice in a row, the pushed data will be available to two subsequent `readableStream.read()` calls before `readableStream.state` becomes `"waiting"`.
 
 #### Adapting a Pull-Based Data Source
 
