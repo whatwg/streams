@@ -1,6 +1,6 @@
 'use strict';
 
-var test = require('tap').test;
+var test = require('tape');
 var Promise = require('es6-promise').Promise;
 
 require('../index.js');
