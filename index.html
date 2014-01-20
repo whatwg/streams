@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Streams Standard</title>
+<style>
+  span.minor {
+    letter-spacing: 0;
+    color: black;
+    font-size: 0.8em;
+    font-weight: normal;
+  }
+</style>
+
+<link href="http://www.whatwg.org/style/specification" rel="stylesheet" />
+
+<div class="head">
+  <h1>Streams</h1>
+
+  <h2 class="no-num no-toc">
+    <span class="minor">[soon to become a]</span> Living Standard — Last Updated [DATE: 01 Jan 1901]
+  </h2>
+
+  <dl>
+    <dt>Participate:</dt>
+    <dd>
+      Send feedback to
+      <a href="http://www.whatwg.org/mailing-list">whatwg@whatwg.org</a>
+      (<a href="http://www.whatwg.org/mailing-list#specs">archives</a>) or
+      <a href="https://github.com/whatwg/streams/issues/new">file a bug</a>
+      (<a href="https://github.com/whatwg/streams/issues?state=open">open bugs</a>)
+    </dd>
+    <dd><a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a></dd>
+
+    <dt>Version History:</dt>
+    <dd><a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a></dd>
+
+    <dt>Editor:</dt>
+    <dd class="h-card vcard"><a class="u-url url p-name fn" href="http://domenic.me/">Domenic Denicola</a>
+    &lt;<a class="u-email email" href="mailto:domenic@domenicdenicola.com">domenic@domenicdenicola.com</a>&gt;
+  </dl>
+
+  <p class="copyright">
+    <a href="http://creativecommons.org/publicdomain/zero/1.0/" rel="license"><img src="http://i.creativecommons.org/p/zero/1.0/80x15.png" alt="CC0"></a>
+
+    To the extent possible under law, the editor has waived all copyright and related or neighboring rights to this
+    work.
+  </p>
+</div>
+
+<h2 class="no-num no-toc">Table of Contents</h2>
+<!--toc-->
+
+<h2 class="no-num no-toc">Abstract</h2>
+
+<p>This specification provides APIs for creating, composing, and consuming streams of data. These streams are designed
+to map efficiently to low-level I/O primitives, and allow easy composition with built-in backpressure and buffering. On
+top of streams, the web platform can build higher-level abstractions, such as filesystem or socket APIs, while at the
+same time users can use the supplied tools to build their own streams which integrate well with those of the web
+platform.</p>
+
+<h2 class="no-num no-toc">Status</h2>
+
+<p>This specification is in the process of establishing itself in the WHATWG. As such, the term "Living Standard"
+indicates a goal, rather than reality.</p>
+
+<p>Although the core algorithms and APIs are largely present and working, prototyping and testing of them is still
+underway, and there is still room for additional APIs beyond those specified here. Please join us in the
+<a href="https://github.com/whatwg/streams/issues?state=open">issue tracker</a> for more discussion.</p>
+
+<h2>Conformance</h2>
+
+<p>All diagrams, examples, and notes in this specification are non-normative, as are all sections explicitly marked
+non-normative. Everything else in this specification is normative.</p>
+
+<p>The key words "MUST", "MUST NOT", "REQUIRED", <!--"SHALL", "SHALL NOT",--> "SHOULD", "SHOULD NOT", "RECOMMENDED",
+"MAY", and "OPTIONAL" in the normative parts of this specification are to be interpreted as described in RFC2119. For
+readability, these words do not appear in all uppercase letters in this specification.
+<span data-anolis-ref>RFC2119</span></p>
+
+<p>Conformance requirements phrased as algorithms or specific steps may be implemented in any manner, so long as the end
+result is equivalent.</p>
+
+<h2>Model</h2>
+
+<h3>Readable Streams</h3>
+
+<p>A <dfn>readable stream</dfn> represents a source of data, from which you can read. In other words, data comes
+<em>out</em> of a readable stream.</p>
+
+<p>Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O
+source, called the <dfn>underlying source</dfn>. There are two types of underlying source: push sources and pull
+sources.</p>
+
+<p><dfn>Push sources</dfn> push data at you, whether or not you are listening for it. They may also provide a mechanism
+for pausing and resuming the flow of data. An example push source is a TCP socket, where data is constantly being pushed
+from the OS level, at a rate that can be controlled by changing the TCP window size.</p>
+
+<p><dfn>Pull sources</dfn> require you to request data from them. The data may be available synchronously, e.g. if it is
+held by the operating system's in-memory buffers, or asynchronously, e.g. if it has to be read from disk. An example
+pull source is a file handle, where you seek to specific locations and read specific amounts.</p>
+
+<p>Readable streams are designed to wrap both types of sources behind a single, unified interface.</p>
+
+<h3>Writable Streams</h3>
+
+<p>A <dfn>writable stream</dfn> represents a destination for data, into which you can write. In other words, data goes
+<em>in</em> to a writable stream.</p>
+
+<p>Analogously to readable streams, most writable streams wrap a lower-level I/O sink, called the <dfn>underlying
+sink</dfn>. Writable streams work to abstract away some of the complexity of the underlying sink, by buffering
+subsequent writes and only delivering them to the underlying sink one by one.</p>
+
+<h3>Transform Streams</h3>
+
+<p>A <dfn>transform stream</dfn> consists of a pair of streams: a writable stream input, and a readable stream output.
+In a manner specific to the transform stream in question, writes to the input side result in new data being made
+available for reading from the output side.</p>
+
+<p>Some examples of transform streams include:</p>
+
+<ul>
+  <li>A text decoder, which takes as input bytes and produces as output strings;</li>
+  <li>A GZIP compressor, which takes as input uncompressed bytes and produces as output compressed bytes;</li>
+  <li>A video decoder, which takes as input encoded bytes and produces as output uncompressed video frames.</li>
+</ul>
+
+<h3>Pipe Chains and Backpressure</h3>
+
+<p>Streams are primarily used by <dfn>piping</dfn> them to each other. A readable stream can be piped directly to a
+writable stream, or it can be piped through one or more transform streams first.</p>
+
+<p>A set of streams piped together in this way is referred to as a <dfn>pipe chain</dfn>. In a pipe chain, the
+<dfn>ultimate producer</dfn> is the first readable stream in the chain; the <dfn>ultimate consumer</dfn> is the final
+writable stream in the chain.</p>
+
+<p>Once a pipe chain is constructed, it can be used to propagate signals regarding how fast data should flow through
+it. If any step in the chain cannot yet accept data, it propagates a signal backwards through the pipe chain, until
+eventually the ultimate producer is told to stop producing data so fast. This process of normalizing data flow from the
+ultimate producer according to how fast the chain can process data is called <dfn>backpressure</dfn>.</p>
+
+<h2>Readable Streams</h2>
+
+<h3>Introduction to Readable Streams</h3>
+
+<h3>Interface <code>BaseReadableStream</code></h3>
+
+<h3>Interface <code>ReadableStream</code></h3>
+
+<h2>Writable Streams</h2>
+
+<h3>Introduction to Writable Streams</h3>
+
+<h3>Interface <code>BaseWritableStream</code></h3>
+
+<h3>Interface <code>WritableStream</code></h3>
+
+<h3>Interface <code>CorkableWritableStream</code></h3>
+
+<h2>Subclassing Streams</h2>
+
+<h2>Other Stream APIs</h2>
+
+<h3><code>TeeStream</code></h3>
+
+<h3><code>LengthBufferingStrategy</code></h3>
+
+<h3><code>CountBufferingStrategy</code></h3>
+
+<h3><code>ReadableStreamWatcher</code></h3>
+
+<h3><code>WritableStreamWatcher</code></h3>
+
+<h2 class="no-num">Acknowledgments</h2>
+
+<p>The editor would like to thank
+Bert Belder,
+Marcos Caceres,
+Tim Caswell,
+Forbes Lindesay,
+Thorsten Lorenz,
+Jens Nockert,
+Trevor Norris,
+Forrest Norvell,
+Dominic Tarr,
+Takeshi Yoshino, and
+tzik
+for their contributions to this specification.</p>
+
+<p>Special thanks to:
+Isaac Schlueter for his pioneering work on JavaScript streams in Node.js;
+Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward; and
+Gorgi Kosev for his breakthrough idea of separating piping into two methods, thus resolving
+  <a href="https://github.com/whatwg/streams/issues/44">a major sticking point</a>.
+</p>
+
+<script id="head" src="http://www.whatwg.org/specs/web-apps/current-work/dfn.js"></script>
