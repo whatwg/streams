@@ -1031,6 +1031,17 @@ class CorkableWritableStream extends WritableStream {
 
 TODO!
 
+#### Subclassing Streams
+
+Although functional by themselves for most cases, `ReadableStream`, `WritableStream`, and others can also be subclassed to provide additional functionality. Subclasses will generally fall into two camps:
+
+- Additive subclasses, adding new APIs onto the stream instances. An example would be a file stream that includes `filename` or other filesystem-related properties, or a HTTP response stream that includes header-accessing APIs.
+- Override subclasses, which change the behavior of the stream's methods fundamentally. An example would be a readable TCP stream that overrides `read`, `wait`, and `state` to reflect the status of kernel-level TCP buffer.
+
+On an implementation level, additive subclasses will usually call `super` in their constructor, initializing their base class's internal buffer and accessing it through the provided parameters to their superconstructor. Whereas override subclasses will simply reimplement the appropriate methods directly, forgoing a call to `super` and all the internal state that comes with it. They will of course provide a new constructor, which does not pass the usual capability-accessing parameters to consumers.
+
+Because streams only interact through their public API, both types of streams can coexist. For example, you can pipe to or from a subclassed stream of either sort, without worrying what type of implementation is under the covers, as long as the appropriate properties and methods are provided.
+
 ## Helper APIs
 
 ### TeeStream
