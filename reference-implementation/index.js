@@ -1,6 +1,6 @@
 'use strict';
 
-global.BaseReadableStream = function () {};
+global.BaseReadableStream = require('./lib/base-readable.js');
 global.ReadableStream = function () {};
 global.BaseWritableStream = function () {};
 global.WritableStream = function () {};

@@ -26,6 +26,9 @@
     "url": "https://github.com/othiym23/streams/issues"
   },
   "homepage": "https://github.com/othiym23/streams",
+  "dependencies": {
+    "es6-promise": "~0.1.1"
+  },
   "devDependencies": {
     "tape": "~2.3.2",
     "tap": "~0.4.8"
