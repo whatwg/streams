@@ -187,4 +187,53 @@ BaseReadableStream.prototype.read = function read() {
   }
 };
 
+BaseReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
+  if (!options) options = {};
+
+  var close = true;
+  if ('close' in options) close = options.close;
+  close = Boolean(close);
+
+  var stream = this;
+
+  function closeDest() { if (close) dest.close(); }
+
+  // ISSUE: should this be preventable via an option or via `options.close`?
+  function abortDest(reason) { dest.abort(reason); }
+  function abortSource(reason) { stream.abort(reason); }
+
+  function pumpSource() {
+    switch (stream.state) {
+      case 'readable':
+        dest.write(stream.read()).catch(abortSource);
+        fillDest();
+        break;
+      case 'waiting':
+        stream.wait().then(fillDest, abortDest);
+        break;
+      case 'closed':
+        closeDest();
+        break;
+      default:
+        abortDest();
+    }
+  }
+
+  function fillDest() {
+    switch (dest.state) {
+      case 'writable':
+        pumpSource();
+        break;
+      case 'waiting':
+        dest.wait().then(fillDest, abortSource);
+        break;
+      default:
+        abortSource();
+    }
+  }
+  fillDest();
+
+  return dest;
+};
+
 module.exports = BaseReadableStream;
