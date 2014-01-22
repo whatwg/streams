@@ -2,80 +2,9 @@
 
 var test = require('tape');
 var Promise = require('es6-promise').Promise;
+var RandomPushStream = require('./lib/random-push-stream.js');
 
 require('../index.js');
-
-// http://stackoverflow.com/questions/1349404/generate-a-string-of-5-random-characters-in-javascript
-function randomChunk(size) {
-  var text = "";
-  var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-  for (var i = 0; i < size; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-
-  return text;
-}
-
-function RandomPushStream(toPush) {
-  this.pushed  = 0;
-  this.toPush  = toPush;
-  this.started = false;
-  this.paused  = false;
-  this.closed  = false;
-  this._handle = null;
-}
-
-RandomPushStream.prototype.readStart = function readStart() {
-  if (this.closed) return;
-
-  var stream = this;
-
-  function writeChunk() {
-    if (stream.paused) return;
-
-    stream.pushed++;
-
-    if (stream.toPush > 0 && stream.pushed > stream.toPush) {
-      if (stream._handle) {
-        clearInterval(stream._handle);
-        stream._handle = undefined;
-      }
-      stream.closed = true;
-      stream.onend();
-    }
-    else {
-      stream.ondata(randomChunk(128));
-    }
-  }
-
-  if (!this.started) {
-    this._handle = setInterval(writeChunk, 23);
-    this.started = true;
-  }
-
-  if (this.paused) {
-    this._handle = setInterval(writeChunk, 23);
-    this.paused = false;
-  }
-};
-
-RandomPushStream.prototype.readStop = function readStop() {
-  if (this.paused) return;
-
-  if (this.started) {
-    this.paused = true;
-    clearInterval(this._handle);
-    this._handle = undefined;
-  }
-  else {
-    throw new Error('can\'t pause reading an unstarted stream');
-  }
-};
-
-RandomPushStream.prototype.onend   = function onend() { };
-RandomPushStream.prototype.ondata  = function ondata() {};
-RandomPushStream.prototype.onerror = function onerror() {};
 
 function readableStreamToArray(readable) {
   return new Promise(function (resolve, reject) {
@@ -89,28 +18,48 @@ function readableStreamToArray(readable) {
         chunks.push(data);
       }
 
-      if (readable.state === 'waiting') {
-        readable.wait().then(pump);
-      }
+      if (readable.state === 'waiting') readable.wait().then(pump);
     }
 
     pump();
   });
 }
 
-test('BaseReadableStream adapting a push stream', function (t) {
+test('BaseReadableStream is globally defined', function (t) {
   /*global BaseReadableStream*/
-  var basic;
+  t.plan(1);
 
+  var basic;
   t.doesNotThrow(function () { basic = new BaseReadableStream(); },
                  'BaseReadableStream is available');
+});
 
+test('BaseReadableStream is constructed correctly', function (t) {
+  /*global BaseReadableStream*/
+  t.plan(8);
+
+  var basic = new BaseReadableStream();
+
+  t.equal(typeof basic.read, 'function', 'stream has a read function');
+  t.equal(typeof basic.wait, 'function', 'stream has a wait function');
+  t.equal(typeof basic.abort, 'function', 'stream has an abort function');
+  t.equal(typeof basic.pipeTo, 'function', 'stream has a pipeTo function');
+  t.equal(typeof basic.pipeThrough, 'function', 'stream has a pipeThrough function');
+
+  t.equal(basic.state, 'waiting', 'stream starts out waiting');
+
+  t.ok(basic.closed, 'stream has closed promise');
+  t.ok(basic.closed.then, 'stream has closed promise that is thenable');
+});
+
+test('BaseReadableStream adapting a push stream', function (t) {
+  /*global BaseReadableStream*/
   var pullChecked = false;
   var randomStream = new RandomPushStream(8);
 
-  basic = new BaseReadableStream({
+  var basic = new BaseReadableStream({
     start : function start(push, close, error) {
-      t.equal(typeof push, 'function', 'push is a function in start');
+      t.equal(typeof push,  'function', 'push is a function in start');
       t.equal(typeof close, 'function', 'close is a function in start');
       t.equal(typeof error, 'function', 'error is a function in start');
 
@@ -134,12 +83,6 @@ test('BaseReadableStream adapting a push stream', function (t) {
     }
   });
 
-  t.equal(basic.state, 'waiting', 'stream starts out waiting');
-  t.equal(typeof basic.read, 'function', 'stream has a read function');
-  t.equal(typeof basic.wait, 'function', 'stream has a wait function');
-  t.ok(basic.closed, 'stream has closed promise');
-  t.ok(basic.closed.then, 'stream has closed promise that is thenable');
-
   readableStreamToArray(basic).then(function (chunks) {
     t.equal(basic.state, 'closed', 'should be closed');
     t.equal(chunks.length, 8, 'got the expected 8 chunks');
@@ -149,4 +92,52 @@ test('BaseReadableStream adapting a push stream', function (t) {
 
     t.end();
   });
+});
+
+test('BaseReadableStream aborting an infinite stream', function (t) {
+  /*global BaseReadableStream, BaseWritableStream*/
+  var randomStream = new RandomPushStream();
+
+  var readable = new BaseReadableStream({
+    start : function start(push, close, error) {
+      randomStream.ondata  = push;
+      randomStream.onend   = close;
+      randomStream.onerror = error;
+    },
+
+    pull : function pull() { randomStream.readStart(); },
+
+    abort : function abort() {
+      randomStream.readStop();
+      randomStream.onend();
+    }
+  });
+
+  var storage = [];
+  var writable = new BaseWritableStream({
+    write : function write(data, done) {
+      storage.push(data);
+      done();
+    }
+  });
+
+  readable.pipeTo(writable);
+
+  readable.closed.then(function () {
+    t.equal(readable.state, 'closed', 'readable should be closed');
+  });
+
+  writable.closed.then(function () {
+    t.equal(writable.state, 'closed', 'writable should be closed');
+    t.ok(storage.length > 0, 'should have gotten some data written through the pipe');
+    for (var i = 0; i < storage.length; i++) {
+      t.equal(storage[i].length, 128, 'each chunk has 128 bytes');
+    }
+
+    t.end();
+  });
+
+  setTimeout(function () {
+    readable.abort(new Error('don\'t feel like dealing with randomness anymore'));
+  }, 150);
 });

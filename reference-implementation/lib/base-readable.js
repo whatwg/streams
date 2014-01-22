@@ -19,16 +19,14 @@ function BaseReadableStream(callbacks) {
 
   if (!callbacks) callbacks = {};
 
-  this.buffer       = [];
+  this._buffer   = [];
+  this._state    = 'waiting';
+  this._draining = false;
+  this._pulling  = false;
 
-  this._state        = 'waiting';
-  this._started     = false;
-  this._draining    = false;
-  this._pulling     = false;
-
-  this._onStart     = undefined;
-  this._onPull      = undefined;
-  this._onAbort     = undefined;
+  this._onStart = callbacks.start || function _onStart() {};
+  this._onPull  = callbacks.pull  || function _onPull() {};
+  this._onAbort = callbacks.abort || function _onAbort() {};
 
   this._storedError = undefined;
 
@@ -54,32 +52,20 @@ function BaseReadableStream(callbacks) {
     get          : function () { return stream._closedPromise; }
   });
 
-  if (callbacks.start) {
-    this._onStart = callbacks.start;
-    this._startedPromise = Promise.cast(
-      this._onStart(
-        this._push.bind(this),
-        this._close.bind(this),
-        this._error.bind(this)
-      )
-    );
-  }
-  else {
-    this._onStart = undefined;
-    this._startedPromise = Promise.resolve(undefined);
-  }
-  if (callbacks.pull)  this._onPull = callbacks.pull;
-  if (callbacks.abort) this._onAbort = callbacks.abort;
-
-  this._startedPromise.then(
-    function fulfill() { stream._started = true; },
-    function error(e)  { stream._error(e); }
+  this._startedPromise = Promise.cast(
+    this._onStart(
+      this._push.bind(this),
+      this._close.bind(this),
+      this._error.bind(this)
+    )
   );
+
+  this._startedPromise.catch(function error(e) { stream._error(e); });
 }
 
 BaseReadableStream.prototype._push = function _push(data) {
   if (this._state === 'waiting') {
-    this.buffer.push(data);
+    this._buffer.push(data);
     this._pulling = false;
     this[READABLE_RESOLVE](undefined);
     this._state = 'readable';
@@ -87,7 +73,7 @@ BaseReadableStream.prototype._push = function _push(data) {
     return true;
   }
   else if (this._state === 'readable') {
-    this.buffer.push(data);
+    this._buffer.push(data);
     this._pulling = false;
 
     return true;
@@ -117,7 +103,7 @@ BaseReadableStream.prototype._error = function _error(error) {
     this._state = 'errored';
   }
   else if (this._state === 'readable') {
-    this.buffer.length = 0;
+    this._buffer.length = 0;
     this._storedError = error;
     // do this instead of using Promise.reject so accessors are correct
     this._readablePromise = new Promise(function (resolve, reject) {
@@ -134,26 +120,13 @@ BaseReadableStream.prototype._callPull = function _callPull() {
   var stream = this;
   if (this._pulling === true) return;
 
-  if (this._started === false) {
-    this._startedPromise.then(function fulfilled() {
-      if (stream._onPull) {
-        stream._onPull(
-          stream._push.bind(this),
-          stream._close.bind(this),
-          stream._error.bind(this)
-        );
-      }
-    });
-  }
-  else {
-    if (this._onPull) {
-      this._onPull(
-        this._push.bind(this),
-        this._close.bind(this),
-        this._error.bind(this)
-      );
-    }
-  }
+  this._startedPromise.then(function fulfilled() {
+    stream._onPull(
+      stream._push.bind(this),
+      stream._close.bind(this),
+      stream._error.bind(this)
+    );
+  });
 };
 
 BaseReadableStream.prototype.wait = function wait() {
@@ -169,14 +142,14 @@ BaseReadableStream.prototype.read = function read() {
     case 'waiting':
       throw new Error('no data available (yet)');
     case 'readable':
-      assert(this.buffer.length > 0, 'there must be data available to read');
-      var data = this.buffer.shift();
+      assert(this._buffer.length > 0, 'there must be data available to read');
+      var data = this._buffer.shift();
 
-      if (this.buffer.length < 1) {
+      if (this._buffer.length < 1) {
         assert(this._draining === true || this._draining === false,
                'draining only has two possible states');
         if (this._draining === true) {
-          this[CLOSED_RESOLVE].resolve(undefined);
+          this[CLOSED_RESOLVE](undefined);
           this._readablePromise = Promise.reject(new Error('all data already read'));
           this._state = 'closed';
         }
@@ -198,6 +171,96 @@ BaseReadableStream.prototype.read = function read() {
     default:
       throw new Error('stream state ' + this._state + ' is invalid');
   }
+};
+
+BaseReadableStream.prototype.abort = function abort(reason) {
+  if (this._state === 'waiting') {
+    try {
+      this._onAbort(reason);
+    }
+    catch (error) {
+      this._error(error);
+      return Promise.reject(error);
+    }
+    this[CLOSED_RESOLVE](undefined);
+    this[READABLE_REJECT](reason);
+    this._state = 'closed';
+  }
+  else if (this._state === 'readable') {
+    try {
+      this._onAbort(reason);
+    }
+    catch (error) {
+      this._error(error);
+      return Promise.reject(error);
+    }
+    this[CLOSED_RESOLVE](undefined);
+    this._readablePromise = Promise.reject(reason);
+    this._buffer.length = 0;
+    this._state = 'closed';
+  }
+
+  return Promise.resolve(undefined);
+};
+
+BaseReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
+  if (!options) options = {};
+
+  var close = true;
+  if ('close' in options) close = options.close;
+  close = Boolean(close);
+
+  var stream = this;
+
+  function closeDest() { if (close) dest.close(); }
+
+  // ISSUE: should this be preventable via an option or via `options.close`?
+  function abortDest(reason) { dest.abort(reason); }
+  function abortSource(reason) { stream.abort(reason); }
+
+  function pumpSource() {
+    switch (stream.state) {
+      case 'readable':
+        dest.write(stream.read()).catch(abortSource);
+        fillDest();
+        break;
+      case 'waiting':
+        stream.wait().then(fillDest, abortDest);
+        break;
+      case 'closed':
+        closeDest();
+        break;
+      default:
+        abortDest();
+    }
+  }
+
+  function fillDest() {
+    switch (dest.state) {
+      case 'writable':
+        pumpSource();
+        break;
+      case 'waiting':
+        dest.wait().then(fillDest, abortSource);
+        break;
+      default:
+        abortSource();
+    }
+  }
+  fillDest();
+
+  return dest;
+};
+
+BaseReadableStream.prototype.pipeThrough = function pipeThrough(transform, options) {
+  if (!transform) transform = {};
+  if (!options) options = {close : true};
+
+  assert(transform.in, 'input WritableStream required');
+  assert(transform.out, 'output ReadableStream required');
+
+  this.pipeTo(transform.in, options);
+  return transform.out;
 };
 
 module.exports = BaseReadableStream;
