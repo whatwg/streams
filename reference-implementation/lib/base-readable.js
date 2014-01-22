@@ -19,7 +19,7 @@ function BaseReadableStream(callbacks) {
 
   if (!callbacks) callbacks = {};
 
-  this.buffer       = [];
+  this._buffer      = [];
 
   this._state    = 'waiting';
   this._started  = false;
@@ -70,7 +70,7 @@ function BaseReadableStream(callbacks) {
 
 BaseReadableStream.prototype._push = function _push(data) {
   if (this._state === 'waiting') {
-    this.buffer.push(data);
+    this._buffer.push(data);
     this._pulling = false;
     this[READABLE_RESOLVE](undefined);
     this._state = 'readable';
@@ -78,7 +78,7 @@ BaseReadableStream.prototype._push = function _push(data) {
     return true;
   }
   else if (this._state === 'readable') {
-    this.buffer.push(data);
+    this._buffer.push(data);
     this._pulling = false;
 
     return true;
@@ -108,7 +108,7 @@ BaseReadableStream.prototype._error = function _error(error) {
     this._state = 'errored';
   }
   else if (this._state === 'readable') {
-    this.buffer.length = 0;
+    this._buffer.length = 0;
     this._storedError = error;
     // do this instead of using Promise.reject so accessors are correct
     this._readablePromise = new Promise(function (resolve, reject) {
@@ -156,10 +156,10 @@ BaseReadableStream.prototype.read = function read() {
     case 'waiting':
       throw new Error('no data available (yet)');
     case 'readable':
-      assert(this.buffer.length > 0, 'there must be data available to read');
-      var data = this.buffer.shift();
+      assert(this._buffer.length > 0, 'there must be data available to read');
+      var data = this._buffer.shift();
 
-      if (this.buffer.length < 1) {
+      if (this._buffer.length < 1) {
         assert(this._draining === true || this._draining === false,
                'draining only has two possible states');
         if (this._draining === true) {
