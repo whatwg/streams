@@ -141,6 +141,126 @@ ultimate producer according to how fast the chain can process data is called <df
 
 <h3>Introduction to Readable Streams</h3>
 
+<p>The readable stream API allows wrapping both pull and push sources into a single <code>ReadableStream</code>
+abstraction. To accomplish this, the API uses the <a href="#TODO">revealing constructor pattern</a>, pioneered by the
+promises specification. The constructor of a given stream instance is supplied with two functions, <code>start</code>
+and <code>pull</code>, which each are given the parameters <code>(push, close, error)</code> representing capabilities
+tied to the internals of the stream. By mediating all access to the internal state machine through these three
+functions, the stream's internal state and bookkeeping can be kept private, allowing nobody but the original producer
+of the stream to insert data into it.</p>
+
+<p>This specification provides both a lower-level <code>BaseReadableStream</code> class, and a higher-level
+<code>ReadableStream</code> class. <code>ReadableStream</code> layers on top of <code>BaseReadableStream</code> the
+ability to customize the stream's buffering strategy, which impacts backpressure; it also supports piping the stream
+to or through multiple destinations.</p>
+
+<div class="example">
+  <p>The following function wraps a push source, represented by a "raw socket," which triggers events for data, end,
+  and error, and provides the ability to pause and resume the flow of data.</p>
+
+<pre><code>function makeSocketStream(host, port, { highWaterMark = 16 * 1024 } = {}) {
+  const rawSocket = createRawSocketObject(host, port);
+
+  return new ReadableStream({
+    start(push, close, error) {
+      // When adapting a push source, usually most of the work happens in start.
+
+      rawSocket.ondata = chunk => {
+        if (!push(chunk)) {
+          // If push returns false, the internal buffer is full, so propagate
+          // the backpressure signal to the underlying source.
+          rawSocket.readStop();
+        }
+      };
+
+      rawSocket.onend = close;
+
+      rawSocket.onerror = error;
+    },
+
+    pull() {
+      // This is called if the internal buffer has been emptied, but the
+      // stream's consumer still wants more data.
+      rawSocket.readStart();
+    },
+
+    abort() {
+      // If the stream is prematurely aborted, release resources.
+      rawSocket.readStop();
+      rawSocket = null;
+    },
+
+    strategy: new LengthBufferingStrategy({ highWaterMark })
+  });
+}</code></pre>
+
+  <p>We can then use this function to create readable streams for sockets, and pipe those streams to arbitrary writable
+  streams:</p>
+
+<pre><code>var socketStream = makeSocketStream("http://example.com", 80);
+
+socketStream.pipeTo(writableStream).closed
+  .then(() => console.log("All data successfully written!"))
+  .catch(e => console.error("Something went wrong!", e));</code></pre>
+</div>
+
+<div class="example">
+  <p>The following function wraps a pull source, represented by a "raw file handle," which provides methods for opening,
+  reading from, and closing itself. These methods can call their callbacks either synchronously or asynchronously—a
+  <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
+  hide from our users by wrapping them in a readable stream.</p>
+
+<pre><code>function makeFileStream(filename, { highWaterMark = 16 * 1024 } = {}) {
+  const fileHandle = createRawFileHandle(filename);
+
+  return new ReadableStream({
+    start() {
+      return new Promise((resolve, reject) => {
+        fileHandle.open(err => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
+        });
+      });
+    },
+
+    pull(push, close, error) {
+      // When adapting a pull source, usually most of the work happens in pull.
+
+      fileHandle.read((err, isDone, data) => {
+        if (err) {
+          // If trying to read data results in an error, report that.
+          error(err);
+        } else if (isDone) {
+          // If there's no more data to read, be sure to close the underlying
+          // source, ensuring that it succeeds before reporting success.
+          fileHandle.close(err => {
+            if (err) {
+              error(err);
+            }
+            close();
+          });
+        } else {
+          // If data was read successfully, push it into the internal buffer.
+          push(data);
+        }
+      });
+    },
+
+    abort() {
+      // If the stream aborted prematurely, release resources.
+      fileHandle.close();
+      fileHandle = null;
+    },
+
+    strategy: new LengthBufferingStrategy({ highWaterMark })
+  });
+}</code></pre>
+
+  <p>We can then create and use readable streams for files just as we could before for sockets.</p>
+</div>
+
 <h3>Interface <code>BaseReadableStream</code></h3>
 
 <h3>Interface <code>ReadableStream</code></h3>
