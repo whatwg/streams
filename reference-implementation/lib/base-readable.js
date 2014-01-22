@@ -21,14 +21,14 @@ function BaseReadableStream(callbacks) {
 
   this.buffer       = [];
 
-  this._state        = 'waiting';
-  this._started     = false;
-  this._draining    = false;
-  this._pulling     = false;
+  this._state    = 'waiting';
+  this._started  = false;
+  this._draining = false;
+  this._pulling  = false;
 
-  this._onStart     = undefined;
-  this._onPull      = undefined;
-  this._onAbort     = undefined;
+  this._onStart = callbacks.start || function _onStart() {};
+  this._onPull  = callbacks.pull  || function _onPull() {};
+  this._onAbort = callbacks.abort || function _onAbort() {};
 
   this._storedError = undefined;
 
@@ -54,22 +54,13 @@ function BaseReadableStream(callbacks) {
     get          : function () { return stream._closedPromise; }
   });
 
-  if (callbacks.start) {
-    this._onStart = callbacks.start;
-    this._startedPromise = Promise.cast(
-      this._onStart(
-        this._push.bind(this),
-        this._close.bind(this),
-        this._error.bind(this)
-      )
-    );
-  }
-  else {
-    this._onStart = undefined;
-    this._startedPromise = Promise.resolve(undefined);
-  }
-  if (callbacks.pull)  this._onPull = callbacks.pull;
-  if (callbacks.abort) this._onAbort = callbacks.abort;
+  this._startedPromise = Promise.cast(
+    this._onStart(
+      this._push.bind(this),
+      this._close.bind(this),
+      this._error.bind(this)
+    )
+  );
 
   this._startedPromise.then(
     function fulfill() { stream._started = true; },
@@ -136,23 +127,19 @@ BaseReadableStream.prototype._callPull = function _callPull() {
 
   if (this._started === false) {
     this._startedPromise.then(function fulfilled() {
-      if (stream._onPull) {
-        stream._onPull(
-          stream._push.bind(this),
-          stream._close.bind(this),
-          stream._error.bind(this)
-        );
-      }
+      stream._onPull(
+        stream._push.bind(this),
+        stream._close.bind(this),
+        stream._error.bind(this)
+      );
     });
   }
   else {
-    if (this._onPull) {
-      this._onPull(
-        this._push.bind(this),
-        this._close.bind(this),
-        this._error.bind(this)
-      );
-    }
+    this._onPull(
+      this._push.bind(this),
+      this._close.bind(this),
+      this._error.bind(this)
+    );
   }
 };
 
