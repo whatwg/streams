@@ -486,6 +486,7 @@ BaseReadableStream.prototype.pipeThrough = ({ in, out }, { close = true } = {}) 
 1. If `this.[[state]]` is `"readable"`,
     1. Push `data` onto `this.[[buffer]]`.
     1. Set `this.[[pulling]]` to `false`.
+1. Return `false`.
 
 ###### `[[close]]()`
 
@@ -577,6 +578,7 @@ class ReadableStream extends BaseReadableStream {
 1. If `this.[[state]]` is now `"readable"`,
     1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
     1. Return `this.[[strategy]].needsMoreData(this.[[bufferSize]])`.
+1. Return `false`.
 
 ## Writable Streams
 
