@@ -863,6 +863,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Set `this.[[state]]` to `"closing"`.
     1. Let `promise` be a newly-created pending promise.
     1. Push `{ type: "close", promise, data: undefined }` onto `this.[[buffer]]`.
+    1. Return `promise`.
 1. If `this.[[state]]` is `"closing"`,
     1. Return a promise rejected with an error indicating that you cannot close a stream that is already closing.
 1. If `this.[[state]]` is `"closed"`,
