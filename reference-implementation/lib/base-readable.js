@@ -149,7 +149,7 @@ BaseReadableStream.prototype.read = function read() {
         assert(this._draining === true || this._draining === false,
                'draining only has two possible states');
         if (this._draining === true) {
-          this[CLOSED_RESOLVE].resolve(undefined);
+          this[CLOSED_RESOLVE](undefined);
           this._readablePromise = Promise.reject(new Error('all data already read'));
           this._state = 'closed';
         }
