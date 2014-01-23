@@ -173,6 +173,36 @@ BaseReadableStream.prototype.read = function read() {
   }
 };
 
+BaseReadableStream.prototype.abort = function abort(reason) {
+  if (this._state === 'waiting') {
+    try {
+      this._onAbort(reason);
+    }
+    catch (error) {
+      this._error(error);
+      return Promise.reject(error);
+    }
+    this[CLOSED_RESOLVE](undefined);
+    this[READABLE_REJECT](reason);
+    this._state = 'closed';
+  }
+  else if (this._state === 'readable') {
+    try {
+      this._onAbort(reason);
+    }
+    catch (error) {
+      this._error(error);
+      return Promise.reject(error);
+    }
+    this[CLOSED_RESOLVE](undefined);
+    this._readablePromise = Promise.reject(reason);
+    this._buffer.length = 0;
+    this._state = 'closed';
+  }
+
+  return Promise.resolve(undefined);
+};
+
 BaseReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
   if (!options) options = {};
 
