@@ -302,10 +302,7 @@ class BaseReadableStream {
 
     // Composing with other streams
     WritableStream pipeTo(WritableStream dest, { ToBoolean close = true } = {})
-    ReadableStream pipeThrough(
-        { WritableStream in, ReadableStream out },
-        { ToBoolean close = true } = {}
-    )
+    ReadableStream pipeThrough({ WritableStream in, ReadableStream out }, options)
 
     // Stop accumulating data
     void abort(any reason)
@@ -464,12 +461,12 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 };
 ```
 
-###### pipeThrough({ in, out }, { close })
+###### pipeThrough({ in, out }, options)
 
 ```js
-BaseReadableStream.prototype.pipeThrough = ({ in, out }, { close = true } = {}) => {
-    this.pipeTo(transform.in);
-    return transform.out;
+BaseReadableStream.prototype.pipeThrough = ({ in, out }, options) => {
+    this.pipeTo(in, options);
+    return out;
 };
 ```
 
