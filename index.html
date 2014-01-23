@@ -141,6 +141,8 @@ ultimate producer according to how fast the chain can process data is called <df
 
 <h3>Introduction to Readable Streams</h3>
 
+<p><em>This section is non-normative.</em></p>
+
 <p>The readable stream API allows wrapping both pull and push sources into a single <code>ReadableStream</code>
 abstraction. To accomplish this, the API uses the <a href="#TODO">revealing constructor pattern</a>, pioneered by the
 promises specification. The constructor of a given stream instance is supplied with two functions, <code>start</code>
@@ -210,8 +212,8 @@ socketStream.pipeTo(writableStream).closed
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
   hide from our users by wrapping them in a readable stream.</p>
 
-<pre><code>function makeFileStream(filename, { highWaterMark = 16 * 1024 } = {}) {
-  const fileHandle = createRawFileHandle(filename);
+<pre><code>function makeReadableFileStream(filename, { highWaterMark = 16 * 1024 } = {}) {
+  const fileHandle = createRawFileHandle(filename, "r");
 
   return new ReadableStream({
     start() {
@@ -261,19 +263,180 @@ socketStream.pipeTo(writableStream).closed
   <p>We can then create and use readable streams for files just as we could before for sockets.</p>
 </div>
 
-<h3>Interface <code>BaseReadableStream</code></h3>
+<div class="example">
+  <p>Although readable streams will usually be used by piping them to a writable stream, you can also "pump" them
+  directly, alternating between using the <code>read()</code> and <code>wait()</code> methods according to the current
+  value of the <code>state</code> property. For example, this function writes the contents of a readable stream to the
+  console as fast as they are available.</p>
 
-<h3>Interface <code>ReadableStream</code></h3>
+<pre><code>function streamToConsole(readableStream) {
+  pump();
+
+  function pump() {
+    while (readableStream.state === "readable") {
+      console.log(readableStream.read());
+    }
+
+    if (readableStream.state === "closed") {
+      console.log("--- all done!");
+    } else {
+      // If we're in an error state, the returned promise will be rejected with
+      // that error, so no need to handle "waiting" vs. "errored" separately.
+      readableStream.wait().then(pump, e => console.error(e));
+    }
+  }
+}</code></pre>
+</div>
+
+<h3>The Readable Stream State Diagram</h3>
+
+<p><em>This section is non-normative.</em></p>
+
+<p>As evidenced by the above explanations, readable streams have a fairly complex internal state machine, which is responsible for keeping track of the internal buffer, and initiating appropriate actions in response to calls to a stream's methods. This can be roughly summarized in the following diagram.</p>
+
+<figure>
+  <img src="readable-stream.svg" width="578" alt="The readable stream state machine diagram." />
+
+  <figcaption>
+    <dl>
+      <dt><span style="font-style: normal; font-weight: normal; font-family: monospace;">monospace</span></dt>
+      <dd>Methods of the stream</dd>
+
+      <dt><span style="font-style: normal; font-weight: bold;">bold</span></dt>
+      <dd>Constructor parameters</dd>
+
+      <dt><span style="font-style: italic; font-weight: normal;">italic</span></dt>
+      <dd>Capabilities given to constructor parameters</dd>
+    </dl>
+  </figcaption>
+</figure>
+
+
+<h3>Class <code>BaseReadableStream</code></h3>
+
+<h3>Class <code>ReadableStream</code></h3>
 
 <h2>Writable Streams</h2>
 
 <h3>Introduction to Writable Streams</h3>
 
-<h3>Interface <code>BaseWritableStream</code></h3>
+<p><em>This section is non-normative.</em></p>
 
-<h3>Interface <code>WritableStream</code></h3>
+<p>The writable stream API allows wrapping of underlying sinks into an object on which two fundamental operations can
+be performed: data can be written to the stream, and the stream can be closed.</p>
 
-<h3>Interface <code>CorkableWritableStream</code></h3>
+<p>The writable stream implementation is designed to encapsulate the potential complexity of the underlying sink from
+users of the stream API. In particular, users of a stream object can write data to the stream at any pace, without
+regard for whether previous writes have completed or succeeded. It is the job of the stream implementation to ensure
+that writes are forwarded to the underlying sink in order, and only after successful completion of previous writes.
+This allows seamless use of the writable stream even in cases such as piping a fast readable file stream to a slower
+writable network socket stream, which cannot acknowledge the incoming data at the same rate it becomes available.</p>
+
+<p>This specification provides both a lower-level <code>BaseWritableStream</code> class, and a higher-level
+<code>WritableStream</code> class. <code>WritableStream</code> layers on top of <code>BaseWritableStream</code> the
+ability to customize the stream's buffering strategy, which can be communicated backward in a pipe chain to cause
+backpressure.</p>
+
+<div class="example">
+  <p>The following function wraps an underlying sink, represented as a "raw file handle," which provides methods for
+  opening, writing to, and closing itself. These methods can call their callbacks either synchronously or
+  asynchronously—a <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a>
+  horror which we can hide from our users by wrapping them in a writable stream.</p>
+
+<pre><code>function makeWritableFileStream(filename, { highWaterMark = 16 * 1024 } = {}) {
+  const fileHandle = createRawFileHandle(filename, "w");
+
+  return new WritableStream({
+    start() {
+      return new Promise((resolve, reject) => {
+        fileHandle.open(err => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
+        });
+      });
+    },
+
+    write(data, done, error) {
+      fileHandle.write(data, writeErr => {
+        if (writeErr) {
+          // If trying to write results in an error, (attempt to) close the
+          // underlying file handle; we're not going to write any more.
+          fileHandle.close(closeErr => {
+            // If *closing* errors, pass along that error to the stream.
+            if (closeErr) {
+              error(closeErr);
+            }
+
+            // Otherwise, if closing succeeds, pass along the write error.
+            error(writeErr);
+          });
+        } else {
+          // If there's no error, then signal that this write completed.
+          done();
+        }
+      });
+    },
+
+    close() {
+      return new Promise((resolve, reject) => {
+        fileHandle.close(err => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
+        });
+      });
+    },
+
+    abort() {
+      // If the stream aborted prematurely, release resources.
+      fileHandle.close();
+      fileHandle = null;
+    },
+
+    strategy: new LengthBufferingStrategy({ highWaterMark })
+  });
+}</code></pre>
+
+  <p>We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:</p>
+
+<pre><code>var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
+
+readableStream.pipeTo(fileStream).closed
+  .then(() => console.log("All data successfully written!"))
+  .catch(e => console.error("Something went wrong!", e));</code></pre>
+
+  <p>Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
+  called later. In the meantime, additional writes can be queued up, which are stored in the stream's internal buffer.
+  The accumulation of this buffer can move the stream into a <code>"waiting"</code> state, which is a signal to users
+  of the stream that they should back off and stop writing if possible.</p>
+</div>
+
+<div class="example">
+  <p>Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
+  directly. Since they buffer any incoming writes, and take care internally to forward them to the underlying sink
+  in sequence, you can indiscriminately write to a writable stream without much ceremony:</p>
+
+<pre><code>function writeArrayToStream(array, writableStream) {
+  array.forEach(chunk => writableStream.write(chunk));
+
+  return writableStream.close();
+}
+
+writeArrayToStream([1, 2, 3, 4, 5], writableStream)
+  .then(() => console.log("All done!"))
+  .catch(e => console.error("Error with the stream: " + e));</code></pre>
+</div>
+
+<h3>The Writable Stream State Diagram</h3>
+
+<p><em>This section is non-normative.</em></p>
+
+<h3>Class <code>BaseWritableStream</code></h3>
+
+<h3>Class <code>WritableStream</code></h3>
 
 <h2>Subclassing Streams</h2>
 
@@ -284,10 +447,6 @@ socketStream.pipeTo(writableStream).closed
 <h3><code>LengthBufferingStrategy</code></h3>
 
 <h3><code>CountBufferingStrategy</code></h3>
-
-<h3><code>ReadableStreamWatcher</code></h3>
-
-<h3><code>WritableStreamWatcher</code></h3>
 
 <h2 class="no-num">Acknowledgments</h2>
 
