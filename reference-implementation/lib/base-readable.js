@@ -252,4 +252,15 @@ BaseReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
   return dest;
 };
 
+BaseReadableStream.prototype.pipeThrough = function pipeThrough(transform, options) {
+  if (!transform) transform = {};
+  if (!options) options = {close : true};
+
+  assert(transform.in, 'input WritableStream required');
+  assert(transform.out, 'output ReadableStream required');
+
+  this.pipeTo(transform.in, options);
+  return transform.out;
+};
+
 module.exports = BaseReadableStream;
