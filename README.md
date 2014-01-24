@@ -867,12 +867,12 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 1. If `this.[[state]]` is `"writable"`,
     1. Set `this.[[state]]` to `"closing"`.
-    1. Return `this.[[doClose]]()`.
+    1. Call `this.[[doClose]]()`.
+    1. Return `this.[[closedPromise]]`.
 1. If `this.[[state]]` is `"waiting"`,
     1. Set `this.[[state]]` to `"closing"`.
-    1. Let `promise` be a newly-created pending promise.
-    1. Push `{ type: "close", promise, data: undefined }` onto `this.[[buffer]]`.
-    1. Return `promise`.
+    1. Push `{ type: "close", promise: undefined, data: undefined }` onto `this.[[buffer]]`.
+    1. Return `this.[[closedPromise]]`.
 1. If `this.[[state]]` is `"closing"`,
     1. Return a promise rejected with an error indicating that you cannot close a stream that is already closing.
 1. If `this.[[state]]` is `"closed"`,
@@ -917,7 +917,6 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Set `this.[[state]]` to `"closed"`.
     1. Resolve `this.[[closedPromise]]` with `undefined`.
 1. When/if `closeResult` is rejected with reason `r`, call `this.[[error]](r)`.
-1. Return `this.[[closedPromise]]`.
 
 ###### `[[doAbort]](r)`
 

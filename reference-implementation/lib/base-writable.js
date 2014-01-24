@@ -112,8 +112,6 @@ BaseWritableStream.prototype._doClose = function _doClose() {
       stream._error(error);
     }
   );
-
-  return this._closedPromise;
 };
 
 BaseWritableStream.prototype._doAbort = function _doAbort(r) {
@@ -146,8 +144,6 @@ BaseWritableStream.prototype._doAbort = function _doAbort(r) {
 BaseWritableStream.prototype._doNextWrite = function _doNextWrite(entry) {
   var stream = this;
 
-  if (!entry) entry = {};
-
   var type    = entry.type;
   var promise = entry.promise;
   var data    = entry.data;
@@ -157,7 +153,6 @@ BaseWritableStream.prototype._doNextWrite = function _doNextWrite(entry) {
   if (type === 'close') {
     assert(this._state === 'closing', 'can\'t write final entry unless already closing');
     this._doClose();
-    resolve(undefined);
     return;
   }
 
@@ -255,25 +250,18 @@ BaseWritableStream.prototype.close = function close() {
   switch (this._state) {
     case 'writable':
       this._state = 'closing';
-      return this._doClose();
+      this._doClose();
+      return this._closedPromise();
 
     case 'waiting':
       this._state = 'closing';
 
-      var resolver, rejecter;
-      var promise = new Promise(function (resolve, reject) {
-        resolver = resolve;
-        rejecter = reject;
-      });
-
       this._buffer.push({
-        type     : 'close',
-        promise  : promise,
-        data     : undefined,
-        _resolve : resolver,
-        _reject  : rejecter
+        type    : 'close',
+        promise : undefined,
+        data    : undefined
       });
-      return promise;
+      return this._closedPromise;
 
     case 'closing':
       return Promise.reject(new Error('cannot close an already-closing stream'));
