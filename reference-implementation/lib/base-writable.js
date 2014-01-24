@@ -18,16 +18,20 @@ var CURRENT_WRITE_REJECT  = '_currentWritePromise@reject';
 function BaseWritableStream(callbacks) {
   var stream = this;
 
-  if (!callbacks) callbacks = {};
+  if (callbacks === undefined) callbacks = {};
+  if (callbacks.start === undefined) callbacks.start = function _onStart() {};
+  if (callbacks.write === undefined) callbacks.write = function _onWrite() {};
+  if (callbacks.close === undefined) callbacks.close = function _onClose() {};
+  if (callbacks.abort === undefined) callbacks.abort = function _onAbort() {};
 
   this._buffer = [];
 
   this._state = 'waiting';
 
-  this._onStart = callbacks.start || function _onStart() {};
-  this._onWrite = callbacks.write || function _onWrite() {};
-  this._onClose = callbacks.close || function _onClose() {};
-  this._onAbort = callbacks.abort || function _onAbort() {};
+  this._onStart = callbacks.start;
+  this._onWrite = callbacks.write;
+  this._onClose = callbacks.close;
+  this._onAbort = callbacks.abort;
 
   this._storedError = undefined;
 

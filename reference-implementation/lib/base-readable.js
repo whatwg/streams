@@ -17,16 +17,19 @@ var READABLE_REJECT  = '_readablePromise@reject';
 function BaseReadableStream(callbacks) {
   var stream = this;
 
-  if (!callbacks) callbacks = {};
+  if (callbacks === undefined) callbacks = {};
+  if (callbacks.start === undefined) callbacks.start = function _onStart() {};
+  if (callbacks.pull === undefined) callbacks.pull = function _onPull() {};
+  if (callbacks.abort === undefined) callbacks.abort = function _onAbort() {};
 
   this._buffer   = [];
   this._state    = 'waiting';
   this._draining = false;
   this._pulling  = false;
 
-  this._onStart = callbacks.start || function _onStart() {};
-  this._onPull  = callbacks.pull  || function _onPull() {};
-  this._onAbort = callbacks.abort || function _onAbort() {};
+  this._onStart = callbacks.start;
+  this._onPull  = callbacks.pull;
+  this._onAbort = callbacks.abort;
 
   this._storedError = undefined;
 
@@ -204,10 +207,10 @@ BaseReadableStream.prototype.abort = function abort(reason) {
 };
 
 BaseReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
-  if (!options) options = {};
+  if (options === undefined) options = {};
 
   var close = true;
-  if ('close' in options) close = options.close;
+  if (options.close !== undefined) close = options.close;
   close = Boolean(close);
 
   var stream = this;
