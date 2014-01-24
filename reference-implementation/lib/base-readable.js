@@ -253,14 +253,26 @@ BaseReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
 };
 
 BaseReadableStream.prototype.pipeThrough = function pipeThrough(transform, options) {
-  if (!transform) transform = {};
-  if (!options) options = {close : true};
+  if (options === undefined) options = {close : true};
 
-  assert(transform.in, 'input WritableStream required');
-  assert(transform.out, 'output ReadableStream required');
+  if (!TypeIsObject(transform)) {
+    throw new TypeError('Transform streams must be objects.');
+  }
+
+  if (!TypeIsObject(transform.in)) {
+    throw new TypeError('A transform stream must have an in property that is an object.');
+  }
+
+  if (!TypeIsObject(transform.out)) {
+    throw new TypeError('A transform stream must have an out property that is an object.');
+  }
 
   this.pipeTo(transform.in, options);
   return transform.out;
 };
+
+function TypeIsObject(x) {
+  return (typeof x === 'object' && x !== null) || typeof x === 'function';
+}
 
 module.exports = BaseReadableStream;

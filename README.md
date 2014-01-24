@@ -465,6 +465,18 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 
 ```js
 BaseReadableStream.prototype.pipeThrough = (transform, options) => {
+    if (Type(transform) !== "Object") { // ES spec speak; ES6 6.1.7
+        throw new TypeError("Transform streams must be objects.");
+    }
+
+    if (Type(transform.in) !== "Object") {
+        throw new TypeError("A transform stream must have an in property that is an object.");
+    }
+
+    if (Type(transform.out) !== "Object") {
+        throw new TypeError("A transform stream must have an out property that is an object.");
+    }
+
     this.pipeTo(transform.in, options);
     return transform.out;
 };
