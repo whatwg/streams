@@ -464,9 +464,9 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 ###### pipeThrough({ in, out }, options)
 
 ```js
-BaseReadableStream.prototype.pipeThrough = ({ in, out }, options) => {
-    this.pipeTo(in, options);
-    return out;
+BaseReadableStream.prototype.pipeThrough = (transform, options) => {
+    this.pipeTo(transform.in, options);
+    return transform.out;
 };
 ```
 
