@@ -24,6 +24,19 @@ function BaseWritableStream(callbacks) {
   if (callbacks.close === undefined) callbacks.close = function _onClose() {};
   if (callbacks.abort === undefined) callbacks.abort = function _onAbort() {};
 
+  if (typeof callbacks.start !== 'function') {
+    throw new TypeError('start must be a function or undefined');
+  }
+  if (typeof callbacks.write !== 'function') {
+    throw new TypeError('write must be a function or undefined');
+  }
+  if (typeof callbacks.close !== 'function') {
+    throw new TypeError('close must be a function or undefined');
+  }
+  if (typeof callbacks.abort !== 'function') {
+    throw new TypeError('abort must be a function or undefined');
+  }
+
   this._buffer = [];
 
   this._state = 'waiting';

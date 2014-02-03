@@ -22,6 +22,16 @@ function BaseReadableStream(callbacks) {
   if (callbacks.pull === undefined) callbacks.pull = function _onPull() {};
   if (callbacks.abort === undefined) callbacks.abort = function _onAbort() {};
 
+  if (typeof callbacks.start !== 'function') {
+    throw new TypeError('start must be a function or undefined');
+  }
+  if (typeof callbacks.pull !== 'function') {
+    throw new TypeError('pull must be a function or undefined');
+  }
+  if (typeof callbacks.abort !== 'function') {
+    throw new TypeError('abort must be a function or undefined');
+  }
+
   this._buffer   = [];
   this._state    = 'waiting';
   this._draining = false;
