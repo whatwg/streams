@@ -87,7 +87,7 @@ BaseReadableStream.prototype._push = function _push(data) {
 
 BaseReadableStream.prototype._close = function _close() {
   if (this._state === 'waiting') {
-    this[READABLE_REJECT](new Error ('stream has already been completely read'));
+    this[READABLE_REJECT](new TypeError('stream has already been completely read'));
     this[CLOSED_RESOLVE](undefined);
     this._state = 'closed';
   }
@@ -143,7 +143,7 @@ BaseReadableStream.prototype.read = function read() {
 
   switch(this._state) {
     case 'waiting':
-      throw new Error('no data available (yet)');
+      throw new TypeError('no data available (yet)');
     case 'readable':
       assert(this._buffer.length > 0, 'there must be data available to read');
       var data = this._buffer.shift();
@@ -153,7 +153,7 @@ BaseReadableStream.prototype.read = function read() {
                'draining only has two possible states');
         if (this._draining === true) {
           this[CLOSED_RESOLVE](undefined);
-          this._readablePromise = Promise.reject(new Error('all data already read'));
+          this._readablePromise = Promise.reject(new TypeError('all data already read'));
           this._state = 'closed';
         }
         else {
@@ -170,9 +170,9 @@ BaseReadableStream.prototype.read = function read() {
     case 'errored':
       throw this._storedError;
     case 'closed':
-      throw new Error('stream has already been consumed');
+      throw new TypeError('stream has already been consumed');
     default:
-      throw new Error('stream state ' + this._state + ' is invalid');
+      assert(false, 'stream state ' + this._state + ' is invalid');
   }
 };
 

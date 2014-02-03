@@ -92,7 +92,7 @@ BaseWritableStream.prototype._error = function _error(error) {
 BaseWritableStream.prototype._doClose = function _doClose() {
   var stream = this;
 
-  this[WRITABLE_REJECT](new Error('stream has already been closed'));
+  this[WRITABLE_REJECT](new TypeError('stream has already been closed'));
 
   var closeResult;
   try {
@@ -233,16 +233,16 @@ BaseWritableStream.prototype.write = function write(data) {
       return promise;
 
     case 'closing':
-      return Promise.reject(new Error('cannot write while stream is closing'));
+      return Promise.reject(new TypeError('cannot write while stream is closing'));
 
     case 'closed':
-      return Promise.reject(new Error('cannot write after stream is closed'));
+      return Promise.reject(new TypeError('cannot write after stream is closed'));
 
     case 'errored':
       return Promise.reject(this._storedError);
 
     default:
-      return Promise.reject(new Error('stream is in invalid state ' + this._state));
+      assert(false, 'stream is in invalid state ' + this._state);
   }
 };
 
@@ -264,16 +264,16 @@ BaseWritableStream.prototype.close = function close() {
       return this._closedPromise;
 
     case 'closing':
-      return Promise.reject(new Error('cannot close an already-closing stream'));
+      return Promise.reject(new TypeError('cannot close an already-closing stream'));
 
     case 'closed':
-      return Promise.reject(new Error('cannot close an already-closed stream'));
+      return Promise.reject(new TypeError('cannot close an already-closed stream'));
 
     case 'errored':
       return Promise.reject(this._storedError);
 
     default:
-      return Promise.reject(new Error('stream is in invalid state ' + this._state));
+      assert(false, 'stream is in invalid state ' + this._state);
   }
 };
 

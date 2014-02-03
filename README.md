@@ -365,14 +365,14 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 ###### read()
 
 1. If `this.[[state]]` is `"waiting"`,
-    1. Throw an error indicating that the stream does not have any data available yet.
+    1. Throw a `TypeError` exception.
 1. If `this.[[state]]` is `"readable"`,
     1. Assert: `this.[[buffer]]` is not empty.
     1. Let `data` be the result of shifting an element off of the front of `this.[[buffer]]`.
     1. If `this.[[buffer]]` is now empty,
         1. If `this.[[draining]]` is `true`,
             1. Resolve `this.[[closedPromise]]` with `undefined`.
-            1. Let `this.[[readablePromise]]` be a newly-created promise rejected with an error saying that the stream has already been completely read.
+            1. Let `this.[[readablePromise]]` be a newly-created promise rejected with a `TypeError` exception.
             1. Set `this.[[state]]` to `"closed"`.
         1. If `this.[[draining]]` is `false`,
             1. Set `this.[[state]]` to `"waiting"`.
@@ -382,7 +382,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `this.[[state]]` is `"errored"`,
     1. Throw `this.[[storedError]]`.
 1. If `this.[[state]]` is `"closed"`,
-    1. Throw an error indicating that the stream has already been completely read.
+    1. Throw a `TypeError` exception.
 
 ###### wait()
 
@@ -500,7 +500,7 @@ BaseReadableStream.prototype.pipeThrough = (transform, options) => {
 ###### `[[close]]()`
 
 1. If `this.[[state]]` is `"waiting"`,
-    1. Reject `this.[[readablePromise]]` with an error saying that the stream has already been completely read.
+    1. Reject `this.[[readablePromise]]` with a `TypeError` exception.
     1. Resolve `this.[[closedPromise]]` with `undefined`.
     1. Set `this.[[state]]` to `"closed"`.
 1. If `this.[[state]]` is `"readable"`,
@@ -856,10 +856,8 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If `this.[[state]]` is `"waiting"`,
     1. Push `{ type: "data", promise, data }` onto `this.[[buffer]]`.
     1. Return `promise`.
-1. If `this.[[state]]` is `"closing"`,
-    1. Return a promise rejected with an error indicating that you cannot write while the stream is closing.
-1. If `this.[[state]]` is `"closed"`,
-    1. Return a promise rejected with an error indicating that you cannot write after the stream has been closed.
+1. If `this.[[state]]` is `"closing"` or `"closed"`,
+    1. Return a promise rejected with a `TypeError` exception.
 1. If `this.[[state]]` is `"errored"`,
     1. Return a promise rejected with `this.[[storedError]]`.
 
@@ -873,10 +871,8 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Set `this.[[state]]` to `"closing"`.
     1. Push `{ type: "close", promise: undefined, data: undefined }` onto `this.[[buffer]]`.
     1. Return `this.[[closedPromise]]`.
-1. If `this.[[state]]` is `"closing"`,
-    1. Return a promise rejected with an error indicating that you cannot close a stream that is already closing.
-1. If `this.[[state]]` is `"closed"`,
-    1. Return a promise rejected with an error indicating that you cannot close a stream that is already closed.
+1. If `this.[[state]]` is `"closing"` or `"closed"`,
+    1. Return a promise rejected with a `TypeError` exception.
 1. If `this.[[state]]` is `"errored"`,
     1. Return a promise rejected with `this.[[storedError]]`.
 
@@ -909,7 +905,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ###### `[[doClose]]()`
 
-1. Reject `this.[[writablePromise]]` with an error saying that the stream has been closed.
+1. Reject `this.[[writablePromise]]` with a `TypeError` exception.
 1. Call `this.[[onClose]]()`.
 1. If the call throws an exception `e`, call `this.[[error]](e)` and return a promise rejected with `e`.
 1. Otherwise, let `closeResult` be the result of casting the return value to a promise.
