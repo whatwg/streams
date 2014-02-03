@@ -254,7 +254,7 @@ Once all the available data is read from the stream's internal buffer, the strea
 
 Besides the constructor pattern, the `pipeTo` method for piping a readable stream into a writable stream, and the `read()`/`wait()`/`state` primitives for reading raw data, a readable stream provides three more APIs: `pipeThrough`, `closed`, and `abort(reason)`.
 
-`pipeThrough` is a mechanism for piping readable streams through *transform streams*, which are represented as `{ in, out }` pairs where `in` is a writable stream and `out` is a readable stream. Transform streams could have predefined translation logic, e.g. a string decoder whose `in` writable stream takes `ArrayBuffer` instances and whose `out` readable stream gives back strings; or they could be dynamic transformations, for example a web worker or child process which reacts to data flowing to its `in` side in order to decide what to give from its `out` side.
+`pipeThrough` is a mechanism for piping readable streams through *transform streams*, which are represented as `{ input, output }` pairs where `input` is a writable stream and `output` is a readable stream. Transform streams could have predefined translation logic, e.g. a string decoder whose `input` writable stream takes `ArrayBuffer` instances and whose `output` readable stream gives back strings; or they could be dynamic transformations, for example a web worker or child process which reacts to data flowing to its `input` side in order to decide what to give from its `output` side.
 
 `closed` is a simple convenience API: it's a promise that becomes fulfilled when the stream has been completely read (`state` of `"closed"`), or becomes rejected if some error occurs in the stream (`state` of `"errored"`).
 
@@ -464,27 +464,14 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 };
 ```
 
-###### pipeThrough({ in, out }, options)
+###### pipeThrough({ input, output }, options)
 
-```js
-BaseReadableStream.prototype.pipeThrough = (transform, options) => {
-    if (Type(transform) !== "Object") { // ES spec speak; ES6 6.1.7
-        throw new TypeError("Transform streams must be objects.");
-    }
-
-    if (Type(transform.in) !== "Object") {
-        throw new TypeError("A transform stream must have an in property that is an object.");
-    }
-
-    if (Type(transform.out) !== "Object") {
-        throw new TypeError("A transform stream must have an out property that is an object.");
-    }
-
-    this.pipeTo(transform.in, options);
-    return transform.out;
-};
-```
-
+1. If Type(_input_) is not Object, then throw a **TypeError** exception.
+1. If Type(_output_) is not Object, then throw a **TypeError** exception.
+1. Let _stream_ be the **this** value.
+1. Let _result_ be the result of calling Invoke(_stream_, `"pipeTo"`, (_options_)).
+1. ReturnIfAbrupt(_result_).
+1. Return _output_.
 
 ##### Internal Methods of BaseReadableStream
 
