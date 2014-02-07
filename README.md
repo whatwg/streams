@@ -971,6 +971,7 @@ class WritableStream extends BaseWritableStream {
 
     // Internal properties
     [[strategy]]
+    [[bufferSize]] = 0
 }
 ```
 
