@@ -513,9 +513,10 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 ###### `[[callPull]]()`
 
 1. If `this.[[pulling]]` is `true`, return.
-1. If `this.[[started]]` is `false`,
+2. Set `this.[[pulling]]` to `true`.
+3. If `this.[[started]]` is `false`,
     1. When/if `this.[[startedPromise]]` is fulfilled, call `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
-1. If `this.[[started]]` is `true`,
+4. If `this.[[started]]` is `true`,
     1. Call `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
 
 #### ReadableStream
