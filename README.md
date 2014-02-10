@@ -213,7 +213,7 @@ In the previous section, we discussed how to create readable streams wrapping ar
 The primary means of consuming a readable stream is through its `pipeTo` method, which accepts a writable stream, and manages the complex dance required for writing data to the writable stream only as fast as it can accept. The writable stream's  rate of intake is used to govern how fast data is read from the readable stream, thus taking care of the propagation of backpressure signals. A typical pipe scenario might look like:
 
 ```js
-readableStream.pipeTo(writeableStream).closed
+readableStream.pipeTo(writableStream).closed
     .then(() => console.log("All written!"))
     .catch(err => console.error("Something went wrong!", err));
 ```
@@ -661,7 +661,7 @@ The primary means of using a writable stream is by piping a readable stream into
 Again, we emphasize that piping is the 90% case: you will rarely, if ever, have to write to a writable stream yourself. You will instead pipe to it from a readable stream, just as before:
 
 ```js
-readableStream.pipeTo(writeableStream).closed
+readableStream.pipeTo(writableStream).closed
     .then(() => console.log("All written!"))
     .catch(err => console.error("Something went wrong!", err));
 ```
