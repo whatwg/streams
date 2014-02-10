@@ -323,10 +323,12 @@ class BaseReadableStream {
     function [[onAbort]]
     function [[onPull]]
 
-    // Internal methods
+    // Internal methods for use by the underlying source
     [[push]](any data)
     [[close]]()
     [[error]](any e)
+
+    // Other internal helper methods
     [[callPull]]()
 }
 
