@@ -127,14 +127,14 @@ BaseWritableStream.prototype._doClose = function _doClose() {
   );
 };
 
-BaseWritableStream.prototype._doAbort = function _doAbort(r) {
+BaseWritableStream.prototype._doAbort = function _doAbort(abortReason) {
   var stream = this;
 
-  this[WRITABLE_REJECT](r);
+  this[WRITABLE_REJECT](abortReason);
 
   var abortResult;
   try {
-    abortResult = Promise.cast(this._onAbort(r));
+    abortResult = Promise.cast(this._onAbort(abortReason));
   }
   catch (error) {
     this._error(error);
