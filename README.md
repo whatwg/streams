@@ -911,10 +911,10 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Resolve `this.[[closedPromise]]` with `undefined`.
 1. When/if `closeResult` is rejected with reason `r`, call `this.[[error]](r)`.
 
-###### `[[doAbort]](r)`
+###### `[[doAbort]](abortReason)`
 
-1. Reject `this.[[writablePromise]]` with `r`.
-1. Call `this.[[onAbort]](r)`.
+1. Reject `this.[[writablePromise]]` with `abortReason`.
+1. Call `this.[[onAbort]](abortReason)`.
 1. If the call throws an exception `e`, call `this.[[error]](e)` and return a promise rejected with `e`.
 1. Otherwise, let `abortResult` be the result of casting the return value to a promise.
 1. When/if `abortResult` is fulfilled,
