@@ -131,7 +131,9 @@ BaseReadableStream.prototype._error = function _error(error) {
 
 BaseReadableStream.prototype._callPull = function _callPull() {
   var stream = this;
+
   if (this._pulling === true) return;
+  this._pulling = true;
 
   this._startedPromise.then(function fulfilled() {
     stream._onPull(

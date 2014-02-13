@@ -52,6 +52,34 @@ test('BaseReadableStream is constructed correctly', function (t) {
   t.ok(basic.closed.then, 'stream has closed promise that is thenable');
 });
 
+test('BaseReadableStream avoid redundant pull call', function (t) {
+  /*global BaseReadableStream*/
+  var pullCount = 0;
+  var readable = new BaseReadableStream({
+    start : function start() {
+    },
+
+    pull : function pull() {
+      pullCount++;
+    },
+
+    abort : function abort() {
+      t.fail("abort should not be called");
+    }
+  });
+
+  readable.wait();
+  readable.wait();
+  readable.wait();
+
+  // es6-promise uses setTimeout with delay of 1 to run handlers async. We need
+  // to use longer delay.
+  setTimeout(function () {
+    t.equal(pullCount, 1, 'pull should not be called more than once');
+    t.end();
+  }, 150);
+});
+
 test('BaseReadableStream adapting a push stream', function (t) {
   /*global BaseReadableStream*/
   var pullChecked = false;
