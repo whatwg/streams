@@ -3,6 +3,7 @@
 var test = require('tape');
 var Promise = require('es6-promise').Promise;
 var RandomPushSource = require('./lib/random-push-source.js');
+var SequentialPullSource = require('./lib/sequential-pull-source.js');
 
 require('../index.js');
 
@@ -56,9 +57,6 @@ test('BaseReadableStream avoid redundant pull call', function (t) {
   /*global BaseReadableStream*/
   var pullCount = 0;
   var readable = new BaseReadableStream({
-    start : function start() {
-    },
-
     pull : function pull() {
       pullCount++;
     },
@@ -80,7 +78,7 @@ test('BaseReadableStream avoid redundant pull call', function (t) {
   }, 150);
 });
 
-test('BaseReadableStream adapting a push stream', function (t) {
+test('BaseReadableStream adapting a push source', function (t) {
   /*global BaseReadableStream*/
   var pullChecked = false;
   var randomSource = new RandomPushSource(8);
@@ -117,6 +115,45 @@ test('BaseReadableStream adapting a push stream', function (t) {
     for (var i = 0; i < chunks.length; i++) {
       t.equal(chunks[i].length, 128, 'each chunk has 128 bytes');
     }
+
+    t.end();
+  });
+});
+
+test('BaseReadableStream adapting a pull source', function (t) {
+  /*global BaseReadableStream*/
+  var sequentialSource = new SequentialPullSource(10);
+
+  var basic = new BaseReadableStream({
+    start : function () {
+      return new Promise(function (resolve, reject) {
+        sequentialSource.open(function (err) {
+          if (err) reject(err);
+          resolve();
+        });
+      });
+    },
+
+    pull : function (push, finish, error) {
+      sequentialSource.read(function (err, done, data) {
+        if (err) {
+          error(err);
+        } else if (done) {
+          sequentialSource.close(function (err) {
+            if (err) error(err);
+            finish();
+          });
+        } else {
+          push(data);
+        }
+      });
+    }
+  });
+
+  readableStreamToArray(basic).then(function (chunks) {
+    t.equal(basic.state, 'closed', 'stream should be closed');
+    t.equal(sequentialSource.closed, true, 'source should be closed');
+    t.deepEqual(chunks, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'got the expected 10 chunks');
 
     t.end();
   });

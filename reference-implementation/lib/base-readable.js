@@ -141,7 +141,7 @@ BaseReadableStream.prototype._callPull = function _callPull() {
       stream._close.bind(this),
       stream._error.bind(this)
     );
-  });
+  }.bind(this));
 };
 
 BaseReadableStream.prototype.wait = function wait() {
