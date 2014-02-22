@@ -12,7 +12,7 @@ function randomChunk(size) {
   return text;
 }
 
-function RandomPushStream(toPush) {
+function RandomPushSource(toPush) {
   this.pushed  = 0;
   this.toPush  = toPush;
   this.started = false;
@@ -21,7 +21,7 @@ function RandomPushStream(toPush) {
   this._handle = null;
 }
 
-RandomPushStream.prototype.readStart = function readStart() {
+RandomPushSource.prototype.readStart = function readStart() {
   if (this.closed) return;
 
   var stream = this;
@@ -55,7 +55,7 @@ RandomPushStream.prototype.readStart = function readStart() {
   }
 };
 
-RandomPushStream.prototype.readStop = function readStop() {
+RandomPushSource.prototype.readStop = function readStop() {
   if (this.paused) return;
 
   if (this.started) {
@@ -68,8 +68,8 @@ RandomPushStream.prototype.readStop = function readStop() {
   }
 };
 
-RandomPushStream.prototype.onend   = function onend() { };
-RandomPushStream.prototype.ondata  = function ondata() {};
-RandomPushStream.prototype.onerror = function onerror() {};
+RandomPushSource.prototype.onend   = function onend() { };
+RandomPushSource.prototype.ondata  = function ondata() {};
+RandomPushSource.prototype.onerror = function onerror() {};
 
-module.exports = RandomPushStream;
+module.exports = RandomPushSource;

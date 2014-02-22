@@ -2,7 +2,7 @@
 
 var test = require('tape');
 var Promise = require('es6-promise').Promise;
-var RandomPushStream = require('./lib/random-push-stream.js');
+var RandomPushSource = require('./lib/random-push-source.js');
 
 require('../index.js');
 
@@ -83,7 +83,7 @@ test('BaseReadableStream avoid redundant pull call', function (t) {
 test('BaseReadableStream adapting a push stream', function (t) {
   /*global BaseReadableStream*/
   var pullChecked = false;
-  var randomStream = new RandomPushStream(8);
+  var randomSource = new RandomPushSource(8);
 
   var basic = new BaseReadableStream({
     start : function start(push, close, error) {
@@ -91,12 +91,12 @@ test('BaseReadableStream adapting a push stream', function (t) {
       t.equal(typeof close, 'function', 'close is a function in start');
       t.equal(typeof error, 'function', 'error is a function in start');
 
-      randomStream.ondata = function (chunk) {
-        if (!push(chunk)) randomStream.readStop();
+      randomSource.ondata = function (chunk) {
+        if (!push(chunk)) randomSource.readStop();
       };
 
-      randomStream.onend = close;
-      randomStream.onerror = error;
+      randomSource.onend = close;
+      randomSource.onerror = error;
     },
 
     pull : function pull(push, close, error) {
@@ -107,7 +107,7 @@ test('BaseReadableStream adapting a push stream', function (t) {
         t.equal(typeof error, 'function', 'error is a function in pull');
       }
 
-      randomStream.readStart();
+      randomSource.readStart();
     }
   });
 
@@ -124,20 +124,20 @@ test('BaseReadableStream adapting a push stream', function (t) {
 
 test('BaseReadableStream aborting an infinite stream', function (t) {
   /*global BaseReadableStream, BaseWritableStream*/
-  var randomStream = new RandomPushStream();
+  var randomSource = new RandomPushSource();
 
   var readable = new BaseReadableStream({
     start : function start(push, close, error) {
-      randomStream.ondata  = push;
-      randomStream.onend   = close;
-      randomStream.onerror = error;
+      randomSource.ondata  = push;
+      randomSource.onend   = close;
+      randomSource.onerror = error;
     },
 
-    pull : function pull() { randomStream.readStart(); },
+    pull : function pull() { randomSource.readStart(); },
 
     abort : function abort() {
-      randomStream.readStop();
-      randomStream.onend();
+      randomSource.readStop();
+      randomSource.onend();
     }
   });
 
