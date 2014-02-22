@@ -139,18 +139,26 @@ BaseReadableStream.prototype._callPull = function _callPull() {
 
   if (this._started === false) {
     this._startedPromise.then(function fulfilled() {
+      try {
+        stream._onPull(
+          stream._push.bind(this),
+          stream._close.bind(this),
+          stream._error.bind(this)
+        );
+      } catch (pullResultE) {
+        this._error(pullResultE);
+      }
+    }.bind(this));
+  } else {
+    try {
       stream._onPull(
         stream._push.bind(this),
         stream._close.bind(this),
         stream._error.bind(this)
       );
-    }.bind(this));
-  } else {
-    stream._onPull(
-      stream._push.bind(this),
-      stream._close.bind(this),
-      stream._error.bind(this)
-    );
+    } catch (pullResultE) {
+      this._error(pullResultE);
+    }
   }
 };
 

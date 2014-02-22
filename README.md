@@ -359,9 +359,11 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. Set `this.[[onPull]]` to `pull`.
 1. Let `this.[[readablePromise]]` be a newly-created pending promise.
 1. Let `this.[[closedPromise]]` be a newly-created pending promise.
-1. Call `start(this.[[push]], this.[[close]], this.[[error]])` and let `this.[[startedPromise]]` be the result of casting the return value to a promise.
-1. When/if `this.[[startedPromise]]` is fulfilled, set `this.[[started]]` to `true`.
-1. When/if `this.[[startedPromise]]` is rejected with reason `r`, call `this.[[error]](r)`.
+1. Let _startResult_ be the result of `start(this.[[push]], this.[[close]], this.[[error]])`.
+1. ReturnIfAbrupt(_startResult_).
+1. Let `this.[[startedPromise]]` be the result of casting _startResult_ to a promise.
+1. Upon fulfillment of `this.[[startedPromise]]`, set `this.[[started]]` to `true`.
+1. Upon rejection of `this.[[startedPromise]]` with reason `r`, call `this.[[error]](r)`.
 
 ###### get state
 
@@ -517,9 +519,12 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 1. If `this.[[pulling]]` is `true`, return.
 1. Set `this.[[pulling]]` to `true`.
 1. If `this.[[started]]` is `false`,
-    1. When/if `this.[[startedPromise]]` is fulfilled, call `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
+    1. Upon fulfillment of `this.[[startedPromise]]`,
+        1. Let `pullResult` be the result of `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
+        1. If `pullResult` is an abrupt completion, call `this.[[error]](pullResult.[[value]])`.
 1. If `this.[[started]]` is `true`,
-    1. Call `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
+    1. Let `pullResult` be the result of `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
+    1. If `pullResult` is an abrupt completion, call `this.[[error]](pullResult.[[value]])`.
 
 #### ReadableStream
 

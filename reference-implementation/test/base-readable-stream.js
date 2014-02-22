@@ -78,6 +78,59 @@ test('BaseReadableStream avoid redundant pull call', function (t) {
   }, 150);
 });
 
+test('BaseReadableStream start throws an error', function (t) {
+  /*global BaseReadableStream*/
+  t.plan(1);
+
+  var error = new Error("aaaugh!!");
+
+  t.throws(
+    function () {
+      new BaseReadableStream({
+        start : function () {
+          throw error;
+        }
+      })
+    },
+    function (caught) {
+      t.equal(caught, error, 'error was allowed to propagate');
+    }
+  );
+});
+
+test('BaseReadableStream pull throws an error', function (t) {
+  /*global BaseReadableStream*/
+
+  t.plan(4);
+
+  var error = new Error("aaaugh!!");
+  var readable = new BaseReadableStream({
+    pull : function () {
+      throw error;
+    }
+  });
+
+  readable.wait().then(function () {
+    t.fail('waiting should fail');
+    t.end();
+  });
+
+  readable.closed.then(function () {
+    t.fail('the stream should not close successfully');
+    t.end();
+  });
+
+  readable.wait().catch(function (caught) {
+    t.equal(readable.state, 'errored', 'state is "errored" after waiting');
+    t.equal(caught, error, 'error was passed through as rejection of wait() call');
+  });
+
+  readable.closed.catch(function (caught) {
+    t.equal(readable.state, 'errored', 'state is "errored" in close catch');
+    t.equal(caught, error, 'error was passed through as rejection of closed property');
+  });
+});
+
 test('BaseReadableStream adapting a push source', function (t) {
   /*global BaseReadableStream*/
   var pullChecked = false;
