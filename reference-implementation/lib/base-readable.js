@@ -36,6 +36,7 @@ function BaseReadableStream(callbacks) {
   this._state    = 'waiting';
   this._draining = false;
   this._pulling  = false;
+  this._started  = false;
 
   this._onStart = callbacks.start;
   this._onPull  = callbacks.pull;
@@ -73,6 +74,7 @@ function BaseReadableStream(callbacks) {
     )
   );
 
+  this._startedPromise.then(function started() { stream._started = true; });
   this._startedPromise.catch(function error(e) { stream._error(e); });
 }
 
@@ -135,13 +137,21 @@ BaseReadableStream.prototype._callPull = function _callPull() {
   if (this._pulling === true) return;
   this._pulling = true;
 
-  this._startedPromise.then(function fulfilled() {
+  if (this._started === false) {
+    this._startedPromise.then(function fulfilled() {
+      stream._onPull(
+        stream._push.bind(this),
+        stream._close.bind(this),
+        stream._error.bind(this)
+      );
+    }.bind(this));
+  } else {
     stream._onPull(
       stream._push.bind(this),
       stream._close.bind(this),
       stream._error.bind(this)
     );
-  }.bind(this));
+  }
 };
 
 BaseReadableStream.prototype.wait = function wait() {

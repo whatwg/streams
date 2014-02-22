@@ -206,3 +206,28 @@ test('BaseReadableStream aborting an infinite stream', function (t) {
     readable.abort(new Error('don\'t feel like dealing with randomness anymore'));
   }, 150);
 });
+
+test('BaseReadableStream is able to pull data repeatedly if it\'s available synchronously', function (t) {
+  /*global BaseReadableStream*/
+
+  var i = 0;
+  var readable = new BaseReadableStream({
+    pull : function pull(push, close) {
+      if (++i <= 10) {
+        push(i);
+      } else {
+        close();
+      }
+    }
+  });
+
+  readable.wait().then(function () {
+    var data = [];
+    while (readable.state === 'readable') {
+      data.push(readable.read());
+    }
+
+    t.deepEqual(data, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    t.end();
+  });
+});
