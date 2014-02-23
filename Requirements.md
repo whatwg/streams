@@ -158,7 +158,7 @@ Also note that the handling of cancel signals alongside multi-stream piping must
 
 ### You must be able to communicate abort signals down a pipe chain.
 
-As a dual to readable stream aborting, it's possible for a source to be unable to produce any more data, usually because of an error. In this case, any writable streams it is being piped to should not leave their underlying sinks open indefinitely; instead, they themselves should be given a abort signal.
+As a dual to readable stream cancellation, it's possible for a source to be unable to produce any more data, usually because of an error. In this case, any writable streams it is being piped to should not leave their underlying sinks open indefinitely; instead, they themselves should be given a abort signal.
 
 This signal is similar to, but different than, the "close" signal described above. It implies that the data written so far is not meaningful or valid; that any buffered writes should be discarded; and that a cleanup operation should be performed. For example, when a file stream represents a newly-created file, a close signal waits for all buffered writes to complete, then closes the file descriptor; a new, complete file now exists on the disk. But a abort signal would throw away any buffered writes and delete the file.
 

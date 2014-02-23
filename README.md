@@ -399,12 +399,13 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 ###### cancel(reason)
 
-1. If `this.[[state]]` is `"closed"` or `"errored"`, return a new promise rejected with a **TypeError** exception.
+1. If `this.[[state]]` is `"closed"`, return a new promise resolved with **undefined**.
+1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
+1. If `this.[[state]]` is `"waiting"`, reject `this.[[readablePromise]]` with _reason_.
+1. If `this.[[state]]` is `"readable"`, let `this.[[readablePromise]]` be a new promise rejected with _reason_.
 1. Set `this.[[state]]` to `"closed"`.
 1. Resolve `this.[[closedPromise]]` with **undefined**.
 1. Clear `this.[[buffer]]`.
-1. If `this.[[state]]` is `"waiting"`, reject `this.[[readablePromise]]` with _reason_.
-1. If `this.[[state]]` is `"readable"`, let `this.[[readablePromise]]` be a new promise rejected with _reason_.
 1. Return the result of promise-calling `this.[[onCancel]]()`.
 
 ###### get closed
@@ -722,7 +723,7 @@ Besides the constructor pattern, the `write(data)`/`wait()`/`state` primitives f
 
 `closed` is simply a convenience API: it's a promise that becomes fulfilled when the stream has been successfully closed (`state` of `"closed"`), or becomes rejected if some error occurs while starting, writing to, or closing the stream (`state` of `"errored"`).
 
-The `abort` API allows users to communicate a *forceful closes* of the stream; this could be useful, for example, to stop a file upload if the user clicks "Cancel." Aborting a stream will clear any queued writes (and close operations), and then call the `abort` constructor parameter immediately. By default the `abort` constructor parameter will simply do whatever the user passed in for the `close` constructor parameter, but by passing a customized function, the creator of the stream can react to forceful closes differently than normal ones. For example, we might extend our above file stream with a `abort` parameter that deletes the file if it was newly created by this write operation:
+The `abort` API allows users to communicate a *forceful closes* of the stream; this could be useful, for example, to stop a file upload if the user clicks "Cancel." Aborting a stream will clear any queued writes (and close operations), and call the `abort` constructor parameter immediately. By default the `abort` constructor parameter will simply do whatever the user passed in for the `close` constructor parameter, but by passing a customized function, the creator of the stream can react to forceful closes differently than normal ones. For example, we might extend our above file stream with a `abort` parameter that deletes the file if it was newly created by this write operation:
 
 ```
 return new WritableStream({
@@ -742,7 +743,7 @@ return new WritableStream({
 });
 ```
 
-Calling `abort(reason)` puts the writable stream into a `"closed"` state—aborting is not considered an error—but any further attempts to call `write()`, `wait()`, or `close()` will immediately return a promise rejected with `reason`.
+Calling `abort(reason)` puts the writable stream into a `"errored"` state, and any further attempts to call `write()`, `wait()`, or `close()` will immediately return a promise rejected with `reason`.
 
 ### The Writable Stream State Diagram
 
@@ -780,7 +781,6 @@ class BaseWritableStream {
     // Internal methods
     [[error]](any e)
     [[doClose]]()
-    [[doAbort]](r)
     [[doNextWrite]]({ type, promise, data })
 
     // Internal properties
@@ -813,7 +813,7 @@ The constructor is passed several functions, all optional:
 * `start()` is called when the writable stream is created, and should open the underlying writable sink. If this process is asynchronous, it can return a promise to signal success or failure.
 * `write(data, done, error)` should write `data` to the underlying sink. It can call its `done` or `error` parameters, either synchronously or asynchronously, to respectively signal that the underlying resource is ready for more data or that an error occurred writing. The stream implementation guarantees that this function will be called only after previous writes have succeeded (i.e. called their `done` parameter), and never after `close` or `abort` is called.
 * `close()` should close the underlying sink. If this process is asynchronous, it can return a promise to signal success or failure. The stream implementation guarantees that this function will be called only after all queued-up writes have succeeded.
-* `abort(reason)` is an abrupt close, signaling that all data written so far is suspect. It should clean up underlying resources, much like `close`, but perhaps with some custom handling. It is sometimes given a reason for this abrupt close as a parameter. Unlike `close`, `abort` will be called even if writes are queued up, throwing away that data.
+* `abort()` is an abrupt close, signaling that all data written so far is suspect. It should clean up underlying resources, much like `close`, but perhaps with some custom handling. Unlike `close`, `abort` will be called even if writes are queued up, throwing away that data.
 
 In reaction to calls to the stream's `.write()` method, the `write` constructor option is given data from the internal buffer, along with the means to signal that the data has been successfully or unsuccessfully written.
 
@@ -874,17 +874,12 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If `this.[[state]]` is `"errored"`,
     1. Return a promise rejected with `this.[[storedError]]`.
 
-###### abort(r)
+###### abort(reason)
 
-1. If `this.[[state]]` is `"writable"`,
-    1. Set `this.[[state]]` to `"closing"`.
-    1. Return `this.[[doAbort]](r)`.
-1. If `this.[[state]]` is `"waiting"`, or if `this.[[state]]` is `"closing"` and `this.[[buffer]]` is not empty,
-    1. Set `this.[[state]]` to `"closing"`.
-    1. For each entry `{ type, promise, data }` in `this.[[buffer]]`, reject `promise` with `r`.
-    1. Clear `this.[[buffer]]`.
-    1. Return `this.[[doAbort]](r)`.
-1. Return a promise resolved with `undefined`.
+1. If `this.[[state]]` is `"closed"`, return a new promise resolved with **undefined**.
+1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
+1. Call `this.[[error]](reason)`.
+1. Return the result of promise-calling `this.[[onAbort]]()`.
 
 ###### wait()
 
@@ -898,6 +893,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Reject `this.[[writablePromise]]` with `e`.
     1. Reject `this.[[closedPromise]]` with `e`.
     1. For each entry `{ type, promise, data }` in `this.[[buffer]]`, reject `promise` with `r`.
+    1. Clear `this.[[buffer]]`.
     1. Set `this.[[storedError]]` to `e`.
     1. Set `this.[[state]]` to `"errored"`.
 
@@ -911,18 +907,6 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Set `this.[[state]]` to `"closed"`.
     1. Resolve `this.[[closedPromise]]` with `undefined`.
 1. When/if `closeResult` is rejected with reason `r`, call `this.[[error]](r)`.
-
-###### `[[doAbort]](abortReason)`
-
-1. Reject `this.[[writablePromise]]` with `abortReason`.
-1. Call `this.[[onAbort]](abortReason)`.
-1. If the call throws an exception `e`, call `this.[[error]](e)` and return a promise rejected with `e`.
-1. Otherwise, let `abortResult` be the result of casting the return value to a promise.
-1. When/if `abortResult` is fulfilled,
-    1. Set `this.[[state]]` to `"closed"`.
-    1. Resolve `this.[[closedPromise]]` with `undefined`.
-1. When/if `abortResult` is rejected with reason `r`, call `this.[[error]](r)`.
-1. Return `this.[[closedPromise]]`.
 
 ###### `[[doNextWrite]]({ type, promise, data })`
 

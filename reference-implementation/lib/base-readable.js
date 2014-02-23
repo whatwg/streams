@@ -209,21 +209,22 @@ BaseReadableStream.prototype.read = function read() {
 
 BaseReadableStream.prototype.cancel = function cancel(reason) {
   if (this._state === 'closed') {
-    return Promise.reject(new TypeError('stream is already closed and cannot be cancelled'));
+    return Promise.resolve(undefined);
   }
   if (this._state === 'errored') {
-    return Promise.reject(new TypeError('stream has errored and cannot be cancelled'));
+    return Promise.reject(this._storedError);
+  }
+
+  if (this._state === 'waiting') {
+    this[READABLE_REJECT](reason);
+  }
+  if (this._state === 'readable') {
+    this._readablePromise = Promise.reject(reason);
   }
 
   this._state = 'closed';
   this[CLOSED_RESOLVE](undefined);
   this._buffer.length = 0;
-
-  if (this._state === 'waiting') {
-    this[READABLE_REJECT](reason);
-  } else {
-    this._readablePromise = Promise.reject(reason);
-  }
 
   return promiseCall(this._onCancel);
 };

@@ -2,6 +2,7 @@
 
 var assert = require('assert');
 var Promise = require('es6-promise').Promise;
+var promiseCall = require('./helpers').promiseCall;
 
 /*
  *
@@ -125,33 +126,6 @@ BaseWritableStream.prototype._doClose = function _doClose() {
       stream._error(error);
     }
   );
-};
-
-BaseWritableStream.prototype._doAbort = function _doAbort(abortReason) {
-  var stream = this;
-
-  this[WRITABLE_REJECT](abortReason);
-
-  var abortResult;
-  try {
-    abortResult = Promise.cast(this._onAbort(abortReason));
-  }
-  catch (error) {
-    this._error(error);
-    return Promise.reject(error);
-  }
-
-  abortResult.then(
-    function resolve() {
-      stream._state = 'closed';
-      stream[CLOSED_RESOLVE](undefined);
-    },
-    function reject(error) {
-      stream._error(error);
-    }
-  );
-
-  return this._closedPromise;
 };
 
 BaseWritableStream.prototype._doNextWrite = function _doNextWrite(entry) {
@@ -291,21 +265,15 @@ BaseWritableStream.prototype.close = function close() {
 };
 
 BaseWritableStream.prototype.abort = function abort(r) {
-  if (this._state === 'writable') {
-    this._state = 'closing';
-    return this._doAbort(r);
+  switch (this._state) {
+    case 'closed':
+      return Promise.resolve(undefined);
+    case 'errored':
+      return Promise.reject(this._storedError);
+    default:
+      this._error(reason);
+      return promiseCall(this._onAbort);
   }
-  else if (this._state === 'waiting' ||
-           (this._state === 'closing' && this._buffer.length > 0)) {
-    this._state = 'closing';
-    for (var i = 0; i < this._buffer.length; i++) {
-      this._buffer[i]._reject(r);
-    }
-    this._buffer.length = 0;
-    return this._doAbort(r);
-  }
-
-  return Promise.resolve(undefined);
 };
 
 BaseWritableStream.prototype.wait = function wait() {
