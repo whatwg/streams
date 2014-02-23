@@ -108,22 +108,15 @@ BaseWritableStream.prototype._doClose = function _doClose() {
 
   this[WRITABLE_REJECT](new TypeError('stream has already been closed'));
 
-  var closeResult;
-  try {
-    closeResult = Promise.cast(this._onClose());
-  }
-  catch (error) {
-    this._error(error);
-    return Promise.reject(error);
-  }
+  var closePromise = promiseCall(this._onClose);
 
-  closeResult.then(
-    function resolve() {
+  closePromise.then(
+    function () {
       stream._state = 'closed';
       stream[CLOSED_RESOLVE](undefined);
     },
-    function reject(error) {
-      stream._error(error);
+    function (r) {
+      stream._error(r);
     }
   );
 };

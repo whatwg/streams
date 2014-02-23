@@ -899,14 +899,13 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ###### `[[doClose]]()`
 
-1. Reject `this.[[writablePromise]]` with a `TypeError` exception.
-1. Call `this.[[onClose]]()`.
-1. If the call throws an exception `e`, call `this.[[error]](e)`.
-1. Otherwise, let `closeResult` be the result of casting the return value to a promise.
-1. When/if `closeResult` is fulfilled,
+1. Reject `this.[[writablePromise]]` with a **TypeError** exception.
+1. Let _closePromise_ be the result of promise-calling `this.[[onClose]]()`.
+1. Upon fulfillment of _closePromise_,
     1. Set `this.[[state]]` to `"closed"`.
-    1. Resolve `this.[[closedPromise]]` with `undefined`.
-1. When/if `closeResult` is rejected with reason `r`, call `this.[[error]](r)`.
+    1. Resolve `this.[[closedPromise]]` with **undefined**.
+1. Upon rejection of _closePromise_ with reason _r_,
+    1. Call `this.[[error]](r)`.
 
 ###### `[[doNextWrite]]({ type, promise, data })`
 
