@@ -77,16 +77,7 @@ function BaseWritableStream(callbacks) {
 
   this._startedPromise = Promise.cast(this._onStart());
   this._startedPromise.then(
-    function fulfill() {
-      if (stream._buffer.length === 0) {
-        stream._state = 'writable';
-        stream[WRITABLE_RESOLVE](undefined);
-      }
-      else {
-        var data = stream._buffer.shift();
-        stream._doNextWrite(data);
-      }
-    },
+    function fulfill() { stream._advanceBuffer(); },
     function error(e)  { stream._error(e); }
   );
 }
@@ -100,6 +91,17 @@ BaseWritableStream.prototype._error = function _error(error) {
     }
     this._storedError = error;
     this._state = 'errored';
+  }
+};
+
+BaseWritableStream.prototype._advanceBuffer = function _advanceBuffer() {
+  if (this._buffer.length > 0) {
+    var entry = this._buffer.shift();
+    this._doNextWrite(entry);
+  }
+  else {
+    this._state = 'writable';
+    this[WRITABLE_RESOLVE](undefined);
   }
 };
 
@@ -146,24 +148,15 @@ BaseWritableStream.prototype._doNextWrite = function _doNextWrite(entry) {
     if (stream._currentWritePromise !== promise) return;
     stream._currentWritePromise = undefined;
 
-    var entry;
     if (stream._state === 'waiting') {
       resolve(undefined);
-
-      if (stream._buffer.length > 0) {
-        entry = stream._buffer.shift();
-        stream._doNextWrite(entry);
-      }
-      else {
-        stream._state = 'writable';
-        stream[WRITABLE_RESOLVE](undefined);
-      }
+      stream._advanceBuffer();
     }
     else if (stream._state === 'closing') {
       resolve(undefined);
 
       if (stream._buffer.length > 0) {
-        entry = stream._buffer.shift();
+        var entry = stream._buffer.shift();
         stream._doNextWrite(entry);
       }
     }

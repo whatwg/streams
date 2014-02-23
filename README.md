@@ -338,6 +338,7 @@ class BaseWritableStream {
 
     // Internal methods
     [[error]](any e)
+    [[advanceBuffer]]()
     [[doClose]]()
     [[doNextWrite]]({ type, promise, data })
 
@@ -384,13 +385,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Set `this.[[onAbort]]` to `abort`.
 1. Let `this.[[writablePromise]]` be a newly-created pending promise.
 1. Call `start()` and let `startedPromise` be the result of casting the return value to a promise.
-1. When/if `startedPromise` is fulfilled,
-    1. If `this.[[buffer]]` is empty,
-        1. Set `this.[[state]]` to `"writable"`.
-        1. Resolve `this.[[writablePromise]]` with `undefined`.
-    1. Otherwise,
-        1. Shift `entry` off of `this.[[buffer]]`.
-        1. Call `this.[[doNextWrite]](entry)`.
+1. When/if `startedPromise` is fulfilled, call `this.[[advanceBuffer]]()`.
 1. When/if `startedPromise` is rejected with reason `r`, call `this.[[error]](r)`.
 
 ##### get closed
@@ -455,6 +450,15 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Set `this.[[storedError]]` to `e`.
     1. Set `this.[[state]]` to `"errored"`.
 
+##### `[[advanceBuffer]]()`
+
+1. If `this.[[buffer]]` is not empty,
+    1. Shift `entry` off of `this.[[buffer]]`.
+    1. Call `this.[[doNextWrite]](entry)`.
+1. If `this.[[buffer]]` is empty,
+    1. Set `this.[[state]]` to `"writable"`.
+    1. Resolve `this.[[writablePromise]]` with `undefined`.
+
 ##### `[[doClose]]()`
 
 1. Reject `this.[[writablePromise]]` with a **TypeError** exception.
@@ -478,12 +482,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Set `this.[[currentWritePromise]]` to `undefined`.
     1. If `this.[[state]]` is `"waiting"`,
         1. Resolve `promise` with `undefined`.
-        1. If `this.[[buffer]]` is not empty,
-            1. Shift `entry` off of `this.[[buffer]]`.
-            1. Call `this.[[doNextWrite]](entry)`.
-        1. If `this.[[buffer]]` is empty,
-            1. Set `this.[[state]]` to `"writable"`.
-            1. Resolve `this.[[writablePromise]]` with `undefined`.
+        1. Call `this.[[advanceBuffer]]()`.
     1. If `this.[[state]]` is `"closing"`,
         1. Resolve `promise` with `undefined`.
         1. If `this.[[buffer]]` is not empty,
