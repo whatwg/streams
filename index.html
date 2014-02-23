@@ -186,8 +186,8 @@ to or through multiple destinations.</p>
       rawSocket.readStart();
     },
 
-    abort() {
-      // If the stream is prematurely aborted, release resources.
+    cancel() {
+      // If the stream is prematurely canceled, release resources.
       rawSocket.readStop();
       rawSocket = null;
     },
@@ -250,8 +250,8 @@ socketStream.pipeTo(writableStream).closed
       });
     },
 
-    abort() {
-      // If the stream aborted prematurely, release resources.
+    cancel() {
+      // If the stream canceled prematurely, release resources.
       fileHandle.close();
       fileHandle = null;
     },

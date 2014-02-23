@@ -167,7 +167,7 @@
     <g transform="translate(-120.0,460.0)">
       <rect fill="#ffffff" x="-53.0" y="-9.0" width="106.0" height="14" />
       <text x="0.0" style="text-anchor: middle" y="2.0">
-        <tspan font-size="12px" font-family="Courier" fill="#000000">.abort(reason)</tspan>
+        <tspan font-size="12px" font-family="Courier" fill="#000000">.cancel(reason)</tspan>
       </text>
     </g>
   </g>
