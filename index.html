@@ -144,12 +144,13 @@ ultimate producer according to how fast the chain can process data is called <df
 <p><em>This section is non-normative.</em></p>
 
 <p>The readable stream API allows wrapping both pull and push sources into a single <code>ReadableStream</code>
-abstraction. To accomplish this, the API uses the <a href="#TODO">revealing constructor pattern</a>, pioneered by the
-promises specification. The constructor of a given stream instance is supplied with two functions, <code>start</code>
-and <code>pull</code>, which each are given the parameters <code>(push, close, error)</code> representing capabilities
-tied to the internals of the stream. By mediating all access to the internal state machine through these three
-functions, the stream's internal state and bookkeeping can be kept private, allowing nobody but the original producer
-of the stream to insert data into it.</p>
+abstraction. To accomplish this, the API uses the
+<a href="http://domenic.me/2014/02/14/the-revealing-constructor-pattern/">revealing constructor pattern</a>. The
+constructor of a given stream instance is supplied with two functions, <code>start</code> and <code>pull</code>, which
+each are given the parameters <code>(push, close, error)</code> representing capabilities tied to the internals of the
+stream. By mediating all access to the internal state machine through these three functions, the stream's internal
+state and bookkeeping can be kept private, allowing nobody but the original producer of the stream to insert data into
+it.</p>
 
 <p>This specification provides both a lower-level <code>BaseReadableStream</code> class, and a higher-level
 <code>ReadableStream</code> class. <code>ReadableStream</code> layers on top of <code>BaseReadableStream</code> the
