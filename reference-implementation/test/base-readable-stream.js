@@ -43,7 +43,7 @@ test('BaseReadableStream is constructed correctly', function (t) {
 
   t.equal(typeof basic.read, 'function', 'stream has a read function');
   t.equal(typeof basic.wait, 'function', 'stream has a wait function');
-  t.equal(typeof basic.abort, 'function', 'stream has an abort function');
+  t.equal(typeof basic.cancel, 'function', 'stream has an cancel function');
   t.equal(typeof basic.pipeTo, 'function', 'stream has a pipeTo function');
   t.equal(typeof basic.pipeThrough, 'function', 'stream has a pipeThrough function');
 
@@ -61,8 +61,8 @@ test('BaseReadableStream avoid redundant pull call', function (t) {
       pullCount++;
     },
 
-    abort : function abort() {
-      t.fail("abort should not be called");
+    cancel : function cancel() {
+      t.fail('cancel should not be called');
     }
   });
 
@@ -212,7 +212,7 @@ test('BaseReadableStream adapting a pull source', function (t) {
   });
 });
 
-test('BaseReadableStream aborting an infinite stream', function (t) {
+test('BaseReadableStream canceling an infinite stream', function (t) {
   /*global BaseReadableStream, BaseWritableStream*/
   var randomSource = new RandomPushSource();
 
@@ -225,7 +225,7 @@ test('BaseReadableStream aborting an infinite stream', function (t) {
 
     pull : function pull() { randomSource.readStart(); },
 
-    abort : function abort() {
+    cancel : function cancel() {
       randomSource.readStop();
       randomSource.onend();
     }
@@ -256,7 +256,7 @@ test('BaseReadableStream aborting an infinite stream', function (t) {
   });
 
   setTimeout(function () {
-    readable.abort(new Error('don\'t feel like dealing with randomness anymore'));
+    readable.cancel(new Error('don\'t feel like dealing with randomness anymore'));
   }, 150);
 });
 

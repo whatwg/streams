@@ -146,15 +146,15 @@ The simplest way to implement this is by introducing a "tee" duplex stream, such
 
 The tee stream can use a number of strategies to govern how the speed of its outputs affect the backpressure signals it gives off, but the simplest strategy is to pass aggregate backpressure signals directly up the chain, thus letting the speed of the slowest output determine the speed of the tee.
 
-### You must be able to communicate abort signals up a pipe chain.
+### You must be able to communicate cancel signals up a pipe chain.
 
-It's common for a destination to become unable to consume any more data, either because of an error or because of a loss of interest. For example, a user may click on a link to the next video while the previous video is still streaming into the browser, or a connection to a HTTP server may be closed unexpectedly in the middle of streaming down the response data. (In general, any error writing to a writable stream should trigger a abort in any readable stream piped to it.) More benignly, there are cases when you want only a subset of a stream, e.g. when you are doing a streaming parse of a file looking for a certain signal; once you find it, you no longer care about the rest of the stream.
+It's common for a destination to become unable to consume any more data, either because of an error or because of a loss of interest. For example, a user may click on a link to the next video while the previous video is still streaming into the browser, or a connection to a HTTP server may be closed unexpectedly in the middle of streaming down the response data. (In general, any error writing to a writable stream should trigger a cancel in any readable stream piped to it.) More benignly, there are cases when you want only a subset of a stream, e.g. when you are doing a streaming parse of a file looking for a certain signal; once you find it, you no longer care about the rest of the stream.
 
 All of these cases call for some uniform way to signal to the readable stream that the consumer is no longer interested in its data. If the underlying data source is push-based, this means sending a pause signal and throwing away any data that continues to come in; if it is pull-based, this means reading no more data. In both cases, underlying resources like sockets or file descriptors can be cleaned up.
 
-It's important to allow this abort signal to come from anywhere along the chain, since the closer you get to the ultimate consumer, the more knowledge is available to know when or whether it is appropriate to stop consuming and abort. As such, this abort must propagate backward in the chain until it reaches the ultimate producer, stopping any intermediate processing along the way.
+It's important to allow this cancel signal to come from anywhere along the chain, since the closer you get to the ultimate consumer, the more knowledge is available to know when or whether it is appropriate to stop consuming and cancel. As such, this cancel must propagate backward in the chain until it reaches the ultimate producer, stopping any intermediate processing along the way.
 
-Also note that the handling of abort signals alongside multi-stream piping must be done with care. In the tee-stream strategy discussed above, the correct thing to do would be for the tee stream to accumulate failure or abort signals from both of its outputs, and only send that upstream once both outputs have signaled they desire an upstream abort.
+Also note that the handling of cancel signals alongside multi-stream piping must be done with care. In the tee-stream strategy discussed above, the correct thing to do would be for the tee stream to accumulate failure or cancel signals from both of its outputs, and only send that upstream once both outputs have signaled they desire an upstream cancel.
 
 ### You must be able to communicate abort signals down a pipe chain.
 

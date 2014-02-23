@@ -20,7 +20,7 @@ function BaseReadableStream(callbacks) {
   if (callbacks === undefined) callbacks = {};
   if (callbacks.start === undefined) callbacks.start = function _onStart() {};
   if (callbacks.pull === undefined) callbacks.pull = function _onPull() {};
-  if (callbacks.abort === undefined) callbacks.abort = function _onAbort() {};
+  if (callbacks.cancel === undefined) callbacks.cancel = function _onCancel() {};
 
   if (typeof callbacks.start !== 'function') {
     throw new TypeError('start must be a function or undefined');
@@ -28,8 +28,8 @@ function BaseReadableStream(callbacks) {
   if (typeof callbacks.pull !== 'function') {
     throw new TypeError('pull must be a function or undefined');
   }
-  if (typeof callbacks.abort !== 'function') {
-    throw new TypeError('abort must be a function or undefined');
+  if (typeof callbacks.cancel !== 'function') {
+    throw new TypeError('cancel must be a function or undefined');
   }
 
   this._buffer   = [];
@@ -40,7 +40,7 @@ function BaseReadableStream(callbacks) {
 
   this._onStart = callbacks.start;
   this._onPull  = callbacks.pull;
-  this._onAbort = callbacks.abort;
+  this._onCancel = callbacks.cancel;
 
   this._storedError = undefined;
 
@@ -206,10 +206,10 @@ BaseReadableStream.prototype.read = function read() {
   }
 };
 
-BaseReadableStream.prototype.abort = function abort(reason) {
+BaseReadableStream.prototype.cancel = function cancel(reason) {
   if (this._state === 'waiting') {
     try {
-      this._onAbort(reason);
+      this._onCancel();
     }
     catch (error) {
       this._error(error);
@@ -221,7 +221,7 @@ BaseReadableStream.prototype.abort = function abort(reason) {
   }
   else if (this._state === 'readable') {
     try {
-      this._onAbort(reason);
+      this._onCancel();
     }
     catch (error) {
       this._error(error);
@@ -249,12 +249,12 @@ BaseReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
 
   // ISSUE: should this be preventable via an option or via `options.close`?
   function abortDest(reason) { dest.abort(reason); }
-  function abortSource(reason) { stream.abort(reason); }
+  function cancelSource(reason) { stream.cancel(reason); }
 
   function pumpSource() {
     switch (stream.state) {
       case 'readable':
-        dest.write(stream.read()).catch(abortSource);
+        dest.write(stream.read()).catch(cancelSource);
         fillDest();
         break;
       case 'waiting':
@@ -274,10 +274,10 @@ BaseReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
         pumpSource();
         break;
       case 'waiting':
-        dest.wait().then(fillDest, abortSource);
+        dest.wait().then(fillDest, cancelSource);
         break;
       default:
-        abortSource();
+        cancelSource();
     }
   }
   fillDest();

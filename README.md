@@ -33,7 +33,7 @@ The JavaScript community has extensive experience with streaming primitives, whi
     - You must be able to transform streams via the pipe chain.
     - You must be able to communicate backpressure.
     - You must be able to pipe a stream to more than one writable stream.
-    - You must be able to communicate abort signals up a pipe chain.
+    - You must be able to communicate cancel signals up a pipe chain.
     - You must be able to communicate abort signals down a pipe chain.
 - Other
     - The stream API should be agnostic to what type of data is being streamed.
@@ -252,26 +252,26 @@ Once all the available data is read from the stream's internal buffer, the strea
 
 ### Other APIs on Readable Streams
 
-Besides the constructor pattern, the `pipeTo` method for piping a readable stream into a writable stream, and the `read()`/`wait()`/`state` primitives for reading raw data, a readable stream provides three more APIs: `pipeThrough`, `closed`, and `abort(reason)`.
+Besides the constructor pattern, the `pipeTo` method for piping a readable stream into a writable stream, and the `read()`/`wait()`/`state` primitives for reading raw data, a readable stream provides three more APIs: `pipeThrough`, `closed`, and `cancel(reason)`.
 
 `pipeThrough` is a mechanism for piping readable streams through *transform streams*, which are represented as `{ input, output }` pairs where `input` is a writable stream and `output` is a readable stream. Transform streams could have predefined translation logic, e.g. a string decoder whose `input` writable stream takes `ArrayBuffer` instances and whose `output` readable stream gives back strings; or they could be dynamic transformations, for example a web worker or child process which reacts to data flowing to its `input` side in order to decide what to give from its `output` side.
 
 `closed` is a simple convenience API: it's a promise that becomes fulfilled when the stream has been completely read (`state` of `"closed"`), or becomes rejected if some error occurs in the stream (`state` of `"errored"`).
 
-The abort API is a bit more subtle. It allows consumers to communicate a *loss of interest* in the stream's data; you could use this, for example, to abort a file download stream if the user clicks "Cancel." The main functionality of abort is handled by another constructor parameter, alongside `start` and `pull`: for example, we might extend our above socket stream with an `abort` parameter like so:
+The cancel API is a bit more subtle. It allows consumers to communicate a *loss of interest* in the stream's data; you could use this, for example, to cancel a file download stream if the user clicks "Cancel." The main functionality of cancel is handled by another constructor parameter, alongside `start` and `pull`: for example, we might extend our above socket stream with a `cancel` parameter like so:
 
 ```js
 return new ReadableStream({
     start(push, close, error) { /* as before */ },
     pull() { /* as before */ }
-    abort() {
+    cancel() {
         rawSocket.readStop();
         rawSocket = null;
     }
 });
 ```
 
-In addition to calling the `abort` function given in the stream's constructor, a readable stream's `abort(reason)` method cleans up the stream's internal buffer and ensures that the `pull` constructor parameter is never called again. It puts the stream in the `"closed"` state—aborting is not considered an error—but any further attempts to `read()` will result in `reason` being thrown, and attempts to call `wait()` will give a promise rejected with `reason`.
+In addition to calling the `cancel` function given in the stream's constructor, a readable stream's `cancel(reason)` method cleans up the stream's internal buffer and ensures that the `pull` constructor parameter is never called again. It puts the stream in the `"closed"` state—cancelling is not considered an error—but any further attempts to `read()` will result in `reason` being thrown, and attempts to call `wait()` will give a promise rejected with `reason`.
 
 ### The Readable Stream State Diagram
 
@@ -292,7 +292,7 @@ class BaseReadableStream {
     constructor({
         function start = () => {},
         function pull = () => {},
-        function abort = () => {}
+        function cancel = () => {}
     })
 
     // Reading data from the underlying source
@@ -305,7 +305,7 @@ class BaseReadableStream {
     ReadableStream pipeThrough({ WritableStream in, ReadableStream out }, options)
 
     // Stop accumulating data
-    void abort(any reason)
+    void cancel(any reason)
 
     // Useful helper
     get Promise<undefined> closed
@@ -320,7 +320,7 @@ class BaseReadableStream {
     Promise<undefined> [[readablePromise]]
     Promise<undefined> [[closedPromise]]
     Promise [[startedPromise]]
-    function [[onAbort]]
+    function [[onCancel]]
     function [[onPull]]
 
     // Internal methods for use by the underlying source
@@ -342,20 +342,20 @@ enum ReadableStreamState {
 
 ##### Properties of the BaseReadableStream prototype
 
-###### constructor({ start, pull, abort })
+###### constructor({ start, pull, cancel })
 
 The constructor is passed several functions, all optional:
 
 - `start(push, close, error)` is typically used to adapting a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
 - `pull(push, close, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `push` function is called.
-- `abort(reason)` is called when the readable stream is aborted, and should perform whatever source-specific steps are necessary to clean up and stop reading. It is given the abort reason that was given to the stream when calling the public `abort` method, if any.
+- `cancel()` is called when the readable stream is canceled, and should perform whatever source-specific steps are necessary to clean up and stop reading.
 
 Both `start` and `pull` are given the ability to manipulate the stream's internal buffer and state by being passed the `this.[[push]]`, `this.[[close]]`, and `this.[[error]]` functions.
 
 1. If IsCallable(_start_) is **false**, throw a **TypeError** exception.
 1. If IsCallable(_pull_) is **false**, throw a **TypeError** exception.
-1. If IsCallable(_abort_) is **false**, throw a **TypeError** exception.
-1. Set `this.[[onAbort]]` to `abort`.
+1. If IsCallable(_cancel_) is **false**, throw a **TypeError** exception.
+1. Set `this.[[onCancel]]` to `cancel`.
 1. Set `this.[[onPull]]` to `pull`.
 1. Let `this.[[readablePromise]]` be a newly-created pending promise.
 1. Let `this.[[closedPromise]]` be a newly-created pending promise.
@@ -397,15 +397,15 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
     1. Call `this.[[callPull]]()`.
 1. Return `this.[[readablePromise]]`.
 
-###### abort(reason)
+###### cancel(reason)
 
 1. If `this.[[state]]` is `"waiting"`,
-    1. Call `this.[[onAbort]](reason)`.
+    1. Call `this.[[onCancel]]()`.
     1. Resolve `this.[[closedPromise]]` with `undefined`.
     1. Reject `this.[[readablePromise]]` with `reason`.
     1. Set `this.[[state]]` to `"closed"`.
 1. If `this.[[state]]` is `"readable"`,
-    1. Call `this.[[onAbort]](reason)`.
+    1. Call `this.[[onCancel]]()`.
     1. Resolve `this.[[closedPromise]]` with `undefined`.
     1. Let `this.[[readablePromise]]` be a newly-created promise rejected with `reason`.
     1. Clear `this.[[buffer]]`.
@@ -429,18 +429,18 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
         if (dest.state === "writable") {
             pumpSource();
         } else if (dest.state === "waiting") {
-            dest.wait().then(fillDest, abortSource);
+            dest.wait().then(fillDest, cancelSource);
         } else {
             // Source has either been closed by someone else, or has errored in the course of
             // someone else writing. Either way, we're not going to be able to do anything
             // else useful.
-            abortSource();
+            cancelSource();
         }
     }
 
     function pumpSource() {
         if (source.state === "readable") {
-            dest.write(source.read()).catch(abortSource);
+            dest.write(source.read()).catch(cancelSource);
             fillDest();
         } else if (source.state === "waiting") {
             source.wait().then(fillDest, abortDest);
@@ -451,8 +451,8 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
         }
     }
 
-    function abortSource(reason) {
-        source.abort(reason);
+    function cancelSource(reason) {
+        source.cancel(reason);
     }
 
     function closeDest() {
@@ -534,7 +534,7 @@ class ReadableStream extends BaseReadableStream {
     constructor({
         function start = () => {},
         function pull = () => {},
-        function abort = () => {},
+        function cancel = () => {},
         strategy: { function count, function needsMoreData }
     })
 
@@ -558,10 +558,10 @@ class ReadableStream extends BaseReadableStream {
 
 ##### Properties of the ReadableStream Prototype
 
-###### constructor({ start, pull, abort, strategy })
+###### constructor({ start, pull, cancel, strategy })
 
 1. Set `this.[[strategy]]` to `strategy`.
-1. Call `super({ start, pull, abort })`.
+1. Call `super({ start, pull, cancel })`.
 
 ###### read()
 
