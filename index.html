@@ -443,34 +443,24 @@ writeArrayToStream([1, 2, 3, 4, 5], writableStream)
 
 <p><em>This section is non-normative.</em></p>
 
-<p>Although functional by themselves for most cases, <code>ReadableStream</code>, <code>WritableStream</code>, and
-others can also be subclassed to provide additional functionality. Subclasses will generally fall into one of two
-camps:</p>
+<p>Specific APIs may wish to subclass <code>ReadableStream</code> or <code>WritableStream</code> in order to provide
+additional functionality. Examples would include:
 
 <ul>
-  <li>Additive subclasses, adding new APIs onto the stream instances. An example would be a file stream that includes
-  <code>filename</code> or other filesystem-related properties, or a HTTP response stream that includes header-accessing
-  APIs.</li>
-  <li>Override subclasses, which change the behavior of the stream's methods fundamentally. An example would be a
-  readable TCP stream that overrides <code>read</code>, <code>wait</code>, <code>cancel</code>, <code>state</code>, and
-  <code>closed</code> to reflect and manipulate a kernel-level TCP buffer.</li>
+  <li>A file stream that is constructed from a filename, and includes file metadata</li>
+  <li>A HTTP stream that is constructed from a URL, and includes header-accessing APIs</li>
+  <li>A TCP stream that overrides <code>read</code>, <code>wait</code>, <code>cancel</code>, <code>state</code>, and
+  <code>closed</code> to reflect and manipulate a kernel-level TCP buffer</li>
 </ul>
 
-<p>On an implementation level, additive subclasses will usually call <code>super</code> in their constructor,
-initializing their base class's internal buffer and accessing it through the provided parameters to their
-superconstructor. Whereas override subclasses will simply reimplement the appropriate methods directly, forgoing a call
-to <code>super</code> and all the internal state that comes with it. They will then provide a new constructor, which
-does not pass the usual capability-accessing parameters to consumers.</p>
+<p>The first two examples here could be expressed by allowing their constructors to call <code>super</code> with
+appropriate functions that manipulate the stream's internal state. The latter takes a different approach, which gives
+both more power and more responsibility: it requires that the author of that stream manually implement many of the
+complex requirements baked into the readable stream state machine and the contract it presents to users.</p>
 
-<p>Because streams only interact through their public API, both types of stream subclasses can coexist. For example, you
-can pipe to or from a subclassed stream of either sort, without worrying what type of implementation is under the
-covers, as long as the appropriate properties and methods are provided.</p>
-
-<p>Finally, note that subclassing is rarely <em>necessary</em> for implementing custom streams. Instead, you can simply
-describe how to create a stream that wraps some underlying source or sink by describing constructor parameters that do
-so, and that use the passed capabilities to forward the relevant data and state transitions to the stream's existing
-representations. This approach has the advantage of alleviating you of having to manually implement many of the complex
-requirements baked into the stream state machines and the contract they present to users.</p>
+<p>Because streams only interact through their public API, all streams—whether subclassed or not—can coexist and
+interoperate. For example, you can pipe to or from any of the above streams, without worrying what type of
+implementation is under the covers, since they all provide the appropriate properties and methods.</p>
 
 <h2>Other Stream APIs</h2>
 
