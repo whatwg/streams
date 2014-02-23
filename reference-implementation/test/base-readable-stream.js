@@ -213,9 +213,10 @@ test('BaseReadableStream adapting a pull source', function (t) {
 });
 
 test('BaseReadableStream canceling an infinite stream', function (t) {
-  /*global BaseReadableStream, BaseWritableStream*/
+  /*global BaseReadableStream */
   var randomSource = new RandomPushSource();
 
+  var cancelationFinished = false;
   var readable = new BaseReadableStream({
     start : function start(push, close, error) {
       randomSource.ondata  = push;
@@ -228,35 +229,36 @@ test('BaseReadableStream canceling an infinite stream', function (t) {
     cancel : function cancel() {
       randomSource.readStop();
       randomSource.onend();
+
+      return new Promise(function (resolve) {
+        setTimeout(function () {
+          cancelationFinished = true;
+          resolve();
+        }, 50);
+      });
     }
   });
 
-  var storage = [];
-  var writable = new BaseWritableStream({
-    write : function write(data, done) {
-      storage.push(data);
-      done();
+  readableStreamToArray(readable).then(
+    function (storage) {
+      t.equal(readable.state, 'closed', 'readable should be closed');
+      t.equal(cancelationFinished, false, 'it did not wait for the cancellation process to finish before closing');
+      t.ok(storage.length > 0, 'should have gotten some data written through the pipe');
+      for (var i = 0; i < storage.length; i++) {
+        t.equal(storage[i].length, 128, 'each chunk has 128 bytes');
+      }
+    },
+    function (err) {
+      t.ifError(err);
+      t.end();
     }
-  });
-
-  readable.pipeTo(writable);
-
-  readable.closed.then(function () {
-    t.equal(readable.state, 'closed', 'readable should be closed');
-  });
-
-  writable.closed.then(function () {
-    t.equal(writable.state, 'closed', 'writable should be closed');
-    t.ok(storage.length > 0, 'should have gotten some data written through the pipe');
-    for (var i = 0; i < storage.length; i++) {
-      t.equal(storage[i].length, 128, 'each chunk has 128 bytes');
-    }
-
-    t.end();
-  });
+  )
 
   setTimeout(function () {
-    readable.cancel(new Error('don\'t feel like dealing with randomness anymore'));
+    readable.cancel(new Error('don\'t feel like dealing with randomness anymore')).then(function () {
+      t.equal(cancelationFinished, true, 'it returns a promise that waits for the cancellation to finish');
+      t.end();
+    });
   }, 150);
 });
 

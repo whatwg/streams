@@ -2,6 +2,7 @@
 
 var assert = require('assert');
 var Promise = require('es6-promise').Promise;
+var promiseCall = require('./helpers').promiseCall;
 
 /*
  *
@@ -207,33 +208,24 @@ BaseReadableStream.prototype.read = function read() {
 };
 
 BaseReadableStream.prototype.cancel = function cancel(reason) {
-  if (this._state === 'waiting') {
-    try {
-      this._onCancel();
-    }
-    catch (error) {
-      this._error(error);
-      return Promise.reject(error);
-    }
-    this[CLOSED_RESOLVE](undefined);
-    this[READABLE_REJECT](reason);
-    this._state = 'closed';
+  if (this._state === 'closed') {
+    return Promise.reject(new TypeError('stream is already closed and cannot be cancelled'));
   }
-  else if (this._state === 'readable') {
-    try {
-      this._onCancel();
-    }
-    catch (error) {
-      this._error(error);
-      return Promise.reject(error);
-    }
-    this[CLOSED_RESOLVE](undefined);
-    this._readablePromise = Promise.reject(reason);
-    this._buffer.length = 0;
-    this._state = 'closed';
+  if (this._state === 'errored') {
+    return Promise.reject(new TypeError('stream has errored and cannot be cancelled'));
   }
 
-  return Promise.resolve(undefined);
+  this._state = 'closed';
+  this[CLOSED_RESOLVE](undefined);
+  this._buffer.length = 0;
+
+  if (this._state === 'waiting') {
+    this[READABLE_REJECT](reason);
+  } else {
+    this._readablePromise = Promise.reject(reason);
+  }
+
+  return promiseCall(this._onCancel);
 };
 
 BaseReadableStream.prototype.pipeTo = function pipeTo(dest, options) {

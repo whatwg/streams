@@ -399,17 +399,13 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 ###### cancel(reason)
 
-1. If `this.[[state]]` is `"waiting"`,
-    1. Call `this.[[onCancel]]()`.
-    1. Resolve `this.[[closedPromise]]` with `undefined`.
-    1. Reject `this.[[readablePromise]]` with `reason`.
-    1. Set `this.[[state]]` to `"closed"`.
-1. If `this.[[state]]` is `"readable"`,
-    1. Call `this.[[onCancel]]()`.
-    1. Resolve `this.[[closedPromise]]` with `undefined`.
-    1. Let `this.[[readablePromise]]` be a newly-created promise rejected with `reason`.
-    1. Clear `this.[[buffer]]`.
-    1. Set `this.[[state]]` to `"closed"`.
+1. If `this.[[state]]` is `"closed"` or `"errored"`, return a new promise rejected with a **TypeError** exception.
+1. Set `this.[[state]]` to `"closed"`.
+1. Resolve `this.[[closedPromise]]` with **undefined**.
+1. Clear `this.[[buffer]]`.
+1. If `this.[[state]]` is `"waiting"`, reject `this.[[readablePromise]]` with _reason_.
+1. If `this.[[state]]` is `"readable"`, let `this.[[readablePromise]]` be a new promise rejected with _reason_.
+1. Return the result of promise-calling `this.[[onCancel]]()`.
 
 ###### get closed
 
