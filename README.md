@@ -384,6 +384,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Set `this.[[onClose]]` to `close`.
 1. Set `this.[[onAbort]]` to `abort`.
 1. Let `this.[[writablePromise]]` be a newly-created pending promise.
+1. Let `this.[[closedPromise]]` be a newly-created pending promise.
 1. Call `start()` and let `startedPromise` be the result of casting the return value to a promise.
 1. When/if `startedPromise` is fulfilled, call `this.[[advanceBuffer]]()`.
 1. When/if `startedPromise` is rejected with reason `r`, call `this.[[error]](r)`.
