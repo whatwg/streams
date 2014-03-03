@@ -84,13 +84,13 @@ function BaseWritableStream(callbacks) {
 
 BaseWritableStream.prototype._error = function _error(error) {
   if (this._state !== 'closed' && this._state !== 'errored') {
-    this[WRITABLE_REJECT](error);
-    this[CLOSED_REJECT](error);
     for (var i = 0; i < this._buffer.length; i++) {
       this._buffer[i]._reject(error);
     }
-    this._storedError = error;
     this._state = 'errored';
+    this._storedError = error;
+    this[WRITABLE_REJECT](error);
+    this[CLOSED_REJECT](error);
   }
 };
 
@@ -227,13 +227,12 @@ BaseWritableStream.prototype.close = function close() {
       return this._closedPromise();
 
     case 'waiting':
-      this._state = 'closing';
-
       this._buffer.push({
         type    : 'close',
         promise : undefined,
         data    : undefined
       });
+      this._state = 'closing';
       return this._closedPromise;
 
     case 'closing':

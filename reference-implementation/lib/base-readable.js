@@ -83,8 +83,8 @@ BaseReadableStream.prototype._push = function _push(data) {
   if (this._state === 'waiting') {
     this._buffer.push(data);
     this._pulling = false;
-    this[READABLE_RESOLVE](undefined);
     this._state = 'readable';
+    this[READABLE_RESOLVE](undefined);
 
     return true;
   }
@@ -100,9 +100,9 @@ BaseReadableStream.prototype._push = function _push(data) {
 
 BaseReadableStream.prototype._close = function _close() {
   if (this._state === 'waiting') {
+    this._state = 'closed';
     this[READABLE_REJECT](new TypeError('stream has already been completely read'));
     this[CLOSED_RESOLVE](undefined);
-    this._state = 'closed';
   }
   else if (this._state === 'readable') {
     this._draining = true;
@@ -113,13 +113,14 @@ BaseReadableStream.prototype._error = function _error(error) {
   var stream = this;
 
   if (this._state === 'waiting') {
-    this._storedError = error;
-    this[CLOSED_REJECT](error);
-    this[READABLE_REJECT](error);
     this._state = 'errored';
+    this._storedError = error;
+    this[READABLE_REJECT](error);
+    this[CLOSED_REJECT](error);
   }
   else if (this._state === 'readable') {
     this._buffer.length = 0;
+    this._state = 'errored';
     this._storedError = error;
     // do this instead of using Promise.reject so accessors are correct
     this._readablePromise = new Promise(function (resolve, reject) {
@@ -128,7 +129,6 @@ BaseReadableStream.prototype._error = function _error(error) {
     });
     this[READABLE_REJECT](error);
     this[CLOSED_REJECT](error);
-    this._state = 'errored';
   }
 };
 
@@ -183,9 +183,9 @@ BaseReadableStream.prototype.read = function read() {
         assert(this._draining === true || this._draining === false,
                'draining only has two possible states');
         if (this._draining === true) {
-          this[CLOSED_RESOLVE](undefined);
-          this._readablePromise = Promise.reject(new TypeError('all data already read'));
           this._state = 'closed';
+          this._readablePromise = Promise.reject(new TypeError('all data already read'));
+          this[CLOSED_RESOLVE](undefined);
         }
         else {
           this._state = 'waiting';
@@ -222,9 +222,9 @@ BaseReadableStream.prototype.cancel = function cancel(reason) {
     this._readablePromise = Promise.reject(reason);
   }
 
+  this._buffer.length = 0;
   this._state = 'closed';
   this[CLOSED_RESOLVE](undefined);
-  this._buffer.length = 0;
 
   return promiseCall(this._onCancel);
 };
