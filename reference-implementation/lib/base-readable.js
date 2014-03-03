@@ -172,39 +172,40 @@ BaseReadableStream.prototype.wait = function wait() {
 BaseReadableStream.prototype.read = function read() {
   var stream = this;
 
-  switch(this._state) {
-    case 'waiting':
-      throw new TypeError('no data available (yet)');
-    case 'readable':
-      assert(this._buffer.length > 0, 'there must be data available to read');
-      var data = this._buffer.shift();
-
-      if (this._buffer.length < 1) {
-        assert(this._draining === true || this._draining === false,
-               'draining only has two possible states');
-        if (this._draining === true) {
-          this[CLOSED_RESOLVE](undefined);
-          this._readablePromise = Promise.reject(new TypeError('all data already read'));
-          this._state = 'closed';
-        }
-        else {
-          this._state = 'waiting';
-          this._readablePromise = new Promise(function (resolve, reject) {
-            stream[READABLE_RESOLVE] = resolve;
-            stream[READABLE_REJECT] = reject;
-          });
-          this._callPull();
-        }
-      }
-
-      return data;
-    case 'errored':
-      throw this._storedError;
-    case 'closed':
-      throw new TypeError('stream has already been consumed');
-    default:
-      assert(false, 'stream state ' + this._state + ' is invalid');
+  if (this._state === 'closed') {
+    throw new TypeError('stream has already been consumed');
   }
+  if (this._state === 'errored') {
+    throw this._storedError;
+  }
+  if (this._state === 'waiting') {
+    throw new TypeError('no data available (yet)');
+  }
+
+  assert(this._state === 'readable', 'stream state ' + this._state + ' is invalid');
+  assert(this._buffer.length > 0, 'there must be data available to read');
+
+  var data = this._buffer.shift();
+
+  if (this._buffer.length < 1) {
+    assert(this._draining === true || this._draining === false,
+           'draining only has two possible states');
+    if (this._draining === true) {
+      this[CLOSED_RESOLVE](undefined);
+      this._readablePromise = Promise.reject(new TypeError('all data already read'));
+      this._state = 'closed';
+    }
+    else {
+      this._state = 'waiting';
+      this._readablePromise = new Promise(function (resolve, reject) {
+        stream[READABLE_RESOLVE] = resolve;
+        stream[READABLE_REJECT] = reject;
+      });
+      this._callPull();
+    }
+  }
+
+  return data;
 };
 
 BaseReadableStream.prototype.cancel = function cancel(reason) {
