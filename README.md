@@ -96,25 +96,22 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 ##### read()
 
-1. If `this.[[state]]` is `"waiting"`,
-    1. Throw a `TypeError` exception.
-1. If `this.[[state]]` is `"readable"`,
-    1. Assert: `this.[[buffer]]` is not empty.
-    1. Let `data` be the result of shifting an element off of the front of `this.[[buffer]]`.
-    1. If `this.[[buffer]]` is now empty,
-        1. If `this.[[draining]]` is `true`,
-            1. Resolve `this.[[closedPromise]]` with `undefined`.
-            1. Let `this.[[readablePromise]]` be a newly-created promise rejected with a `TypeError` exception.
-            1. Set `this.[[state]]` to `"closed"`.
-        1. If `this.[[draining]]` is `false`,
-            1. Set `this.[[state]]` to `"waiting"`.
-            1. Let `this.[[readablePromise]]` be a newly-created pending promise.
-            1. `this.[[callPull]]()`.
-    1. Return `data`.
-1. If `this.[[state]]` is `"errored"`,
-    1. Throw `this.[[storedError]]`.
-1. If `this.[[state]]` is `"closed"`,
-    1. Throw a `TypeError` exception.
+1. If `this.[[state]]` is `"closed"`, throw a `TypeError` exception.
+1. If `this.[[state]]` is `"errored"`, throw `this.[[storedError]]`.
+1. If `this.[[state]]` is `"waiting"`, throw a `TypeError` exception.
+1. Assert: `this.[[state]]` is `"readable"`.
+1. Assert: `this.[[buffer]]` is not empty.
+1. Let `data` be the result of shifting an element off of the front of `this.[[buffer]]`.
+1. If `this.[[buffer]]` is now empty,
+    1. If `this.[[draining]]` is `true`,
+        1. Resolve `this.[[closedPromise]]` with `undefined`.
+        1. Let `this.[[readablePromise]]` be a newly-created promise rejected with a `TypeError` exception.
+        1. Set `this.[[state]]` to `"closed"`.
+    1. If `this.[[draining]]` is `false`,
+        1. Set `this.[[state]]` to `"waiting"`.
+        1. Let `this.[[readablePromise]]` be a newly-created pending promise.
+        1. `this.[[callPull]]()`.
+1. Return `data`.
 
 ##### wait()
 
