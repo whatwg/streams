@@ -103,9 +103,9 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
     1. Let `data` be the result of shifting an element off of the front of `this.[[buffer]]`.
     1. If `this.[[buffer]]` is now empty,
         1. If `this.[[draining]]` is `true`,
-            1. Resolve `this.[[closedPromise]]` with `undefined`.
-            1. Let `this.[[readablePromise]]` be a newly-created promise rejected with a `TypeError` exception.
             1. Set `this.[[state]]` to `"closed"`.
+            1. Let `this.[[readablePromise]]` be a newly-created promise rejected with a `TypeError` exception.
+            1. Resolve `this.[[closedPromise]]` with `undefined`.
         1. If `this.[[draining]]` is `false`,
             1. Set `this.[[state]]` to `"waiting"`.
             1. Let `this.[[readablePromise]]` be a newly-created pending promise.
@@ -128,9 +128,9 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
 1. If `this.[[state]]` is `"waiting"`, reject `this.[[readablePromise]]` with _reason_.
 1. If `this.[[state]]` is `"readable"`, let `this.[[readablePromise]]` be a new promise rejected with _reason_.
+1. Clear `this.[[buffer]]`.
 1. Set `this.[[state]]` to `"closed"`.
 1. Resolve `this.[[closedPromise]]` with **undefined**.
-1. Clear `this.[[buffer]]`.
 1. Return the result of promise-calling `this.[[onCancel]]()`.
 
 ##### get closed
@@ -206,8 +206,8 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 1. If `this.[[state]]` is `"waiting"`,
     1. Push `data` onto `this.[[buffer]]`.
     1. Set `this.[[pulling]]` to `false`.
-    1. Resolve `this.[[readablePromise]]` with `undefined`.
     1. Set `this.[[state]]` to `"readable"`.
+    1. Resolve `this.[[readablePromise]]` with `undefined`.
 1. If `this.[[state]]` is `"readable"`,
     1. Push `data` onto `this.[[buffer]]`.
     1. Set `this.[[pulling]]` to `false`.
@@ -225,16 +225,16 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 ##### `[[error]](e)`
 
 1. If `this.[[state]]` is `"waiting"`,
-    1. Set `this.[[storedError]]` to `e`.
-    1. Reject `this.[[closedPromise]]` with `e`.
-    1. Reject `this.[[readablePromise]]` with `e`.
     1. Set `this.[[state]]` to `"errored"`.
+    1. Set `this.[[storedError]]` to `e`.
+    1. Reject `this.[[readablePromise]]` with `e`.
+    1. Reject `this.[[closedPromise]]` with `e`.
 1. If `this.[[state]]` is `"readable"`,
     1. Clear `this.[[buffer]]`.
+    1. Set `this.[[state]]` to `"errored"`.
     1. Set `this.[[storedError]]` to `e`.
     1. Let `this.[[readablePromise]]` be a newly-created promise object rejected with `e`.
     1. Reject `this.[[closedPromise]]` with `e`.
-    1. Set `this.[[state]]` to `"errored"`.
 
 ##### `[[callPull]]()`
 
@@ -442,13 +442,13 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ##### `[[error]](e)`
 
-1. If `this.[[state]]` is not `"closed"` or `"errored"`,
-    1. Reject `this.[[writablePromise]]` with `e`.
-    1. Reject `this.[[closedPromise]]` with `e`.
-    1. For each entry `{ type, promise, data }` in `this.[[buffer]]`, reject `promise` with `r`.
-    1. Clear `this.[[buffer]]`.
-    1. Set `this.[[storedError]]` to `e`.
-    1. Set `this.[[state]]` to `"errored"`.
+1. If `this.[[state]]` is `"closed"` or `"errored"`, return.
+1. For each entry `{ type, promise, data }` in `this.[[buffer]]`, reject `promise` with `r`.
+1. Clear `this.[[buffer]]`.
+1. Set `this.[[state]]` to `"errored"`.
+1. Set `this.[[storedError]]` to `e`.
+1. Reject `this.[[writablePromise]]` with `e`.
+1. Reject `this.[[closedPromise]]` with `e`.
 
 ##### `[[advanceBuffer]]()`
 
