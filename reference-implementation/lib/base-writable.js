@@ -89,6 +89,7 @@ BaseWritableStream.prototype._error = function _error(error) {
     for (var i = 0; i < this._buffer.length; i++) {
       this._buffer[i]._reject(error);
     }
+    this._buffer.length = 0;
     this._storedError = error;
     this._state = 'errored';
   }
