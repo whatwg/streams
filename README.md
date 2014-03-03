@@ -71,7 +71,7 @@ enum ReadableStreamState {
 
 The constructor is passed several functions, all optional:
 
-- `start(push, close, error)` is typically used to adapting a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
+- `start(push, close, error)` is typically used to adapt a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
 - `pull(push, close, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `push` function is called.
 - `cancel()` is called when the readable stream is canceled, and should perform whatever source-specific steps are necessary to clean up and stop reading.
 
@@ -109,7 +109,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
         1. If `this.[[draining]]` is `false`,
             1. Set `this.[[state]]` to `"waiting"`.
             1. Let `this.[[readablePromise]]` be a newly-created pending promise.
-            1. `this.[[callPull]]()`.
+            1. Call `this.[[callPull]]()`.
     1. Return `data`.
 1. If `this.[[state]]` is `"errored"`,
     1. Throw `this.[[storedError]]`.
