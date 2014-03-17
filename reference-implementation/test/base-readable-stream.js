@@ -276,7 +276,7 @@ test('BaseReadableStream canceling an infinite stream', function (t) {
   )
 
   setTimeout(function () {
-    readable.cancel(new Error('don\'t feel like dealing with randomness anymore')).then(function () {
+    readable.cancel().then(function () {
       t.equal(cancelationFinished, true, 'it returns a promise that waits for the cancellation to finish');
       t.end();
     });
@@ -396,4 +396,69 @@ test('BaseReadableStream pipeTo should complete successfully upon asynchronous f
   };
 
   stream.pipeTo(dest);
+});
+
+test('BaseReadableStream cancellation puts the stream in a closed state (no data pulled yet)', function (t) {
+  var stream = sequentialBaseReadableStream(5);
+
+  t.plan(5);
+
+  stream.closed.then(function () {
+    t.assert(true, 'closed promise vended before the cancellation should fulfill');
+  }, function (err) {
+    t.fail('closed promise vended before the cancellation should not be rejected');
+  });
+  stream.wait().then(function () {
+    t.assert(true, 'wait promise vended before the cancellation should fulfill');
+  }, function (err) {
+    t.fail('wait promise vended before the cancellation should not be rejected');
+  });
+
+  stream.cancel();
+
+  t.equal(stream.state, 'closed', 'state should be closed');
+
+  stream.closed.then(function () {
+    t.assert(true, 'closed promise vended after the cancellation should fulfill');
+  }, function (err) {
+    t.fail('closed promise vended after the cancellation should not be rejected');
+  });
+  stream.wait().then(function () {
+    t.assert(true, 'wait promise vended after the cancellation should fulfill');
+  }, function (err) {
+    t.fail('wait promise vended after the cancellation should not be rejected');
+  });
+});
+test('BaseReadableStream cancellation puts the stream in a closed state (after waiting for data)', function (t) {
+  var stream = sequentialBaseReadableStream(5);
+
+  t.plan(5);
+
+  stream.wait().then(function () {
+    stream.closed.then(function () {
+      t.assert(true, 'closed promise vended before the cancellation should fulfill');
+    }, function (err) {
+      t.fail('closed promise vended before the cancellation should not be rejected');
+    });
+    stream.wait().then(function () {
+      t.assert(true, 'wait promise vended before the cancellation should fulfill');
+    }, function (err) {
+      t.fail('wait promise vended before the cancellation should not be rejected');
+    });
+
+    stream.cancel();
+
+    t.equal(stream.state, 'closed', 'state should be closed');
+
+    stream.closed.then(function () {
+      t.assert(true, 'closed promise vended after the cancellation should fulfill');
+    }, function (err) {
+      t.fail('closed promise vended after the cancellation should not be rejected');
+    });
+    stream.wait().then(function () {
+      t.assert(true, 'wait promise vended after the cancellation should fulfill');
+    }, function (err) {
+      t.fail('wait promise vended after the cancellation should not be rejected');
+    });
+  }, t.ifError.bind(t));
 });

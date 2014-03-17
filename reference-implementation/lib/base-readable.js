@@ -208,7 +208,7 @@ BaseReadableStream.prototype.read = function read() {
   return data;
 };
 
-BaseReadableStream.prototype.cancel = function cancel(reason) {
+BaseReadableStream.prototype.cancel = function cancel() {
   if (this._state === 'closed') {
     return Promise.resolve(undefined);
   }
@@ -217,10 +217,10 @@ BaseReadableStream.prototype.cancel = function cancel(reason) {
   }
 
   if (this._state === 'waiting') {
-    this[WAIT_REJECT](reason);
+    this[WAIT_RESOLVE](undefined);
   }
   if (this._state === 'readable') {
-    this._waitPromise = Promise.reject(reason);
+    this._waitPromise = Promise.resolve(undefined);
   }
 
   this._buffer.length = 0;

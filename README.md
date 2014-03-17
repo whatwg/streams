@@ -118,12 +118,12 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
     1. Call `this.[[callPull]]()`.
 1. Return `this.[[waitPromise]]`.
 
-##### cancel(reason)
+##### cancel()
 
 1. If `this.[[state]]` is `"closed"`, return a new promise resolved with **undefined**.
 1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
-1. If `this.[[state]]` is `"waiting"`, reject `this.[[waitPromise]]` with _reason_.
-1. If `this.[[state]]` is `"readable"`, let `this.[[waitPromise]]` be a new promise rejected with _reason_.
+1. If `this.[[state]]` is `"waiting"`, resolve `this.[[waitPromise]]` with **undefined**.
+1. If `this.[[state]]` is `"readable"`, let `this.[[waitPromise]]` be a new promise resolved with **undefined**.
 1. Clear `this.[[buffer]]`.
 1. Set `this.[[state]]` to `"closed"`.
 1. Resolve `this.[[closedPromise]]` with **undefined**.
