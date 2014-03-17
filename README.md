@@ -42,7 +42,7 @@ class BaseReadableStream {
     boolean [[pulling]] = false
     string [[state]] = "waiting"
     any [[storedError]]
-    Promise<undefined> [[readablePromise]]
+    Promise<undefined> [[waitPromise]]
     Promise<undefined> [[closedPromise]]
     Promise [[startedPromise]]
     function [[onCancel]]
@@ -82,7 +82,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If IsCallable(_cancel_) is **false**, throw a **TypeError** exception.
 1. Set `this.[[onCancel]]` to `cancel`.
 1. Set `this.[[onPull]]` to `pull`.
-1. Let `this.[[readablePromise]]` be a newly-created pending promise.
+1. Let `this.[[waitPromise]]` be a newly-created pending promise.
 1. Let `this.[[closedPromise]]` be a newly-created pending promise.
 1. Let _startResult_ be the result of `start(this.[[push]], this.[[close]], this.[[error]])`.
 1. ReturnIfAbrupt(_startResult_).
@@ -104,11 +104,11 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `this.[[buffer]]` is now empty,
     1. If `this.[[draining]]` is `true`,
         1. Set `this.[[state]]` to `"closed"`.
-        1. Let `this.[[readablePromise]]` be a newly-created promise rejected with a `TypeError` exception.
+        1. Let `this.[[waitPromise]]` be a newly-created promise rejected with a `TypeError` exception.
         1. Resolve `this.[[closedPromise]]` with `undefined`.
     1. If `this.[[draining]]` is `false`,
         1. Set `this.[[state]]` to `"waiting"`.
-        1. Let `this.[[readablePromise]]` be a newly-created pending promise.
+        1. Let `this.[[waitPromise]]` be a newly-created pending promise.
         1. Call `this.[[callPull]]()`.
 1. Return `data`.
 
@@ -116,14 +116,14 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 1. If `this.[[state]]` is `"waiting"`,
     1. Call `this.[[callPull]]()`.
-1. Return `this.[[readablePromise]]`.
+1. Return `this.[[waitPromise]]`.
 
 ##### cancel(reason)
 
 1. If `this.[[state]]` is `"closed"`, return a new promise resolved with **undefined**.
 1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
-1. If `this.[[state]]` is `"waiting"`, reject `this.[[readablePromise]]` with _reason_.
-1. If `this.[[state]]` is `"readable"`, let `this.[[readablePromise]]` be a new promise rejected with _reason_.
+1. If `this.[[state]]` is `"waiting"`, reject `this.[[waitPromise]]` with _reason_.
+1. If `this.[[state]]` is `"readable"`, let `this.[[waitPromise]]` be a new promise rejected with _reason_.
 1. Clear `this.[[buffer]]`.
 1. Set `this.[[state]]` to `"closed"`.
 1. Resolve `this.[[closedPromise]]` with **undefined**.
@@ -203,7 +203,7 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
     1. Push `data` onto `this.[[buffer]]`.
     1. Set `this.[[pulling]]` to `false`.
     1. Set `this.[[state]]` to `"readable"`.
-    1. Resolve `this.[[readablePromise]]` with `undefined`.
+    1. Resolve `this.[[waitPromise]]` with `undefined`.
 1. If `this.[[state]]` is `"readable"`,
     1. Push `data` onto `this.[[buffer]]`.
     1. Set `this.[[pulling]]` to `false`.
@@ -212,7 +212,7 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 ##### `[[close]]()`
 
 1. If `this.[[state]]` is `"waiting"`,
-    1. Reject `this.[[readablePromise]]` with a `TypeError` exception.
+    1. Resolve `this.[[waitPromise]]` with `undefined`.
     1. Resolve `this.[[closedPromise]]` with `undefined`.
     1. Set `this.[[state]]` to `"closed"`.
 1. If `this.[[state]]` is `"readable"`,
@@ -223,13 +223,13 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 1. If `this.[[state]]` is `"waiting"`,
     1. Set `this.[[state]]` to `"errored"`.
     1. Set `this.[[storedError]]` to `e`.
-    1. Reject `this.[[readablePromise]]` with `e`.
+    1. Reject `this.[[waitPromise]]` with `e`.
     1. Reject `this.[[closedPromise]]` with `e`.
 1. If `this.[[state]]` is `"readable"`,
     1. Clear `this.[[buffer]]`.
     1. Set `this.[[state]]` to `"errored"`.
     1. Set `this.[[storedError]]` to `e`.
-    1. Let `this.[[readablePromise]]` be a newly-created promise object rejected with `e`.
+    1. Let `this.[[waitPromise]]` be a newly-created promise object rejected with `e`.
     1. Reject `this.[[closedPromise]]` with `e`.
 
 ##### `[[callPull]]()`

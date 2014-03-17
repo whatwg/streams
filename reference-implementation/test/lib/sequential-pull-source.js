@@ -9,7 +9,7 @@ function SequentialPullSource(limit, options) {
   var that = this;
   this._exec = function (func) { func.call(that); };
   if (options && options.async) {
-    this._exec = function () {
+    this._exec = function (func) {
       process.nextTick(function () {
         func.call(that);
       });

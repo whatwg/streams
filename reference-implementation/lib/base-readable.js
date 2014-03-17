@@ -9,10 +9,10 @@ var promiseCall = require('./helpers').promiseCall;
  * CONSTANTS
  *
  */
-var CLOSED_RESOLVE   = '_closedPromise@resolve';
-var CLOSED_REJECT    = '_closedPromise@reject';
-var READABLE_RESOLVE = '_readablePromise@resolve';
-var READABLE_REJECT  = '_readablePromise@reject';
+var CLOSED_RESOLVE = '_closedPromise@resolve';
+var CLOSED_REJECT  = '_closedPromise@reject';
+var WAIT_RESOLVE   = '_waitPromise@resolve';
+var WAIT_REJECT    = '_waitPromise@reject';
 
 
 function BaseReadableStream(callbacks) {
@@ -45,9 +45,9 @@ function BaseReadableStream(callbacks) {
 
   this._storedError = undefined;
 
-  this._readablePromise = new Promise(function (resolve, reject) {
-    stream[READABLE_RESOLVE] = resolve;
-    stream[READABLE_REJECT] = reject;
+  this._waitPromise = new Promise(function (resolve, reject) {
+    stream[WAIT_RESOLVE] = resolve;
+    stream[WAIT_REJECT] = reject;
   });
 
   this._closedPromise = new Promise(function (resolve, reject) {
@@ -84,7 +84,7 @@ BaseReadableStream.prototype._push = function _push(data) {
     this._buffer.push(data);
     this._pulling = false;
     this._state = 'readable';
-    this[READABLE_RESOLVE](undefined);
+    this[WAIT_RESOLVE](undefined);
 
     return true;
   }
@@ -101,7 +101,7 @@ BaseReadableStream.prototype._push = function _push(data) {
 BaseReadableStream.prototype._close = function _close() {
   if (this._state === 'waiting') {
     this._state = 'closed';
-    this[READABLE_REJECT](new TypeError('stream has already been completely read'));
+    this[WAIT_RESOLVE](undefined);
     this[CLOSED_RESOLVE](undefined);
   }
   else if (this._state === 'readable') {
@@ -115,7 +115,7 @@ BaseReadableStream.prototype._error = function _error(error) {
   if (this._state === 'waiting') {
     this._state = 'errored';
     this._storedError = error;
-    this[READABLE_REJECT](error);
+    this[WAIT_REJECT](error);
     this[CLOSED_REJECT](error);
   }
   else if (this._state === 'readable') {
@@ -123,11 +123,11 @@ BaseReadableStream.prototype._error = function _error(error) {
     this._state = 'errored';
     this._storedError = error;
     // do this instead of using Promise.reject so accessors are correct
-    this._readablePromise = new Promise(function (resolve, reject) {
-      stream[READABLE_RESOLVE] = resolve;
-      stream[READABLE_REJECT]  = reject;
+    this._waitPromise = new Promise(function (resolve, reject) {
+      stream[WAIT_RESOLVE] = resolve;
+      stream[WAIT_REJECT]  = reject;
     });
-    this[READABLE_REJECT](error);
+    this[WAIT_REJECT](error);
     this[CLOSED_REJECT](error);
   }
 };
@@ -166,7 +166,7 @@ BaseReadableStream.prototype._callPull = function _callPull() {
 BaseReadableStream.prototype.wait = function wait() {
   if (this._state === 'waiting') this._callPull();
 
-  return this._readablePromise;
+  return this._waitPromise;
 };
 
 BaseReadableStream.prototype.read = function read() {
@@ -192,14 +192,14 @@ BaseReadableStream.prototype.read = function read() {
            'draining only has two possible states');
     if (this._draining === true) {
         this._state = 'closed';
-        this._readablePromise = Promise.reject(new TypeError('all data already read'));
+        this._waitPromise = Promise.reject(new TypeError('all data already read'));
         this[CLOSED_RESOLVE](undefined);
     }
     else {
       this._state = 'waiting';
-      this._readablePromise = new Promise(function (resolve, reject) {
-        stream[READABLE_RESOLVE] = resolve;
-        stream[READABLE_REJECT] = reject;
+      this._waitPromise = new Promise(function (resolve, reject) {
+        stream[WAIT_RESOLVE] = resolve;
+        stream[WAIT_REJECT] = reject;
       });
       this._callPull();
     }
@@ -217,10 +217,10 @@ BaseReadableStream.prototype.cancel = function cancel(reason) {
   }
 
   if (this._state === 'waiting') {
-    this[READABLE_REJECT](reason);
+    this[WAIT_REJECT](reason);
   }
   if (this._state === 'readable') {
-    this._readablePromise = Promise.reject(reason);
+    this._waitPromise = Promise.reject(reason);
   }
 
   this._buffer.length = 0;

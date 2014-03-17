@@ -26,6 +26,40 @@ function readableStreamToArray(readable) {
   });
 }
 
+function sequentialBaseReadableStream(limit, options) {
+  var sequentialSource = new SequentialPullSource(limit, options);
+
+  var stream = new BaseReadableStream({
+    start : function () {
+      return new Promise(function (resolve, reject) {
+        sequentialSource.open(function (err) {
+          if (err) reject(err);
+          resolve();
+        });
+      });
+    },
+
+    pull : function (push, finish, error) {
+      sequentialSource.read(function (err, done, data) {
+        if (err) {
+          error(err);
+        } else if (done) {
+          sequentialSource.close(function (err) {
+            if (err) error(err);
+            finish();
+          });
+        } else {
+          push(data);
+        }
+      });
+    }
+  });
+
+  stream.source = sequentialSource;
+
+  return stream;
+}
+
 test('BaseReadableStream is globally defined', function (t) {
   /*global BaseReadableStream*/
   t.plan(1);
@@ -173,39 +207,26 @@ test('BaseReadableStream adapting a push source', function (t) {
   });
 });
 
-test('BaseReadableStream adapting a pull source', function (t) {
+test('BaseReadableStream adapting a sync pull source', function (t) {
   /*global BaseReadableStream*/
-  var sequentialSource = new SequentialPullSource(10);
+  var stream = sequentialBaseReadableStream(10);
 
-  var basic = new BaseReadableStream({
-    start : function () {
-      return new Promise(function (resolve, reject) {
-        sequentialSource.open(function (err) {
-          if (err) reject(err);
-          resolve();
-        });
-      });
-    },
+  readableStreamToArray(stream).then(function (chunks) {
+    t.equal(stream.state, 'closed', 'stream should be closed');
+    t.equal(stream.source.closed, true, 'source should be closed');
+    t.deepEqual(chunks, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'got the expected 10 chunks');
 
-    pull : function (push, finish, error) {
-      sequentialSource.read(function (err, done, data) {
-        if (err) {
-          error(err);
-        } else if (done) {
-          sequentialSource.close(function (err) {
-            if (err) error(err);
-            finish();
-          });
-        } else {
-          push(data);
-        }
-      });
-    }
+    t.end();
   });
+});
 
-  readableStreamToArray(basic).then(function (chunks) {
-    t.equal(basic.state, 'closed', 'stream should be closed');
-    t.equal(sequentialSource.closed, true, 'source should be closed');
+test('BaseReadableStream adapting an async pull source', function (t) {
+  /*global BaseReadableStream*/
+  var stream = sequentialBaseReadableStream(10, { async: true });
+
+  readableStreamToArray(stream).then(function (chunks) {
+    t.equal(stream.state, 'closed', 'stream should be closed');
+    t.equal(stream.source.closed, true, 'source should be closed');
     t.deepEqual(chunks, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'got the expected 10 chunks');
 
     t.end();
@@ -285,4 +306,99 @@ test('BaseReadableStream is able to pull data repeatedly if it\'s available sync
     t.deepEqual(data, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     t.end();
   });
+});
+
+test('BaseReadableStream wait does not error when no more data is available', function (t) {
+  // https://github.com/whatwg/streams/issues/80
+
+  t.plan(1);
+
+  var stream = sequentialBaseReadableStream(5, { async: true });
+
+  var result = [];
+  function pump() {
+    while (stream.state === 'readable') {
+      result.push(stream.read());
+    }
+
+    if (stream.state === 'closed') {
+      t.deepEqual(result, [1, 2, 3, 4, 5], 'got the expected 5 chunks');
+      t.end();
+    } else {
+      stream.wait().then(pump, function (err) {
+        t.ifError(err);
+        t.end();
+      });
+    }
+  }
+
+  pump();
+});
+
+test('BaseReadableStream should be able to get data sequentially from an asynchronous stream', function (t) {
+  // https://github.com/whatwg/streams/issues/80
+
+  t.plan(4);
+
+  var stream = sequentialBaseReadableStream(3, { async: true });
+
+  var result = [];
+  var EOF = Object.create(null);
+
+  function getNext() {
+    if (stream.state === 'closed') {
+      return Promise.resolve(EOF);
+    }
+
+    return stream.wait().then(function () {
+      if (stream.state === 'readable') {
+        return stream.read();
+      } else if (stream.state === 'closed') {
+        return EOF;
+      }
+    });
+  }
+
+  getNext().then(function (v) {
+    t.equal(v, 1, 'first chunk should be 1');
+    return getNext().then(function (v) {
+      t.equal(v, 2, 'second chunk should be 2');
+      return getNext().then(function (v) {
+        t.equal(v, 3, 'third chunk should be 3');
+        return getNext().then(function (v) {
+          t.equal(v, EOF, 'fourth result should be EOF');
+          t.end();
+        });
+      });
+    });
+  })
+  .catch(t.ifError.bind(t));
+});
+
+test('BaseReadableStream pipeTo should complete successfully upon asynchronous finish', function (t) {
+  // https://github.com/whatwg/streams/issues/80
+
+  t.plan(1);
+
+  var stream = sequentialBaseReadableStream(5, { async: true });
+
+  var dataWritten = [];
+  var dest = {
+    state: 'writable',
+    write: function (value) {
+      dataWritten.push(value);
+      return Promise.resolve();
+    },
+    close: function () {
+      t.deepEqual(dataWritten, [1, 2, 3, 4, 5]);
+      t.end();
+      return Promise.resolve();
+    },
+    abort: function () {
+      t.fail('Should not call abort');
+      t.end();
+    }
+  };
+
+  stream.pipeTo(dest);
 });

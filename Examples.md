@@ -34,25 +34,29 @@ function streamToConsole(readable) {
 
 #### Getting the Next Piece of Available Data
 
-As another example, this helper function will return a promise for the next available piece of data from a given readable stream. This introduces an artificial delay if there is already data buffered, but can provide a convenient interface for simple chunk-by-chunk consumption, as one might do e.g. when streaming database records.
+As another example, this helper function will return a promise for the next available piece of data from a given readable stream. This introduces an artificial delay if there is already data buffered, but can provide a convenient interface for simple chunk-by-chunk consumption, as one might do e.g. when streaming database records. It uses an EOF sentinel to signal the end of the stream, and behaves poorly if called twice in parallel without waiting for the previously-returned promise to fulfill.
 
 ```js
-function getNext(readable) {
-    return new Promise((resolve, reject) => {
-        if (readable.state === "waiting") {
-            resolve(readable.wait().then(() => readable.read()));
-        } else {
-            // If the state is `"errored"` or `"closed"`, the appropriate error will be thrown,
-            // which by the semantics of the Promise constructor causes the desired rejection.
-            resolve(readable.read());
+var EOF = Object.create(null);
+
+function getNext(stream) {
+    if (stream.state === "closed") {
+        return Promise.resolve(EOF);
+    }
+
+    return stream.wait().then(function () {
+        if (stream.state === "readable") {
+            return stream.read();
         }
+
+        // State must be "closed":
+        return EOF;
     });
 }
 
 // Usage with a promise-generator bridge like Q or TaskJS:
 Q.spawn(function* () {
-    while (myStream.state !== "closed") {
-        const data = yield getNext(myStream);
+    while ((const data = yield getNext(myStream)) !== EOF) {
         // do something with `data`.
     }
 });
