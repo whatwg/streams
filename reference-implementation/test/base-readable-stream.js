@@ -323,11 +323,9 @@ test('BaseReadableStream wait does not error when no more data is available', fu
 
     if (stream.state === 'closed') {
       t.deepEqual(result, [1, 2, 3, 4, 5], 'got the expected 5 chunks');
-      t.end();
     } else {
       stream.wait().then(pump, function (err) {
         t.ifError(err);
-        t.end();
       });
     }
   }
@@ -367,7 +365,6 @@ test('BaseReadableStream should be able to get data sequentially from an asynchr
         t.equal(v, 3, 'third chunk should be 3');
         return getNext().then(function (v) {
           t.equal(v, EOF, 'fourth result should be EOF');
-          t.end();
         });
       });
     });
@@ -391,12 +388,10 @@ test('BaseReadableStream pipeTo should complete successfully upon asynchronous f
     },
     close: function () {
       t.deepEqual(dataWritten, [1, 2, 3, 4, 5]);
-      t.end();
       return Promise.resolve();
     },
     abort: function () {
       t.fail('Should not call abort');
-      t.end();
     }
   };
 
