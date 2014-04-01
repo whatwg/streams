@@ -87,7 +87,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. Let _startResult_ be the result of `start(this.[[push]], this.[[close]], this.[[error]])`.
 1. ReturnIfAbrupt(_startResult_).
 1. Let `this.[[startedPromise]]` be the result of casting _startResult_ to a promise.
-1. Upon fulfillment of `this.[[startedPromise]]`, set `this.[[started]]` to `true`.
+1. Upon fulfillment of `this.[[startedPromise]]`, set `this.[[started]]` to **true**.
 1. Upon rejection of `this.[[startedPromise]]` with reason `r`, call `this.[[error]](r)`.
 
 ##### get state
@@ -96,17 +96,17 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 ##### read()
 
-1. If `this.[[state]]` is `"waiting"` or `"closed"`, throw a `TypeError` exception.
+1. If `this.[[state]]` is `"waiting"` or `"closed"`, throw a **TypeError** exception.
 1. If `this.[[state]]` is `"errored"`, throw `this.[[storedError]]`.
 1. Assert: `this.[[state]]` is `"readable"`.
 1. Assert: `this.[[buffer]]` is not empty.
 1. Let `data` be the result of shifting an element off of the front of `this.[[buffer]]`.
 1. If `this.[[buffer]]` is now empty,
-    1. If `this.[[draining]]` is `true`,
+    1. If `this.[[draining]]` is **true**,
         1. Set `this.[[state]]` to `"closed"`.
-        1. Let `this.[[waitPromise]]` be a newly-created promise rejected with a `TypeError` exception.
-        1. Resolve `this.[[closedPromise]]` with `undefined`.
-    1. If `this.[[draining]]` is `false`,
+        1. Let `this.[[waitPromise]]` be a newly-created promise rejected with a **TypeError** exception.
+        1. Resolve `this.[[closedPromise]]` with **undefined**.
+    1. If `this.[[draining]]` is **false**,
         1. Set `this.[[state]]` to `"waiting"`.
         1. Let `this.[[waitPromise]]` be a newly-created pending promise.
         1. Call `this.[[callPull]]()`.
@@ -201,22 +201,22 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 
 1. If `this.[[state]]` is `"waiting"`,
     1. Push `data` onto `this.[[buffer]]`.
-    1. Set `this.[[pulling]]` to `false`.
+    1. Set `this.[[pulling]]` to **false**.
     1. Set `this.[[state]]` to `"readable"`.
-    1. Resolve `this.[[waitPromise]]` with `undefined`.
+    1. Resolve `this.[[waitPromise]]` with **undefined**.
 1. If `this.[[state]]` is `"readable"`,
     1. Push `data` onto `this.[[buffer]]`.
-    1. Set `this.[[pulling]]` to `false`.
-1. Return `false`.
+    1. Set `this.[[pulling]]` to **false**.
+1. Return **false**.
 
 ##### `[[close]]()`
 
 1. If `this.[[state]]` is `"waiting"`,
-    1. Resolve `this.[[waitPromise]]` with `undefined`.
-    1. Resolve `this.[[closedPromise]]` with `undefined`.
+    1. Resolve `this.[[waitPromise]]` with **undefined**.
+    1. Resolve `this.[[closedPromise]]` with **undefined**.
     1. Set `this.[[state]]` to `"closed"`.
 1. If `this.[[state]]` is `"readable"`,
-    1. Set `this.[[draining]]` to `true`.
+    1. Set `this.[[draining]]` to **true**.
 
 ##### `[[error]](e)`
 
@@ -234,13 +234,13 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 
 ##### `[[callPull]]()`
 
-1. If `this.[[pulling]]` is `true`, return.
-1. Set `this.[[pulling]]` to `true`.
-1. If `this.[[started]]` is `false`,
+1. If `this.[[pulling]]` is **true**, return.
+1. Set `this.[[pulling]]` to **true**.
+1. If `this.[[started]]` is **false**,
     1. Upon fulfillment of `this.[[startedPromise]]`,
         1. Let `pullResult` be the result of `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
         1. If `pullResult` is an abrupt completion, call `this.[[error]](pullResult.[[value]])`.
-1. If `this.[[started]]` is `true`,
+1. If `this.[[started]]` is **true**,
     1. Let `pullResult` be the result of `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
     1. If `pullResult` is an abrupt completion, call `this.[[error]](pullResult.[[value]])`.
 
@@ -289,10 +289,10 @@ class ReadableStream extends BaseReadableStream {
 
 ##### pipeTo(dest, { close })
 
-1. Let `alreadyPiping` be `true`.
-1. If `this.[[tee]]` is `undefined`, let `this.[[tee]]` be a new `TeeStream` and set `alreadyPiping` to `false`.
+1. Let `alreadyPiping` be **true**.
+1. If `this.[[tee]]` is **undefined**, let `this.[[tee]]` be a new `TeeStream` and set `alreadyPiping` to **false**.
 1. Call `this.[[tee]].addOut(dest, { close })`.
-1. If `alreadyPiping` is `false`, call `super(this.[[tee]], { close: true })`.
+1. If `alreadyPiping` is **false**, call `super(this.[[tee]], { close: true })`.
 1. Return `dest`.
 
 #### Internal Methods of ReadableStream
@@ -303,7 +303,7 @@ class ReadableStream extends BaseReadableStream {
 1. If `this.[[state]]` is now `"readable"`,
     1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
     1. Return `this.[[strategy]].needsMoreData(this.[[bufferSize]])`.
-1. Return `false`.
+1. Return **false**.
 
 ## Writable Stream APIs
 
@@ -406,7 +406,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Push `{ type: "data", promise, data }` onto `this.[[buffer]]`.
     1. Return `promise`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
-    1. Return a promise rejected with a `TypeError` exception.
+    1. Return a promise rejected with a **TypeError** exception.
 1. If `this.[[state]]` is `"errored"`,
     1. Return a promise rejected with `this.[[storedError]]`.
 
@@ -421,7 +421,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Push `{ type: "close", promise: undefined, data: undefined }` onto `this.[[buffer]]`.
     1. Return `this.[[closedPromise]]`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
-    1. Return a promise rejected with a `TypeError` exception.
+    1. Return a promise rejected with a **TypeError** exception.
 1. If `this.[[state]]` is `"errored"`,
     1. Return a promise rejected with `this.[[storedError]]`.
 
@@ -455,7 +455,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Call `this.[[doNextWrite]](entry)`.
 1. If `this.[[buffer]]` is empty,
     1. Set `this.[[state]]` to `"writable"`.
-    1. Resolve `this.[[writablePromise]]` with `undefined`.
+    1. Resolve `this.[[writablePromise]]` with **undefined**.
 
 ##### `[[doClose]]()`
 
@@ -477,12 +477,12 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Set `this.[[currentWritePromise]]` to `promise`.
 1. Let `signalDone` be a new function of zero arguments, closing over `this` and `promise`, that performs the following steps:
     1. If `this.[[currentWritePromise]]` is not `promise`, return.
-    1. Set `this.[[currentWritePromise]]` to `undefined`.
+    1. Set `this.[[currentWritePromise]]` to **undefined**.
     1. If `this.[[state]]` is `"waiting"`,
-        1. Resolve `promise` with `undefined`.
+        1. Resolve `promise` with **undefined**.
         1. Call `this.[[advanceBuffer]]()`.
     1. If `this.[[state]]` is `"closing"`,
-        1. Resolve `promise` with `undefined`.
+        1. Resolve `promise` with **undefined**.
         1. If `this.[[buffer]]` is not empty,
             1. Shift `entry` off of `this.[[buffer]]`.
             1. Call `this.[[doNextWrite]](entry)`.
@@ -530,7 +530,7 @@ class WritableStream extends BaseWritableStream {
     1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
 1. If `this.[[state]]` is `"writable"`,
     1. Let `promise` be a newly-created pending promise.
-    1. If `ToBoolean(this.[[strategy]].needsMoreData(this.[[bufferSize]]))` is `false`,
+    1. If `ToBoolean(this.[[strategy]].needsMoreData(this.[[bufferSize]]))` is **false**,
         1. Set `this.[[state]]` to `"waiting"`.
         1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
     1. If `this.[[buffer]]` is empty,
