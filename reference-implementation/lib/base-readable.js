@@ -192,7 +192,7 @@ BaseReadableStream.prototype.read = function read() {
            'draining only has two possible states');
     if (this._draining === true) {
         this._state = 'closed';
-        this._waitPromise = Promise.reject(new TypeError('all data already read'));
+        this._waitPromise = Promise.resolve(undefined);
         this[CLOSED_RESOLVE](undefined);
     }
     else {

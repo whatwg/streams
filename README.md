@@ -104,7 +104,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `this.[[buffer]]` is now empty,
     1. If `this.[[draining]]` is **true**,
         1. Set `this.[[state]]` to `"closed"`.
-        1. Let `this.[[waitPromise]]` be a newly-created promise rejected with a **TypeError** exception.
+        1. Let `this.[[waitPromise]]` be a newly-created promise resolved with **undefined**.
         1. Resolve `this.[[closedPromise]]` with **undefined**.
     1. If `this.[[draining]]` is **false**,
         1. Set `this.[[state]]` to `"waiting"`.
