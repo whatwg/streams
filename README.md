@@ -486,7 +486,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
         1. If `this.[[buffer]]` is not empty,
             1. Shift `entry` off of `this.[[buffer]]`.
             1. Call `this.[[doNextWrite]](entry)`.
-1. Call `this.[[onWrite]](data, signalDone, [[error]])`.
+1. Call `this.[[onWrite]](data, signalDone, this.[[error]])`.
 1. If the call throws an exception `e`, call `this.[[error]](e)`.
 
 Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been aborted, then `signalDone` ends up doing nothing.
