@@ -87,6 +87,88 @@ test('BaseReadableStream is constructed correctly', function (t) {
   t.ok(basic.closed.then, 'stream has closed promise that is thenable');
 });
 
+test('BaseReadableStream closing puts the stream in a closed state and makes wait and closed return a promise resolved with undefined', function (t) {
+  /*global BaseReadableStream*/
+  t.plan(3);
+
+  var readable = new BaseReadableStream({
+    start : function (push, close, error) {
+      close();
+    }
+  });
+
+  t.equal(readable.state, 'closed', 'The stream should be in closed state');
+
+  readable.wait().then(function (v) {
+    t.equal(v, undefined, 'wait should return a promise resolved with undefined');
+  }, function (err) {
+    t.fail('wait should not return a rejected promise');
+  });
+
+  readable.closed.then(function (v) {
+    t.equal(v, undefined, 'closed should return a promise resolved with undefined');
+  }, function (err) {
+    t.fail('closed should not return a rejected promise');
+  });
+});
+
+test('BaseReadableStream reading a closed stream throws a TypeError', function (t) {
+  /*global BaseReadableStream*/
+  t.plan(1);
+
+  var readable = new BaseReadableStream({
+    start : function (push, close, error) {
+      close();
+    }
+  });
+
+  t.throws(
+    function () {
+      readable.read();
+    },
+    function (caught) {
+      t.equal(caught.name, 'TypeError', 'A TypeError is thrown');
+    }
+  );
+});
+
+test('BaseReadableStream reading a stream makes wait and closed return a promise resolved with undefined when the stream is fully drained', function (t) {
+  /*global BaseReadableStream*/
+  t.plan(6);
+
+  var readable = new BaseReadableStream({
+    start : function (push, close, error) {
+      push("test");
+      close();
+    }
+  });
+
+  t.equal(readable.state, 'readable', 'The stream should be in readable state');
+  t.equal(readable.read(), 'test', 'A test string should be read');
+  t.equal(readable.state, 'closed', 'The stream should be in closed state');
+
+  t.throws(
+    function () {
+      readable.read();
+    },
+    function (caught) {
+      t.equal(caught.name, 'TypeError', 'A TypeError should be thrown');
+    }
+  );
+
+  readable.wait().then(function (v) {
+    t.equal(v, undefined, 'wait should return a promise resolved with undefined');
+  }, function (err) {
+    t.fail('wait should not return a rejected promise');
+  });
+
+  readable.closed.then(function (v) {
+    t.equal(v, undefined, 'closed should return a promise resolved with undefined');
+  }, function (err) {
+    t.fail('closed should not return a rejected promise');
+  });
+});
+
 test('BaseReadableStream avoid redundant pull call', function (t) {
   /*global BaseReadableStream*/
   var pullCount = 0;
