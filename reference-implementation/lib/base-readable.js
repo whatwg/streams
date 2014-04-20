@@ -290,12 +290,12 @@ BaseReadableStream.prototype.pipeThrough = function pipeThrough(transform, optio
     throw new TypeError('A transform stream must have an input property that is an object.');
   }
 
-  if (!TypeIsObject(transform.out)) {
+  if (!TypeIsObject(transform.output)) {
     throw new TypeError('A transform stream must have an output property that is an object.');
   }
 
-  this.pipeTo(transform.in, options);
-  return transform.out;
+  this.pipeTo(transform.input, options);
+  return transform.output;
 };
 
 function TypeIsObject(x) {
