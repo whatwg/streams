@@ -165,18 +165,50 @@ ability to customize the stream's buffering strategy, which impacts backpressure
 to or through multiple destinations.</p>
 
 <div class="example">
-  <p>The following function wraps a push source, represented by a "raw socket," which triggers events for data, end,
-  and error, and provides the ability to pause and resume the flow of data.</p>
+  <p>The following function creates readable streams that wrap <span data-anolis-spec="html">web sockets</span>, which
+  are push sources that do not support backpressure signals.</p>
 
-<pre><code>function makeSocketStream(host, port, { highWaterMark = 16 * 1024 } = {}) {
-  const rawSocket = createRawSocketObject(host, port);
+<pre><code>function makeReadableWebSocketStream(url, protocols) {
+  const ws = new WebSocket(url, protocols);
+  ws.binaryType = "arraybuffer";
 
   return new ReadableStream({
     start(push, close, error) {
       // When adapting a push source, usually most of the work happens in start.
 
-      rawSocket.ondata = chunk => {
-        if (!push(chunk)) {
+      ws.onmessage = event => push(event.data);
+      ws.onend = close;
+      ws.onerror = error;
+    },
+
+    cancel() {
+      ws.close();
+    }
+  });
+}</code></pre>
+
+  <p>We can then use this function to create readable streams for web sockets, and pipe those streams to arbitrary
+  writable streams:</p>
+
+<pre><code>var webSocketStream = makeReadableWebSocketStream("http://example.com", 80);
+
+socketStream.pipeTo(writableStream).closed
+  .then(() => console.log("All data successfully written!"))
+  .catch(e => console.error("Something went wrong!", e));</code></pre>
+</div>
+
+<div class="example">
+  <p>The following function wraps a push source, represented by a hypothetical "raw socket" interface, which triggers
+  events for data, end, and error (much like a web socket), but also provides the ability to pause and resume the flow
+  of data. Thus, this example shows how to apply backpressure to underlying sources that support it.</p>
+
+<pre><code>function makeSocketStream(host, port) {
+  const rawSocket = createRawSocketObject(host, port);
+
+  return new ReadableStream({
+    start(push, close, error) {
+      rawSocket.ondata = event => {
+        if (!push(event.data)) {
           // If push returns false, the internal buffer is full, so propagate
           // the backpressure signal to the underlying source.
           rawSocket.readStop();
@@ -184,34 +216,25 @@ to or through multiple destinations.</p>
       };
 
       rawSocket.onend = close;
-
       rawSocket.onerror = error;
     },
 
     pull() {
       // This is called if the internal buffer has been emptied, but the
-      // stream's consumer still wants more data.
+      // stream's consumer still wants more data. In that case, restart
+      // the flow of data if we have previously paused it.
       rawSocket.readStart();
     },
 
     cancel() {
-      // If the stream is prematurely canceled, release resources.
       rawSocket.readStop();
-      rawSocket = null;
-    },
-
-    strategy: new LengthBufferingStrategy({ highWaterMark })
+    }
   });
 }</code></pre>
 
-  <p>We can then use this function to create readable streams for sockets, and pipe those streams to arbitrary writable
-  streams:</p>
-
-<pre><code>var socketStream = makeSocketStream("http://example.com", 80);
-
-socketStream.pipeTo(writableStream).closed
-  .then(() => console.log("All data successfully written!"))
-  .catch(e => console.error("Something went wrong!", e));</code></pre>
+  <p>We can then use this function to create readable streams for such "raw sockets" in the same way we do for web
+  sockets. This time, however, when we pipe to a destination that cannot accept data as fast as the socket is producing
+  it, a backpressure signal will be sent to the raw socket.</p>
 </div>
 
 <div class="example">
@@ -220,7 +243,7 @@ socketStream.pipeTo(writableStream).closed
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
   hide from our users by wrapping them in a readable stream.</p>
 
-<pre><code>function makeReadableFileStream(filename, { highWaterMark = 16 * 1024 } = {}) {
+<pre><code>function makeReadableFileStream(filename) {
   const fileHandle = createRawFileHandle(filename, "r");
 
   return new ReadableStream({
@@ -259,12 +282,8 @@ socketStream.pipeTo(writableStream).closed
     },
 
     cancel() {
-      // If the stream canceled prematurely, release resources.
       fileHandle.close();
-      fileHandle = null;
-    },
-
-    strategy: new LengthBufferingStrategy({ highWaterMark })
+    }
   });
 }</code></pre>
 
@@ -346,12 +365,52 @@ ability to customize the stream's buffering strategy, which can be communicated 
 backpressure.</p>
 
 <div class="example">
-  <p>The following function wraps an underlying sink, represented as a "raw file handle," which provides methods for
-  opening, writing to, and closing itself. These methods can call their callbacks either synchronously or
-  asynchronously—a <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a>
-  horror which we can hide from our users by wrapping them in a writable stream.</p>
+  <p>The following function wraps a <span data-anolis-spec="html">web socket</span> as the underlying sink of a new
+  writable stream. Web sockets do not provide any way to tell when a given chunk of data has been successfully sent,
+  so this writable stream has no ability to communicate backpressure signals to any users: it will always be in the
+  <code>"writable"</code> state.</p>
 
-<pre><code>function makeWritableFileStream(filename, { highWaterMark = 16 * 1024 } = {}) {
+<pre><code>function makeWritableWebSocketStream(url, protocols) {
+  const ws = new WebSocket(url, protocols);
+
+  return new WritableStream({
+    start() {
+      return new Promise((resolve, reject) => {
+        ws.onopen = resolve;
+        ws.onerror = reject;
+      });
+    },
+
+    write(data, done, error) {
+      ws.onerror = error;
+      ws.send(data);
+
+      // Call done() immediately since the web socket gives us no way to tell
+      // when the write completes.
+      done();
+    },
+
+    close() {
+      return new Promise((resolve, reject) => {
+        ws.onclose = resolve;
+        ws.onerror = error;
+        ws.close();
+      });
+    }
+  });
+}</code></pre>
+</div>
+
+<div class="example">
+  <p>The following function wraps an underlying sink, represented as a hypothetical "raw file handle," which provides
+  methods for opening, writing to, and closing itself. Notably, the raw file handle's <code>write</code> method calls
+  back to signal when writes are complete, which allows the stream to correctly communicate backpressure signals to any
+  users by setting its state to <code>"waiting"</code> instead of <code>"writable"</code> when the buffer gets too full.
+  Allow of the raw file handle's methods can call their callbacks either synchronously or asynchronously—a
+  <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
+  hide from our users by wrapping them in a writable stream.</p>
+
+<pre><code>function makeWritableFileStream(filename) {
   const fileHandle = createRawFileHandle(filename, "w");
 
   return new WritableStream({
@@ -396,15 +455,7 @@ backpressure.</p>
           resolve();
         });
       });
-    },
-
-    abort() {
-      // If the stream aborted prematurely, release resources.
-      fileHandle.close();
-      fileHandle = null;
-    },
-
-    strategy: new LengthBufferingStrategy({ highWaterMark })
+    }
   });
 }</code></pre>
 
@@ -476,6 +527,9 @@ implementation is under the covers, since they all provide the appropriate prope
 <h3><code>LengthBufferingStrategy</code></h3>
 
 <h3><code>CountBufferingStrategy</code></h3>
+
+<h2 class="no-num">References</h2>
+<div id="anolis-references"></div>
 
 <h2 class="no-num">Acknowledgments</h2>
 
