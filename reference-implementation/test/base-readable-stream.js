@@ -3,62 +3,10 @@
 var test = require('tape');
 var Promise = require('es6-promise').Promise;
 var RandomPushSource = require('./lib/random-push-source.js');
-var SequentialPullSource = require('./lib/sequential-pull-source.js');
+var readableStreamToArray = require('./lib/readable-stream-to-array.js');
+var sequentialBaseReadableStream = require('./lib/sequential-brs.js');
 
 require('../index.js');
-
-function readableStreamToArray(readable) {
-  return new Promise(function (resolve, reject) {
-    var chunks = [];
-
-    readable.closed.then(function () { resolve(chunks); }, reject);
-
-    function pump() {
-      while (readable.state === 'readable') {
-        var data = readable.read();
-        chunks.push(data);
-      }
-
-      if (readable.state === 'waiting') readable.wait().then(pump);
-    }
-
-    pump();
-  });
-}
-
-function sequentialBaseReadableStream(limit, options) {
-  var sequentialSource = new SequentialPullSource(limit, options);
-
-  var stream = new BaseReadableStream({
-    start : function () {
-      return new Promise(function (resolve, reject) {
-        sequentialSource.open(function (err) {
-          if (err) reject(err);
-          resolve();
-        });
-      });
-    },
-
-    pull : function (push, finish, error) {
-      sequentialSource.read(function (err, done, data) {
-        if (err) {
-          error(err);
-        } else if (done) {
-          sequentialSource.close(function (err) {
-            if (err) error(err);
-            finish();
-          });
-        } else {
-          push(data);
-        }
-      });
-    }
-  });
-
-  stream.source = sequentialSource;
-
-  return stream;
-}
 
 test('BaseReadableStream is globally defined', function (t) {
   /*global BaseReadableStream*/
