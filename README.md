@@ -204,6 +204,7 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
     1. Set `this.[[pulling]]` to **false**.
     1. Set `this.[[state]]` to `"readable"`.
     1. Resolve `this.[[waitPromise]]` with **undefined**.
+    1. Return **true**.
 1. If `this.[[state]]` is `"readable"`,
     1. Push `data` onto `this.[[buffer]]`.
     1. Set `this.[[pulling]]` to **false**.

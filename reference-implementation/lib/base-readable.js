@@ -91,8 +91,6 @@ BaseReadableStream.prototype._push = function _push(data) {
   else if (this._state === 'readable') {
     this._buffer.push(data);
     this._pulling = false;
-
-    return true;
   }
 
   return false;
