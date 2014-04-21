@@ -402,32 +402,6 @@ test('BaseReadableStream should be able to get data sequentially from an asynchr
   .catch(t.ifError.bind(t));
 });
 
-test('BaseReadableStream pipeTo should complete successfully upon asynchronous finish', function (t) {
-  // https://github.com/whatwg/streams/issues/80
-
-  t.plan(1);
-
-  var stream = sequentialBaseReadableStream(5, { async: true });
-
-  var dataWritten = [];
-  var dest = {
-    state: 'writable',
-    write: function (value) {
-      dataWritten.push(value);
-      return Promise.resolve();
-    },
-    close: function () {
-      t.deepEqual(dataWritten, [1, 2, 3, 4, 5]);
-      return Promise.resolve();
-    },
-    abort: function () {
-      t.fail('Should not call abort');
-    }
-  };
-
-  stream.pipeTo(dest);
-});
-
 test('BaseReadableStream cancellation puts the stream in a closed state (no data pulled yet)', function (t) {
   var stream = sequentialBaseReadableStream(5);
 
@@ -459,6 +433,7 @@ test('BaseReadableStream cancellation puts the stream in a closed state (no data
     t.fail('wait promise vended after the cancellation should not be rejected');
   });
 });
+
 test('BaseReadableStream cancellation puts the stream in a closed state (after waiting for data)', function (t) {
   var stream = sequentialBaseReadableStream(5);
 
