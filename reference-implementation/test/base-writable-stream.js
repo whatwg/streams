@@ -68,3 +68,28 @@ test('BaseWritableStream with simple input', function (t) {
     t.end();
   });
 });
+
+test('closing a stream which acknowledges all writes immediately', function (t) {
+  var storage;
+  var basic = new BaseWritableStream({
+    start : function start() { storage = []; },
+
+    write : function write(data, done) {
+      storage.push(data);
+      done();
+    }
+  });
+
+  setTimeout(function () {
+    // Give it time to finish starting.
+
+    var input = [1, 2, 3, 4, 5];
+    writeArrayToStream(input, basic).then(function () {
+      t.deepEqual(storage, input, 'got back what was passed in');
+      t.end();
+    }, function (error) {
+      t.fail(error);
+      t.end();
+    });
+  });
+});

@@ -227,7 +227,7 @@ BaseWritableStream.prototype.close = function close() {
     case 'writable':
       this._state = 'closing';
       this._doClose();
-      return this._closedPromise();
+      return this._closedPromise;
 
     case 'waiting':
       this._buffer.push({
