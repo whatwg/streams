@@ -66,3 +66,23 @@ test('Piping through a synchronous pass-through transform stream never causes ba
     t.deepEqual(chunks, [1, 2, 3, 4]);
   });
 });
+
+test('Piping through a synchronous pass-through transform stream never causes backpressure: sync pull', function (t) {
+  t.plan(5);
+
+  var counter = 0;
+  var rs = new BaseReadableStream({
+    pull : function (push, close) {
+      t.equal(push(++counter), true);
+      if (counter === 4) {
+        close();
+      }
+    }
+  });
+
+  var output = rs.pipeThrough(passThroughTransform());
+
+  readableStreamToArray(output).then(function (chunks) {
+    t.deepEqual(chunks, [1, 2, 3, 4]);
+  });
+});

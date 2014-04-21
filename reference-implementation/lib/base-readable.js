@@ -103,8 +103,11 @@ BaseReadableStream.prototype._fillPipeDest = function _fillPipeDest() {
 
       this._pipeDest = undefined;
     } else {
-      // Otherwise, do the usual thing you do with an empty buffer: ask to fill it.
-      this._callPull();
+      if (this._pulling) {
+        process.nextTick(this._callPull.bind(this));
+      } else {
+        this._callPull();
+      }
     }
   }
 };
@@ -115,7 +118,6 @@ BaseReadableStream.prototype._push = function _push(data) {
   }
 
   this._buffer.push(data);
-  this._pulling = false;
 
   if (this._pipeDest !== undefined) {
     if (this._pipeDest.state === 'writable') {
@@ -185,7 +187,7 @@ BaseReadableStream.prototype._error = function _error(error) {
 BaseReadableStream.prototype._callPull = function _callPull() {
   var stream = this;
 
-  if (this._pulling === true) return;
+  if (this._pulling === true || this._draining === true) return;
   this._pulling = true;
 
   if (this._started === false) {
@@ -199,6 +201,7 @@ BaseReadableStream.prototype._callPull = function _callPull() {
       } catch (pullResultE) {
         this._error(pullResultE);
       }
+      this._pulling = false;
     }.bind(this));
   } else {
     try {
@@ -210,6 +213,7 @@ BaseReadableStream.prototype._callPull = function _callPull() {
     } catch (pullResultE) {
       this._error(pullResultE);
     }
+    this._pulling = false;
   }
 };
 
