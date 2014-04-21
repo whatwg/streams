@@ -191,7 +191,7 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 1. If Type(_input_) is not Object, then throw a **TypeError** exception.
 1. If Type(_output_) is not Object, then throw a **TypeError** exception.
 1. Let _stream_ be the **this** value.
-1. Let _result_ be the result of calling Invoke(_stream_, `"pipeTo"`, (_options_)).
+1. Let _result_ be the result of calling Invoke(_stream_, `"pipeTo"`, (_input_, _options_)).
 1. ReturnIfAbrupt(_result_).
 1. Return _output_.
 
