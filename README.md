@@ -36,7 +36,7 @@ class BaseReadableStream {
     get Promise<undefined> closed
 
     // Internal properties
-    Array [[buffer]] = []
+    Array [[queue]] = []
     boolean [[started]] = false
     boolean [[draining]] = false
     boolean [[pulling]] = false
@@ -58,9 +58,9 @@ class BaseReadableStream {
 }
 
 enum ReadableStreamState {
-    "readable"  // the buffer has something in it; read at will
-    "waiting"   // the source is not ready or the buffer is empty; you should call wait
-    "closed"  // all data has been read from both the source and the buffer
+    "readable"  // the queue has something in it; read at will
+    "waiting"   // the source is not ready or the queue is empty; you should call wait
+    "closed"  // all data has been read from both the source and the queue
     "errored"   // the source errored so the stream is now dead
 }
 ```
@@ -75,7 +75,7 @@ The constructor is passed several functions, all optional:
 - `pull(push, close, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `push` function is called.
 - `cancel()` is called when the readable stream is canceled, and should perform whatever source-specific steps are necessary to clean up and stop reading.
 
-Both `start` and `pull` are given the ability to manipulate the stream's internal buffer and state by being passed the `this.[[push]]`, `this.[[close]]`, and `this.[[error]]` functions.
+Both `start` and `pull` are given the ability to manipulate the stream's internal queue and state by being passed the `this.[[push]]`, `this.[[close]]`, and `this.[[error]]` functions.
 
 1. If IsCallable(_start_) is **false**, throw a **TypeError** exception.
 1. If IsCallable(_pull_) is **false**, throw a **TypeError** exception.
@@ -99,9 +99,9 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `this.[[state]]` is `"waiting"` or `"closed"`, throw a **TypeError** exception.
 1. If `this.[[state]]` is `"errored"`, throw `this.[[storedError]]`.
 1. Assert: `this.[[state]]` is `"readable"`.
-1. Assert: `this.[[buffer]]` is not empty.
-1. Let `data` be the result of shifting an element off of the front of `this.[[buffer]]`.
-1. If `this.[[buffer]]` is now empty,
+1. Assert: `this.[[queue]]` is not empty.
+1. Let `data` be the result of shifting an element off of the front of `this.[[queue]]`.
+1. If `this.[[queue]]` is now empty,
     1. If `this.[[draining]]` is **true**,
         1. Set `this.[[state]]` to `"closed"`.
         1. Let `this.[[waitPromise]]` be a newly-created promise resolved with **undefined**.
@@ -124,7 +124,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
 1. If `this.[[state]]` is `"waiting"`, resolve `this.[[waitPromise]]` with **undefined**.
 1. If `this.[[state]]` is `"readable"`, let `this.[[waitPromise]]` be a new promise resolved with **undefined**.
-1. Clear `this.[[buffer]]`.
+1. Clear `this.[[queue]]`.
 1. Set `this.[[state]]` to `"closed"`.
 1. Resolve `this.[[closedPromise]]` with **undefined**.
 1. Return the result of promise-calling `this.[[onCancel]]()`.
@@ -200,13 +200,13 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 ##### `[[push]](data)`
 
 1. If `this.[[state]]` is `"waiting"`,
-    1. Push `data` onto `this.[[buffer]]`.
+    1. Push `data` onto `this.[[queue]]`.
     1. Set `this.[[pulling]]` to **false**.
     1. Set `this.[[state]]` to `"readable"`.
     1. Resolve `this.[[waitPromise]]` with **undefined**.
     1. Return **true**.
 1. If `this.[[state]]` is `"readable"`,
-    1. Push `data` onto `this.[[buffer]]`.
+    1. Push `data` onto `this.[[queue]]`.
     1. Set `this.[[pulling]]` to **false**.
 1. Return **false**.
 
@@ -227,7 +227,7 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
     1. Reject `this.[[waitPromise]]` with `e`.
     1. Reject `this.[[closedPromise]]` with `e`.
 1. If `this.[[state]]` is `"readable"`,
-    1. Clear `this.[[buffer]]`.
+    1. Clear `this.[[queue]]`.
     1. Set `this.[[state]]` to `"errored"`.
     1. Set `this.[[storedError]]` to `e`.
     1. Let `this.[[waitPromise]]` be a newly-created promise object rejected with `e`.
@@ -271,7 +271,7 @@ class ReadableStream extends BaseReadableStream {
     // Internal properties
     [[tee]]
     [[strategy]]
-    [[bufferSize]] = 0
+    [[queueSize]] = 0
 }
 ```
 
@@ -285,7 +285,7 @@ class ReadableStream extends BaseReadableStream {
 ##### read()
 
 1. Let `data` be `super()`.
-1. Subtract `this.[[strategy]].count(data)` from `this.[[bufferSize]]`.
+1. Subtract `this.[[strategy]].count(data)` from `this.[[queueSize]]`.
 1. Return `data`.
 
 ##### pipeTo(dest, { close })
@@ -302,8 +302,8 @@ class ReadableStream extends BaseReadableStream {
 
 1. Call `BaseReadableStream`'s version of `this.[[push]](data)`.
 1. If `this.[[state]]` is now `"readable"`,
-    1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
-    1. Return `this.[[strategy]].needsMoreData(this.[[bufferSize]])`.
+    1. Add `this.[[strategy]].count(data)` to `this.[[queueSize]]`.
+    1. Return `this.[[strategy]].needsMoreData(this.[[queueSize]])`.
 1. Return **false**.
 
 ## Writable Stream APIs
@@ -335,12 +335,12 @@ class BaseWritableStream {
 
     // Internal methods
     [[error]](any e)
-    [[advanceBuffer]]()
+    [[advanceQueue]]()
     [[doClose]]()
     [[doNextWrite]]({ type, promise, data })
 
     // Internal properties
-    Array [[buffer]] = []
+    Array [[queue]] = []
     string [[state]] = "writable"
     any [[storedError]]
     Promise<undefined> [[currentWritePromise]]
@@ -352,8 +352,8 @@ class BaseWritableStream {
 }
 
 enum WritableStreamState {
-    "writable" // the sink is ready and the buffer is not yet full; write at will
-    "waiting"  // the sink is not ready or the buffer is full; you should call wait
+    "writable" // the sink is ready and the queue is not yet full; write at will
+    "waiting"  // the sink is not ready or the queue is full; you should call wait
     "closing"  // the sink is being closed; no more writing
     "closed"   // the sink has been closed
     "errored"  // the sink errored so the stream is now dead
@@ -371,7 +371,7 @@ The constructor is passed several functions, all optional:
 * `close()` should close the underlying sink. If this process is asynchronous, it can return a promise to signal success or failure. The stream implementation guarantees that this function will be called only after all queued-up writes have succeeded.
 * `abort()` is an abrupt close, signaling that all data written so far is suspect. It should clean up underlying resources, much like `close`, but perhaps with some custom handling. Unlike `close`, `abort` will be called even if writes are queued up, throwing away that data.
 
-In reaction to calls to the stream's `.write()` method, the `write` constructor option is given data from the internal buffer, along with the means to signal that the data has been successfully or unsuccessfully written.
+In reaction to calls to the stream's `.write()` method, the `write` constructor option is given data from the internal queue, along with the means to signal that the data has been successfully or unsuccessfully written.
 
 1. If IsCallable(_start_) is **false**, throw a **TypeError** exception.
 1. If IsCallable(_write_) is **false**, throw a **TypeError** exception.
@@ -383,7 +383,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Let `this.[[writablePromise]]` be a newly-created pending promise.
 1. Let `this.[[closedPromise]]` be a newly-created pending promise.
 1. Call `start()` and let `startedPromise` be the result of casting the return value to a promise.
-1. When/if `startedPromise` is fulfilled, call `this.[[advanceBuffer]]()`.
+1. When/if `startedPromise` is fulfilled, call `this.[[advanceQueue]]()`.
 1. When/if `startedPromise` is rejected with reason `r`, call `this.[[error]](r)`.
 
 ##### get closed
@@ -397,14 +397,14 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 ##### write(data)
 
 1. If `this.[[state]]` is `"writable"`,
-    1. If `this.[[buffer]]` is nonempty, set `this.[[state]]` to `"waiting"`.
+    1. If `this.[[queue]]` is nonempty, set `this.[[state]]` to `"waiting"`.
     1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
     1. Let `promise` be a newly-created pending promise.
     1. Call `this.[[doNextWrite]]({ type: "data", promise, data })`.
     1. Return `promise`.
 1. If `this.[[state]]` is `"waiting"`,
     1. Let `promise` be a newly-created pending promise.
-    1. Push `{ type: "data", promise, data }` onto `this.[[buffer]]`.
+    1. Push `{ type: "data", promise, data }` onto `this.[[queue]]`.
     1. Return `promise`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
     1. Return a promise rejected with a **TypeError** exception.
@@ -419,7 +419,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Return `this.[[closedPromise]]`.
 1. If `this.[[state]]` is `"waiting"`,
     1. Set `this.[[state]]` to `"closing"`.
-    1. Push `{ type: "close", promise: undefined, data: undefined }` onto `this.[[buffer]]`.
+    1. Push `{ type: "close", promise: undefined, data: undefined }` onto `this.[[queue]]`.
     1. Return `this.[[closedPromise]]`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
     1. Return a promise rejected with a **TypeError** exception.
@@ -442,19 +442,19 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 ##### `[[error]](e)`
 
 1. If `this.[[state]]` is `"closed"` or `"errored"`, return.
-1. For each entry `{ type, promise, data }` in `this.[[buffer]]`, reject `promise` with `r`.
-1. Clear `this.[[buffer]]`.
+1. For each entry `{ type, promise, data }` in `this.[[queue]]`, reject `promise` with `r`.
+1. Clear `this.[[queue]]`.
 1. Set `this.[[state]]` to `"errored"`.
 1. Set `this.[[storedError]]` to `e`.
 1. Reject `this.[[writablePromise]]` with `e`.
 1. Reject `this.[[closedPromise]]` with `e`.
 
-##### `[[advanceBuffer]]()`
+##### `[[advanceQueue]]()`
 
-1. If `this.[[buffer]]` is not empty,
-    1. Shift `entry` off of `this.[[buffer]]`.
+1. If `this.[[queue]]` is not empty,
+    1. Shift `entry` off of `this.[[queue]]`.
     1. Call `this.[[doNextWrite]](entry)`.
-1. If `this.[[buffer]]` is empty,
+1. If `this.[[queue]]` is empty,
     1. Set `this.[[state]]` to `"writable"`.
     1. Resolve `this.[[writablePromise]]` with **undefined**.
 
@@ -481,11 +481,11 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Set `this.[[currentWritePromise]]` to **undefined**.
     1. If `this.[[state]]` is `"waiting"`,
         1. Resolve `promise` with **undefined**.
-        1. Call `this.[[advanceBuffer]]()`.
+        1. Call `this.[[advanceQueue]]()`.
     1. If `this.[[state]]` is `"closing"`,
         1. Resolve `promise` with **undefined**.
-        1. If `this.[[buffer]]` is not empty,
-            1. Shift `entry` off of `this.[[buffer]]`.
+        1. If `this.[[queue]]` is not empty,
+            1. Shift `entry` off of `this.[[queue]]`.
             1. Call `this.[[doNextWrite]](entry)`.
 1. Call `this.[[onWrite]](data, signalDone, this.[[error]])`.
 1. If the call throws an exception `e`, call `this.[[error]](e)`.
@@ -514,7 +514,7 @@ class WritableStream extends BaseWritableStream {
 
     // Internal properties
     [[strategy]]
-    [[bufferSize]] = 0
+    [[queueSize]] = 0
 }
 ```
 
@@ -528,16 +528,16 @@ class WritableStream extends BaseWritableStream {
 ##### write(data)
 
 1. If `this.[[state]]` is `"writable"` or `"waiting"`,
-    1. Add `this.[[strategy]].count(data)` to `this.[[bufferSize]]`.
+    1. Add `this.[[strategy]].count(data)` to `this.[[queueSize]]`.
 1. If `this.[[state]]` is `"writable"`,
     1. Let `promise` be a newly-created pending promise.
-    1. If `ToBoolean(this.[[strategy]].needsMoreData(this.[[bufferSize]]))` is **false**,
+    1. If `ToBoolean(this.[[strategy]].needsMoreData(this.[[queueSize]]))` is **false**,
         1. Set `this.[[state]]` to `"waiting"`.
         1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
-    1. If `this.[[buffer]]` is empty,
+    1. If `this.[[queue]]` is empty,
         1. Call `this.[[doNextWrite]]({ type: "data", promise, data })`.
     1. Otherwise,
-        1. Push `{ type: "data", promise, data }` onto `this.[[buffer]]`.
+        1. Push `{ type: "data", promise, data }` onto `this.[[queue]]`.
     1. Return `promise`.
 1. Return `super(data)`.
 
@@ -545,7 +545,7 @@ class WritableStream extends BaseWritableStream {
 
 ##### `[[doNextWrite]]({ type, promise, data })`
 
-1. Subtract `this.[[strategy]].count(data)` from `this.[[bufferSize]]`.
+1. Subtract `this.[[strategy]].count(data)` from `this.[[queueSize]]`.
 1. Return the result of calling `BaseWritableStream`'s version of `this.[[doNextWrite]]({ type, promise, data })`.
 
 ## Helper APIs
@@ -579,12 +579,12 @@ class TeeStream extends BaseWritableStream {
 }
 ```
 
-### LengthBufferingStrategy
+### LengthQueuingStrategy
 
-A common buffering strategy when dealing with binary or string data is to wait until the accumulated `length` properties of the incoming data reaches a specified `highWaterMark`. As such, this is provided as a built-in helper along with the stream APIs.
+A common queuing strategy when dealing with binary or string data is to wait until the accumulated `length` properties of the incoming data reaches a specified `highWaterMark`. As such, this is provided as a built-in helper along with the stream APIs.
 
 ```js
-class LengthBufferingStrategy {
+class LengthQueuingStrategy {
     constructor({ highWaterMark }) {
         this.highWaterMark = Number(highWaterMark);
 
@@ -597,18 +597,18 @@ class LengthBufferingStrategy {
         return chunk.length;
     }
 
-    needsMoreData(bufferSize) {
-        return bufferSize < this.highWaterMark;
+    needsMoreData(queueSize) {
+        return queueSize < this.highWaterMark;
     }
 }
 ```
 
-### CountBufferingStrategy
+### CountQueuingStrategy
 
-A common buffering strategy when dealing with object streams is to simply count the number of objects that have been accumulated so far, waiting until this number reaches a specified `highWaterMark`. As such, this strategy is also provided as a built-in helper.
+A common queuing strategy when dealing with object streams is to simply count the number of objects that have been accumulated so far, waiting until this number reaches a specified `highWaterMark`. As such, this strategy is also provided as a built-in helper.
 
 ```js
-class CountBufferingStrategy {
+class CountQueuingStrategy {
     constructor({ highWaterMark }) {
         this.highWaterMark = Number(highWaterMark);
 
@@ -621,8 +621,8 @@ class CountBufferingStrategy {
         return 1;
     }
 
-    needsMoreData(bufferSize) {
-        return bufferSize < this.highWaterMark;
+    needsMoreData(queuSize) {
+        return queueSize < this.highWaterMark;
     }
 }
 ```

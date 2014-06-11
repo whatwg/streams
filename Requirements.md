@@ -12,7 +12,7 @@ To understand the importance of backpressure, watch [Thorsten Lorenz's LXJS 2013
 
 ### You must be able to efficiently adapt existing _push_-based data sources into a uniform streaming interface.
 
-A _push-based_ data source is one which, while the flow is turned on, pushes data at you (e.g. via events). It may also provide a mechanism for pausing and resuming the flow of data. However, this mechanism could be advisory, i.e. you may still receive data after requesting a pause. It is important not to lose such data (it must be buffered).
+A _push-based_ data source is one which, while the flow is turned on, pushes data at you (e.g. via events). It may also provide a mechanism for pausing and resuming the flow of data. However, this mechanism could be advisory, i.e. you may still receive data after requesting a pause. It is important not to lose such data (it must be queued for further consumption).
 
 An example of a push-based data source is a TCP socket. (TODO: someone who knows TCP better explain exactly the way in which it pushes data, and what "pausing" means in that context and why it is advisory.)
 
@@ -26,33 +26,33 @@ An example of a pull-based data source is a file descriptor. (TODO: someone expl
 
 A common problem with push-based data sources is that they make it very easy to lose data if you do not immediately process it.
 
-For example, Node.js's "streams1" (version 0.6 and below) presented a push-based API that mapped directly to the underlying data source. So a stream for incoming HTTP POST request data would fire `"data"` events continually. A common problem was the desire to perform some asynchronous action, such as authentication, before consuming the stream. But while this asynchronous authentication was taking place, data events would be fired and lost. Worse, calling `pause()` on the request stream did not work, because the pause mapped directly to the underlying TCP primitive, which is only advisory. This forced authors to manually buffer incoming requests, which was easy to do incorrectly or inefficiently.
+For example, Node.js's "streams1" (version 0.6 and below) presented a push-based API that mapped directly to the underlying data source. So a stream for incoming HTTP POST request data would fire `"data"` events continually. A common problem was the desire to perform some asynchronous action, such as authentication, before consuming the stream. But while this asynchronous authentication was taking place, data events would be fired and lost. Worse, calling `pause()` on the request stream did not work, because the pause mapped directly to the underlying TCP primitive, which is only advisory. This forced authors to manually queue incoming requests, which was easy to do incorrectly or inefficiently.
 
-The solution is to move the buffering logic into the stream primitive itself, removing the error-prone and easy-to-forget process it forces upon consumers. If you stop there, you end up with a push stream with  `pause()` and `resume()` methods that are not advisory, but instead reliably stop the flow of `"data"`, `"end"`, and `"close"` events. However, you can take this further, and use your internal buffer to unify both push- and pull-based data sources into a single pull-based streaming API.
+The solution is to move the queuing logic into the stream primitive itself, removing the error-prone and easy-to-forget process it forces upon consumers. If you stop there, you end up with a push stream with  `pause()` and `resume()` methods that are not advisory, but instead reliably stop the flow of `"data"`, `"end"`, and `"close"` events. However, you can take this further, and use your internal queue to unify both push- and pull-based data sources into a single pull-based streaming API.
 
 ### You must not force an asynchronous reading API upon users.
 
-Data is often available synchronously, for example because it has been previously buffered into memory, or cached by the OS, or because it is being passed through a synchronous transform stream. Thus, even though the most natural mental model may consist of asynchronously pulling data or waiting for it to arrive, enforcing this upon consumers of the readable stream interface would be a mistake, as it prevents them from accessing the data as fast as possible, and imposes an unnecessary delay for every step along a stream chain.
+Data is often available synchronously, for example because it has been previously queued into memory, or cached by the OS, or because it is being passed through a synchronous transform stream. Thus, even though the most natural mental model may consist of asynchronously pulling data or waiting for it to arrive, enforcing this upon consumers of the readable stream interface would be a mistake, as it prevents them from accessing the data as fast as possible, and imposes an unnecessary delay for every step along a stream chain.
 
 A better model is to provide synchronous access to already-available data, plus the ability to install a handler to be called asynchronously when more data becomes available. A consumer then consults a state property of the readable stream, which tells them whether synchronously reading will be successful, or whether they should install an asynchronous handler to read later.
 
 ## Creating Writable Streams
 
-### You must shield the user from the complexity of buffering sequential writes.
+### You must shield the user from the complexity of queuing sequential writes.
 
 Most underlying data sinks are designed to work well with only one concurrent write. For example, while asynchronously writing to an open file descriptor, you should not perform another write until the first finishes. (TODO: give more low-level examples of e.g. how the filesystem or network barfs at you or causes out-of-order delivery.) Moreover, you generally need to make sure that the previous writes finish *successfully* before writing the next piece of data.
 
 On the other hand, incoming data, either produced manually or piped from a readable stream, has no respect for the limits of the underlying sink. If you are piping from a fast filesystem to a slow network connection, it is quite likely new data will be available from the filesystem before the network responds that it has successfully delivered the first chunk you wrote to it. Forcing users of your writable stream API to juggle this state is an undue and error-prone burden. Worse, users can sometimes get away with ignoring this concern, e.g. if they usually pipe a slow source to a fast one, there will be no problems, until one day they pipe to a network filesystem instead of a local one, and writes are suddenly delivered concurrently or out of order.
 
-Thus it is the duty of a writable stream API to provide an easy interface for writing data to it at any speed, but buffering incoming data and only forwarding it to the underlying sink one chunk at a time, and only after the previous write completed successfully.
+Thus it is the duty of a writable stream API to provide an easy interface for writing data to it at any speed, but queuing incoming data and only forwarding it to the underlying sink one chunk at a time, and only after the previous write completed successfully.
 
-This leads to a natural quantification of how "slow" a writable stream is in terms of how full its write buffer is. This measure of slowness can be used to propagate backpressure signals to anyone writing data to the writable stream; see below for more details.
+This leads to a natural quantification of how "slow" a writable stream is in terms of how full its write queue is. This measure of slowness can be used to propagate backpressure signals to anyone writing data to the writable stream; see below for more details.
 
 ### You must not force an asynchronous writing API upon users.
 
 Again, it is often possible to perform a synchronous write, e.g. to an in-memory data source or to a synchronous transformation. Thus, the user must not be forced to wait for a previous write to complete before continuing to write.
 
-This issue is actually solved by properly considering the previous one; they are two facets of the same thing. If you buffer sequential writes for the user, they can synchronously write chunks with impunity.
+This issue is actually solved by properly considering the previous one; they are two facets of the same thing. If you queue sequential writes for the user, they can synchronously write chunks with impunity.
 
 Note that it is not important to *notify* the user synchronously of success or failure when writing (even if the write happened synchronously). It is simply important to not require them to *wait* for an asynchronous notification before continuing to write.
 
@@ -73,7 +73,7 @@ When all data has been successfully written to the stream, users of the writable
 
 ### You must be able to pipe streams to each other.
 
-The primary way of consuming streams is to pipe them to each other. This is the essence of streaming APIs: getting data from a readable stream to a writable one, while buffering as little data as possible in memory.
+The primary way of consuming streams is to pipe them to each other. This is the essence of streaming APIs: getting data from a readable stream to a writable one, while queuing as little data as possible in memory.
 
 ```js
 fs.createReadStream("source.txt")
@@ -112,31 +112,31 @@ _NOTE: a transform stream is not always the most efficient or straightforward ab
 
 ### You must be able to communicate backpressure.
 
-_Backpressure_ is roughly the act of letting the slowest writable stream in the chain govern the rate at which data is consumed from the ultimate data source. This is necessary to make sure a program has a reasonable upper bound on memory usage as it buffers to prevent losing data. Without backpressure, slow writable streams in the chain will either cause memory usage to balloon as buffered data grows without limit, or will cause data loss if the buffers are capped at a hard limit.
+_Backpressure_ is roughly the act of letting the slowest writable stream in the chain govern the rate at which data is consumed from the ultimate data source. This is necessary to make sure a program has a reasonable upper bound on memory usage as it queues to prevent losing data. Without backpressure, slow writable streams in the chain will either cause memory usage to balloon as queued data grows without limit, or will cause data loss if the queue is capped at a hard limit.
 
 If this data source is pull-based, this means not pulling data any faster than required; if the data source is push-based, this means issuing a pause signal when too much data has already been pushed but not yet flushed through the stream chain.
 
 The exact strategy for applying backpressure can be a quite subtle matter, and will depend on whether you want your stream API to present a pull- or push-based interface. Assuming a pull-based stream interface, the most naïve backpressure strategy is:
 
 - _When the stream is based on a pull source:_
-  - When a consumer signals it is ready to read data from the stream object, pull data from the source into the stream's internal buffer so that it can be read.
+  - When a consumer signals it is ready to read data from the stream object, pull data from the source into the stream's internal queue so that it can be read.
   - Never load data into the stream from the source before the user signals interest.
 - _When the stream is based on a push source:_
   - When a consumer signals it is ready to read data from the stream object, send a start signal to the source.
-  - Once the data arrives, store it in the stream's internal buffer so it can be read, and send a stop signal to the source.
+  - Once the data arrives, store it in the stream's internal queue so it can be read, and send a stop signal to the source.
 
-These strategies are enough for a generic case, but performance wins can be had by allowing some in-memory buffering, limited by a specified *high water mark*. This more advanced strategy consists of:
+These strategies are enough for a generic case, but performance wins can be had by allowing some in-memory queuing, limited by a specified *high water mark*. This more advanced strategy consists of:
 
 - _When the stream is based on a pull source:_
-  - Proactively pull data from the source into the stream's internal buffer, even before the consumer signals that it wants to read from the stream object.
+  - Proactively pull data from the source into the stream's internal queue, even before the consumer signals that it wants to read from the stream object.
   - Do so until the pulled data accumulates up to the stream's high water mark. This makes the data available immediately when requested by consumers of the stream.
-  - After the consumer reads all of the data from the internal buffer, we say that the buffer is drained; in this event, go back to proactively pulling data into the buffer from the source.
+  - After the consumer reads all of the data from the internal queue, we say that the queue is drained; in this event, go back to proactively pulling data into the queue from the source.
 - _When the stream is based on a push source:_
   - Send a start signal to the source immediately, even before the consumer signals that it wants to read from the stream object.
-  - As data is pushed from the source, accumulate it in the stream's internal buffer, up to the high water mark. Once the high  water mark is reached, send a stop signal to the source.
-  - After the stream's buffer is drained, send a start signal to the source.
+  - As data is pushed from the source, accumulate it in the stream's internal queue, up to the high water mark. Once the high  water mark is reached, send a stop signal to the source.
+  - After the stream's queue is drained, send a start signal to the source.
 
-You can introduce an even more advanced strategy by adding a *low water mark*, which modifies the above by resuming data collection once the buffer reaches the low water mark instead of once the buffer is entirely drained.
+You can introduce an even more advanced strategy by adding a *low water mark*, which modifies the above by resuming data collection once the queue reaches the low water mark instead of once the queue is entirely drained.
 
 ### You must be able to pipe a stream to more than one writable stream.
 
@@ -160,7 +160,7 @@ Also note that the handling of cancel signals alongside multi-stream piping must
 
 As a dual to readable stream cancellation, it's possible for a source to be unable to produce any more data, usually because of an error. In this case, any writable streams it is being piped to should not leave their underlying sinks open indefinitely; instead, they themselves should be given a abort signal.
 
-This signal is similar to, but different than, the "close" signal described above. It implies that the data written so far is not meaningful or valid; that any buffered writes should be discarded; and that a cleanup operation should be performed. For example, when a file stream represents a newly-created file, a close signal waits for all buffered writes to complete, then closes the file descriptor; a new, complete file now exists on the disk. But a abort signal would throw away any buffered writes and delete the file.
+This signal is similar to, but different than, the "close" signal described above. It implies that the data written so far is not meaningful or valid; that any queued writes should be discarded; and that a cleanup operation should be performed. For example, when a file stream represents a newly-created file, a close signal waits for all queued writes to complete, then closes the file descriptor; a new, complete file now exists on the disk. But a abort signal would throw away any queued writes and delete the file.
 
 ## Other
 
@@ -168,9 +168,9 @@ This signal is similar to, but different than, the "close" signal described abov
 
 Although underlying sources and sinks will often produce or accept only binary data, this should not prevent writing streams that contain other types of data, for example strings, objects, or frames of video. Such streams are extremely useful for programmers, both for direct consumption (consuming a string stream or stream of parsed objects is more useful than consuming `ArrayBuffer`s directly), and for producing composable transform streams.
 
-By ensuring the stream API is agnostic to the type of data that the stream contains, it is possible to create streams for such disparate objects as HTML elements, database records, RPC messages, semantic events from remote systems, synchronization deltas for CRDTs, and user input events. By allowing all such streams to be composed together with a single uniform interface, you allow complex systems to be built while still benefiting from all of the features that streams manage for you, such as automatic backpressure, buffering, and abort signals.
+By ensuring the stream API is agnostic to the type of data that the stream contains, it is possible to create streams for such disparate objects as HTML elements, database records, RPC messages, semantic events from remote systems, synchronization deltas for CRDTs, and user input events. By allowing all such streams to be composed together with a single uniform interface, you allow complex systems to be built while still benefiting from all of the features that streams manage for you, such as automatic backpressure, queuing, and abort signals.
 
-This poses challenges, mainly regarding the buffering strategy for applying backpressure when it is unclear how much memory a piece of streaming data might take up. This is largely stream-specific, and the best you can do is make it easy for user-created streams to inform the implementation of relevant data, and provide a few useful defaults like a byte counter for `ArrayBuffer`s, a character counter for strings, or a generic object counter for most others. But compared to an implementation that restricts itself to a few binary or string data types, it provides a much more useful, extensible, and forward-thinking abstraction.
+This poses challenges, mainly regarding the queuing strategy for applying backpressure when it is unclear how much memory a piece of streaming data might take up. This is largely stream-specific, and the best you can do is make it easy for user-created streams to inform the implementation of relevant data, and provide a few useful defaults like a byte counter for `ArrayBuffer`s, a character counter for strings, or a generic object counter for most others. But compared to an implementation that restricts itself to a few binary or string data types, it provides a much more useful, extensible, and forward-thinking abstraction.
 
 ### You must be able to create representions of "duplex" data sources.
 
@@ -188,7 +188,7 @@ Note that this type of occurrence, which happens exactly once, either succeeds o
 
 ### You must have a way of passively watching data pass through a stream.
 
-This is commonly used for analytics or progress reporting. You wish to observe data flowing, either from a readable stream or to a writable stream, but not interfere with the flow, backpressure, or buffering strategy in any way.
+This is commonly used for analytics or progress reporting. You wish to observe data flowing, either from a readable stream or to a writable stream, but not interfere with the flow, backpressure, or queuing strategy in any way.
 
 A convenient interface for this is an evented one. However, marrying an evented API to a stream API presents many problems, and was widely considered a huge mistake by the Node.js core team. (For example, there are now two sources of truth about what data stream holds, and since traditional event emitters allow anyone to emit events on them, the second one is unreliable.) A better strategy may be using AOP-style "wrapping" of `read` or `write` calls to notify a separately-managed event emitter.
 

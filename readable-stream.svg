@@ -113,7 +113,7 @@
         <tspan font-size="12px" font-family="Arial" fill="#000000">until</tspan>
       </text>
       <text x="0.0" style="text-anchor: middle" y="11.8">
-        <tspan font-size="12px" font-family="Arial" fill="#000000">buffer empty</tspan>
+        <tspan font-size="12px" font-family="Arial" fill="#000000">queue empty</tspan>
       </text>
     </g>
   </g>
@@ -141,7 +141,7 @@
         <tspan font-size="12px" font-family="Arial" fill="#000000">until</tspan>
       </text>
       <text x="0.0" style="text-anchor: middle" y="11.8">
-        <tspan font-size="12px" font-family="Arial" fill="#000000">buffer empty</tspan>
+        <tspan font-size="12px" font-family="Arial" fill="#000000">queue empty</tspan>
       </text>
     </g>
   </g>

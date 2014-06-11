@@ -34,7 +34,7 @@ function streamToConsole(readable) {
 
 #### Getting the Next Piece of Available Data
 
-As another example, this helper function will return a promise for the next available piece of data from a given readable stream. This introduces an artificial delay if there is already data buffered, but can provide a convenient interface for simple chunk-by-chunk consumption, as one might do e.g. when streaming database records. It uses an EOF sentinel to signal the end of the stream, and behaves poorly if called twice in parallel without waiting for the previously-returned promise to fulfill.
+As another example, this helper function will return a promise for the next available piece of data from a given readable stream. This introduces an artificial delay if there is already data queued, but can provide a convenient interface for simple chunk-by-chunk consumption, as one might do e.g. when streaming database records. It uses an EOF sentinel to signal the end of the stream, and behaves poorly if called twice in parallel without waiting for the previously-returned promise to fulfill.
 
 ```js
 var EOF = Object.create(null);
@@ -138,7 +138,7 @@ class StreamingSocket extends ReadableStream {
                 rawSocket.readStop();
             },
 
-            strategy: new LengthBufferingStrategy({ highWaterMark })
+            strategy: new LengthQueuingStrategy({ highWaterMark })
         });
     }
 }
@@ -146,9 +146,9 @@ class StreamingSocket extends ReadableStream {
 const mySocketStream = new StreamingSocket("http://example.com", 80);
 ```
 
-By leveraging the `ReadableStream` base class, and supplying its super-constructor with the appropriate adapter functions and backpressure strategy, we've created a fully-functioning stream wrapping our raw socket API. It will automatically fill the internal buffer as data is fired into it, preventing any loss that would occur in the simple evented model. If the buffer fills up to the high water mark (defaulting to 16 KiB), it will send a signal to the underlying socket that it should stop sending us data. And once the consumer drains it of all its data, it will send the start signal back, resuming the flow of data.
+By leveraging the `ReadableStream` base class, and supplying its super-constructor with the appropriate adapter functions and backpressure strategy, we've created a fully-functioning stream wrapping our raw socket API. It will automatically fill the internal queue as data is fired into it, preventing any loss that would occur in the simple evented model. If the queue fills up to the high water mark (defaulting to 16 KiB), it will send a signal to the underlying socket that it should stop sending us data. And once the consumer drains it of all its data, it will send the start signal back, resuming the flow of data.
 
-Note how, if data is available synchronously because `ondata` was called synchronously, the data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. Similarly, if `ondata` is called twice in a row, the pushed data will be available to two subsequent `readableStream.read()` calls before `readableStream.state` becomes `"waiting"`.
+Note how, if data is available synchronously because `ondata` was called synchronously, the data is immediately pushed into the internal queue and available for consumption by any downstream consumers. Similarly, if `ondata` is called twice in a row, the pushed data will be available to two subsequent `readableStream.read()` calls before `readableStream.state` becomes `"waiting"`.
 
 #### Adapting a Pull-Based Data Source
 
@@ -198,7 +198,7 @@ class ReadableFile extends ReadableStream {
                 fileHandle.close();
             },
 
-            strategy: new LengthBufferingStrategy({ highWaterMark })
+            strategy: new LengthQueuingStrategy({ highWaterMark })
         });
     }
 }
@@ -208,7 +208,7 @@ const myFileStream = new ReadableFile("/example/path/on/fs.txt");
 
 As before, we leverage the `ReadableStream` base class to do most of the work. Our adapter functions, in this case, don't set up event listeners as they would for a push source; instead, they directly forward the desired operations of opening the file handle and reading from it down to the underlying API.
 
-Again note how, if data is available synchronously because `fileHandle.read` called its callback synchronously, that data is immediately pushed into the internal buffer and available for consumption by any downstream consumers. And if data is requested from the `ReadableFile` instance twice in a row, it will immediately forward those requests to the underlying file handle, so that if it is ready synchronously (because e.g. the OS has recently buffered this file in memory), the data will be returned instantly, within that same turn of the event loop.
+Again note how, if data is available synchronously because `fileHandle.read` called its callback synchronously, that data is immediately pushed into the internal queue and available for consumption by any downstream consumers. And if data is requested from the `ReadableFile` instance twice in a row, it will immediately forward those requests to the underlying file handle, so that if it is ready synchronously (because e.g. the OS has recently buffered this file in memory), the data will be returned instantly, within that same turn of the event loop.
 
 ## Writable Streams
 
@@ -216,7 +216,7 @@ Again note how, if data is available synchronously because `fileHandle.read` cal
 
 #### Writing as Fast as You Can
 
-Since writable streams will automatically buffer any incoming writes, taking care to send the data to the underlying sink in sequence, you can indiscriminately write to a writable stream without much ceremony:
+Since writable streams will automatically queue any incoming writes, taking care to send the data to the underlying sink in sequence, you can indiscriminately write to a writable stream without much ceremony:
 
 ```js
 function writeArrayToStream(array, writableStream) {
@@ -274,7 +274,7 @@ Error with the stream: "Disk full"
 
 #### Paying Attention to Backpressure Signals
 
-The above two examples used the writable streams internal buffer to indiscriminately write to it, counting on the stream itself to handle an excessive number of writes (i.e., more than could be reasonably written to the underlying sink). In reality, the underlying sink will be communicating backpressure signals back to you through the writable stream's `state` property. When the stream's `state` property is `"writable"`, the stream is ready to accept more data—but when it is `"waiting"`, you should, if possible, avoid writing more data.
+The above two examples used the writable streams internal queue to indiscriminately write to it, counting on the stream itself to handle an excessive number of writes (i.e., more than could be reasonably written to the underlying sink). In reality, the underlying sink will be communicating backpressure signals back to you through the writable stream's `state` property. When the stream's `state` property is `"writable"`, the stream is ready to accept more data—but when it is `"waiting"`, you should, if possible, avoid writing more data.
 
 It's a little hard to come up with a realistic example where you can do something useful with this information, since most of them involve readable streams, and in that case, you should just be piping the streams together. But here's one that's only slightly contrived, where we imagine prompting the user for input via a promise-returning `prompt()` function—and disallowing the user from entering more input until the writable stream is ready to accept it.
 
@@ -361,7 +361,7 @@ class WritableFile extends WritableStream {
                 });
             },
 
-            strategy: new LengthBufferingStrategy({ highWaterMark })
+            strategy: new LengthQueuingStrategy({ highWaterMark })
         });
     }
 }
@@ -371,4 +371,4 @@ var file = new WritableFile("/example/path/on/fs.txt");
 
 As you can see, this is fairly straightforward: we simply supply constructor parameters that adapt the raw file handle API into an expected form. The writable stream's internal mechanisms will take care of the rest, ensuring that these supplied operations are queued and sequenced correctly when a consumer writes to the resulting writable stream. Most of the boilerplate here comes from adapting callback-based APIs into promise-based ones, really.
 
-Note how backpressure signals are given off by a writable stream. If a particular call to `fileHandle.write` takes a longer time, `done` will be called later. In the meantime, users of the writable stream may have queued up additional writes, which are stored in the stream's internal buffer. The accumulation of this buffer can move the stream into a "waiting" state, according to the `strategy` parameter, which is a signal to users of the stream that they should back off and stop writing if possible—as seen in our above usage examples.
+Note how backpressure signals are given off by a writable stream. If a particular call to `fileHandle.write` takes a longer time, `done` will be called later. In the meantime, users of the writable stream may have queued up additional writes, which are stored in the stream's internal queue. The accumulation of this queue can move the stream into a "waiting" state, according to the `strategy` parameter, which is a signal to users of the stream that they should back off and stop writing if possible—as seen in our above usage examples.
