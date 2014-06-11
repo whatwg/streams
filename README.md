@@ -35,18 +35,18 @@ class BaseReadableStream {
     // Useful helper
     get Promise<undefined> closed
 
-    // Internal properties
-    Array [[queue]] = []
-    boolean [[started]] = false
-    boolean [[draining]] = false
-    boolean [[pulling]] = false
-    string [[state]] = "waiting"
-    any [[storedError]]
-    Promise<undefined> [[waitPromise]]
-    Promise<undefined> [[closedPromise]]
-    Promise [[startedPromise]]
-    function [[onCancel]]
-    function [[onPull]]
+    // Internal slots
+    [[queue]] = []
+    [[started]] = false
+    [[draining]] = false
+    [[pulling]] = false
+    [[state]] = "waiting"
+    [[storedError]]
+    [[waitPromise]]
+    [[closedPromise]]
+    [[startedPromise]]
+    [[onCancel]]
+    [[onPull]]
 
     // Internal methods for use by the underlying source
     [[push]](any data)
@@ -265,7 +265,7 @@ class ReadableStream extends BaseReadableStream {
     //   in a different function to `start` and `pull`.
     [[push]](data)
 
-    // Internal properties
+    // Internal slots
     [[tee]]
     [[strategy]]
     [[queueSize]] = 0
@@ -336,16 +336,16 @@ class BaseWritableStream {
     [[doClose]]()
     [[doNextWrite]]({ type, promise, data })
 
-    // Internal properties
-    Array [[queue]] = []
-    string [[state]] = "writable"
-    any [[storedError]]
-    Promise<undefined> [[currentWritePromise]]
-    Promise<undefined> [[writablePromise]]
-    Promise<undefined> [[closedPromise]]
-    function [[onWrite]]
-    function [[onClose]]
-    function [[onAbort]]
+    // Internal slots
+    [[queue]] = []
+    [[state]] = "writable"
+    [[storedError]]
+    [[currentWritePromise]]
+    [[writablePromise]]
+    [[closedPromise]]
+    [[onWrite]]
+    [[onClose]]
+    [[onAbort]]
 }
 
 enum WritableStreamState {
@@ -505,7 +505,7 @@ class WritableStream extends BaseWritableStream {
     // You can also think of this as part of the the constructor and write override.
     [[doNextWrite]]({ type, promise, data })
 
-    // Internal properties
+    // Internal slots
     [[strategy]]
     [[queueSize]] = 0
 }
