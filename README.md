@@ -77,9 +77,6 @@ The constructor is passed several functions, all optional:
 
 Both `start` and `pull` are given the ability to manipulate the stream's internal queue and state by being passed the `this.[[push]]`, `this.[[close]]`, and `this.[[error]]` functions.
 
-1. If IsCallable(_start_) is **false**, throw a **TypeError** exception.
-1. If IsCallable(_pull_) is **false**, throw a **TypeError** exception.
-1. If IsCallable(_cancel_) is **false**, throw a **TypeError** exception.
 1. Set `this.[[onCancel]]` to `cancel`.
 1. Set `this.[[onPull]]` to `pull`.
 1. Let `this.[[waitPromise]]` be a newly-created pending promise.
@@ -373,10 +370,6 @@ The constructor is passed several functions, all optional:
 
 In reaction to calls to the stream's `.write()` method, the `write` constructor option is given data from the internal queue, along with the means to signal that the data has been successfully or unsuccessfully written.
 
-1. If IsCallable(_start_) is **false**, throw a **TypeError** exception.
-1. If IsCallable(_write_) is **false**, throw a **TypeError** exception.
-1. If IsCallable(_close_) is **false**, throw a **TypeError** exception.
-1. If IsCallable(_abort_) is **false**, throw a **TypeError** exception.
 1. Set `this.[[onWrite]]` to `write`.
 1. Set `this.[[onClose]]` to `close`.
 1. Set `this.[[onAbort]]` to `abort`.
