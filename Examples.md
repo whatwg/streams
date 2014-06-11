@@ -138,7 +138,7 @@ class StreamingSocket extends ReadableStream {
                 rawSocket.readStop();
             },
 
-            strategy: new LengthQueuingStrategy({ highWaterMark })
+            strategy: new ByteLengthQueuingStrategy({ highWaterMark })
         });
     }
 }
@@ -198,7 +198,7 @@ class ReadableFile extends ReadableStream {
                 fileHandle.close();
             },
 
-            strategy: new LengthQueuingStrategy({ highWaterMark })
+            strategy: new ByteLengthQueuingStrategy({ highWaterMark })
         });
     }
 }
@@ -361,7 +361,7 @@ class WritableFile extends WritableStream {
                 });
             },
 
-            strategy: new LengthQueuingStrategy({ highWaterMark })
+            strategy: new ByteLengthQueuingStrategy({ highWaterMark })
         });
     }
 }

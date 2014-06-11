@@ -579,12 +579,12 @@ class TeeStream extends BaseWritableStream {
 }
 ```
 
-### LengthQueuingStrategy
+### ByteLengthQueuingStrategy
 
-A common queuing strategy when dealing with binary or string data is to wait until the accumulated `length` properties of the incoming data reaches a specified `highWaterMark`. As such, this is provided as a built-in helper along with the stream APIs.
+A common queuing strategy when dealing with binary data is to wait until the accumulated `byteLength` properties of the incoming data reaches a specified `highWaterMark`. As such, this is provided as a built-in helper along with the stream APIs.
 
 ```js
-class LengthQueuingStrategy {
+class ByteLengthQueuingStrategy {
     constructor({ highWaterMark }) {
         this.highWaterMark = Number(highWaterMark);
 
@@ -594,7 +594,7 @@ class LengthQueuingStrategy {
     }
 
     count(chunk) {
-        return chunk.length;
+        return chunk.byteLength;
     }
 
     needsMoreData(queueSize) {
