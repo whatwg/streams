@@ -254,10 +254,10 @@ ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 
 ## Writable Stream APIs
 
-### BaseWritableStream
+### WritableStream
 
 ```
-class BaseWritableStream {
+class WritableStream {
     constructor({
         function start = () => {},
         function write = () => {},
@@ -295,6 +295,9 @@ class BaseWritableStream {
     [[onWrite]]
     [[onClose]]
     [[onAbort]]
+    [[queueSize]] = 0
+    [[strategyCount]]
+    [[strategyNeedsMoreData]]
 }
 
 enum WritableStreamState {
@@ -306,9 +309,9 @@ enum WritableStreamState {
 }
 ```
 
-#### Properties of the BaseWritableStream prototype
+#### Properties of the WritableStream prototype
 
-##### constructor({ start, write, close, abort })
+##### constructor({ start, write, close, abort, { count, needsMoreData } })
 
 The constructor is passed several functions, all optional:
 
@@ -322,6 +325,8 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Set `this.[[onWrite]]` to `write`.
 1. Set `this.[[onClose]]` to `close`.
 1. Set `this.[[onAbort]]` to `abort`.
+1. Set `this.[[strategyCount]]` to `count`.
+1. Set `this.[[strategyNeedsMoreData]]` to `needsMoreData`.
 1. Let `this.[[writablePromise]]` be a newly-created pending promise.
 1. Let `this.[[closedPromise]]` be a newly-created pending promise.
 1. Call `start()` and let `startedPromise` be the result of casting the return value to a promise.
@@ -338,15 +343,26 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ##### write(data)
 
-1. If `this.[[state]]` is `"writable"`,
-    1. If `this.[[queue]]` is nonempty, set `this.[[state]]` to `"waiting"`.
-    1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
-    1. Let `promise` be a newly-created pending promise.
-    1. Call `this.[[doNextWrite]]({ type: "data", promise, data })`.
-    1. Return `promise`.
 1. If `this.[[state]]` is `"waiting"`,
+    1. Let _dataCount_ be the result of `this.[[strategyCount]](data)`.
+    1. ReturnIfAbrupt(_dataCount_).
     1. Let `promise` be a newly-created pending promise.
-    1. Push `{ type: "data", promise, data }` onto `this.[[queue]]`.
+    1. Push `{ type: "data", promise, data, dataCount }` onto `this.[[queue]]`.
+    1. Let `this.[[queueSize]]` be `this.[[queueSize]] + dataCount`.
+    1. Return `promise`.
+1. If `this.[[state]]` is `"writable"`,
+    1. Let _dataCount_ be the result of `this.[[strategyCount]](data)`.
+    1. ReturnIfAbrupt(_dataCount_).
+    1. Let `promise` be a newly-created pending promise.
+    1. If `this.[[queue]]` is empty, call `this.[[doNextWrite]]({ type: "data", promise, data })`.
+    1. Otherwise,
+        1. Let _needsMoreData_ be the result of `this.[[strategyNeedsMoreData]](this.[[queueSize]])`.
+        1. ReturnIfAbrupt(_needsMoreData_).
+        1. If ToBoolean(_needsMoreData_) is **false**,
+            1. Set `this.[[state]]` to `"waiting"`.
+            1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
+        1. Push `{ type: "data", promise, data, dataCount }` onto `this.[[queue]]`.
+        1. Let `this.[[queueSize]]` be `this.[[queueSize]] + dataCount`.
     1. Return `promise`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
     1. Return a promise rejected with a **TypeError** exception.
@@ -379,7 +395,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 1. Return `this.[[writablePromise]]`.
 
-#### Internal Methods of BaseWritableStream
+#### Internal Methods of WritableStream
 
 ##### `[[error]](e)`
 
@@ -395,6 +411,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 1. If `this.[[queue]]` is not empty,
     1. Shift `entry` off of `this.[[queue]]`.
+    1. Let `this.[[queueSize]]` be `this.[[queueSize]] - entry.dataCount`.
     1. Call `this.[[doNextWrite]](entry)`.
 1. If `this.[[queue]]` is empty,
     1. Set `this.[[state]]` to `"writable"`.
@@ -428,67 +445,12 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
         1. Resolve `promise` with **undefined**.
         1. If `this.[[queue]]` is not empty,
             1. Shift `entry` off of `this.[[queue]]`.
+            1. Let `this.[[queueSize]]` be `this.[[queueSize]] - entry.dataCount`.
             1. Call `this.[[doNextWrite]](entry)`.
 1. Call `this.[[onWrite]](data, signalDone, this.[[error]])`.
 1. If the call throws an exception `e`, call `this.[[error]](e)`.
 
 Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been aborted, then `signalDone` ends up doing nothing.
-
-### WritableStream
-
-```js
-class WritableStream extends BaseWritableStream {
-    // Adds a backpressure strategy argument.
-    constructor({
-        function start = () => {},
-        function write = () => {},
-        function close = () => {},
-        function abort = close,
-        strategy: { function count, function needsMoreData }
-    })
-
-    // Overriden to take into account backpressure strategy
-    Promise<undefined> write(data)
-
-    // Overriden to take into account backpressure strategy.
-    // You can also think of this as part of the the constructor and write override.
-    [[doNextWrite]]({ type, promise, data })
-
-    // Internal slots
-    [[strategy]]
-    [[queueSize]] = 0
-}
-```
-
-#### Properties of the WritableStream Prototype
-
-##### constructor({ start, write, close, abort, strategy })
-
-1. Set `this.[[strategy]]` to `strategy`.
-1. Call `super({ start, write, close, abort })`.
-
-##### write(data)
-
-1. If `this.[[state]]` is `"writable"` or `"waiting"`,
-    1. Add `this.[[strategy]].count(data)` to `this.[[queueSize]]`.
-1. If `this.[[state]]` is `"writable"`,
-    1. Let `promise` be a newly-created pending promise.
-    1. If `ToBoolean(this.[[strategy]].needsMoreData(this.[[queueSize]]))` is **false**,
-        1. Set `this.[[state]]` to `"waiting"`.
-        1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
-    1. If `this.[[queue]]` is empty,
-        1. Call `this.[[doNextWrite]]({ type: "data", promise, data })`.
-    1. Otherwise,
-        1. Push `{ type: "data", promise, data }` onto `this.[[queue]]`.
-    1. Return `promise`.
-1. Return `super(data)`.
-
-#### Internal Methods of WritableStream
-
-##### `[[doNextWrite]]({ type, promise, data })`
-
-1. Subtract `this.[[strategy]].count(data)` from `this.[[queueSize]]`.
-1. Return the result of calling `BaseWritableStream`'s version of `this.[[doNextWrite]]({ type, promise, data })`.
 
 ## Helper APIs
 
@@ -497,7 +459,7 @@ class WritableStream extends BaseWritableStream {
 A "tee stream" is a writable stream which, when written to, itself writes to multiple destinations. It aggregates backpressure and abort signals from those destinations, propagating the appropriate aggregate signals backward.
 
 ```js
-class TeeStream extends BaseWritableStream {
+class TeeStream extends WritableStream {
     constructor() {
         this.[[outputs]] = [];
 

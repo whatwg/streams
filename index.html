@@ -352,11 +352,6 @@ that writes are forwarded to the underlying sink in order, and only after succes
 This allows seamless use of the writable stream even in cases such as piping a fast readable file stream to a slower
 writable network socket stream, which cannot acknowledge the incoming data at the same rate it becomes available.</p>
 
-<p>This specification provides both a lower-level <code>BaseWritableStream</code> class, and a higher-level
-<code>WritableStream</code> class. <code>WritableStream</code> layers on top of <code>BaseWritableStream</code> the
-ability to customize the stream's queuing strategy, which can be communicated backward in a pipe chain to cause
-backpressure.</p>
-
 <div class="example">
   <p>The following function wraps a <span data-anolis-spec="html">web socket</span> as the underlying sink of a new
   writable stream. Web sockets do not provide any way to tell when a given chunk of data has been successfully sent,
@@ -485,8 +480,6 @@ writeArrayToStream([1, 2, 3, 4, 5], writableStream)
 <h3>The Writable Stream State Diagram</h3>
 
 <p><em>This section is non-normative.</em></p>
-
-<h3>Class <code>BaseWritableStream</code></h3>
 
 <h3>Class <code>WritableStream</code></h3>
 

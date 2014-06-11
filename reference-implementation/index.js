@@ -1,9 +1,7 @@
 'use strict';
 
 global.ReadableStream = require('./lib/readable-stream.js');
-
-global.BaseWritableStream = require('./lib/base-writable.js');
-global.WritableStream = function () {};
+global.WritableStream = require('./lib/writable-stream.js');
 
 global.TeeStream = function () {};
 global.ByteLengthQueuingStrategy = function () {};

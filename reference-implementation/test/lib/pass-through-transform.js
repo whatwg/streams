@@ -8,7 +8,7 @@ module.exports = function makeSimpleTransformStream() {
   var closeOutput;
 
   return {
-    input : new BaseWritableStream({
+    input : new WritableStream({
       write : function (data, done, error) {
         pushToOutput(data);
         done();

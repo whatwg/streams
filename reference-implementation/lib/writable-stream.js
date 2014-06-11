@@ -16,36 +16,50 @@ var WRITABLE_REJECT       = '_writablePromise@reject';
 var CURRENT_WRITE_RESOLVE = '_currentWritePromise@resolve';
 var CURRENT_WRITE_REJECT  = '_currentWritePromise@reject';
 
-function BaseWritableStream(callbacks) {
+function WritableStream(options) {
   var stream = this;
 
-  if (callbacks === undefined) callbacks = {};
-  if (callbacks.start === undefined) callbacks.start = function _onStart() {};
-  if (callbacks.write === undefined) callbacks.write = function _onWrite() {};
-  if (callbacks.close === undefined) callbacks.close = function _onClose() {};
-  if (callbacks.abort === undefined) callbacks.abort = function _onAbort() {};
+  if (options === undefined) options = {};
+  if (options.start === undefined) options.start = function _onStart() {};
+  if (options.write === undefined) options.write = function _onWrite() {};
+  if (options.close === undefined) options.close = function _onClose() {};
+  if (options.abort === undefined) options.abort = function _onAbort() {};
 
-  if (typeof callbacks.start !== 'function') {
+  if (options.strategy === undefined) options.strategy = {};
+  if (options.strategy.count === undefined) options.strategy.count = function () { return 0; };
+  if (options.strategy.needsMoreData === undefined) options.strategy.needsMoreData = function () { return false; };
+
+  if (typeof options.start !== 'function') {
     throw new TypeError('start must be a function or undefined');
   }
-  if (typeof callbacks.write !== 'function') {
+  if (typeof options.write !== 'function') {
     throw new TypeError('write must be a function or undefined');
   }
-  if (typeof callbacks.close !== 'function') {
+  if (typeof options.close !== 'function') {
     throw new TypeError('close must be a function or undefined');
   }
-  if (typeof callbacks.abort !== 'function') {
+  if (typeof options.abort !== 'function') {
     throw new TypeError('abort must be a function or undefined');
   }
+  if (typeof options.strategy.count !== 'function') {
+    throw new TypeError('strategy.count must be a function or undefined');
+  }
+  if (typeof options.strategy.needsMoreData !== 'function') {
+    throw new TypeError('strategy.needsMoreData must be a function or undefined');
+  }
 
-  this._buffer = [];
+  this._queue     = [];
+  this._queueSize = 0;
 
   this._state = 'writable';
 
-  this._onStart = callbacks.start;
-  this._onWrite = callbacks.write;
-  this._onClose = callbacks.close;
-  this._onAbort = callbacks.abort;
+  this._onStart = options.start;
+  this._onWrite = options.write;
+  this._onClose = options.close;
+  this._onAbort = options.abort;
+
+  this._strategyCount         = options.strategy.count;
+  this._strategyNeedsMoreData = options.strategy.needsMoreData;
 
   this._storedError = undefined;
 
@@ -77,29 +91,30 @@ function BaseWritableStream(callbacks) {
 
   this._startedPromise = Promise.cast(this._onStart());
   this._startedPromise.then(
-    function fulfill() { stream._advanceBuffer(); },
+    function fulfill() { stream._advanceQueue(); },
     function error(e)  { stream._error(e); }
   );
 }
 
-BaseWritableStream.prototype._error = function _error(error) {
+WritableStream.prototype._error = function _error(error) {
   if (this._state === 'closed' || this._state === 'errored') {
     return;
   }
 
-  for (var i = 0; i < this._buffer.length; i++) {
-    this._buffer[i]._reject(error);
+  for (var i = 0; i < this._queue.length; i++) {
+    this._queue[i]._reject(error);
   }
-  this._buffer.length = 0;
+  this._queue.length = 0;
   this._state = 'errored';
   this._storedError = error;
   this[WRITABLE_REJECT](error);
   this[CLOSED_REJECT](error);
 };
 
-BaseWritableStream.prototype._advanceBuffer = function _advanceBuffer() {
-  if (this._buffer.length > 0) {
-    var entry = this._buffer.shift();
+WritableStream.prototype._advanceQueue = function _advanceQueue() {
+  if (this._queue.length > 0) {
+    var entry = this._queue.shift();
+    this._queueSize -=  entry.dataCount;
     this._doNextWrite(entry);
   }
   else {
@@ -108,7 +123,7 @@ BaseWritableStream.prototype._advanceBuffer = function _advanceBuffer() {
   }
 };
 
-BaseWritableStream.prototype._doClose = function _doClose() {
+WritableStream.prototype._doClose = function _doClose() {
   var stream = this;
 
   this[WRITABLE_REJECT](new TypeError('stream has already been closed'));
@@ -126,7 +141,7 @@ BaseWritableStream.prototype._doClose = function _doClose() {
   );
 };
 
-BaseWritableStream.prototype._doNextWrite = function _doNextWrite(entry) {
+WritableStream.prototype._doNextWrite = function _doNextWrite(entry) {
   var stream = this;
 
   var type    = entry.type;
@@ -153,13 +168,14 @@ BaseWritableStream.prototype._doNextWrite = function _doNextWrite(entry) {
 
     if (stream._state === 'waiting') {
       resolve(undefined);
-      stream._advanceBuffer();
+      stream._advanceQueue();
     }
     else if (stream._state === 'closing') {
       resolve(undefined);
 
-      if (stream._buffer.length > 0) {
-        var entry = stream._buffer.shift();
+      if (stream._queue.length > 0) {
+        var entry = stream._queue.shift();
+        stream._queueSize -= entry.dataCount;
         stream._doNextWrite(entry);
       }
     }
@@ -173,7 +189,7 @@ BaseWritableStream.prototype._doNextWrite = function _doNextWrite(entry) {
   }
 };
 
-BaseWritableStream.prototype.write = function write(data) {
+WritableStream.prototype.write = function write(data) {
   var stream = this;
 
   var resolver, rejecter;
@@ -183,32 +199,52 @@ BaseWritableStream.prototype.write = function write(data) {
   });
 
   switch (this._state) {
-    case 'writable':
-      if (this._buffer.length > 0) {
-        this._state = 'waiting';
-      }
+    case 'waiting':
+      var dataCount = this._strategyCount(data);
 
-      this._writablePromise = new Promise(function (resolve, reject) {
-        stream[WRITABLE_RESOLVE] = resolve;
-        stream[WRITABLE_REJECT] = reject;
+      this._queue.push({
+        type      : 'data',
+        promise   : promise,
+        data      : data,
+        dataCount : dataCount,
+        _resolve  : resolver,
+        _reject   : rejecter
       });
-      this._doNextWrite({
-        type     : 'data',
-        promise  : promise,
-        data     : data,
-        _resolve : resolver,
-        _reject  : rejecter
-      });
+      this._queueSize += dataCount;
+
       return promise;
 
-    case 'waiting':
-      this._buffer.push({
-        type     : 'data',
-        promise  : promise,
-        data     : data,
-        _resolve : resolver,
-        _reject  : rejecter
-      });
+    case 'writable':
+      if (this._queue.length === 0) {
+        this._doNextWrite({
+          type     : 'data',
+          promise  : promise,
+          data     : data,
+          _resolve : resolver,
+          _reject  : rejecter
+        });
+      } else {
+        var dataCount = this._strategyCount(data);
+        var needsMoreData = this._strategyNeedsMoreData(this._queueSize);
+        if (!needsMoreData) {
+          this._state = 'waiting';
+          this._writablePromise = new Promise(function (resolve, reject) {
+            stream[WRITABLE_RESOLVE] = resolve;
+            stream[WRITABLE_REJECT] = reject;
+          });
+        }
+
+        this._queue.push({
+          type      : 'data',
+          promise   : promise,
+          data      : data,
+          dataCount : dataCount,
+          _resolve  : resolver,
+          _reject   : rejecter
+        });
+        this._queueSize += dataCount;
+      }
+
       return promise;
 
     case 'closing':
@@ -225,7 +261,7 @@ BaseWritableStream.prototype.write = function write(data) {
   }
 };
 
-BaseWritableStream.prototype.close = function close() {
+WritableStream.prototype.close = function close() {
   switch (this._state) {
     case 'writable':
       this._state = 'closing';
@@ -233,7 +269,7 @@ BaseWritableStream.prototype.close = function close() {
       return this._closedPromise;
 
     case 'waiting':
-      this._buffer.push({
+      this._queue.push({
         type    : 'close',
         promise : undefined,
         data    : undefined
@@ -255,7 +291,7 @@ BaseWritableStream.prototype.close = function close() {
   }
 };
 
-BaseWritableStream.prototype.abort = function abort(r) {
+WritableStream.prototype.abort = function abort(r) {
   switch (this._state) {
     case 'closed':
       return Promise.resolve(undefined);
@@ -267,8 +303,8 @@ BaseWritableStream.prototype.abort = function abort(r) {
   }
 };
 
-BaseWritableStream.prototype.wait = function wait() {
+WritableStream.prototype.wait = function wait() {
   return this._writablePromise;
 };
 
-module.exports = BaseWritableStream;
+module.exports = WritableStream;
