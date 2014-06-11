@@ -59,7 +59,7 @@
 <h2 class="no-num no-toc">Abstract</h2>
 
 <p>This specification provides APIs for creating, composing, and consuming streams of data. These streams are designed
-to map efficiently to low-level I/O primitives, and allow easy composition with built-in backpressure and buffering. On
+to map efficiently to low-level I/O primitives, and allow easy composition with built-in backpressure and queuing. On
 top of streams, the web platform can build higher-level abstractions, such as filesystem or socket APIs, while at the
 same time users can use the supplied tools to build their own streams which integrate well with those of the web
 platform.</p>
@@ -113,7 +113,7 @@ pull source is a file handle, where you seek to specific locations and read spec
 <em>in</em> to a writable stream.</p>
 
 <p>Analogously to readable streams, most writable streams wrap a lower-level I/O sink, called the <dfn>underlying
-sink</dfn>. Writable streams work to abstract away some of the complexity of the underlying sink, by buffering
+sink</dfn>. Writable streams work to abstract away some of the complexity of the underlying sink, by queuing
 subsequent writes and only delivering them to the underlying sink one by one.</p>
 
 <h3>Transform Streams</h3>
@@ -161,7 +161,7 @@ it.</p>
 
 <p>This specification provides both a lower-level <code>BaseReadableStream</code> class, and a higher-level
 <code>ReadableStream</code> class. <code>ReadableStream</code> layers on top of <code>BaseReadableStream</code> the
-ability to customize the stream's buffering strategy, which impacts backpressure; it also supports piping the stream
+ability to customize the stream's queuing strategy, which impacts backpressure; it also supports piping the stream
 to or through multiple destinations.</p>
 
 <div class="example">
@@ -209,7 +209,7 @@ socketStream.pipeTo(writableStream).closed
     start(push, close, error) {
       rawSocket.ondata = event => {
         if (!push(event.data)) {
-          // If push returns false, the internal buffer is full, so propagate
+          // If push returns false, the internal queue is full, so propagate
           // the backpressure signal to the underlying source.
           rawSocket.readStop();
         }
@@ -220,7 +220,7 @@ socketStream.pipeTo(writableStream).closed
     },
 
     pull() {
-      // This is called if the internal buffer has been emptied, but the
+      // This is called if the internal queue has been emptied, but the
       // stream's consumer still wants more data. In that case, restart
       // the flow of data if we have previously paused it.
       rawSocket.readStart();
@@ -275,7 +275,7 @@ socketStream.pipeTo(writableStream).closed
             close();
           });
         } else {
-          // If data was read successfully, push it into the internal buffer.
+          // If data was read successfully, push it into the internal queue.
           push(data);
         }
       });
@@ -319,7 +319,7 @@ socketStream.pipeTo(writableStream).closed
 
 <p><em>This section is non-normative.</em></p>
 
-<p>As evidenced by the above explanations, readable streams have a fairly complex internal state machine, which is responsible for keeping track of the internal buffer, and initiating appropriate actions in response to calls to a stream's methods. This can be roughly summarized in the following diagram.</p>
+<p>As evidenced by the above explanations, readable streams have a fairly complex internal state machine, which is responsible for keeping track of the internal queue, and initiating appropriate actions in response to calls to a stream's methods. This can be roughly summarized in the following diagram.</p>
 
 <figure>
   <img src="readable-stream.svg" width="578" alt="The readable stream state machine diagram." />
@@ -361,7 +361,7 @@ writable network socket stream, which cannot acknowledge the incoming data at th
 
 <p>This specification provides both a lower-level <code>BaseWritableStream</code> class, and a higher-level
 <code>WritableStream</code> class. <code>WritableStream</code> layers on top of <code>BaseWritableStream</code> the
-ability to customize the stream's buffering strategy, which can be communicated backward in a pipe chain to cause
+ability to customize the stream's queuing strategy, which can be communicated backward in a pipe chain to cause
 backpressure.</p>
 
 <div class="example">
@@ -405,7 +405,7 @@ backpressure.</p>
   <p>The following function wraps an underlying sink, represented as a hypothetical "raw file handle," which provides
   methods for opening, writing to, and closing itself. Notably, the raw file handle's <code>write</code> method calls
   back to signal when writes are complete, which allows the stream to correctly communicate backpressure signals to any
-  users by setting its state to <code>"waiting"</code> instead of <code>"writable"</code> when the buffer gets too full.
+  users by setting its state to <code>"waiting"</code> instead of <code>"writable"</code> when the queue gets too full.
   Allow of the raw file handle's methods can call their callbacks either synchronously or asynchronously—a
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
   hide from our users by wrapping them in a writable stream.</p>
@@ -468,14 +468,14 @@ readableStream.pipeTo(fileStream).closed
   .catch(e => console.error("Something went wrong!", e));</code></pre>
 
   <p>Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
-  called later. In the meantime, additional writes can be queued up, which are stored in the stream's internal buffer.
-  The accumulation of this buffer can move the stream into a <code>"waiting"</code> state, which is a signal to users
+  called later. In the meantime, additional writes can be queued up, which are stored in the stream's internal queue.
+  The accumulation of this queue can move the stream into a <code>"waiting"</code> state, which is a signal to users
   of the stream that they should back off and stop writing if possible.</p>
 </div>
 
 <div class="example">
   <p>Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
-  directly. Since they buffer any incoming writes, and take care internally to forward them to the underlying sink
+  directly. Since they queue any incoming writes, and take care internally to forward them to the underlying sink
   in sequence, you can indiscriminately write to a writable stream without much ceremony:</p>
 
 <pre><code>function writeArrayToStream(array, writableStream) {
@@ -524,9 +524,9 @@ implementation is under the covers, since they all provide the appropriate prope
 
 <h3><code>TeeStream</code></h3>
 
-<h3><code>LengthBufferingStrategy</code></h3>
+<h3><code>LengthQueuingStrategy</code></h3>
 
-<h3><code>CountBufferingStrategy</code></h3>
+<h3><code>CountQueuingStrategy</code></h3>
 
 <h2 class="no-num">References</h2>
 <div id="anolis-references"></div>
