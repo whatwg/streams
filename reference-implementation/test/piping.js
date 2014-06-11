@@ -43,3 +43,46 @@ test('Piping through a pass-through transform stream works', function (t) {
     t.deepEqual(chunks, [1, 2, 3, 4, 5]);
   });
 });
+
+test('Piping through a synchronous pass-through transform stream never causes backpressure: sync push', function (t) {
+  t.plan(5);
+
+  var rs = new BaseReadableStream({
+    start : function (push, close) {
+      Promise.resolve().then(function () {
+        // Using promises for a portable nextTick, so that this code runs after the pipe chain is established.
+        t.equal(push(1), true);
+        t.equal(push(2), true);
+        t.equal(push(3), true);
+        t.equal(push(4), true);
+        close();
+      });
+    }
+  });
+
+  var output = rs.pipeThrough(passThroughTransform());
+
+  readableStreamToArray(output).then(function (chunks) {
+    t.deepEqual(chunks, [1, 2, 3, 4]);
+  });
+});
+
+test('Piping through a synchronous pass-through transform stream never causes backpressure: sync pull', function (t) {
+  t.plan(5);
+
+  var counter = 0;
+  var rs = new BaseReadableStream({
+    pull : function (push, close) {
+      t.equal(push(++counter), true);
+      if (counter === 4) {
+        close();
+      }
+    }
+  });
+
+  var output = rs.pipeThrough(passThroughTransform());
+
+  readableStreamToArray(output).then(function (chunks) {
+    t.deepEqual(chunks, [1, 2, 3, 4]);
+  });
+});
