@@ -19,7 +19,7 @@ module.exports = function makeSimpleTransformStream() {
       }
     }),
 
-    output : new BaseReadableStream({
+    output : new ReadableStream({
       start : function (push, close) {
         pushToOutput = push;
         closeOutput = close;

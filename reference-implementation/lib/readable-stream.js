@@ -15,33 +15,48 @@ var WAIT_RESOLVE   = '_waitPromise@resolve';
 var WAIT_REJECT    = '_waitPromise@reject';
 
 
-function BaseReadableStream(callbacks) {
+function ReadableStream(options) {
   var stream = this;
 
-  if (callbacks === undefined) callbacks = {};
-  if (callbacks.start === undefined) callbacks.start = function _onStart() {};
-  if (callbacks.pull === undefined) callbacks.pull = function _onPull() {};
-  if (callbacks.cancel === undefined) callbacks.cancel = function _onCancel() {};
+  if (options === undefined) options = {};
+  if (options.start === undefined) options.start = function _onStart() {};
+  if (options.pull === undefined) options.pull = function _onPull() {};
+  if (options.cancel === undefined) options.cancel = function _onCancel() {};
 
-  if (typeof callbacks.start !== 'function') {
+  if (options.strategy === undefined) options.strategy = {};
+  if (options.strategy.count === undefined) options.strategy.count = function () { return 0; };
+  if (options.strategy.needsMoreData === undefined) options.strategy.needsMoreData = function () { return false; };
+
+  if (typeof options.start !== 'function') {
     throw new TypeError('start must be a function or undefined');
   }
-  if (typeof callbacks.pull !== 'function') {
+  if (typeof options.pull !== 'function') {
     throw new TypeError('pull must be a function or undefined');
   }
-  if (typeof callbacks.cancel !== 'function') {
+  if (typeof options.cancel !== 'function') {
     throw new TypeError('cancel must be a function or undefined');
   }
+  if (typeof options.strategy.count !== 'function') {
+    throw new TypeError('strategy.count must be a function or undefined');
+  }
+  if (typeof options.strategy.needsMoreData !== 'function') {
+    throw new TypeError('strategy.needsMoreData must be a function or undefined');
+  }
 
-  this._buffer   = [];
+  this._queue     = [];
+  this._queueSize = 0;
+
   this._state    = 'waiting';
   this._draining = false;
   this._pulling  = false;
   this._started  = false;
 
-  this._onStart = callbacks.start;
-  this._onPull  = callbacks.pull;
-  this._onCancel = callbacks.cancel;
+  this._onStart  = options.start;
+  this._onPull   = options.pull;
+  this._onCancel = options.cancel;
+
+  this._strategyCount         = options.strategy.count;
+  this._strategyNeedsMoreData = options.strategy.needsMoreData;
 
   this._storedError = undefined;
 
@@ -79,24 +94,27 @@ function BaseReadableStream(callbacks) {
   this._startedPromise.catch(function error(e) { stream._error(e); });
 }
 
-BaseReadableStream.prototype._push = function _push(data) {
-  if (this._state === 'waiting') {
-    this._buffer.push(data);
+ReadableStream.prototype._push = function _push(data) {
+  if (this._state === 'waiting' || this._state === 'readable') {
+    var dataCount = this._strategyCount(data);
+    this._queue.push({ data: data, dataCount: dataCount });
+    this._queueSize += dataCount;
     this._pulling = false;
+  }
+  if (this._state === 'waiting') {
     this._state = 'readable';
     this[WAIT_RESOLVE](undefined);
 
     return true;
   }
-  else if (this._state === 'readable') {
-    this._buffer.push(data);
-    this._pulling = false;
+  if (this._state === 'readable') {
+    return this._strategyNeedsMoreData(this._queueSize);
   }
 
   return false;
 };
 
-BaseReadableStream.prototype._close = function _close() {
+ReadableStream.prototype._close = function _close() {
   if (this._state === 'waiting') {
     this._state = 'closed';
     this[WAIT_RESOLVE](undefined);
@@ -107,7 +125,7 @@ BaseReadableStream.prototype._close = function _close() {
   }
 };
 
-BaseReadableStream.prototype._error = function _error(error) {
+ReadableStream.prototype._error = function _error(error) {
   var stream = this;
 
   if (this._state === 'waiting') {
@@ -117,7 +135,7 @@ BaseReadableStream.prototype._error = function _error(error) {
     this[CLOSED_REJECT](error);
   }
   else if (this._state === 'readable') {
-    this._buffer.length = 0;
+    this._queue.length = 0;
     this._state = 'errored';
     this._storedError = error;
     // do this instead of using Promise.reject so accessors are correct
@@ -130,7 +148,7 @@ BaseReadableStream.prototype._error = function _error(error) {
   }
 };
 
-BaseReadableStream.prototype._callPull = function _callPull() {
+ReadableStream.prototype._callPull = function _callPull() {
   var stream = this;
 
   if (this._pulling === true) return;
@@ -161,13 +179,13 @@ BaseReadableStream.prototype._callPull = function _callPull() {
   }
 };
 
-BaseReadableStream.prototype.wait = function wait() {
+ReadableStream.prototype.wait = function wait() {
   if (this._state === 'waiting') this._callPull();
 
   return this._waitPromise;
 };
 
-BaseReadableStream.prototype.read = function read() {
+ReadableStream.prototype.read = function read() {
   var stream = this;
 
   if (this._state === 'waiting') {
@@ -181,11 +199,15 @@ BaseReadableStream.prototype.read = function read() {
   }
 
   assert(this._state === 'readable', 'stream state ' + this._state + ' is invalid');
-  assert(this._buffer.length > 0, 'there must be data available to read');
+  assert(this._queue.length > 0, 'there must be data available to read');
 
-  var data = this._buffer.shift();
+  var entry = this._queue.shift();
+  var data = entry.data;
+  var dataCount = entry.dataCount;
 
-  if (this._buffer.length < 1) {
+  this._queueSize -= dataCount;
+
+  if (this._queue.length < 1) {
     assert(this._draining === true || this._draining === false,
            'draining only has two possible states');
     if (this._draining === true) {
@@ -206,7 +228,7 @@ BaseReadableStream.prototype.read = function read() {
   return data;
 };
 
-BaseReadableStream.prototype.cancel = function cancel() {
+ReadableStream.prototype.cancel = function cancel() {
   if (this._state === 'closed') {
     return Promise.resolve(undefined);
   }
@@ -221,14 +243,14 @@ BaseReadableStream.prototype.cancel = function cancel() {
     this._waitPromise = Promise.resolve(undefined);
   }
 
-  this._buffer.length = 0;
+  this._queue.length = 0;
   this._state = 'closed';
   this[CLOSED_RESOLVE](undefined);
 
   return promiseCall(this._onCancel);
 };
 
-BaseReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
+ReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
   if (options === undefined) options = {};
 
   var close = true;
@@ -277,7 +299,7 @@ BaseReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
   return dest;
 };
 
-BaseReadableStream.prototype.pipeThrough = function pipeThrough(transform, options) {
+ReadableStream.prototype.pipeThrough = function pipeThrough(transform, options) {
   if (options === undefined) options = {close : true};
 
   if (!TypeIsObject(transform)) {
@@ -300,4 +322,4 @@ function TypeIsObject(x) {
   return (typeof x === 'object' && x !== null) || typeof x === 'function';
 }
 
-module.exports = BaseReadableStream;
+module.exports = ReadableStream;

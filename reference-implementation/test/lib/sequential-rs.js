@@ -3,10 +3,10 @@
 var SequentialPullSource = require('./sequential-pull-source.js');
 var Promise = require('es6-promise').Promise;
 
-module.exports = function sequentialBaseReadableStream(limit, options) {
+module.exports = function sequentialReadableStream(limit, options) {
   var sequentialSource = new SequentialPullSource(limit, options);
 
-  var stream = new BaseReadableStream({
+  var stream = new ReadableStream({
     start : function () {
       return new Promise(function (resolve, reject) {
         sequentialSource.open(function (err) {

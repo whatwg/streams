@@ -10,14 +10,15 @@ By the way, this transition is being tracked as [#62](https://github.com/whatwg/
 
 ## Readable Stream APIs
 
-### BaseReadableStream
+### ReadableStream
 
 ```
-class BaseReadableStream {
+class ReadableStream {
     constructor({
         function start = () => {},
         function pull = () => {},
-        function cancel = () => {}
+        function cancel = () => {},
+        { function count = () => 0, function needsMoreData = () => false } = {}
     })
 
     // Reading data from the underlying source
@@ -47,6 +48,9 @@ class BaseReadableStream {
     [[startedPromise]]
     [[onCancel]]
     [[onPull]]
+    [[queueSize]] = 0
+    [[strategyCount]]
+    [[strategyNeedsMoreData]]
 
     // Internal methods for use by the underlying source
     [[push]](any data)
@@ -65,9 +69,9 @@ enum ReadableStreamState {
 }
 ```
 
-#### Properties of the BaseReadableStream prototype
+#### Properties of the ReadableStream prototype
 
-##### constructor({ start, pull, cancel })
+##### constructor({ start, pull, cancel, { count, needsMoreData } })
 
 The constructor is passed several functions, all optional:
 
@@ -79,6 +83,8 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 1. Set `this.[[onCancel]]` to `cancel`.
 1. Set `this.[[onPull]]` to `pull`.
+1. Set `this.[[strategyCount]]` to `count`.
+1. Set `this.[[strategyNeedsMoreData]]` to `needsMoreData`.
 1. Let `this.[[waitPromise]]` be a newly-created pending promise.
 1. Let `this.[[closedPromise]]` be a newly-created pending promise.
 1. Let _startResult_ be the result of `start(this.[[push]], this.[[close]], this.[[error]])`.
@@ -97,7 +103,8 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `this.[[state]]` is `"errored"`, throw `this.[[storedError]]`.
 1. Assert: `this.[[state]]` is `"readable"`.
 1. Assert: `this.[[queue]]` is not empty.
-1. Let `data` be the result of shifting an element off of the front of `this.[[queue]]`.
+1. Let `{ data, dataCount }` be the result of shifting an element off of the front of `this.[[queue]]`.
+1. Let `this.[[queueSize]]` be `this.[[queueSize]] - dataCount`.
 1. If `this.[[queue]]` is now empty,
     1. If `this.[[draining]]` is **true**,
         1. Set `this.[[state]]` to `"closed"`.
@@ -133,7 +140,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 ##### pipeTo(dest, { close })
 
 ```js
-BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
+ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
     const source = this;
     close = Boolean(close);
 
@@ -192,19 +199,22 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 1. ReturnIfAbrupt(_result_).
 1. Return _output_.
 
-#### Internal Methods of BaseReadableStream
+#### Internal Methods of ReadableStream
 
 ##### `[[push]](data)`
 
-1. If `this.[[state]]` is `"waiting"`,
-    1. Push `data` onto `this.[[queue]]`.
+1. If `this.[[state]]` is `"waiting"` or `"readable"`,
+    1. Let _dataCount_ be the result of `this.[[strategyCount]](data)`.
+    1. ReturnIfAbrupt(_dataCount_).
+    1. Push `{ data, dataCount }` onto `this.[[queue]]`.
+    1. Let `this.[[queueSize]]` be `this.[[queueSize]] + dataCount`.
     1. Set `this.[[pulling]]` to **false**.
+1. If `this.[[state]]` is `"waiting"`
     1. Set `this.[[state]]` to `"readable"`.
     1. Resolve `this.[[waitPromise]]` with **undefined**.
     1. Return **true**.
 1. If `this.[[state]]` is `"readable"`,
-    1. Push `data` onto `this.[[queue]]`.
-    1. Set `this.[[pulling]]` to **false**.
+    1. Return the result of `this.[[strategyNeedsMoreData]](this.[[queueSize]])`.
 1. Return **false**.
 
 ##### `[[close]]()`
@@ -241,67 +251,6 @@ BaseReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 1. If `this.[[started]]` is **true**,
     1. Let `pullResult` be the result of `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
     1. If `pullResult` is an abrupt completion, call `this.[[error]](pullResult.[[value]])`.
-
-### ReadableStream
-
-```
-class ReadableStream extends BaseReadableStream {
-    // Adds a backpressure strategy argument.
-    constructor({
-        function start = () => {},
-        function pull = () => {},
-        function cancel = () => {},
-        strategy: { function count, function needsMoreData }
-    })
-
-    // Overriden to do bookkeeping for the backpressure strategy
-    any read()
-
-    // Supports multi-pipe by default, overriding base behavior.
-    WritableStream pipeTo(WritableStream dest, { ToBoolean close = true } = {})
-
-    // Overriden to take into account the backpressure strategy.
-    // You can also think of this as part of the constructor override, i.e. it passes
-    //   in a different function to `start` and `pull`.
-    [[push]](data)
-
-    // Internal slots
-    [[tee]]
-    [[strategy]]
-    [[queueSize]] = 0
-}
-```
-
-#### Properties of the ReadableStream Prototype
-
-##### constructor({ start, pull, cancel, strategy })
-
-1. Set `this.[[strategy]]` to `strategy`.
-1. Call `super({ start, pull, cancel })`.
-
-##### read()
-
-1. Let `data` be `super()`.
-1. Subtract `this.[[strategy]].count(data)` from `this.[[queueSize]]`.
-1. Return `data`.
-
-##### pipeTo(dest, { close })
-
-1. Let `alreadyPiping` be **true**.
-1. If `this.[[tee]]` is **undefined**, let `this.[[tee]]` be a new `TeeStream` and set `alreadyPiping` to **false**.
-1. Call `this.[[tee]].addOut(dest, { close })`.
-1. If `alreadyPiping` is **false**, call `super(this.[[tee]], { close: true })`.
-1. Return `dest`.
-
-#### Internal Methods of ReadableStream
-
-##### `[[push]](data)`
-
-1. Call `BaseReadableStream`'s version of `this.[[push]](data)`.
-1. If `this.[[state]]` is now `"readable"`,
-    1. Add `this.[[strategy]].count(data)` to `this.[[queueSize]]`.
-    1. Return `this.[[strategy]].needsMoreData(this.[[queueSize]])`.
-1. Return **false**.
 
 ## Writable Stream APIs
 
