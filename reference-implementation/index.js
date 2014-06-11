@@ -7,5 +7,5 @@ global.BaseWritableStream = require('./lib/base-writable.js');
 global.WritableStream = function () {};
 
 global.TeeStream = function () {};
-global.LengthBufferingStrategy = function () {};
-global.CountBufferingStrategy = function () {};
+global.ByteLengthQueuingStrategy = function () {};
+global.CountQueuingStrategy = function () {};
