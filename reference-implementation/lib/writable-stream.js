@@ -2,7 +2,7 @@
 
 var assert = require('assert');
 var Promise = require('es6-promise').Promise;
-var promiseCall = require('./helpers').promiseCall;
+var helpers = require('./helpers');
 
 /*
  *
@@ -26,8 +26,8 @@ function WritableStream(options) {
   if (options.abort === undefined) options.abort = function _onAbort() {};
 
   if (options.strategy === undefined) options.strategy = {};
-  if (options.strategy.count === undefined) options.strategy.count = function () { return 0; };
-  if (options.strategy.needsMoreData === undefined) options.strategy.needsMoreData = function () { return false; };
+  if (options.strategy.size === undefined) options.strategy.size = function () { return 0; };
+  if (options.strategy.needsMore === undefined) options.strategy.needsMore = function () { return false; };
 
   if (typeof options.start !== 'function') {
     throw new TypeError('start must be a function or undefined');
@@ -41,15 +41,12 @@ function WritableStream(options) {
   if (typeof options.abort !== 'function') {
     throw new TypeError('abort must be a function or undefined');
   }
-  if (typeof options.strategy.count !== 'function') {
-    throw new TypeError('strategy.count must be a function or undefined');
+  if (typeof options.strategy.size !== 'function') {
+    throw new TypeError('strategy.size must be a function or undefined');
   }
-  if (typeof options.strategy.needsMoreData !== 'function') {
-    throw new TypeError('strategy.needsMoreData must be a function or undefined');
+  if (typeof options.strategy.needsMore !== 'function') {
+    throw new TypeError('strategy.needsMore must be a function or undefined');
   }
-
-  this._queue     = [];
-  this._queueSize = 0;
 
   this._state = 'writable';
 
@@ -58,8 +55,8 @@ function WritableStream(options) {
   this._onClose = options.close;
   this._onAbort = options.abort;
 
-  this._strategyCount         = options.strategy.count;
-  this._strategyNeedsMoreData = options.strategy.needsMoreData;
+  this._strategySize     = options.strategy.size;
+  this._strategyNeedsMore = options.strategy.needsMore;
 
   this._storedError = undefined;
 
@@ -72,6 +69,8 @@ function WritableStream(options) {
     stream[CLOSED_RESOLVE] = resolve;
     stream[CLOSED_REJECT]  = reject;
   });
+
+  this._queue = [];
 
   this._currentWritePromise   = undefined;
   this[CURRENT_WRITE_RESOLVE] = undefined;
@@ -104,7 +103,7 @@ WritableStream.prototype._error = function _error(error) {
   for (var i = 0; i < this._queue.length; i++) {
     this._queue[i]._reject(error);
   }
-  this._queue.length = 0;
+  this._queue = [];
   this._state = 'errored';
   this._storedError = error;
   this[WRITABLE_REJECT](error);
@@ -113,9 +112,13 @@ WritableStream.prototype._error = function _error(error) {
 
 WritableStream.prototype._advanceQueue = function _advanceQueue() {
   if (this._queue.length > 0) {
-    var entry = this._queue.shift();
-    this._queueSize -=  entry.dataCount;
-    this._doNextWrite(entry);
+    var writeRecord = helpers.dequeueValue(this._queue);
+    this._doNextWrite(
+      writeRecord.type,
+      writeRecord.promise,
+      writeRecord.chunk,
+      { _resolve: writeRecord._resolve, _reject: writeRecord._reject }
+    );
   }
   else {
     this._state = 'writable';
@@ -128,7 +131,7 @@ WritableStream.prototype._doClose = function _doClose() {
 
   this[WRITABLE_REJECT](new TypeError('stream has already been closed'));
 
-  var closePromise = promiseCall(this._onClose);
+  var closePromise = helpers.promiseCall(this._onClose);
 
   closePromise.then(
     function () {
@@ -141,22 +144,19 @@ WritableStream.prototype._doClose = function _doClose() {
   );
 };
 
-WritableStream.prototype._doNextWrite = function _doNextWrite(entry) {
+WritableStream.prototype._doNextWrite = function _doNextWrite(type, promise, chunk, promiseManipulators) {
   var stream = this;
 
-  var type    = entry.type;
-  var promise = entry.promise;
-  var data    = entry.data;
-  var resolve = entry._resolve;
-  var reject  = entry._reject;
+  var resolve = promiseManipulators._resolve;
+  var reject  = promiseManipulators._reject;
 
   if (type === 'close') {
-    assert(this._state === 'closing', 'can\'t write final entry unless already closing');
+    assert(this._state === 'closing', 'can\'t write final write record unless already closing');
     this._doClose();
     return;
   }
 
-  assert(type === 'data', 'invalid entry type ' + type);
+  assert(type === 'chunk', 'invalid write record type ' + type);
 
   this._currentWritePromise   = promise;
   this[CURRENT_WRITE_RESOLVE] = resolve;
@@ -174,22 +174,26 @@ WritableStream.prototype._doNextWrite = function _doNextWrite(entry) {
       resolve(undefined);
 
       if (stream._queue.length > 0) {
-        var entry = stream._queue.shift();
-        stream._queueSize -= entry.dataCount;
-        stream._doNextWrite(entry);
+        var writeRecord = helpers.dequeueValue(this._queue);
+        this._doNextWrite(
+          writeRecord.type,
+          writeRecord.promise,
+          writeRecord.chunk,
+          { _resolve: writeRecord._resolve, _reject: writeRecord._reject }
+        );
       }
     }
   }
 
   try {
-    this._onWrite(data, signalDone, this._error.bind(this));
+    this._onWrite(chunk, signalDone, this._error.bind(this));
   }
   catch (error) {
     this._error(error);
   }
 };
 
-WritableStream.prototype.write = function write(data) {
+WritableStream.prototype.write = function write(chunk) {
   var stream = this;
 
   var resolver, rejecter;
@@ -200,33 +204,31 @@ WritableStream.prototype.write = function write(data) {
 
   switch (this._state) {
     case 'waiting':
-      var dataCount = this._strategyCount(data);
+      var chunkSize = this._strategySize(chunk);
 
-      this._queue.push({
-        type      : 'data',
-        promise   : promise,
-        data      : data,
-        dataCount : dataCount,
-        _resolve  : resolver,
-        _reject   : rejecter
-      });
-      this._queueSize += dataCount;
+      helpers.enqueueValueWithSize(
+        this._queue,
+        {
+          type     : 'chunk',
+          promise  : promise,
+          chunk    : chunk,
+          _resolve : resolver,
+          _reject  : rejecter
+        },
+        chunkSize
+      );
 
       return promise;
 
     case 'writable':
       if (this._queue.length === 0) {
-        this._doNextWrite({
-          type     : 'data',
-          promise  : promise,
-          data     : data,
-          _resolve : resolver,
-          _reject  : rejecter
-        });
+        this._doNextWrite('chunk', promise, chunk, { _resolve: resolver, _reject: rejecter });
       } else {
-        var dataCount = this._strategyCount(data);
-        var needsMoreData = this._strategyNeedsMoreData(this._queueSize);
-        if (!needsMoreData) {
+        var chunkSize = this._strategySize(chunk);
+        var queueSize = helpers.getTotalQueueSize(this._queue);
+        var needsMore = this._strategyNeedsMore(queueSize);
+
+        if (!needsMore) {
           this._state = 'waiting';
           this._writablePromise = new Promise(function (resolve, reject) {
             stream[WRITABLE_RESOLVE] = resolve;
@@ -234,15 +236,17 @@ WritableStream.prototype.write = function write(data) {
           });
         }
 
-        this._queue.push({
-          type      : 'data',
-          promise   : promise,
-          data      : data,
-          dataCount : dataCount,
-          _resolve  : resolver,
-          _reject   : rejecter
-        });
-        this._queueSize += dataCount;
+        helpers.enqueueValueWithSize(
+          this._queue,
+          {
+            type     : 'chunk',
+            promise  : promise,
+            chunk    : chunk,
+            _resolve : resolver,
+            _reject  : rejecter
+          },
+          chunkSize
+        );
       }
 
       return promise;
@@ -269,12 +273,8 @@ WritableStream.prototype.close = function close() {
       return this._closedPromise;
 
     case 'waiting':
-      this._queue.push({
-        type    : 'close',
-        promise : undefined,
-        data    : undefined
-      });
       this._state = 'closing';
+      helpers.enqueueValueWithSize(this._queue, { type: 'close', promise: this._closedPromise, chunk: undefined }, 0);
       return this._closedPromise;
 
     case 'closing':
@@ -299,7 +299,7 @@ WritableStream.prototype.abort = function abort(r) {
       return Promise.reject(this._storedError);
     default:
       this._error(reason);
-      return promiseCall(this._onAbort);
+      return helpers.promiseCall(this._onAbort);
   }
 };
 

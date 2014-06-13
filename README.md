@@ -18,7 +18,7 @@ class ReadableStream {
         function start = () => {},
         function pull = () => {},
         function cancel = () => {},
-        { function count = () => 0, function needsMoreData = () => false } = {}
+        { function size = () => 0, function needsMore = () => false } = {}
     })
 
     // Reading data from the underlying source
@@ -37,7 +37,7 @@ class ReadableStream {
     get Promise<undefined> closed
 
     // Internal slots
-    [[queue]] = []
+    [[queue]]
     [[started]] = false
     [[draining]] = false
     [[pulling]] = false
@@ -48,12 +48,11 @@ class ReadableStream {
     [[startedPromise]]
     [[onCancel]]
     [[onPull]]
-    [[queueSize]] = 0
-    [[strategyCount]]
-    [[strategyNeedsMoreData]]
+    [[strategySize]]
+    [[strategyNeedsMore]]
 
     // Internal methods for use by the underlying source
-    [[push]](any data)
+    [[push]](any chunk)
     [[close]]()
     [[error]](any e)
 
@@ -71,7 +70,7 @@ enum ReadableStreamState {
 
 #### Properties of the ReadableStream prototype
 
-##### constructor({ start, pull, cancel, { count, needsMoreData } })
+##### constructor({ start, pull, cancel, { size, needsMore } })
 
 The constructor is passed several functions, all optional:
 
@@ -83,10 +82,11 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 1. Set `this.[[onCancel]]` to `cancel`.
 1. Set `this.[[onPull]]` to `pull`.
-1. Set `this.[[strategyCount]]` to `count`.
-1. Set `this.[[strategyNeedsMoreData]]` to `needsMoreData`.
+1. Set `this.[[strategySize]]` to `size`.
+1. Set `this.[[strategyNeedsMore]]` to `needsMore`.
 1. Let `this.[[waitPromise]]` be a newly-created pending promise.
 1. Let `this.[[closedPromise]]` be a newly-created pending promise.
+1. Let `this.[[queue]]` be a new empty List.
 1. Let _startResult_ be the result of `start(this.[[push]], this.[[close]], this.[[error]])`.
 1. ReturnIfAbrupt(_startResult_).
 1. Let `this.[[startedPromise]]` be the result of casting _startResult_ to a promise.
@@ -103,8 +103,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `this.[[state]]` is `"errored"`, throw `this.[[storedError]]`.
 1. Assert: `this.[[state]]` is `"readable"`.
 1. Assert: `this.[[queue]]` is not empty.
-1. Let `{ data, dataCount }` be the result of shifting an element off of the front of `this.[[queue]]`.
-1. Let `this.[[queueSize]]` be `this.[[queueSize]] - dataCount`.
+1. Let `chunk` be DequeueValue(`this.[[queue]]`).
 1. If `this.[[queue]]` is now empty,
     1. If `this.[[draining]]` is **true**,
         1. Set `this.[[state]]` to `"closed"`.
@@ -114,7 +113,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
         1. Set `this.[[state]]` to `"waiting"`.
         1. Let `this.[[waitPromise]]` be a newly-created pending promise.
         1. Call `this.[[callPull]]()`.
-1. Return `data`.
+1. Return `chunk`.
 
 ##### wait()
 
@@ -128,7 +127,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
 1. If `this.[[state]]` is `"waiting"`, resolve `this.[[waitPromise]]` with **undefined**.
 1. If `this.[[state]]` is `"readable"`, let `this.[[waitPromise]]` be a new promise resolved with **undefined**.
-1. Clear `this.[[queue]]`.
+1. Let `this.[[queue]]` be a new empty List.
 1. Set `this.[[state]]` to `"closed"`.
 1. Resolve `this.[[closedPromise]]` with **undefined**.
 1. Return the result of promise-calling `this.[[onCancel]]()`.
@@ -201,20 +200,20 @@ ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 
 #### Internal Methods of ReadableStream
 
-##### `[[push]](data)`
+##### `[[push]](chunk)`
 
 1. If `this.[[state]]` is `"waiting"` or `"readable"`,
-    1. Let _dataCount_ be the result of `this.[[strategyCount]](data)`.
-    1. ReturnIfAbrupt(_dataCount_).
-    1. Push `{ data, dataCount }` onto `this.[[queue]]`.
-    1. Let `this.[[queueSize]]` be `this.[[queueSize]] + dataCount`.
+    1. Let _chunkSize_ be the result of `this.[[strategySize]](chunk)`.
+    1. ReturnIfAbrupt(_chunkSize_).
+    1. EnqueueValueWithSize(`this.[[queue]]`, `chunk`, _chunkSize_).
     1. Set `this.[[pulling]]` to **false**.
 1. If `this.[[state]]` is `"waiting"`
     1. Set `this.[[state]]` to `"readable"`.
     1. Resolve `this.[[waitPromise]]` with **undefined**.
     1. Return **true**.
 1. If `this.[[state]]` is `"readable"`,
-    1. Return the result of `this.[[strategyNeedsMoreData]](this.[[queueSize]])`.
+    1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
+    1. Return the result of `this.[[strategyNeedsMore]](queueSize)`.
 1. Return **false**.
 
 ##### `[[close]]()`
@@ -234,7 +233,7 @@ ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
     1. Reject `this.[[waitPromise]]` with `e`.
     1. Reject `this.[[closedPromise]]` with `e`.
 1. If `this.[[state]]` is `"readable"`,
-    1. Clear `this.[[queue]]`.
+    1. Let `this.[[queue]]` be a new empty List.
     1. Set `this.[[state]]` to `"errored"`.
     1. Set `this.[[storedError]]` to `e`.
     1. Let `this.[[waitPromise]]` be a newly-created promise object rejected with `e`.
@@ -266,7 +265,7 @@ class WritableStream {
     })
 
     // Writing data to the underlying sink
-    Promise<undefined> write(any data)
+    Promise<undefined> write(any chunk)
     Promise<undefined> wait()
     get WritableStreamState state
 
@@ -283,10 +282,10 @@ class WritableStream {
     [[error]](any e)
     [[advanceQueue]]()
     [[doClose]]()
-    [[doNextWrite]]({ type, promise, data })
+    [[doNextWrite]](type, promise, chunk)
 
     // Internal slots
-    [[queue]] = []
+    [[queue]]
     [[state]] = "writable"
     [[storedError]]
     [[currentWritePromise]]
@@ -295,9 +294,8 @@ class WritableStream {
     [[onWrite]]
     [[onClose]]
     [[onAbort]]
-    [[queueSize]] = 0
-    [[strategyCount]]
-    [[strategyNeedsMoreData]]
+    [[strategySize]]
+    [[strategyNeedsMore]]
 }
 
 enum WritableStreamState {
@@ -311,24 +309,25 @@ enum WritableStreamState {
 
 #### Properties of the WritableStream prototype
 
-##### constructor({ start, write, close, abort, { count, needsMoreData } })
+##### constructor({ start, write, close, abort, { size, needsMore } })
 
 The constructor is passed several functions, all optional:
 
 * `start()` is called when the writable stream is created, and should open the underlying writable sink. If this process is asynchronous, it can return a promise to signal success or failure.
-* `write(data, done, error)` should write `data` to the underlying sink. It can call its `done` or `error` parameters, either synchronously or asynchronously, to respectively signal that the underlying resource is ready for more data or that an error occurred writing. The stream implementation guarantees that this function will be called only after previous writes have succeeded (i.e. called their `done` parameter), and never after `close` or `abort` is called.
+* `write(chunk, done, error)` should write `chunk` to the underlying sink. It can call its `done` or `error` parameters, either synchronously or asynchronously, to respectively signal that the underlying resource is ready for more data or that an error occurred writing. The stream implementation guarantees that this function will be called only after previous writes have succeeded (i.e. called their `done` parameter), and never after `close` or `abort` is called.
 * `close()` should close the underlying sink. If this process is asynchronous, it can return a promise to signal success or failure. The stream implementation guarantees that this function will be called only after all queued-up writes have succeeded.
-* `abort()` is an abrupt close, signaling that all data written so far is suspect. It should clean up underlying resources, much like `close`, but perhaps with some custom handling. Unlike `close`, `abort` will be called even if writes are queued up, throwing away that data.
+* `abort()` is an abrupt close, signaling that all data written so far is suspect. It should clean up underlying resources, much like `close`, but perhaps with some custom handling. Unlike `close`, `abort` will be called even if writes are queued up, throwing away those chunks.
 
-In reaction to calls to the stream's `.write()` method, the `write` constructor option is given data from the internal queue, along with the means to signal that the data has been successfully or unsuccessfully written.
+In reaction to calls to the stream's `.write()` method, the `write` constructor option is given a chunk from the internal queue, along with the means to signal that the chunk has been successfully or unsuccessfully written.
 
 1. Set `this.[[onWrite]]` to `write`.
 1. Set `this.[[onClose]]` to `close`.
 1. Set `this.[[onAbort]]` to `abort`.
-1. Set `this.[[strategyCount]]` to `count`.
-1. Set `this.[[strategyNeedsMoreData]]` to `needsMoreData`.
+1. Set `this.[[strategySize]]` to `size`.
+1. Set `this.[[strategyNeedsMore]]` to `needsMore`.
 1. Let `this.[[writablePromise]]` be a newly-created pending promise.
 1. Let `this.[[closedPromise]]` be a newly-created pending promise.
+1. Let `this.[[queue]]` be a new empty List.
 1. Call `start()` and let `startedPromise` be the result of casting the return value to a promise.
 1. When/if `startedPromise` is fulfilled, call `this.[[advanceQueue]]()`.
 1. When/if `startedPromise` is rejected with reason `r`, call `this.[[error]](r)`.
@@ -341,28 +340,27 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 1. Return `this.[[state]]`.
 
-##### write(data)
+##### write(chunk)
 
 1. If `this.[[state]]` is `"waiting"`,
-    1. Let _dataCount_ be the result of `this.[[strategyCount]](data)`.
-    1. ReturnIfAbrupt(_dataCount_).
+    1. Let _chunkSize_ be the result of `this.[[strategySize]](chunk)`.
+    1. ReturnIfAbrupt(_chunkSize_).
     1. Let `promise` be a newly-created pending promise.
-    1. Push `{ type: "data", promise, data, dataCount }` onto `this.[[queue]]`.
-    1. Let `this.[[queueSize]]` be `this.[[queueSize]] + dataCount`.
+    1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"chunk"`, [[promise]]: `promise`, [[chunk]]: `chunk`}, _chunkSize_).
     1. Return `promise`.
 1. If `this.[[state]]` is `"writable"`,
-    1. Let _dataCount_ be the result of `this.[[strategyCount]](data)`.
-    1. ReturnIfAbrupt(_dataCount_).
     1. Let `promise` be a newly-created pending promise.
-    1. If `this.[[queue]]` is empty, call `this.[[doNextWrite]]({ type: "data", promise, data })`.
+    1. If `this.[[queue]]` is empty, call `this.[[doNextWrite]]("chunk", promise, chunk)`.
     1. Otherwise,
-        1. Let _needsMoreData_ be the result of `this.[[strategyNeedsMoreData]](this.[[queueSize]])`.
-        1. ReturnIfAbrupt(_needsMoreData_).
-        1. If ToBoolean(_needsMoreData_) is **false**,
+        1. Let _chunkSize_ be the result of `this.[[strategySize]](chunk)`.
+        1. ReturnIfAbrupt(_chunkSize_).
+        1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
+        1. Let _needsMore_ be the result of `this.[[strategyNeedsMore]](queueSize)`.
+        1. ReturnIfAbrupt(_needsMore_).
+        1. If ToBoolean(_needsMore_) is **false**,
             1. Set `this.[[state]]` to `"waiting"`.
             1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
-        1. Push `{ type: "data", promise, data, dataCount }` onto `this.[[queue]]`.
-        1. Let `this.[[queueSize]]` be `this.[[queueSize]] + dataCount`.
+        1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"chunk"`, [[promise]]: `promise`, [[chunk]]: `chunk`}, _chunkSize_).
     1. Return `promise`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
     1. Return a promise rejected with a **TypeError** exception.
@@ -377,7 +375,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Return `this.[[closedPromise]]`.
 1. If `this.[[state]]` is `"waiting"`,
     1. Set `this.[[state]]` to `"closing"`.
-    1. Push `{ type: "close", promise: undefined, data: undefined }` onto `this.[[queue]]`.
+    1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"close"`, [[promise]]: `this.[[closedPromise]]`, [[chunk]]: **undefined**}, **0**).
     1. Return `this.[[closedPromise]]`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
     1. Return a promise rejected with a **TypeError** exception.
@@ -400,8 +398,9 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 ##### `[[error]](e)`
 
 1. If `this.[[state]]` is `"closed"` or `"errored"`, return.
-1. For each entry `{ type, promise, data }` in `this.[[queue]]`, reject `promise` with `r`.
-1. Clear `this.[[queue]]`.
+1. Repeat for each Record{[[type]], [[promise]], [[chunk]]} _value_ that is an element of `this.[[queue]]`, in original insertion order
+    1. Reject _value_.[[promise]] with `e`.
+1. Set `this.[[queue]]` to a new empty List.
 1. Set `this.[[state]]` to `"errored"`.
 1. Set `this.[[storedError]]` to `e`.
 1. Reject `this.[[writablePromise]]` with `e`.
@@ -410,9 +409,8 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 ##### `[[advanceQueue]]()`
 
 1. If `this.[[queue]]` is not empty,
-    1. Shift `entry` off of `this.[[queue]]`.
-    1. Let `this.[[queueSize]]` be `this.[[queueSize]] - entry.dataCount`.
-    1. Call `this.[[doNextWrite]](entry)`.
+    1. Let `writeRecord` be DequeueValue(`this.[[queue]]`).
+    1. Call `this.[[doNextWrite]](writeRecord.[[type]], writeRecord.[[promise]], writeRecord.[[chunk]])`.
 1. If `this.[[queue]]` is empty,
     1. Set `this.[[state]]` to `"writable"`.
     1. Resolve `this.[[writablePromise]]` with **undefined**.
@@ -427,13 +425,13 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Upon rejection of _closePromise_ with reason _r_,
     1. Call `this.[[error]](r)`.
 
-##### `[[doNextWrite]]({ type, promise, data })`
+##### `[[doNextWrite]](type, promise, chunk)`
 
 1. If `type` is `"close"`,
     1. Assert: `this.[[state]]` is `"closing"`.
     1. Call `this.[[doClose]]()`.
     1. Return.
-1. Assert: `type` must be `"data"`.
+1. Assert: `type` must be `"chunk"`.
 1. Set `this.[[currentWritePromise]]` to `promise`.
 1. Let `signalDone` be a new function of zero arguments, closing over `this` and `promise`, that performs the following steps:
     1. If `this.[[currentWritePromise]]` is not `promise`, return.
@@ -444,10 +442,9 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. If `this.[[state]]` is `"closing"`,
         1. Resolve `promise` with **undefined**.
         1. If `this.[[queue]]` is not empty,
-            1. Shift `entry` off of `this.[[queue]]`.
-            1. Let `this.[[queueSize]]` be `this.[[queueSize]] - entry.dataCount`.
-            1. Call `this.[[doNextWrite]](entry)`.
-1. Call `this.[[onWrite]](data, signalDone, this.[[error]])`.
+            1. Let `writeRecord` be DequeueValue(`this.[[queue]]`).
+            1. Call `this.[[doNextWrite]](writeRecord.[[type]], writeRecord.[[promise]], writeRecord.[[chunk]])`.
+1. Call `this.[[onWrite]](chunk, signalDone, this.[[error]])`.
 1. If the call throws an exception `e`, call `this.[[error]](e)`.
 
 Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been aborted, then `signalDone` ends up doing nothing.
@@ -464,12 +461,12 @@ class TeeStream extends WritableStream {
         this.[[outputs]] = [];
 
         super({
-            write(data) {
-                return Promise.all(this.[[outputs]].map(o => o.dest.write(data)));
+            write(chunk) {
+                return Promise.all(this.[[outputs]].map(o => o.dest.write(chunk)));
             },
             close() {
                 const outputsToClose = this.[[outputs]].filter(o => o.close);
-                return Promise.all(outputsToClose.map(o => o.dest.write(data)));
+                return Promise.all(outputsToClose.map(o => o.dest.close()));
             },
             abort(reason) {
                 return Promise.all(this.[[outputs]].map(o => o.dest.abort(reason)));
@@ -497,11 +494,11 @@ class ByteLengthQueuingStrategy {
         }
     }
 
-    count(chunk) {
+    size(chunk) {
         return chunk.byteLength;
     }
 
-    needsMoreData(queueSize) {
+    needsMore(queueSize) {
         return queueSize < this.highWaterMark;
     }
 }
@@ -521,12 +518,40 @@ class CountQueuingStrategy {
         }
     }
 
-    count(chunk) {
+    size(chunk) {
         return 1;
     }
 
-    needsMoreData(queuSize) {
+    needsMore(queueSize) {
         return queueSize < this.highWaterMark;
     }
 }
 ```
+
+## Queue-with-Sizes Operations
+
+The streams in this specification use a "queue-with-sizes" data structure to store queued up values, along with their determined sizes. A queue-with-sizes is a List of records with [[value]] and [[size]] fields (although in implementations it would of course be backed by a more efficient data structure).
+
+A number of operations are used to make working with queues-with-sizes more pleasant:
+
+### EnqueueValueWithSize ( _queue_, _value_, _size_ )
+
+1. Let _size_ be ToNumber(_size_).
+1. ReturnIfAbrupt(_size_).
+1. If _size_ is **NaN**, throw a **TypeError** exception.
+1. Append Record{[[value]]: _value_, [[size]]: _size_} as the last element of _queue_.
+
+## DequeueValue ( _queue_ )
+
+1. Assert: _queue_ is not empty.
+1. Let _pair_ be the first element of _queue_.
+1. Remove _pair_ from _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
+1. Return _pair_.[[value]]
+
+## GetTotalQueueSize ( _queue_ )
+
+1. Let _totalSize_ be **0**.
+1. Repeat for each Record{[[value]], [[size]]} _pair_ that is an element of _queue_,
+    1. Assert: _pair_.[[size]] is a valid, non-**NaN** number.
+    1. Add _pair_.[[size]] to _totalSize_.
+1. Return _totalSize_.

@@ -1,5 +1,6 @@
 'use strict';
 
+var assert = require('assert');
 var Promise = require('es6-promise').Promise;
 
 exports.promiseCall = function (func) {
@@ -10,4 +11,31 @@ exports.promiseCall = function (func) {
     } catch (e) {
         return Promise.reject(e);
     }
+};
+
+exports.enqueueValueWithSize = function (queue, value, size) {
+    size = Number(size);
+    if (isNaN(size)) {
+        throw new TypeError('Size must be a non-NaN number');
+    }
+
+    queue.push({ value: value, size: size });
+};
+
+exports.dequeueValue = function (queue) {
+    assert(queue.length > 0, 'Spec-level failure: should never be able to dequeue from an empty queue.');
+    var pair = queue.shift();
+    return pair.value;
+};
+
+exports.getTotalQueueSize = function (queue) {
+    var totalSize = 0;
+
+    queue.forEach(function (pair) {
+        assert(typeof pair.size === "number" && !isNaN(pair.size),
+            'Spec-level failure: should never find an invalid size in the queue.');
+        totalSize += pair.size;
+    });
+
+    return totalSize;
 };
