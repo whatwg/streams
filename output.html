@@ -130,11 +130,11 @@ unit of data for a given stream; for example a binary stream might contain chunk
 <p>Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O source,
 called the <dfn data-dfn-type=dfn data-noexport="" id=underlying-source>underlying source<a class=self-link href=#underlying-source></a></dfn>. There are two types of underlying source: push sources and pull sources.</p>
 
-<p><dfn data-dfn-type=dfn data-noexport="" id=push-sources>Push sources<a class=self-link href=#push-sources></a></dfn> push data at you, whether or not you are listening for it. They may also provide a mechanism
+<p><dfn data-dfn-type=dfn data-noexport="" id=push-source title="push source">Push sources<a class=self-link href=#push-source></a></dfn> push data at you, whether or not you are listening for it. They may also provide a mechanism
 for pausing and resuming the flow of data. An example push source is a TCP socket, where data is constantly being pushed
 from the OS level, at a rate that can be controlled by changing the TCP window size.</p>
 
-<p><dfn data-dfn-type=dfn data-noexport="" id=pull-sources>Pull sources<a class=self-link href=#pull-sources></a></dfn> require you to request data from them. The data may be available synchronously, e.g. if it is
+<p><dfn data-dfn-type=dfn data-noexport="" id=pull-source title="pull source">Pull sources<a class=self-link href=#pull-source></a></dfn> require you to request data from them. The data may be available synchronously, e.g. if it is
 held by the operating system’s in-memory buffers, or asynchronously, e.g. if it has to be read from disk. An example
 pull source is a file handle, where you seek to specific locations and read specific amounts.</p>
 
@@ -619,8 +619,8 @@ result is equivalent.</p>
 <li>chunk, <a href=#chunk title="section 1">1</a>
 <li>pipe chain, <a href=#pipe-chain title="section 1.4">1.4</a>
 <li>piping, <a href=#piping title="section 1.4">1.4</a>
-<li>Pull sources, <a href=#pull-sources title="section 1.1">1.1</a>
-<li>Push sources, <a href=#push-sources title="section 1.1">1.1</a>
+<li>pull source, <a href=#pull-source title="section 1.1">1.1</a>
+<li>push source, <a href=#push-source title="section 1.1">1.1</a>
 <li>readable stream, <a href=#readable-stream title="section 1.1">1.1</a>
 <li>transform stream, <a href=#transform-stream title="section 1.3">1.3</a>
 <li>ultimate consumer, <a href=#ultimate-consumer title="section 1.4">1.4</a>

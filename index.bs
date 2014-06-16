@@ -109,11 +109,11 @@ A <dfn>readable stream</dfn> represents a source of data, from which you can rea
 Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O source,
 called the <dfn>underlying source</dfn>. There are two types of underlying source: push sources and pull sources.
 
-<dfn>Push sources</dfn> push data at you, whether or not you are listening for it. They may also provide a mechanism
+<dfn title="push source">Push sources</dfn> push data at you, whether or not you are listening for it. They may also provide a mechanism
 for pausing and resuming the flow of data. An example push source is a TCP socket, where data is constantly being pushed
 from the OS level, at a rate that can be controlled by changing the TCP window size.
 
-<dfn>Pull sources</dfn> require you to request data from them. The data may be available synchronously, e.g. if it is
+<dfn title="pull source">Pull sources</dfn> require you to request data from them. The data may be available synchronously, e.g. if it is
 held by the operating system's in-memory buffers, or asynchronously, e.g. if it has to be read from disk. An example
 pull source is a file handle, where you seek to specific locations and read specific amounts.
 
