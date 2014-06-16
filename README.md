@@ -2,7 +2,7 @@
 
 ## Where Did All the Text Go?
 
-We are in the process of transitioning this specification from a GitHub README into something a bit more palatable. The official-lookin' version is developed in the `index.html` file, which you can see [on GitHub](https://github.com/whatwg/streams/blob/master/index.html), or in its rendered glory at [this long URL](http://anolis.hoppipolla.co.uk/aquarium.py/output?uri=http%3A%2F%2Frawgithub.com%2Fwhatwg%2Fstreams%2Fmaster%2Findex.html&process_filter=on&process_toc=on&process_xref=on&process_sub=on&process_annotate=on&filter=&annotation=&newline_char=LF&tab_char=SPACE&min_depth=2&max_depth=6&w3c_compat_xref_a_placement=on&parser=lxml.html&serializer=html5lib&output_encoding=ascii).
+We are in the process of transitioning this specification from a GitHub README into something a bit more palatable. The official-lookin' version is developed in the `index.bs` file and then deployed to the gh-pages branch; you can see it at https://whatwg.github.io/streams/.
 
 Right now, we've transferred over most of the concepts and text, but none of the algorithms or APIs. We'll be iterating on the APIs a bit more here, in Markdown format, until we feel confident in them. In the meantime, please check out the rendered spec for all of the interesting stage-setting text.
 
