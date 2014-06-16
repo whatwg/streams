@@ -1,4 +1,14 @@
 language: node_js
 node_js:
   - "0.10"
-before_install: "cd reference-implementation"
+
+env:
+  global:
+    - GH_REF: github.com/whatwg/streams.git
+    - secure: n6IgjBEEtuyI+SDJo+Pc6whqQzKRrIYm/6uSvux5+qLDkgl2q9kY7vKuf3ojttZ2/m74SwTIBz/OJtWDA9mvUBtDJWGDN9tiYIktWF5NH+agO+n+RkG44J0C3yyRunHiunf2JDt6YUQZnIYdwlRGJYueDsMRdcmeZfnkAhfJJBA=
+
+before_install:
+  - cd reference-implementation
+after_success:
+  - cd ..
+  - ./deploy-gh-pages.sh

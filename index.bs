@@ -37,7 +37,7 @@
   <h1>Streams</h1>
 
   <h2 class="no-num no-toc">
-    <span class="minor">[soon to become a]</span> Living Standard -- Last Updated [DATE]
+    <span class="minor">[soon to become a]</span> Living Standard; Last Updated [DATE]
     <!--Bikeshed doesnt like real em dashes. And if you use an apostrophe in this comment it also crashes. -->
   </h2>
 
