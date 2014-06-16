@@ -10,7 +10,7 @@ This document fleshes out those examples, adding more code and commentary to eac
 
 #### Pumping a Stream To the Console
 
-Although the by-far most common way of consuming a readable stream will be to pipe it to a writable stream, it is useful to see some examples to understand how the underlying primitives work. For example, this function writes the contents of a readable stream to the console as fast as it can. Note that it because of how our reading API is designed, there is no asynchronous delay imposed if data chunks are available immediately, or several chunks are available in sequence.
+Although the by-far most common way of consuming a readable stream will be to pipe it to a writable stream, it is useful to see some examples to understand how the underlying primitives work. For example, this function writes the contents of a readable stream to the console as fast as it can. Note that it because of how our reading API is designed, there is no asynchronous delay imposed if chunks are available immediately, or several chunks are available in sequence.
 
 ```js
 function streamToConsole(readable) {
@@ -56,8 +56,8 @@ function getNext(stream) {
 
 // Usage with a promise-generator bridge like Q or TaskJS:
 Q.spawn(function* () {
-    while ((const data = yield getNext(myStream)) !== EOF) {
-        // do something with `data`.
+    while ((const chunk = yield getNext(myStream)) !== EOF) {
+        // do something with `chunk`.
     }
 });
 ```
@@ -118,9 +118,9 @@ class StreamingSocket extends ReadableStream {
     constructor(host, port, { highWaterMark = 16 * 1024 } = {}) {
         const rawSocket = createRawSocketObject(host, port);
         super({
-            start(push, finish, error) {
+            start(enqueue, finish, error) {
                 rawSocket.ondata = chunk => {
-                    if (!push(chunk)) {
+                    if (!enqueue(chunk)) {
                         rawSocket.readStop();
                     }
                 };
@@ -148,7 +148,7 @@ const mySocketStream = new StreamingSocket("http://example.com", 80);
 
 By leveraging the `ReadableStream` base class, and supplying its super-constructor with the appropriate adapter functions and backpressure strategy, we've created a fully-functioning stream wrapping our raw socket API. It will automatically fill the internal queue as data is fired into it, preventing any loss that would occur in the simple evented model. If the queue fills up to the high water mark (defaulting to 16 KiB), it will send a signal to the underlying socket that it should stop sending us data. And once the consumer drains it of all its data, it will send the start signal back, resuming the flow of data.
 
-Note how, if data is available synchronously because `ondata` was called synchronously, the data is immediately pushed into the internal queue and available for consumption by any downstream consumers. Similarly, if `ondata` is called twice in a row, the pushed data will be available to two subsequent `readableStream.read()` calls before `readableStream.state` becomes `"waiting"`.
+Note how, if data is available synchronously because `ondata` was called synchronously, the data is immediately enqueued into the internal queue and available for consumption by any downstream consumers. Similarly, if `ondata` is called twice in a row, the enqueued data will be available to two subsequent `readableStream.read()` calls before `readableStream.state` becomes `"waiting"`.
 
 #### Adapting a Pull-Based Data Source
 
@@ -177,8 +177,8 @@ class ReadableFile extends ReadableStream {
                 });
             },
 
-            pull(push, finish, error) {
-                fileHandle.read((err, done, data) => {
+            pull(enqueue, finish, error) {
+                fileHandle.read((err, done, chunk) => {
                     if (err) {
                         error(err);
                     } else if (done) {
@@ -189,7 +189,7 @@ class ReadableFile extends ReadableStream {
                             finish();
                         });
                     } else {
-                        push(data);
+                        enqueue(chunk);
                     }
                 });
             },
@@ -208,7 +208,7 @@ const myFileStream = new ReadableFile("/example/path/on/fs.txt");
 
 As before, we leverage the `ReadableStream` base class to do most of the work. Our adapter functions, in this case, don't set up event listeners as they would for a push source; instead, they directly forward the desired operations of opening the file handle and reading from it down to the underlying API.
 
-Again note how, if data is available synchronously because `fileHandle.read` called its callback synchronously, that data is immediately pushed into the internal queue and available for consumption by any downstream consumers. And if data is requested from the `ReadableFile` instance twice in a row, it will immediately forward those requests to the underlying file handle, so that if it is ready synchronously (because e.g. the OS has recently buffered this file in memory), the data will be returned instantly, within that same turn of the event loop.
+Again note how, if data is available synchronously because `fileHandle.read` called its callback synchronously, that data is immediately enqueued into the internal queue and available for consumption by any downstream consumers. And if data is requested from the `ReadableFile` instance twice in a row, it will immediately forward those requests to the underlying file handle, so that if it is ready synchronously (because e.g. the OS has recently buffered this file in memory), the chunk will be returned instantly, within that same turn of the event loop.
 
 ## Writable Streams
 
@@ -281,9 +281,9 @@ It's a little hard to come up with a realistic example where you can do somethin
 ```js
 function promptAndWrite(myStream) {
     if (writableStream.state === "writable") {
-        prompt("Enter data to write to the stream").then(data => {
-            if (data !== "DONE") {
-                writableStream.write(data);
+        prompt("Enter data to write to the stream").then(chunk => {
+            if (chunk !== "DONE") {
+                writableStream.write(chunk);
                 promptAndWrite();
             } else {
                 writableStream.close()
@@ -314,7 +314,7 @@ Writable streams are generally easier to wrap around their underlying sinks than
 In general, a data sink can be modeled as:
 
 * An `open(cb)` method that gains access to the sink; it can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`.
-* A `write(data, cb)` method that writes `data` to the sink; it can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`. Importantly, it will fail if you call it indiscriminately; you must wait for the callback to come back—possibly synchronously—with a success before calling it again.
+* A `write(chunk, cb)` method that writes `chunk` to the sink; it can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`. Importantly, it will fail if you call it indiscriminately; you must wait for the callback to come back—possibly synchronously—with a success before calling it again.
 * A `close(cb)` method that releases access to the sink; it can call `cb` either synchronously or asynchronously, with either `(err)` or `(null)`.
 
 Let's assume we have some raw C++ file handle API matching this type of setup. Here is how we would adapt that into a writable stream:
@@ -336,8 +336,8 @@ class WritableFile extends WritableStream {
                 });
             },
 
-            write(data, done, error) {
-                fileHandle.write(data, err => {
+            write(chunk, done, error) {
+                fileHandle.write(chunk, err => {
                     if (err) {
                         fileHandle.close(closeErr => {
                             if (closeErr) {

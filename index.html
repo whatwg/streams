@@ -154,7 +154,7 @@ ultimate producer according to how fast the chain can process data is called <df
 abstraction. To accomplish this, the API uses the
 <a href="http://domenic.me/2014/02/14/the-revealing-constructor-pattern/">revealing constructor pattern</a>. The
 constructor of a given stream instance is supplied with two functions, <code>start</code> and <code>pull</code>, which
-each are given the parameters <code>(push, close, error)</code> representing capabilities tied to the internals of the
+each are given the parameters <code>(enqueue, close, error)</code> representing capabilities tied to the internals of the
 stream. By mediating all access to the internal state machine through these three functions, the stream's internal
 state and bookkeeping can be kept private, allowing nobody but the original producer of the stream to insert data into
 it.</p>
@@ -168,10 +168,10 @@ it.</p>
   ws.binaryType = "arraybuffer";
 
   return new ReadableStream({
-    start(push, close, error) {
+    start(enqueue, close, error) {
       // When adapting a push source, usually most of the work happens in start.
 
-      ws.onmessage = event => push(event.data);
+      ws.onmessage = event => enqueue(event.data);
       ws.onend = close;
       ws.onerror = error;
     },
@@ -201,10 +201,10 @@ socketStream.pipeTo(writableStream).closed
   const rawSocket = createRawSocketObject(host, port);
 
   return new ReadableStream({
-    start(push, close, error) {
+    start(enqueue, close, error) {
       rawSocket.ondata = event => {
-        if (!push(event.data)) {
-          // If push returns false, the internal queue is full, so propagate
+        if (!enqueue(event.data)) {
+          // If enqueue returns false, the internal queue is full, so propagate
           // the backpressure signal to the underlying source.
           rawSocket.readStop();
         }
@@ -253,10 +253,10 @@ socketStream.pipeTo(writableStream).closed
       });
     },
 
-    pull(push, close, error) {
+    pull(enqueue, close, error) {
       // When adapting a pull source, usually most of the work happens in pull.
 
-      fileHandle.read((err, isDone, data) => {
+      fileHandle.read((err, isDone, chunk) => {
         if (err) {
           // If trying to read data results in an error, report that.
           error(err);
@@ -270,8 +270,8 @@ socketStream.pipeTo(writableStream).closed
             close();
           });
         } else {
-          // If data was read successfully, push it into the internal queue.
-          push(data);
+          // If data was read successfully, enqueue it into the internal queue.
+          enqueue(chunk);
         }
       });
     },
@@ -369,9 +369,9 @@ writable network socket stream, which cannot acknowledge the incoming data at th
       });
     },
 
-    write(data, done, error) {
+    write(chunk, done, error) {
       ws.onerror = error;
-      ws.send(data);
+      ws.send(chunk);
 
       // Call done() immediately since the web socket gives us no way to tell
       // when the write completes.
@@ -413,8 +413,8 @@ writable network socket stream, which cannot acknowledge the incoming data at th
       });
     },
 
-    write(data, done, error) {
-      fileHandle.write(data, writeErr => {
+    write(chunk, done, error) {
+      fileHandle.write(chunk, writeErr => {
         if (writeErr) {
           // If trying to write results in an error, (attempt to) close the
           // underlying file handle; we're not going to write any more.

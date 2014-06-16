@@ -52,7 +52,7 @@ class ReadableStream {
     [[strategyNeedsMore]]
 
     // Internal methods for use by the underlying source
-    [[push]](any chunk)
+    [[enqueue]](any chunk)
     [[close]]()
     [[error]](any e)
 
@@ -74,11 +74,11 @@ enum ReadableStreamState {
 
 The constructor is passed several functions, all optional:
 
-- `start(push, close, error)` is typically used to adapt a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
-- `pull(push, close, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `push` function is called.
+- `start(enqueue, close, error)` is typically used to adapt a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
+- `pull(enqueue, close, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `enqueue` function is called.
 - `cancel()` is called when the readable stream is canceled, and should perform whatever source-specific steps are necessary to clean up and stop reading.
 
-Both `start` and `pull` are given the ability to manipulate the stream's internal queue and state by being passed the `this.[[push]]`, `this.[[close]]`, and `this.[[error]]` functions.
+Both `start` and `pull` are given the ability to manipulate the stream's internal queue and state by being passed the `this.[[enqueue]]`, `this.[[close]]`, and `this.[[error]]` functions.
 
 1. Set `this.[[onCancel]]` to `cancel`.
 1. Set `this.[[onPull]]` to `pull`.
@@ -87,7 +87,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. Let `this.[[waitPromise]]` be a newly-created pending promise.
 1. Let `this.[[closedPromise]]` be a newly-created pending promise.
 1. Let `this.[[queue]]` be a new empty List.
-1. Let _startResult_ be the result of `start(this.[[push]], this.[[close]], this.[[error]])`.
+1. Let _startResult_ be the result of `start(this.[[enqueue]], this.[[close]], this.[[error]])`.
 1. ReturnIfAbrupt(_startResult_).
 1. Let `this.[[startedPromise]]` be the result of casting _startResult_ to a promise.
 1. Upon fulfillment of `this.[[startedPromise]]`, set `this.[[started]]` to **true**.
@@ -200,7 +200,7 @@ ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 
 #### Internal Methods of ReadableStream
 
-##### `[[push]](chunk)`
+##### `[[enqueue]](chunk)`
 
 1. If `this.[[state]]` is `"waiting"` or `"readable"`,
     1. Let _chunkSize_ be the result of `this.[[strategySize]](chunk)`.
@@ -245,10 +245,10 @@ ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 1. Set `this.[[pulling]]` to **true**.
 1. If `this.[[started]]` is **false**,
     1. Upon fulfillment of `this.[[startedPromise]]`,
-        1. Let `pullResult` be the result of `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
+        1. Let `pullResult` be the result of `this.[[onPull]](this.[[enqueue]], this.[[close]], this.[[error]])`.
         1. If `pullResult` is an abrupt completion, call `this.[[error]](pullResult.[[value]])`.
 1. If `this.[[started]]` is **true**,
-    1. Let `pullResult` be the result of `this.[[onPull]](this.[[push]], this.[[close]], this.[[error]])`.
+    1. Let `pullResult` be the result of `this.[[onPull]](this.[[enqueue]], this.[[close]], this.[[error]])`.
     1. If `pullResult` is an abrupt completion, call `this.[[error]](pullResult.[[value]])`.
 
 ## Writable Stream APIs

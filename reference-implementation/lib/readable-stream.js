@@ -83,7 +83,7 @@ function ReadableStream(options) {
 
   this._startedPromise = Promise.cast(
     this._onStart(
-      this._push.bind(this),
+      this._enqueue.bind(this),
       this._close.bind(this),
       this._error.bind(this)
     )
@@ -93,7 +93,7 @@ function ReadableStream(options) {
   this._startedPromise.catch(function error(e) { stream._error(e); });
 }
 
-ReadableStream.prototype._push = function _push(chunk) {
+ReadableStream.prototype._enqueue = function _enqueue(chunk) {
   if (this._state === 'waiting' || this._state === 'readable') {
     var chunkSize = this._strategySize(chunk);
     helpers.enqueueValueWithSize(this._queue, chunk, chunkSize);
@@ -157,7 +157,7 @@ ReadableStream.prototype._callPull = function _callPull() {
     this._startedPromise.then(function fulfilled() {
       try {
         stream._onPull(
-          stream._push.bind(this),
+          stream._enqueue.bind(this),
           stream._close.bind(this),
           stream._error.bind(this)
         );
@@ -168,7 +168,7 @@ ReadableStream.prototype._callPull = function _callPull() {
   } else {
     try {
       stream._onPull(
-        stream._push.bind(this),
+        stream._enqueue.bind(this),
         stream._close.bind(this),
         stream._error.bind(this)
       );
