@@ -96,10 +96,10 @@ underway, and there is still room for additional APIs beyond those specified her
 
 <h2>Model</h2>
 
-A <dfn>chunk</dfn> represents a single piece of data that is written to or read from a stream.
-It can be of any type; streams can even contain chunks of different types. A chunk will often not be the most atomic
-unit of data for a given stream; for example a binary stream might contain chunks consisting of 16 KiB
-<code>ArrayBuffer</code>s, instead of single bytes.
+A <dfn>chunk</dfn> is a single piece of data that is written to or read from a stream. It can be of any type; streams
+can even contain chunks of different types. A chunk will often not be the most atomic unit of data for a given stream;
+for example a binary stream might contain chunks consisting of 16 KiB <code>ArrayBuffer</code>s, instead of single
+bytes.
 
 <h3>Readable Streams</h3>
 
@@ -217,7 +217,7 @@ it.
 <div class="example">
   <p>The following function wraps a push source, represented by a hypothetical "raw socket" interface, which triggers
   events for data, end, and error (much like a web socket), but also provides the ability to pause and resume the flow
-  of data. Thus, this example shows how to apply backpressure to underlying sources that support it.</p>
+  of data. Thus, this example shows how to apply backpressure to <a>underlying sources</a> that support it.</p>
 
   <pre>
     function makeSocketStream(host, port) {
@@ -372,21 +372,21 @@ stream's methods. This can be roughly summarized in the following diagram.
 
 <em>This section is non-normative.</em>
 
-The writable stream API allows wrapping of underlying sinks into an object on which two fundamental operations can
-be performed: data can be written to the stream, and the stream can be closed.
+The writable stream API allows wrapping of <a>underlying sinks</a> into an object on which two fundamental operations
+can be performed: data can be written to the stream, and the stream can be closed.
 
-The writable stream implementation is designed to encapsulate the potential complexity of the underlying sink from
-users of the stream API. In particular, users of a stream object can write data to the stream at any pace, without
+The writable stream implementation is designed to encapsulate the potential complexity of the <a>underlying sink</a>
+from users of the stream API. In particular, users of a stream object can write data to the stream at any pace, without
 regard for whether previous writes have completed or succeeded. It is the job of the stream implementation to ensure
-that writes are forwarded to the underlying sink in order, and only after successful completion of previous writes.
+that writes are forwarded to the <a>underlying sink</a> in order, and only after successful completion of previous writes.
 This allows seamless use of the writable stream even in cases such as piping a fast readable file stream to a slower
 writable network socket stream, which cannot acknowledge the incoming data at the same rate it becomes available.
 
 <div class="example">
-  The following function wraps a web socket [[HTML]] as the underlying sink of a new
-  writable stream. Web sockets do not provide any way to tell when a given chunk of data has been successfully sent,
-  so this writable stream has no ability to communicate backpressure signals to any users: it will always be in the
-  <code>"writable"</code> state.
+  <p>The following function wraps a web socket [[HTML]] as the <a>underlying sink</a> of a new writable stream. Web
+  sockets do not provide any way to tell when a given chunk of data has been successfully sent, so this writable stream
+  has no ability to communicate backpressure signals to any users: it will always be in the <code>"writable"</code>
+  state.</p>
 
   <pre>
     function makeWritableWebSocketStream(url, protocols) {
@@ -422,13 +422,13 @@ writable network socket stream, which cannot acknowledge the incoming data at th
 </div>
 
 <div class="example">
-  The following function wraps an underlying sink, represented as a hypothetical "raw file handle," which provides
-  methods for opening, writing to, and closing itself. Notably, the raw file handle's <code>write</code> method calls
-  back to signal when writes are complete, which allows the stream to correctly communicate backpressure signals to any
-  users by setting its state to <code>"waiting"</code> instead of <code>"writable"</code> when the queue gets too full.
-  Allow of the raw file handle's methods can call their callbacks either synchronously or asynchronously—a
+  <p>The following function wraps an <a>underlying sink</a>, represented as a hypothetical "raw file handle," which
+  provides methods for opening, writing to, and closing itself. Notably, the raw file handle's <code>write</code> method
+  calls back to signal when writes are complete, which allows the stream to correctly communicate backpressure signals
+  to any users by setting its state to <code>"waiting"</code> instead of <code>"writable"</code> when the queue gets too
+  full. Allow of the raw file handle's methods can call their callbacks either synchronously or asynchronously—a
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
-  hide from our users by wrapping them in a writable stream.
+  hide from our users by wrapping them in a writable stream.</p>
 
   <pre>
     function makeWritableFileStream(filename) {
@@ -481,7 +481,7 @@ writable network socket stream, which cannot acknowledge the incoming data at th
     }
   </pre>
 
-  We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:
+  <p>We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:</p>
 
   <pre>
     var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
@@ -491,16 +491,16 @@ writable network socket stream, which cannot acknowledge the incoming data at th
       .catch(e => console.error("Something went wrong!", e));
   </pre>
 
-  Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
+  <p>Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
   called later. In the meantime, additional writes can be queued up, which are stored in the stream's internal queue.
   The accumulation of this queue can move the stream into a <code>"waiting"</code> state, which is a signal to users
-  of the stream that they should back off and stop writing if possible.
+  of the stream that they should back off and stop writing if possible.</p>
 </div>
 
 <div class="example">
-  Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
-  directly. Since they queue any incoming writes, and take care internally to forward them to the underlying sink
-  in sequence, you can indiscriminately write to a writable stream without much ceremony:
+  <p>Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
+  directly. Since they queue any incoming writes, and take care internally to forward them to the <a>underlying sink</a>
+  in sequence, you can indiscriminately write to a writable stream without much ceremony:</p>
 
   <pre>
     function writeArrayToStream(array, writableStream) {
