@@ -28,15 +28,15 @@
 </pre>
 
 <div class="head">
-  <p>
+
     <a class="logo" href="//www.whatwg.org/">
       <img alt="WHATWG" src="//resources.whatwg.org/logo-streams.svg" width="100" height="100">
     </a>
-  </p>
+
 
   <h1>Streams</h1>
 
-  <h2 class="no-num no-toc">
+  <h2 class="no-num no-toc" id="subtitle">
     <span class="minor">[soon to become a]</span> Living Standard -- Last Updated [DATE]
     <!--Bikeshed doesnt like real em dashes. And if you use an apostrophe in this comment it also crashes. -->
   </h2>
@@ -71,10 +71,10 @@
     work. In addition, as of [DATE], the editor has made this specification available under the
     <a href="http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0" rel="license">Open Web Foundation
     Agreement Version 1.0</a>, which is available at http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
-  </p>
+
 </div>
 
-<h2 class="no-num no-toc">Abstract</h2>
+<h2 class="no-num no-toc" id="abstract">Abstract</h2>
 
 This specification provides APIs for creating, composing, and consuming streams of data. These streams are designed
 to map efficiently to low-level I/O primitives, and allow easy composition with built-in backpressure and queuing. On
@@ -82,7 +82,7 @@ top of streams, the web platform can build higher-level abstractions, such as fi
 same time users can use the supplied tools to build their own streams which integrate well with those of the web
 platform.
 
-<h2 class="no-num no-toc">Status</h2>
+<h2 class="no-num no-toc" id="status">Status</h2>
 
 This specification is in the process of establishing itself in the WHATWG. As such, the term "Living Standard"
 indicates a goal, rather than reality.
@@ -91,17 +91,17 @@ Although the core algorithms and APIs are largely present and working, prototypi
 underway, and there is still room for additional APIs beyond those specified here. Please join us in the
 <a href="https://github.com/whatwg/streams/issues?state=open">issue tracker</a> for more discussion.
 
-<h2 class="no-num no-toc">Table of Contents</h2>
+<h2 class="no-num no-toc" id="toc">Table of Contents</h2>
 <div data-fill-with="table-of-contents"></div>
 
-<h2>Model</h2>
+<h2 id="model">Model</h2>
 
 A <dfn>chunk</dfn> is a single piece of data that is written to or read from a stream. It can be of any type; streams
 can even contain chunks of different types. A chunk will often not be the most atomic unit of data for a given stream;
 for example a binary stream might contain chunks consisting of 16 KiB <code>ArrayBuffer</code>s, instead of single
 bytes.
 
-<h3>Readable Streams</h3>
+<h3 id="readable-streams">Readable Streams</h3>
 
 A <dfn>readable stream</dfn> represents a source of data, from which you can read. In other words, data comes
 <em>out</em> of a readable stream.
@@ -122,7 +122,7 @@ Readable streams are designed to wrap both types of sources behind a single, uni
 <a>Chunks</a> are enqueued into the stream by the stream's creator, who usually derives them from the <a>underlying
 source</a>. They can then be read one at a time via the stream's public interface.
 
-<h3>Writable Streams</h3>
+<h3 id="writable-streams">Writable Streams</h3>
 
 A <dfn>writable stream</dfn> represents a destination for data, into which you can write. In other words, data goes
 <em>in</em> to a writable stream.
@@ -134,7 +134,7 @@ queuing subsequent writes and only delivering them to the underlying sink one by
 <a>Chunks</a> are enqueued into the stream via its public interface, and are passed one at a time to the stream's
 creator. In turn, the creator will usually forward them to the <a>underlying sink</a>.
 
-<h3>Transform Streams</h3>
+<h3 id="transform-streams">Transform Streams</h3>
 
 A <dfn>transform stream</dfn> consists of a pair of streams: a writable stream input, and a readable stream output.
 In a manner specific to the transform stream in question, writes to the input side result in new data being made
@@ -148,7 +148,7 @@ Some examples of transform streams include:
   <li>A video decoder, which takes as input encoded bytes and produces as output uncompressed video frames.</li>
 </ul>
 
-<h3>Pipe Chains and Backpressure</h3>
+<h3 id="pipe-chains">Pipe Chains and Backpressure</h3>
 
 Streams are primarily used by <dfn>piping</dfn> them to each other. A readable stream can be piped directly to a
 writable stream, or it can be piped through one or more transform streams first.
@@ -162,9 +162,9 @@ it. If any step in the chain cannot yet accept data, it propagates a signal back
 eventually the ultimate producer is told to stop producing data so fast. This process of normalizing data flow from the
 ultimate producer according to how fast the chain can process data is called <dfn>backpressure</dfn>.
 
-<h2>Readable Streams</h2>
+<h2 id="rs">Readable Streams</h2>
 
-<h3>Introduction to Readable Streams</h3>
+<h3 id="rs-intro">Introduction to Readable Streams</h3>
 
 <em>This section is non-normative.</em>
 
@@ -178,8 +178,8 @@ state and bookkeeping can be kept private, allowing nobody but the original prod
 it.
 
 <div class="example">
-  <p>The following function creates readable streams that wrap web sockets [[HTML]], which are push sources that do not
-  support backpressure signals.</p>
+  The following function creates readable streams that wrap web sockets [[HTML]], which are push sources that do not
+  support backpressure signals.
 
   <pre>
     function makeReadableWebSocketStream(url, protocols) {
@@ -215,9 +215,9 @@ it.
 </div>
 
 <div class="example">
-  <p>The following function wraps a push source, represented by a hypothetical "raw socket" interface, which triggers
+  The following function wraps a push source, represented by a hypothetical "raw socket" interface, which triggers
   events for data, end, and error (much like a web socket), but also provides the ability to pause and resume the flow
-  of data. Thus, this example shows how to apply backpressure to <a>underlying sources</a> that support it.</p>
+  of data. Thus, this example shows how to apply backpressure to <a>underlying sources</a> that support it.
 
   <pre>
     function makeSocketStream(host, port) {
@@ -257,10 +257,10 @@ it.
 </div>
 
 <div class="example">
-  <p>The following function wraps a pull source, represented by a "raw file handle," which provides methods for opening,
+  The following function wraps a pull source, represented by a "raw file handle," which provides methods for opening,
   reading from, and closing itself. These methods can call their callbacks either synchronously or asynchronously—a
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
-  hide from our users by wrapping them in a readable stream.</p>
+  hide from our users by wrapping them in a readable stream.
 
   <pre>
     function makeReadableFileStream(filename) {
@@ -312,10 +312,10 @@ it.
 </div>
 
 <div class="example">
-  <p>Although readable streams will usually be used by piping them to a writable stream, you can also "pump" them
+  Although readable streams will usually be used by piping them to a writable stream, you can also "pump" them
   directly, alternating between using the <code>read()</code> and <code>wait()</code> methods according to the current
   value of the <code>state</code> property. For example, this function writes the contents of a readable stream to the
-  console as fast as they are available.</p>
+  console as fast as they are available.
 
   <pre>
     function streamToConsole(readableStream) {
@@ -338,7 +338,7 @@ it.
   </pre>
 </div>
 
-<h3>The Readable Stream State Diagram</h3>
+<h3 id="rs-state-diagram">The Readable Stream State Diagram</h3>
 
 <em>This section is non-normative.</em>
 
@@ -364,11 +364,11 @@ stream's methods. This can be roughly summarized in the following diagram.
 </figure>
 
 
-<h3>Class <code>ReadableStream</code></h3>
+<h3 id="rs-class">Class <code>ReadableStream</code></h3>
 
-<h2>Writable Streams</h2>
+<h2 id="ws">Writable Streams</h2>
 
-<h3>Introduction to Writable Streams</h3>
+<h3 id="ws-intro">Introduction to Writable Streams</h3>
 
 <em>This section is non-normative.</em>
 
@@ -383,10 +383,10 @@ This allows seamless use of the writable stream even in cases such as piping a f
 writable network socket stream, which cannot acknowledge the incoming data at the same rate it becomes available.
 
 <div class="example">
-  <p>The following function wraps a web socket [[HTML]] as the <a>underlying sink</a> of a new writable stream. Web
+  The following function wraps a web socket [[HTML]] as the <a>underlying sink</a> of a new writable stream. Web
   sockets do not provide any way to tell when a given chunk of data has been successfully sent, so this writable stream
   has no ability to communicate backpressure signals to any users: it will always be in the <code>"writable"</code>
-  state.</p>
+  state.
 
   <pre>
     function makeWritableWebSocketStream(url, protocols) {
@@ -422,13 +422,13 @@ writable network socket stream, which cannot acknowledge the incoming data at th
 </div>
 
 <div class="example">
-  <p>The following function wraps an <a>underlying sink</a>, represented as a hypothetical "raw file handle," which
+  The following function wraps an <a>underlying sink</a>, represented as a hypothetical "raw file handle," which
   provides methods for opening, writing to, and closing itself. Notably, the raw file handle's <code>write</code> method
   calls back to signal when writes are complete, which allows the stream to correctly communicate backpressure signals
   to any users by setting its state to <code>"waiting"</code> instead of <code>"writable"</code> when the queue gets too
   full. Allow of the raw file handle's methods can call their callbacks either synchronously or asynchronously—a
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
-  hide from our users by wrapping them in a writable stream.</p>
+  hide from our users by wrapping them in a writable stream.
 
   <pre>
     function makeWritableFileStream(filename) {
@@ -481,7 +481,7 @@ writable network socket stream, which cannot acknowledge the incoming data at th
     }
   </pre>
 
-  <p>We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:</p>
+  We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:
 
   <pre>
     var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
@@ -491,16 +491,16 @@ writable network socket stream, which cannot acknowledge the incoming data at th
       .catch(e => console.error("Something went wrong!", e));
   </pre>
 
-  <p>Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
+  Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
   called later. In the meantime, additional writes can be queued up, which are stored in the stream's internal queue.
   The accumulation of this queue can move the stream into a <code>"waiting"</code> state, which is a signal to users
-  of the stream that they should back off and stop writing if possible.</p>
+  of the stream that they should back off and stop writing if possible.
 </div>
 
 <div class="example">
-  <p>Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
+  Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
   directly. Since they queue any incoming writes, and take care internally to forward them to the <a>underlying sink</a>
-  in sequence, you can indiscriminately write to a writable stream without much ceremony:</p>
+  in sequence, you can indiscriminately write to a writable stream without much ceremony:
 
   <pre>
     function writeArrayToStream(array, writableStream) {
@@ -515,15 +515,15 @@ writable network socket stream, which cannot acknowledge the incoming data at th
   </pre>
 </div>
 
-<h3>The Writable Stream State Diagram</h3>
+<h3 id="ws-state-diagram">The Writable Stream State Diagram</h3>
 
 <em>This section is non-normative.</em>
 
 TODO
 
-<h3>Class <code>WritableStream</code></h3>
+<h3 id="ws-class">Class <code>WritableStream</code></h3>
 
-<h2>Subclassing Streams</h2>
+<h2 id="subclassing">Subclassing Streams</h2>
 
 <em>This section is non-normative.</em>
 
@@ -546,15 +546,15 @@ Because streams only interact through their public API, all streams—whether su
 interoperate. For example, you can pipe to or from any of the above streams, without worrying what type of
 implementation is under the covers, since they all provide the appropriate properties and methods.
 
-<h2>Other Stream APIs</h2>
+<h2 id="other-apis">Other Stream APIs</h2>
 
-<h3><code>TeeStream</code></h3>
+<h3 id="teestream"><code>TeeStream</code></h3>
 
-<h3><code>ByteLengthQueuingStrategy</code></h3>
+<h3 id="ByteLengthQueuingStrategy"><code>ByteLengthQueuingStrategy</code></h3>
 
-<h3><code>CountQueuingStrategy</code></h3>
+<h3 id="CountQueuingStrategy"><code>CountQueuingStrategy</code></h3>
 
-<h2 class="no-num">Acknowledgments</h2>
+<h2 class="no-num" id="acks">Acknowledgments</h2>
 
 The editor would like to thank
 Bert Belder,
@@ -577,7 +577,7 @@ Jake Verbaten for his continued involvement, support, and interest in pushing th
 Takeshi Yoshino for his careful review of this spec's algorithms and concepts.
 
 
-<h2 class="no-num no-ref">Conformance</h2>
+<h2 class="no-num no-ref" id="conformance">Conformance</h2>
 
 All diagrams, examples, and notes in this specification are non-normative, as are all sections explicitly marked
 non-normative. Everything else in this specification is normative.
