@@ -1,14 +1,88 @@
-<h1>Streams</h1>
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Streams Standard</title>
+<style>
+  span.minor {
+    letter-spacing: 0;
+    color: black;
+    font-size: 0.8em;
+    font-weight: normal;
+  }
+
+  /* Compensate for Bikeshed omitting spaces, unlike Anolis which other specs use */
+  .toc .secno::after {
+    content: ' ';
+  }
+</style>
+
+<link rel="stylesheet" href="//www.whatwg.org/style/specification" />
+<link rel="icon" href="//resources.whatwg.org/logo-streams.svg" />
+
 <pre class="metadata">
-Shortname: streams
-Level: 1
-Status: DREAM
-ED: https://whatwg.github.io/streams
-Editor: Domenic Denicola, Google, http://domenic.me
-Abstract: This specification provides APIs for creating, composing, and consuming streams of data. These streams are designed to map efficiently to low-level I/O primitives, and allow easy composition with built-in backpressure and queuing. On top of streams, the web platform can build higher-level abstractions, such as filesystem or socket APIs, while at the same time users can use the supplied tools to build their own streams which integrate well with those of the web platform.
+  Shortname: streams
+  Level: 1
+  Status: DREAM
+  ED: https://whatwg.github.io/streams
+  Editor: Domenic Denicola, Google, http://domenic.me
+  Abstract: Don't wanna exceed 120 chars, so I put it below instead.
 </pre>
 
-<h2>Status</h2>
+<div class="head">
+  <p>
+    <a class="logo" href="//www.whatwg.org/">
+      <img alt="WHATWG" src="//resources.whatwg.org/logo-streams.svg" width="100" height="100">
+    </a>
+  </p>
+
+  <h1>Streams</h1>
+
+  <h2 class="no-num no-toc">
+    <span class="minor">[soon to become a]</span> Living Standard -- Last Updated [DATE]
+    <!--Bikeshed doesnt like real em dashes. And if you use an apostrophe in this comment it also crashes. -->
+  </h2>
+
+  <dl>
+    <dt>Participate:</dt>
+    <dd>
+      Send feedback to
+      <a href="http://www.whatwg.org/mailing-list">whatwg@whatwg.org</a>
+      (<a href="http://www.whatwg.org/mailing-list#specs">archives</a>) or
+      <a href="https://github.com/whatwg/streams/issues/new">file a bug</a>
+      (<a href="https://github.com/whatwg/streams/issues?state=open">open bugs</a>)
+    </dd>
+    <dd><a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a></dd>
+
+    <dt>Version History:</dt>
+    <dd><a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a></dd>
+
+    <dt>Editor:</dt>
+    <dd class="h-card vcard">
+      <a href="http://domenic.me/">Domenic Denicola</a>
+      (<a href="https://google.com/">Google</a>)
+      &lt;<a href="mailto:domenic@domenicdenicola.com">domenic@domenicdenicola.com</a>&gt;
+    </dd>
+  </dl>
+
+  <p class="copyright">
+    <a href="http://creativecommons.org/publicdomain/zero/1.0/" rel="license">
+      <img src="http://i.creativecommons.org/p/zero/1.0/80x15.png" alt="CC0">
+    </a>
+    To the extent possible under law, the editor has waived all copyright and related or neighboring rights to this
+    work. In addition, as of [DATE], the editor has made this specification available under the
+    <a href="http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0" rel="license">Open Web Foundation
+    Agreement Version 1.0</a>, which is available at http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
+  </p>
+</div>
+
+<h2 class="no-num no-toc">Abstract</h2>
+
+<p>This specification provides APIs for creating, composing, and consuming streams of data. These streams are designed
+to map efficiently to low-level I/O primitives, and allow easy composition with built-in backpressure and queuing. On
+top of streams, the web platform can build higher-level abstractions, such as filesystem or socket APIs, while at the
+same time users can use the supplied tools to build their own streams which integrate well with those of the web
+platform.</p>
+
+<h2 class="no-num no-toc">Status</h2>
 
 <p>This specification is in the process of establishing itself in the WHATWG. As such, the term "Living Standard"
 indicates a goal, rather than reality.</p>
@@ -16,6 +90,9 @@ indicates a goal, rather than reality.</p>
 <p>Although the core algorithms and APIs are largely present and working, prototyping and testing of them is still
 underway, and there is still room for additional APIs beyond those specified here. Please join us in the
 <a href="https://github.com/whatwg/streams/issues?state=open">issue tracker</a> for more discussion.</p>
+
+<h2 class="no-num no-toc">Table of Contents</h2>
+<div data-fill-with="table-of-contents"></div>
 
 <h2>Model</h2>
 
@@ -108,33 +185,37 @@ it.</p>
   <p>The following function creates readable streams that wrap web sockets [[HTML]], which
   are push sources that do not support backpressure signals.</p>
 
-<pre><code>function makeReadableWebSocketStream(url, protocols) {
-  const ws = new WebSocket(url, protocols);
-  ws.binaryType = "arraybuffer";
+  <pre>
+    function makeReadableWebSocketStream(url, protocols) {
+      const ws = new WebSocket(url, protocols);
+      ws.binaryType = "arraybuffer";
 
-  return new ReadableStream({
-    start(enqueue, close, error) {
-      // When adapting a push source, usually most of the work happens in start.
+      return new ReadableStream({
+        start(enqueue, close, error) {
+          // When adapting a push source, usually most of the work happens in start.
 
-      ws.onmessage = event => enqueue(event.data);
-      ws.onend = close;
-      ws.onerror = error;
-    },
+          ws.onmessage = event => enqueue(event.data);
+          ws.onend = close;
+          ws.onerror = error;
+        },
 
-    cancel() {
-      ws.close();
+        cancel() {
+          ws.close();
+        }
+      });
     }
-  });
-}</code></pre>
+  </pre>
 
   <p>We can then use this function to create readable streams for web sockets, and pipe those streams to arbitrary
   writable streams:</p>
 
-<pre><code>var webSocketStream = makeReadableWebSocketStream("http://example.com", 80);
+  <pre>
+    var webSocketStream = makeReadableWebSocketStream("http://example.com", 80);
 
-socketStream.pipeTo(writableStream).closed
-  .then(() => console.log("All data successfully written!"))
-  .catch(e => console.error("Something went wrong!", e));</code></pre>
+    socketStream.pipeTo(writableStream).closed
+      .then(() => console.log("All data successfully written!"))
+      .catch(e => console.error("Something went wrong!", e));
+  </pre>
 </div>
 
 <div class="example">
@@ -142,35 +223,37 @@ socketStream.pipeTo(writableStream).closed
   events for data, end, and error (much like a web socket), but also provides the ability to pause and resume the flow
   of data. Thus, this example shows how to apply backpressure to underlying sources that support it.</p>
 
-<pre><code>function makeSocketStream(host, port) {
-  const rawSocket = createRawSocketObject(host, port);
+  <pre>
+    function makeSocketStream(host, port) {
+      const rawSocket = createRawSocketObject(host, port);
 
-  return new ReadableStream({
-    start(enqueue, close, error) {
-      rawSocket.ondata = event => {
-        if (!enqueue(event.data)) {
-          // If enqueue returns false, the internal queue is full, so propagate
-          // the backpressure signal to the underlying source.
+      return new ReadableStream({
+        start(enqueue, close, error) {
+          rawSocket.ondata = event => {
+            if (!enqueue(event.data)) {
+              // If enqueue returns false, the internal queue is full, so propagate
+              // the backpressure signal to the underlying source.
+              rawSocket.readStop();
+            }
+          };
+
+          rawSocket.onend = close;
+          rawSocket.onerror = error;
+        },
+
+        pull() {
+          // This is called if the internal queue has been emptied, but the
+          // stream's consumer still wants more data. In that case, restart
+          // the flow of data if we have previously paused it.
+          rawSocket.readStart();
+        },
+
+        cancel() {
           rawSocket.readStop();
         }
-      };
-
-      rawSocket.onend = close;
-      rawSocket.onerror = error;
-    },
-
-    pull() {
-      // This is called if the internal queue has been emptied, but the
-      // stream's consumer still wants more data. In that case, restart
-      // the flow of data if we have previously paused it.
-      rawSocket.readStart();
-    },
-
-    cancel() {
-      rawSocket.readStop();
+      });
     }
-  });
-}</code></pre>
+  </pre>
 
   <p>We can then use this function to create readable streams for such "raw sockets" in the same way we do for web
   sockets. This time, however, when we pipe to a destination that cannot accept data as fast as the socket is producing
@@ -183,49 +266,51 @@ socketStream.pipeTo(writableStream).closed
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
   hide from our users by wrapping them in a readable stream.</p>
 
-<pre><code>function makeReadableFileStream(filename) {
-  const fileHandle = createRawFileHandle(filename, "r");
+  <pre>
+    function makeReadableFileStream(filename) {
+      const fileHandle = createRawFileHandle(filename, "r");
 
-  return new ReadableStream({
-    start() {
-      return new Promise((resolve, reject) => {
-        fileHandle.open(err => {
-          if (err) {
-            reject(err);
-          }
-          resolve();
-        });
-      });
-    },
-
-    pull(enqueue, close, error) {
-      // When adapting a pull source, usually most of the work happens in pull.
-
-      fileHandle.read((err, isDone, chunk) => {
-        if (err) {
-          // If trying to read data results in an error, report that.
-          error(err);
-        } else if (isDone) {
-          // If there's no more data to read, be sure to close the underlying
-          // source, ensuring that it succeeds before reporting success.
-          fileHandle.close(err => {
-            if (err) {
-              error(err);
-            }
-            close();
+      return new ReadableStream({
+        start() {
+          return new Promise((resolve, reject) => {
+            fileHandle.open(err => {
+              if (err) {
+                reject(err);
+              }
+              resolve();
+            });
           });
-        } else {
-          // If data was read successfully, enqueue it into the internal queue.
-          enqueue(chunk);
+        },
+
+        pull(enqueue, close, error) {
+          // When adapting a pull source, usually most of the work happens in pull.
+
+          fileHandle.read((err, isDone, chunk) => {
+            if (err) {
+              // If trying to read data results in an error, report that.
+              error(err);
+            } else if (isDone) {
+              // If there's no more data to read, be sure to close the underlying
+              // source, ensuring that it succeeds before reporting success.
+              fileHandle.close(err => {
+                if (err) {
+                  error(err);
+                }
+                close();
+              });
+            } else {
+              // If data was read successfully, enqueue it into the internal queue.
+              enqueue(chunk);
+            }
+          });
+        },
+
+        cancel() {
+          fileHandle.close();
         }
       });
-    },
-
-    cancel() {
-      fileHandle.close();
     }
-  });
-}</code></pre>
+  </pre>
 
   <p>We can then create and use readable streams for files just as we could before for sockets.</p>
 </div>
@@ -236,30 +321,34 @@ socketStream.pipeTo(writableStream).closed
   value of the <code>state</code> property. For example, this function writes the contents of a readable stream to the
   console as fast as they are available.</p>
 
-<pre><code>function streamToConsole(readableStream) {
-  pump();
+  <pre>
+    function streamToConsole(readableStream) {
+      pump();
 
-  function pump() {
-    while (readableStream.state === "readable") {
-      console.log(readableStream.read());
-    }
+      function pump() {
+        while (readableStream.state === "readable") {
+          console.log(readableStream.read());
+        }
 
-    if (readableStream.state === "closed") {
-      console.log("--- all done!");
-    } else {
-      // If we're in an error state, the returned promise will be rejected with
-      // that error, so no need to handle "waiting" vs. "errored" separately.
-      readableStream.wait().then(pump, e => console.error(e));
+        if (readableStream.state === "closed") {
+          console.log("--- all done!");
+        } else {
+          // If we're in an error state, the returned promise will be rejected with
+          // that error, so no need to handle "waiting" vs. "errored" separately.
+          readableStream.wait().then(pump, e => console.error(e));
+        }
+      }
     }
-  }
-}</code></pre>
+  </pre>
 </div>
 
 <h3>The Readable Stream State Diagram</h3>
 
 <p><em>This section is non-normative.</em></p>
 
-<p>As evidenced by the above explanations, readable streams have a fairly complex internal state machine, which is responsible for keeping track of the internal queue, and initiating appropriate actions in response to calls to a stream's methods. This can be roughly summarized in the following diagram.</p>
+<p>As evidenced by the above explanations, readable streams have a fairly complex internal state machine, which is
+responsible for keeping track of the internal queue, and initiating appropriate actions in response to calls to a
+stream's methods. This can be roughly summarized in the following diagram.</p>
 
 <figure>
   <img src="readable-stream.svg" width="578" alt="The readable stream state machine diagram." />
@@ -303,35 +392,37 @@ writable network socket stream, which cannot acknowledge the incoming data at th
   so this writable stream has no ability to communicate backpressure signals to any users: it will always be in the
   <code>"writable"</code> state.</p>
 
-<pre><code>function makeWritableWebSocketStream(url, protocols) {
-  const ws = new WebSocket(url, protocols);
+  <pre>
+    function makeWritableWebSocketStream(url, protocols) {
+      const ws = new WebSocket(url, protocols);
 
-  return new WritableStream({
-    start() {
-      return new Promise((resolve, reject) => {
-        ws.onopen = resolve;
-        ws.onerror = reject;
-      });
-    },
+      return new WritableStream({
+        start() {
+          return new Promise((resolve, reject) => {
+            ws.onopen = resolve;
+            ws.onerror = reject;
+          });
+        },
 
-    write(chunk, done, error) {
-      ws.onerror = error;
-      ws.send(chunk);
+        write(chunk, done, error) {
+          ws.onerror = error;
+          ws.send(chunk);
 
-      // Call done() immediately since the web socket gives us no way to tell
-      // when the write completes.
-      done();
-    },
+          // Call done() immediately since the web socket gives us no way to tell
+          // when the write completes.
+          done();
+        },
 
-    close() {
-      return new Promise((resolve, reject) => {
-        ws.onclose = resolve;
-        ws.onerror = error;
-        ws.close();
+        close() {
+          return new Promise((resolve, reject) => {
+            ws.onclose = resolve;
+            ws.onerror = error;
+            ws.close();
+          });
+        }
       });
     }
-  });
-}</code></pre>
+  </pre>
 </div>
 
 <div class="example">
@@ -343,62 +434,66 @@ writable network socket stream, which cannot acknowledge the incoming data at th
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
   hide from our users by wrapping them in a writable stream.</p>
 
-<pre><code>function makeWritableFileStream(filename) {
-  const fileHandle = createRawFileHandle(filename, "w");
+  <pre>
+    function makeWritableFileStream(filename) {
+      const fileHandle = createRawFileHandle(filename, "w");
 
-  return new WritableStream({
-    start() {
-      return new Promise((resolve, reject) => {
-        fileHandle.open(err => {
-          if (err) {
-            reject(err);
-          }
-          resolve();
-        });
-      });
-    },
-
-    write(chunk, done, error) {
-      fileHandle.write(chunk, writeErr => {
-        if (writeErr) {
-          // If trying to write results in an error, (attempt to) close the
-          // underlying file handle; we're not going to write any more.
-          fileHandle.close(closeErr => {
-            // If *closing* errors, pass along that error to the stream.
-            if (closeErr) {
-              error(closeErr);
-            }
-
-            // Otherwise, if closing succeeds, pass along the write error.
-            error(writeErr);
+      return new WritableStream({
+        start() {
+          return new Promise((resolve, reject) => {
+            fileHandle.open(err => {
+              if (err) {
+                reject(err);
+              }
+              resolve();
+            });
           });
-        } else {
-          // If there's no error, then signal that this write completed.
-          done();
+        },
+
+        write(chunk, done, error) {
+          fileHandle.write(chunk, writeErr => {
+            if (writeErr) {
+              // If trying to write results in an error, (attempt to) close the
+              // underlying file handle; we're not going to write any more.
+              fileHandle.close(closeErr => {
+                // If *closing* errors, pass along that error to the stream.
+                if (closeErr) {
+                  error(closeErr);
+                }
+
+                // Otherwise, if closing succeeds, pass along the write error.
+                error(writeErr);
+              });
+            } else {
+              // If there's no error, then signal that this write completed.
+              done();
+            }
+          });
+        },
+
+        close() {
+          return new Promise((resolve, reject) => {
+            fileHandle.close(err => {
+              if (err) {
+                reject(err);
+              }
+              resolve();
+            });
+          });
         }
       });
-    },
-
-    close() {
-      return new Promise((resolve, reject) => {
-        fileHandle.close(err => {
-          if (err) {
-            reject(err);
-          }
-          resolve();
-        });
-      });
     }
-  });
-}</code></pre>
+  </pre>
 
   <p>We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:</p>
 
-<pre><code>var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
+  <pre>
+    var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
 
-readableStream.pipeTo(fileStream).closed
-  .then(() => console.log("All data successfully written!"))
-  .catch(e => console.error("Something went wrong!", e));</code></pre>
+    readableStream.pipeTo(fileStream).closed
+      .then(() => console.log("All data successfully written!"))
+      .catch(e => console.error("Something went wrong!", e));
+  </pre>
 
   <p>Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
   called later. In the meantime, additional writes can be queued up, which are stored in the stream's internal queue.
@@ -411,15 +506,17 @@ readableStream.pipeTo(fileStream).closed
   directly. Since they queue any incoming writes, and take care internally to forward them to the underlying sink
   in sequence, you can indiscriminately write to a writable stream without much ceremony:</p>
 
-<pre><code>function writeArrayToStream(array, writableStream) {
-  array.forEach(chunk => writableStream.write(chunk));
+  <pre>
+    function writeArrayToStream(array, writableStream) {
+      array.forEach(chunk => writableStream.write(chunk));
 
-  return writableStream.close();
-}
+      return writableStream.close();
+    }
 
-writeArrayToStream([1, 2, 3, 4, 5], writableStream)
-  .then(() => console.log("All done!"))
-  .catch(e => console.error("Error with the stream: " + e));</code></pre>
+    writeArrayToStream([1, 2, 3, 4, 5], writableStream)
+      .then(() => console.log("All done!"))
+      .catch(e => console.error("Error with the stream: " + e));
+  </pre>
 </div>
 
 <h3>The Writable Stream State Diagram</h3>
@@ -481,3 +578,26 @@ Isaac Schlueter for his pioneering work on JavaScript streams in Node.js;
 Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward; and
 Takeshi Yoshino for his careful review of this spec's algorithms and concepts.
 </p>
+
+<h2>Conformance</h2>
+
+<p>All diagrams, examples, and notes in this specification are non-normative, as are all sections explicitly marked
+non-normative. Everything else in this specification is normative.</p>
+
+<p>The key words "MUST", "MUST NOT", "REQUIRED", <!--"SHALL", "SHALL NOT",--> "SHOULD", "SHOULD NOT", "RECOMMENDED",
+"MAY", and "OPTIONAL" in the normative parts of this specification are to be interpreted as described in RFC2119. For
+readability, these words do not appear in all uppercase letters in this specification. [[!RFC2119]]</p>
+
+<p>Conformance requirements phrased as algorithms or specific steps may be implemented in any manner, so long as the end
+result is equivalent.</p>
+
+<h2 class="no-num no-ref" id="references">References</h2>
+
+<h3 class="no-num no-ref" id="normative">Normative References</h3>
+<div data-fill-with="normative-references"></div>
+
+<h3 class="no-num no-ref" id="informative">Informative References</h3>
+<div data-fill-with="informative-references"></div>
+
+<h2 class="no-num no-ref" id="index">Index</h2>
+<div data-fill-with="index"></div>
