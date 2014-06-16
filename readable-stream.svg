@@ -96,7 +96,7 @@
     <g transform="translate(40.0,70)">
       <rect fill="#ffffff" x="-33.5" y="-9.0" width="67.0" height="14" />
       <text x="0.0" style="text-anchor: middle" y="2.0">
-        <tspan font-size="12px" font-family="Arial" fill="#000000" font-style="italic">push(data)</tspan>
+        <tspan font-size="12px" font-family="Arial" fill="#000000" font-style="italic">enqueue(chunk)</tspan>
       </text>
     </g>
   </g>
