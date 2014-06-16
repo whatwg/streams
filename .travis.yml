@@ -11,4 +11,4 @@ before_install:
   - cd reference-implementation
 after_success:
   - cd ..
-  - ./deploy-gh-pages.sh
+  - bash ./deploy-gh-pages.sh
