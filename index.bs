@@ -19,20 +19,20 @@
 <link rel="icon" href="//resources.whatwg.org/logo-streams.svg" />
 
 <pre class="metadata">
+  Title: Streams Standard
   Shortname: streams
   Level: 1
   Status: DREAM
   ED: https://whatwg.github.io/streams
   Editor: Domenic Denicola, Google, http://domenic.me
   Abstract: Don't wanna exceed 120 chars, so I put it below instead.
+  Boilerplate: omit header
 </pre>
 
 <div class="head">
-  <p>
-    <a class="logo" href="//www.whatwg.org/">
-      <img alt="WHATWG" src="//resources.whatwg.org/logo-streams.svg" width="100" height="100">
-    </a>
-  </p>
+  <a class="logo" href="//www.whatwg.org/">
+    <img alt="WHATWG" src="//resources.whatwg.org/logo-streams.svg" width="100" height="100">
+  </a>
 
   <hgroup>
     <h1>Streams</h1>
@@ -179,8 +179,8 @@ state and bookkeeping can be kept private, allowing nobody but the original prod
 it.
 
 <div class="example">
-  <p>The following function creates readable streams that wrap web sockets [[HTML]], which are push sources that do not
-  support backpressure signals.</p>
+  The following function creates readable streams that wrap web sockets [[HTML]], which are push sources that do not
+  support backpressure signals.
 
   <pre>
     function makeReadableWebSocketStream(url, protocols) {
@@ -216,9 +216,9 @@ it.
 </div>
 
 <div class="example">
-  <p>The following function wraps a push source, represented by a hypothetical "raw socket" interface, which triggers
+  The following function wraps a push source, represented by a hypothetical "raw socket" interface, which triggers
   events for data, end, and error (much like a web socket), but also provides the ability to pause and resume the flow
-  of data. Thus, this example shows how to apply backpressure to <a>underlying sources</a> that support it.</p>
+  of data. Thus, this example shows how to apply backpressure to <a>underlying sources</a> that support it.
 
   <pre>
     function makeSocketStream(host, port) {
@@ -258,10 +258,10 @@ it.
 </div>
 
 <div class="example">
-  <p>The following function wraps a pull source, represented by a "raw file handle," which provides methods for opening,
+  The following function wraps a pull source, represented by a "raw file handle," which provides methods for opening,
   reading from, and closing itself. These methods can call their callbacks either synchronously or asynchronously—a
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
-  hide from our users by wrapping them in a readable stream.</p>
+  hide from our users by wrapping them in a readable stream.
 
   <pre>
     function makeReadableFileStream(filename) {
@@ -313,10 +313,10 @@ it.
 </div>
 
 <div class="example">
-  <p>Although readable streams will usually be used by piping them to a writable stream, you can also "pump" them
+  Although readable streams will usually be used by piping them to a writable stream, you can also "pump" them
   directly, alternating between using the <code>read()</code> and <code>wait()</code> methods according to the current
   value of the <code>state</code> property. For example, this function writes the contents of a readable stream to the
-  console as fast as they are available.</p>
+  console as fast as they are available.
 
   <pre>
     function streamToConsole(readableStream) {
@@ -384,10 +384,10 @@ This allows seamless use of the writable stream even in cases such as piping a f
 writable network socket stream, which cannot acknowledge the incoming data at the same rate it becomes available.
 
 <div class="example">
-  <p>The following function wraps a web socket [[HTML]] as the <a>underlying sink</a> of a new writable stream. Web
+  The following function wraps a web socket [[HTML]] as the <a>underlying sink</a> of a new writable stream. Web
   sockets do not provide any way to tell when a given chunk of data has been successfully sent, so this writable stream
   has no ability to communicate backpressure signals to any users: it will always be in the <code>"writable"</code>
-  state.</p>
+  state.
 
   <pre>
     function makeWritableWebSocketStream(url, protocols) {
@@ -423,13 +423,13 @@ writable network socket stream, which cannot acknowledge the incoming data at th
 </div>
 
 <div class="example">
-  <p>The following function wraps an <a>underlying sink</a>, represented as a hypothetical "raw file handle," which
+  The following function wraps an <a>underlying sink</a>, represented as a hypothetical "raw file handle," which
   provides methods for opening, writing to, and closing itself. Notably, the raw file handle's <code>write</code> method
   calls back to signal when writes are complete, which allows the stream to correctly communicate backpressure signals
   to any users by setting its state to <code>"waiting"</code> instead of <code>"writable"</code> when the queue gets too
   full. Allow of the raw file handle's methods can call their callbacks either synchronously or asynchronously—a
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
-  hide from our users by wrapping them in a writable stream.</p>
+  hide from our users by wrapping them in a writable stream.
 
   <pre>
     function makeWritableFileStream(filename) {
@@ -482,7 +482,7 @@ writable network socket stream, which cannot acknowledge the incoming data at th
     }
   </pre>
 
-  <p>We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:</p>
+  We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:
 
   <pre>
     var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
@@ -492,16 +492,16 @@ writable network socket stream, which cannot acknowledge the incoming data at th
       .catch(e => console.error("Something went wrong!", e));
   </pre>
 
-  <p>Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
+  Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
   called later. In the meantime, additional writes can be queued up, which are stored in the stream's internal queue.
   The accumulation of this queue can move the stream into a <code>"waiting"</code> state, which is a signal to users
-  of the stream that they should back off and stop writing if possible.</p>
+  of the stream that they should back off and stop writing if possible.
 </div>
 
 <div class="example">
-  <p>Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
+  Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
   directly. Since they queue any incoming writes, and take care internally to forward them to the <a>underlying sink</a>
-  in sequence, you can indiscriminately write to a writable stream without much ceremony:</p>
+  in sequence, you can indiscriminately write to a writable stream without much ceremony:
 
   <pre>
     function writeArrayToStream(array, writableStream) {
@@ -576,27 +576,3 @@ Forrest Norvell for his enthusiastic iteration on the reference implementation;
 Isaac Schlueter for his pioneering work on JavaScript streams in Node.js;
 Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward; and
 Takeshi Yoshino for his careful review of this spec's algorithms and concepts.
-
-
-<h2 id="conformance" class="no-num no-ref">Conformance</h2>
-
-All diagrams, examples, and notes in this specification are non-normative, as are all sections explicitly marked
-non-normative. Everything else in this specification is normative.
-
-The key words "MUST", "MUST NOT", "REQUIRED", <!--"SHALL", "SHALL NOT",--> "SHOULD", "SHOULD NOT", "RECOMMENDED",
-"MAY", and "OPTIONAL" in the normative parts of this specification are to be interpreted as described in RFC2119. For
-readability, these words do not appear in all uppercase letters in this specification. [[!RFC2119]]
-
-Conformance requirements phrased as algorithms or specific steps may be implemented in any manner, so long as the end
-result is equivalent.
-
-<h2 id="references" class="no-num no-ref">References</h2>
-
-<h3 id="normative" class="no-num no-ref">Normative References</h3>
-<div data-fill-with="normative-references"></div>
-
-<h3 id="informative" class="no-num no-ref">Informative References</h3>
-<div data-fill-with="informative-references"></div>
-
-<h2 id="index" class="no-num no-ref">Index</h2>
-<div data-fill-with="index"></div>
