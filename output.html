@@ -108,7 +108,7 @@ underway, and there is still room for additional APIs beyond those specified her
 		<li><a href=#bytelengthqueuingstrategy><span class=secno>5.2</span><code>ByteLengthQueuingStrategy</code></a>
 		<li><a href=#countqueuingstrategy><span class=secno>5.3</span><code>CountQueuingStrategy</code></a></ul>
 	<li><a href=#acknowledgments><span class=secno></span>Acknowledgments</a>
-	<li><a href=#conformance><span class=secno>6</span>Conformance</a>
+	<li><a href=#conformance><span class=secno></span>Conformance</a>
 	<li><a href=#references><span class=secno></span>References</a>
 		<ul class=toc>
 		<li><a href=#normative><span class=secno></span>Normative References</a>
@@ -127,9 +127,8 @@ unit of data for a given stream; for example a binary stream might contain chunk
 <p>A <dfn data-dfn-type=dfn data-noexport="" id=readable-stream>readable stream<a class=self-link href=#readable-stream></a></dfn> represents a source of data, from which you can read. In other words, data comes
 <em>out</em> of a readable stream.</p>
 
-<p>Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O
-source, called the <dfn data-dfn-type=dfn data-noexport="" id=underlying-source>underlying source<a class=self-link href=#underlying-source></a></dfn>. There are two types of underlying
-source: push sources and pull sources.</p>
+<p>Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O source,
+called the <dfn data-dfn-type=dfn data-noexport="" id=underlying-source>underlying source<a class=self-link href=#underlying-source></a></dfn>. There are two types of underlying source: push sources and pull sources.</p>
 
 <p><dfn data-dfn-type=dfn data-noexport="" id=push-sources>Push sources<a class=self-link href=#push-sources></a></dfn> push data at you, whether or not you are listening for it. They may also provide a mechanism
 for pausing and resuming the flow of data. An example push source is a TCP socket, where data is constantly being pushed
@@ -141,9 +140,8 @@ pull source is a file handle, where you seek to specific locations and read spec
 
 <p>Readable streams are designed to wrap both types of sources behind a single, unified interface.</p>
 
-<p><a data-link-type=dfn href=#chunk title=chunks>Chunks</a> are enqueued into the stream by the stream’s creator, who usually derives
-them from the <a data-link-type=dfn href=#underlying-source title="underlying source">underlying source</a>. They can then be read one at a time via
-the stream’s public interface.</p>
+<p><a data-link-type=dfn href=#chunk title=chunks>Chunks</a> are enqueued into the stream by the stream’s creator, who usually derives them from the <a data-link-type=dfn href=#underlying-source title="underlying source">underlying
+source</a>. They can then be read one at a time via the stream’s public interface.</p>
 
 <h3 class="heading settled heading" data-level=1.2 id=writable-streams0><span class=secno>1.2 </span><span class=content>Writable Streams</span><a class=self-link href=#writable-streams0></a></h3>
 
@@ -151,13 +149,11 @@ the stream’s public interface.</p>
 <em>in</em> to a writable stream.</p>
 
 <p>Analogously to readable streams, most writable streams wrap a lower-level I/O sink, called the
-<dfn data-dfn-type=dfn data-noexport="" id=underlying-sink>underlying sink<a class=self-link href=#underlying-sink></a></dfn>. Writable streams work to abstract away some of the
-complexity of the underlying sink, by queuing subsequent writes and only delivering them to the underlying sink one by
-one.</p>
+<dfn data-dfn-type=dfn data-noexport="" id=underlying-sink>underlying sink<a class=self-link href=#underlying-sink></a></dfn>. Writable streams work to abstract away some of the complexity of the underlying sink, by
+queuing subsequent writes and only delivering them to the underlying sink one by one.</p>
 
-<p><a data-link-type=dfn href=#chunk title=chunks>Chunks</a> are enqueued into the stream via its public interface, and are passed one
-at a time to the stream’s creator. In turn, the creator will usually forward them to the
-<a data-link-type=dfn href=#underlying-sink title="underlying sink">underlying sink</a>.</p>
+<p><a data-link-type=dfn href=#chunk title=chunks>Chunks</a> are enqueued into the stream via its public interface, and are passed one at a time to the stream’s
+creator. In turn, the creator will usually forward them to the <a data-link-type=dfn href=#underlying-sink title="underlying sink">underlying sink</a>.</p>
 
 <h3 class="heading settled heading" data-level=1.3 id=transform-streams><span class=secno>1.3 </span><span class=content>Transform Streams</span><a class=self-link href=#transform-streams></a></h3>
 
@@ -203,8 +199,8 @@ state and bookkeeping can be kept private, allowing nobody but the original prod
 it.</p>
 
 <div class=example>
-  <p>The following function creates readable streams that wrap web sockets <a data-biblio-type=informative data-link-type=biblio href=#biblio-html title=biblio-html>[HTML]</a>, which
-  are push sources that do not support backpressure signals.</p>
+  <p>The following function creates readable streams that wrap web sockets <a data-biblio-type=informative data-link-type=biblio href=#biblio-html title=biblio-html>[HTML]</a>, which are push sources that do not
+  support backpressure signals.</p>
 
   <pre>function makeReadableWebSocketStream(url, protocols) {
   const ws = new WebSocket(url, protocols);
@@ -226,7 +222,7 @@ it.</p>
 }
 </pre>
 
-  <p>We can then use this function to create readable streams for web sockets, and pipe those streams to arbitrary
+<p>We can then use this function to create readable streams for web sockets, and pipe those streams to arbitrary
   writable streams:</p>
 
   <pre>var webSocketStream = makeReadableWebSocketStream("http://example.com", 80);
@@ -273,7 +269,7 @@ socketStream.pipeTo(writableStream).closed
 }
 </pre>
 
-  <p>We can then use this function to create readable streams for such "raw sockets" in the same way we do for web
+<p>We can then use this function to create readable streams for such "raw sockets" in the same way we do for web
   sockets. This time, however, when we pipe to a destination that cannot accept data as fast as the socket is producing
   it, a backpressure signal will be sent to the raw socket.</p>
 </div>
@@ -329,7 +325,7 @@ socketStream.pipeTo(writableStream).closed
 }
 </pre>
 
-  <p>We can then create and use readable streams for files just as we could before for sockets.</p>
+<p>We can then create and use readable streams for files just as we could before for sockets.</p>
 </div>
 
 <div class=example>
@@ -403,10 +399,10 @@ This allows seamless use of the writable stream even in cases such as piping a f
 writable network socket stream, which cannot acknowledge the incoming data at the same rate it becomes available.</p>
 
 <div class=example>
-  <p>The following function wraps a web socket <a data-biblio-type=informative data-link-type=biblio href=#biblio-html title=biblio-html>[HTML]</a> as the underlying sink of a new
+  The following function wraps a web socket <a data-biblio-type=informative data-link-type=biblio href=#biblio-html title=biblio-html>[HTML]</a> as the underlying sink of a new
   writable stream. Web sockets do not provide any way to tell when a given chunk of data has been successfully sent,
   so this writable stream has no ability to communicate backpressure signals to any users: it will always be in the
-  <code>"writable"</code> state.</p>
+  <code>"writable"</code> state.
 
   <pre>function makeWritableWebSocketStream(url, protocols) {
   const ws = new WebSocket(url, protocols);
@@ -441,13 +437,13 @@ writable network socket stream, which cannot acknowledge the incoming data at th
 </div>
 
 <div class=example>
-  <p>The following function wraps an underlying sink, represented as a hypothetical "raw file handle," which provides
+  The following function wraps an underlying sink, represented as a hypothetical "raw file handle," which provides
   methods for opening, writing to, and closing itself. Notably, the raw file handle’s <code>write</code> method calls
   back to signal when writes are complete, which allows the stream to correctly communicate backpressure signals to any
   users by setting its state to <code>"waiting"</code> instead of <code>"writable"</code> when the queue gets too full.
   Allow of the raw file handle’s methods can call their callbacks either synchronously or asynchronously—a
   <a href=http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony>Zalgo-releasing</a> horror which we can
-  hide from our users by wrapping them in a writable stream.</p>
+  hide from our users by wrapping them in a writable stream.
 
   <pre>function makeWritableFileStream(filename) {
   const fileHandle = createRawFileHandle(filename, "w");
@@ -499,7 +495,7 @@ writable network socket stream, which cannot acknowledge the incoming data at th
 }
 </pre>
 
-  <p>We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:</p>
+<p>We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:</p>
 
   <pre>var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
 
@@ -508,16 +504,16 @@ readableStream.pipeTo(fileStream).closed
   .catch(e =&gt; console.error("Something went wrong!", e));
 </pre>
 
-  <p>Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
+<p>Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
   called later. In the meantime, additional writes can be queued up, which are stored in the stream’s internal queue.
   The accumulation of this queue can move the stream into a <code>"waiting"</code> state, which is a signal to users
   of the stream that they should back off and stop writing if possible.</p>
 </div>
 
 <div class=example>
-  <p>Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
+  Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
   directly. Since they queue any incoming writes, and take care internally to forward them to the underlying sink
-  in sequence, you can indiscriminately write to a writable stream without much ceremony:</p>
+  in sequence, you can indiscriminately write to a writable stream without much ceremony:
 
   <pre>function writeArrayToStream(array, writableStream) {
   array.forEach(chunk =&gt; writableStream.write(chunk));
@@ -535,6 +531,8 @@ writeArrayToStream([1, 2, 3, 4, 5], writableStream)
 
 <p><em>This section is non-normative.</em></p>
 
+<p>TODO</p>
+
 <h3 class="heading settled heading" data-level=3.3 id=class-writablestream><span class=secno>3.3 </span><span class=content>Class <code>WritableStream</code></span><a class=self-link href=#class-writablestream></a></h3>
 
 <h2 class="heading settled heading" data-level=4 id=subclassing-streams><span class=secno>4 </span><span class=content>Subclassing Streams</span><a class=self-link href=#subclassing-streams></a></h2>
@@ -542,7 +540,7 @@ writeArrayToStream([1, 2, 3, 4, 5], writableStream)
 <p><em>This section is non-normative.</em></p>
 
 <p>Specific APIs may wish to subclass <code>ReadableStream</code> or <code>WritableStream</code> in order to provide
-additional functionality. Examples would include:
+additional functionality. Examples would include:</p>
 
 <ul>
   <li>A file stream that is constructed from a filename, and includes file metadata</li>
@@ -588,10 +586,10 @@ Gorgi Kosev for his breakthrough idea of separating piping into two methods, thu
 Forrest Norvell for his enthusiastic iteration on the reference implementation;
 Isaac Schlueter for his pioneering work on JavaScript streams in Node.js;
 Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward; and
-Takeshi Yoshino for his careful review of this spec’s algorithms and concepts.
-</p>
+Takeshi Yoshino for his careful review of this spec’s algorithms and concepts.</p>
 
-<h2 class="heading settled heading" data-level=6 id=conformance><span class=secno>6 </span><span class=content>Conformance</span><a class=self-link href=#conformance></a></h2>
+
+<h2 class="no-num no-ref heading settled heading" id=conformance><span class=content>Conformance</span><a class=self-link href=#conformance></a></h2>
 
 <p>All diagrams, examples, and notes in this specification are non-normative, as are all sections explicitly marked
 non-normative. Everything else in this specification is normative.</p>
