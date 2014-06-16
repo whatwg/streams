@@ -88,14 +88,19 @@ result is equivalent.</p>
 
 <h2>Model</h2>
 
+<p>A <dfn title="concept-chunk">chunk</dfn> represents a single piece of data that is written to or read from a stream.
+It can be of any type; streams can even contain chunks of different types. A chunk will often not be the most atomic
+unit of data for a given stream; for example a binary stream might contain chunks consisting of 16 KiB
+<code>ArrayBuffer</code>s, instead of single bytes.</p>
+
 <h3>Readable Streams</h3>
 
 <p>A <dfn>readable stream</dfn> represents a source of data, from which you can read. In other words, data comes
 <em>out</em> of a readable stream.</p>
 
 <p>Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O
-source, called the <dfn>underlying source</dfn>. There are two types of underlying source: push sources and pull
-sources.</p>
+source, called the <dfn title="concept-underlying-source">underlying source</dfn>. There are two types of underlying
+source: push sources and pull sources.</p>
 
 <p><dfn>Push sources</dfn> push data at you, whether or not you are listening for it. They may also provide a mechanism
 for pausing and resuming the flow of data. An example push source is a TCP socket, where data is constantly being pushed
@@ -107,14 +112,23 @@ pull source is a file handle, where you seek to specific locations and read spec
 
 <p>Readable streams are designed to wrap both types of sources behind a single, unified interface.</p>
 
+<p><span title="concept-chunk">Chunks</span> are enqueued into the stream by the stream's creator, who usually derives
+them from the <span title="concept-underlying-source">underlying source</span>. They can then be read one at a time via
+the stream's public interface.</p>
+
 <h3>Writable Streams</h3>
 
 <p>A <dfn>writable stream</dfn> represents a destination for data, into which you can write. In other words, data goes
 <em>in</em> to a writable stream.</p>
 
-<p>Analogously to readable streams, most writable streams wrap a lower-level I/O sink, called the <dfn>underlying
-sink</dfn>. Writable streams work to abstract away some of the complexity of the underlying sink, by queuing
-subsequent writes and only delivering them to the underlying sink one by one.</p>
+<p>Analogously to readable streams, most writable streams wrap a lower-level I/O sink, called the
+<dfn title="concept-underlying-sink">underlying sink</dfn>. Writable streams work to abstract away some of the
+complexity of the underlying sink, by queuing subsequent writes and only delivering them to the underlying sink one by
+one.</p>
+
+<p><span title="concept-chunk">Chunks</span> are enqueued into the stream via its public interface, and are passed one
+at a time to the stream's creator. In turn, the creator will usually forward them to the
+<span title="concept-underlying-sink">underlying sink</span>.</p>
 
 <h3>Transform Streams</h3>
 
