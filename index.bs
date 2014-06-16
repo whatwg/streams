@@ -26,7 +26,6 @@
   ED: https://whatwg.github.io/streams
   Editor: Domenic Denicola, Google, http://domenic.me
   Abstract: Don't wanna exceed 120 chars, so I put it below instead.
-  Boilerplate: omit header
 </pre>
 
 <div class="head">
@@ -576,3 +575,27 @@ Forrest Norvell for his enthusiastic iteration on the reference implementation;
 Isaac Schlueter for his pioneering work on JavaScript streams in Node.js;
 Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward; and
 Takeshi Yoshino for his careful review of this spec's algorithms and concepts.
+
+
+<h2 id="conformance" class="no-num no-ref">Conformance</h2>
+
+All diagrams, examples, and notes in this specification are non-normative, as are all sections explicitly marked
+non-normative. Everything else in this specification is normative.
+
+The key words "MUST", "MUST NOT", "REQUIRED", <!--"SHALL", "SHALL NOT",--> "SHOULD", "SHOULD NOT", "RECOMMENDED",
+"MAY", and "OPTIONAL" in the normative parts of this specification are to be interpreted as described in RFC2119. For
+readability, these words do not appear in all uppercase letters in this specification. [[!RFC2119]]
+
+Conformance requirements phrased as algorithms or specific steps may be implemented in any manner, so long as the end
+result is equivalent.
+
+<h2 id="references" class="no-num no-ref">References</h2>
+
+<h3 id="normative" class="no-num no-ref">Normative References</h3>
+<div data-fill-with="normative-references"></div>
+
+<h3 id="informative" class="no-num no-ref">Informative References</h3>
+<div data-fill-with="informative-references"></div>
+
+<h2 id="index" class="no-num no-ref">Index</h2>
+<div data-fill-with="index"></div>
