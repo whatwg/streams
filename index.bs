@@ -19,7 +19,6 @@
 <link rel="icon" href="//resources.whatwg.org/logo-streams.svg" />
 
 <pre class="metadata">
-  Title: Streams Standard
   Shortname: streams
   Level: 1
   Status: DREAM
