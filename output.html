@@ -1,0 +1,1144 @@
+<!DOCTYPE html><html lang=en><head>
+  <meta content="text/html; charset=utf-8" http-equiv=Content-Type>
+  <title>Streams</title>
+  <style>
+@media print {
+  html { margin: 0 !important; }
+  body { font-family: serif; }
+  th, td { font-family: inherit; }
+  a { color: inherit !important; }
+  .example:before { font-family: serif !important; }
+  a:link, a:visited { text-decoration: none !important; }
+  a:link:after, a:visited:after { /* create a cross-ref "see..." */; }
+}
+@page {
+  margin: 1.5cm 1.1cm;
+}
+h1, h2, h3, h4, h5, h6 { page-break-after: avoid; }
+figure, div.figure, div.sidefigure, pre, table.propdef, table.propdef-extra,
+.example { page-break-inside: avoid; }
+dt { page-break-after: avoid; }
+
+body {
+  background: white;
+  /* background-image: floating-margin-image-goes-here; */
+  background-position: top left;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  color: black;
+  counter-reset: exampleno figure issue;
+  font-family: sans-serif;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 50em;
+  padding: 2em 1em 2em 70px;
+}
+
+/* General structural markup */
+
+h1, h2, h3, h4, h5, h6 { text-align: left; }
+h1, h2, h3 { color: #005A9C; }
+h1 { font: 170% sans-serif; }
+h2 { font: 140% sans-serif; }
+h3 { font: 120% sans-serif; }
+h4 { font: bold 100% sans-serif; }
+h5 { font: italic 100% sans-serif; }
+h6 { font: small-caps 100% sans-serif; }
+h2, h3, h4, h5, h6 { margin-top: 3em; }
+h1 + h2 { margin-top: 0em; }
+h2 + h3, h3 + h4, h4 + h5, h5 + h6 { margin-top: 1.2em; }
+
+.head { margin-bottom: 1em; }
+.head h1 { margin-top: 2em; clear: both; }
+.head table { margin-left: 2em; margin-top: 2em; }
+.head dd { margin-bottom: 0; }
+
+p.copyright { font-size: small; }
+p.copyright small { font-size: small; }
+
+pre { margin: 1em 0 1em 2em; }
+pre, code, .idl-code {
+  font-size: .9em;
+  font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace;
+}
+dt dfn code { font-size: inherit; }
+
+dfn { font-weight: bolder; }
+
+s, del {text-decoration: line-through; color: red; }
+u, ins {text-decoration: underline; background: #bfa; }
+
+sup {
+  vertical-align: super;
+  font-size: 80%
+}
+
+details { display: block; }
+
+dt { font-weight: bold; }
+dd { margin: 0 0 1em 2em; }
+ul, ol { margin-left: 0; padding-left: 2em; }
+li { margin: 0.25em 2em 0.5em 0; padding-left: 0; }
+
+td.pre {
+  white-space: pre-wrap;
+}
+
+.css, .property { color: #005a9c; }
+.property { white-space: nowrap; }
+
+
+/* Boilerplate sections */
+
+ul.indexlist { margin-left: 0; columns: 13em; }
+ul.indexlist li { margin-left: 0; list-style: none }
+ul.indexlist li li { margin-left: 1em; }
+ul.indexlist a { font-weight: bold; }
+ul.indexlist ul, ul.indexlist dl { font-size: smaller; }
+ul.indexlist dl { margin-top: 0; }
+ul.indexlist dt { margin: .2em 0 .2em 20px; }
+ul.indexlist dd { margin: .2em 0 .2em 40px; }
+
+.toc {
+  font-weight: bold;
+  line-height: 1.3;
+  list-style: none;
+  margin: 1em 0 0 5em;
+  padding: 0;
+}
+.toc ul { margin: 0; padding: 0; font-weight: normal; }
+.toc ul ul { margin: 0 0 0 2em; font-style: italic; }
+.toc ul ul ul { margin: 0}
+.toc > li { margin: 1.5em 0; padding: 0; }
+.toc li { clear: both; }
+.toc ul.toc li { margin: 0.3em 0 0 0; }
+.toc a { border-bottom-style: none; }
+.toc a:hover, ul.toc a:focus { border-bottom-style: solid; }
+/* Section numbers in a column of their own */
+.toc span.secno {float: left; width: 4em; margin-left: -5em}
+.toc ul ul span.secno { margin-left: -7em; }
+
+table.proptable {
+  font-size: small;
+  border-collapse: collapse;
+  border-spacing: 0;
+  text-align: left;
+  margin: 1em 0;
+}
+table.proptable td, table.proptable th {
+  padding: 0.4em;
+  text-align: center;
+}
+table.proptable tr:hover td { background: #DEF; }
+
+
+/* Links */
+
+a[href] { color: inherit; border-bottom: 1px solid silver; text-decoration: none; }
+a[href]:hover { background: #ffa; }
+a[href]:active { color: #C00; background: transparent; }
+img, a.logo { border-style: none; }
+.heading, .issue, .note, .example, li, dt { position: relative; }
+/* CSS-ish link types */
+[data-link-type="property"]::before,
+[data-link-type="propdesc"]::before,
+[data-link-type="descriptor"]::before,
+[data-link-type="value"]::before,
+[data-link-type="function"]::before,
+[data-link-type="at-rule"]::before,
+[data-link-type="selector"]::before,
+[data-link-type="maybe"]::before {content: "“";}
+[data-link-type="property"]::after,
+[data-link-type="propdesc"]::after,
+[data-link-type="descriptor"]::after,
+[data-link-type="value"]::after,
+[data-link-type="function"]::after,
+[data-link-type="at-rule"]::after,
+[data-link-type="selector"]::after,
+[data-link-type="maybe"]::after {content: "”";}
+[data-link-type].production::before,
+[data-link-type].production::after,
+.prod [data-link-type]::before,
+.prod [data-link-type]::after { content: ""; }
+/* Element-type link styling */
+[data-link-type=element] { font-family: monospace; }
+[data-link-type=element]::before { content: "<" }
+[data-link-type=element]::after { content: ">" }
+/* Self-links */
+a.self-link {
+  position: absolute;
+  top: 0;
+  left: -2.5em;
+  width: 2em;
+  height: 2em;
+  text-align: center;
+  border: none;
+  transition: opacity .2s;
+  opacity: .5;
+}
+a.self-link:hover {
+  opacity: 1;
+}
+.heading > a.self-link {
+  font-size: 83%;
+}
+li > a.self-link {
+  left: -3.5em;
+}
+dfn > a.self-link {
+  top: auto;
+  left: auto;
+  opacity: 0;
+  width: 1.5em;
+  height: 1.5em;
+  background: gray;
+  color: white;
+  font-style: normal;
+  transition: opacity .2s, background-color .2s, color .2s;
+}
+dfn:hover > a.self-link {
+  opacity: 1;
+}
+dfn > a.self-link:hover {
+  color: black;
+}
+a.self-link::before { content: "¶"; }
+.heading > a.self-link::before { content: "§"; }
+dfn > a.self-link::before { content: "#"; }
+
+
+/* Figures */
+
+figure {
+  display: block;
+  text-align: center;
+  margin: 2.5em 0;
+}
+figure.sidefigure {
+  float: right;
+  width: 50%;
+  margin: 0 0 0.5em 0.5em
+}
+figure pre {
+  text-align: left;
+  display: table;
+  margin: 1em auto;
+}
+figure table {
+  margin: auto;
+}
+figure img, figure object {
+  display: block;
+  margin: auto;
+  max-width: 100%
+}
+figcaption {
+  counter-increment: figure;
+  font-size: 90%;
+  font-style: italic;
+  text-align: center;
+}
+figcaption::before {
+  content: "Figure " counter(figure) ". ";
+  font-weight: bold;
+}
+dd figure { margin-left: -2em; }
+
+
+/* Definition tables */
+
+table.definition {
+  border-spacing: 0;
+  padding: 0 1em 0.5em;
+  width: 100%;
+  table-layout: fixed;
+  margin: 1.2em 0;
+}
+table.definition td, table.definition th {
+  padding: 0.5em;
+  vertical-align: baseline;
+  border-bottom: 1px solid #bbd7e9;
+}
+table.definition th:first-child {
+  font-style: italic;
+  font-weight: normal;
+  text-align: left;
+  width: 8.3em;
+  padding-left: 1em;
+}
+table.definition > tbody > tr:last-child > th,
+table.definition > tbody > tr:last-child > td {
+  border-bottom: none;
+}
+table.definition tr:first-child > th,
+table.definition tr:first-child > td {
+  padding-top: 1em;
+}
+/* Footnotes at the bottom of a definition table */
+table.definition td.footnote {
+  font-style: normal;
+  padding-top: .6em;
+  width: auto;
+}
+table.definition td.footnote::before {
+  content: " ";
+  display: block;
+  height: 0.6em;
+  width: 4em;
+  border-top: thin solid;
+}
+
+
+/* IDL fragments */
+
+pre.idl {
+  padding: .5em 1em;
+  margin: 1.2em 0;
+}
+pre.idl :link, pre.idl :visited {
+  color:inherit;
+  background:transparent;
+}
+
+
+/* Data tables */
+/* Comes in plain, long, complex, or define varieties */
+
+.data {
+  margin: 1em auto;
+  border-collapse: collapse;
+  width: 100%;
+  border: hidden;
+}
+.data {
+  text-align: center;
+  width: auto;
+}
+.data caption {
+  width: 100%;
+}
+.data td, .data th {
+  padding: 0.5em;
+  border-width: 1px;
+  border-color: silver;
+  border-top-style: solid;
+}
+.data thead td:empty {
+  padding: 0;
+  border: 0;
+}
+.data thead th[scope="row"] {
+  text-align: right;
+  color: inherit;
+}
+.data thead,
+.data tbody {
+  color: inherit;
+  border-bottom: 2px solid;
+}
+.data colgroup {
+  border-left: 2px solid;
+}
+.data tbody th:first-child,
+.data tbody td[scope="row"]:first-child {
+  text-align: right;
+  color: inherit;
+  border-right: 2px solid;
+  border-top: 1px solid silver;
+  padding-right: 1em;
+}
+.data.define td:last-child {
+  text-align: left;
+}
+.data tbody th[rowspan],
+.data tbody td[rowspan] {
+  border-left: 1px solid silver;
+}
+.data tbody th[rowspan]:first-child,
+.data tbody td[rowspan]:first-child {
+  border-left: 0;
+  border-right: 1px solid silver;
+}
+.data.complex th,
+.data.complex td {
+  border: 1px solid silver;
+}
+.data td.long {
+ vertical-align: baseline;
+ text-align: left;
+}
+.data img {
+  vertical-align: middle;
+}
+
+
+/* Switch/case <dl>s */
+
+dl.switch {
+ padding-left: 2em;
+}
+dl.switch > dt {
+ text-indent: -1.5em;
+}
+dl.switch > dt:before {
+ content: '↪';
+ padding: 0 0.5em 0 0;
+ display: inline-block;
+ width: 1em;
+ text-align: right;
+ line-height: 0.5em;
+}
+
+
+/* Style for At Risk features (intended as editorial aid, not intended for publishing) */
+.atrisk::before {
+ position: absolute;
+ margin-left: -5em;
+ margin-top: -2px;
+ padding: 4px;
+ border: 1px solid;
+ content: 'At risk';
+ font-size: small;
+ background-color: white;
+ color: gray;
+ border-radius: 1em;
+ text-align: center;
+}
+
+
+/* Obsoletion notice */
+details.annoying-warning[open] {
+  background: #fdd;
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  padding: .5em;
+  border: thick solid red;
+  border-radius: 1em;
+  position: fixed;
+  left: 1em;
+  right: 1em;
+  bottom: 1em;
+  z-index: 1000;
+}
+details.annoying-warning:not([open]) > summary {
+  background: #fdd;
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  padding: .5em;
+}
+
+
+/* Examples */
+
+.example {
+  counter-increment: exampleno;
+}
+.example::before {
+  content: "Example";
+  content: "Example " counter(exampleno);
+  min-width: 7.5em;
+  text-transform: uppercase;
+  display: block;
+}
+.illegal-example::before {
+  content: "Invalid Example";
+  content: "Invalid Example" counter(exampleno);
+}
+.example, .illegal-example, .html, .illegal-html, .xml, .illegal-xml {
+  padding: 0.5em;
+  margin: 1em 0;
+  position: relative;
+  clear: both;
+}
+pre.example, pre.illegal-example, pre.html,
+pre.illegal-html, pre.xml, pre.illegal-xml {
+  padding-top: 1.5em;
+}
+.illegal-example { color: red; }
+.illegal-example p { color: black; }
+.html { color: #600; }
+.illegal-html { color: red; }
+.illegal-html p { color: black; }
+.xml { color: #600; }
+.illegal-xml { color: red; }
+.illegal-xml p { color: black; }
+code.css { font-family: inherit; font-size: 100% }
+code.html { color: #600 } /* inline HTML */
+code.xml { color: #600 }  /* inline XML */
+
+
+/* Issues */
+
+.issue {
+  border-color: #E05252;
+  background: #FBE9E9;
+  counter-increment: issue;
+}
+.issue:before {
+  content: "Issue " counter(issue);
+  padding-right: 1em;
+  text-transform: uppercase;
+  color: #E05252;
+}
+
+
+/* Whys */
+
+details.why > summary {
+  font-style: italic;
+}
+details.why[open] > summary {
+  border-bottom: 1px silver solid;
+}
+
+
+/* All the blocks get similarly styled */
+
+table.definition, pre.idl, .example, .note, details.why, .issue {
+  border: none;
+  border-left: .5em solid black;
+  border-left: .5rem solid black;
+}
+.issue, .note, .example, .why {
+  padding: .5em;
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+table.definition, pre.idl {
+  background: hsl(210, 70%, 95%);
+  border-color: hsl(210, 80%, 75%);
+}
+.example {
+  background: hsl(50, 70%, 95%);
+  border-color: hsl(50, 70%, 60%);
+}
+.example::before {
+  color: hsl(50, 70%, 60%);
+}
+.note, details.why {
+  background: hsl(120, 70%, 95%);
+  border-color: hsl(120, 70%, 60%);
+}
+.note::before {
+  color: hsl(120, 70%, 60%);
+}
+.issue {
+  background: hsl(0, 70%, 95%);
+  border-color: hsl(0, 70%, 60%);
+}
+.issue::before {
+  color: hsl(0, 70%, 60%);
+}
+span.issue, span.note {
+  padding: .1em .5em .15em;
+  border-right-width: .5em;
+  border-right-style: solid;
+}
+  </style>
+</head>
+<body class=h-entry>
+<div class=head>
+  <p data-fill-with=logo></p>
+  <h1 class="p-name no-ref" id=title>Streams</h1>
+  <h2 class="no-num no-toc no-ref heading settled heading" id=subtitle><span class=content>A Collection of Interesting Ideas,
+    <span class=dt-updated><span class=value-title title=20140616>16 June 2014</span></span></span></h2>
+  <div data-fill-with=spec-metadata><dl><dt>This version:<dd><a class=u-url href=http://www.w3.org/TR/2014/DREAM-streams-1-20140616/>http://www.w3.org/TR/2014/DREAM-streams-1-20140616/</a><dt>Editor’s Draft:<dd><a href=https://whatwg.github.io/streams>https://whatwg.github.io/streams</a><dt>Test Suite:<dd>None Yet<dt>Editors:
+<dd class="p-author h-card vcard"><a class="p-name fn u-url url" href=http://domenic.me>Domenic Denicola</a> (<span class="p-org org">Google</span>)</dl></div>
+  <div data-fill-with=warning></div>
+  <p class=copyright data-fill-with=copyright><a href=http://creativecommons.org/publicdomain/zero/1.0/ rel=license><img alt=CC0 src=https://i.creativecommons.org/p/zero/1.0/80x15.png></a>
+To the extent possible under law, the editors have waived all copyright
+and related or neighboring rights to this work.
+In addition, as of 16 June 2014,
+the editors have made this specification available under the
+<a href=http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0 rel=license>Open Web Foundation Agreement Version 1.0</a>,
+which is available at http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
+Parts of this work may be from another specification document.  If so, those parts are instead covered by the license of that specification document.
+</p>
+  <hr title="Separator for header">
+</div>
+
+<h2 class="no-num no-toc no-ref heading settled heading" id=abstract><span class=content>Abstract</span></h2>
+<p class=p-summary data-fill-with=abstract>This specification provides APIs for creating, composing, and consuming streams of data. These streams are designed to map efficiently to low-level I/O primitives, and allow easy composition with built-in backpressure and queuing. On top of streams, the web platform can build higher-level abstractions, such as filesystem or socket APIs, while at the same time users can use the supplied tools to build their own streams which integrate well with those of the web platform.
+</p>
+<div data-fill-with=at-risk></div>
+
+<h2 class="no-num no-toc no-ref heading settled heading" id=contents><span class=content>Table of Contents</span></h2>
+<div data-fill-with=table-of-contents><ul class=toc>
+	<li><a href=#status><span class=secno>1</span>Status</a>
+	<li><a href=#model><span class=secno>2</span>Model</a>
+		<ul class=toc>
+		<li><a href=#readable-streams0><span class=secno>2.1</span>Readable Streams</a>
+		<li><a href=#writable-streams0><span class=secno>2.2</span>Writable Streams</a>
+		<li><a href=#transform-streams><span class=secno>2.3</span>Transform Streams</a>
+		<li><a href=#pipe-chains-and-backpressure><span class=secno>2.4</span>Pipe Chains and Backpressure</a></ul>
+	<li><a href=#readable-streams><span class=secno>3</span>Readable Streams</a>
+		<ul class=toc>
+		<li><a href=#introduction-to-readable-streams><span class=secno>3.1</span>Introduction to Readable Streams</a>
+		<li><a href=#the-readable-stream-state-diagram><span class=secno>3.2</span>The Readable Stream State Diagram</a>
+		<li><a href=#class-readablestream><span class=secno>3.3</span>Class <code>ReadableStream</code></a></ul>
+	<li><a href=#writable-streams><span class=secno>4</span>Writable Streams</a>
+		<ul class=toc>
+		<li><a href=#introduction-to-writable-streams><span class=secno>4.1</span>Introduction to Writable Streams</a>
+		<li><a href=#the-writable-stream-state-diagram><span class=secno>4.2</span>The Writable Stream State Diagram</a>
+		<li><a href=#class-writablestream><span class=secno>4.3</span>Class <code>WritableStream</code></a></ul>
+	<li><a href=#subclassing-streams><span class=secno>5</span>Subclassing Streams</a>
+	<li><a href=#other-stream-apis><span class=secno>6</span>Other Stream APIs</a>
+		<ul class=toc>
+		<li><a href=#teestream><span class=secno>6.1</span><code>TeeStream</code></a>
+		<li><a href=#bytelengthqueuingstrategy><span class=secno>6.2</span><code>ByteLengthQueuingStrategy</code></a>
+		<li><a href=#countqueuingstrategy><span class=secno>6.3</span><code>CountQueuingStrategy</code></a></ul>
+	<li><a href=#acknowledgments><span class=secno></span>Acknowledgments</a>
+	<li><a href=#conformance><span class=secno></span> Conformance</a>
+	<li><a href=#references><span class=secno></span> References</a>
+		<ul class=toc>
+		<li><a href=#normative><span class=secno></span> Normative References</a>
+		<li><a href=#informative><span class=secno></span> Informative References</a></ul>
+	<li><a href=#index><span class=secno></span> Index</a>
+	<li><a href=#property-index><span class=secno></span> Property index</a></ul></div>
+
+
+
+
+<h2 class="heading settled heading" data-level=1 id=status><span class=secno>1 </span><span class=content>Status</span><a class=self-link href=#status></a></h2>
+
+<p>This specification is in the process of establishing itself in the WHATWG. As such, the term "Living Standard"
+indicates a goal, rather than reality.</p>
+
+<p>Although the core algorithms and APIs are largely present and working, prototyping and testing of them is still
+underway, and there is still room for additional APIs beyond those specified here. Please join us in the
+<a href="https://github.com/whatwg/streams/issues?state=open">issue tracker</a> for more discussion.</p>
+
+<h2 class="heading settled heading" data-level=2 id=model><span class=secno>2 </span><span class=content>Model</span><a class=self-link href=#model></a></h2>
+
+<p>A <dfn data-dfn-type=dfn data-noexport="" id=chunk>chunk<a class=self-link href=#chunk></a></dfn> represents a single piece of data that is written to or read from a stream.
+It can be of any type; streams can even contain chunks of different types. A chunk will often not be the most atomic
+unit of data for a given stream; for example a binary stream might contain chunks consisting of 16 KiB
+<code>ArrayBuffer</code>s, instead of single bytes.</p>
+
+<h3 class="heading settled heading" data-level=2.1 id=readable-streams0><span class=secno>2.1 </span><span class=content>Readable Streams</span><a class=self-link href=#readable-streams0></a></h3>
+
+<p>A <dfn data-dfn-type=dfn data-noexport="" id=readable-stream>readable stream<a class=self-link href=#readable-stream></a></dfn> represents a source of data, from which you can read. In other words, data comes
+<em>out</em> of a readable stream.</p>
+
+<p>Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O
+source, called the <dfn data-dfn-type=dfn data-noexport="" id=underlying-source>underlying source<a class=self-link href=#underlying-source></a></dfn>. There are two types of underlying
+source: push sources and pull sources.</p>
+
+<p><dfn data-dfn-type=dfn data-noexport="" id=push-sources>Push sources<a class=self-link href=#push-sources></a></dfn> push data at you, whether or not you are listening for it. They may also provide a mechanism
+for pausing and resuming the flow of data. An example push source is a TCP socket, where data is constantly being pushed
+from the OS level, at a rate that can be controlled by changing the TCP window size.</p>
+
+<p><dfn data-dfn-type=dfn data-noexport="" id=pull-sources>Pull sources<a class=self-link href=#pull-sources></a></dfn> require you to request data from them. The data may be available synchronously, e.g. if it is
+held by the operating system’s in-memory buffers, or asynchronously, e.g. if it has to be read from disk. An example
+pull source is a file handle, where you seek to specific locations and read specific amounts.</p>
+
+<p>Readable streams are designed to wrap both types of sources behind a single, unified interface.</p>
+
+<p><a data-link-type=dfn href=#chunk title=chunks>Chunks</a> are enqueued into the stream by the stream’s creator, who usually derives
+them from the <a data-link-type=dfn href=#underlying-source title="underlying source">underlying source</a>. They can then be read one at a time via
+the stream’s public interface.</p>
+
+<h3 class="heading settled heading" data-level=2.2 id=writable-streams0><span class=secno>2.2 </span><span class=content>Writable Streams</span><a class=self-link href=#writable-streams0></a></h3>
+
+<p>A <dfn data-dfn-type=dfn data-noexport="" id=writable-stream>writable stream<a class=self-link href=#writable-stream></a></dfn> represents a destination for data, into which you can write. In other words, data goes
+<em>in</em> to a writable stream.</p>
+
+<p>Analogously to readable streams, most writable streams wrap a lower-level I/O sink, called the
+<dfn data-dfn-type=dfn data-noexport="" id=underlying-sink>underlying sink<a class=self-link href=#underlying-sink></a></dfn>. Writable streams work to abstract away some of the
+complexity of the underlying sink, by queuing subsequent writes and only delivering them to the underlying sink one by
+one.</p>
+
+<p><a data-link-type=dfn href=#chunk title=chunks>Chunks</a> are enqueued into the stream via its public interface, and are passed one
+at a time to the stream’s creator. In turn, the creator will usually forward them to the
+<a data-link-type=dfn href=#underlying-sink title="underlying sink">underlying sink</a>.</p>
+
+<h3 class="heading settled heading" data-level=2.3 id=transform-streams><span class=secno>2.3 </span><span class=content>Transform Streams</span><a class=self-link href=#transform-streams></a></h3>
+
+<p>A <dfn data-dfn-type=dfn data-noexport="" id=transform-stream>transform stream<a class=self-link href=#transform-stream></a></dfn> consists of a pair of streams: a writable stream input, and a readable stream output.
+In a manner specific to the transform stream in question, writes to the input side result in new data being made
+available for reading from the output side.</p>
+
+<p>Some examples of transform streams include:</p>
+
+<ul>
+  <li>A text decoder, which takes as input bytes and produces as output strings;</li>
+  <li>A GZIP compressor, which takes as input uncompressed bytes and produces as output compressed bytes;</li>
+  <li>A video decoder, which takes as input encoded bytes and produces as output uncompressed video frames.</li>
+</ul>
+
+<h3 class="heading settled heading" data-level=2.4 id=pipe-chains-and-backpressure><span class=secno>2.4 </span><span class=content>Pipe Chains and Backpressure</span><a class=self-link href=#pipe-chains-and-backpressure></a></h3>
+
+<p>Streams are primarily used by <dfn data-dfn-type=dfn data-noexport="" id=piping>piping<a class=self-link href=#piping></a></dfn> them to each other. A readable stream can be piped directly to a
+writable stream, or it can be piped through one or more transform streams first.</p>
+
+<p>A set of streams piped together in this way is referred to as a <dfn data-dfn-type=dfn data-noexport="" id=pipe-chain>pipe chain<a class=self-link href=#pipe-chain></a></dfn>. In a pipe chain, the
+<dfn data-dfn-type=dfn data-noexport="" id=ultimate-producer>ultimate producer<a class=self-link href=#ultimate-producer></a></dfn> is the first readable stream in the chain; the <dfn data-dfn-type=dfn data-noexport="" id=ultimate-consumer>ultimate consumer<a class=self-link href=#ultimate-consumer></a></dfn> is the final
+writable stream in the chain.</p>
+
+<p>Once a pipe chain is constructed, it can be used to propagate signals regarding how fast data should flow through
+it. If any step in the chain cannot yet accept data, it propagates a signal backwards through the pipe chain, until
+eventually the ultimate producer is told to stop producing data so fast. This process of normalizing data flow from the
+ultimate producer according to how fast the chain can process data is called <dfn data-dfn-type=dfn data-noexport="" id=backpressure>backpressure<a class=self-link href=#backpressure></a></dfn>.</p>
+
+<h2 class="heading settled heading" data-level=3 id=readable-streams><span class=secno>3 </span><span class=content>Readable Streams</span><a class=self-link href=#readable-streams></a></h2>
+
+<h3 class="heading settled heading" data-level=3.1 id=introduction-to-readable-streams><span class=secno>3.1 </span><span class=content>Introduction to Readable Streams</span><a class=self-link href=#introduction-to-readable-streams></a></h3>
+
+<p><em>This section is non-normative.</em></p>
+
+<p>The readable stream API allows wrapping both pull and push sources into a single <code>ReadableStream</code>
+abstraction. To accomplish this, the API uses the
+<a href=http://domenic.me/2014/02/14/the-revealing-constructor-pattern/>revealing constructor pattern</a>. The
+constructor of a given stream instance is supplied with two functions, <code>start</code> and <code>pull</code>, which
+each are given the parameters <code>(enqueue, close, error)</code> representing capabilities tied to the internals of the
+stream. By mediating all access to the internal state machine through these three functions, the stream’s internal
+state and bookkeeping can be kept private, allowing nobody but the original producer of the stream to insert data into
+it.</p>
+
+<div class=example>
+  <p>The following function creates readable streams that wrap web sockets <a data-biblio-type=informative data-link-type=biblio href=#biblio-html title=biblio-html>[HTML]</a>, which
+  are push sources that do not support backpressure signals.</p>
+
+<pre><code>function makeReadableWebSocketStream(url, protocols) {
+const ws = new WebSocket(url, protocols);
+ws.binaryType = "arraybuffer";
+
+return new ReadableStream({
+  start(enqueue, close, error) {
+    // When adapting a push source, usually most of the work happens in start.
+
+    ws.onmessage = event =&gt; enqueue(event.data);
+    ws.onend = close;
+    ws.onerror = error;
+  },
+
+  cancel() {
+    ws.close();
+  }
+});
+}</code></pre>
+
+  <p>We can then use this function to create readable streams for web sockets, and pipe those streams to arbitrary
+  writable streams:</p>
+
+<pre><code>var webSocketStream = makeReadableWebSocketStream("http://example.com", 80);
+socketStream.pipeTo(writableStream).closed
+  .then(() =&gt; console.log("All data successfully written!"))
+  .catch(e =&gt; console.error("Something went wrong!", e));</code></pre>
+</div>
+
+<div class=example>
+  <p>The following function wraps a push source, represented by a hypothetical "raw socket" interface, which triggers
+  events for data, end, and error (much like a web socket), but also provides the ability to pause and resume the flow
+  of data. Thus, this example shows how to apply backpressure to underlying sources that support it.</p>
+
+<pre><code>function makeSocketStream(host, port) {
+const rawSocket = createRawSocketObject(host, port);
+
+return new ReadableStream({
+  start(enqueue, close, error) {
+    rawSocket.ondata = event =&gt; {
+      if (!enqueue(event.data)) {
+        // If enqueue returns false, the internal queue is full, so propagate
+        // the backpressure signal to the underlying source.
+        rawSocket.readStop();
+      }
+    };
+
+    rawSocket.onend = close;
+    rawSocket.onerror = error;
+  },
+
+  pull() {
+    // This is called if the internal queue has been emptied, but the
+    // stream’s consumer still wants more data. In that case, restart
+    // the flow of data if we have previously paused it.
+    rawSocket.readStart();
+  },
+
+  cancel() {
+    rawSocket.readStop();
+  }
+});
+}</code></pre>
+
+  <p>We can then use this function to create readable streams for such "raw sockets" in the same way we do for web
+  sockets. This time, however, when we pipe to a destination that cannot accept data as fast as the socket is producing
+  it, a backpressure signal will be sent to the raw socket.</p>
+</div>
+
+<div class=example>
+  <p>The following function wraps a pull source, represented by a "raw file handle," which provides methods for opening,
+  reading from, and closing itself. These methods can call their callbacks either synchronously or asynchronously—a
+  <a href=http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony>Zalgo-releasing</a> horror which we can
+  hide from our users by wrapping them in a readable stream.</p>
+
+<pre><code>function makeReadableFileStream(filename) {
+const fileHandle = createRawFileHandle(filename, "r");
+
+return new ReadableStream({
+  start() {
+    return new Promise((resolve, reject) =&gt; {
+      fileHandle.open(err =&gt; {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
+    });
+  },
+
+  pull(enqueue, close, error) {
+    // When adapting a pull source, usually most of the work happens in pull.
+
+    fileHandle.read((err, isDone, chunk) =&gt; {
+      if (err) {
+        // If trying to read data results in an error, report that.
+        error(err);
+      } else if (isDone) {
+        // If there’s no more data to read, be sure to close the underlying
+        // source, ensuring that it succeeds before reporting success.
+        fileHandle.close(err =&gt; {
+          if (err) {
+            error(err);
+          }
+          close();
+        });
+      } else {
+        // If data was read successfully, enqueue it into the internal queue.
+        enqueue(chunk);
+      }
+    });
+  },
+
+  cancel() {
+    fileHandle.close();
+  }
+});
+}</code></pre>
+
+  <p>We can then create and use readable streams for files just as we could before for sockets.</p>
+</div>
+
+<div class=example>
+  <p>Although readable streams will usually be used by piping them to a writable stream, you can also "pump" them
+  directly, alternating between using the <code>read()</code> and <code>wait()</code> methods according to the current
+  value of the <code>state</code> property. For example, this function writes the contents of a readable stream to the
+  console as fast as they are available.</p>
+
+<pre><code>function streamToConsole(readableStream) {
+pump();
+
+function pump() {
+  while (readableStream.state === "readable") {
+    console.log(readableStream.read());
+  }
+
+  if (readableStream.state === "closed") {
+    console.log("--- all done!");
+  } else {
+    // If we’re in an error state, the returned promise will be rejected with
+    // that error, so no need to handle "waiting" vs. "errored" separately.
+    readableStream.wait().then(pump, e =&gt; console.error(e));
+  }
+}
+}</code></pre>
+</div>
+
+<h3 class="heading settled heading" data-level=3.2 id=the-readable-stream-state-diagram><span class=secno>3.2 </span><span class=content>The Readable Stream State Diagram</span><a class=self-link href=#the-readable-stream-state-diagram></a></h3>
+
+<p><em>This section is non-normative.</em></p>
+
+<p>As evidenced by the above explanations, readable streams have a fairly complex internal state machine, which is responsible for keeping track of the internal queue, and initiating appropriate actions in response to calls to a stream’s methods. This can be roughly summarized in the following diagram.</p>
+
+<figure>
+  <img alt="The readable stream state machine diagram." src=readable-stream.svg width=578>
+
+  <figcaption>
+    <dl>
+      <dt><span style="font-style: normal; font-weight: normal; font-family: monospace;">monospace</span></dt>
+      <dd>Methods of the stream</dd>
+
+      <dt><span style="font-style: normal; font-weight: bold;">bold</span></dt>
+      <dd>Constructor parameters</dd>
+
+      <dt><span style="font-style: italic; font-weight: normal;">italic</span></dt>
+      <dd>Capabilities given to constructor parameters</dd>
+    </dl>
+  </figcaption>
+</figure>
+
+
+<h3 class="heading settled heading" data-level=3.3 id=class-readablestream><span class=secno>3.3 </span><span class=content>Class <code>ReadableStream</code></span><a class=self-link href=#class-readablestream></a></h3>
+
+<h2 class="heading settled heading" data-level=4 id=writable-streams><span class=secno>4 </span><span class=content>Writable Streams</span><a class=self-link href=#writable-streams></a></h2>
+
+<h3 class="heading settled heading" data-level=4.1 id=introduction-to-writable-streams><span class=secno>4.1 </span><span class=content>Introduction to Writable Streams</span><a class=self-link href=#introduction-to-writable-streams></a></h3>
+
+<p><em>This section is non-normative.</em></p>
+
+<p>The writable stream API allows wrapping of underlying sinks into an object on which two fundamental operations can
+be performed: data can be written to the stream, and the stream can be closed.</p>
+
+<p>The writable stream implementation is designed to encapsulate the potential complexity of the underlying sink from
+users of the stream API. In particular, users of a stream object can write data to the stream at any pace, without
+regard for whether previous writes have completed or succeeded. It is the job of the stream implementation to ensure
+that writes are forwarded to the underlying sink in order, and only after successful completion of previous writes.
+This allows seamless use of the writable stream even in cases such as piping a fast readable file stream to a slower
+writable network socket stream, which cannot acknowledge the incoming data at the same rate it becomes available.</p>
+
+<div class=example>
+  <p>The following function wraps a web socket <a data-biblio-type=informative data-link-type=biblio href=#biblio-html title=biblio-html>[HTML]</a> as the underlying sink of a new
+  writable stream. Web sockets do not provide any way to tell when a given chunk of data has been successfully sent,
+  so this writable stream has no ability to communicate backpressure signals to any users: it will always be in the
+  <code>"writable"</code> state.</p>
+
+<pre><code>function makeWritableWebSocketStream(url, protocols) {
+const ws = new WebSocket(url, protocols);
+
+return new WritableStream({
+  start() {
+    return new Promise((resolve, reject) =&gt; {
+      ws.onopen = resolve;
+      ws.onerror = reject;
+    });
+  },
+
+  write(chunk, done, error) {
+    ws.onerror = error;
+    ws.send(chunk);
+
+    // Call done() immediately since the web socket gives us no way to tell
+    // when the write completes.
+    done();
+  },
+
+  close() {
+    return new Promise((resolve, reject) =&gt; {
+      ws.onclose = resolve;
+      ws.onerror = error;
+      ws.close();
+    });
+  }
+});
+}</code></pre>
+</div>
+
+<div class=example>
+  <p>The following function wraps an underlying sink, represented as a hypothetical "raw file handle," which provides
+  methods for opening, writing to, and closing itself. Notably, the raw file handle’s <code>write</code> method calls
+  back to signal when writes are complete, which allows the stream to correctly communicate backpressure signals to any
+  users by setting its state to <code>"waiting"</code> instead of <code>"writable"</code> when the queue gets too full.
+  Allow of the raw file handle’s methods can call their callbacks either synchronously or asynchronously—a
+  <a href=http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony>Zalgo-releasing</a> horror which we can
+  hide from our users by wrapping them in a writable stream.</p>
+
+<pre><code>function makeWritableFileStream(filename) {
+const fileHandle = createRawFileHandle(filename, "w");
+
+return new WritableStream({
+  start() {
+    return new Promise((resolve, reject) =&gt; {
+      fileHandle.open(err =&gt; {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
+    });
+  },
+
+  write(chunk, done, error) {
+    fileHandle.write(chunk, writeErr =&gt; {
+      if (writeErr) {
+        // If trying to write results in an error, (attempt to) close the
+        // underlying file handle; we’re not going to write any more.
+        fileHandle.close(closeErr =&gt; {
+          // If *closing* errors, pass along that error to the stream.
+          if (closeErr) {
+            error(closeErr);
+          }
+
+          // Otherwise, if closing succeeds, pass along the write error.
+          error(writeErr);
+        });
+      } else {
+        // If there’s no error, then signal that this write completed.
+        done();
+      }
+    });
+  },
+
+  close() {
+    return new Promise((resolve, reject) =&gt; {
+      fileHandle.close(err =&gt; {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
+    });
+  }
+});
+}</code></pre>
+
+  <p>We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:</p>
+
+<pre><code>var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
+readableStream.pipeTo(fileStream).closed
+  .then(() =&gt; console.log("All data successfully written!"))
+  .catch(e =&gt; console.error("Something went wrong!", e));</code></pre>
+
+  <p>Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
+  called later. In the meantime, additional writes can be queued up, which are stored in the stream’s internal queue.
+  The accumulation of this queue can move the stream into a <code>"waiting"</code> state, which is a signal to users
+  of the stream that they should back off and stop writing if possible.</p>
+</div>
+
+<div class=example>
+  <p>Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
+  directly. Since they queue any incoming writes, and take care internally to forward them to the underlying sink
+  in sequence, you can indiscriminately write to a writable stream without much ceremony:</p>
+
+<pre><code>function writeArrayToStream(array, writableStream) {
+array.forEach(chunk =&gt; writableStream.write(chunk));
+
+return writableStream.close();
+}
+
+writeArrayToStream([1, 2, 3, 4, 5], writableStream)
+.then(() =&gt; console.log("All done!"))
+.catch(e =&gt; console.error("Error with the stream: " + e));</code></pre>
+</div>
+
+<h3 class="heading settled heading" data-level=4.2 id=the-writable-stream-state-diagram><span class=secno>4.2 </span><span class=content>The Writable Stream State Diagram</span><a class=self-link href=#the-writable-stream-state-diagram></a></h3>
+
+<p><em>This section is non-normative.</em></p>
+
+<h3 class="heading settled heading" data-level=4.3 id=class-writablestream><span class=secno>4.3 </span><span class=content>Class <code>WritableStream</code></span><a class=self-link href=#class-writablestream></a></h3>
+
+<h2 class="heading settled heading" data-level=5 id=subclassing-streams><span class=secno>5 </span><span class=content>Subclassing Streams</span><a class=self-link href=#subclassing-streams></a></h2>
+
+<p><em>This section is non-normative.</em></p>
+
+<p>Specific APIs may wish to subclass <code>ReadableStream</code> or <code>WritableStream</code> in order to provide
+additional functionality. Examples would include:
+
+<ul>
+  <li>A file stream that is constructed from a filename, and includes file metadata</li>
+  <li>A HTTP stream that is constructed from a URL, and includes header-accessing APIs</li>
+  <li>A TCP stream that overrides <code>read</code>, <code>wait</code>, <code>cancel</code>, <code>state</code>, and
+  <code>closed</code> to reflect and manipulate a kernel-level TCP buffer</li>
+</ul>
+
+<p>The first two examples here could be expressed by allowing their constructors to call <code>super</code> with
+appropriate functions that manipulate the stream’s internal state. The latter takes a different approach, which gives
+both more power and more responsibility: it requires that the author of that stream manually implement many of the
+complex requirements baked into the readable stream state machine and the contract it presents to users.</p>
+
+<p>Because streams only interact through their public API, all streams—whether subclassed or not—can coexist and
+interoperate. For example, you can pipe to or from any of the above streams, without worrying what type of
+implementation is under the covers, since they all provide the appropriate properties and methods.</p>
+
+<h2 class="heading settled heading" data-level=6 id=other-stream-apis><span class=secno>6 </span><span class=content>Other Stream APIs</span><a class=self-link href=#other-stream-apis></a></h2>
+
+<h3 class="heading settled heading" data-level=6.1 id=teestream><span class=secno>6.1 </span><span class=content><code>TeeStream</code></span><a class=self-link href=#teestream></a></h3>
+
+<h3 class="heading settled heading" data-level=6.2 id=bytelengthqueuingstrategy><span class=secno>6.2 </span><span class=content><code>ByteLengthQueuingStrategy</code></span><a class=self-link href=#bytelengthqueuingstrategy></a></h3>
+
+<h3 class="heading settled heading" data-level=6.3 id=countqueuingstrategy><span class=secno>6.3 </span><span class=content><code>CountQueuingStrategy</code></span><a class=self-link href=#countqueuingstrategy></a></h3>
+
+<h2 class="no-num heading settled heading" id=acknowledgments><span class=content>Acknowledgments</span><a class=self-link href=#acknowledgments></a></h2>
+
+<p>The editor would like to thank
+Bert Belder,
+Marcos Caceres,
+Tim Caswell,
+Forbes Lindesay,
+Thorsten Lorenz,
+Jens Nockert,
+Trevor Norris,
+Dominic Tarr, and
+tzik
+for their contributions to this specification.</p>
+
+<p>Special thanks to:
+Gorgi Kosev for his breakthrough idea of separating piping into two methods, thus resolving
+  <a href=https://github.com/whatwg/streams/issues/44>a major sticking point</a>;
+Forrest Norvell for his enthusiastic iteration on the reference implementation;
+Isaac Schlueter for his pioneering work on JavaScript streams in Node.js;
+Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward; and
+Takeshi Yoshino for his careful review of this spec’s algorithms and concepts.
+</p>
+
+<h2 class="no-ref no-num heading settled heading" id=conformance><span class=content>
+Conformance</span><a class=self-link href=#conformance></a></h2>
+
+    <p>
+        Conformance requirements are expressed with a combination of descriptive assertions and RFC 2119 terminology.
+        The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “MAY”, and “OPTIONAL”
+        in the normative parts of this document
+        are to be interpreted as described in RFC 2119.
+        However, for readability,
+        these words do not appear in all uppercase letters in this specification.
+
+    <p>
+        All of the text of this specification is normative
+        except sections explicitly marked as non-normative, examples, and notes. <a data-biblio-type=normative data-link-type=biblio href=#biblio-rfc2119 title=biblio-rfc2119>[RFC2119]</a>
+
+    <p>
+        Examples in this specification are introduced with the words “for example”
+        or are set apart from the normative text with <code>class="example"</code>, like this:
+
+    <div class=example>
+        This is an example of an informative example.
+    </div>
+
+    <p>
+        Informative notes begin with the word “Note”
+        and are set apart from the normative text with <code>class="note"</code>, like this:
+
+    <p class=note>
+        Note, this is an informative note.
+
+<h2 class="no-num no-ref heading settled heading" id=references><span class=content>
+References</span><a class=self-link href=#references></a></h2>
+
+<h3 class="no-num no-ref heading settled heading" id=normative><span class=content>
+Normative References</span><a class=self-link href=#normative></a></h3>
+<div data-fill-with=normative-references><dl>
+<dt id=biblio-rfc2119 title=RFC2119><a class=self-link href=#biblio-rfc2119></a>[RFC2119]<dd>S. Bradner. <a href=http://www.ietf.org/rfc/rfc2119.txt>Key words for use in RFCs to Indicate Requirement Levels</a>. URL: <a href=http://www.ietf.org/rfc/rfc2119.txt>http://www.ietf.org/rfc/rfc2119.txt</a></dd>
+</dl></div>
+
+<h3 class="no-num no-ref heading settled heading" id=informative><span class=content>
+Informative References</span><a class=self-link href=#informative></a></h3>
+<div data-fill-with=informative-references><dl>
+<dt id=biblio-html title=HTML><a class=self-link href=#biblio-html></a>[HTML]<dd>Ian Hickson. <a href=http://www.whatwg.org/specs/web-apps/current-work/multipage/>HTML</a>. Living Standard. URL: <a href=http://www.whatwg.org/specs/web-apps/current-work/multipage/>http://www.whatwg.org/specs/web-apps/current-work/multipage/</a></dd>
+</dl></div>
+
+<h2 class="no-num no-ref heading settled heading" id=index><span class=content>
+Index</span><a class=self-link href=#index></a></h2>
+<div data-fill-with=index><ul class=indexlist>
+<li>backpressure, <a href=#backpressure title="section 2.4">2.4</a>
+<li>chunk, <a href=#chunk title="section 2">2</a>
+<li>pipe chain, <a href=#pipe-chain title="section 2.4">2.4</a>
+<li>piping, <a href=#piping title="section 2.4">2.4</a>
+<li>Pull sources, <a href=#pull-sources title="section 2.1">2.1</a>
+<li>Push sources, <a href=#push-sources title="section 2.1">2.1</a>
+<li>readable stream, <a href=#readable-stream title="section 2.1">2.1</a>
+<li>transform stream, <a href=#transform-stream title="section 2.3">2.3</a>
+<li>ultimate consumer, <a href=#ultimate-consumer title="section 2.4">2.4</a>
+<li>ultimate producer, <a href=#ultimate-producer title="section 2.4">2.4</a>
+<li>underlying sink, <a href=#underlying-sink title="section 2.2">2.2</a>
+<li>underlying source, <a href=#underlying-source title="section 2.1">2.1</a>
+<li>writable stream, <a href=#writable-stream title="section 2.2">2.2</a>
+</ul></div>
+
+<h2 class="no-num no-ref heading settled heading" id=property-index><span class=content>
+Property index</span><a class=self-link href=#property-index></a></h2>
+<div data-fill-with=property-index><p>No properties defined.</div>
+
+
+
