@@ -14,22 +14,22 @@
   }
 </style>
 
-<link href=http://www.whatwg.org/style/specification rel=stylesheet>
-<link href=http://resources.whatwg.org/logo-streams.svg rel=icon>
+<link href=//www.whatwg.org/style/specification rel=stylesheet>
+<link href=//resources.whatwg.org/logo-streams.svg rel=icon>
 
 
 
 <div class=head>
 
-<p><a class=logo href=http://www.whatwg.org/>
-      <img alt=WHATWG height=100 src=http://resources.whatwg.org/logo-streams.svg width=100>
+<p><a class=logo href=//www.whatwg.org/>
+      <img alt=WHATWG height=100 src=//resources.whatwg.org/logo-streams.svg width=100>
     </a></p>
 
 
   <h1>Streams</h1>
 
   <h2 class="no-num no-toc heading settled heading" id=subtitle><span class=content>
-    <span class=minor>[soon to become a]</span> Living Standard -- Last Updated 16 June 2014
+    <span class=minor>[soon to become a]</span> Living Standard -- Last Updated 17 June 2014
     
   </span></h2>
 
@@ -60,7 +60,7 @@
       <img alt=CC0 src=http://i.creativecommons.org/p/zero/1.0/80x15.png>
     </a>
     To the extent possible under law, the editor has waived all copyright and related or neighboring rights to this
-    work. In addition, as of 16 June 2014, the editor has made this specification available under the
+    work. In addition, as of 17 June 2014, the editor has made this specification available under the
     <a href=http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0 rel=license>Open Web Foundation
     Agreement Version 1.0</a>, which is available at http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
 
@@ -108,13 +108,12 @@ underway, and there is still room for additional APIs beyond those specified her
 		<li><a href=#ByteLengthQueuingStrategy><span class=secno>5.2</span><code>ByteLengthQueuingStrategy</code></a>
 		<li><a href=#CountQueuingStrategy><span class=secno>5.3</span><code>CountQueuingStrategy</code></a></ul>
 	<li><a href=#acks><span class=secno></span>Acknowledgments</a>
-	<li><a href=#conformance><span class=secno></span> Conformance</a>
-	<li><a href=#references><span class=secno></span> References</a>
+	<li><a href=#conformance><span class=secno></span>Conformance</a>
+	<li><a href=#references><span class=secno></span>References</a>
 		<ul class=toc>
-		<li><a href=#normative><span class=secno></span> Normative References</a>
-		<li><a href=#informative><span class=secno></span> Informative References</a></ul>
-	<li><a href=#index><span class=secno></span> Index</a>
-	<li><a href=#property-index><span class=secno></span> Property index</a></ul></div>
+		<li><a href=#normative><span class=secno></span>Normative References</a>
+		<li><a href=#informative><span class=secno></span>Informative References</a></ul>
+	<li><a href=#index><span class=secno></span>Index</a></ul></div>
 
 <h2 class="heading settled heading" data-level=1 id=model><span class=secno>1 </span><span class=content>Model</span><a class=self-link href=#model></a></h2>
 
@@ -589,53 +588,31 @@ Isaac Schlueter for his pioneering work on JavaScript streams in Node.js;
 Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward; and
 Takeshi Yoshino for his careful review of this spec’s algorithms and concepts.</p>
 
-<h2 class="no-ref no-num heading settled heading" id=conformance><span class=content>
-Conformance</span><a class=self-link href=#conformance></a></h2>
+<h2 class="no-num no-ref heading settled heading" id=conformance><span class=content>Conformance</span><a class=self-link href=#conformance></a></h2>
 
-    <p>
-        Conformance requirements are expressed with a combination of descriptive assertions and RFC 2119 terminology.
-        The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “MAY”, and “OPTIONAL”
-        in the normative parts of this document
-        are to be interpreted as described in RFC 2119.
-        However, for readability,
-        these words do not appear in all uppercase letters in this specification.
+<p>All diagrams, examples, and notes in this specification are non-normative, as are all sections explicitly marked
+non-normative. Everything else in this specification is normative.
 
-    <p>
-        All of the text of this specification is normative
-        except sections explicitly marked as non-normative, examples, and notes. <a data-biblio-type=normative data-link-type=biblio href=#biblio-rfc2119 title=biblio-rfc2119>[RFC2119]</a>
+<p>The key words "MUST", "MUST NOT", "REQUIRED",  "SHOULD", "SHOULD NOT", "RECOMMENDED",
+"MAY", and "OPTIONAL" in the normative parts of this specification are to be interpreted as described in RFC2119. For
+readability, these words do not appear in all uppercase letters in this specification. <a data-biblio-type=normative data-link-type=biblio href=#biblio-rfc2119 title=biblio-rfc2119>[RFC2119]</a>
 
-    <p>
-        Examples in this specification are introduced with the words “for example”
-        or are set apart from the normative text with <code>class="example"</code>, like this:
+<p>Conformance requirements phrased as algorithms or specific steps may be implemented in any manner, so long as the end
+result is equivalent.
 
-    <div class=example>
-        This is an example of an informative example.
-    </div>
+<h2 class="no-num no-ref heading settled heading" id=references><span class=content>References</span><a class=self-link href=#references></a></h2>
 
-    <p>
-        Informative notes begin with the word “Note”
-        and are set apart from the normative text with <code>class="note"</code>, like this:
-
-    <p class=note>
-        Note, this is an informative note.
-
-<h2 class="no-num no-ref heading settled heading" id=references><span class=content>
-References</span><a class=self-link href=#references></a></h2>
-
-<h3 class="no-num no-ref heading settled heading" id=normative><span class=content>
-Normative References</span><a class=self-link href=#normative></a></h3>
+<h3 class="no-num no-ref heading settled heading" id=normative><span class=content>Normative References</span><a class=self-link href=#normative></a></h3>
 <div data-fill-with=normative-references><dl>
 <dt id=biblio-rfc2119 title=RFC2119><a class=self-link href=#biblio-rfc2119></a>[RFC2119]<dd>S. Bradner. <a href=http://www.ietf.org/rfc/rfc2119.txt>Key words for use in RFCs to Indicate Requirement Levels</a>. URL: <a href=http://www.ietf.org/rfc/rfc2119.txt>http://www.ietf.org/rfc/rfc2119.txt</a></dd>
 </dl></div>
 
-<h3 class="no-num no-ref heading settled heading" id=informative><span class=content>
-Informative References</span><a class=self-link href=#informative></a></h3>
+<h3 class="no-num no-ref heading settled heading" id=informative><span class=content>Informative References</span><a class=self-link href=#informative></a></h3>
 <div data-fill-with=informative-references><dl>
 <dt id=biblio-html title=HTML><a class=self-link href=#biblio-html></a>[HTML]<dd>Ian Hickson. <a href=http://www.whatwg.org/specs/web-apps/current-work/multipage/>HTML</a>. Living Standard. URL: <a href=http://www.whatwg.org/specs/web-apps/current-work/multipage/>http://www.whatwg.org/specs/web-apps/current-work/multipage/</a></dd>
 </dl></div>
 
-<h2 class="no-num no-ref heading settled heading" id=index><span class=content>
-Index</span><a class=self-link href=#index></a></h2>
+<h2 class="no-num no-ref heading settled heading" id=index><span class=content>Index</span><a class=self-link href=#index></a></h2>
 <div data-fill-with=index><ul class=indexlist>
 <li>backpressure, <a href=#backpressure title="section 1.4">1.4</a>
 <li>chunk, <a href=#chunk title="section 1">1</a>
@@ -651,10 +628,3 @@ Index</span><a class=self-link href=#index></a></h2>
 <li>underlying source, <a href=#underlying-source title="section 1.1">1.1</a>
 <li>writable stream, <a href=#writable-stream title="section 1.2">1.2</a>
 </ul></div>
-
-<h2 class="no-num no-ref heading settled heading" id=property-index><span class=content>
-Property index</span><a class=self-link href=#property-index></a></h2>
-<div data-fill-with=property-index><p>No properties defined.</div>
-
-
-

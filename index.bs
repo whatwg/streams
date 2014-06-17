@@ -20,6 +20,7 @@
 
 <pre class="metadata">
   Title: Streams Standard
+  Group: WHATWG
   Shortname: streams
   Level: 1
   Status: DREAM
