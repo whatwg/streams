@@ -52,8 +52,8 @@ function ReadableStream(options) {
   this._onPull   = options.pull;
   this._onCancel = options.cancel;
 
-  this._strategySize      = options.strategy.size;
-  this._strategyNeedsMore = options.strategy.needsMore;
+  this._strategySize      = options.strategy.size.bind(options.strategy);
+  this._strategyNeedsMore = options.strategy.needsMore.bind(options.strategy);
 
   this._storedError = undefined;
 

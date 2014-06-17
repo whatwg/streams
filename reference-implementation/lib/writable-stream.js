@@ -55,8 +55,8 @@ function WritableStream(options) {
   this._onClose = options.close;
   this._onAbort = options.abort;
 
-  this._strategySize     = options.strategy.size;
-  this._strategyNeedsMore = options.strategy.needsMore;
+  this._strategySize      = options.strategy.size.bind(options.strategy);
+  this._strategyNeedsMore = options.strategy.needsMore.bind(options.strategy);
 
   this._storedError = undefined;
 
