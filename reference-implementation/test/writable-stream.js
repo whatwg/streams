@@ -37,7 +37,7 @@ test('WritableStream is correctly constructed', function (t) {
   t.ok(basic.closed.then, 'has closed promise that is thenable');
 });
 
-test('WritableStream with simple input', function (t) {
+test('WritableStream with simple input, processed asynchronously', function (t) {
   /*global WritableStream*/
   var storage;
   var basic = new WritableStream({
@@ -61,7 +61,7 @@ test('WritableStream with simple input', function (t) {
 
   var input = [1, 2, 3, 4, 5];
   writeArrayToStream(input, basic).then(function () {
-    t.deepEqual(storage, input, 'got back what was passed in');
+    t.deepEqual(storage, input, 'correct data was relayed to underlying sink');
     t.end();
   }, function (error) {
     t.fail(error);
@@ -69,7 +69,7 @@ test('WritableStream with simple input', function (t) {
   });
 });
 
-test('WritableStream: closing a stream which acknowledges all writes immediately', function (t) {
+test('WritableStream with simple input, processed synchronously', function (t) {
   var storage;
   var basic = new WritableStream({
     start : function start() { storage = []; },
@@ -82,7 +82,7 @@ test('WritableStream: closing a stream which acknowledges all writes immediately
 
   var input = [1, 2, 3, 4, 5];
   writeArrayToStream(input, basic).then(function () {
-    t.deepEqual(storage, input, 'got back what was passed in');
+    t.deepEqual(storage, input, 'correct data was relayed to underlying sink');
     t.end();
   }, function (error) {
     t.fail(error);
@@ -95,7 +95,7 @@ test('WritableStream: stays writable indefinitely if writes are all acknowledged
 
   var ws = new WritableStream({
     write : function (chunk, done) {
-      t.equal(this.state, 'writable', 'state is writable before writing ' + chunk);
+      t.equal(this.state, 'waiting', 'state is waiting before writing ' + chunk);
       done();
       t.equal(this.state, 'writable', 'state is writable after writing ' + chunk);
     }

@@ -111,18 +111,69 @@ WritableStream.prototype._error = function _error(error) {
 };
 
 WritableStream.prototype._advanceQueue = function _advanceQueue() {
-  if (this._queue.length > 0) {
-    var writeRecord = helpers.dequeueValue(this._queue);
-    this._doNextWrite(
-      writeRecord.type,
-      writeRecord.promise,
-      writeRecord.chunk,
-      { _resolve: writeRecord._resolve, _reject: writeRecord._reject }
-    );
+  if (this._queue.length === 0 || this._currentWritePromise !== undefined) {
+    return;
   }
-  else {
+
+  var writeRecord = helpers.peekQueueValue(this._queue);
+
+  if (writeRecord.type === 'close') {
+    assert(this._state === 'closing', 'can\'t process final write record unless already closing');
+    helpers.dequeueValue(this._queue);
+    assert(this._queue.length === 0, 'queue must be empty once the final write record is dequeued');
+    this._doClose();
+  } else {
+    assert(writeRecord.type === 'chunk', 'invalid write record type ' + writeRecord.type);
+
+    this._currentWritePromise = writeRecord.promise;
+    this[CURRENT_WRITE_RESOLVE] = writeRecord._resolve;
+    this[CURRENT_WRITE_REJECT] = writeRecord._reject;
+
+    var signalDone = function () {
+      if (this._currentWritePromise !== writeRecord.promise) return;
+      this._currentWritePromise = undefined;
+      helpers.dequeueValue(this._queue);
+      this._syncStateWithQueue();
+
+      writeRecord._resolve(undefined);
+      this._advanceQueue();
+    }.bind(this);
+
+    try {
+      this._onWrite(writeRecord.chunk, signalDone, this._error.bind(this));
+    } catch (error) {
+      this._error(error);
+    }
+  }
+};
+
+WritableStream.prototype._syncStateWithQueue = function _syncStateWithQueue() {
+  if (this._state === 'closing') {
+    return;
+  }
+
+  assert(this._state === 'writable' || this._state === 'waiting');
+
+  if (this._state === 'waiting' && this._queue.length === 0) {
     this._state = 'writable';
     this[WRITABLE_RESOLVE](undefined);
+    return;
+  }
+
+  var queueSize = helpers.getTotalQueueSize(this._queue);
+  var needsMore = Boolean(this._strategyNeedsMore(queueSize));
+
+  if (needsMore === true && this._state === 'waiting') {
+    this._state = 'writable';
+    this[WRITABLE_RESOLVE](undefined);
+  }
+
+  if (needsMore === false && this._state === 'writable') {
+    this._state = 'waiting';
+    this._writablePromise = new Promise(function (resolve, reject) {
+      this[WRITABLE_RESOLVE] = resolve;
+      this[WRITABLE_REJECT] = reject;
+    }.bind(this));
   }
 };
 
@@ -144,67 +195,19 @@ WritableStream.prototype._doClose = function _doClose() {
   );
 };
 
-WritableStream.prototype._doNextWrite = function _doNextWrite(type, promise, chunk, promiseManipulators) {
-  var stream = this;
-
-  var resolve = promiseManipulators._resolve;
-  var reject  = promiseManipulators._reject;
-
-  if (type === 'close') {
-    assert(this._state === 'closing', 'can\'t write final write record unless already closing');
-    this._doClose();
-    return;
-  }
-
-  assert(type === 'chunk', 'invalid write record type ' + type);
-
-  this._currentWritePromise   = promise;
-  this[CURRENT_WRITE_RESOLVE] = resolve;
-  this[CURRENT_WRITE_REJECT]  = reject;
-
-  function signalDone() {
-    if (stream._currentWritePromise !== promise) return;
-    stream._currentWritePromise = undefined;
-
-    if (stream._state === 'waiting') {
-      resolve(undefined);
-      stream._advanceQueue();
-    }
-    else if (stream._state === 'closing') {
-      resolve(undefined);
-
-      if (stream._queue.length > 0) {
-        var writeRecord = helpers.dequeueValue(stream._queue);
-        stream._doNextWrite(
-          writeRecord.type,
-          writeRecord.promise,
-          writeRecord.chunk,
-          { _resolve: writeRecord._resolve, _reject: writeRecord._reject }
-        );
-      }
-    }
-  }
-
-  try {
-    this._onWrite(chunk, signalDone, this._error.bind(this));
-  }
-  catch (error) {
-    this._error(error);
-  }
-};
-
 WritableStream.prototype.write = function write(chunk) {
   var stream = this;
 
-  var resolver, rejecter;
-  var promise = new Promise(function (resolve, reject) {
-    resolver = resolve;
-    rejecter = reject;
-  });
-
   switch (this._state) {
     case 'waiting':
+    case 'writable':
       var chunkSize = this._strategySize(chunk);
+
+      var resolver, rejecter;
+      var promise = new Promise(function (resolve, reject) {
+        resolver = resolve;
+        rejecter = reject;
+      });
 
       helpers.enqueueValueWithSize(
         this._queue,
@@ -217,39 +220,8 @@ WritableStream.prototype.write = function write(chunk) {
         },
         chunkSize
       );
-
-      return promise;
-
-    case 'writable':
-      if (this._queue.length === 0 && this._currentWritePromise === undefined) {
-        this._doNextWrite('chunk', promise, chunk, { _resolve: resolver, _reject: rejecter });
-      } else {
-        var chunkSize = this._strategySize(chunk);
-        helpers.enqueueValueWithSize(
-          this._queue,
-          {
-            type     : 'chunk',
-            promise  : promise,
-            chunk    : chunk,
-            _resolve : resolver,
-            _reject  : rejecter
-          },
-          chunkSize
-        );
-      }
-
-      if (this._currentWritePromise !== undefined) {
-        var queueSize = helpers.getTotalQueueSize(this._queue);
-        var needsMore = this._strategyNeedsMore(queueSize);
-
-        if (!needsMore) {
-          this._state = 'waiting';
-          this._writablePromise = new Promise(function (resolve, reject) {
-            stream[WRITABLE_RESOLVE] = resolve;
-            stream[WRITABLE_REJECT] = reject;
-          });
-        }
-      }
+      this._syncStateWithQueue();
+      this._advanceQueue();
 
       return promise;
 

@@ -22,6 +22,11 @@ exports.enqueueValueWithSize = function (queue, value, size) {
     queue.push({ value: value, size: size });
 };
 
+exports.peekQueueValue = function (queue) {
+    assert(queue.length > 0, 'Spec-level failure: should never be able to peek at an empty queue.');
+    return queue[0].value;
+};
+
 exports.dequeueValue = function (queue) {
     assert(queue.length > 0, 'Spec-level failure: should never be able to dequeue from an empty queue.');
     var pair = queue.shift();

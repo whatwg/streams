@@ -342,27 +342,13 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ##### write(chunk)
 
-1. If `this.[[state]]` is `"waiting"`,
+1. If `this.[[state]]` is `"waiting"` or `"writable"`,
     1. Let _chunkSize_ be the result of `this.[[strategySize]](chunk)`.
     1. ReturnIfAbrupt(_chunkSize_).
     1. Let `promise` be a newly-created pending promise.
     1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"chunk"`, [[promise]]: `promise`, [[chunk]]: `chunk`}, _chunkSize_).
-    1. Return `promise`.
-1. If `this.[[state]]` is `"writable"`,
-    1. Let `promise` be a newly-created pending promise.
-    1. If `this.[[queue]]` is empty and `this.[[currentWritePromise]]` is **undefined**,
-        1. Call `this.[[doNextWrite]]("chunk", promise, chunk)`.
-    1. Otherwise,
-        1. Let _chunkSize_ be the result of `this.[[strategySize]](chunk)`.
-        1. ReturnIfAbrupt(_chunkSize_).
-        1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"chunk"`, [[promise]]: `promise`, [[chunk]]: `chunk`}, _chunkSize_).
-    1. If `this.[[currentWritePromise]]` is **undefined**,
-        1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
-        1. Let _needsMore_ be the result of `this.[[strategyNeedsMore]](queueSize)`.
-        1. ReturnIfAbrupt(_needsMore_).
-        1. If ToBoolean(_needsMore_) is **false**,
-            1. Set `this.[[state]]` to `"waiting"`.
-            1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
+    1. Call `this.[[syncStateWithQueue]]()`.
+    1. Call `this.[[advanceQueue]]()`.
     1. Return `promise`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
     1. Return a promise rejected with a **TypeError** exception.
@@ -410,12 +396,48 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ##### `[[advanceQueue]]()`
 
-1. If `this.[[queue]]` is not empty,
-    1. Let `writeRecord` be DequeueValue(`this.[[queue]]`).
-    1. Call `this.[[doNextWrite]](writeRecord.[[type]], writeRecord.[[promise]], writeRecord.[[chunk]])`.
-1. If `this.[[queue]]` is empty,
+1. If `this.[[queue]]` is empy, or `this.[[currentWritePromise]]` is not **undefined**, return.
+1. Let `writeRecord` be PeekQueueValue(`this.[[queue]]`).
+1. If `writeRecord.[[type]]` is `"close"`,
+    1. Assert: `this.[[state]]` is `"closing"`.
+    1. DequeueValue(`this.[[queue]]`).
+    1. Assert: `this.[[queue]]` is empty.
+    1. Call `this.[[doClose]]()`.
+1. Otherwise,
+    1. Assert: `writeRecord.[[type]]` is `"chunk"`.
+    1. Set `this.[[currentWritePromise]]` to `writeRecord.[[promise]]`.
+    1. Let `signalDone` be a new function of zero arguments, closing over `this` and `writeRecord.[[promise]]`, that performs the following steps:
+        1. If `this.[[currentWritePromise]]` is not `writeRecord.[[promise]]`, return.
+        1. Set `this.[[currentWritePromise]]` to **undefined**.
+        1. DequeueValue(`this.[[queue]]`).
+        1. Call `this.[[syncStateWithQueue]]()`.
+        1. Resolve `writeRecord.[[promise]]` with **undefined**.
+        1. Call `this.[[advanceQueue]]()`.
+    1. Call `this.[[onWrite]](chunk, signalDone, this.[[error]])`.
+    1. If the call throws an exception `e`, call `this.[[error]](e)`.
+
+Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been aborted, then `signalDone` ends up doing nothing, since `this.[[currentWritePromise]]` is no longer equal to `writeRecord.[[promise]]`.
+
+Note: the peeking-then-dequeuing dance is necessary so that during the call to the user-supplied function, `this.[[onWrite]]`, the queue and corresponding public `state` property correctly reflect the ongoing write. The write record only leaves the queue after a call to `signalDone` tells us that the chunk has been successfully written to the underlying sink, and we can advance the queue.
+
+##### `[[syncStateWithQueue]]()`
+
+1. If `this.[[state]]` is `"closing"`, return.
+1. Assert: `this.[[state]]` is either `"writable"` or `"waiting"`.
+1. If `this.[[state]]` is `"waiting"` and `this.[[queue]]` is empty,
     1. Set `this.[[state]]` to `"writable"`.
     1. Resolve `this.[[writablePromise]]` with **undefined**.
+1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
+1. Let _needsMore_ be the result of calling `this.[[strategyNeedsMore]](queueSize)`.
+1. ReturnIfAbrupt(_needsMore_).
+1. Let _needsMore_ be ToBoolean(_needsMore_).
+1. ReturnIfAbrupt(_needsMore_).
+1. If _needsMore_ is **true** and `this.[[state]]` is `"waiting"`,
+    1. Set `this.[[state]]` to `"writable"`.
+    1. Resolve `this.[[writablePromise]]` with **undefined**.
+1. If _needsMore_ is **false** and `this.[[state]]` is `"writable"`,
+    1. Set `this.[[state]]` to `"waiting"`.
+    1. Set `this.[[writablePromise]]` to a newly-created pending promise.
 
 ##### `[[doClose]]()`
 
@@ -426,30 +448,6 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Resolve `this.[[closedPromise]]` with **undefined**.
 1. Upon rejection of _closePromise_ with reason _r_,
     1. Call `this.[[error]](r)`.
-
-##### `[[doNextWrite]](type, promise, chunk)`
-
-1. If `type` is `"close"`,
-    1. Assert: `this.[[state]]` is `"closing"`.
-    1. Call `this.[[doClose]]()`.
-    1. Return.
-1. Assert: `type` must be `"chunk"`.
-1. Set `this.[[currentWritePromise]]` to `promise`.
-1. Let `signalDone` be a new function of zero arguments, closing over `this` and `promise`, that performs the following steps:
-    1. If `this.[[currentWritePromise]]` is not `promise`, return.
-    1. Set `this.[[currentWritePromise]]` to **undefined**.
-    1. If `this.[[state]]` is `"waiting"`,
-        1. Resolve `promise` with **undefined**.
-        1. Call `this.[[advanceQueue]]()`.
-    1. If `this.[[state]]` is `"closing"`,
-        1. Resolve `promise` with **undefined**.
-        1. If `this.[[queue]]` is not empty,
-            1. Let `writeRecord` be DequeueValue(`this.[[queue]]`).
-            1. Call `this.[[doNextWrite]](writeRecord.[[type]], writeRecord.[[promise]], writeRecord.[[chunk]])`.
-1. Call `this.[[onWrite]](chunk, signalDone, this.[[error]])`.
-1. If the call throws an exception `e`, call `this.[[error]](e)`.
-
-Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been aborted, then `signalDone` ends up doing nothing.
 
 ## Helper APIs
 
@@ -548,7 +546,13 @@ A number of operations are used to make working with queues-with-sizes more plea
 1. Assert: _queue_ is not empty.
 1. Let _pair_ be the first element of _queue_.
 1. Remove _pair_ from _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
-1. Return _pair_.[[value]]
+1. Return _pair_.[[value]].
+
+## PeekQueueValue ( _queue_ )
+
+1. Assert: _queue_ is not empty.
+1. Let _pair_ be the first element of _queue_.
+1. Return _pair_.[[value]].
 
 ## GetTotalQueueSize ( _queue_ )
 
