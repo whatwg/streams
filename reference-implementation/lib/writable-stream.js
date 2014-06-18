@@ -174,8 +174,8 @@ WritableStream.prototype._doNextWrite = function _doNextWrite(type, promise, chu
       resolve(undefined);
 
       if (stream._queue.length > 0) {
-        var writeRecord = helpers.dequeueValue(this._queue);
-        this._doNextWrite(
+        var writeRecord = helpers.dequeueValue(stream._queue);
+        stream._doNextWrite(
           writeRecord.type,
           writeRecord.promise,
           writeRecord.chunk,
@@ -221,21 +221,10 @@ WritableStream.prototype.write = function write(chunk) {
       return promise;
 
     case 'writable':
-      if (this._queue.length === 0) {
+      if (this._queue.length === 0 && this._currentWritePromise === undefined) {
         this._doNextWrite('chunk', promise, chunk, { _resolve: resolver, _reject: rejecter });
       } else {
         var chunkSize = this._strategySize(chunk);
-        var queueSize = helpers.getTotalQueueSize(this._queue);
-        var needsMore = this._strategyNeedsMore(queueSize);
-
-        if (!needsMore) {
-          this._state = 'waiting';
-          this._writablePromise = new Promise(function (resolve, reject) {
-            stream[WRITABLE_RESOLVE] = resolve;
-            stream[WRITABLE_REJECT] = reject;
-          });
-        }
-
         helpers.enqueueValueWithSize(
           this._queue,
           {
@@ -247,6 +236,19 @@ WritableStream.prototype.write = function write(chunk) {
           },
           chunkSize
         );
+      }
+
+      if (this._currentWritePromise !== undefined) {
+        var queueSize = helpers.getTotalQueueSize(this._queue);
+        var needsMore = this._strategyNeedsMore(queueSize);
+
+        if (!needsMore) {
+          this._state = 'waiting';
+          this._writablePromise = new Promise(function (resolve, reject) {
+            stream[WRITABLE_RESOLVE] = resolve;
+            stream[WRITABLE_REJECT] = reject;
+          });
+        }
       }
 
       return promise;

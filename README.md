@@ -350,17 +350,19 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Return `promise`.
 1. If `this.[[state]]` is `"writable"`,
     1. Let `promise` be a newly-created pending promise.
-    1. If `this.[[queue]]` is empty, call `this.[[doNextWrite]]("chunk", promise, chunk)`.
+    1. If `this.[[queue]]` is empty and `this.[[currentWritePromise]]` is **undefined**,
+        1. Call `this.[[doNextWrite]]("chunk", promise, chunk)`.
     1. Otherwise,
         1. Let _chunkSize_ be the result of `this.[[strategySize]](chunk)`.
         1. ReturnIfAbrupt(_chunkSize_).
+        1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"chunk"`, [[promise]]: `promise`, [[chunk]]: `chunk`}, _chunkSize_).
+    1. If `this.[[currentWritePromise]]` is **undefined**,
         1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
         1. Let _needsMore_ be the result of `this.[[strategyNeedsMore]](queueSize)`.
         1. ReturnIfAbrupt(_needsMore_).
         1. If ToBoolean(_needsMore_) is **false**,
             1. Set `this.[[state]]` to `"waiting"`.
             1. Set `this.[[writablePromise]]` to be a newly-created pending promise.
-        1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"chunk"`, [[promise]]: `promise`, [[chunk]]: `chunk`}, _chunkSize_).
     1. Return `promise`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
     1. Return a promise rejected with a **TypeError** exception.

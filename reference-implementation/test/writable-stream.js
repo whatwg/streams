@@ -43,9 +43,9 @@ test('WritableStream with simple input', function (t) {
   var basic = new WritableStream({
     start : function start() { storage = []; },
 
-    write : function write(data, done) {
+    write : function write(chunk, done) {
       setTimeout(function () {
-        storage.push(data);
+        storage.push(chunk);
         done();
       });
     },
@@ -74,8 +74,8 @@ test('WritableStream: closing a stream which acknowledges all writes immediately
   var basic = new WritableStream({
     start : function start() { storage = []; },
 
-    write : function write(data, done) {
-      storage.push(data);
+    write : function write(chunk, done) {
+      storage.push(chunk);
       done();
     }
   });
@@ -94,10 +94,10 @@ test('WritableStream: stays writable indefinitely if writes are all acknowledged
   t.plan(10);
 
   var ws = new WritableStream({
-    write : function (data, done) {
-      t.equal(this.state, 'writable', 'state is writable before writing ' + data);
+    write : function (chunk, done) {
+      t.equal(this.state, 'writable', 'state is writable before writing ' + chunk);
       done();
-      t.equal(this.state, 'writable', 'state is writable after writing ' + data);
+      t.equal(this.state, 'writable', 'state is writable after writing ' + chunk);
     }
   });
 
@@ -108,4 +108,21 @@ test('WritableStream: stays writable indefinitely if writes are all acknowledged
     t.fail(error);
     t.end();
   });
+});
+
+test('WritableStream: transitions to waiting after one write that is not synchronously acknowledged', function (t) {
+  var done;
+  var ws = new WritableStream({
+    write : function (chunk, done_) {
+      done = done_;
+    }
+  });
+
+  t.strictEqual(ws.state, 'writable', 'state starts writable');
+  ws.write('a');
+  t.strictEqual(ws.state, 'waiting', 'state is waiting until the write finishes');
+  done();
+  t.strictEqual(ws.state, 'writable', 'state becomes writable again after the write finishes');
+
+  t.end();
 });
