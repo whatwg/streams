@@ -44,3 +44,7 @@ exports.getTotalQueueSize = function (queue) {
 
     return totalSize;
 };
+
+exports.typeIsObject = function (x) {
+  return (typeof x === 'object' && x !== null) || typeof x === 'function';
+};
