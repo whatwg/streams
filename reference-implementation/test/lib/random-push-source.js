@@ -1,5 +1,3 @@
-'use strict';
-
 // http://stackoverflow.com/questions/1349404/generate-a-string-of-5-random-characters-in-javascript
 function randomChunk(size) {
   var text = "";
@@ -12,7 +10,7 @@ function randomChunk(size) {
   return text;
 }
 
-function RandomPushSource(toPush) {
+export default function RandomPushSource(toPush) {
   this.pushed  = 0;
   this.toPush  = toPush;
   this.started = false;
@@ -71,5 +69,3 @@ RandomPushSource.prototype.readStop = function readStop() {
 RandomPushSource.prototype.onend   = function onend() { };
 RandomPushSource.prototype.ondata  = function ondata() {};
 RandomPushSource.prototype.onerror = function onerror() {};
-
-module.exports = RandomPushSource;

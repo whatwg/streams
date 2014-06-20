@@ -1,6 +1,4 @@
-'use strict';
-
-function SequentialPullSource(limit, options) {
+export default function SequentialPullSource(limit, options) {
   this.current = 0;
   this.limit   = limit;
   this.opened  = false;
@@ -10,7 +8,7 @@ function SequentialPullSource(limit, options) {
   this._exec = function (func) { func.call(that); };
   if (options && options.async) {
     this._exec = function (func) {
-      process.nextTick(function () {
+      setImmediate(function () {
         func.call(that);
       });
     };
@@ -40,5 +38,3 @@ SequentialPullSource.prototype.close = function (cb) {
     cb();
   });
 }
-
-module.exports = SequentialPullSource;

@@ -1,9 +1,6 @@
-'use strict';
-
 var assert = require('assert');
-var Promise = require('es6-promise').Promise;
-var helpers = require('./helpers.js');
-var CountQueuingStrategy = require('./count-queuing-strategy.js');
+module helpers from'./helpers';
+import CountQueuingStrategy from './count-queuing-strategy';
 
 /*
  *
@@ -16,7 +13,7 @@ var WAIT_RESOLVE   = '_waitPromise@resolve';
 var WAIT_REJECT    = '_waitPromise@reject';
 
 
-function ReadableStream(options) {
+export default function ReadableStream(options) {
   var stream = this;
 
   if (options === undefined) options = {};
@@ -76,7 +73,7 @@ function ReadableStream(options) {
     get          : function () { return stream._closedPromise; }
   });
 
-  this._startedPromise = Promise.cast(
+  this._startedPromise = Promise.resolve(
     this._onStart(
       this._enqueue.bind(this),
       this._close.bind(this),
@@ -307,5 +304,3 @@ ReadableStream.prototype.pipeThrough = function pipeThrough(transform, options) 
   this.pipeTo(transform.input, options);
   return transform.output;
 };
-
-module.exports = ReadableStream;

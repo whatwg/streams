@@ -1,9 +1,10 @@
-'use strict';
+import ReadableStream from '../../lib/readable-stream';
+import WritableStream from '../../lib/writable-stream';
 
 // TODO: an evolved form of this should be part of the standard library. Although before that happens it needs to
 // handle aborts/cancels/errors correctly.
 
-module.exports = function makeSimpleTransformStream() {
+export default function makeSimpleTransformStream() {
   var pushToOutput;
   var closeOutput;
 
@@ -26,4 +27,4 @@ module.exports = function makeSimpleTransformStream() {
       }
     })
   };
-};
+}

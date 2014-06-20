@@ -1,9 +1,6 @@
-'use strict';
-
 var test = require('tape');
-var Promise = require('es6-promise').Promise;
 
-require('../index.js');
+import WritableStream from '../lib/writable-stream';
 
 function writeArrayToStream(array, writableStream) {
   array.forEach(function (chunk) { writableStream.write(chunk); });
@@ -12,7 +9,6 @@ function writeArrayToStream(array, writableStream) {
 }
 
 test('WritableStream is globally defined', function (t) {
-  /*global WritableStream*/
   t.plan(1);
 
   var basic;
@@ -21,7 +17,6 @@ test('WritableStream is globally defined', function (t) {
 });
 
 test('WritableStream is correctly constructed', function (t) {
-  /*global WritableStream*/
   t.plan(7);
 
   var basic = new WritableStream();
@@ -38,7 +33,6 @@ test('WritableStream is correctly constructed', function (t) {
 });
 
 test('WritableStream with simple input, processed asynchronously', function (t) {
-  /*global WritableStream*/
   var storage;
   var basic = new WritableStream({
     start : function start() { storage = []; },

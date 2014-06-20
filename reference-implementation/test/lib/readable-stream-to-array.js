@@ -1,8 +1,4 @@
-'use strict';
-
-var Promise = require('es6-promise').Promise;
-
-module.exports = function readableStreamToArray(readable) {
+export default function readableStreamToArray(readable) {
   return new Promise(function (resolve, reject) {
     var chunks = [];
 
@@ -19,4 +15,4 @@ module.exports = function readableStreamToArray(readable) {
 
     pump();
   });
-};
+}

@@ -1,15 +1,11 @@
-'use strict';
-
 var test = require('tape');
-var Promise = require('es6-promise').Promise;
-var RandomPushSource = require('./lib/random-push-source.js');
-var readableStreamToArray = require('./lib/readable-stream-to-array.js');
-var sequentialReadableStream = require('./lib/sequential-rs.js');
 
-require('../index.js');
+import ReadableStream from '../lib/readable-stream';
+import RandomPushSource from './lib/random-push-source';
+import readableStreamToArray from './lib/readable-stream-to-array';
+import sequentialReadableStream from './lib/sequential-rs';
 
 test('ReadableStream is globally defined', function (t) {
-  /*global ReadableStream*/
   t.plan(1);
 
   var basic;
@@ -18,7 +14,6 @@ test('ReadableStream is globally defined', function (t) {
 });
 
 test('ReadableStream is constructed correctly', function (t) {
-  /*global ReadableStream*/
   t.plan(8);
 
   var basic = new ReadableStream();
@@ -36,7 +31,6 @@ test('ReadableStream is constructed correctly', function (t) {
 });
 
 test('ReadableStream closing puts the stream in a closed state and makes wait and closed return a promise resolved with undefined', function (t) {
-  /*global ReadableStream*/
   t.plan(3);
 
   var readable = new ReadableStream({
@@ -61,7 +55,6 @@ test('ReadableStream closing puts the stream in a closed state and makes wait an
 });
 
 test('ReadableStream reading a closed stream throws a TypeError', function (t) {
-  /*global ReadableStream*/
   t.plan(1);
 
   var readable = new ReadableStream({
@@ -81,7 +74,6 @@ test('ReadableStream reading a closed stream throws a TypeError', function (t) {
 });
 
 test('ReadableStream reading a stream makes wait and closed return a promise resolved with undefined when the stream is fully drained', function (t) {
-  /*global ReadableStream*/
   t.plan(6);
 
   var readable = new ReadableStream({
@@ -118,7 +110,6 @@ test('ReadableStream reading a stream makes wait and closed return a promise res
 });
 
 test('ReadableStream avoid redundant pull call', function (t) {
-  /*global ReadableStream*/
   var pullCount = 0;
   var readable = new ReadableStream({
     pull : function pull() {
@@ -143,7 +134,6 @@ test('ReadableStream avoid redundant pull call', function (t) {
 });
 
 test('ReadableStream start throws an error', function (t) {
-  /*global ReadableStream*/
   t.plan(1);
 
   var error = new Error("aaaugh!!");
@@ -163,7 +153,6 @@ test('ReadableStream start throws an error', function (t) {
 });
 
 test('ReadableStream pull throws an error', function (t) {
-  /*global ReadableStream*/
 
   t.plan(4);
 
@@ -196,7 +185,6 @@ test('ReadableStream pull throws an error', function (t) {
 });
 
 test('ReadableStream adapting a push source', function (t) {
-  /*global ReadableStream*/
   var pullChecked = false;
   var randomSource = new RandomPushSource(8);
 
@@ -238,7 +226,6 @@ test('ReadableStream adapting a push source', function (t) {
 });
 
 test('ReadableStream adapting a sync pull source', function (t) {
-  /*global ReadableStream*/
   var stream = sequentialReadableStream(10);
 
   readableStreamToArray(stream).then(function (chunks) {
@@ -251,7 +238,6 @@ test('ReadableStream adapting a sync pull source', function (t) {
 });
 
 test('ReadableStream adapting an async pull source', function (t) {
-  /*global ReadableStream*/
   var stream = sequentialReadableStream(10, { async: true });
 
   readableStreamToArray(stream).then(function (chunks) {
@@ -314,7 +300,6 @@ test('ReadableStream canceling an infinite stream', function (t) {
 });
 
 test('ReadableStream is able to pull data repeatedly if it\'s available synchronously', function (t) {
-  /*global ReadableStream*/
 
   var i = 0;
   var readable = new ReadableStream({

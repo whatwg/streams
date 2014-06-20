@@ -1,9 +1,7 @@
-'use strict';
+import ReadableStream from '../../lib/readable-stream';
+import SequentialPullSource from './sequential-pull-source';
 
-var SequentialPullSource = require('./sequential-pull-source.js');
-var Promise = require('es6-promise').Promise;
-
-module.exports = function sequentialReadableStream(limit, options) {
+export default function sequentialReadableStream(limit, options) {
   var sequentialSource = new SequentialPullSource(limit, options);
 
   var stream = new ReadableStream({

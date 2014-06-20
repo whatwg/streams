@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "tape test/*.js"
+    "test": "node test-runner.js"
   },
   "repository": {
     "type": "git",
@@ -26,10 +26,9 @@
     "url": "https://github.com/othiym23/streams/issues"
   },
   "homepage": "https://github.com/othiym23/streams",
-  "dependencies": {
-    "es6-promise": "^0.1.2"
-  },
   "devDependencies": {
-    "tape": "^2.13.2"
+    "glob": "^4.0.2",
+    "tape": "^2.13.2",
+    "traceur": "0.0.45"
   }
 }

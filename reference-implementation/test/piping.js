@@ -1,12 +1,8 @@
-'use strict';
-
 var test = require('tape');
-var Promise = require('es6-promise').Promise;
-var readableStreamToArray = require('./lib/readable-stream-to-array.js');
-var sequentialReadableStream = require('./lib/sequential-rs.js');
-var passThroughTransform = require('./lib/pass-through-transform.js');
 
-require('../index.js');
+import readableStreamToArray from './lib/readable-stream-to-array';
+import sequentialReadableStream from './lib/sequential-rs';
+import passThroughTransform from './lib/pass-through-transform';
 
 test('ReadableStream pipeTo should complete successfully upon asynchronous finish', function (t) {
   // https://github.com/whatwg/streams/issues/80

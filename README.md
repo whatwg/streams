@@ -87,7 +87,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. Let `this.[[queue]]` be a new empty List.
 1. Let _startResult_ be the result of `start(this.[[enqueue]], this.[[close]], this.[[error]])`.
 1. ReturnIfAbrupt(_startResult_).
-1. Let `this.[[startedPromise]]` be the result of casting _startResult_ to a promise.
+1. Let `this.[[startedPromise]]` be the result of resolving _startResult_ as a promise.
 1. Upon fulfillment of `this.[[startedPromise]]`, set `this.[[started]]` to **true**.
 1. Upon rejection of `this.[[startedPromise]]` with reason `r`, call `this.[[error]](r)`.
 
@@ -325,7 +325,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Let `this.[[writablePromise]]` be a new promise.
 1. Let `this.[[closedPromise]]` be a new promise.
 1. Let `this.[[queue]]` be a new empty List.
-1. Call `start()` and let `startedPromise` be the result of casting the return value to a promise.
+1. Call `start()` and let `startedPromise` be the result of resolving the return value as a promise.
 1. When/if `startedPromise` is fulfilled, call `this.[[advanceQueue]]()`.
 1. When/if `startedPromise` is rejected with reason `r`, call `this.[[error]](r)`.
 

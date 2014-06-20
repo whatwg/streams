@@ -1,9 +1,8 @@
-'use strict';
-/*global CountQueuingStrategy, ReadableStream, WritableStream */
-
 var test = require('tape');
 
-require('../index.js');
+import CountQueuingStrategy from '../lib/count-queuing-strategy';
+import ReadableStream from '../lib/readable-stream';
+import WritableStream from '../lib/writable-stream';
 
 test('Can construct a CountQueuingStrategy with a valid high water mark', function (t) {
   var strategy = new CountQueuingStrategy({ highWaterMark: 4 });

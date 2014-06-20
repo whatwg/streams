@@ -1,4 +1,4 @@
-export default class CountQueuingStrategy {
+export default class ByteLengthQueuingStrategy {
   constructor({ highWaterMark }) {
     highWaterMark = Number(highWaterMark);
 
@@ -13,7 +13,7 @@ export default class CountQueuingStrategy {
   }
 
   size(chunk) {
-    return 1;
+    return chunk.byteLength;
   }
 
   needsMore(queueSize) {

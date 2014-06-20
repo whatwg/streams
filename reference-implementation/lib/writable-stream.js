@@ -1,9 +1,6 @@
-'use strict';
-
 var assert = require('assert');
-var Promise = require('es6-promise').Promise;
-var helpers = require('./helpers.js');
-var CountQueuingStrategy = require('./count-queuing-strategy.js');
+module helpers from './helpers';
+import CountQueuingStrategy from './count-queuing-strategy';
 
 /*
  *
@@ -17,7 +14,7 @@ var WRITABLE_REJECT       = '_writablePromise@reject';
 var CURRENT_WRITE_RESOLVE = '_currentWritePromise@resolve';
 var CURRENT_WRITE_REJECT  = '_currentWritePromise@reject';
 
-function WritableStream(options) {
+export default function WritableStream(options) {
   var stream = this;
 
   if (options === undefined) options = {};
@@ -83,7 +80,7 @@ function WritableStream(options) {
     get          : function () { return stream._closedPromise; }
   });
 
-  this._startedPromise = Promise.cast(this._onStart());
+  this._startedPromise = Promise.resolve(this._onStart());
   this._startedPromise.then(
     function fulfill() { stream._advanceQueue(); },
     function error(e)  { stream._error(e); }
@@ -275,5 +272,3 @@ WritableStream.prototype.abort = function abort(r) {
 WritableStream.prototype.wait = function wait() {
   return this._writablePromise;
 };
-
-module.exports = WritableStream;
