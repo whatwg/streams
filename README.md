@@ -84,8 +84,8 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. Set `this.[[onPull]]` to `pull`.
 1. Set `this.[[strategySize]]` to `size`.
 1. Set `this.[[strategyNeedsMore]]` to `needsMore`.
-1. Let `this.[[waitPromise]]` be a newly-created pending promise.
-1. Let `this.[[closedPromise]]` be a newly-created pending promise.
+1. Let `this.[[waitPromise]]` be a new promise.
+1. Let `this.[[closedPromise]]` be a new promise.
 1. Let `this.[[queue]]` be a new empty List.
 1. Let _startResult_ be the result of `start(this.[[enqueue]], this.[[close]], this.[[error]])`.
 1. ReturnIfAbrupt(_startResult_).
@@ -107,11 +107,11 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. If `this.[[queue]]` is now empty,
     1. If `this.[[draining]]` is **true**,
         1. Set `this.[[state]]` to `"closed"`.
-        1. Let `this.[[waitPromise]]` be a newly-created promise resolved with **undefined**.
+        1. Let `this.[[waitPromise]]` be a new promise resolved with **undefined**.
         1. Resolve `this.[[closedPromise]]` with **undefined**.
     1. If `this.[[draining]]` is **false**,
         1. Set `this.[[state]]` to `"waiting"`.
-        1. Let `this.[[waitPromise]]` be a newly-created pending promise.
+        1. Let `this.[[waitPromise]]` be a new promise.
         1. Call `this.[[callPull]]()`.
 1. Return `chunk`.
 
@@ -236,7 +236,7 @@ ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
     1. Let `this.[[queue]]` be a new empty List.
     1. Set `this.[[state]]` to `"errored"`.
     1. Set `this.[[storedError]]` to `e`.
-    1. Let `this.[[waitPromise]]` be a newly-created promise object rejected with `e`.
+    1. Let `this.[[waitPromise]]` be a new promise rejected with `e`.
     1. Reject `this.[[closedPromise]]` with `e`.
 
 ##### `[[callPull]]()`
@@ -325,8 +325,8 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Set `this.[[onAbort]]` to `abort`.
 1. Set `this.[[strategySize]]` to `size`.
 1. Set `this.[[strategyNeedsMore]]` to `needsMore`.
-1. Let `this.[[writablePromise]]` be a newly-created pending promise.
-1. Let `this.[[closedPromise]]` be a newly-created pending promise.
+1. Let `this.[[writablePromise]]` be a new promise.
+1. Let `this.[[closedPromise]]` be a new promise.
 1. Let `this.[[queue]]` be a new empty List.
 1. Call `start()` and let `startedPromise` be the result of casting the return value to a promise.
 1. When/if `startedPromise` is fulfilled, call `this.[[advanceQueue]]()`.
@@ -345,7 +345,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If `this.[[state]]` is `"waiting"` or `"writable"`,
     1. Let _chunkSize_ be the result of `this.[[strategySize]](chunk)`.
     1. ReturnIfAbrupt(_chunkSize_).
-    1. Let `promise` be a newly-created pending promise.
+    1. Let `promise` be a new promise.
     1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"chunk"`, [[promise]]: `promise`, [[chunk]]: `chunk`}, _chunkSize_).
     1. Call `this.[[syncStateWithQueue]]()`.
     1. Call `this.[[advanceQueue]]()`.
@@ -437,7 +437,7 @@ Note: the peeking-then-dequeuing dance is necessary so that during the call to t
     1. Resolve `this.[[writablePromise]]` with **undefined**.
 1. If _needsMore_ is **false** and `this.[[state]]` is `"writable"`,
     1. Set `this.[[state]]` to `"waiting"`.
-    1. Set `this.[[writablePromise]]` to a newly-created pending promise.
+    1. Set `this.[[writablePromise]]` to a new promise.
 
 ##### `[[doClose]]()`
 
