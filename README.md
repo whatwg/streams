@@ -541,20 +541,20 @@ A number of operations are used to make working with queues-with-sizes more plea
 1. If _size_ is **NaN**, throw a **TypeError** exception.
 1. Append Record{[[value]]: _value_, [[size]]: _size_} as the last element of _queue_.
 
-## DequeueValue ( _queue_ )
+### DequeueValue ( _queue_ )
 
 1. Assert: _queue_ is not empty.
 1. Let _pair_ be the first element of _queue_.
 1. Remove _pair_ from _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
 1. Return _pair_.[[value]].
 
-## PeekQueueValue ( _queue_ )
+### PeekQueueValue ( _queue_ )
 
 1. Assert: _queue_ is not empty.
 1. Let _pair_ be the first element of _queue_.
 1. Return _pair_.[[value]].
 
-## GetTotalQueueSize ( _queue_ )
+### GetTotalQueueSize ( _queue_ )
 
 1. Let _totalSize_ be **0**.
 1. Repeat for each Record{[[value]], [[size]]} _pair_ that is an element of _queue_,
