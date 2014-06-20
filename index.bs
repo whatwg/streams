@@ -1,6 +1,23 @@
-<!DOCTYPE html>
-<meta charset="utf-8" />
-<title>Streams Standard</title>
+<pre class="metadata">
+  Title: Streams Standard
+  Group: WHATWG
+  H1: Streams
+  Shortname: streams
+  Level: 1
+  Status: DREAM
+  ED: https://whatwg.github.io/streams
+  Editor: Domenic Denicola, <a href="https://google.com/">Google</a>, http://domenic.me, domenic@domenicdenicola.com
+  Abstract: This specification provides APIs for creating, composing, and consuming streams of data.
+  Abstract: These streams are designed to map efficiently to low-level I/O primitives, and allow easy
+  Abstract: composition with built-in backpressure and queuing. On top of streams, the web platform can
+  Abstract: build higher-level abstractions, such as filesystem or socket APIs, while at the same time
+  Abstract: users can use the supplied tools to build their own streams which integrate well with those
+  Abstract: of the web platform.
+  Logo: https://resources.whatwg.org/logo-streams.svg
+  !Version History: <a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a>
+  !Participate: Send feedback to <a href="http://www.whatwg.org/mailing-list">whatwg@whatwg.org</a> (<a href="http://www.whatwg.org/mailing-list#specs">archives</a>) or <a href="https://github.com/whatwg/streams/issues/new">file a bug</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open bugs</a>)
+  !Participate: <a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
+</pre>
 <style>
   span.minor {
     letter-spacing: 0;
@@ -15,74 +32,6 @@
   }
 </style>
 
-<link rel="stylesheet" href="//www.whatwg.org/style/specification" />
-<link rel="icon" href="//resources.whatwg.org/logo-streams.svg" />
-
-<pre class="metadata">
-  Title: Streams Standard
-  Group: WHATWG
-  Shortname: streams
-  Level: 1
-  Status: DREAM
-  ED: https://whatwg.github.io/streams
-  Editor: Domenic Denicola, Google, http://domenic.me
-  Abstract: Don't wanna exceed 120 chars, so I put it below instead.
-  Boilerplate: omit header
-</pre>
-
-<div class="head">
-  <a class="logo" href="//www.whatwg.org/">
-    <img alt="WHATWG" src="//resources.whatwg.org/logo-streams.svg" width="100" height="100">
-  </a>
-
-  <hgroup>
-    <h1>Streams</h1>
-
-    <h2 id="subtitle" class="no-num no-toc">
-      <span class="minor">[soon to become a]</span> Living Standard; Last Updated [DATE]
-    </h2>
-  </hgroup>
-
-  <dl>
-    <dt>Participate:</dt>
-    <dd>
-      Send feedback to
-      <a href="http://www.whatwg.org/mailing-list">whatwg@whatwg.org</a>
-      (<a href="http://www.whatwg.org/mailing-list#specs">archives</a>) or
-      <a href="https://github.com/whatwg/streams/issues/new">file a bug</a>
-      (<a href="https://github.com/whatwg/streams/issues?state=open">open bugs</a>)
-    </dd>
-    <dd><a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a></dd>
-
-    <dt>Version History:</dt>
-    <dd><a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a></dd>
-
-    <dt>Editor:</dt>
-    <dd class="h-card vcard">
-      <a href="http://domenic.me/">Domenic Denicola</a>
-      (<a href="https://google.com/">Google</a>)
-      &lt;<a href="mailto:domenic@domenicdenicola.com">domenic@domenicdenicola.com</a>&gt;
-    </dd>
-  </dl>
-
-  <p class="copyright">
-    <a href="http://creativecommons.org/publicdomain/zero/1.0/" rel="license">
-      <img src="http://i.creativecommons.org/p/zero/1.0/80x15.png" alt="CC0">
-    </a>
-    To the extent possible under law, the editor has waived all copyright and related or neighboring rights to this
-    work. In addition, as of [DATE], the editor has made this specification available under the
-    <a href="http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0" rel="license">Open Web Foundation
-    Agreement Version 1.0</a>, which is available at http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
-  </p>
-</div>
-
-<h2 id="abstract" class="no-num no-toc">Abstract</h2>
-
-This specification provides APIs for creating, composing, and consuming streams of data. These streams are designed
-to map efficiently to low-level I/O primitives, and allow easy composition with built-in backpressure and queuing. On
-top of streams, the web platform can build higher-level abstractions, such as filesystem or socket APIs, while at the
-same time users can use the supplied tools to build their own streams which integrate well with those of the web
-platform.
 
 <h2 id="status" class="no-num no-toc">Status</h2>
 
@@ -93,8 +42,6 @@ Although the core algorithms and APIs are largely present and working, prototypi
 underway, and there is still room for additional APIs beyond those specified here. Please join us in the
 <a href="https://github.com/whatwg/streams/issues?state=open">issue tracker</a> for more discussion.
 
-<h2 id="toc" class="no-num no-toc">Table of Contents</h2>
-<div data-fill-with="table-of-contents"></div>
 
 <h2 id="model">Model</h2>
 
