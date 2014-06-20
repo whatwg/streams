@@ -427,6 +427,7 @@ Note: the peeking-then-dequeuing dance is necessary so that during the call to t
 1. If `this.[[state]]` is `"waiting"` and `this.[[queue]]` is empty,
     1. Set `this.[[state]]` to `"writable"`.
     1. Resolve `this.[[writablePromise]]` with **undefined**.
+    1. Return.
 1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
 1. Let _needsMore_ be the result of calling `this.[[strategyNeedsMore]](queueSize)`.
 1. ReturnIfAbrupt(_needsMore_).
