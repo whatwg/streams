@@ -2,273 +2,232 @@ var assert = require('assert');
 module helpers from './helpers';
 import CountQueuingStrategy from './count-queuing-strategy';
 
-/*
- *
- * CONSTANTS
- *
- */
-var CLOSED_RESOLVE        = '_closedPromise@resolve';
-var CLOSED_REJECT         = '_closedPromise@reject';
-var WRITABLE_RESOLVE      = '_writablePromise@resolve';
-var WRITABLE_REJECT       = '_writablePromise@reject';
-var CURRENT_WRITE_RESOLVE = '_currentWritePromise@resolve';
-var CURRENT_WRITE_REJECT  = '_currentWritePromise@reject';
+export default class WritableStream {
+  constructor({
+    start = () => {},
+    write = () => {},
+    close = () => {},
+    abort = () => {},
+    strategy = new CountQueuingStrategy({ highWaterMark: 0 })
+  } = {}) {
+    if (typeof start !== 'function') {
+      throw new TypeError('start must be a function or undefined');
+    }
+    if (typeof write !== 'function') {
+      throw new TypeError('write must be a function or undefined');
+    }
+    if (typeof close !== 'function') {
+      throw new TypeError('close must be a function or undefined');
+    }
+    if (typeof abort !== 'function') {
+      throw new TypeError('abort must be a function or undefined');
+    }
+    if (!helpers.typeIsObject(strategy)) {
+      throw new TypeError('strategy must be an object');
+    }
 
-export default function WritableStream(options) {
-  var stream = this;
+    this._state = 'writable';
 
-  if (options === undefined) options = {};
-  if (options.start === undefined) options.start = function _onStart() {};
-  if (options.write === undefined) options.write = function _onWrite() {};
-  if (options.close === undefined) options.close = function _onClose() {};
-  if (options.abort === undefined) options.abort = function _onAbort() {};
+    this._onWrite = write;
+    this._onClose = close;
+    this._onAbort = abort;
+    this._strategy = strategy;
 
-  if (options.strategy === undefined) options.strategy = new CountQueuingStrategy({ highWaterMark: 0 });
+    this._writablePromise = new Promise((resolve, reject) => {
+      this._writablePromise_resolve = resolve;
+      this._writablePromise_reject = reject;
+    });
 
-  if (typeof options.start !== 'function') {
-    throw new TypeError('start must be a function or undefined');
-  }
-  if (typeof options.write !== 'function') {
-    throw new TypeError('write must be a function or undefined');
-  }
-  if (typeof options.close !== 'function') {
-    throw new TypeError('close must be a function or undefined');
-  }
-  if (typeof options.abort !== 'function') {
-    throw new TypeError('abort must be a function or undefined');
-  }
-  if (!helpers.typeIsObject(options.strategy)) {
-    throw new TypeError('strategy must be an object');
-  }
+    this._closedPromise = new Promise((resolve, reject) => {
+      this._closedPromise_resolve = resolve;
+      this._closedPromise_reject = reject;
+    });
 
-  this._state = 'writable';
+    this._queue = [];
 
-  this._onStart = options.start;
-  this._onWrite = options.write;
-  this._onClose = options.close;
-  this._onAbort = options.abort;
-
-  this._strategy = options.strategy;
-
-  this._storedError = undefined;
-
-  this._writablePromise      = new Promise(function (resolve, reject) {
-    stream[WRITABLE_RESOLVE] = resolve;
-    stream[WRITABLE_REJECT]  = reject;
-  });
-
-  this._closedPromise      = new Promise(function (resolve, reject) {
-    stream[CLOSED_RESOLVE] = resolve;
-    stream[CLOSED_REJECT]  = reject;
-  });
-
-  this._queue = [];
-
-  this._currentWritePromise   = undefined;
-  this[CURRENT_WRITE_RESOLVE] = undefined;
-  this[CURRENT_WRITE_REJECT]  = undefined;
-
-  Object.defineProperty(this, 'state', {
-    configurable : false,
-    enumerable   : true,
-    get          : function () { return stream._state; }
-  });
-
-  Object.defineProperty(this, 'closed', {
-    configurable : false,
-    enumerable   : true,
-    get          : function () { return stream._closedPromise; }
-  });
-
-  this._startedPromise = Promise.resolve(this._onStart());
-  this._startedPromise.then(
-    function fulfill() { stream._advanceQueue(); },
-    function error(e)  { stream._error(e); }
-  );
-}
-
-WritableStream.prototype._error = function _error(error) {
-  if (this._state === 'closed' || this._state === 'errored') {
-    return;
+    var startedPromise = Promise.resolve(start());
+    startedPromise.then(() => this._advanceQueue());
+    startedPromise.catch(r => this._error(r));
   }
 
-  for (var i = 0; i < this._queue.length; i++) {
-    this._queue[i]._reject(error);
-  }
-  this._queue = [];
-  this._state = 'errored';
-  this._storedError = error;
-  this[WRITABLE_REJECT](error);
-  this[CLOSED_REJECT](error);
-};
-
-WritableStream.prototype._advanceQueue = function _advanceQueue() {
-  if (this._queue.length === 0 || this._currentWritePromise !== undefined) {
-    return;
+  get closed() {
+    return this._closedPromise;
   }
 
-  var writeRecord = helpers.peekQueueValue(this._queue);
+  get state() {
+    return this._state;
+  }
 
-  if (writeRecord.type === 'close') {
-    assert(this._state === 'closing', 'can\'t process final write record unless already closing');
-    helpers.dequeueValue(this._queue);
-    assert(this._queue.length === 0, 'queue must be empty once the final write record is dequeued');
-    this._doClose();
-  } else {
-    assert(writeRecord.type === 'chunk', 'invalid write record type ' + writeRecord.type);
+  write(chunk) {
+    switch (this._state) {
+      case 'waiting':
+      case 'writable':
+        var chunkSize = this._strategy.size(chunk);
 
-    this._currentWritePromise = writeRecord.promise;
-    this[CURRENT_WRITE_RESOLVE] = writeRecord._resolve;
-    this[CURRENT_WRITE_REJECT] = writeRecord._reject;
+        var resolver, rejecter;
+        var promise = new Promise((resolve, reject) => {
+          resolver = resolve;
+          rejecter = reject;
+        });
 
-    var signalDone = function () {
-      if (this._currentWritePromise !== writeRecord.promise) return;
-      this._currentWritePromise = undefined;
+        helpers.enqueueValueWithSize(
+          this._queue,
+          { type: 'chunk', promise: promise, chunk: chunk, _resolve: resolver, _reject: rejecter },
+          chunkSize
+        );
+        this._syncStateWithQueue();
+        this._advanceQueue();
+
+        return promise;
+
+      case 'closing':
+        return Promise.reject(new TypeError('cannot write while stream is closing'));
+
+      case 'closed':
+        return Promise.reject(new TypeError('cannot write after stream is closed'));
+
+      case 'errored':
+        return Promise.reject(this._storedError);
+    }
+  }
+
+  close() {
+    switch (this._state) {
+      case 'writable':
+        this._state = 'closing';
+        this._doClose();
+        return this._closedPromise;
+
+      case 'waiting':
+        this._state = 'closing';
+        helpers.enqueueValueWithSize(this._queue, { type: 'close', promise: this._closedPromise, chunk: undefined }, 0);
+        return this._closedPromise;
+
+      case 'closing':
+        return Promise.reject(new TypeError('cannot close an already-closing stream'));
+
+      case 'closed':
+        return Promise.reject(new TypeError('cannot close an already-closed stream'));
+
+      case 'errored':
+        return Promise.reject(this._storedError);
+    }
+  }
+
+  abort(reason) {
+    switch (this._state) {
+      case 'closed':
+        return Promise.resolve(undefined);
+      case 'errored':
+        return Promise.reject(this._storedError);
+      default:
+        this._error(reason);
+        return helpers.promiseCall(this._onAbort);
+    }
+  }
+
+  wait() {
+    return this._writablePromise;
+  }
+
+  _error(error) {
+    if (this._state === 'closed' || this._state === 'errored') {
+      return;
+    }
+
+    for (var i = 0; i < this._queue.length; i++) {
+      this._queue[i]._reject(error);
+    }
+    this._queue = [];
+    this._state = 'errored';
+    this._storedError = error;
+    this._writablePromise_reject(error);
+    this._closedPromise_reject(error);
+  }
+
+  _advanceQueue() {
+    if (this._queue.length === 0 || this._currentWritePromise !== undefined) {
+      return;
+    }
+
+    var writeRecord = helpers.peekQueueValue(this._queue);
+
+    if (writeRecord.type === 'close') {
+      assert(this._state === 'closing', 'can\'t process final write record unless already closing');
       helpers.dequeueValue(this._queue);
-      this._syncStateWithQueue();
-
-      writeRecord._resolve(undefined);
-      this._advanceQueue();
-    }.bind(this);
-
-    try {
-      this._onWrite(writeRecord.chunk, signalDone, this._error.bind(this));
-    } catch (error) {
-      this._error(error);
-    }
-  }
-};
-
-WritableStream.prototype._syncStateWithQueue = function _syncStateWithQueue() {
-  if (this._state === 'closing') {
-    return;
-  }
-
-  assert(this._state === 'writable' || this._state === 'waiting');
-
-  if (this._state === 'waiting' && this._queue.length === 0) {
-    this._state = 'writable';
-    this[WRITABLE_RESOLVE](undefined);
-    return;
-  }
-
-  var queueSize = helpers.getTotalQueueSize(this._queue);
-  var needsMore = Boolean(this._strategy.needsMore(queueSize));
-
-  if (needsMore === true && this._state === 'waiting') {
-    this._state = 'writable';
-    this[WRITABLE_RESOLVE](undefined);
-  }
-
-  if (needsMore === false && this._state === 'writable') {
-    this._state = 'waiting';
-    this._writablePromise = new Promise(function (resolve, reject) {
-      this[WRITABLE_RESOLVE] = resolve;
-      this[WRITABLE_REJECT] = reject;
-    }.bind(this));
-  }
-};
-
-WritableStream.prototype._doClose = function _doClose() {
-  var stream = this;
-
-  this[WRITABLE_REJECT](new TypeError('stream has already been closed'));
-
-  var closePromise = helpers.promiseCall(this._onClose);
-
-  closePromise.then(
-    function () {
-      stream._state = 'closed';
-      stream[CLOSED_RESOLVE](undefined);
-    },
-    function (r) {
-      stream._error(r);
-    }
-  );
-};
-
-WritableStream.prototype.write = function write(chunk) {
-  var stream = this;
-
-  switch (this._state) {
-    case 'waiting':
-    case 'writable':
-      var chunkSize = this._strategy.size(chunk);
-
-      var resolver, rejecter;
-      var promise = new Promise(function (resolve, reject) {
-        resolver = resolve;
-        rejecter = reject;
-      });
-
-      helpers.enqueueValueWithSize(
-        this._queue,
-        {
-          type     : 'chunk',
-          promise  : promise,
-          chunk    : chunk,
-          _resolve : resolver,
-          _reject  : rejecter
-        },
-        chunkSize
-      );
-      this._syncStateWithQueue();
-      this._advanceQueue();
-
-      return promise;
-
-    case 'closing':
-      return Promise.reject(new TypeError('cannot write while stream is closing'));
-
-    case 'closed':
-      return Promise.reject(new TypeError('cannot write after stream is closed'));
-
-    case 'errored':
-      return Promise.reject(this._storedError);
-
-    default:
-      assert(false, 'stream is in invalid state ' + this._state);
-  }
-};
-
-WritableStream.prototype.close = function close() {
-  switch (this._state) {
-    case 'writable':
-      this._state = 'closing';
+      assert(this._queue.length === 0, 'queue must be empty once the final write record is dequeued');
       this._doClose();
-      return this._closedPromise;
+    } else {
+      assert(writeRecord.type === 'chunk', 'invalid write record type ' + writeRecord.type);
 
-    case 'waiting':
-      this._state = 'closing';
-      helpers.enqueueValueWithSize(this._queue, { type: 'close', promise: this._closedPromise, chunk: undefined }, 0);
-      return this._closedPromise;
+      this._currentWritePromise = writeRecord.promise;
+      this._currentWritePromise_resolve = writeRecord._resolve;
+      this._currentWritePromise_reject = writeRecord._reject;
 
-    case 'closing':
-      return Promise.reject(new TypeError('cannot close an already-closing stream'));
+      var signalDone = () => {
+        if (this._currentWritePromise !== writeRecord.promise) {
+          return;
+        }
+        this._currentWritePromise = undefined;
+        this._currentWritePromise_resolve = null;
+        this._currentWritePromise_reject = null;
 
-    case 'closed':
-      return Promise.reject(new TypeError('cannot close an already-closed stream'));
+        helpers.dequeueValue(this._queue);
+        this._syncStateWithQueue();
 
-    case 'errored':
-      return Promise.reject(this._storedError);
+        writeRecord._resolve(undefined);
+        this._advanceQueue();
+      };
 
-    default:
-      assert(false, 'stream is in invalid state ' + this._state);
+      try {
+        this._onWrite(writeRecord.chunk, signalDone, this._error.bind(this));
+      } catch (error) {
+        this._error(error);
+      }
+    }
   }
-};
 
-WritableStream.prototype.abort = function abort(r) {
-  switch (this._state) {
-    case 'closed':
-      return Promise.resolve(undefined);
-    case 'errored':
-      return Promise.reject(this._storedError);
-    default:
-      this._error(reason);
-      return helpers.promiseCall(this._onAbort);
+  _syncStateWithQueue() {
+    if (this._state === 'closing') {
+      return;
+    }
+
+    assert(this._state === 'writable' || this._state === 'waiting');
+
+    if (this._state === 'waiting' && this._queue.length === 0) {
+      this._state = 'writable';
+      this._writablePromise_resolve(undefined);
+      return;
+    }
+
+    var queueSize = helpers.getTotalQueueSize(this._queue);
+    var needsMore = Boolean(this._strategy.needsMore(queueSize));
+
+    if (needsMore === true && this._state === 'waiting') {
+      this._state = 'writable';
+      this._writablePromise_resolve(undefined);
+    }
+
+    if (needsMore === false && this._state === 'writable') {
+      this._state = 'waiting';
+      this._writablePromise = new Promise((resolve, reject) => {
+        this._writablePromise_resolve = resolve;
+        this._writablePromise_reject = reject;
+      });
+    }
   }
-};
 
-WritableStream.prototype.wait = function wait() {
-  return this._writablePromise;
-};
+  _doClose() {
+    this._writablePromise_reject(new TypeError('stream has already been closed'));
+
+    var closePromise = helpers.promiseCall(this._onClose);
+
+    closePromise.then(
+      () => {
+        this._state = 'closed';
+        this._closedPromise_resolve(undefined);
+      },
+      r => this._error(r)
+    );
+  }
+}
