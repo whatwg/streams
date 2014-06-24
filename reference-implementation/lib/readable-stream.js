@@ -2,305 +2,274 @@ var assert = require('assert');
 module helpers from'./helpers';
 import CountQueuingStrategy from './count-queuing-strategy';
 
-/*
- *
- * CONSTANTS
- *
- */
-var CLOSED_RESOLVE = '_closedPromise@resolve';
-var CLOSED_REJECT  = '_closedPromise@reject';
-var WAIT_RESOLVE   = '_waitPromise@resolve';
-var WAIT_REJECT    = '_waitPromise@reject';
+export default class ReadableStream {
+  constructor({
+    start = () => {},
+    pull = () => {},
+    cancel = () => {},
+    strategy = new CountQueuingStrategy({ highWaterMark: 0 })
+  } = {}) {
+    if (typeof start !== 'function') {
+      throw new TypeError('start must be a function or undefined');
+    }
+    if (typeof pull !== 'function') {
+      throw new TypeError('pull must be a function or undefined');
+    }
+    if (typeof cancel !== 'function') {
+      throw new TypeError('cancel must be a function or undefined');
+    }
+    if (!helpers.typeIsObject(strategy)) {
+      throw new TypeError('strategy must be an object');
+    }
 
-
-export default function ReadableStream(options) {
-  var stream = this;
-
-  if (options === undefined) options = {};
-  if (options.start === undefined) options.start = function _onStart() {};
-  if (options.pull === undefined) options.pull = function _onPull() {};
-  if (options.cancel === undefined) options.cancel = function _onCancel() {};
-
-  if (options.strategy === undefined) options.strategy = new CountQueuingStrategy({ highWaterMark: 0 });
-
-  if (typeof options.start !== 'function') {
-    throw new TypeError('start must be a function or undefined');
-  }
-  if (typeof options.pull !== 'function') {
-    throw new TypeError('pull must be a function or undefined');
-  }
-  if (typeof options.cancel !== 'function') {
-    throw new TypeError('cancel must be a function or undefined');
-  }
-  if (!helpers.typeIsObject(options.strategy)) {
-    throw new TypeError('strategy must be an object');
-  }
-
-  this._state    = 'waiting';
-  this._draining = false;
-  this._pulling  = false;
-  this._started  = false;
-
-  this._onStart  = options.start;
-  this._onPull   = options.pull;
-  this._onCancel = options.cancel;
-
-  this._strategy = options.strategy;
-
-  this._storedError = undefined;
-
-  this._waitPromise = new Promise(function (resolve, reject) {
-    stream[WAIT_RESOLVE] = resolve;
-    stream[WAIT_REJECT] = reject;
-  });
-
-  this._closedPromise = new Promise(function (resolve, reject) {
-    stream[CLOSED_RESOLVE] = resolve;
-    stream[CLOSED_REJECT]  = reject;
-  });
-
-  this._queue = [];
-
-  Object.defineProperty(this, 'state', {
-    configurable : false,
-    enumerable   : true,
-    get          : function () { return stream._state; }
-  });
-
-  Object.defineProperty(this, 'closed', {
-    configurable : false,
-    enumerable   : true,
-    get          : function () { return stream._closedPromise; }
-  });
-
-  this._startedPromise = Promise.resolve(
-    this._onStart(
-      this._enqueue.bind(this),
-      this._close.bind(this),
-      this._error.bind(this)
-    )
-  );
-
-  this._startedPromise.then(function started() { stream._started = true; });
-  this._startedPromise.catch(function error(e) { stream._error(e); });
-}
-
-ReadableStream.prototype._enqueue = function _enqueue(chunk) {
-  if (this._state === 'waiting' || this._state === 'readable') {
-    var chunkSize = this._strategy.size(chunk);
-    helpers.enqueueValueWithSize(this._queue, chunk, chunkSize);
+    this._started = false;
+    this._draining = false;
     this._pulling = false;
-  }
-  if (this._state === 'waiting') {
-    this._state = 'readable';
-    this[WAIT_RESOLVE](undefined);
+    this._state = 'waiting';
 
-    return true;
-  }
-  if (this._state === 'readable') {
-    var queueSize = helpers.getTotalQueueSize(this._queue);
-    return this._strategy.needsMore(queueSize);
-  }
-
-  return false;
-};
-
-ReadableStream.prototype._close = function _close() {
-  if (this._state === 'waiting') {
-    this._state = 'closed';
-    this[WAIT_RESOLVE](undefined);
-    this[CLOSED_RESOLVE](undefined);
-  }
-  else if (this._state === 'readable') {
-    this._draining = true;
-  }
-};
-
-ReadableStream.prototype._error = function _error(error) {
-  var stream = this;
-
-  if (this._state === 'waiting') {
-    this._state = 'errored';
-    this._storedError = error;
-    this[WAIT_REJECT](error);
-    this[CLOSED_REJECT](error);
-  }
-  else if (this._state === 'readable') {
-    this._queue = [];
-    this._state = 'errored';
-    this._storedError = error;
-    // do this instead of using Promise.reject so accessors are correct
-    this._waitPromise = new Promise(function (resolve, reject) {
-      stream[WAIT_RESOLVE] = resolve;
-      stream[WAIT_REJECT]  = reject;
+    this._onCancel = cancel;
+    this._onPull = pull;
+    this._strategy = strategy;
+    this._waitPromise = new Promise((resolve, reject) => {
+      this._waitPromise_resolve = resolve;
+      this._waitPromise_reject = reject;
     });
-    this[WAIT_REJECT](error);
-    this[CLOSED_REJECT](error);
+    this._closedPromise = new Promise((resolve, reject) => {
+      this._closedPromise_resolve = resolve;
+      this._closedPromise_reject = reject;
+    });
+    this._queue = [];
+
+    this._startedPromise = Promise.resolve(
+      start(
+        this._enqueue.bind(this),
+        this._close.bind(this),
+        this._error.bind(this)
+      )
+    );
+
+    this._startedPromise.then(() => this._started = true);
+    this._startedPromise.catch(r => this._error(r));
   }
-};
 
-ReadableStream.prototype._callPull = function _callPull() {
-  var stream = this;
+  get state() {
+    return this._state;
+  }
 
-  if (this._pulling === true) return;
-  this._pulling = true;
+  read() {
+    if (this._state === 'waiting') {
+      throw new TypeError('no chunks available (yet)');
+    }
+    if (this._state === 'closed') {
+      throw new TypeError('stream has already been consumed');
+    }
+    if (this._state === 'errored') {
+      throw this._storedError;
+    }
 
-  if (this._started === false) {
-    this._startedPromise.then(function fulfilled() {
+    assert(this._state === 'readable', `stream state ${this._state} is invalid`);
+    assert(this._queue.length > 0, 'there must be chunks available to read');
+
+    var chunk = helpers.dequeueValue(this._queue);
+
+    if (this._queue.length < 1) {
+      if (this._draining === true) {
+          this._state = 'closed';
+          this._waitPromise = Promise.resolve(undefined);
+          this._waitPromise_resolve = null;
+          this._waitPromise_reject = null;
+          this._closedPromise_resolve(undefined);
+          this._closedPromise_resolve = null;
+          this._closedPromise_reject = null;
+      } else {
+        this._state = 'waiting';
+        this._waitPromise = new Promise((resolve, reject) => {
+          this._waitPromise_resolve = resolve;
+          this._waitPromise_reject = reject;
+        });
+        this._callPull();
+      }
+    }
+
+    return chunk;
+  }
+
+  wait() {
+    if (this._state === 'waiting') {
+      this._callPull();
+    }
+
+    return this._waitPromise;
+  }
+
+  cancel() {
+    if (this._state === 'closed') {
+      return Promise.resolve(undefined);
+    }
+    if (this._state === 'errored') {
+      return Promise.reject(this._storedError);
+    }
+    if (this._state === 'waiting') {
+      this._waitPromise_resolve(undefined);
+    }
+    if (this._state === 'readable') {
+      this._waitPromise = Promise.resolve(undefined);
+      this._waitPromise_resolve = null;
+      this._waitPromise_reject = null;
+    }
+
+    this._queue = [];
+    this._state = 'closed';
+    this._closedPromise_resolve(undefined);
+
+    return helpers.promiseCall(this._onCancel);
+  }
+
+  get closed() {
+    return this._closedPromise;
+  }
+
+  pipeTo(dest, { close = true } = {}) {
+    var source = this;
+    close = Boolean(close);
+
+    fillDest();
+    return dest;
+
+    function fillDest() {
+      if (dest.state === 'writable') {
+        pumpSource();
+      } else if (dest.state === 'waiting') {
+        dest.wait().then(fillDest, cancelSource);
+      } else {
+          // Source has either been closed by someone else, or has errored in the course of
+          // someone else writing. Either way, we're not going to be able to do anything
+          // else useful.
+          cancelSource();
+        }
+      }
+
+      function pumpSource() {
+        if (source.state === 'readable') {
+          dest.write(source.read()).catch(cancelSource);
+          fillDest();
+        } else if (source.state === 'waiting') {
+          source.wait().then(fillDest, abortDest);
+        } else if (source.state === 'closed') {
+          closeDest();
+        } else {
+          abortDest();
+        }
+      }
+
+      function cancelSource(reason) {
+        source.cancel(reason);
+      }
+
+      function closeDest() {
+        if (close) {
+          dest.close();
+        }
+      }
+
+      function abortDest(reason) {
+      // ISSUE: should this be preventable via an option or via `options.close`?
+      dest.abort(reason);
+    }
+  }
+
+  pipeThrough({ input, output }, options) {
+    if (!helpers.typeIsObject(input)) {
+      throw new TypeError('A transform stream must have an input property that is an object.');
+    }
+
+    if (!helpers.typeIsObject(output)) {
+      throw new TypeError('A transform stream must have an output property that is an object.');
+    }
+
+    this.pipeTo(input, options);
+    return output;
+  }
+
+  _enqueue(chunk) {
+    if (this._state === 'waiting' || this._state === 'readable') {
+      var chunkSize = this._strategy.size(chunk);
+      helpers.enqueueValueWithSize(this._queue, chunk, chunkSize);
+      this._pulling = false;
+    }
+    if (this._state === 'waiting') {
+      this._state = 'readable';
+      this._waitPromise_resolve(undefined);
+      return true;
+    }
+    if (this._state === 'readable') {
+      var queueSize = helpers.getTotalQueueSize(this._queue);
+      return this._strategy.needsMore(queueSize);
+    }
+
+    return false;
+  }
+
+  _close() {
+    if (this._state === 'waiting') {
+      this._state = 'closed';
+      this._waitPromise_resolve(undefined);
+      this._closedPromise_resolve(undefined);
+    }
+    else if (this._state === 'readable') {
+      this._draining = true;
+    }
+  }
+
+  _error(error) {
+    if (this._state === 'waiting') {
+      this._state = 'errored';
+      this._storedError = error;
+      this._waitPromise_reject(error);
+      this._closedPromise_reject(error);
+    }
+    else if (this._state === 'readable') {
+      this._queue = [];
+      this._state = 'errored';
+      this._storedError = error;
+
+      this._waitPromise = Promise.reject(error);
+      this._waitPromise_resolve = null;
+      this._waitPromise_reject = null;
+      this._closedPromise_reject(error);
+    }
+  }
+
+  _callPull() {
+    if (this._pulling === true) {
+      return;
+    }
+    this._pulling = true;
+
+    if (this._started === false) {
+      this._startedPromise.then(() => {
+        try {
+          this._onPull(
+            this._enqueue.bind(this),
+            this._close.bind(this),
+            this._error.bind(this)
+          );
+        } catch (pullResultE) {
+          this._error(pullResultE);
+        }
+      });
+    }
+
+    if (this._started === true) {
       try {
-        stream._onPull(
-          stream._enqueue.bind(this),
-          stream._close.bind(this),
-          stream._error.bind(this)
+        this._onPull(
+          this._enqueue.bind(this),
+          this._close.bind(this),
+          this._error.bind(this)
         );
       } catch (pullResultE) {
         this._error(pullResultE);
       }
-    }.bind(this));
-  } else {
-    try {
-      stream._onPull(
-        stream._enqueue.bind(this),
-        stream._close.bind(this),
-        stream._error.bind(this)
-      );
-    } catch (pullResultE) {
-      this._error(pullResultE);
     }
   }
-};
-
-ReadableStream.prototype.wait = function wait() {
-  if (this._state === 'waiting') this._callPull();
-
-  return this._waitPromise;
-};
-
-ReadableStream.prototype.read = function read() {
-  var stream = this;
-
-  if (this._state === 'waiting') {
-    throw new TypeError('no chunks available (yet)');
-  }
-  if (this._state === 'closed') {
-    throw new TypeError('stream has already been consumed');
-  }
-  if (this._state === 'errored') {
-    throw this._storedError;
-  }
-
-  assert(this._state === 'readable', 'stream state ' + this._state + ' is invalid');
-  assert(this._queue.length > 0, 'there must be chunks available to read');
-
-  var chunk = helpers.dequeueValue(this._queue);
-
-  if (this._queue.length < 1) {
-    assert(this._draining === true || this._draining === false,
-           'draining only has two possible states');
-    if (this._draining === true) {
-        this._state = 'closed';
-        this._waitPromise = Promise.resolve(undefined);
-        this[CLOSED_RESOLVE](undefined);
-    }
-    else {
-      this._state = 'waiting';
-      this._waitPromise = new Promise(function (resolve, reject) {
-        stream[WAIT_RESOLVE] = resolve;
-        stream[WAIT_REJECT] = reject;
-      });
-      this._callPull();
-    }
-  }
-
-  return chunk;
-};
-
-ReadableStream.prototype.cancel = function cancel() {
-  if (this._state === 'closed') {
-    return Promise.resolve(undefined);
-  }
-  if (this._state === 'errored') {
-    return Promise.reject(this._storedError);
-  }
-
-  if (this._state === 'waiting') {
-    this[WAIT_RESOLVE](undefined);
-  }
-  if (this._state === 'readable') {
-    this._waitPromise = Promise.resolve(undefined);
-  }
-
-  this._queue = [];
-  this._state = 'closed';
-  this[CLOSED_RESOLVE](undefined);
-
-  return helpers.promiseCall(this._onCancel);
-};
-
-ReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
-  if (options === undefined) options = {};
-
-  var close = true;
-  if (options.close !== undefined) close = options.close;
-  close = Boolean(close);
-
-  var stream = this;
-
-  function closeDest() { if (close) dest.close(); }
-
-  // ISSUE: should this be preventable via an option or via `options.close`?
-  function abortDest(reason) { dest.abort(reason); }
-  function cancelSource(reason) { stream.cancel(reason); }
-
-  function pumpSource() {
-    switch (stream.state) {
-      case 'readable':
-        dest.write(stream.read()).catch(cancelSource);
-        fillDest();
-        break;
-      case 'waiting':
-        stream.wait().then(fillDest, abortDest);
-        break;
-      case 'closed':
-        closeDest();
-        break;
-      default:
-        abortDest();
-    }
-  }
-
-  function fillDest() {
-    switch (dest.state) {
-      case 'writable':
-        pumpSource();
-        break;
-      case 'waiting':
-        dest.wait().then(fillDest, cancelSource);
-        break;
-      default:
-        cancelSource();
-    }
-  }
-  fillDest();
-
-  return dest;
-};
-
-ReadableStream.prototype.pipeThrough = function pipeThrough(transform, options) {
-  if (options === undefined) options = {close : true};
-
-  if (!helpers.typeIsObject(transform)) {
-    throw new TypeError('Transform streams must be objects.');
-  }
-
-  if (!helpers.typeIsObject(transform.input)) {
-    throw new TypeError('A transform stream must have an input property that is an object.');
-  }
-
-  if (!helpers.typeIsObject(transform.output)) {
-    throw new TypeError('A transform stream must have an output property that is an object.');
-  }
-
-  this.pipeTo(transform.input, options);
-  return transform.output;
-};
+}
