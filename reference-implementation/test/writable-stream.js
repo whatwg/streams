@@ -3,92 +3,86 @@ var test = require('tape');
 import WritableStream from '../lib/writable-stream';
 
 function writeArrayToStream(array, writableStream) {
-  array.forEach(function (chunk) { writableStream.write(chunk); });
-
+  array.forEach(chunk => writableStream.write(chunk));
   return writableStream.close();
 }
 
-test('WritableStream is globally defined', function (t) {
+test('WritableStream can be constructed with no arguments', t => {
   t.plan(1);
-
-  var basic;
-  t.doesNotThrow(function () { basic = new WritableStream(); },
-                 'WritableStream is available');
+  t.doesNotThrow(() => new WritableStream(), 'WritableStream constructed with no errors');
 });
 
-test('WritableStream is correctly constructed', function (t) {
+test('WritableStream instances have the correct methods and properties', t => {
   t.plan(7);
 
-  var basic = new WritableStream();
+  var ws = new WritableStream();
 
-  t.equal(typeof basic.write, 'function', 'has write function');
-  t.equal(typeof basic.wait, 'function', 'has wait function');
-  t.equal(typeof basic.abort, 'function', 'has abort function');
-  t.equal(typeof basic.close, 'function', 'has close function');
+  t.equal(typeof ws.write, 'function', 'has a write method');
+  t.equal(typeof ws.wait, 'function', 'has a wait method');
+  t.equal(typeof ws.abort, 'function', 'has an abort method');
+  t.equal(typeof ws.close, 'function', 'has a close method');
 
-  t.equal(basic.state, 'writable', 'stream has default new state');
+  t.equal(ws.state, 'writable', 'state starts out writable');
 
-  t.ok(basic.closed, 'has closed promise');
-  t.ok(basic.closed.then, 'has closed promise that is thenable');
+  t.ok(ws.closed, 'has a closed property');
+  t.ok(ws.closed.then, 'closed property is thenable');
 });
 
-test('WritableStream with simple input, processed asynchronously', function (t) {
-  var storage;
-  var basic = new WritableStream({
-    start : function start() { storage = []; },
+test('WritableStream with simple input, processed asynchronously', t => {
+  t.plan(1);
 
-    write : function write(chunk, done) {
-      setTimeout(function () {
-        storage.push(chunk);
-        done();
-      });
+  var storage;
+  var ws = new WritableStream({
+    start() {
+      storage = [];
     },
 
-    close : function close() {
-      return new Promise(function (resolve) {
-        setTimeout(function () {
-          resolve();
-        });
-      });
+    write(chunk, done) {
+      setTimeout(() => {
+        storage.push(chunk);
+        done();
+      }, 0);
+    },
+
+    close() {
+      return new Promise(resolve => setTimeout(resolve, 0));
     }
   });
 
   var input = [1, 2, 3, 4, 5];
-  writeArrayToStream(input, basic).then(function () {
-    t.deepEqual(storage, input, 'correct data was relayed to underlying sink');
-    t.end();
-  }, function (error) {
-    t.fail(error);
-    t.end();
-  });
+  writeArrayToStream(input, ws).then(
+    () => t.deepEqual(storage, input, 'correct data was relayed to underlying sink'),
+    r => t.fail(r)
+  );
 });
 
-test('WritableStream with simple input, processed synchronously', function (t) {
-  var storage;
-  var basic = new WritableStream({
-    start : function start() { storage = []; },
+test('WritableStream with simple input, processed synchronously', t => {
+  t.plan(1);
 
-    write : function write(chunk, done) {
+  var storage;
+  var ws = new WritableStream({
+    start() {
+      storage = [];
+    },
+
+    write(chunk, done) {
       storage.push(chunk);
       done();
-    }
+    },
   });
 
   var input = [1, 2, 3, 4, 5];
-  writeArrayToStream(input, basic).then(function () {
-    t.deepEqual(storage, input, 'correct data was relayed to underlying sink');
-    t.end();
-  }, function (error) {
-    t.fail(error);
-    t.end();
-  });
+  writeArrayToStream(input, ws).then(
+    () => t.deepEqual(storage, input, 'correct data was relayed to underlying sink'),
+    r => t.fail(r)
+  );
 });
 
-test('WritableStream: stays writable indefinitely if writes are all acknowledged synchronously', function (t) {
+test('WritableStream stays writable indefinitely if writes are all acknowledged synchronously', t => {
   t.plan(10);
 
   var ws = new WritableStream({
-    write : function (chunk, done) {
+    write(chunk, done) {
       t.equal(this.state, 'waiting', 'state is waiting before writing ' + chunk);
       done();
       t.equal(this.state, 'writable', 'state is writable after writing ' + chunk);
@@ -96,18 +90,16 @@ test('WritableStream: stays writable indefinitely if writes are all acknowledged
   });
 
   var input = [1, 2, 3, 4, 5];
-  writeArrayToStream(input, ws).then(function () {
-    t.end();
-  }, function (error) {
-    t.fail(error);
-    t.end();
-  });
+  writeArrayToStream(input, ws).then(
+    () => t.end(),
+    r => t.fail(r)
+  );
 });
 
-test('WritableStream: transitions to waiting after one write that is not synchronously acknowledged', function (t) {
+test('WritableStream transitions to waiting after one write that is not synchronously acknowledged', t => {
   var done;
   var ws = new WritableStream({
-    write : function (chunk, done_) {
+    write(chunk, done_) {
       done = done_;
     }
   });

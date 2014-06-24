@@ -5,207 +5,176 @@ import RandomPushSource from './utils/random-push-source';
 import readableStreamToArray from './utils/readable-stream-to-array';
 import sequentialReadableStream from './utils/sequential-rs';
 
-test('ReadableStream is globally defined', function (t) {
+test('ReadableStream can be constructed with no arguments', t => {
   t.plan(1);
-
-  var basic;
-  t.doesNotThrow(function () { basic = new ReadableStream(); },
-                 'ReadableStream is available');
+  t.doesNotThrow(() => new ReadableStream(), 'ReadableStream constructed with no errors');
 });
 
-test('ReadableStream is constructed correctly', function (t) {
+test('ReadableStream instances have the correct methods and properties', t => {
   t.plan(8);
 
-  var basic = new ReadableStream();
+  var rs = new ReadableStream();
 
-  t.equal(typeof basic.read, 'function', 'stream has a read function');
-  t.equal(typeof basic.wait, 'function', 'stream has a wait function');
-  t.equal(typeof basic.cancel, 'function', 'stream has an cancel function');
-  t.equal(typeof basic.pipeTo, 'function', 'stream has a pipeTo function');
-  t.equal(typeof basic.pipeThrough, 'function', 'stream has a pipeThrough function');
+  t.equal(typeof rs.read, 'function', 'has a read method');
+  t.equal(typeof rs.wait, 'function', 'has a wait method');
+  t.equal(typeof rs.cancel, 'function', 'has an cancel method');
+  t.equal(typeof rs.pipeTo, 'function', 'has a pipeTo method');
+  t.equal(typeof rs.pipeThrough, 'function', 'has a pipeThrough method');
 
-  t.equal(basic.state, 'waiting', 'stream starts out waiting');
+  t.equal(rs.state, 'waiting', 'state starts out waiting');
 
-  t.ok(basic.closed, 'stream has closed promise');
-  t.ok(basic.closed.then, 'stream has closed promise that is thenable');
+  t.ok(rs.closed, 'has a closed property');
+  t.ok(rs.closed.then, 'closed property is thenable');
 });
 
-test('ReadableStream closing puts the stream in a closed state and makes wait and closed return a promise resolved with undefined', function (t) {
+test(`ReadableStream closing puts the stream in a closed state, fulfilling the wait() and closed promises with
+ undefined`, t => {
   t.plan(3);
 
-  var readable = new ReadableStream({
-    start : function (push, close, error) {
+  var rs = new ReadableStream({
+    start(enqueue, close) {
       close();
     }
   });
 
-  t.equal(readable.state, 'closed', 'The stream should be in closed state');
+  t.equal(rs.state, 'closed', 'The stream should be in closed state');
 
-  readable.wait().then(function (v) {
-    t.equal(v, undefined, 'wait should return a promise resolved with undefined');
-  }, function (err) {
-    t.fail('wait should not return a rejected promise');
-  });
+  rs.wait().then(
+    v => t.equal(v, undefined, 'wait() should return a promise resolved with undefined'),
+    () => t.fail('wait() should not return a rejected promise')
+  );
 
-  readable.closed.then(function (v) {
-    t.equal(v, undefined, 'closed should return a promise resolved with undefined');
-  }, function (err) {
-    t.fail('closed should not return a rejected promise');
-  });
+  rs.closed.then(
+    v => t.equal(v, undefined, 'closed should return a promise resolved with undefined'),
+    () => t.fail('closed should not return a rejected promise')
+  );
 });
 
-test('ReadableStream reading a closed stream throws a TypeError', function (t) {
+test('ReadableStream reading a closed stream throws a TypeError', t => {
   t.plan(1);
 
-  var readable = new ReadableStream({
-    start : function (push, close, error) {
+  var rs = new ReadableStream({
+    start(enqueue, close) {
       close();
     }
   });
 
-  t.throws(
-    function () {
-      readable.read();
-    },
-    function (caught) {
-      t.equal(caught.name, 'TypeError', 'A TypeError is thrown');
-    }
-  );
+  t.throws(() => rs.read(), TypeError);
 });
 
-test('ReadableStream reading a stream makes wait and closed return a promise resolved with undefined when the stream is fully drained', function (t) {
+test(`ReadableStream reading a stream makes wait() and closed return a promise resolved with undefined when the stream
+ is fully drained`, t => {
   t.plan(6);
 
-  var readable = new ReadableStream({
-    start : function (push, close, error) {
-      push("test");
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      enqueue('test');
       close();
     }
   });
 
-  t.equal(readable.state, 'readable', 'The stream should be in readable state');
-  t.equal(readable.read(), 'test', 'A test string should be read');
-  t.equal(readable.state, 'closed', 'The stream should be in closed state');
+  t.equal(rs.state, 'readable', 'The stream should be in readable state');
+  t.equal(rs.read(), 'test', 'A test string should be read');
+  t.equal(rs.state, 'closed', 'The stream should be in closed state');
 
-  t.throws(
-    function () {
-      readable.read();
-    },
-    function (caught) {
-      t.equal(caught.name, 'TypeError', 'A TypeError should be thrown');
-    }
+  t.throws(() => rs.read(), TypeError);
+
+  rs.wait().then(
+    v => t.equal(v, undefined, 'wait() should return a promise resolved with undefined'),
+    () => t.fail('wait() should not return a rejected promise')
   );
 
-  readable.wait().then(function (v) {
-    t.equal(v, undefined, 'wait should return a promise resolved with undefined');
-  }, function (err) {
-    t.fail('wait should not return a rejected promise');
-  });
-
-  readable.closed.then(function (v) {
-    t.equal(v, undefined, 'closed should return a promise resolved with undefined');
-  }, function (err) {
-    t.fail('closed should not return a rejected promise');
-  });
+  rs.closed.then(
+    v => t.equal(v, undefined, 'closed should return a promise resolved with undefined'),
+    () => t.fail('closed should not return a rejected promise')
+  );
 });
 
-test('ReadableStream avoid redundant pull call', function (t) {
+test('ReadableStream avoid redundant pull call', t => {
   var pullCount = 0;
-  var readable = new ReadableStream({
-    pull : function pull() {
+  var rs = new ReadableStream({
+    pull() {
       pullCount++;
     },
 
-    cancel : function cancel() {
+    cancel() {
       t.fail('cancel should not be called');
     }
   });
 
-  readable.wait();
-  readable.wait();
-  readable.wait();
+  rs.wait();
+  rs.wait();
+  rs.wait();
 
-  // es6-promise uses setTimeout with delay of 1 to run handlers async. We need
-  // to use longer delay.
-  setTimeout(function () {
+  // Use setTimeout to ensure we run after any promises.
+  setTimeout(() => {
     t.equal(pullCount, 1, 'pull should not be called more than once');
     t.end();
-  }, 150);
+  }, 50);
 });
 
-test('ReadableStream start throws an error', function (t) {
+test('ReadableStream start throws an error', t => {
   t.plan(1);
 
-  var error = new Error("aaaugh!!");
+  var error = new Error('aaaugh!!');
 
   t.throws(
-    function () {
-      new ReadableStream({
-        start : function () {
-          throw error;
-        }
-      })
-    },
-    function (caught) {
-      t.equal(caught, error, 'error was allowed to propagate');
-    }
+    () => new ReadableStream({ start() { throw error; } }),
+    caught => t.equal(caught, error, 'error was allowed to propagate')
   );
 });
 
-test('ReadableStream pull throws an error', function (t) {
-
+test('ReadableStream pull throws an error', t => {
   t.plan(4);
 
-  var error = new Error("aaaugh!!");
-  var readable = new ReadableStream({
-    pull : function () {
-      throw error;
-    }
-  });
+  var error = new Error('aaaugh!!');
+  var rs = new ReadableStream({ pull() { throw error; } });
 
-  readable.wait().then(function () {
+  rs.wait().then(() => {
     t.fail('waiting should fail');
     t.end();
   });
 
-  readable.closed.then(function () {
+  rs.closed.then(() => {
     t.fail('the stream should not close successfully');
     t.end();
   });
 
-  readable.wait().catch(function (caught) {
-    t.equal(readable.state, 'errored', 'state is "errored" after waiting');
+  rs.wait().catch(caught => {
+    t.equal(rs.state, 'errored', 'state is "errored" after waiting');
     t.equal(caught, error, 'error was passed through as rejection of wait() call');
   });
 
-  readable.closed.catch(function (caught) {
-    t.equal(readable.state, 'errored', 'state is "errored" in close catch');
-    t.equal(caught, error, 'error was passed through as rejection of closed property');
+  rs.closed.catch(caught => {
+    t.equal(rs.state, 'errored', 'state is "errored" in closed catch');
+    t.equal(caught, error, 'error was passed through as rejection reason of closed property');
   });
 });
 
-test('ReadableStream adapting a push source', function (t) {
+test('ReadableStream adapting a push source', t => {
   var pullChecked = false;
   var randomSource = new RandomPushSource(8);
 
-  var basic = new ReadableStream({
-    start : function start(push, close, error) {
-      t.equal(typeof push,  'function', 'push is a function in start');
+  var rs = new ReadableStream({
+    start(enqueue, close, error) {
+      t.equal(typeof enqueue,  'function', 'enqueue is a function in start');
       t.equal(typeof close, 'function', 'close is a function in start');
       t.equal(typeof error, 'function', 'error is a function in start');
 
-      randomSource.ondata = function (chunk) {
-        if (!push(chunk)) randomSource.readStop();
+      randomSource.ondata = chunk => {
+        if (!enqueue(chunk)) {
+          randomSource.readStop();
+        }
       };
 
       randomSource.onend = close;
       randomSource.onerror = error;
     },
 
-    pull : function pull(push, close, error) {
+    pull(enqueue, close, error) {
       if (!pullChecked) {
         pullChecked = true;
-        t.equal(typeof push, 'function', 'push is a function in pull');
+        t.equal(typeof enqueue, 'function', 'enqueue is a function in pull');
         t.equal(typeof close, 'function', 'close is a function in pull');
         t.equal(typeof error, 'function', 'error is a function in pull');
       }
@@ -214,8 +183,8 @@ test('ReadableStream adapting a push source', function (t) {
     }
   });
 
-  readableStreamToArray(basic).then(function (chunks) {
-    t.equal(basic.state, 'closed', 'should be closed');
+  readableStreamToArray(rs).then(chunks => {
+    t.equal(rs.state, 'closed', 'should be closed');
     t.equal(chunks.length, 8, 'got the expected 8 chunks');
     for (var i = 0; i < chunks.length; i++) {
       t.equal(chunks[i].length, 128, 'each chunk has 128 bytes');
@@ -225,97 +194,95 @@ test('ReadableStream adapting a push source', function (t) {
   });
 });
 
-test('ReadableStream adapting a sync pull source', function (t) {
-  var stream = sequentialReadableStream(10);
+test('ReadableStream adapting a sync pull source', t => {
+  var rs = sequentialReadableStream(10);
 
-  readableStreamToArray(stream).then(function (chunks) {
-    t.equal(stream.state, 'closed', 'stream should be closed');
-    t.equal(stream.source.closed, true, 'source should be closed');
+  readableStreamToArray(rs).then(chunks => {
+    t.equal(rs.state, 'closed', 'stream should be closed');
+    t.equal(rs.source.closed, true, 'source should be closed');
     t.deepEqual(chunks, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'got the expected 10 chunks');
 
     t.end();
   });
 });
 
-test('ReadableStream adapting an async pull source', function (t) {
-  var stream = sequentialReadableStream(10, { async: true });
+test('ReadableStream adapting an async pull source', t => {
+  var rs = sequentialReadableStream(10, { async: true });
 
-  readableStreamToArray(stream).then(function (chunks) {
-    t.equal(stream.state, 'closed', 'stream should be closed');
-    t.equal(stream.source.closed, true, 'source should be closed');
+  readableStreamToArray(rs).then(chunks => {
+    t.equal(rs.state, 'closed', 'stream should be closed');
+    t.equal(rs.source.closed, true, 'source should be closed');
     t.deepEqual(chunks, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'got the expected 10 chunks');
 
     t.end();
   });
 });
 
-test('ReadableStream canceling an infinite stream', function (t) {
-  /*global ReadableStream */
+test('ReadableStream canceling an infinite stream', t => {
   var randomSource = new RandomPushSource();
 
   var cancelationFinished = false;
-  var readable = new ReadableStream({
-    start : function start(push, close, error) {
-      randomSource.ondata  = push;
-      randomSource.onend   = close;
+  var rs = new ReadableStream({
+    start(enqueue, close, error) {
+      randomSource.ondata = enqueue;
+      randomSource.onend = close;
       randomSource.onerror = error;
     },
 
-    pull : function pull() { randomSource.readStart(); },
+    pull() {
+      randomSource.readStart();
+    },
 
-    cancel : function cancel() {
+    cancel() {
       randomSource.readStop();
       randomSource.onend();
 
-      return new Promise(function (resolve) {
-        setTimeout(function () {
-          cancelationFinished = true;
-          resolve();
-        }, 50);
-      });
+      return new Promise(resolve => setTimeout(() => {
+        cancelationFinished = true;
+        resolve();
+      }, 50));
     }
   });
 
-  readableStreamToArray(readable).then(
-    function (storage) {
-      t.equal(readable.state, 'closed', 'readable should be closed');
+  readableStreamToArray(rs).then(
+    storage => {
+      t.equal(rs.state, 'closed', 'stream should be closed');
       t.equal(cancelationFinished, false, 'it did not wait for the cancellation process to finish before closing');
       t.ok(storage.length > 0, 'should have gotten some data written through the pipe');
       for (var i = 0; i < storage.length; i++) {
         t.equal(storage[i].length, 128, 'each chunk has 128 bytes');
       }
     },
-    function (err) {
-      t.ifError(err);
+    () => {
+      t.fail('the stream should be successfully read to the end');
       t.end();
     }
-  )
+  );
 
-  setTimeout(function () {
-    readable.cancel().then(function () {
+  setTimeout(() => {
+    rs.cancel().then(() => {
       t.equal(cancelationFinished, true, 'it returns a promise that waits for the cancellation to finish');
       t.end();
     });
   }, 150);
 });
 
-test('ReadableStream is able to pull data repeatedly if it\'s available synchronously', function (t) {
-
+test('ReadableStream is able to pull data repeatedly if it\'s available synchronously', t => {
   var i = 0;
-  var readable = new ReadableStream({
-    pull : function pull(push, close) {
+  var rs = new ReadableStream({
+    pull(enqueue, close) {
       if (++i <= 10) {
-        push(i);
+        enqueue(i);
       } else {
         close();
       }
     }
   });
 
-  readable.wait().then(function () {
+  rs.wait().then(() => {
     var data = [];
-    while (readable.state === 'readable') {
-      data.push(readable.read());
+    while (rs.state === 'readable') {
+      data.push(rs.read());
     }
 
     t.deepEqual(data, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
@@ -323,172 +290,166 @@ test('ReadableStream is able to pull data repeatedly if it\'s available synchron
   });
 });
 
-test('ReadableStream wait does not error when no more data is available', function (t) {
+test('ReadableStream wait() does not error when no more data is available', t => {
   // https://github.com/whatwg/streams/issues/80
 
   t.plan(1);
 
-  var stream = sequentialReadableStream(5, { async: true });
-
+  var rs = sequentialReadableStream(5, { async: true });
   var result = [];
-  function pump() {
-    while (stream.state === 'readable') {
-      result.push(stream.read());
-    }
-
-    if (stream.state === 'closed') {
-      t.deepEqual(result, [1, 2, 3, 4, 5], 'got the expected 5 chunks');
-    } else {
-      stream.wait().then(pump, function (err) {
-        t.ifError(err);
-      });
-    }
-  }
 
   pump();
+
+  function pump() {
+    while (rs.state === 'readable') {
+      result.push(rs.read());
+    }
+
+    if (rs.state === 'closed') {
+      t.deepEqual(result, [1, 2, 3, 4, 5], 'got the expected 5 chunks');
+    } else {
+      rs.wait().then(pump, r => t.ifError(r));
+    }
+  }
 });
 
-test('ReadableStream should be able to get data sequentially from an asynchronous stream', function (t) {
+test('ReadableStream should be able to get data sequentially from an asynchronous stream', t => {
   // https://github.com/whatwg/streams/issues/80
 
   t.plan(4);
 
-  var stream = sequentialReadableStream(3, { async: true });
+  var rs = sequentialReadableStream(3, { async: true });
 
   var result = [];
   var EOF = Object.create(null);
 
-  function getNext() {
-    if (stream.state === 'closed') {
-      return Promise.resolve(EOF);
-    }
-
-    return stream.wait().then(function () {
-      if (stream.state === 'readable') {
-        return stream.read();
-      } else if (stream.state === 'closed') {
-        return EOF;
-      }
-    });
-  }
-
-  getNext().then(function (v) {
+  getNext().then(v => {
     t.equal(v, 1, 'first chunk should be 1');
-    return getNext().then(function (v) {
+    return getNext().then(v => {
       t.equal(v, 2, 'second chunk should be 2');
-      return getNext().then(function (v) {
+      return getNext().then(v => {
         t.equal(v, 3, 'third chunk should be 3');
-        return getNext().then(function (v) {
+        return getNext().then(v => {
           t.equal(v, EOF, 'fourth result should be EOF');
         });
       });
     });
   })
-  .catch(t.ifError.bind(t));
+  .catch(r => t.ifError(r));
+
+  function getNext() {
+    if (rs.state === 'closed') {
+      return Promise.resolve(EOF);
+    }
+
+    return rs.wait().then(() => {
+      if (rs.state === 'readable') {
+        return rs.read();
+      } else if (rs.state === 'closed') {
+        return EOF;
+      }
+    });
+  }
 });
 
-test('ReadableStream cancellation puts the stream in a closed state (no data pulled yet)', function (t) {
-  var stream = sequentialReadableStream(5);
+test('ReadableStream cancellation puts the stream in a closed state (no chunks pulled yet)', t => {
+  var rs = sequentialReadableStream(5);
 
   t.plan(5);
 
-  stream.closed.then(function () {
-    t.assert(true, 'closed promise vended before the cancellation should fulfill');
-  }, function (err) {
-    t.fail('closed promise vended before the cancellation should not be rejected');
-  });
-  stream.wait().then(function () {
-    t.assert(true, 'wait promise vended before the cancellation should fulfill');
-  }, function (err) {
-    t.fail('wait promise vended before the cancellation should not be rejected');
-  });
+  rs.closed.then(
+    () => t.assert(true, 'closed promise vended before the cancellation should fulfill'),
+    () => t.fail('closed promise vended before the cancellation should not be rejected')
+  );
 
-  stream.cancel();
+  rs.wait().then(
+    () => t.assert(true, 'wait() promise vended before the cancellation should fulfill'),
+    () => t.fail('wait() promise vended before the cancellation should not be rejected')
+  );
 
-  t.equal(stream.state, 'closed', 'state should be closed');
+  rs.cancel();
 
-  stream.closed.then(function () {
-    t.assert(true, 'closed promise vended after the cancellation should fulfill');
-  }, function (err) {
-    t.fail('closed promise vended after the cancellation should not be rejected');
-  });
-  stream.wait().then(function () {
-    t.assert(true, 'wait promise vended after the cancellation should fulfill');
-  }, function (err) {
-    t.fail('wait promise vended after the cancellation should not be rejected');
-  });
+  t.equal(rs.state, 'closed', 'state should be closed');
+
+  rs.closed.then(
+    () => t.assert(true, 'closed promise vended after the cancellation should fulfill'),
+    () => t.fail('closed promise vended after the cancellation should not be rejected')
+  );
+  rs.wait().then(
+    () => t.assert(true, 'wait promise vended after the cancellation should fulfill'),
+    () => t.fail('wait promise vended after the cancellation should not be rejected')
+  );
 });
 
-test('ReadableStream cancellation puts the stream in a closed state (after waiting for data)', function (t) {
-  var stream = sequentialReadableStream(5);
+test('ReadableStream cancellation puts the stream in a closed state (after waiting for chunks)', t => {
+  var rs = sequentialReadableStream(5);
 
   t.plan(5);
 
-  stream.wait().then(function () {
-    stream.closed.then(function () {
-      t.assert(true, 'closed promise vended before the cancellation should fulfill');
-    }, function (err) {
-      t.fail('closed promise vended before the cancellation should not be rejected');
-    });
-    stream.wait().then(function () {
-      t.assert(true, 'wait promise vended before the cancellation should fulfill');
-    }, function (err) {
-      t.fail('wait promise vended before the cancellation should not be rejected');
-    });
+  rs.wait().then(
+    () => {
+      rs.closed.then(
+        () => t.assert(true, 'closed promise vended before the cancellation should fulfill'),
+        () => t.fail('closed promise vended before the cancellation should not be rejected')
+      );
 
-    stream.cancel();
+      rs.wait().then(
+        () => t.assert(true, 'wait() promise vended before the cancellation should fulfill'),
+        () => t.fail('wait() promise vended before the cancellation should not be rejected')
+      );
 
-    t.equal(stream.state, 'closed', 'state should be closed');
+      rs.cancel();
 
-    stream.closed.then(function () {
-      t.assert(true, 'closed promise vended after the cancellation should fulfill');
-    }, function (err) {
-      t.fail('closed promise vended after the cancellation should not be rejected');
-    });
-    stream.wait().then(function () {
-      t.assert(true, 'wait promise vended after the cancellation should fulfill');
-    }, function (err) {
-      t.fail('wait promise vended after the cancellation should not be rejected');
-    });
-  }, t.ifError.bind(t));
+      t.equal(rs.state, 'closed', 'state should be closed');
+
+      rs.closed.then(
+        () => t.assert(true, 'closed promise vended after the cancellation should fulfill'),
+        () => t.fail('closed promise vended after the cancellation should not be rejected')
+      );
+      rs.wait().then(
+        () => t.assert(true, 'wait promise vended after the cancellation should fulfill'),
+        () => t.fail('wait promise vended after the cancellation should not be rejected')
+      );
+    },
+    r => t.ifError(r)
+  );
 });
 
-test('ReadableStream returns `true` for the first `push` call; `false` thereafter, if nobody reads', function (t) {
+test('ReadableStream returns `true` for the first `enqueue` call; `false` thereafter, if nobody reads', t => {
   t.plan(5);
 
-  var pushes = 0;
-  var stream = new ReadableStream({
-    start : function (push) {
-      t.equal(push('hi'), true);
-      t.equal(push('hey'), false);
-      t.equal(push('whee'), false);
-      t.equal(push('yo'), false);
-      t.equal(push('sup'), false);
+  new ReadableStream({
+    start(enqueue) {
+      t.equal(enqueue('hi'), true);
+      t.equal(enqueue('hey'), false);
+      t.equal(enqueue('whee'), false);
+      t.equal(enqueue('yo'), false);
+      t.equal(enqueue('sup'), false);
     }
   });
 });
 
-test('ReadableStream continues returning `true` from `push` if the data is read out of it', function (t) {
+test('ReadableStream continues returning `true` from `enqueue` if the data is read out of it in time', t => {
   t.plan(12);
 
-  var stream = new ReadableStream({
-    start : function (push) {
-      // Delay a bit so that the stream is successfully constructed and thus the `stream` variable references something.
-      setTimeout(function () {
-        t.equal(push('hi'), true);
-        t.equal(stream.state, 'readable');
-        t.equal(stream.read(), 'hi');
-        t.equal(stream.state, 'waiting');
+  var rs = new ReadableStream({
+    start(enqueue) {
+      // Delay a bit so that the stream is successfully constructed and thus the `rs` variable references something.
+      setTimeout(() => {
+        t.equal(enqueue('hi'), true);
+        t.equal(rs.state, 'readable');
+        t.equal(rs.read(), 'hi');
+        t.equal(rs.state, 'waiting');
 
-        t.equal(push('hey'), true);
-        t.equal(stream.state, 'readable');
-        t.equal(stream.read(), 'hey');
-        t.equal(stream.state, 'waiting');
+        t.equal(enqueue('hey'), true);
+        t.equal(rs.state, 'readable');
+        t.equal(rs.read(), 'hey');
+        t.equal(rs.state, 'waiting');
 
-        t.equal(push('whee'), true);
-        t.equal(stream.state, 'readable');
-        t.equal(stream.read(), 'whee');
-        t.equal(stream.state, 'waiting');
+        t.equal(enqueue('whee'), true);
+        t.equal(rs.state, 'readable');
+        t.equal(rs.read(), 'whee');
+        t.equal(rs.state, 'waiting');
       }, 0);
     }
   });
