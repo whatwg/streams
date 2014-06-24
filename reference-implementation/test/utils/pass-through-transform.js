@@ -5,24 +5,24 @@ import WritableStream from '../../lib/writable-stream';
 // handle aborts/cancels/errors correctly.
 
 export default function makeSimpleTransformStream() {
-  var pushToOutput;
+  var enqueueInOutput;
   var closeOutput;
 
   return {
-    input : new WritableStream({
-      write : function (data, done, error) {
-        pushToOutput(data);
+    input: new WritableStream({
+      write(chunk, done, error) {
+        enqueueInOutput(chunk);
         done();
       },
 
-      close : function () {
+      close() {
         closeOutput();
       }
     }),
 
-    output : new ReadableStream({
-      start : function (push, close) {
-        pushToOutput = push;
+    output: new ReadableStream({
+      start(enqueue, close) {
+        enqueueInOutput = enqueue;
         closeOutput = close;
       }
     })

@@ -1,40 +1,37 @@
-export default function SequentialPullSource(limit, options) {
-  this.current = 0;
-  this.limit   = limit;
-  this.opened  = false;
-  this.closed  = false;
+export default class SequentialPullSource {
+  constructor(limit, { async = false } = {}) {
+    this.current = 0;
+    this.limit = limit;
+    this.opened = false;
+    this.closed = false;
 
-  var that = this;
-  this._exec = function (func) { func.call(that); };
-  if (options && options.async) {
-    this._exec = function (func) {
-      setImmediate(function () {
-        func.call(that);
-      });
-    };
-  }
-}
-
-SequentialPullSource.prototype.open = function (cb) {
-  this._exec(function () {
-    this.opened = true;
-    cb();
-  });
-};
-
-SequentialPullSource.prototype.read = function (cb) {
-  this._exec(function () {
-    if (++this.current <= this.limit) {
-      cb(null, false, this.current);
-    } else {
-      cb(null, true, null);
+    this._exec = f => f();
+    if (async) {
+      this._exec = f => setImmediate(f);
     }
-  });
-};
+  }
 
-SequentialPullSource.prototype.close = function (cb) {
-  this._exec(function () {
-    this.closed = true;
-    cb();
-  });
+  open(cb) {
+    this._exec(() => {
+      this.opened = true
+      cb();
+    });
+  }
+
+  read(cb) {
+    this._exec(() => {
+      if (++this.current <= this.limit) {
+        cb(null, false, this.current);
+      } else {
+        cb(null, true, null);
+      }
+    });
+  }
+
+  close(cb) {
+    this._exec(() => {
+      this.closed = true;
+      cb();
+    });
+  }
 }

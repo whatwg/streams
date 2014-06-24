@@ -5,26 +5,30 @@ export default function sequentialReadableStream(limit, options) {
   var sequentialSource = new SequentialPullSource(limit, options);
 
   var stream = new ReadableStream({
-    start : function () {
-      return new Promise(function (resolve, reject) {
-        sequentialSource.open(function (err) {
-          if (err) reject(err);
+    start() {
+      return new Promise((resolve, reject) => {
+        sequentialSource.open(err => {
+          if (err) {
+            reject(err);
+          }
           resolve();
         });
       });
     },
 
-    pull : function (push, finish, error) {
-      sequentialSource.read(function (err, done, data) {
+    pull(enqueue, finish, error) {
+      sequentialSource.read((err, done, chunk) => {
         if (err) {
           error(err);
         } else if (done) {
-          sequentialSource.close(function (err) {
-            if (err) error(err);
+          sequentialSource.close(err => {
+            if (err) {
+              error(err);
+            }
             finish();
           });
         } else {
-          push(data);
+          enqueue(chunk);
         }
       });
     }
