@@ -1,9 +1,9 @@
 var test = require('tape');
 
 import ReadableStream from '../lib/readable-stream';
-import RandomPushSource from './lib/random-push-source';
-import readableStreamToArray from './lib/readable-stream-to-array';
-import sequentialReadableStream from './lib/sequential-rs';
+import RandomPushSource from './utils/random-push-source';
+import readableStreamToArray from './utils/readable-stream-to-array';
+import sequentialReadableStream from './utils/sequential-rs';
 
 test('ReadableStream is globally defined', function (t) {
   t.plan(1);

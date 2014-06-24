@@ -1,8 +1,8 @@
 var test = require('tape');
 
-import readableStreamToArray from './lib/readable-stream-to-array';
-import sequentialReadableStream from './lib/sequential-rs';
-import passThroughTransform from './lib/pass-through-transform';
+import readableStreamToArray from './utils/readable-stream-to-array';
+import sequentialReadableStream from './utils/sequential-rs';
+import passThroughTransform from './utils/pass-through-transform';
 
 test('ReadableStream pipeTo should complete successfully upon asynchronous finish', function (t) {
   // https://github.com/whatwg/streams/issues/80
