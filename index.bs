@@ -19,12 +19,6 @@
   !Participate: Send feedback to <a href="http://www.whatwg.org/mailing-list">whatwg@whatwg.org</a> (<a href="http://www.whatwg.org/mailing-list#specs">archives</a>)
   !Participate: <a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
 </pre>
-<style>
-  /* Compensate for Bikeshed omitting spaces, unlike Anolis which other specs use */
-  .toc .secno::after {
-    content: ' ';
-  }
-</style>
 
 
 <h2 id="status" class="no-num no-toc">Status</h2>
