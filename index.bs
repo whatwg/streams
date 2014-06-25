@@ -6,7 +6,7 @@
   Level: 1
   Status: DREAM
   ED: https://whatwg.github.io/streams
-  Editor: Domenic Denicola, <a href="https://google.com/">Google</a>, http://domenic.me, domenic@domenicdenicola.com
+  Editor: Domenic Denicola, <a href="https://www.google.com/">Google</a>, http://domenic.me, domenic@domenicdenicola.com
   Abstract: This specification provides APIs for creating, composing, and consuming streams of data.
   Abstract: These streams are designed to map efficiently to low-level I/O primitives, and allow easy
   Abstract: composition with built-in backpressure and queuing. On top of streams, the web platform can
@@ -15,15 +15,14 @@
   Abstract: of the web platform.
   Logo: https://resources.whatwg.org/logo-streams.svg
   !Version History: <a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a>
-  !Participate: Send feedback to <a href="http://www.whatwg.org/mailing-list">whatwg@whatwg.org</a> (<a href="http://www.whatwg.org/mailing-list#specs">archives</a>) or <a href="https://github.com/whatwg/streams/issues/new">file a bug</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open bugs</a>)
+  !Participate: <a href="https://github.com/whatwg/streams/issues/new">File an issue</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open issues</a>)
+  !Participate: Send feedback to <a href="http://www.whatwg.org/mailing-list">whatwg@whatwg.org</a> (<a href="http://www.whatwg.org/mailing-list#specs">archives</a>)
   !Participate: <a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
 </pre>
 <style>
-  span.minor {
-    letter-spacing: 0;
-    color: black;
-    font-size: 0.8em;
-    font-weight: normal;
+  /* Compensate for Bikeshed omitting spaces, unlike Anolis which other specs use */
+  .toc .secno::after {
+    content: ' ';
   }
 </style>
 
@@ -501,6 +500,7 @@ implementation is under the covers, since they all provide the appropriate prope
 <h2 id="acks" class="no-num">Acknowledgments</h2>
 
 The editor would like to thank
+Tab Atkins,
 Bert Belder,
 Marcos Caceres,
 Tim Caswell,

@@ -18,7 +18,7 @@ class ReadableStream {
         function start = () => {},
         function pull = () => {},
         function cancel = () => {},
-        { function size = () => 0, function needsMore = () => false } = {}
+        object strategy = new CountQueuingStrategy({ highWaterMark: 0 }),
     })
 
     // Reading data from the underlying source
@@ -48,8 +48,7 @@ class ReadableStream {
     [[startedPromise]]
     [[onCancel]]
     [[onPull]]
-    [[strategySize]]
-    [[strategyNeedsMore]]
+    [[strategy]]
 
     // Internal methods for use by the underlying source
     [[enqueue]](any chunk)
@@ -70,7 +69,7 @@ enum ReadableStreamState {
 
 #### Properties of the ReadableStream prototype
 
-##### constructor({ start, pull, cancel, { size, needsMore } })
+##### constructor({ start, pull, cancel, strategy })
 
 The constructor is passed several functions, all optional:
 
@@ -82,8 +81,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 1. Set `this.[[onCancel]]` to `cancel`.
 1. Set `this.[[onPull]]` to `pull`.
-1. Set `this.[[strategySize]]` to `size`.
-1. Set `this.[[strategyNeedsMore]]` to `needsMore`.
+1. Set `this.[[strategy]]` to `strategy`.
 1. Let `this.[[waitPromise]]` be a new promise.
 1. Let `this.[[closedPromise]]` be a new promise.
 1. Let `this.[[queue]]` be a new empty List.
@@ -203,7 +201,7 @@ ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
 ##### `[[enqueue]](chunk)`
 
 1. If `this.[[state]]` is `"waiting"` or `"readable"`,
-    1. Let _chunkSize_ be the result of `this.[[strategySize]](chunk)`.
+    1. Let _chunkSize_ be Invoke(`this.[[strategy]]`, `"size"`, (_chunk_)).
     1. ReturnIfAbrupt(_chunkSize_).
     1. EnqueueValueWithSize(`this.[[queue]]`, `chunk`, _chunkSize_).
     1. Set `this.[[pulling]]` to **false**.
@@ -213,7 +211,7 @@ ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
     1. Return **true**.
 1. If `this.[[state]]` is `"readable"`,
     1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
-    1. Return the result of `this.[[strategyNeedsMore]](queueSize)`.
+    1. Return Invoke(`this.[[strategy]]`, `"needsMore"`, (_queueSize_)).
 1. Return **false**.
 
 ##### `[[close]]()`
@@ -261,7 +259,8 @@ class WritableStream {
         function start = () => {},
         function write = () => {},
         function close = () => {},
-        function abort = close
+        function abort = close,
+        object strategy = new CountQueuingStrategy({ highWaterMark: 0 })
     })
 
     // Writing data to the underlying sink
@@ -294,8 +293,7 @@ class WritableStream {
     [[onWrite]]
     [[onClose]]
     [[onAbort]]
-    [[strategySize]]
-    [[strategyNeedsMore]]
+    [[strategy]]
 }
 
 enum WritableStreamState {
@@ -309,7 +307,7 @@ enum WritableStreamState {
 
 #### Properties of the WritableStream prototype
 
-##### constructor({ start, write, close, abort, { size, needsMore } })
+##### constructor({ start, write, close, abort, strategy })
 
 The constructor is passed several functions, all optional:
 
@@ -323,8 +321,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Set `this.[[onWrite]]` to `write`.
 1. Set `this.[[onClose]]` to `close`.
 1. Set `this.[[onAbort]]` to `abort`.
-1. Set `this.[[strategySize]]` to `size`.
-1. Set `this.[[strategyNeedsMore]]` to `needsMore`.
+1. Set `this.[[strategy]]` to `strategy`.
 1. Let `this.[[writablePromise]]` be a new promise.
 1. Let `this.[[closedPromise]]` be a new promise.
 1. Let `this.[[queue]]` be a new empty List.
@@ -343,7 +340,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 ##### write(chunk)
 
 1. If `this.[[state]]` is `"waiting"` or `"writable"`,
-    1. Let _chunkSize_ be the result of `this.[[strategySize]](chunk)`.
+    1. Let _chunkSize_ be Invoke(`this.[[strategy]]`, `"size"`, (_chunk_)).
     1. ReturnIfAbrupt(_chunkSize_).
     1. Let `promise` be a new promise.
     1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"chunk"`, [[promise]]: `promise`, [[chunk]]: `chunk`}, _chunkSize_).
@@ -429,7 +426,7 @@ Note: the peeking-then-dequeuing dance is necessary so that during the call to t
     1. Resolve `this.[[writablePromise]]` with **undefined**.
     1. Return.
 1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
-1. Let _needsMore_ be the result of calling `this.[[strategyNeedsMore]](queueSize)`.
+1. Let _needsMore_ be Invoke(`this.[[strategy]]`, `"needsMore"`, (_queueSize_)).
 1. ReturnIfAbrupt(_needsMore_).
 1. Let _needsMore_ be ToBoolean(_needsMore_).
 1. ReturnIfAbrupt(_needsMore_).

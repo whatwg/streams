@@ -2,7 +2,8 @@
 
 var assert = require('assert');
 var Promise = require('es6-promise').Promise;
-var helpers = require('./helpers');
+var helpers = require('./helpers.js');
+var CountQueuingStrategy = require('./count-queuing-strategy.js');
 
 /*
  *
@@ -25,9 +26,7 @@ function WritableStream(options) {
   if (options.close === undefined) options.close = function _onClose() {};
   if (options.abort === undefined) options.abort = function _onAbort() {};
 
-  if (options.strategy === undefined) options.strategy = {};
-  if (options.strategy.size === undefined) options.strategy.size = function () { return 0; };
-  if (options.strategy.needsMore === undefined) options.strategy.needsMore = function () { return false; };
+  if (options.strategy === undefined) options.strategy = new CountQueuingStrategy({ highWaterMark: 0 });
 
   if (typeof options.start !== 'function') {
     throw new TypeError('start must be a function or undefined');
@@ -41,11 +40,8 @@ function WritableStream(options) {
   if (typeof options.abort !== 'function') {
     throw new TypeError('abort must be a function or undefined');
   }
-  if (typeof options.strategy.size !== 'function') {
-    throw new TypeError('strategy.size must be a function or undefined');
-  }
-  if (typeof options.strategy.needsMore !== 'function') {
-    throw new TypeError('strategy.needsMore must be a function or undefined');
+  if (!helpers.typeIsObject(options.strategy)) {
+    throw new TypeError('strategy must be an object');
   }
 
   this._state = 'writable';
@@ -55,8 +51,7 @@ function WritableStream(options) {
   this._onClose = options.close;
   this._onAbort = options.abort;
 
-  this._strategySize      = options.strategy.size.bind(options.strategy);
-  this._strategyNeedsMore = options.strategy.needsMore.bind(options.strategy);
+  this._strategy = options.strategy;
 
   this._storedError = undefined;
 
@@ -161,7 +156,7 @@ WritableStream.prototype._syncStateWithQueue = function _syncStateWithQueue() {
   }
 
   var queueSize = helpers.getTotalQueueSize(this._queue);
-  var needsMore = Boolean(this._strategyNeedsMore(queueSize));
+  var needsMore = Boolean(this._strategy.needsMore(queueSize));
 
   if (needsMore === true && this._state === 'waiting') {
     this._state = 'writable';
@@ -201,7 +196,7 @@ WritableStream.prototype.write = function write(chunk) {
   switch (this._state) {
     case 'waiting':
     case 'writable':
-      var chunkSize = this._strategySize(chunk);
+      var chunkSize = this._strategy.size(chunk);
 
       var resolver, rejecter;
       var promise = new Promise(function (resolve, reject) {

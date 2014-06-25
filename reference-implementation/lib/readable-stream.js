@@ -2,7 +2,8 @@
 
 var assert = require('assert');
 var Promise = require('es6-promise').Promise;
-var helpers = require('./helpers');
+var helpers = require('./helpers.js');
+var CountQueuingStrategy = require('./count-queuing-strategy.js');
 
 /*
  *
@@ -23,9 +24,7 @@ function ReadableStream(options) {
   if (options.pull === undefined) options.pull = function _onPull() {};
   if (options.cancel === undefined) options.cancel = function _onCancel() {};
 
-  if (options.strategy === undefined) options.strategy = {};
-  if (options.strategy.size === undefined) options.strategy.size = function () { return 0; };
-  if (options.strategy.needsMore === undefined) options.strategy.needsMore = function () { return false; };
+  if (options.strategy === undefined) options.strategy = new CountQueuingStrategy({ highWaterMark: 0 });
 
   if (typeof options.start !== 'function') {
     throw new TypeError('start must be a function or undefined');
@@ -36,11 +35,8 @@ function ReadableStream(options) {
   if (typeof options.cancel !== 'function') {
     throw new TypeError('cancel must be a function or undefined');
   }
-  if (typeof options.strategy.size !== 'function') {
-    throw new TypeError('strategy.size must be a function or undefined');
-  }
-  if (typeof options.strategy.needsMore !== 'function') {
-    throw new TypeError('strategy.needsMore must be a function or undefined');
+  if (!helpers.typeIsObject(options.strategy)) {
+    throw new TypeError('strategy must be an object');
   }
 
   this._state    = 'waiting';
@@ -52,8 +48,7 @@ function ReadableStream(options) {
   this._onPull   = options.pull;
   this._onCancel = options.cancel;
 
-  this._strategySize      = options.strategy.size.bind(options.strategy);
-  this._strategyNeedsMore = options.strategy.needsMore.bind(options.strategy);
+  this._strategy = options.strategy;
 
   this._storedError = undefined;
 
@@ -95,7 +90,7 @@ function ReadableStream(options) {
 
 ReadableStream.prototype._enqueue = function _enqueue(chunk) {
   if (this._state === 'waiting' || this._state === 'readable') {
-    var chunkSize = this._strategySize(chunk);
+    var chunkSize = this._strategy.size(chunk);
     helpers.enqueueValueWithSize(this._queue, chunk, chunkSize);
     this._pulling = false;
   }
@@ -107,7 +102,7 @@ ReadableStream.prototype._enqueue = function _enqueue(chunk) {
   }
   if (this._state === 'readable') {
     var queueSize = helpers.getTotalQueueSize(this._queue);
-    return this._strategyNeedsMore(queueSize);
+    return this._strategy.needsMore(queueSize);
   }
 
   return false;
@@ -297,24 +292,20 @@ ReadableStream.prototype.pipeTo = function pipeTo(dest, options) {
 ReadableStream.prototype.pipeThrough = function pipeThrough(transform, options) {
   if (options === undefined) options = {close : true};
 
-  if (!TypeIsObject(transform)) {
+  if (!helpers.typeIsObject(transform)) {
     throw new TypeError('Transform streams must be objects.');
   }
 
-  if (!TypeIsObject(transform.input)) {
+  if (!helpers.typeIsObject(transform.input)) {
     throw new TypeError('A transform stream must have an input property that is an object.');
   }
 
-  if (!TypeIsObject(transform.output)) {
+  if (!helpers.typeIsObject(transform.output)) {
     throw new TypeError('A transform stream must have an output property that is an object.');
   }
 
   this.pipeTo(transform.input, options);
   return transform.output;
 };
-
-function TypeIsObject(x) {
-  return (typeof x === 'object' && x !== null) || typeof x === 'function';
-}
 
 module.exports = ReadableStream;
