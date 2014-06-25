@@ -25,11 +25,6 @@
     font-size: 0.8em;
     font-weight: normal;
   }
-
-  /* Compensate for Bikeshed omitting spaces, unlike Anolis which other specs use */
-  .toc .secno::after {
-    content: ' ';
-  }
 </style>
 
 
