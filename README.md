@@ -149,11 +149,10 @@ ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
       pumpSource();
     } else if (dest.state === 'waiting') {
       dest.wait().then(fillDest, cancelSource);
+    } else if (dest.state === 'errored') {
+      dest.wait().catch(cancelSource);
     } else {
-      // Source has either been closed by someone else, or has errored in the course of
-      // someone else writing. Either way, we're not going to be able to do anything
-      // else useful.
-      cancelSource();
+      cancelSource(new TypeError('destination is closing or closed and cannot be piped to anymore'));
     }
   }
 
