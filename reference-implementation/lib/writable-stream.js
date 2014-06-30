@@ -122,7 +122,7 @@ export default class WritableStream {
         return Promise.reject(this._storedError);
       default:
         this._error(reason);
-        return helpers.promiseCall(this._onAbort);
+        return helpers.promiseCall(this._onAbort, reason);
     }
   }
 

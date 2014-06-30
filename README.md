@@ -372,7 +372,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If `this.[[state]]` is `"closed"`, return a new promise resolved with **undefined**.
 1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
 1. Call `this.[[error]](reason)`.
-1. Return the result of promise-calling `this.[[onAbort]]()`.
+1. Return the result of promise-calling `this.[[onAbort]](reason)`.
 
 ##### wait()
 
