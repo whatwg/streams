@@ -75,7 +75,7 @@ The constructor is passed several functions, all optional:
 
 - `start(enqueue, close, error)` is typically used to adapt a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
 - `pull(enqueue, close, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `enqueue` function is called.
-- `cancel()` is called when the readable stream is canceled, and should perform whatever source-specific steps are necessary to clean up and stop reading.
+- `cancel(reason)` is called when the readable stream is canceled, and should perform whatever source-specific steps are necessary to clean up and stop reading.
 
 Both `start` and `pull` are given the ability to manipulate the stream's internal queue and state by being passed the `this.[[enqueue]]`, `this.[[close]]`, and `this.[[error]]` functions.
 
@@ -119,7 +119,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
     1. Call `this.[[callPull]]()`.
 1. Return `this.[[waitPromise]]`.
 
-##### cancel()
+##### cancel(reason)
 
 1. If `this.[[state]]` is `"closed"`, return a new promise resolved with **undefined**.
 1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
@@ -128,7 +128,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. Let `this.[[queue]]` be a new empty List.
 1. Set `this.[[state]]` to `"closed"`.
 1. Resolve `this.[[closedPromise]]` with **undefined**.
-1. Return the result of promise-calling `this.[[onCancel]]()`.
+1. Return the result of promise-calling `this.[[onCancel]](reason)`.
 
 ##### get closed
 

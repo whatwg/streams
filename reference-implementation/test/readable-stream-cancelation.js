@@ -116,3 +116,18 @@ test('ReadableStream cancellation puts the stream in a closed state (after waiti
     r => t.ifError(r)
   );
 });
+
+test('ReadableStream explicit cancellation passes through the given reason', t => {
+  var recordedReason;
+  var rs = new ReadableStream({
+    cancel(reason) {
+      recordedReason = reason;
+    }
+  });
+
+  var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+  rs.cancel(passedReason);
+
+  t.equal(recordedReason, passedReason);
+  t.end();
+});
