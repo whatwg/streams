@@ -112,3 +112,68 @@ test('WritableStream transitions to waiting after one write that is not synchron
 
   t.end();
 });
+
+test('WritableStream abort non-empty stream', t => {
+  // signalDone will never be called.
+  var ws = new WritableStream();
+
+  ws.write('a');
+  // This write stays in the queue.
+  ws.write('b');
+  ws.abort();
+
+  t.end();
+});
+
+test('WritableStream if sink calls error, queued write and close are cleared', t => {
+  var error = undefined;
+  var ws = new WritableStream({
+    write(chunk, done, error_) {
+      error = error_;
+    }
+  });
+
+  var writePromise = ws.write('a');
+  t.notStrictEqual(error, undefined, 'write is called and error is set');
+  var writePromise2 = ws.write('b');
+  var closedPromise = ws.close();
+  t.strictEqual(ws.state, 'closing', 'state is closing until the close finishes');
+  error('e');
+  t.strictEqual(ws.state, 'errored', 'state is errored as the sink called error');
+
+  writePromise.then(
+    () => t.fail('writePromise is fulfilled unexpectedly'),
+    r => {
+      t.strictEqual(r, 'e');
+      return writePromise2;
+    }
+  ).then(
+    () => t.fail('writePromise2 is fulfilled unexpectedly'),
+    r => {
+      t.strictEqual(r, 'e');
+      return closedPromise;
+    }
+  ).then(
+    () => t.fail('closedPromise is fulfilled unexpectedly'),
+    r => {
+      t.strictEqual(r, 'e');
+      t.end();
+    }
+  );
+});
+
+test('WritableStream signalDone is noop after abort call', t => {
+  var done = undefined;
+  var ws = new WritableStream({
+    write(chunk, done_) {
+      done = done_;
+    }
+  });
+
+  ws.write('a');
+  t.notStrictEqual(done, undefined, 'write is called and done is set');
+  ws.abort();
+  done();
+
+  t.end();
+});
