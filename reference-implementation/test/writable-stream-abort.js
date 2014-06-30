@@ -115,3 +115,20 @@ test('Aborting a WritableStream causes any outstanding wait() promises to be rej
   var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   ws.abort(passedReason);
 });
+
+test('Aborting a WritableStream makes any future signalDone calls a no-op', t => {
+  var done;
+  var ws = new WritableStream({
+    write(chunk, done_) {
+      done = done_;
+    }
+  });
+
+  ws.write('a');
+  t.notStrictEqual(done, undefined, 'write is called and done is set');
+
+  ws.abort();
+
+  t.doesNotThrow(done);
+  t.end();
+});

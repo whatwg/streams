@@ -112,3 +112,43 @@ test('WritableStream transitions to waiting after one write that is not synchron
 
   t.end();
 });
+
+test('WritableStream if sink calls error, queued write and close are cleared', t => {
+  t.plan(6);
+
+  var error;
+  var ws = new WritableStream({
+    write(chunk, done, error_) {
+      error = error_;
+    }
+  });
+
+  var writePromise = ws.write('a');
+
+  t.notStrictEqual(error, undefined, 'write is called and error is set');
+
+  var writePromise2 = ws.write('b');
+  var closedPromise = ws.close();
+
+  t.strictEqual(ws.state, 'closing', 'state is closing until the close finishes');
+
+  var passedError = new Error('horrible things');
+  error(passedError);
+
+  t.strictEqual(ws.state, 'errored', 'state is errored as the sink called error');
+
+  writePromise.then(
+    () => t.fail('writePromise is fulfilled unexpectedly'),
+    r => t.strictEqual(r, passedError)
+  );
+
+  writePromise2.then(
+    () => t.fail('writePromise2 is fulfilled unexpectedly'),
+    r => t.strictEqual(r, passedError)
+  );
+
+  closedPromise.then(
+    () => t.fail('closedPromise is fulfilled unexpectedly'),
+    r => t.strictEqual(r, passedError)
+  );
+});
