@@ -1,10 +1,8 @@
 var assert = require('assert');
 
-export function promiseCall(func) {
-  var args = Array.prototype.slice.call(arguments, 1);
-
+export function promiseCall(func, ...args) {
   try {
-    return Promise.resolve(func.apply(undefined, args));
+    return Promise.resolve(func(...args));
   } catch (e) {
     return Promise.reject(e);
   }
