@@ -135,10 +135,12 @@ export default class WritableStream {
       return;
     }
 
-    for (var i = 0; i < this._queue.length; i++) {
-      this._queue[i]._reject(error);
+    while (this._queue.length > 0) {
+      var writeRecord = helpers.dequeueValue(this._queue);
+      writeRecord._reject(error);
     }
-    this._queue = [];
+
+    this._currentWritePromise = undefined;
     this._state = 'errored';
     this._storedError = error;
     this._writablePromise_reject(error);

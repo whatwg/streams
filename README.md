@@ -383,9 +383,10 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 ##### `[[error]](e)`
 
 1. If `this.[[state]]` is `"closed"` or `"errored"`, return.
-1. Repeat for each Record{[[type]], [[promise]], [[chunk]]} _value_ that is an element of `this.[[queue]]`, in original insertion order
-    1. Reject _value_.[[promise]] with `e`.
-1. Set `this.[[queue]]` to a new empty List.
+1. Repeat while `this.[[queue]]` is not empty:
+    1. Let `writeRecord` be DequeueValue(`this.[[queue]]`).
+    1. Reject `writeRecord.[[promise]]` with `e`.
+1. Set `this.[[currentWritePromise]]` to `undefined`.
 1. Set `this.[[state]]` to `"errored"`.
 1. Set `this.[[storedError]]` to `e`.
 1. Reject `this.[[writablePromise]]` with `e`.
