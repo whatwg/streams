@@ -393,7 +393,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ##### `[[advanceQueue]]()`
 
-1. If `this.[[queue]]` is empy, or `this.[[currentWritePromise]]` is not **undefined**, return.
+1. If `this.[[queue]]` is empty, or `this.[[currentWritePromise]]` is not **undefined**, return.
 1. Let `writeRecord` be PeekQueueValue(`this.[[queue]]`).
 1. If `writeRecord.[[type]]` is `"close"`,
     1. Assert: `this.[[state]]` is `"closing"`.
