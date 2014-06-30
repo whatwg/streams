@@ -138,52 +138,52 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 ```js
 ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
-    const source = this;
-    close = Boolean(close);
+  const source = this;
+  close = Boolean(close);
 
-    fillDest();
-    return dest;
+  fillDest();
+  return dest;
 
-    function fillDest() {
-        if (dest.state === "writable") {
-            pumpSource();
-        } else if (dest.state === "waiting") {
-            dest.wait().then(fillDest, cancelSource);
-        } else {
-            // Source has either been closed by someone else, or has errored in the course of
-            // someone else writing. Either way, we're not going to be able to do anything
-            // else useful.
-            cancelSource();
-        }
+  function fillDest() {
+    if (dest.state === 'writable') {
+      pumpSource();
+    } else if (dest.state === 'waiting') {
+      dest.wait().then(fillDest, cancelSource);
+    } else {
+      // Source has either been closed by someone else, or has errored in the course of
+      // someone else writing. Either way, we're not going to be able to do anything
+      // else useful.
+      cancelSource();
     }
+  }
 
-    function pumpSource() {
-        if (source.state === "readable") {
-            dest.write(source.read()).catch(cancelSource);
-            fillDest();
-        } else if (source.state === "waiting") {
-            source.wait().then(fillDest, abortDest);
-        } else if (source.state === "closed") {
-            closeDest();
-        } else {
-            abortDest();
-        }
+  function pumpSource() {
+    if (source.state === 'readable') {
+      dest.write(source.read()).catch(cancelSource);
+      fillDest();
+    } else if (source.state === 'waiting') {
+      source.wait().then(fillDest, abortDest);
+    } else if (source.state === 'closed') {
+      closeDest();
+    } else {
+      abortDest();
     }
+  }
 
-    function cancelSource(reason) {
-        source.cancel(reason);
-    }
+  function cancelSource(reason) {
+    source.cancel(reason);
+  }
 
-    function closeDest() {
-        if (close) {
-            dest.close();
-        }
+  function closeDest() {
+    if (close) {
+      dest.close();
     }
+  }
 
-    function abortDest(reason) {
-        // ISSUE: should this be preventable via an option or via `options.close`?
-        dest.abort(reason);
-    }
+  function abortDest(reason) {
+    // ISSUE: should this be preventable via an option or via `options.close`?
+    dest.abort(reason);
+  }
 };
 ```
 

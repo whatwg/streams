@@ -148,31 +148,32 @@ export default class ReadableStream {
           cancelSource();
         }
       }
+    }
 
-      function pumpSource() {
-        if (source.state === 'readable') {
-          dest.write(source.read()).catch(cancelSource);
-          fillDest();
-        } else if (source.state === 'waiting') {
-          source.wait().then(fillDest, abortDest);
-        } else if (source.state === 'closed') {
-          closeDest();
-        } else {
-          abortDest();
-        }
+    function pumpSource() {
+      if (source.state === 'readable') {
+        dest.write(source.read()).catch(cancelSource);
+        fillDest();
+      } else if (source.state === 'waiting') {
+        source.wait().then(fillDest, abortDest);
+      } else if (source.state === 'closed') {
+        closeDest();
+      } else {
+        abortDest();
       }
+    }
 
-      function cancelSource(reason) {
-        source.cancel(reason);
+    function cancelSource(reason) {
+      source.cancel(reason);
+    }
+
+    function closeDest() {
+      if (close) {
+        dest.close();
       }
+    }
 
-      function closeDest() {
-        if (close) {
-          dest.close();
-        }
-      }
-
-      function abortDest(reason) {
+    function abortDest(reason) {
       // ISSUE: should this be preventable via an option or via `options.close`?
       dest.abort(reason);
     }
