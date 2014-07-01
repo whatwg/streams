@@ -100,7 +100,11 @@ export default class WritableStream {
 
       case 'waiting':
         this._state = 'closing';
-        helpers.enqueueValueWithSize(this._queue, { type: 'close', promise: this._closedPromise, chunk: undefined }, 0);
+        helpers.enqueueValueWithSize(
+          this._queue,
+          { type: 'close', promise: this._closedPromise, chunk: undefined, _resolve: this._closedPromise_resolve, _reject: this._closedPromise_reject },
+          0
+        );
         return this._closedPromise;
 
       case 'closing':
