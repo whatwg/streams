@@ -134,6 +134,15 @@ export default class ReadableStream {
     close = Boolean(close);
 
     fillDest();
+    dest.closed.then(
+      () => {
+        if (source.state === 'readable' || source.state === 'waiting') {
+          cancelSource(new TypeError('destination is closed and cannot be piped to anymore'));
+        }
+      },
+      cancelSource
+    );
+
     return dest;
 
     function fillDest() {

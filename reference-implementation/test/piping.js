@@ -6,7 +6,7 @@ import readableStreamToArray from './utils/readable-stream-to-array';
 import sequentialReadableStream from './utils/sequential-rs';
 import passThroughTransform from './utils/pass-through-transform';
 
-test('ReadableStream pipeTo should complete successfully upon asynchronous finish', t => {
+test('Piping to a duck-typed asynchronous "writable stream" works', t => {
   // https://github.com/whatwg/streams/issues/80
 
   t.plan(1);
@@ -26,7 +26,8 @@ test('ReadableStream pipeTo should complete successfully upon asynchronous finis
     },
     abort() {
       t.fail('Should not call abort');
-    }
+    },
+    closed: new Promise(() => {})
   };
 
   rs.pipeTo(dest);
@@ -60,12 +61,6 @@ test('Piping to a stream that is in the errored stated passes through the error 
   }, 10);
 });
 
-/*
-DOES NOT WORK because if the source stays in "waiting" forever, it the codepath is never taken.
-
-      } else if (source.state === 'waiting') {
-        source.wait().then(fillDest, abortDest);
-
 
 test('Piping to a stream and then aborting it passes through the error as the cancellation reason', t => {
   var recordedReason;
@@ -85,9 +80,9 @@ test('Piping to a stream and then aborting it passes through the error as the ca
     t.equal(recordedReason, passedReason, 'the recorded cancellation reason must be the passed abort reason');
     t.end();
   }, 10);
-});*/
+});
 
-test('Piping to a stream that has been closed propagates a TypeError cancel backward', t => {
+test('Piping to a stream that has been closed propagates a TypeError cancellation reason backward', t => {
   var recordedReason;
   var rs = new ReadableStream({
     cancel(reason) {
@@ -106,10 +101,7 @@ test('Piping to a stream that has been closed propagates a TypeError cancel back
   }, 10);
 });
 
-/*
-DOES NOT WORK for the same reason
-
-test('Piping to a stream and then closing it propagates a TypeError cancel backward', t => {
+test('Piping to a stream and then closing it propagates a TypeError cancellation reason backward', t => {
   var recordedReason;
   var rs = new ReadableStream({
     cancel(reason) {
@@ -127,5 +119,3 @@ test('Piping to a stream and then closing it propagates a TypeError cancel backw
     t.end();
   }, 10);
 });
-
-*/
