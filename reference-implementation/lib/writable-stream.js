@@ -151,6 +151,8 @@ export default class WritableStream {
     }
 
     this._currentWritePromise = undefined;
+    this._currentWritePromise_resolve = null;
+    this._currentWritePromise_reject = null;
     this._state = 'errored';
     this._storedError = error;
     this._writablePromise_reject(error);
