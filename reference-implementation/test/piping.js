@@ -41,7 +41,7 @@ test('Piping through a pass-through transform stream works', t => {
   readableStreamToArray(output).then(chunks => t.deepEqual(chunks, [1, 2, 3, 4, 5]));
 });
 
-test('Piping to a stream that is in the errored stated passes through the error as the cancellation reason', t => {
+test('Piping to a stream that has been aborted passes through the error as the cancellation reason', t => {
   var recordedReason;
   var rs = new ReadableStream({
     cancel(reason) {
@@ -60,7 +60,6 @@ test('Piping to a stream that is in the errored stated passes through the error 
     t.end();
   }, 10);
 });
-
 
 test('Piping to a stream and then aborting it passes through the error as the cancellation reason', t => {
   var recordedReason;
@@ -118,4 +117,138 @@ test('Piping to a stream and then closing it propagates a TypeError cancellation
     t.equal(recordedReason.constructor, TypeError, 'the recorded cancellation reason must be a TypeError');
     t.end();
   }, 10);
+});
+
+test('Piping to a stream that synchronously errors passes through the error as the cancellation reason', t => {
+  var recordedReason;
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      enqueue('a');
+      enqueue('b');
+      enqueue('c');
+      close();
+    },
+    cancel(reason) {
+      recordedReason = reason;
+    }
+  });
+
+  var written = 0;
+  var passedError = new Error('I don\'t like you.');
+  var ws = new WritableStream({
+    write(chunk, done, error) {
+      if (++written > 1) {
+        error(passedError);
+      } else {
+        done();
+      }
+    }
+  });
+
+  rs.pipeTo(ws);
+
+  setTimeout(() => {
+    t.equal(recordedReason, passedError, 'the recorded cancellation reason must be the passed error');
+    t.end();
+  }, 10);
+});
+
+test('Piping to a stream that asynchronously errors passes through the error as the cancellation reason', t => {
+  var recordedReason;
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      enqueue('a');
+      enqueue('b');
+      enqueue('c');
+      close();
+    },
+    cancel(reason) {
+      recordedReason = reason;
+    }
+  });
+
+  var written = 0;
+  var passedError = new Error('I don\'t like you.');
+  var ws = new WritableStream({
+    write(chunk, done, error) {
+      if (++written > 1) {
+        setTimeout(() => error(passedError), 10);
+      } else {
+        done();
+      }
+    }
+  });
+
+  rs.pipeTo(ws);
+
+  setTimeout(() => {
+    t.equal(recordedReason, passedError, 'the recorded cancellation reason must be the passed error');
+    t.end();
+  }, 20);
+});
+
+test('Piping to a stream that errors on the last chunk passes through the error to a non-closed producer', t => {
+  var recordedReason;
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      enqueue('a');
+      enqueue('b');
+      setTimeout(close, 10);
+    },
+    cancel(reason) {
+      recordedReason = reason;
+    }
+  });
+
+  var written = 0;
+  var passedError = new Error('I don\'t like you.');
+  var ws = new WritableStream({
+    write(chunk, done, error) {
+      if (++written > 1) {
+        error(passedError);
+      } else {
+        done();
+      }
+    }
+  });
+
+  rs.pipeTo(ws);
+
+  setTimeout(() => {
+    t.equal(recordedReason, passedError, 'the recorded cancellation reason must be the passed error');
+    t.end();
+  }, 20);
+});
+
+test('Piping to a stream that errors on the last chunk does not pass through the error to a closed producer', t => {
+  var cancelCalled = false;
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      enqueue('a');
+      enqueue('b');
+      close();
+    },
+    cancel() {
+      cancelCalled = true;
+    }
+  });
+
+  var written = 0;
+  var ws = new WritableStream({
+    write(chunk, done, error) {
+      if (++written > 1) {
+        error(new Error('producer will not see this'));
+      } else {
+        done();
+      }
+    }
+  });
+
+  rs.pipeTo(ws);
+
+  setTimeout(() => {
+    t.equal(cancelCalled, false, 'cancel must not be called');
+    t.equal(ws.state, 'errored', 'the writable stream must still be in an errored state');
+    t.end();
+  }, 20);
 });
