@@ -288,8 +288,8 @@ class WritableStream {
     // Internal methods
     [[error]](any e)
     [[advanceQueue]]()
+    [[syncStateWithQueue]]()
     [[doClose]]()
-    [[doNextWrite]](type, promise, chunk)
 
     // Internal slots
     [[queue]]
