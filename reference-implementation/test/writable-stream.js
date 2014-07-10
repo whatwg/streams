@@ -152,3 +152,33 @@ test('WritableStream if sink calls error, queued write and close are cleared', t
     r => t.strictEqual(r, passedError)
   );
 });
+
+test('WritableStream queue lots of data and have all of them processed at once synchronously', t => {
+  var numberOfWrites = 10000;
+
+  var doneForFirstWrite;
+  var writeCount = 0;
+  var ws = new WritableStream({
+    write(chunk, done_) {
+      ++writeCount;
+      if (!doneForFirstWrite)
+        doneForFirstWrite = done_;
+      else
+        done_();
+    }
+  });
+
+  for (var i = 0; i < numberOfWrites; ++i) {
+    ws.write('a');
+  }
+
+  t.strictEqual(ws.state, 'waiting', 'state is waiting since the queue is full of writeRecords');
+  t.strictEqual(writeCount, 1);
+
+  doneForFirstWrite();
+
+  t.strictEqual(ws.state, 'writable', 'state is writable again since all writeRecords is done now');
+  t.strictEqual(writeCount, numberOfWrites);
+
+  t.end();
+});
