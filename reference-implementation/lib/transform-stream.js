@@ -7,17 +7,19 @@ export default class TransformStream {
       throw new TypeError('transform must be a function');
     }
 
-    var enqueueInOutput;
+    var enqueueInOutput, closeOutput;
     this.output = new ReadableStream({
       start(enqueue, close, error) {
         enqueueInOutput = enqueue;
+        closeOutput = close;
       }
     });
 
     this.input = new WritableStream({
       write(chunk, done, error) {
         transform(chunk, enqueueInOutput, done);
-      }
+      },
+      close: closeOutput
     });
   }
 }

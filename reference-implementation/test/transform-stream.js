@@ -97,7 +97,7 @@ test('Uppercaser async TransformStream: output chunk becomes available asynchron
   var ts = new TransformStream({
     transform(chunk, enqueue, done) {
       setTimeout(() => enqueue(chunk.toUpperCase()), 10);
-      setTimeout(done, 20);
+      setTimeout(done, 50);
     }
   });
 
@@ -126,8 +126,8 @@ test('Uppercaser-doubler async TransformStream: output chunks becomes available 
   var ts = new TransformStream({
     transform(chunk, enqueue, done) {
       setTimeout(() => enqueue(chunk.toUpperCase()), 10);
-      setTimeout(() => enqueue(chunk.toUpperCase()), 20);
-      setTimeout(done, 30);
+      setTimeout(() => enqueue(chunk.toUpperCase()), 50);
+      setTimeout(done, 90);
     }
   });
 
@@ -154,6 +154,98 @@ test('Uppercaser-doubler async TransformStream: output chunks becomes available 
         t.equal(ts.input.state, 'writable', 'input eventually becomes writable (after the transform signals done)');
       });
     });
+  })
+  .catch(t.error);
+});
+
+test('TransformStream: by default, closing the input closes the output (when there are no queued writes)', t => {
+  t.plan(4);
+
+  var ts = new TransformStream({ transform() { } });
+
+  ts.input.close();
+  t.equal(ts.input.state, 'closing', 'input is closing');
+  t.equal(ts.output.state, 'closed', 'output is immediately closed');
+
+  ts.input.closed.then(() => {
+    t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
+    t.equal(ts.output.state, 'closed', 'output is still closed at that time');
+  })
+  .catch(t.error);
+});
+
+test('TransformStream: by default, closing the input waits for transforms to finish before closing both', t => {
+  t.plan(4);
+
+  var ts = new TransformStream({
+    transform(chunk, enqueue, done) {
+      setTimeout(done, 50);
+    }
+  });
+
+  ts.input.write('a');
+  ts.input.close();
+  t.equal(ts.input.state, 'closing', 'input is closing');
+  t.equal(ts.output.state, 'waiting', 'output is still waiting');
+
+  ts.input.closed.then(() => {
+    t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
+    t.equal(ts.output.state, 'closed', 'output is closed at that point');
+  })
+  .catch(t.error);
+});
+
+test('TransformStream: by default, closing the input closes the output after sync enqueues and async done', t => {
+  t.plan(7);
+
+  var ts = new TransformStream({
+    transform(chunk, enqueue, done) {
+      enqueue('x');
+      enqueue('y');
+      setTimeout(done, 50);
+    }
+  });
+
+  ts.input.write('a');
+  ts.input.close();
+  t.equal(ts.input.state, 'closing', 'input is closing');
+  t.equal(ts.output.state, 'readable', 'output is readable');
+
+  ts.input.closed.then(() => {
+    t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
+    t.equal(ts.output.state, 'readable', 'output is still readable at that time');
+
+    t.equal(ts.output.read(), 'x', 'can read the first enqueued chunk from the output');
+    t.equal(ts.output.read(), 'y', 'can read the second enqueued chunk from the output');
+
+    t.equal(ts.output.state, 'closed', 'after reading, the output is now closed');
+  })
+  .catch(t.error);
+});
+
+test('TransformStream: by default, closing the input closes the output after async enqueues and async done', t => {
+  t.plan(8);
+
+  var ts = new TransformStream({
+    transform(chunk, enqueue, done) {
+      setTimeout(() => enqueue('x'), 10);
+      setTimeout(() => enqueue('y'), 50);
+      setTimeout(done, 90);
+    }
+  });
+
+  ts.input.write('a');
+  ts.input.close();
+  t.equal(ts.input.state, 'closing', 'input is closing');
+  t.equal(ts.output.state, 'waiting', 'output starts waiting');
+
+  ts.input.closed.then(() => {
+    t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
+    t.equal(ts.output.state, 'readable', 'output is now readable since all chunks have been enqueued');
+    t.equal(ts.output.read(), 'x', 'can read the first enqueued chunk from the output');
+    t.equal(ts.output.state, 'readable', 'after reading one chunk, the output is still readable');
+    t.equal(ts.output.read(), 'y', 'can read the second enqueued chunk from the output');
+    t.equal(ts.output.state, 'closed', 'after reading two chunks, the output is now closed');
   })
   .catch(t.error);
 });
