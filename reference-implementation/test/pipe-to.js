@@ -2,9 +2,7 @@ var test = require('tape');
 
 import ReadableStream from '../lib/readable-stream';
 import WritableStream from '../lib/writable-stream';
-import readableStreamToArray from './utils/readable-stream-to-array';
 import sequentialReadableStream from './utils/sequential-rs';
-import passThroughTransform from './utils/pass-through-transform';
 
 test('Piping to a duck-typed asynchronous "writable stream" works', t => {
   // https://github.com/whatwg/streams/issues/80
@@ -31,14 +29,6 @@ test('Piping to a duck-typed asynchronous "writable stream" works', t => {
   };
 
   rs.pipeTo(dest);
-});
-
-test('Piping through a pass-through transform stream works', t => {
-  t.plan(1);
-
-  var output = sequentialReadableStream(5).pipeThrough(passThroughTransform());
-
-  readableStreamToArray(output).then(chunks => t.deepEqual(chunks, [1, 2, 3, 4, 5]));
 });
 
 test('Piping to a stream that has been aborted passes through the error as the cancellation reason', t => {
