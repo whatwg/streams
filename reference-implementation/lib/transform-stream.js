@@ -19,7 +19,9 @@ export default class TransformStream {
       write(chunk, done, error) {
         transform(chunk, enqueueInOutput, done);
       },
-      close: closeOutput
+      close() {
+        flush(enqueueInOutput, closeOutput);
+      }
     });
   }
 }

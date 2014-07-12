@@ -249,3 +249,93 @@ test('TransformStream: by default, closing the input closes the output after asy
   })
   .catch(t.error);
 });
+
+test('TransformStream flush is called immediately when the input is closed, if no writes are queued', t => {
+  t.plan(1);
+
+  var flushCalled = false;
+  var ts = new TransformStream({
+    transform() { },
+    flush(enqueue) {
+      flushCalled = true;
+    }
+  });
+
+  ts.input.close();
+  t.ok(flushCalled, 'closing the input triggers the transform flush immediately');
+});
+
+test('TransformStream flush is called after all queued writes finish, once the input is closed', t => {
+  t.plan(3);
+
+  var flushCalled = false;
+  var ts = new TransformStream({
+    transform(chunk, enqueue, done) {
+      setTimeout(done, 10);
+    },
+    flush(enqueue) {
+      flushCalled = true;
+    }
+  });
+
+  ts.input.write('a');
+  ts.input.close();
+  t.notOk(flushCalled, 'closing the input does not immediately call flush if writes are not finished');
+
+  setTimeout(() => {
+    t.ok(flushCalled, 'flush is eventually called');
+    t.equal(ts.output.state, 'waiting', 'if flush does not call close, the output stays open');
+  }, 50);
+});
+
+test('TransformStream flush gets a chance to enqueue more into the output', t => {
+  t.plan(6);
+
+  var ts = new TransformStream({
+    transform(chunk, enqueue, done) {
+      done();
+    },
+    flush(enqueue) {
+      enqueue('x');
+      enqueue('y');
+    }
+  });
+
+  t.equal(ts.output.state, 'waiting', 'before doing anything, the output is waiting');
+  ts.input.write('a');
+  t.equal(ts.output.state, 'waiting', 'after a write to the input, the output is still waiting');
+  ts.input.close();
+  t.equal(ts.output.state, 'readable', 'after closing the input, the output is now readable as a result of flush');
+  t.equal(ts.output.read(), 'x', 'reading the first chunk gives back what was enqueued');
+  t.equal(ts.output.read(), 'y', 'reading the second chunk gives back what was enqueued');
+  t.equal(ts.output.state, 'waiting', 'after reading both chunks, the output is waiting, since close was not called');
+});
+
+test('TransformStream flush gets a chance to enqueue more into the output, and can then async close', t => {
+  t.plan(7);
+
+  var ts = new TransformStream({
+    transform(chunk, enqueue, done) {
+      done();
+    },
+    flush(enqueue, close) {
+      enqueue('x');
+      enqueue('y');
+      setTimeout(close, 10);
+    }
+  });
+
+  t.equal(ts.output.state, 'waiting', 'before doing anything, the output is waiting');
+  ts.input.write('a');
+  t.equal(ts.output.state, 'waiting', 'after a write to the input, the output is still waiting');
+  ts.input.close();
+  t.equal(ts.output.state, 'readable', 'after closing the input, the output is now readable as a result of flush');
+  t.equal(ts.output.read(), 'x', 'reading the first chunk gives back what was enqueued');
+  t.equal(ts.output.read(), 'y', 'reading the second chunk gives back what was enqueued');
+  t.equal(ts.output.state, 'waiting', 'after reading both chunks, the output is waiting, since close was not called');
+
+  ts.output.closed.then(() => {
+    t.equal(ts.output.state, 'closed', 'the output eventually does close, after close is called from flush');
+  })
+  .catch(t.error);
+});
