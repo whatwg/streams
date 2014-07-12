@@ -152,3 +152,57 @@ test('WritableStream if sink calls error, queued write and close are cleared', t
     r => t.strictEqual(r, passedError)
   );
 });
+
+test('WritableStream if sink throws an error after done, the stream becomes errored but the promise fulfills', t => {
+  t.plan(3);
+
+  var thrownError = new Error('throw me');
+  var ws = new WritableStream({
+    write(chunk, done) {
+      done();
+      throw thrownError;
+    }
+  });
+
+  var writePromise = ws.write('a');
+  t.strictEqual(ws.state, 'errored', 'state is errored after the sink throws');
+
+  var closedPromise = ws.close();
+
+  writePromise.then(
+    () => t.pass('the promise returned from write should fulfill since done was called before throwing'),
+    t.ifError
+  );
+
+  ws.close().then(
+    () => t.fail('close() is fulfilled unexpectedly'),
+    r => t.strictEqual(r, thrownError, 'close() should be rejected with the thrown error')
+  );
+});
+
+test('WritableStream if sink throws an error before done, the stream becomes errored and the promise rejects', t => {
+  t.plan(3);
+
+  var thrownError = new Error('throw me');
+  var ws = new WritableStream({
+    write(chunk, done) {
+      throw thrownError;
+      done();
+    }
+  });
+
+  var writePromise = ws.write('a');
+  t.strictEqual(ws.state, 'errored', 'state is errored after the sink throws');
+
+  var closedPromise = ws.close();
+
+  writePromise.then(
+    () => t.fail('the write promise is fulfilled unexpectedly'),
+    r => t.strictEqual(r, thrownError, 'the write promise should be rejected with the thrown error')
+  );
+
+  ws.close().then(
+    () => t.fail('close() is fulfilled unexpectedly'),
+    r => t.strictEqual(r, thrownError, 'close() should be rejected with the thrown error')
+  );
+});
