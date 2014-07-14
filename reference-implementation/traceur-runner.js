@@ -8,8 +8,6 @@ traceur.require.makeDefault(function (filename) {
   return filename.indexOf('node_modules') === -1;
 });
 
-if (process.argv[2]) {
-    require(path.resolve(process.argv[2]));
-} else {
-    glob.sync(path.resolve(__dirname, 'test/*.js')).forEach(require);
-}
+process.argv.slice(2).forEach(function (filename) {
+    glob.sync(path.resolve(__dirname, filename)).forEach(require);
+});
