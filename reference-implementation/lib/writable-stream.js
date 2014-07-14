@@ -94,10 +94,6 @@ export default class WritableStream {
   close() {
     switch (this._state) {
       case 'writable':
-        this._state = 'closing';
-        this._doClose();
-        return this._closedPromise;
-
       case 'waiting':
         this._state = 'closing';
         helpers.enqueueValueWithSize(
@@ -111,6 +107,7 @@ export default class WritableStream {
           },
           0
         );
+        this._advanceQueue();
         return this._closedPromise;
 
       case 'closing':
@@ -206,7 +203,9 @@ export default class WritableStream {
       return;
     }
 
-    assert(this._state === 'writable' || this._state === 'waiting');
+    assert(
+      this._state === 'writable' || this._state === 'waiting',
+      'state should be writable or waiting; it is ' + this._state);
 
     if (this._state === 'waiting' && this._queue.length === 0) {
       this._state = 'writable';

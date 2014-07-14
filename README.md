@@ -362,13 +362,10 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ##### close()
 
-1. If `this.[[state]]` is `"writable"`,
-    1. Set `this.[[state]]` to `"closing"`.
-    1. Call `this.[[doClose]]()`.
-    1. Return `this.[[closedPromise]]`.
-1. If `this.[[state]]` is `"waiting"`,
+1. If `this.[[state]]` is `"waiting"` or `"writable"`,
     1. Set `this.[[state]]` to `"closing"`.
     1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"close"`, [[promise]]: `this.[[closedPromise]]`, [[chunk]]: **undefined**}, **0**).
+    1. Call `this.[[advanceQueue]]()`.
     1. Return `this.[[closedPromise]]`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
     1. Return a promise rejected with a **TypeError** exception.
