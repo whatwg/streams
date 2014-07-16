@@ -392,10 +392,11 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Let `writeRecord` be DequeueValue(`this.[[queue]]`).
     1. Reject `writeRecord.[[promise]]` with `e`.
 1. Set `this.[[currentWritePromise]]` to **undefined**.
-1. Set `this.[[state]]` to `"errored"`.
 1. Set `this.[[storedError]]` to `e`.
-1. Reject `this.[[writablePromise]]` with `e`.
+1. If `this.[[state]]`` is `"writable"`, set `this.[[writablePromise]]` to a new promise rejected with `e`.
+1. If `this.[[state]]`` is `"waiting"`, reject `this.[[writablePromise]]` with `e`.
 1. Reject `this.[[closedPromise]]` with `e`.
+1. Set `this.[[state]]` to `"errored"`.
 
 ##### `[[advanceQueue]]()`
 
