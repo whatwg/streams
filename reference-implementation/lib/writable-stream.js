@@ -150,10 +150,16 @@ export default class WritableStream {
     this._currentWritePromise = undefined;
     this._currentWritePromise_resolve = null;
     this._currentWritePromise_reject = null;
-    this._state = 'errored';
     this._storedError = error;
-    this._writablePromise_reject(error);
+    if (this._state === 'writable') {
+      this._writablePromise = Promise.reject(error);
+      this._writablePromise_resolve = null;
+      this._writablePromise_reject = null;
+    } else if (this._state === 'waiting') {
+      this._writablePromise_reject(error);
+    }
     this._closedPromise_reject(error);
+    this._state = 'errored';
   }
 
   _advanceQueue() {

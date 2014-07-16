@@ -153,6 +153,26 @@ test('WritableStream if sink calls error, queued write and close are cleared', t
   );
 });
 
+test('WritableStream if sink calls error, wait will return a rejected promise', t => {
+  var error;
+  var ws = new WritableStream({
+    write(chunk, done, error_) {
+      done();
+      error = error_;
+    }
+  });
+  ws.write('a');
+  t.strictEqual(ws.state, 'writable', 'state is writable as signalDone is called');
+
+  error();
+  t.strictEqual(ws.state, 'errored', 'state is errored as error is called');
+
+  ws.wait().then(
+    () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
+    r => t.end()
+  );
+});
+
 test('WritableStream if sink throws an error after done, the stream becomes errored but the promise fulfills', t => {
   t.plan(3);
 
