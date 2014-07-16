@@ -136,64 +136,9 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 
 ##### pipeTo(dest, { close })
 
-```js
-ReadableStream.prototype.pipeTo = (dest, { close = true } = {}) => {
-  const source = this;
-  close = Boolean(close);
+The `pipeTo` method is one of the more complex methods, and is undergoing some revision and edge-case bulletproofing before we write it up in prose.
 
-  fillDest();
-  dest.closed.then(
-    () => {
-      if (source.state === 'readable' || source.state === 'waiting') {
-        cancelSource(new TypeError('destination is closed and cannot be piped to anymore'));
-      }
-    },
-    cancelSource
-  );
-
-  return dest;
-
-  function fillDest() {
-    if (dest.state === 'writable') {
-      pumpSource();
-    } else if (dest.state === 'waiting') {
-      dest.wait().then(fillDest, cancelSource);
-    } else if (dest.state === 'errored') {
-      dest.wait().catch(cancelSource);
-    } else {
-      cancelSource(new TypeError('destination is closing or closed and cannot be piped to anymore'));
-    }
-  }
-
-  function pumpSource() {
-    if (source.state === 'readable') {
-      dest.write(source.read()).catch(cancelSource);
-      fillDest();
-    } else if (source.state === 'waiting') {
-      source.wait().then(fillDest, abortDest);
-    } else if (source.state === 'closed') {
-      closeDest();
-    } else {
-      abortDest();
-    }
-  }
-
-  function cancelSource(reason) {
-    source.cancel(reason);
-  }
-
-  function closeDest() {
-    if (close) {
-      dest.close();
-    }
-  }
-
-  function abortDest(reason) {
-    // ISSUE: should this be preventable via an option or via `options.close`?
-    dest.abort(reason);
-  }
-};
-```
+For now, please consider the reference implementation normative: [reference-implementation/lib/readable-stream.js](https://github.com/whatwg/streams/blob/master/reference-implementation/lib/readable-stream.js), look for the `pipeTo` method.
 
 ##### pipeThrough({ input, output }, options)
 
