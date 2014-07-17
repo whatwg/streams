@@ -11,12 +11,13 @@ test('Aborting a WritableStream immediately prevents future writes', t => {
     }
   });
 
-  ws.abort();
-  ws.write(1);
-  ws.write(2);
-
-  t.deepEqual(chunks, [], 'no chunks are written');
-  t.end();
+  setTimeout(() => {
+    ws.abort();
+    ws.write(1);
+    ws.write(2);
+    t.deepEqual(chunks, [], 'no chunks are written');
+    t.end();
+  }, 0);
 });
 
 test('Aborting a WritableStream prevents further writes after any that are in progress', t => {
@@ -28,17 +29,19 @@ test('Aborting a WritableStream prevents further writes after any that are in pr
     }
   });
 
-  ws.write(1);
-  ws.write(2);
-  ws.write(3);
-  ws.abort();
-  ws.write(4);
-  ws.write(5);
+  setTimeout(() => {
+    ws.write(1);
+    ws.write(2);
+    ws.write(3);
+    ws.abort();
+    ws.write(4);
+    ws.write(5);
 
-  setTimeout(function () {
-    t.deepEqual(chunks, [1], 'only the single in-progress chunk gets written');
-    t.end();
-  }, 200);
+    setTimeout(function () {
+      t.deepEqual(chunks, [1], 'only the single in-progress chunk gets written');
+      t.end();
+    }, 200);
+  }, 0);
 });
 
 test('Aborting a WritableStream passes through the given reason', t => {
@@ -122,11 +125,13 @@ test('Aborting a WritableStream makes any future signalDone calls a no-op', t =>
     }
   });
 
-  ws.write('a');
-  t.notStrictEqual(done, undefined, 'write is called and done is set');
+  setTimeout(() => {
+    ws.write('a');
+    t.notStrictEqual(done, undefined, 'write is called and done is set');
 
-  ws.abort();
+    ws.abort();
 
-  t.doesNotThrow(done);
-  t.end();
+    t.doesNotThrow(done);
+    t.end();
+  }, 0);
 });
