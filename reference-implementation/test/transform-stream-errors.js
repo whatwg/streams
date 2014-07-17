@@ -14,9 +14,11 @@ test('TransformStream errors thrown in transform put the input and output in an 
 
   t.equal(ts.output.state, 'waiting', 'output starts in waiting');
   ts.input.write('a');
-  t.equal(ts.output.state, 'errored', 'output becomes errored after writing to the throwing transform');
+  setTimeout(() => {
+    t.equal(ts.output.state, 'errored', 'output becomes errored after writing to the throwing transform');
 
-  t.throws(() => ts.output.read(), thrownError, 'output\'s read should throw the thrown error');
+    t.throws(() => ts.output.read(), thrownError, 'output\'s read should throw the thrown error');
+  }, 0);
 
   ts.output.wait().then(
     () => t.fail('output\'s wait() should not be fulfilled'),

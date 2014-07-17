@@ -46,10 +46,12 @@ test('Pass-through sync TransformStream: can read from output what is put into i
 
   ts.input.write('a');
 
-  t.equal(ts.input.state, 'writable', 'input is still writable since the transform was sync');
-  t.equal(ts.output.state, 'readable', 'output is readable after writing to input');
-  t.equal(ts.output.read(), 'a', 'result from reading the output is the same as was written to input');
-  t.equal(ts.output.state, 'waiting', 'output is waiting again after having read all that was written');
+  setTimeout(() => {
+    t.equal(ts.input.state, 'writable', 'input is still writable since the transform was sync');
+    t.equal(ts.output.state, 'readable', 'output is readable after writing to input');
+    t.equal(ts.output.read(), 'a', 'result from reading the output is the same as was written to input');
+    t.equal(ts.output.state, 'waiting', 'output is waiting again after having read all that was written');
+  }, 0);
 });
 
 test('Uppercaser sync TransformStream: can read from output transformed version of what is put into input', t => {
@@ -62,12 +64,14 @@ test('Uppercaser sync TransformStream: can read from output transformed version 
     }
   });
 
-  ts.input.write('a');
+  setTimeout(() => {
+    ts.input.write('a');
 
-  t.equal(ts.input.state, 'writable', 'input is still writable since the transform was sync');
-  t.equal(ts.output.state, 'readable', 'output is readable after writing to input');
-  t.equal(ts.output.read(), 'A', 'result from reading the output is the transformation of what was written to input');
-  t.equal(ts.output.state, 'waiting', 'output is waiting again after having read all that was written');
+    t.equal(ts.input.state, 'writable', 'input is still writable since the transform was sync');
+    t.equal(ts.output.state, 'readable', 'output is readable after writing to input');
+    t.equal(ts.output.read(), 'A', 'result from reading the output is the transformation of what was written to input');
+    t.equal(ts.output.state, 'waiting', 'output is waiting again after having read all that was written');
+  }, 0);
 });
 
 test('Uppercaser-doubler sync TransformStream: can read both chunks put into the output', t => {
@@ -81,14 +85,16 @@ test('Uppercaser-doubler sync TransformStream: can read both chunks put into the
     }
   });
 
-  ts.input.write('a');
+  setTimeout(() => {
+    ts.input.write('a');
 
-  t.equal(ts.input.state, 'writable', 'input is still writable since the transform was sync');
-  t.equal(ts.output.state, 'readable', 'output is readable after writing to input');
-  t.equal(ts.output.read(), 'A', 'the first chunk read is the transformation of the single chunk written');
-  t.equal(ts.output.state, 'readable', 'output is readable still after reading the first chunk');
-  t.equal(ts.output.read(), 'A', 'the second chunk read is also the transformation of the single chunk written');
-  t.equal(ts.output.state, 'waiting', 'output is waiting again after having read both enqueued chunks');
+    t.equal(ts.input.state, 'writable', 'input is still writable since the transform was sync');
+    t.equal(ts.output.state, 'readable', 'output is readable after writing to input');
+    t.equal(ts.output.read(), 'A', 'the first chunk read is the transformation of the single chunk written');
+    t.equal(ts.output.state, 'readable', 'output is readable still after reading the first chunk');
+    t.equal(ts.output.read(), 'A', 'the second chunk read is also the transformation of the single chunk written');
+    t.equal(ts.output.state, 'waiting', 'output is waiting again after having read both enqueued chunks');
+  }, 0);
 });
 
 test('Uppercaser async TransformStream: output chunk becomes available asynchronously', t => {
@@ -101,23 +107,25 @@ test('Uppercaser async TransformStream: output chunk becomes available asynchron
     }
   });
 
-  ts.input.write('a');
+  setTimeout(() => {
+    ts.input.write('a');
 
-  t.equal(ts.input.state, 'waiting', 'input is now waiting since the transform has not signaled done');
-  t.equal(ts.output.state, 'waiting', 'output is still not readable');
+    t.equal(ts.input.state, 'waiting', 'input is now waiting since the transform has not signaled done');
+    t.equal(ts.output.state, 'waiting', 'output is still not readable');
 
-  ts.output.wait().then(() => {
-    t.equal(ts.output.state, 'readable', 'output eventually becomes readable');
-    t.equal(ts.output.read(), 'A', 'chunk read from output is the transformation result');
-    t.equal(ts.output.state, 'waiting', 'output is waiting again after having read the chunk');
+    ts.output.wait().then(() => {
+      t.equal(ts.output.state, 'readable', 'output eventually becomes readable');
+      t.equal(ts.output.read(), 'A', 'chunk read from output is the transformation result');
+      t.equal(ts.output.state, 'waiting', 'output is waiting again after having read the chunk');
 
-    t.equal(ts.input.state, 'waiting', 'input is still waiting since the transform still has not signaled done');
+      t.equal(ts.input.state, 'waiting', 'input is still waiting since the transform still has not signaled done');
 
-    return ts.input.wait().then(() => {
-      t.equal(ts.input.state, 'writable', 'input eventually becomes writable (after the transform signals done)');
-    });
-  })
-  .catch(t.error);
+      return ts.input.wait().then(() => {
+        t.equal(ts.input.state, 'writable', 'input eventually becomes writable (after the transform signals done)');
+      });
+    })
+    .catch(t.error);
+  }, 0);
 });
 
 test('Uppercaser-doubler async TransformStream: output chunks becomes available asynchronously', t => {
@@ -131,31 +139,33 @@ test('Uppercaser-doubler async TransformStream: output chunks becomes available 
     }
   });
 
-  ts.input.write('a');
+  setTimeout(() => {
+    ts.input.write('a');
 
-  t.equal(ts.input.state, 'waiting', 'input is now waiting since the transform has not signaled done');
-  t.equal(ts.output.state, 'waiting', 'output is still not readable');
+    t.equal(ts.input.state, 'waiting', 'input is now waiting since the transform has not signaled done');
+    t.equal(ts.output.state, 'waiting', 'output is still not readable');
 
-  ts.output.wait().then(() => {
-    t.equal(ts.output.state, 'readable', 'output eventually becomes readable');
-    t.equal(ts.output.read(), 'A', 'chunk read from output is the transformation result');
-    t.equal(ts.output.state, 'waiting', 'output is waiting again after having read the chunk');
-
-    t.equal(ts.input.state, 'waiting', 'input is still waiting since the transform still has not signaled done');
-
-    return ts.output.wait().then(() => {
-      t.equal(ts.output.state, 'readable', 'output becomes readable again');
+    ts.output.wait().then(() => {
+      t.equal(ts.output.state, 'readable', 'output eventually becomes readable');
       t.equal(ts.output.read(), 'A', 'chunk read from output is the transformation result');
       t.equal(ts.output.state, 'waiting', 'output is waiting again after having read the chunk');
 
       t.equal(ts.input.state, 'waiting', 'input is still waiting since the transform still has not signaled done');
 
-      return ts.input.wait().then(() => {
-        t.equal(ts.input.state, 'writable', 'input eventually becomes writable (after the transform signals done)');
+      return ts.output.wait().then(() => {
+        t.equal(ts.output.state, 'readable', 'output becomes readable again');
+        t.equal(ts.output.read(), 'A', 'chunk read from output is the transformation result');
+        t.equal(ts.output.state, 'waiting', 'output is waiting again after having read the chunk');
+
+        t.equal(ts.input.state, 'waiting', 'input is still waiting since the transform still has not signaled done');
+
+        return ts.input.wait().then(() => {
+          t.equal(ts.input.state, 'writable', 'input eventually becomes writable (after the transform signals done)');
+        });
       });
-    });
-  })
-  .catch(t.error);
+    })
+    .catch(t.error);
+  }, 0);
 });
 
 test('TransformStream: by default, closing the input closes the output (when there are no queued writes)', t => {
@@ -165,13 +175,15 @@ test('TransformStream: by default, closing the input closes the output (when the
 
   ts.input.close();
   t.equal(ts.input.state, 'closing', 'input is closing');
-  t.equal(ts.output.state, 'closed', 'output is immediately closed');
+  setTimeout(() => {
+    t.equal(ts.output.state, 'closed', 'output is closed within a tick');
 
-  ts.input.closed.then(() => {
-    t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
-    t.equal(ts.output.state, 'closed', 'output is still closed at that time');
-  })
-  .catch(t.error);
+    ts.input.closed.then(() => {
+      t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
+      t.equal(ts.output.state, 'closed', 'output is still closed at that time');
+    })
+    .catch(t.error);
+  }, 0);
 });
 
 test('TransformStream: by default, closing the input waits for transforms to finish before closing both', t => {
@@ -186,13 +198,15 @@ test('TransformStream: by default, closing the input waits for transforms to fin
   ts.input.write('a');
   ts.input.close();
   t.equal(ts.input.state, 'closing', 'input is closing');
-  t.equal(ts.output.state, 'waiting', 'output is still waiting');
+  setTimeout(() => {
+    t.equal(ts.output.state, 'waiting', 'output is still waiting after a tick');
 
-  ts.input.closed.then(() => {
-    t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
-    t.equal(ts.output.state, 'closed', 'output is closed at that point');
-  })
-  .catch(t.error);
+    ts.input.closed.then(() => {
+      t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
+      t.equal(ts.output.state, 'closed', 'output is closed at that point');
+    })
+    .catch(t.error);
+  }, 0);
 });
 
 test('TransformStream: by default, closing the input closes the output after sync enqueues and async done', t => {
@@ -209,18 +223,20 @@ test('TransformStream: by default, closing the input closes the output after syn
   ts.input.write('a');
   ts.input.close();
   t.equal(ts.input.state, 'closing', 'input is closing');
-  t.equal(ts.output.state, 'readable', 'output is readable');
+  setTimeout(() => {
+    t.equal(ts.output.state, 'readable', 'output is readable');
 
-  ts.input.closed.then(() => {
-    t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
-    t.equal(ts.output.state, 'readable', 'output is still readable at that time');
+    ts.input.closed.then(() => {
+      t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
+      t.equal(ts.output.state, 'readable', 'output is still readable at that time');
 
-    t.equal(ts.output.read(), 'x', 'can read the first enqueued chunk from the output');
-    t.equal(ts.output.read(), 'y', 'can read the second enqueued chunk from the output');
+      t.equal(ts.output.read(), 'x', 'can read the first enqueued chunk from the output');
+      t.equal(ts.output.read(), 'y', 'can read the second enqueued chunk from the output');
 
-    t.equal(ts.output.state, 'closed', 'after reading, the output is now closed');
-  })
-  .catch(t.error);
+      t.equal(ts.output.state, 'closed', 'after reading, the output is now closed');
+    })
+    .catch(t.error);
+  }, 0);
 });
 
 test('TransformStream: by default, closing the input closes the output after async enqueues and async done', t => {
@@ -237,17 +253,19 @@ test('TransformStream: by default, closing the input closes the output after asy
   ts.input.write('a');
   ts.input.close();
   t.equal(ts.input.state, 'closing', 'input is closing');
-  t.equal(ts.output.state, 'waiting', 'output starts waiting');
+  setTimeout(() => {
+    t.equal(ts.output.state, 'waiting', 'output starts waiting');
 
-  ts.input.closed.then(() => {
-    t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
-    t.equal(ts.output.state, 'readable', 'output is now readable since all chunks have been enqueued');
-    t.equal(ts.output.read(), 'x', 'can read the first enqueued chunk from the output');
-    t.equal(ts.output.state, 'readable', 'after reading one chunk, the output is still readable');
-    t.equal(ts.output.read(), 'y', 'can read the second enqueued chunk from the output');
-    t.equal(ts.output.state, 'closed', 'after reading two chunks, the output is now closed');
-  })
-  .catch(t.error);
+    ts.input.closed.then(() => {
+      t.equal(ts.input.state, 'closed', 'input becomes closed eventually');
+      t.equal(ts.output.state, 'readable', 'output is now readable since all chunks have been enqueued');
+      t.equal(ts.output.read(), 'x', 'can read the first enqueued chunk from the output');
+      t.equal(ts.output.state, 'readable', 'after reading one chunk, the output is still readable');
+      t.equal(ts.output.read(), 'y', 'can read the second enqueued chunk from the output');
+      t.equal(ts.output.state, 'closed', 'after reading two chunks, the output is now closed');
+    })
+    .catch(t.error);
+  }, 0);
 });
 
 test('TransformStream flush is called immediately when the input is closed, if no writes are queued', t => {
@@ -261,8 +279,10 @@ test('TransformStream flush is called immediately when the input is closed, if n
     }
   });
 
-  ts.input.close();
-  t.ok(flushCalled, 'closing the input triggers the transform flush immediately');
+  setTimeout(() => {
+    ts.input.close();
+    t.ok(flushCalled, 'closing the input triggers the transform flush immediately');
+  }, 0);
 });
 
 test('TransformStream flush is called after all queued writes finish, once the input is closed', t => {
@@ -278,14 +298,16 @@ test('TransformStream flush is called after all queued writes finish, once the i
     }
   });
 
-  ts.input.write('a');
-  ts.input.close();
-  t.notOk(flushCalled, 'closing the input does not immediately call flush if writes are not finished');
-
   setTimeout(() => {
-    t.ok(flushCalled, 'flush is eventually called');
-    t.equal(ts.output.state, 'waiting', 'if flush does not call close, the output stays open');
-  }, 50);
+    ts.input.write('a');
+    ts.input.close();
+    t.notOk(flushCalled, 'closing the input does not immediately call flush if writes are not finished');
+
+    setTimeout(() => {
+      t.ok(flushCalled, 'flush is eventually called');
+      t.equal(ts.output.state, 'waiting', 'if flush does not call close, the output stays open');
+    }, 50);
+  }, 0);
 });
 
 test('TransformStream flush gets a chance to enqueue more into the output', t => {
@@ -301,14 +323,16 @@ test('TransformStream flush gets a chance to enqueue more into the output', t =>
     }
   });
 
-  t.equal(ts.output.state, 'waiting', 'before doing anything, the output is waiting');
-  ts.input.write('a');
-  t.equal(ts.output.state, 'waiting', 'after a write to the input, the output is still waiting');
-  ts.input.close();
-  t.equal(ts.output.state, 'readable', 'after closing the input, the output is now readable as a result of flush');
-  t.equal(ts.output.read(), 'x', 'reading the first chunk gives back what was enqueued');
-  t.equal(ts.output.read(), 'y', 'reading the second chunk gives back what was enqueued');
-  t.equal(ts.output.state, 'waiting', 'after reading both chunks, the output is waiting, since close was not called');
+  setTimeout(() => {
+    t.equal(ts.output.state, 'waiting', 'before doing anything, the output is waiting');
+    ts.input.write('a');
+    t.equal(ts.output.state, 'waiting', 'after a write to the input, the output is still waiting');
+    ts.input.close();
+    t.equal(ts.output.state, 'readable', 'after closing the input, the output is now readable as a result of flush');
+    t.equal(ts.output.read(), 'x', 'reading the first chunk gives back what was enqueued');
+    t.equal(ts.output.read(), 'y', 'reading the second chunk gives back what was enqueued');
+    t.equal(ts.output.state, 'waiting', 'after reading both chunks, the output is waiting, since close was not called');
+  }, 0);
 });
 
 test('TransformStream flush gets a chance to enqueue more into the output, and can then async close', t => {
@@ -325,17 +349,19 @@ test('TransformStream flush gets a chance to enqueue more into the output, and c
     }
   });
 
-  t.equal(ts.output.state, 'waiting', 'before doing anything, the output is waiting');
-  ts.input.write('a');
-  t.equal(ts.output.state, 'waiting', 'after a write to the input, the output is still waiting');
-  ts.input.close();
-  t.equal(ts.output.state, 'readable', 'after closing the input, the output is now readable as a result of flush');
-  t.equal(ts.output.read(), 'x', 'reading the first chunk gives back what was enqueued');
-  t.equal(ts.output.read(), 'y', 'reading the second chunk gives back what was enqueued');
-  t.equal(ts.output.state, 'waiting', 'after reading both chunks, the output is waiting, since close was not called');
+  setTimeout(() => {
+    t.equal(ts.output.state, 'waiting', 'before doing anything, the output is waiting');
+    ts.input.write('a');
+    t.equal(ts.output.state, 'waiting', 'after a write to the input, the output is still waiting');
+    ts.input.close();
+    t.equal(ts.output.state, 'readable', 'after closing the input, the output is now readable as a result of flush');
+    t.equal(ts.output.read(), 'x', 'reading the first chunk gives back what was enqueued');
+    t.equal(ts.output.read(), 'y', 'reading the second chunk gives back what was enqueued');
+    t.equal(ts.output.state, 'waiting', 'after reading both chunks, the output is waiting, since close was not called');
 
-  ts.output.closed.then(() => {
-    t.equal(ts.output.state, 'closed', 'the output eventually does close, after close is called from flush');
-  })
-  .catch(t.error);
+    ts.output.closed.then(() => {
+      t.equal(ts.output.state, 'closed', 'the output eventually does close, after close is called from flush');
+    })
+    .catch(t.error);
+  }, 0);
 });
