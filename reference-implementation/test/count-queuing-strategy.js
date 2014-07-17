@@ -111,27 +111,29 @@ test('Correctly governs the value of a WritableStream\'s state property (HWM = 0
     strategy: new CountQueuingStrategy({ highWaterMark: 0 })
   });
 
-  t.strictEqual(ws.state, 'writable', 'After 0 writes, 0 of which finished, state should be \'writable\'');
+  setTimeout(() => {
+    t.strictEqual(ws.state, 'writable', 'After 0 writes, 0 of which finished, state should be \'writable\'');
 
-  ws.write('a');
-  t.strictEqual(ws.state, 'waiting', 'After 1 write, 0 of which finished, state should be \'waiting\'');
+    ws.write('a');
+    t.strictEqual(ws.state, 'waiting', 'After 1 write, 0 of which finished, state should be \'waiting\'');
 
-  ws.write('b');
-  t.strictEqual(ws.state, 'waiting', 'After 2 writes, 0 of which finished, state should be \'waiting\'');
+    ws.write('b');
+    t.strictEqual(ws.state, 'waiting', 'After 2 writes, 0 of which finished, state should be \'waiting\'');
 
-  dones.a();
-  t.strictEqual(ws.state, 'waiting', 'After 2 writes, 1 of which finished, state should be \'waiting\'');
+    dones.a();
+    t.strictEqual(ws.state, 'waiting', 'After 2 writes, 1 of which finished, state should be \'waiting\'');
 
-  dones.b();
-  t.strictEqual(ws.state, 'writable', 'After 2 writes, 2 of which finished, state should be \'writable\'');
+    dones.b();
+    t.strictEqual(ws.state, 'writable', 'After 2 writes, 2 of which finished, state should be \'writable\'');
 
-  ws.write('c');
-  t.strictEqual(ws.state, 'waiting', 'After 3 writes, 2 of which finished, state should be \'waiting\'');
+    ws.write('c');
+    t.strictEqual(ws.state, 'waiting', 'After 3 writes, 2 of which finished, state should be \'waiting\'');
 
-  dones.c();
-  t.strictEqual(ws.state, 'writable', 'After 3 writes, 3 of which finished, state should be \'writable\'');
+    dones.c();
+    t.strictEqual(ws.state, 'writable', 'After 3 writes, 3 of which finished, state should be \'writable\'');
 
-  t.end();
+    t.end();
+  }, 0);
 });
 
 test('Correctly governs the value of a WritableStream\'s state property (HWM = 4)', t => {
@@ -141,49 +143,51 @@ test('Correctly governs the value of a WritableStream\'s state property (HWM = 4
     strategy: new CountQueuingStrategy({ highWaterMark: 4 })
   });
 
-  t.strictEqual(ws.state, 'writable', 'After 0 writes, 0 of which finished, state should be \'writable\'');
+  setTimeout(() => {
+    t.strictEqual(ws.state, 'writable', 'After 0 writes, 0 of which finished, state should be \'writable\'');
 
-  ws.write('a');
-  t.strictEqual(ws.state, 'writable', 'After 1 write, 0 of which finished, state should be \'writable\'');
+    ws.write('a');
+    t.strictEqual(ws.state, 'writable', 'After 1 write, 0 of which finished, state should be \'writable\'');
 
-  ws.write('b');
-  t.strictEqual(ws.state, 'writable', 'After 2 writes, 0 of which finished, state should be \'writable\'');
+    ws.write('b');
+    t.strictEqual(ws.state, 'writable', 'After 2 writes, 0 of which finished, state should be \'writable\'');
 
-  ws.write('c');
-  t.strictEqual(ws.state, 'writable', 'After 3 writes, 0 of which finished, state should be \'writable\'');
+    ws.write('c');
+    t.strictEqual(ws.state, 'writable', 'After 3 writes, 0 of which finished, state should be \'writable\'');
 
-  ws.write('d');
-  t.strictEqual(ws.state, 'waiting', 'After 4 writes, 0 of which finished, state should be \'waiting\'');
+    ws.write('d');
+    t.strictEqual(ws.state, 'waiting', 'After 4 writes, 0 of which finished, state should be \'waiting\'');
 
-  ws.write('e');
-  t.strictEqual(ws.state, 'waiting', 'After 5 writes, 0 of which finished, state should be \'waiting\'');
+    ws.write('e');
+    t.strictEqual(ws.state, 'waiting', 'After 5 writes, 0 of which finished, state should be \'waiting\'');
 
-  ws.write('f');
-  t.strictEqual(ws.state, 'waiting', 'After 6 writes, 0 of which finished, state should be \'waiting\'');
+    ws.write('f');
+    t.strictEqual(ws.state, 'waiting', 'After 6 writes, 0 of which finished, state should be \'waiting\'');
 
-  ws.write('g');
-  t.strictEqual(ws.state, 'waiting', 'After 7 writes, 0 of which finished, state should be \'waiting\'');
+    ws.write('g');
+    t.strictEqual(ws.state, 'waiting', 'After 7 writes, 0 of which finished, state should be \'waiting\'');
 
-  dones.a();
-  t.strictEqual(ws.state, 'waiting', 'After 7 writes, 1 of which finished, state should be \'waiting\'');
+    dones.a();
+    t.strictEqual(ws.state, 'waiting', 'After 7 writes, 1 of which finished, state should be \'waiting\'');
 
-  dones.b();
-  t.strictEqual(ws.state, 'waiting', 'After 7 writes, 2 of which finished, state should be \'waiting\'');
+    dones.b();
+    t.strictEqual(ws.state, 'waiting', 'After 7 writes, 2 of which finished, state should be \'waiting\'');
 
-  dones.c();
-  t.strictEqual(ws.state, 'waiting', 'After 7 writes, 3 of which finished, state should be \'waiting\'');
+    dones.c();
+    t.strictEqual(ws.state, 'waiting', 'After 7 writes, 3 of which finished, state should be \'waiting\'');
 
-  dones.d();
-  t.strictEqual(ws.state, 'writable', 'After 7 writes, 4 of which finished, state should be \'writable\'');
+    dones.d();
+    t.strictEqual(ws.state, 'writable', 'After 7 writes, 4 of which finished, state should be \'writable\'');
 
-  ws.write('h');
-  t.strictEqual(ws.state, 'waiting', 'After 8 writes, 4 of which are finished, state should be \'waiting\'');
+    ws.write('h');
+    t.strictEqual(ws.state, 'waiting', 'After 8 writes, 4 of which are finished, state should be \'waiting\'');
 
-  dones.e();
-  t.strictEqual(ws.state, 'writable', 'After 8 writes, 5 of which are finished, state should be \'writable\'');
+    dones.e();
+    t.strictEqual(ws.state, 'writable', 'After 8 writes, 5 of which are finished, state should be \'writable\'');
 
-  ws.write('i');
-  t.strictEqual(ws.state, 'waiting', 'After 9 writes, 5 of which are finished, state should be \'waiting\'');
+    ws.write('i');
+    t.strictEqual(ws.state, 'waiting', 'After 9 writes, 5 of which are finished, state should be \'waiting\'');
 
-  t.end();
+    t.end();
+  }, 0);
 });

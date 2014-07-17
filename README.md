@@ -243,6 +243,7 @@ class WritableStream {
     [[currentWritePromise]]
     [[writablePromise]]
     [[closedPromise]]
+    [[startedPromise]]
     [[onWrite]]
     [[onClose]]
     [[onAbort]]
@@ -278,9 +279,11 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Let `this.[[writablePromise]]` be a new promise.
 1. Let `this.[[closedPromise]]` be a new promise.
 1. Let `this.[[queue]]` be a new empty List.
-1. Call `start()` and let `startedPromise` be the result of resolving the return value as a promise.
-1. When/if `startedPromise` is fulfilled, call `this.[[advanceQueue]]()`.
-1. When/if `startedPromise` is rejected with reason `r`, call `this.[[error]](r)`.
+1. Let _startResult_ be the result of `start()`.
+1. ReturnIfAbrupt(_startResult_).
+1. Let `this.[[startedPromise]]` be the result of resolving _startResult_ as a promise.
+1. Upon fulfillment of `this.[[startedPromise]]`, set `this.[[started]]` to **true**.
+1. Upon rejection of `this.[[startedPromise]]` with reason `r`, call `this.[[error]](r)`.
 
 ##### get closed
 
@@ -298,7 +301,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Let `promise` be a new promise.
     1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"chunk"`, [[promise]]: `promise`, [[chunk]]: `chunk`}, _chunkSize_).
     1. Call `this.[[syncStateWithQueue]]()`.
-    1. Call `this.[[advanceQueue]]()`.
+    1. Call `this.[[callOrScheduleAdvanceQueue]]()`.
     1. Return `promise`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
     1. Return a promise rejected with a **TypeError** exception.
@@ -310,7 +313,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If `this.[[state]]` is `"waiting"` or `"writable"`,
     1. Set `this.[[state]]` to `"closing"`.
     1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"close"`, [[promise]]: `this.[[closedPromise]]`, [[chunk]]: **undefined**}, **0**).
-    1. Call `this.[[advanceQueue]]()`.
+    1. Call `this.[[callOrScheduleAdvanceQueue]]()`.
     1. Return `this.[[closedPromise]]`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
     1. Return a promise rejected with a **TypeError** exception.
@@ -342,6 +345,12 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If `this.[[state]]` is `"waiting"`, reject `this.[[writablePromise]]` with `e`.
 1. Reject `this.[[closedPromise]]` with `e`.
 1. Set `this.[[state]]` to `"errored"`.
+
+##### `[[callOrScheduleAdvanceQueue]]()`
+
+1. If `this.[[started]]` is **false**,
+    1. Upon fulfillment of `this.[[startedPromise]]`, call `this.[[advanceQueue]]`.
+1. If `this.[[started]]` is **true**, call `this.[[advanceQueue]]`.
 
 ##### `[[advanceQueue]]()`
 
