@@ -46,6 +46,8 @@ class ReadableStream {
     [[waitPromise]]
     [[closedPromise]]
     [[startedPromise]]
+
+    // Holders for stuff given by the underlying source
     [[onCancel]]
     [[onPull]]
     [[strategy]]
@@ -243,6 +245,8 @@ class WritableStream {
     [[currentWritePromise]]
     [[writablePromise]]
     [[closedPromise]]
+
+    // Holders for stuff given by the underlying sink
     [[onWrite]]
     [[onClose]]
     [[onAbort]]
