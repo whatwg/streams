@@ -26,6 +26,7 @@ export default class WritableStream {
       throw new TypeError('strategy must be an object');
     }
 
+    this._started = false;
     this._state = 'writable';
 
     this._onWrite = write;
@@ -45,9 +46,9 @@ export default class WritableStream {
 
     this._queue = [];
 
-    var startedPromise = Promise.resolve(start());
-    startedPromise.then(() => this._advanceQueue());
-    startedPromise.catch(r => this._error(r));
+    this._startedPromise = Promise.resolve(start());
+    this._startedPromise.then(() => this._started = true);
+    this._startedPromise.catch(r => this._error(r));
   }
 
   get closed() {
@@ -76,7 +77,7 @@ export default class WritableStream {
           chunkSize
         );
         this._syncStateWithQueue();
-        this._advanceQueue();
+        this._callOrScheduleAdvanceQueue();
 
         return promise;
 
@@ -107,7 +108,7 @@ export default class WritableStream {
           },
           0
         );
-        this._advanceQueue();
+        this._callOrScheduleAdvanceQueue();
         return this._closedPromise;
 
       case 'closing':
@@ -160,6 +161,18 @@ export default class WritableStream {
     }
     this._closedPromise_reject(error);
     this._state = 'errored';
+  }
+
+  _callOrScheduleAdvanceQueue() {
+    if (this._started === false) {
+      this._startedPromise.then(() => {
+        this._advanceQueue();
+      });
+    }
+
+    if (this._started === true) {
+      this._advanceQueue();
+    }
   }
 
   _advanceQueue() {

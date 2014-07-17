@@ -7,6 +7,118 @@ function writeArrayToStream(array, writableStream) {
   return writableStream.close();
 }
 
+test('Underlying sink\'s write won\'t be called until start finishes', t => {
+  var expectWriteCall = false;
+
+  var resolveStartPromise;
+  var ws = new WritableStream({
+    start() {
+      return new Promise(
+          (resolve, reject) => { resolveStartPromise = resolve; });
+    },
+    write(chunk) {
+      if (expectWriteCall) {
+        t.equal(chunk, 'a');
+        t.end();
+      } else {
+        t.fail('Unexpected write call');
+        t.end();
+      }
+    },
+    close() {
+      t.fail('Unexpected close call');
+      t.end();
+    }
+  });
+  ws.write('a');
+  t.equal(ws.state, 'waiting');
+
+  // Wait and see that write won't be called.
+  setTimeout(() => {
+    expectWriteCall = true;
+    resolveStartPromise();
+  }, 100);
+});
+
+test('Underlying sink\'s close won\'t be called until start finishes', t => {
+  var expectCloseCall = false;
+
+  var resolveStartPromise;
+  var ws = new WritableStream({
+    start() {
+      return new Promise(
+          (resolve, reject) => { resolveStartPromise = resolve; });
+    },
+    write(chunk) {
+      t.fail('Unexpected write call');
+      t.end();
+    },
+    close() {
+      if (expectCloseCall) {
+        t.end();
+      } else {
+        t.fail('Unexpected close call');
+        t.end();
+      }
+    }
+  });
+  ws.close('a');
+  t.equal(ws.state, 'closing');
+
+  // Wait and see that write won't be called.
+  setTimeout(() => {
+    expectCloseCall = true;
+    resolveStartPromise();
+  }, 100);
+});
+
+test('Underlying sink\'s write or close are never invoked if start throws', t => {
+  var passedError = new Error('horrible things');
+
+  try {
+    var ws = new WritableStream({
+      start() {
+        throw passedError;
+      },
+      write(chunk) {
+        t.fail('Unexpected write call');
+        t.end();
+      },
+      close() {
+        t.fail('Unexpected close call');
+        t.end();
+      }
+    });
+  } catch (e) {
+    t.strictEqual(e, passedError);
+    t.end();
+    return;
+  }
+  t.fail('Constructor didn\'t throw');
+  t.end();
+});
+
+test('Underlying sink\'s write or close are never invoked if the promise returned by start is rejected', t => {
+  var ws = new WritableStream({
+    start() {
+      return Promise.reject();
+    },
+    write(chunk) {
+      t.fail('Unexpected write call');
+      t.end();
+    },
+    close() {
+      t.fail('Unexpected close call');
+      t.end();
+    }
+  });
+
+  // Wait and see that write or close won't be called.
+  setTimeout(() => {
+    t.end();
+  }, 100);
+});
+
 test('WritableStream can be constructed with no arguments', t => {
   t.plan(1);
   t.doesNotThrow(() => new WritableStream(), 'WritableStream constructed with no errors');
@@ -89,11 +201,15 @@ test('WritableStream stays writable indefinitely if writes are all acknowledged 
     }
   });
 
-  var input = [1, 2, 3, 4, 5];
-  writeArrayToStream(input, ws).then(
-    () => t.end(),
-    r => t.fail(r)
-  );
+  // Wait for completion of start so that the underlying sink's write is
+  // invoked synchronously.
+  setTimeout(() => {
+    var input = [1, 2, 3, 4, 5];
+    writeArrayToStream(input, ws).then(
+      () => t.end(),
+      r => t.fail(r)
+    );
+  }, 0);
 });
 
 test('WritableStream transitions to waiting after one write that is not synchronously acknowledged', t => {
@@ -104,13 +220,15 @@ test('WritableStream transitions to waiting after one write that is not synchron
     }
   });
 
-  t.strictEqual(ws.state, 'writable', 'state starts writable');
-  ws.write('a');
-  t.strictEqual(ws.state, 'waiting', 'state is waiting until the write finishes');
-  done();
-  t.strictEqual(ws.state, 'writable', 'state becomes writable again after the write finishes');
+  setTimeout(() => {
+    t.strictEqual(ws.state, 'writable', 'state starts writable');
+    ws.write('a');
+    t.strictEqual(ws.state, 'waiting', 'state is waiting until the write finishes');
+    done();
+    t.strictEqual(ws.state, 'writable', 'state becomes writable again after the write finishes');
 
-  t.end();
+    t.end();
+  }, 0);
 });
 
 test('WritableStream if sink calls error, queued write and close are cleared', t => {
@@ -123,34 +241,36 @@ test('WritableStream if sink calls error, queued write and close are cleared', t
     }
   });
 
-  var writePromise = ws.write('a');
+  setTimeout(() => {
+    var writePromise = ws.write('a');
 
-  t.notStrictEqual(error, undefined, 'write is called and error is set');
+    t.notStrictEqual(error, undefined, 'write is called and error is set');
 
-  var writePromise2 = ws.write('b');
-  var closedPromise = ws.close();
+    var writePromise2 = ws.write('b');
+    var closedPromise = ws.close();
 
-  t.strictEqual(ws.state, 'closing', 'state is closing until the close finishes');
+    t.strictEqual(ws.state, 'closing', 'state is closing until the close finishes');
 
-  var passedError = new Error('horrible things');
-  error(passedError);
+    var passedError = new Error('horrible things');
+    error(passedError);
 
-  t.strictEqual(ws.state, 'errored', 'state is errored as the sink called error');
+    t.strictEqual(ws.state, 'errored', 'state is errored as the sink called error');
 
-  writePromise.then(
-    () => t.fail('writePromise is fulfilled unexpectedly'),
-    r => t.strictEqual(r, passedError)
-  );
+    writePromise.then(
+      () => t.fail('writePromise is fulfilled unexpectedly'),
+      r => t.strictEqual(r, passedError)
+    );
 
-  writePromise2.then(
-    () => t.fail('writePromise2 is fulfilled unexpectedly'),
-    r => t.strictEqual(r, passedError)
-  );
+    writePromise2.then(
+      () => t.fail('writePromise2 is fulfilled unexpectedly'),
+      r => t.strictEqual(r, passedError)
+    );
 
-  closedPromise.then(
-    () => t.fail('closedPromise is fulfilled unexpectedly'),
-    r => t.strictEqual(r, passedError)
-  );
+    closedPromise.then(
+      () => t.fail('closedPromise is fulfilled unexpectedly'),
+      r => t.strictEqual(r, passedError)
+    );
+  }, 0);
 });
 
 test('WritableStream if sink calls error, wait will return a rejected promise', t => {
@@ -163,17 +283,20 @@ test('WritableStream if sink calls error, wait will return a rejected promise', 
       error = error_;
     }
   });
-  ws.write('a');
-  t.strictEqual(ws.state, 'writable', 'state is writable as signalDone is called');
 
-  var passedError = new Error('pass me');
-  error(passedError);
-  t.strictEqual(ws.state, 'errored', 'state is errored as error is called');
+  setTimeout(() => {
+    ws.write('a');
+    t.strictEqual(ws.state, 'writable', 'state is writable as signalDone is called');
 
-  ws.wait().then(
-    () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
-    r => t.strictEqual(r, passedError, 'wait() should be rejected with the passed error')
-  );
+    var passedError = new Error('pass me');
+    error(passedError);
+    t.strictEqual(ws.state, 'errored', 'state is errored as error is called');
+
+    ws.wait().then(
+      () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
+      r => t.strictEqual(r, passedError, 'wait() should be rejected with the passed error')
+    );
+  }, 0);
 });
 
 test('WritableStream if sink throws an error after done, the stream becomes errored but the promise fulfills', t => {
@@ -187,20 +310,22 @@ test('WritableStream if sink throws an error after done, the stream becomes erro
     }
   });
 
-  var writePromise = ws.write('a');
-  t.strictEqual(ws.state, 'errored', 'state is errored after the sink throws');
+  setTimeout(() => {
+    var writePromise = ws.write('a');
+    t.strictEqual(ws.state, 'errored', 'state is errored after the sink throws');
 
-  var closedPromise = ws.close();
+    var closedPromise = ws.close();
 
-  writePromise.then(
-    () => t.pass('the promise returned from write should fulfill since done was called before throwing'),
-    t.ifError
-  );
+    writePromise.then(
+      () => t.pass('the promise returned from write should fulfill since done was called before throwing'),
+      t.ifError
+    );
 
-  ws.close().then(
-    () => t.fail('close() is fulfilled unexpectedly'),
-    r => t.strictEqual(r, thrownError, 'close() should be rejected with the thrown error')
-  );
+    ws.close().then(
+      () => t.fail('close() is fulfilled unexpectedly'),
+      r => t.strictEqual(r, thrownError, 'close() should be rejected with the thrown error')
+    );
+  }, 0);
 });
 
 test('WritableStream if sink throws an error before done, the stream becomes errored and the promise rejects', t => {
@@ -214,18 +339,20 @@ test('WritableStream if sink throws an error before done, the stream becomes err
     }
   });
 
-  var writePromise = ws.write('a');
-  t.strictEqual(ws.state, 'errored', 'state is errored after the sink throws');
+  setTimeout(() => {
+    var writePromise = ws.write('a');
+    t.strictEqual(ws.state, 'errored', 'state is errored after the sink throws');
 
-  var closedPromise = ws.close();
+    var closedPromise = ws.close();
 
-  writePromise.then(
-    () => t.fail('the write promise is fulfilled unexpectedly'),
-    r => t.strictEqual(r, thrownError, 'the write promise should be rejected with the thrown error')
-  );
+    writePromise.then(
+      () => t.fail('the write promise is fulfilled unexpectedly'),
+      r => t.strictEqual(r, thrownError, 'the write promise should be rejected with the thrown error')
+    );
 
-  ws.close().then(
-    () => t.fail('close() is fulfilled unexpectedly'),
-    r => t.strictEqual(r, thrownError, 'close() should be rejected with the thrown error')
-  );
+    ws.close().then(
+      () => t.fail('close() is fulfilled unexpectedly'),
+      r => t.strictEqual(r, thrownError, 'close() should be rejected with the thrown error')
+    );
+  }, 0);
 });
