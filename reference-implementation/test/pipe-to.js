@@ -1084,3 +1084,64 @@ test('Piping to a stream that errors on the last chunk does not pass through the
     t.end();
   }, 20);
 });
+
+test('Piping to a writable stream that does not consume the writes fast enough exerts backpressure on the source', t => {
+  t.plan(2);
+
+  var enqueueReturnValues = [];
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      setTimeout(() => enqueueReturnValues.push(enqueue('a')), 10);
+      setTimeout(() => enqueueReturnValues.push(enqueue('b')), 20);
+      setTimeout(() => enqueueReturnValues.push(enqueue('c')), 30);
+      setTimeout(() => enqueueReturnValues.push(enqueue('d')), 40);
+      setTimeout(() => close(), 50);
+    }
+  });
+
+  var writtenValues = [];
+  var ws = new WritableStream({
+    write(chunk, done) {
+      setTimeout(() => {
+        writtenValues.push(chunk);
+        done();
+      }, 25);
+    }
+  });
+
+  setTimeout(() => {
+    rs.pipeTo(ws).closed.then(() => {
+      t.deepEqual(enqueueReturnValues, [true, true, false, false], 'backpressure was correctly exerted at the source');
+      t.deepEqual(writtenValues, ['a', 'b', 'c', 'd'], 'all chunks were written');
+    });
+  }, 0);
+
+  // Why it is [true, true, false, false]:
+  //
+  // 10 ms:
+  // - enqueue('a') returns true (since rs's queue is empty)
+  // - rs's queue is ['a'], ws's queue is []
+  // - rs is readable, ws is writable
+  // 10 ms + microtask, since rs is now readable:
+  // - ws.write(rs.read()) happens; the write will be done at 35 ms
+  // - rs's queue is [], ws's queue is ['a']
+  // - rs is waiting, ws is waiting
+  // 20 ms:
+  // - enqueue('b') returns true (since rs's queue is empty)
+  // - rs's queue is ['b'], ws's queue is still ['a']
+  // - rs is readable, ws is waiting
+  // 30 ms:
+  // - enqueue('c') returns false (since rs's queue is nonempty)
+  // - rs's queue is ['b', 'c'], ws's queue is still ['a']
+  // - rs is readable, ws is waiting
+  // 35 ms:
+  // - ws's done() is called for the 'a' chunk
+  // - rs's queue is ['b', 'c'], ws's queue is []
+  // - rs is readable, ws is writable
+  // 35 ms + microtask, since ws is now writable
+  // - ws.write(rs.read()) happens; the write will be done at 60 ms
+  // - rs's queue is ['c'], ws's queue is ['b']
+  // - rs is readable, ws is waiting
+  // 40 ms:
+  // - enqueue('d') returns false (since rs's queue is nonempty)
+});
