@@ -507,9 +507,10 @@ tzik
 for their contributions to this specification.
 
 Special thanks to:
+Will Chan for his help ensuring that the API allows high-performance network streaming,
 Gorgi Kosev for his breakthrough idea of separating piping into two methods, thus resolving
   <a href="https://github.com/whatwg/streams/issues/44">a major sticking point</a>;
 Forrest Norvell for his enthusiastic iteration on the reference implementation;
 Isaac Schlueter for his pioneering work on JavaScript streams in Node.js;
 Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward; and
-Takeshi Yoshino for his careful review of this spec's algorithms and concepts.
+Takeshi Yoshino for his careful review of and contributions to this spec's algorithms and concepts.
