@@ -240,6 +240,7 @@ class WritableStream {
 
     // Internal slots
     [[queue]]
+    [[started]] = false
     [[state]] = "writable"
     [[storedError]]
     [[currentWritePromise]]
