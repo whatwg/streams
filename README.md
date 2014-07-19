@@ -315,15 +315,16 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ##### close()
 
-1. If `this.[[state]]` is `"waiting"` or `"writable"`,
-    1. Set `this.[[state]]` to `"closing"`.
-    1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"close"`, [[promise]]: `this.[[closedPromise]]`, [[chunk]]: **undefined**}, **0**).
-    1. Call `this.[[callOrScheduleAdvanceQueue]]()`.
-    1. Return `this.[[closedPromise]]`.
-1. If `this.[[state]]` is `"closing"` or `"closed"`,
-    1. Return a promise rejected with a **TypeError** exception.
-1. If `this.[[state]]` is `"errored"`,
-    1. Return a promise rejected with `this.[[storedError]]`.
+1. If `this.[[state]]` is `"closing"` or `"closed"`, return a promise rejected with a **TypeError** exception.
+1. If `this.[[state]]` is `"errored"`, return a promise rejected with `this.[[storedError]]`.
+1. If `this.[[state]]` is `"writable"`,
+    1. Set `this.[[writablePromise]]` to a new promise rejected with a **TypeError** exception.
+1. If `this.[[state]]` is `"waiting"`,
+    1. Reject `this.[[writablePromise]]` with a **TypeError** exception.
+1. Set `this.[[state]]` to `"closing"`.
+1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"close"`, [[promise]]: `this.[[closedPromise]]`, [[chunk]]: **undefined**}, **0**).
+1. Call `this.[[callOrScheduleAdvanceQueue]]()`.
+1. Return `this.[[closedPromise]]`.
 
 ##### abort(reason)
 
@@ -346,7 +347,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Reject `writeRecord.[[promise]]` with `e`.
 1. Set `this.[[currentWritePromise]]` to **undefined**.
 1. Set `this.[[storedError]]` to `e`.
-1. If `this.[[state]]` is `"writable"`, set `this.[[writablePromise]]` to a new promise rejected with `e`.
+1. If `this.[[state]]` is `"writable"` or `"closing"`, set `this.[[writablePromise]]` to a new promise rejected with `e`.
 1. If `this.[[state]]` is `"waiting"`, reject `this.[[writablePromise]]` with `e`.
 1. Reject `this.[[closedPromise]]` with `e`.
 1. Set `this.[[state]]` to `"errored"`.
@@ -405,7 +406,7 @@ Note: the peeking-then-dequeuing dance is necessary so that during the call to t
 
 ##### `[[doClose]]()`
 
-1. Reject `this.[[writablePromise]]` with a **TypeError** exception.
+1. Assert: `this.[[state]]` is `"closing"`.
 1. Let _closePromise_ be the result of promise-calling `this.[[onClose]]()`.
 1. Upon fulfillment of _closePromise_,
     1. Set `this.[[state]]` to `"closed"`.

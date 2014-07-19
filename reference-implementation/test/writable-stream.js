@@ -273,6 +273,63 @@ test('WritableStream if sink calls error, queued write and close are cleared', t
   }, 0);
 });
 
+test('If close is called on a WritableStream in writable state, wait will return a rejected promise', t => {
+  var ws = new WritableStream({
+    write() {
+      t.fail('Unexpected write call');
+      t.end();
+    },
+    abort() {
+      t.fail('Unexpected abort call');
+      t.end();
+    },
+  });
+
+  // Wait for ws to start.
+  setTimeout(() => {
+    t.strictEqual(ws.state, 'writable', 'state must be writable');
+
+    ws.close();
+    t.strictEqual(ws.state, 'closing', 'state must become closing synchronously on close call');
+
+    ws.wait().then(
+      () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
+      r => {
+        t.strictEqual(r.constructor, TypeError,
+                      'wait() must start returning a promise rejected with a TypeError exception');
+        t.end();
+      }
+    );
+  }, 0);
+});
+
+test('If close is called on a WritableStream in waiting state, wait will return a rejected promise', t => {
+  var ws = new WritableStream({
+    abort() {
+      t.fail('Unexpected abort call');
+      t.end();
+    },
+  });
+
+  // Wait for ws to start.
+  setTimeout(() => {
+    ws.write('a');
+    t.strictEqual(ws.state, 'waiting', 'state must become waiting synchronously on write call');
+
+    ws.close();
+    t.strictEqual(ws.state, 'closing', 'state must become closing synchronously on close call');
+
+    ws.wait().then(
+      () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
+      r => {
+        t.strictEqual(r.constructor, TypeError,
+                      'wait() must start returning a promise rejected with a TypeError exception');
+        t.end();
+      }
+    );
+  }, 0);
+});
+
 test('WritableStream if sink calls error, wait will return a rejected promise', t => {
   t.plan(3);
 
@@ -295,6 +352,47 @@ test('WritableStream if sink calls error, wait will return a rejected promise', 
     ws.wait().then(
       () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
       r => t.strictEqual(r, passedError, 'wait() should be rejected with the passed error')
+    );
+  }, 0);
+});
+
+test('WritableStream if sink\'s close throws', t => {
+  var passedError = new Error('pass me');
+  var ws = new WritableStream({
+    write() {
+      t.fail('Unexpected write call');
+      t.end();
+    },
+    close() {
+      throw passedError;
+    },
+    abort() {
+      t.fail('Unexpected abort call');
+      t.end();
+    },
+  });
+
+  // Wait for ws to start.
+  setTimeout(() => {
+    var closedPromise = ws.close();
+    t.strictEqual(ws.state, 'closing', 'state must become closing synchronously on close call');
+
+    closedPromise.then(
+      () => {
+        t.fail('closedPromise is fulfilled unexpectedly');
+        t.end();
+      },
+      r => {
+        t.strictEqual(ws.state, 'errored', 'state must be errored as error is called');
+
+        ws.wait().then(
+          () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
+          r => {
+            t.strictEqual(r, passedError, 'wait() should be rejected with the passed error');
+            t.end();
+          }
+        );
+      }
     );
   }, 0);
 });

@@ -95,21 +95,14 @@ export default class WritableStream {
   close() {
     switch (this._state) {
       case 'writable':
+        this._writablePromise = Promise.reject(new TypeError('stream has already been closed'));
+        this._writablePromise_resolve = null;
+        this._writablePromise_reject = null;
+        break;
+
       case 'waiting':
-        this._state = 'closing';
-        helpers.enqueueValueWithSize(
-          this._queue,
-          {
-            type: 'close',
-            promise: this._closedPromise,
-            chunk: undefined,
-            _resolve: this._closedPromise_resolve,
-            _reject: this._closedPromise_reject
-          },
-          0
-        );
-        this._callOrScheduleAdvanceQueue();
-        return this._closedPromise;
+        this._writablePromise_reject(new TypeError('stream has already been closed'));
+        break;
 
       case 'closing':
         return Promise.reject(new TypeError('cannot close an already-closing stream'));
@@ -120,6 +113,21 @@ export default class WritableStream {
       case 'errored':
         return Promise.reject(this._storedError);
     }
+
+    this._state = 'closing';
+    helpers.enqueueValueWithSize(
+      this._queue,
+      {
+        type: 'close',
+        promise: this._closedPromise,
+        chunk: undefined,
+        _resolve: this._closedPromise_resolve,
+        _reject: this._closedPromise_reject
+      },
+      0
+    );
+    this._callOrScheduleAdvanceQueue();
+    return this._closedPromise;
   }
 
   abort(reason) {
@@ -152,7 +160,7 @@ export default class WritableStream {
     this._currentWritePromise_resolve = null;
     this._currentWritePromise_reject = null;
     this._storedError = error;
-    if (this._state === 'writable') {
+    if (this._state === 'writable' || this._state === 'closing') {
       this._writablePromise = Promise.reject(error);
       this._writablePromise_resolve = null;
       this._writablePromise_reject = null;
@@ -250,7 +258,7 @@ export default class WritableStream {
   }
 
   _doClose() {
-    this._writablePromise_reject(new TypeError('stream has already been closed'));
+    assert(this._state === 'closing', 'stream must be in closing state to process doClose');
 
     var closePromise = helpers.promiseCall(this._onClose);
 
