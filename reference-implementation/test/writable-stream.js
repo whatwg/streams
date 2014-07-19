@@ -330,7 +330,7 @@ test('If close is called on a WritableStream in waiting state, wait will return 
   }, 0);
 });
 
-test('WritableStream if sink calls error, wait will return a rejected promise', t => {
+test('If sink calls error on a WritableStream in writable state, wait will return a rejected promise', t => {
   t.plan(3);
 
   var error;
@@ -393,6 +393,31 @@ test('WritableStream if sink\'s close throws', t => {
           }
         );
       }
+    );
+  }, 0);
+});
+
+test('If sink calls error on a WritableStream in waiting state, wait will return a rejected promise', t => {
+  t.plan(3);
+
+  var error;
+  var ws = new WritableStream({
+    write(chunk, done, error_) {
+      error = error_;
+    }
+  });
+
+  setTimeout(() => {
+    ws.write('a');
+    t.strictEqual(ws.state, 'waiting', 'state is waiting as signalDone is not called');
+
+    var passedError = new Error('pass me');
+    error(passedError);
+    t.strictEqual(ws.state, 'errored', 'state is errored as error is called');
+
+    ws.wait().then(
+      () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
+      r => t.strictEqual(r, passedError, 'wait() should be rejected with the passed error')
     );
   }, 0);
 });
