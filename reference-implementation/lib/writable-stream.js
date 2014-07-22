@@ -46,7 +46,7 @@ export default class WritableStream {
 
     this._queue = [];
 
-    this._startedPromise = Promise.resolve(start());
+    this._startedPromise = Promise.resolve(start(this._error.bind(this)));
     this._startedPromise.then(() => this._started = true);
     this._startedPromise.catch(r => this._error(r));
   }

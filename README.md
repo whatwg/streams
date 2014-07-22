@@ -270,7 +270,7 @@ enum WritableStreamState {
 
 The constructor is passed several functions, all optional:
 
-* `start()` is called when the writable stream is created, and should open the underlying writable sink. If this process is asynchronous, it can return a promise to signal success or failure.
+* `start(error)` is called when the writable stream is created, and should open the underlying writable sink. If this process is asynchronous, it can return a promise to signal success or failure.
 * `write(chunk, done, error)` should write `chunk` to the underlying sink. It can call its `done` or `error` parameters, either synchronously or asynchronously, to respectively signal that the underlying resource is ready for more data or that an error occurred writing. The stream implementation guarantees that this function will be called only after previous writes have succeeded (i.e. called their `done` parameter), and never after `close` or `abort` is called.
 * `close()` should close the underlying sink. If this process is asynchronous, it can return a promise to signal success or failure. The stream implementation guarantees that this function will be called only after all queued-up writes have succeeded.
 * `abort()` is an abrupt close, signaling that all data written so far is suspect. It should clean up underlying resources, much like `close`, but perhaps with some custom handling. Unlike `close`, `abort` will be called even if writes are queued up, throwing away those chunks.
@@ -284,7 +284,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Let `this.[[writablePromise]]` be a new promise.
 1. Let `this.[[closedPromise]]` be a new promise.
 1. Let `this.[[queue]]` be a new empty List.
-1. Let _startResult_ be the result of `start()`.
+1. Let _startResult_ be the result of `start(this.[[error]])`.
 1. ReturnIfAbrupt(_startResult_).
 1. Let `this.[[startedPromise]]` be the result of resolving _startResult_ as a promise.
 1. Upon fulfillment of `this.[[startedPromise]]`, set `this.[[started]]` to **true**.

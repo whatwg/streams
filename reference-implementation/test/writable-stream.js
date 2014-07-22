@@ -7,6 +7,24 @@ function writeArrayToStream(array, writableStream) {
   return writableStream.close();
 }
 
+test('error argument is given to start method', t => {
+  var error;
+  var ws = new WritableStream({
+    start(error_) {
+      error = error_;
+    }
+  });
+
+  // Now error the stream after its construction.
+  var passedError = new Error('horrible things');
+  error(passedError);
+  t.equal(ws.state, 'errored');
+  ws.closed.catch(r => {
+    t.strictEqual(r, passedError);
+    t.end();
+  });
+});
+
 test('Underlying sink\'s write won\'t be called until start finishes', t => {
   var expectWriteCall = false;
 
