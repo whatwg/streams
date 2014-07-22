@@ -75,9 +75,9 @@ enum ReadableStreamState {
 
 The constructor is passed several functions, all optional:
 
-- `start(enqueue, close, error)` is typically used to adapt a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source.
+- `start(enqueue, close, error)` is typically used to adapt a push-based data source, as it is called immediately so it can set up any relevant event listeners, or to acquire access to a pull-based data source. If this process is asynchronous, it can return a promise to signal success or failure.
 - `pull(enqueue, close, error)` is typically used to adapt a pull-based data source, as it is called in reaction to `read` calls, or to start the flow of data in push-based data sources. Once it is called, it will not be called again until its passed `enqueue` function is called.
-- `cancel(reason)` is called when the readable stream is canceled, and should perform whatever source-specific steps are necessary to clean up and stop reading.
+- `cancel(reason)` is called when the readable stream is canceled, and should perform whatever source-specific steps are necessary to clean up and stop reading. If this process is asynchronous, it can return a promise to signal success or failure.
 
 Both `start` and `pull` are given the ability to manipulate the stream's internal queue and state by being passed the `this.[[enqueue]]`, `this.[[close]]`, and `this.[[error]]` functions.
 
@@ -273,7 +273,7 @@ The constructor is passed several functions, all optional:
 * `start(error)` is called when the writable stream is created, and should open the underlying writable sink. If this process is asynchronous, it can return a promise to signal success or failure.
 * `write(chunk, done, error)` should write `chunk` to the underlying sink. It can call its `done` or `error` parameters, either synchronously or asynchronously, to respectively signal that the underlying resource is ready for more data or that an error occurred writing. The stream implementation guarantees that this function will be called only after previous writes have succeeded (i.e. called their `done` parameter), and never after `close` or `abort` is called.
 * `close()` should close the underlying sink. If this process is asynchronous, it can return a promise to signal success or failure. The stream implementation guarantees that this function will be called only after all queued-up writes have succeeded.
-* `abort()` is an abrupt close, signaling that all data written so far is suspect. It should clean up underlying resources, much like `close`, but perhaps with some custom handling. Unlike `close`, `abort` will be called even if writes are queued up, throwing away those chunks.
+* `abort()` is an abrupt close, signaling that all data written so far is suspect. It should clean up underlying resources, much like `close`, but perhaps with some custom handling. Unlike `close`, `abort` will be called even if writes are queued up, throwing away those chunks. If this process is asynchronous, it can return a promise to signal success or failure.
 
 In reaction to calls to the stream's `.write()` method, the `write` constructor option is given a chunk from the internal queue, along with the means to signal that the chunk has been successfully or unsuccessfully written.
 
