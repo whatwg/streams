@@ -305,7 +305,8 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. ReturnIfAbrupt(_chunkSize_).
     1. Let `promise` be a new promise.
     1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"chunk"`, [[promise]]: `promise`, [[chunk]]: `chunk`}, _chunkSize_).
-    1. Call `this.[[syncStateWithQueue]]()`.
+    1. Let _syncResult_ be the result of calling `this.[[syncStateWithQueue]]()`.
+    1. If _syncResult_ is **false**, return `promise`.
     1. Call `this.[[callOrScheduleAdvanceQueue]]()`.
     1. Return `promise`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
@@ -374,8 +375,9 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
         1. If `this.[[currentWritePromise]]` is not `writeRecord.[[promise]]`, return.
         1. Set `this.[[currentWritePromise]]` to **undefined**.
         1. DequeueValue(`this.[[queue]]`).
-        1. Call `this.[[syncStateWithQueue]]()`.
         1. Resolve `writeRecord.[[promise]]` with **undefined**.
+        1. Let _syncResult_ be the result of calling `this.[[syncStateWithQueue]]()`.
+        1. If _syncResult_ is **false**, return.
         1. Call `this.[[advanceQueue]]()`.
     1. Call `this.[[onWrite]](chunk, signalDone, this.[[error]])`.
     1. If the call throws an exception `e`, call `this.[[error]](e)`.
@@ -386,23 +388,24 @@ Note: the peeking-then-dequeuing dance is necessary so that during the call to t
 
 ##### `[[syncStateWithQueue]]()`
 
-1. If `this.[[state]]` is `"closing"`, return.
+1. If `this.[[state]]` is `"closing"`, return **true**.
 1. Assert: `this.[[state]]` is either `"writable"` or `"waiting"`.
 1. If `this.[[state]]` is `"waiting"` and `this.[[queue]]` is empty,
     1. Set `this.[[state]]` to `"writable"`.
     1. Resolve `this.[[writablePromise]]` with **undefined**.
-    1. Return.
+    1. Return **true**.
 1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
 1. Let _needsMore_ be Invoke(`this.[[strategy]]`, `"needsMore"`, (_queueSize_)).
-1. ReturnIfAbrupt(_needsMore_).
+1. If _needsMore_ is an abrupt completion, call `this.[[error]](_needsMore_.[[value]])` and return **false**.
 1. Let _needsMore_ be ToBoolean(_needsMore_).
-1. ReturnIfAbrupt(_needsMore_).
+1. If _needsMore_ is an abrupt completion, call `this.[[error]](_needsMore_.[[value]])` and return **false**.
 1. If _needsMore_ is **true** and `this.[[state]]` is `"waiting"`,
     1. Set `this.[[state]]` to `"writable"`.
     1. Resolve `this.[[writablePromise]]` with **undefined**.
 1. If _needsMore_ is **false** and `this.[[state]]` is `"writable"`,
     1. Set `this.[[state]]` to `"waiting"`.
     1. Set `this.[[writablePromise]]` to a new promise.
+1. Return **true**
 
 ##### `[[doClose]]()`
 

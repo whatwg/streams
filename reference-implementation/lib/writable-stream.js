@@ -76,7 +76,9 @@ export default class WritableStream {
           { type: 'chunk', promise: promise, chunk: chunk, _resolve: resolver, _reject: rejecter },
           chunkSize
         );
-        this._syncStateWithQueue();
+        if (this._syncStateWithQueue() === false) {
+          return promise;
+        }
         this._callOrScheduleAdvanceQueue();
 
         return promise;
@@ -211,9 +213,12 @@ export default class WritableStream {
         this._currentWritePromise_reject = null;
 
         helpers.dequeueValue(this._queue);
-        this._syncStateWithQueue();
-
         writeRecord._resolve(undefined);
+
+        if (this._syncStateWithQueue() === false) {
+          return;
+        }
+
         this._advanceQueue();
       };
 
@@ -237,11 +242,17 @@ export default class WritableStream {
     if (this._state === 'waiting' && this._queue.length === 0) {
       this._state = 'writable';
       this._writablePromise_resolve(undefined);
-      return;
+      return true;
     }
 
     var queueSize = helpers.getTotalQueueSize(this._queue);
-    var needsMore = Boolean(this._strategy.needsMore(queueSize));
+    var needsMore;
+    try {
+      needsMore = Boolean(this._strategy.needsMore(queueSize));
+    } catch (error) {
+      this._error(error);
+      return false;
+    }
 
     if (needsMore === true && this._state === 'waiting') {
       this._state = 'writable';
@@ -255,6 +266,8 @@ export default class WritableStream {
         this._writablePromise_reject = reject;
       });
     }
+
+    return true;
   }
 
   _doClose() {

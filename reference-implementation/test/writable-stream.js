@@ -479,3 +479,71 @@ test('WritableStream if sink throws an error before done, the stream becomes err
     );
   }, 0);
 });
+
+test('WritableStream exception in needsMore during write moves the stream into errored state', t => {
+  t.plan(3);
+
+  var thrownError = new Error('throw me');
+  class BrokenStrategy {
+    constructor() {
+    }
+    size(chunk) {
+      return 1;
+    }
+    needsMore(queueSize) {
+      throw thrownError;
+    }
+  }
+  var ws = new WritableStream({
+    strategy: new BrokenStrategy()
+  });
+  ws.write('a').catch(r => {
+    t.strictEqual(r, thrownError);
+  });
+  t.equal(ws.state, 'errored', 'the state of ws must be errored as needsMore throwed');
+  ws.closed.catch(r => {
+    t.strictEqual(r, thrownError);
+  });
+});
+
+test('WritableStream exception in needsMore during signalDone moves the stream into errored state', t => {
+  t.plan(4);
+
+  var thrownError;
+  class BrokenStrategy {
+    constructor() {
+    }
+    size(chunk) {
+      return 1;
+    }
+    needsMore(queueSize) {
+      if (thrownError) {
+        throw thrownError;
+      } else {
+        return true;
+      }
+    }
+  }
+
+  var done;
+  var ws = new WritableStream({
+    write(chunk, done_) {
+      done = done_;
+    },
+    strategy: new BrokenStrategy()
+  });
+
+  setTimeout(() => {
+    ws.write('a').then(() => {
+      t.pass('The write must be successful');
+    });
+    t.equal(ws.state, 'writable', 'the state of ws must be still writable');
+
+    thrownError = new Error('throw me');
+    done();
+    t.equal(ws.state, 'errored', 'the state of ws must be errored as needsMore throwed');
+    ws.closed.catch(r => {
+      t.strictEqual(r, thrownError);
+    });
+  }, 0);
+});
