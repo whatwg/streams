@@ -201,6 +201,14 @@ export default class ReadableStream {
     return output;
   }
 
+  pipe(dest, options) {
+    if (helpers.isThroughStream(dest)) {
+      return this.pipeThrough(dest, options);
+    } else {
+      return this.pipeTo(dest, options);
+    }
+  }
+
   _enqueue(chunk) {
     if (this._state === 'waiting' || this._state === 'readable') {
       var chunkSize = this._strategy.size(chunk);

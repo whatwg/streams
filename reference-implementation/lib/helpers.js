@@ -43,3 +43,7 @@ export function getTotalQueueSize(queue) {
 export function typeIsObject(x) {
   return (typeof x === 'object' && x !== null) || typeof x === 'function';
 }
+
+export function isThroughStream ({ input, output }) {
+  return typeIsObject(input) && typeIsObject(output);
+}
