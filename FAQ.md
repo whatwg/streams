@@ -14,3 +14,18 @@ readableStream.cancel().then(
     err => console.error("Cancellation failed!", err)
 );
 ```
+
+## What's with pipeTo vs pipeThrough?
+
+There are only 2 types of streams, Readable and Writable streams, pipeTo is for piping between them.  For the concept of streams that are both readable and writable we have Duplex streams which are really just containers for a pair of entangled streams, one readable and one writable stored in the keys 'output' and 'input' respectively. pipeThrough is for piping into the writable half of the entangled streams and out the readable side:
+
+```js
+src.pipeThrough(through).pipeTo(dest);
+```
+
+is really just sugar for:
+
+```js
+src.pipeTo(through.input);
+through.output.pipeTo(dest);
+```
