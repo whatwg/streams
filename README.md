@@ -234,6 +234,7 @@ class WritableStream {
 
     // Internal methods
     [[error]](any e)
+    [[callOrScheduleAdvanceQueue]]()
     [[advanceQueue]]()
     [[syncStateWithQueue]]()
     [[doClose]]()
