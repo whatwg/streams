@@ -148,7 +148,7 @@ For now, please consider the reference implementation normative: [reference-impl
 1. If Type(_input_) is not Object, then throw a **TypeError** exception.
 1. If Type(_output_) is not Object, then throw a **TypeError** exception.
 1. Let _stream_ be the **this** value.
-1. Let _result_ be the result of calling Invoke(_stream_, `"pipeTo"`, (_input_, _options_)).
+1. Let _result_ be Invoke(_stream_, `"pipeTo"`, (_input_, _options_)).
 1. ReturnIfAbrupt(_result_).
 1. Return _output_.
 
@@ -156,19 +156,20 @@ For now, please consider the reference implementation normative: [reference-impl
 
 ##### `[[enqueue]](chunk)`
 
-1. If `this.[[state]]` is `"waiting"` or `"readable"`,
-    1. Let _chunkSize_ be Invoke(`this.[[strategy]]`, `"size"`, (_chunk_)).
-    1. ReturnIfAbrupt(_chunkSize_).
-    1. EnqueueValueWithSize(`this.[[queue]]`, `chunk`, _chunkSize_).
-    1. Set `this.[[pulling]]` to **false**.
-1. If `this.[[state]]` is `"waiting"`
+1. If `this.[[state]]` is `"errored"` or `"closed"`, return **false**.
+1. Let _chunkSize_ be Invoke(`this.[[strategy]]`, `"size"`, (_chunk_)).
+1. ReturnIfAbrupt(_chunkSize_).
+1. EnqueueValueWithSize(`this.[[queue]]`, `chunk`, _chunkSize_).
+1. Set `this.[[pulling]]` to **false**.
+1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
+1. Let _needsMore_ be ToBoolean(Invoke(`this.[[strategy]]`, `"needsMore"`, (_queueSize_))).
+1. If _needsMore_ is an abrupt completion,
+    1. Call `this.[[error]](_needsMore_.[[value]])`.
+    1. Return **false**.
+1. If `this.[[state]]` is `"waiting"`,
     1. Set `this.[[state]]` to `"readable"`.
     1. Resolve `this.[[waitPromise]]` with **undefined**.
-    1. Return **true**.
-1. If `this.[[state]]` is `"readable"`,
-    1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
-    1. Return Invoke(`this.[[strategy]]`, `"needsMore"`, (_queueSize_)).
-1. Return **false**.
+1. Return _needsMore_.[[value]].
 
 ##### `[[close]]()`
 

@@ -46,7 +46,7 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
     strategy: new CountQueuingStrategy({ highWaterMark: 0 })
   });
 
-  t.strictEqual(enqueue('a'), true, 'After 0 reads, 1st enqueue should return true (queue now contains 1 chunk)');
+  t.strictEqual(enqueue('a'), false, 'After 0 reads, 1st enqueue should return false (queue now contains 1 chunk)');
   t.strictEqual(enqueue('b'), false, 'After 0 reads, 2nd enqueue should return false (queue now contains 2 chunks)');
   t.strictEqual(enqueue('c'), false, 'After 0 reads, 3rd enqueue should return false (queue now contains 3 chunks)');
   t.strictEqual(enqueue('d'), false, 'After 0 reads, 4th enqueue should return false (queue now contains 4 chunks)');
@@ -60,8 +60,8 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
   t.strictEqual(rs.read(), 'd', '4th read gives back the 3rd chunk enqueued (queue now contains 1 chunks)');
   t.strictEqual(rs.read(), 'e', '5th read gives back the 4th chunk enqueued (queue now contains 0 chunks)');
 
-  t.strictEqual(enqueue('f'), true, 'After 5 reads, 6th enqueue should return true (queue now contains 1 chunk)');
-  t.strictEqual(enqueue('g'), false, 'After 5 reads, 7th enqueue should return true (queue now contains 2 chunks)');
+  t.strictEqual(enqueue('f'), false, 'After 5 reads, 6th enqueue should return false (queue now contains 1 chunk)');
+  t.strictEqual(enqueue('g'), false, 'After 5 reads, 7th enqueue should return false (queue now contains 2 chunks)');
 
   t.end();
 });
