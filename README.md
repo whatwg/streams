@@ -58,6 +58,7 @@ class ReadableStream {
     [[error]](any e)
 
     // Other internal helper methods
+    [[callOrSchedulePull]]()
     [[callPull]]()
 }
 
@@ -112,13 +113,13 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
     1. If `this.[[draining]]` is **false**,
         1. Set `this.[[state]]` to `"waiting"`.
         1. Let `this.[[waitPromise]]` be a new promise.
-        1. Call `this.[[callPull]]()`.
+        1. Call `this.[[callOrSchedulePull]]()`.
 1. Return `chunk`.
 
 ##### wait()
 
 1. If `this.[[state]]` is `"waiting"`,
-    1. Call `this.[[callPull]]()`.
+    1. Call `this.[[callOrSchedulePull]]()`.
 1. Return `this.[[waitPromise]]`.
 
 ##### cancel(reason)
@@ -192,17 +193,18 @@ For now, please consider the reference implementation normative: [reference-impl
     1. Let `this.[[waitPromise]]` be a new promise rejected with `e`.
     1. Reject `this.[[closedPromise]]` with `e`.
 
-##### `[[callPull]]()`
+##### `[[callOrSchedulePull]]()`
 
 1. If `this.[[pulling]]` is **true**, return.
 1. Set `this.[[pulling]]` to **true**.
 1. If `this.[[started]]` is **false**,
-    1. Upon fulfillment of `this.[[startedPromise]]`,
-        1. Let `pullResult` be the result of `this.[[onPull]](this.[[enqueue]], this.[[close]], this.[[error]])`.
-        1. If `pullResult` is an abrupt completion, call `this.[[error]](pullResult.[[value]])`.
-1. If `this.[[started]]` is **true**,
-    1. Let `pullResult` be the result of `this.[[onPull]](this.[[enqueue]], this.[[close]], this.[[error]])`.
-    1. If `pullResult` is an abrupt completion, call `this.[[error]](pullResult.[[value]])`.
+    1. Upon fulfillment of `this.[[startedPromise]]`, call `this.[[callPull]]`.
+1. If `this.[[started]]` is **true**, call `this.[[callPull]]`.
+
+##### `[[callPull]]()`
+
+1. Let `pullResult` be the result of `this.[[onPull]](this.[[enqueue]], this.[[close]], this.[[error]])`.
+1. If `pullResult` is an abrupt completion, call `this.[[error]](pullResult.[[value]])`.
 
 ## Writable Stream APIs
 

@@ -87,7 +87,7 @@ export default class ReadableStream {
           this._waitPromise_resolve = resolve;
           this._waitPromise_reject = reject;
         });
-        this._callPull();
+        this._callOrSchedulePull();
       }
     }
 
@@ -96,7 +96,7 @@ export default class ReadableStream {
 
   wait() {
     if (this._state === 'waiting') {
-      this._callPull();
+      this._callOrSchedulePull();
     }
 
     return this._waitPromise;
@@ -250,7 +250,7 @@ export default class ReadableStream {
     }
   }
 
-  _callPull() {
+  _callOrSchedulePull() {
     if (this._pulling === true) {
       return;
     }
@@ -258,28 +258,24 @@ export default class ReadableStream {
 
     if (this._started === false) {
       this._startedPromise.then(() => {
-        try {
-          this._onPull(
-            this._enqueue.bind(this),
-            this._close.bind(this),
-            this._error.bind(this)
-          );
-        } catch (pullResultE) {
-          this._error(pullResultE);
-        }
+        this._callPull();
       });
     }
 
     if (this._started === true) {
-      try {
-        this._onPull(
-          this._enqueue.bind(this),
-          this._close.bind(this),
-          this._error.bind(this)
-        );
-      } catch (pullResultE) {
-        this._error(pullResultE);
-      }
+      this._callPull();
+    }
+  }
+
+  _callPull() {
+    try {
+      this._onPull(
+        this._enqueue.bind(this),
+        this._close.bind(this),
+        this._error.bind(this)
+      );
+    } catch (pullResultE) {
+      this._error(pullResultE);
     }
   }
 }
