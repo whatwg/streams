@@ -202,23 +202,30 @@ export default class ReadableStream {
   }
 
   _enqueue(chunk) {
-    if (this._state === 'waiting' || this._state === 'readable') {
-      var chunkSize = this._strategy.size(chunk);
-      helpers.enqueueValueWithSize(this._queue, chunk, chunkSize);
-      this._pulling = false;
+    if (this._state === 'errored' || this._state === 'closed') {
+      return false;
     }
+
+    var chunkSize = this._strategy.size(chunk);
+    helpers.enqueueValueWithSize(this._queue, chunk, chunkSize);
+    this._pulling = false;
+
+    var queueSize = helpers.getTotalQueueSize(this._queue);
+    var needsMore;
+    try {
+      needsMore = Boolean(this._strategy.needsMore(queueSize));
+    } catch (error) {
+      this._error(error);
+      return false;
+    }
+
     if (this._state === 'waiting') {
       this._state = 'readable';
       this._waitPromise_resolve(undefined);
-      return true;
-    }
-    if (this._state === 'readable') {
-      var queueSize = helpers.getTotalQueueSize(this._queue);
-      return this._strategy.needsMore(queueSize);
     }
 
-    return false;
-  }
+    return needsMore;
+ }
 
   _close() {
     if (this._state === 'waiting') {

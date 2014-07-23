@@ -1,6 +1,7 @@
 var test = require('tape');
 
 import ReadableStream from '../lib/readable-stream';
+import CountQueuingStrategy from '../lib/count-queuing-strategy';
 import RandomPushSource from './utils/random-push-source';
 import readableStreamToArray from './utils/readable-stream-to-array';
 import sequentialReadableStream from './utils/sequential-rs';
@@ -303,17 +304,32 @@ test('ReadableStream should be able to get data sequentially from an asynchronou
   }
 });
 
-test('ReadableStream returns `true` for the first `enqueue` call; `false` thereafter, if nobody reads', t => {
+test('Default ReadableStream returns `false` for any `enqueue` call', t => {
   t.plan(5);
 
   new ReadableStream({
     start(enqueue) {
-      t.equal(enqueue('hi'), true);
+      t.equal(enqueue('hi'), false);
       t.equal(enqueue('hey'), false);
       t.equal(enqueue('whee'), false);
       t.equal(enqueue('yo'), false);
       t.equal(enqueue('sup'), false);
     }
+  });
+});
+
+test('ReadableStream returns `true` unless we exceed the highWaterMark', t => {
+  t.plan(5);
+
+  new ReadableStream({
+    start(enqueue) {
+      t.equal(enqueue('a'), true);
+      t.equal(enqueue('b'), false);
+      t.equal(enqueue('c'), false);
+      t.equal(enqueue('d'), false);
+      t.equal(enqueue('e'), false);
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 2 })
   });
 });
 
@@ -324,21 +340,49 @@ test('ReadableStream continues returning `true` from `enqueue` if the data is re
     start(enqueue) {
       // Delay a bit so that the stream is successfully constructed and thus the `rs` variable references something.
       setTimeout(() => {
-        t.equal(enqueue('hi'), true);
+        t.equal(enqueue('foo'), true);
         t.equal(rs.state, 'readable');
-        t.equal(rs.read(), 'hi');
+        t.equal(rs.read(), 'foo');
         t.equal(rs.state, 'waiting');
 
-        t.equal(enqueue('hey'), true);
+        t.equal(enqueue('bar'), true);
         t.equal(rs.state, 'readable');
-        t.equal(rs.read(), 'hey');
+        t.equal(rs.read(), 'bar');
         t.equal(rs.state, 'waiting');
 
-        t.equal(enqueue('whee'), true);
+        t.equal(enqueue('baz'), true);
         t.equal(rs.state, 'readable');
-        t.equal(rs.read(), 'whee');
+        t.equal(rs.read(), 'baz');
         t.equal(rs.state, 'waiting');
       }, 0);
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 4 })
+  });
+});
+
+test('ReadableStream if needsMore throws, the stream is errored', t => {
+  var error = new Error('aaaugh!!');
+
+  class BrokenStrategy {
+    constructor() {
     }
+    size(chunk) {
+      return 1;
+    }
+    needsMore(queueSize) {
+      throw error;
+    }
+  }
+
+  var rs = new ReadableStream({
+    start(enqueue) {
+      t.equal(enqueue('hi'), false);
+    },
+    strategy: new BrokenStrategy()
+  });
+
+  rs.closed.catch(r => {
+    t.strictEqual(r, error);
+    t.end();
   });
 });
