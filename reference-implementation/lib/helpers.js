@@ -44,6 +44,6 @@ export function typeIsObject(x) {
   return (typeof x === 'object' && x !== null) || typeof x === 'function';
 }
 
-exprot function isThroughStream ({ input, output }) {
+export function isThroughStream ({ input, output }) {
   return typeIsObject(input) && typeIsObject(output);
 }
