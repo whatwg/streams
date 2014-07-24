@@ -389,8 +389,8 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
             1. Call `this.[[error]](syncResult.[[value]])`.
             1. Return.
         1. Call `this.[[advanceQueue]]()`.
-    1. Call `this.[[onWrite]](chunk, signalDone, this.[[error]])`.
-    1. If the call throws an exception `e`, call `this.[[error]](e)`.
+    1. Let _writeResult_ be `this.[[onWrite]](chunk, signalDone, this.[[error]])`.
+    1. If _writeResult_ is an abrupt completion, then call `this.[[error]](writeResult.[[value]])`.
 
 Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been aborted, then `signalDone` ends up doing nothing, since `this.[[currentWritePromise]]` is no longer equal to `writeRecord.[[promise]]`.
 
