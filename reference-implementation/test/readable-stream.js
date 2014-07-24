@@ -383,3 +383,27 @@ test('ReadableStream if needsMore throws, the stream is errored', t => {
     t.end();
   });
 });
+
+test('ReadableStream if size throws, the stream is errored', t => {
+  var error = new Error('aaaugh!!');
+
+  var rs = new ReadableStream({
+    start(enqueue) {
+      t.equal(enqueue('hi'), false);
+    },
+    strategy: {
+      size() {
+        throw error;
+      },
+
+      needsMore() {
+        return true;
+      }
+    }
+  });
+
+  rs.closed.catch(r => {
+    t.strictEqual(r, error);
+    t.end();
+  });
+});

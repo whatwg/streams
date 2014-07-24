@@ -206,7 +206,14 @@ export default class ReadableStream {
       return false;
     }
 
-    var chunkSize = this._strategy.size(chunk);
+    var chunkSize;
+    try {
+      chunkSize = this._strategy.size(chunk);
+    } catch (error) {
+      this._error(error);
+      return false;
+    }
+
     helpers.enqueueValueWithSize(this._queue, chunk, chunkSize);
     this._pulling = false;
 
