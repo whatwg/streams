@@ -311,7 +311,10 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. ReturnIfAbrupt(_chunkSize_).
     1. Let `promise` be a new promise.
     1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"chunk"`, [[promise]]: `promise`, [[chunk]]: `chunk`}, _chunkSize_).
-    1. Call `this.[[syncStateWithQueue]]()`.
+    1. Let _syncResult_ be `this.[[syncStateWithQueue]]()`.
+    1. If _syncResult_ is an abrupt completion,
+        1. Call `this.[[error]](syncResult.[[value]])`.
+        1. Return `promise`.
     1. Call `this.[[callOrScheduleAdvanceQueue]]()`.
     1. Return `promise`.
 1. If `this.[[state]]` is `"closing"` or `"closed"`,
@@ -379,9 +382,12 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Let `signalDone` be a new function of zero arguments, closing over `this` and `writeRecord.[[promise]]`, that performs the following steps:
         1. If `this.[[currentWritePromise]]` is not `writeRecord.[[promise]]`, return.
         1. Set `this.[[currentWritePromise]]` to **undefined**.
-        1. DequeueValue(`this.[[queue]]`).
-        1. Call `this.[[syncStateWithQueue]]()`.
         1. Resolve `writeRecord.[[promise]]` with **undefined**.
+        1. DequeueValue(`this.[[queue]]`).
+        1. Let _syncResult_ be `this.[[syncStateWithQueue]]()`.
+        1. If _syncResult_ is an abrupt completion, then
+            1. Call `this.[[error]](syncResult.[[value]])`.
+            1. Return.
         1. Call `this.[[advanceQueue]]()`.
     1. Call `this.[[onWrite]](chunk, signalDone, this.[[error]])`.
     1. If the call throws an exception `e`, call `this.[[error]](e)`.

@@ -547,7 +547,7 @@ test('WritableStream exception in needsMore during signalDone moves the stream i
 
   setTimeout(() => {
     ws.write('a').then(() => {
-      t.pass('The write must be successful');
+      t.pass('The write must be successful as the underlying sink acknowledged it');
     });
     t.equal(ws.state, 'writable', 'the state of ws must be still writable');
 

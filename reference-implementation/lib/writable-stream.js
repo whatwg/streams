@@ -76,7 +76,14 @@ export default class WritableStream {
           { type: 'chunk', promise: promise, chunk: chunk, _resolve: resolver, _reject: rejecter },
           chunkSize
         );
-        this._syncStateWithQueue();
+
+        try {
+          this._syncStateWithQueue();
+        } catch (e) {
+          this._error(e);
+          return promise;
+        }
+
         this._callOrScheduleAdvanceQueue();
 
         return promise;
@@ -210,10 +217,16 @@ export default class WritableStream {
         this._currentWritePromise_resolve = null;
         this._currentWritePromise_reject = null;
 
-        helpers.dequeueValue(this._queue);
-        this._syncStateWithQueue();
-
         writeRecord._resolve(undefined);
+
+        helpers.dequeueValue(this._queue);
+        try {
+          this._syncStateWithQueue();
+        } catch (e) {
+          this._error(e);
+          return;
+        }
+
         this._advanceQueue();
       };
 
