@@ -1,23 +1,23 @@
 <pre class="metadata">
-  Title: Streams Standard
-  Group: WHATWG
-  H1: Streams
-  Shortname: streams
-  Level: 1
-  Status: DREAM
-  ED: https://whatwg.github.io/streams
-  Editor: Domenic Denicola, <a href="https://www.google.com/">Google</a>, http://domenic.me, domenic@domenicdenicola.com
-  Abstract: This specification provides APIs for creating, composing, and consuming streams of data.
-  Abstract: These streams are designed to map efficiently to low-level I/O primitives, and allow easy
-  Abstract: composition with built-in backpressure and queuing. On top of streams, the web platform can
-  Abstract: build higher-level abstractions, such as filesystem or socket APIs, while at the same time
-  Abstract: users can use the supplied tools to build their own streams which integrate well with those
-  Abstract: of the web platform.
-  Logo: https://resources.whatwg.org/logo-streams.svg
-  !Version History: <a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a>
-  !Participate: <a href="https://github.com/whatwg/streams/issues/new">File an issue</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open issues</a>)
-  !Participate: Send feedback to <a href="http://www.whatwg.org/mailing-list">whatwg@whatwg.org</a> (<a href="http://www.whatwg.org/mailing-list#specs">archives</a>)
-  !Participate: <a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
+Title: Streams Standard
+Group: WHATWG
+H1: Streams
+Shortname: streams
+Level: 1
+Status: DREAM
+ED: https://whatwg.github.io/streams
+Editor: Domenic Denicola, <a href="https://www.google.com/">Google</a>, http://domenic.me, domenic@domenicdenicola.com
+Abstract: This specification provides APIs for creating, composing, and consuming streams of data.
+Abstract: These streams are designed to map efficiently to low-level I/O primitives, and allow easy
+Abstract: composition with built-in backpressure and queuing. On top of streams, the web platform can
+Abstract: build higher-level abstractions, such as filesystem or socket APIs, while at the same time
+Abstract: users can use the supplied tools to build their own streams which integrate well with those
+Abstract: of the web platform.
+Logo: https://resources.whatwg.org/logo-streams.svg
+!Version History: <a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a>
+!Participate: <a href="https://github.com/whatwg/streams/issues/new">File an issue</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open issues</a>)
+!Participate: Send feedback to <a href="http://www.whatwg.org/mailing-list">whatwg@whatwg.org</a> (<a href="http://www.whatwg.org/mailing-list#specs">archives</a>)
+!Participate: <a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
 </pre>
 
 
