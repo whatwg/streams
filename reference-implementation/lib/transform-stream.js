@@ -11,10 +11,12 @@ export default class TransformStream {
     var transforming = false;
     var chunkWrittenButNotYetTransformed = false;
     this.input = new WritableStream({
+      start(error) {
+        errorInput = error;
+      },
       write(chunk, done, error) {
         writeChunk = chunk;
         writeDone = done;
-        errorInput = error;
         chunkWrittenButNotYetTransformed = true;
 
         if (output.state === 'waiting') {
@@ -22,7 +24,12 @@ export default class TransformStream {
         }
       },
       close() {
-        flush(enqueueInOutput, closeOutput);
+        try {
+          flush(enqueueInOutput, closeOutput);
+        } catch (e) {
+          errorInput(e);
+          errorOutput(e);
+        }
       },
       strategy: inputStrategy
     });
