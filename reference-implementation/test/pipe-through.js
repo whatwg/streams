@@ -47,8 +47,7 @@ test('Piping through an identity transform stream will close the destination whe
   });
 });
 
-test('Piping through a zero-HWM transform stream adds a couple extra queues, but after they fill backpressure is\
- still propagated', t => {
+test('Piping through a zero-HWM transform stream immediately causes backpressure to be exerted', t => {
   t.plan(2);
 
   var enqueueReturnValues = [];
@@ -85,7 +84,10 @@ test('Piping through a zero-HWM transform stream adds a couple extra queues, but
 
   setTimeout(() => {
     rs.pipeThrough(ts).pipeTo(ws).closed.then(() => {
-      t.deepEqual(enqueueReturnValues, [true, true, true, true, false, false, false, false], 'backpressure was correctly exerted at the source');
+      t.deepEqual(
+        enqueueReturnValues,
+        [false, false, false, false, false, false, false, false],
+        'backpressure was correctly exerted at the source');
       t.deepEqual(writtenValues, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'], 'all chunks were written');
     });
   }, 0);
