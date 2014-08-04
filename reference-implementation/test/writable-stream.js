@@ -559,3 +559,84 @@ test('WritableStream exception in needsMore during signalDone moves the stream i
     });
   }, 0);
 });
+
+test('WritableStream if sink throws an error while closing, the stream becomes errored', t => {
+  t.plan(3);
+
+  var thrownError = new Error('throw me');
+  var ws = new WritableStream({
+    close() {
+      throw thrownError;
+    }
+  });
+
+  ws.close().then(
+    () => t.fail('close promise is fulfilled unexpectedly'),
+    r => {
+      t.equal(r, thrownError, 'close promise should be rejected with the thrown error');
+      t.equal(ws.state, 'errored', 'state is errored after calling close');
+    }
+  );
+
+  setTimeout(() => {
+    t.equal(ws.state, 'errored', 'state stays errored');
+  }, 0);
+});
+
+test('WritableStream if sink calls error while asynchronously closing, the stream becomes errored', t => {
+  t.plan(3);
+
+  var passedError = new Error('error me');
+  var error;
+  var ws = new WritableStream({
+    start(error_) {
+      error = error_;
+    },
+    close() {
+      return new Promise(resolve => setTimeout(resolve, 50));
+    }
+  });
+
+  ws.close();
+  setTimeout(() => error(passedError), 10);
+
+  ws.closed.then(
+    () => t.fail('closed promise is fulfilled unexpectedly'),
+    r => {
+      t.equal(r, passedError, 'closed promise should be rejected with the passed error');
+      t.equal(ws.state, 'errored', 'state is errored');
+    }
+  );
+
+  setTimeout(() => {
+    t.equal(ws.state, 'errored', 'state stays errored');
+  }, 70);
+});
+
+
+test('WritableStream if sink calls error while closing with no asynchrony, the stream becomes errored', t => {
+  t.plan(3);
+
+  var passedError = new Error('error me');
+  var error;
+  var ws = new WritableStream({
+    start(error_) {
+      error = error_;
+    },
+    close() {
+      error(passedError);
+    }
+  });
+
+  ws.close().then(
+    () => t.fail('close promise is fulfilled unexpectedly'),
+    r => {
+      t.equal(r, passedError, 'close promise should be rejected with the passed error');
+      t.equal(ws.state, 'errored', 'state is errored');
+    }
+  );
+
+  setTimeout(() => {
+    t.equal(ws.state, 'errored', 'state stays errored');
+  }, 0);
+});

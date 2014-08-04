@@ -44,6 +44,8 @@ export default class WritableStream {
       this._closedPromise_reject = reject;
     });
 
+    this._closedPromise.then(() => this._state = 'closed');
+
     this._queue = [];
 
     this._startedPromise = Promise.resolve(start(this._error.bind(this)));
@@ -276,10 +278,7 @@ export default class WritableStream {
     var closePromise = helpers.promiseCall(this._onClose);
 
     closePromise.then(
-      () => {
-        this._state = 'closed';
-        this._closedPromise_resolve(undefined);
-      },
+      () => this._closedPromise_resolve(undefined),
       r => this._error(r)
     );
   }

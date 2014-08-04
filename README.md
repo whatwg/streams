@@ -290,6 +290,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Let `this.[[writablePromise]]` be a new promise.
 1. Let `this.[[closedPromise]]` be a new promise.
 1. Let `this.[[queue]]` be a new empty List.
+1. Upon fulfillment of `this.[[closedPromise]]`, set `this.[[state]]` to `"closed"`.
 1. Let _startResult_ be the result of `start(this.[[error]])`.
 1. ReturnIfAbrupt(_startResult_).
 1. Let `this.[[startedPromise]]` be the result of resolving _startResult_ as a promise.
@@ -421,7 +422,6 @@ Note: the peeking-then-dequeuing dance is necessary so that during the call to t
 1. Assert: `this.[[state]]` is `"closing"`.
 1. Let _closePromise_ be the result of promise-calling `this.[[onClose]]()`.
 1. Upon fulfillment of _closePromise_,
-    1. Set `this.[[state]]` to `"closed"`.
     1. Resolve `this.[[closedPromise]]` with **undefined**.
 1. Upon rejection of _closePromise_ with reason _r_,
     1. Call `this.[[error]](r)`.
