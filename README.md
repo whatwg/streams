@@ -428,6 +428,10 @@ Note: the peeking-then-dequeuing dance is necessary so that during the call to t
 
 ## Helper APIs
 
+### TransformStream
+
+Transform streams have been developed in the testable implementation, but not yet re-encoded in spec language. We are waiting to validate their design before doing so. In the meantime, see [reference-implementation/lib/transform-stream.js](https://github.com/whatwg/streams/blob/master/reference-implementation/lib/transform-stream.js).
+
 ### TeeStream
 
 A "tee stream" is a writable stream which, when written to, itself writes to multiple destinations. It aggregates backpressure and abort signals from those destinations, propagating the appropriate aggregate signals backward.
