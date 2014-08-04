@@ -1084,3 +1084,35 @@ test('Piping to a stream that errors on the last chunk does not pass through the
     t.end();
   }, 20);
 });
+
+test('Piping to a writable stream that does not consume the writes fast enough exerts backpressure on the source', t => {
+  t.plan(2);
+
+  var enqueueReturnValues = [];
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      setTimeout(() => enqueueReturnValues.push(enqueue('a')), 10);
+      setTimeout(() => enqueueReturnValues.push(enqueue('b')), 20);
+      setTimeout(() => enqueueReturnValues.push(enqueue('c')), 30);
+      setTimeout(() => enqueueReturnValues.push(enqueue('d')), 40);
+      setTimeout(() => close(), 50);
+    }
+  });
+
+  var writtenValues = [];
+  var ws = new WritableStream({
+    write(chunk, done) {
+      setTimeout(() => {
+        writtenValues.push(chunk);
+        done();
+      }, 25);
+    }
+  });
+
+  setTimeout(() => {
+    rs.pipeTo(ws).closed.then(() => {
+      t.deepEqual(enqueueReturnValues, [false, false, false, false], 'backpressure was correctly exerted at the source');
+      t.deepEqual(writtenValues, ['a', 'b', 'c', 'd'], 'all chunks were written');
+    });
+  }, 0);
+});
