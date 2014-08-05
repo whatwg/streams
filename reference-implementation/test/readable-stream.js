@@ -360,6 +360,27 @@ test('ReadableStream continues returning `true` from `enqueue` if the data is re
   });
 });
 
+test('ReadableStream enqueue fails when the stream is in closing state', t => {
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      t.equal(enqueue('a'), true);
+      close();
+
+      t.throws(
+        () => t.equal(enqueue('b'), false),
+        TypeError,
+        'enqueue after close must throw a TypeError'
+      );
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
+  });
+
+  t.equal(rs.state, 'readable');
+  t.equal(rs.read(), 'a');
+  t.equal(rs.state, 'closed');
+  t.end();
+});
+
 test('ReadableStream if needsMore throws, the stream is errored', t => {
   var error = new Error('aaaugh!!');
 
