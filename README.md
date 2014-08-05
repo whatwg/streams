@@ -159,14 +159,14 @@ For now, please consider the reference implementation normative: [reference-impl
 1. If `this.[[state]]` is `"errored"` or `"closed"`, return **false**.
 1. Let _chunkSize_ be Invoke(`this.[[strategy]]`, `"size"`, (_chunk_)).
 1. If _chunkSize_ is an abrupt completion,
-    1. Call `this.[[error]](_chunkSize_.[[value]])`.
+    1. Call `this.[[error]]`(_chunkSize_.[[value]]).
     1. Return **false**.
 1. EnqueueValueWithSize(`this.[[queue]]`, `chunk`, _chunkSize_.[[value]]).
 1. Set `this.[[pulling]]` to **false**.
 1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
 1. Let _needsMore_ be ToBoolean(Invoke(`this.[[strategy]]`, `"needsMore"`, (_queueSize_))).
 1. If _needsMore_ is an abrupt completion,
-    1. Call `this.[[error]](_needsMore_.[[value]])`.
+    1. Call `this.[[error]]`(_needsMore_.[[value]]).
     1. Return **false**.
 1. If `this.[[state]]` is `"waiting"`,
     1. Set `this.[[state]]` to `"readable"`.
