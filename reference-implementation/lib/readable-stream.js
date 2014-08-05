@@ -206,6 +206,10 @@ export default class ReadableStream {
       return false;
     }
 
+    if (this._draining === true) {
+      throw new TypeError('stream has already been closed');
+    }
+
     var chunkSize;
     try {
       chunkSize = this._strategy.size(chunk);

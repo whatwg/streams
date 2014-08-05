@@ -157,6 +157,7 @@ For now, please consider the reference implementation normative: [reference-impl
 ##### `[[enqueue]](chunk)`
 
 1. If `this.[[state]]` is `"errored"` or `"closed"`, return **false**.
+1. If `this`.[[draining]] is **true**, throw a **TypeError** exception.
 1. Let _chunkSize_ be Invoke(`this.[[strategy]]`, `"size"`, (_chunk_)).
 1. If _chunkSize_ is an abrupt completion,
     1. Call `this.[[error]]`(_chunkSize_.[[value]]).
