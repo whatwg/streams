@@ -1,5 +1,6 @@
 var test = require('tape');
 
+import CountQueuingStrategy from '../lib/count-queuing-strategy';
 import ReadableStream from '../lib/readable-stream';
 import RandomPushSource from './utils/random-push-source';
 import readableStreamToArray from './utils/readable-stream-to-array';
@@ -28,7 +29,9 @@ test('ReadableStream canceling an infinite stream', t => {
         cancelationFinished = true;
         resolve();
       }, 50));
-    }
+    },
+
+    strategy: new CountQueuingStrategy({ highWaterMark: 1 })
   });
 
   readableStreamToArray(rs).then(

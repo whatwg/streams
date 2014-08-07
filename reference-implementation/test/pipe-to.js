@@ -31,19 +31,20 @@ test('Piping from a ReadableStream from which lots of data are readable synchron
 });
 
 test('Piping from a ReadableStream in readable state to a WritableStream in closing state', t => {
-  var pullCount = 0;
   var cancelCalled = false;
   var rs = new ReadableStream({
     start(enqueue, close) {
-      enqueue("Hello");
+      t.assert(enqueue("Hello"));
     },
     pull() {
-      ++pullCount;
+      t.fail('Unexpected pull call');
+      t.end();
     },
     cancel() {
       t.assert(!cancelCalled);
       cancelCalled = true;
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
   t.equal(rs.state, 'readable');
 
@@ -68,22 +69,23 @@ test('Piping from a ReadableStream in readable state to a WritableStream in clos
 });
 
 test('Piping from a ReadableStream in readable state to a WritableStream in errored state', t => {
-  var pullCount = 0;
   var cancelCalled = false;
   var passedError = new Error('horrible things');
   var rs = new ReadableStream({
     start(enqueue, close) {
-      enqueue("Hello");
+      t.assert(enqueue("Hello"));
     },
     pull() {
-      ++pullCount;
+      t.fail('Unexpected pull call');
+      t.end();
     },
     cancel(reason) {
       t.assert(!cancelCalled, 'cancel must not be called more than once');
       cancelCalled = true;
 
       t.strictEqual(reason, passedError);
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
   t.equal(rs.state, 'readable');
 
@@ -136,7 +138,8 @@ test('Piping from a ReadableStream in closed state to a WritableStream in writab
     cancel(reason) {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
   t.equal(rs.state, 'closed');
 
@@ -179,7 +182,8 @@ test('Piping from a ReadableStream in errored state to a WritableStream in writa
     cancel(reason) {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
   t.equal(rs.state, 'errored');
 
@@ -229,7 +233,8 @@ test(`Piping from a ReadableStream in readable state which becomes closed after 
     cancel() {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
   t.equal(rs.state, 'readable');
 
@@ -273,7 +278,7 @@ test(`Piping from a ReadableStream in readable state which becomes errored after
   var pullCount = 0;
   var rs = new ReadableStream({
     start(enqueue, close, error) {
-      enqueue("Hello");
+      t.assert(enqueue("Hello"));
       errorReadableStream = error;
     },
     pull() {
@@ -282,7 +287,8 @@ test(`Piping from a ReadableStream in readable state which becomes errored after
     cancel() {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
   t.equal(rs.state, 'readable');
 
@@ -336,15 +342,15 @@ test(`Piping from a ReadableStream in waiting state which becomes readable after
     cancel() {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
 
   var ws = new WritableStream({
     write(chunk) {
       t.equal(chunk, 'Hello');
 
-      // Includes pull invoked inside read()
-      t.equal(pullCount, 2);
+      t.equal(pullCount, 1);
 
       t.end();
     },
@@ -362,7 +368,7 @@ test(`Piping from a ReadableStream in waiting state which becomes readable after
   t.equal(rs.state, 'waiting');
   t.equal(ws.state, 'writable');
 
-  enqueue('Hello');
+  t.assert(enqueue('Hello'));
 });
 
 test(`Piping from a ReadableStream in waiting state which becomes errored after pipeTo call to a WritableStream in
@@ -379,7 +385,8 @@ test(`Piping from a ReadableStream in waiting state which becomes errored after 
     cancel() {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
 
   var passedError = new Error('horrible things');
@@ -422,7 +429,8 @@ test(`Piping from a ReadableStream in waiting state to a WritableStream in writa
       t.equal(pullCount, 1);
       t.assert(writeCalled);
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
 
   var errorWritableStream;
@@ -468,7 +476,7 @@ test(`Piping from a ReadableStream in readable state to a WritableStream in wait
   var pullCount = 0;
   var rs = new ReadableStream({
     start(enqueue) {
-      enqueue("World");
+      t.assert(enqueue("World"));
     },
     pull() {
       ++pullCount;
@@ -476,7 +484,8 @@ test(`Piping from a ReadableStream in readable state to a WritableStream in wait
     cancel() {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
   t.equal(rs.state, 'readable');
 
@@ -525,7 +534,7 @@ test(`Piping from a ReadableStream in readable state to a WritableStream in wait
   var enqueue;
   var rs = new ReadableStream({
     start(enqueue) {
-      enqueue("World");
+      t.assert(enqueue("World"));
     },
     pull() {
       t.fail('Unexpected pull call');
@@ -535,7 +544,8 @@ test(`Piping from a ReadableStream in readable state to a WritableStream in wait
       t.assert(writeCalled);
 
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
   t.equal(rs.state, 'readable');
 
@@ -576,7 +586,7 @@ test(`Piping from a ReadableStream in readable state which becomes errored after
   var errorReadableStream;
   var rs = new ReadableStream({
     start(enqueue, close, error) {
-      enqueue("World");
+      t.assert(enqueue("World"));
       errorReadableStream = error;
     },
     pull() {
@@ -586,7 +596,8 @@ test(`Piping from a ReadableStream in readable state which becomes errored after
     cancel() {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
   t.equal(rs.state, 'readable');
 
@@ -635,7 +646,8 @@ test(`Piping from a ReadableStream in waiting state to a WritableStream in waiti
     cancel() {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
 
   var checkSecondWrite = false;
@@ -671,7 +683,7 @@ test(`Piping from a ReadableStream in waiting state to a WritableStream in waiti
 
     rs.pipeTo(ws);
 
-    enqueue('Goodbye');
+    t.assert(enqueue('Goodbye'));
 
     // Check that nothing happens before calling done(), and then call done()
     // to check that pipeTo is woken up.
@@ -695,7 +707,8 @@ test(`Piping from a ReadableStream in waiting state to a WritableStream in waiti
     cancel() {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
 
   var done;
@@ -749,7 +762,8 @@ test(`Piping from a ReadableStream in waiting state which becomes closed after p
     cancel() {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
 
   var writeCalled = false;
@@ -807,7 +821,8 @@ test(`Piping from a ReadableStream in waiting state which becomes errored after 
     cancel() {
       t.fail('Unexpected cancel call');
       t.end();
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
 
   var writeCalled = false;

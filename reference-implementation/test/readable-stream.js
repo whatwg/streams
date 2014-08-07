@@ -97,10 +97,10 @@ test('ReadableStream avoid redundant pull call', t => {
     pull() {
       pullCount++;
     },
-
     cancel() {
       t.fail('cancel should not be called');
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
   });
 
   rs.wait();
@@ -112,6 +112,33 @@ test('ReadableStream avoid redundant pull call', t => {
     t.equal(pullCount, 1, 'pull should not be called more than once');
     t.end();
   }, 50);
+});
+
+test('ReadableStream pull is not called until enqueue returns false', t => {
+  var enqueue;
+  var pullCount = 0;
+  var rs = new ReadableStream({
+    start(enqueue_) {
+      enqueue = enqueue_;
+    },
+    pull() {
+      pullCount++;
+    },
+    cancel() {
+      t.fail('cancel should not be called');
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
+  });
+
+  // Wait for rs to start.
+  setTimeout(() => {
+    rs.wait();
+    t.equal(pullCount, 1);
+    t.equal(enqueue('a'), true);
+    rs.wait();
+    t.equal(pullCount, 1, 'another pull should not be called unless we hit highWaterMark');
+    t.end();
+  }, 0);
 });
 
 test('ReadableStream start throws an error', t => {
@@ -129,7 +156,12 @@ test('ReadableStream pull throws an error', t => {
   t.plan(4);
 
   var error = new Error('aaaugh!!');
-  var rs = new ReadableStream({ pull() { throw error; } });
+  var rs = new ReadableStream({
+    pull() {
+      throw error;
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 10 })
+  });
 
   rs.wait().then(() => {
     t.fail('waiting should fail');
@@ -181,7 +213,9 @@ test('ReadableStream adapting a push source', t => {
       }
 
       randomSource.readStart();
-    }
+    },
+
+    strategy: new CountQueuingStrategy({ highWaterMark: 1 })
   });
 
   readableStreamToArray(rs).then(chunks => {
@@ -228,7 +262,8 @@ test('ReadableStream is able to pull data repeatedly if it\'s available synchron
       } else {
         close();
       }
-    }
+    },
+    strategy: new CountQueuingStrategy({ highWaterMark: 1 })
   });
 
   rs.wait().then(() => {

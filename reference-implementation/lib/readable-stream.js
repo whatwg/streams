@@ -87,10 +87,10 @@ export default class ReadableStream {
           this._waitPromise_resolve = resolve;
           this._waitPromise_reject = reject;
         });
-        this._callOrSchedulePull();
       }
     }
 
+    this._callOrSchedulePull();
     return chunk;
   }
 
@@ -201,6 +201,16 @@ export default class ReadableStream {
     return output;
   }
 
+  _getNeedsMore() {
+    var queueSize = helpers.getTotalQueueSize(this._queue);
+    try {
+      return Boolean(this._strategy.needsMore(queueSize));
+    } catch (error) {
+      this._error(error);
+      throw error;
+    }
+  }
+
   _enqueue(chunk) {
     if (this._state === 'errored' || this._state === 'closed') {
       return false;
@@ -219,15 +229,16 @@ export default class ReadableStream {
     }
 
     helpers.enqueueValueWithSize(this._queue, chunk, chunkSize);
-    this._pulling = false;
 
-    var queueSize = helpers.getTotalQueueSize(this._queue);
     var needsMore;
     try {
-      needsMore = Boolean(this._strategy.needsMore(queueSize));
+      needsMore = this._getNeedsMore();
     } catch (error) {
-      this._error(error);
       return false;
+    }
+
+    if (needsMore === false) {
+      this._pulling = false;
     }
 
     if (this._state === 'waiting') {
@@ -236,7 +247,7 @@ export default class ReadableStream {
     }
 
     return needsMore;
- }
+  }
 
   _close() {
     if (this._state === 'waiting') {
@@ -272,6 +283,15 @@ export default class ReadableStream {
     if (this._pulling === true) {
       return;
     }
+
+    try {
+      if (this._getNeedsMore() === false) {
+        return;
+      }
+    } catch (error) {
+      return;
+    }
+
     this._pulling = true;
 
     if (this._started === false) {

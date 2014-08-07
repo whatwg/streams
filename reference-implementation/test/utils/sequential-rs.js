@@ -1,5 +1,6 @@
 import ReadableStream from '../../lib/readable-stream';
 import SequentialPullSource from './sequential-pull-source';
+import CountQueuingStrategy from '../../lib/count-queuing-strategy';
 
 export default function sequentialReadableStream(limit, options) {
   var sequentialSource = new SequentialPullSource(limit, options);
@@ -31,7 +32,9 @@ export default function sequentialReadableStream(limit, options) {
           enqueue(chunk);
         }
       });
-    }
+    },
+
+    strategy: new CountQueuingStrategy({ highWaterMark: 1 })
   });
 
   stream.source = sequentialSource;

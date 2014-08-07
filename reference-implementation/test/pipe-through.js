@@ -3,6 +3,7 @@ var test = require('tape');
 import sequentialReadableStream from './utils/sequential-rs';
 import duckTypedPassThroughTransform from './utils/duck-typed-pass-through-transform';
 import readableStreamToArray from './utils/readable-stream-to-array';
+import CountQueuingStrategy from '../lib/count-queuing-strategy';
 import ReadableStream from '../lib/readable-stream';
 import WritableStream from '../lib/writable-stream';
 import TransformStream from '../lib/transform-stream';
@@ -32,7 +33,8 @@ test('Piping through an identity transform stream will close the destination whe
     transform(chunk, enqueue, done) {
       enqueue(chunk);
       done();
-    }
+    },
+    outputStrategy: new CountQueuingStrategy({ highWaterMark: 1 })
   });
 
   var ws = new WritableStream({
@@ -69,7 +71,8 @@ test('Piping through a zero-HWM transform stream immediately causes backpressure
     transform(chunk, enqueue, done) {
       enqueue(chunk);
       done();
-    }
+    },
+    outputStrategy: new CountQueuingStrategy({ highWaterMark: 1 })
   });
 
   var writtenValues = [];

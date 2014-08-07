@@ -113,7 +113,7 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
     1. If `this.[[draining]]` is **false**,
         1. Set `this.[[state]]` to `"waiting"`.
         1. Let `this.[[waitPromise]]` be a new promise.
-        1. Call `this.[[callOrSchedulePull]]()`.
+1. Call `this.[[callOrSchedulePull]]()`.
 1. Return `chunk`.
 
 ##### wait()
@@ -163,16 +163,15 @@ For now, please consider the reference implementation normative: [reference-impl
     1. Call `this.[[error]]`(_chunkSize_.[[value]]).
     1. Return **false**.
 1. EnqueueValueWithSize(`this.[[queue]]`, `chunk`, _chunkSize_.[[value]]).
-1. Set `this.[[pulling]]` to **false**.
-1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
-1. Let _needsMore_ be ToBoolean(Invoke(`this.[[strategy]]`, `"needsMore"`, (_queueSize_))).
+1. Let _needsMore_ be the result of calling **this**.\[\[getNeedsMore\]\]().
 1. If _needsMore_ is an abrupt completion,
-    1. Call `this.[[error]]`(_needsMore_.[[value]]).
     1. Return **false**.
+1. Let _needsMore_ be _needsMore_.[[value]].
+1. If _needsMore_ is **false**, set `this.[[pulling]]` to **false**.
 1. If `this.[[state]]` is `"waiting"`,
     1. Set `this.[[state]]` to `"readable"`.
     1. Resolve `this.[[waitPromise]]` with **undefined**.
-1. Return _needsMore_.[[value]].
+1. Return _needsMore_.
 
 ##### `[[close]]()`
 
@@ -197,9 +196,20 @@ For now, please consider the reference implementation normative: [reference-impl
     1. Let `this.[[waitPromise]]` be a new promise rejected with `e`.
     1. Reject `this.[[closedPromise]]` with `e`.
 
+##### `[[getNeedsMore]]()`
+
+1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
+1. Return ToBoolean(Invoke(`this.[[strategy]]`, `"needsMore"`, (_queueSize_))).
+1. If _needsMore_ is an abrupt completion,
+    1. Call the **this**.\[\[error\]\](_needsMore_.[[value]]).
+1. Return _needsMore_.
+
 ##### `[[callOrSchedulePull]]()`
 
 1. If `this.[[pulling]]` is **true**, return.
+1. Let _needsMore_ be the result of calling **this**.\[\[getNeedsMore\]\]().
+1. ReturnIfAbrupt(_needsMore_).
+1. If _needsMore_ is **false**, return.
 1. Set `this.[[pulling]]` to **true**.
 1. If `this.[[started]]` is **false**,
     1. Upon fulfillment of `this.[[startedPromise]]`, call `this.[[callPull]]`.
