@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "node traceur-runner.js test/*.js",
-    "bench": "node traceur-runner.js bench/runner.js"
+    "bench": "node traceur-runner.js bench/recording-runner.js && node traceur-runner.js bench/recording-differ.js"
   },
   "repository": {
     "type": "git",
@@ -33,6 +33,7 @@
     "ms": "^0.6.2",
     "sandwich": "^0.1.1",
     "tape": "^2.13.2",
+    "text-table": "^0.2.0",
     "traceur": "^0.0.58"
   }
 }
