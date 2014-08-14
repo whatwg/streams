@@ -1,5 +1,5 @@
 var assert = require('assert');
-module helpers from'./helpers';
+import * as helpers from'./helpers';
 import CountQueuingStrategy from './count-queuing-strategy';
 
 export default class ReadableStream {

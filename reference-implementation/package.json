@@ -29,6 +29,6 @@
   "devDependencies": {
     "glob": "^4.0.2",
     "tape": "^2.13.2",
-    "traceur": "0.0.45"
+    "traceur": "^0.0.58"
   }
 }
