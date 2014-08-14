@@ -28,7 +28,6 @@
   },
   "homepage": "https://github.com/othiym23/streams",
   "devDependencies": {
-    "byte-size": "^0.1.0",
     "glob": "^4.0.2",
     "ms": "^0.6.2",
     "sandwich": "^0.1.1",

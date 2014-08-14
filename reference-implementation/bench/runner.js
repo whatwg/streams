@@ -2,11 +2,11 @@ var sandwich = require('sandwich');
 var util = require('util');
 var ms = require('ms');
 
-module params from './params';
+import params from './params';
 import scenario from './pipe-chain';
 
-var possibilities = params.quickTestPossibilities;
-var combinationsIterator = sandwich(...params.keys.map(k => possibilities[k]));
+var keys = Object.keys(params);
+var combinationsIterator = sandwich(...keys.map(k => params[k]));
 
 console.log(`About to run ${combinationsIterator.possibilities} tests`);
 
@@ -36,7 +36,7 @@ function doNextCombo() {
 function comboParamsFromComboValues(comboValues) {
   var comboParams = {};
   comboValues.forEach((v, i) => {
-    comboParams[params.keys[i]] = v;
+    comboParams[keys[i]] = v;
   });
   return comboParams;
 }
