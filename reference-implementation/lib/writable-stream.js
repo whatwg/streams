@@ -34,10 +34,9 @@ export default class WritableStream {
     this._onAbort = abort;
     this._strategy = strategy;
 
-    this._writablePromise = new Promise((resolve, reject) => {
-      this._writablePromise_resolve = resolve;
-      this._writablePromise_reject = reject;
-    });
+    this._writablePromise = Promise.resolve(undefined);
+    this._writablePromise_resolve = null;
+    this._writablePromise_reject = null;
 
     this._closedPromise = new Promise((resolve, reject) => {
       this._closedPromise_resolve = resolve;

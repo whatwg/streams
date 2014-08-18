@@ -288,7 +288,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Set `this.[[onClose]]` to `close`.
 1. Set `this.[[onAbort]]` to `abort`.
 1. Set `this.[[strategy]]` to `strategy`.
-1. Let `this.[[writablePromise]]` be a new promise.
+1. Let `this.[[writablePromise]]` be a new promise resolved with **undefined**.
 1. Let `this.[[closedPromise]]` be a new promise.
 1. Let `this.[[queue]]` be a new empty List.
 1. Upon fulfillment of `this.[[closedPromise]]`, set `this.[[state]]` to `"closed"`.

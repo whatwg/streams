@@ -230,6 +230,17 @@ test('WritableStream stays writable indefinitely if writes are all acknowledged 
   }, 0);
 });
 
+test('WritableStream wait() fulfills immediately if the stream is writable', t => {
+  var ws = new WritableStream({
+    strategy: { needsMore() { return true; } }
+  });
+
+  ws.wait().then(() => {
+    t.pass('wait() promise was fulfilled');
+    t.end();
+  });
+});
+
 test('WritableStream transitions to waiting after one write that is not synchronously acknowledged', t => {
   var done;
   var ws = new WritableStream({
