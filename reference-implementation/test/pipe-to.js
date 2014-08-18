@@ -214,8 +214,8 @@ test('Piping from a ReadableStream in errored state to a WritableStream in writa
   }, 0);
 });
 
-test(`Piping from a ReadableStream in readable state which becomes closed after pipeTo call to a WritableStream in
- writable state`, t => {
+test('Piping from a ReadableStream in readable state which becomes closed after pipeTo call to a WritableStream in ' +
+    'writable state', t => {
   var closeReadableStream;
   var pullCount = 0;
   var rs = new ReadableStream({
@@ -267,8 +267,8 @@ test(`Piping from a ReadableStream in readable state which becomes closed after 
   }, 0);
 });
 
-test(`Piping from a ReadableStream in readable state which becomes errored after pipeTo call to a WritableStream in
- writable state`, t => {
+test('Piping from a ReadableStream in readable state which becomes errored after pipeTo call to a WritableStream in ' +
+    'writable state', t => {
   var errorReadableStream;
   var pullCount = 0;
   var rs = new ReadableStream({
@@ -322,8 +322,8 @@ test(`Piping from a ReadableStream in readable state which becomes errored after
   }, 0);
 });
 
-test(`Piping from a ReadableStream in waiting state which becomes readable after pipeTo call to a WritableStream in
- writable state`, t => {
+test('Piping from a ReadableStream in waiting state which becomes readable after pipeTo call to a WritableStream in ' +
+    'writable state', t => {
   var enqueue;
   var pullCount = 0;
   var rs = new ReadableStream({
@@ -365,8 +365,8 @@ test(`Piping from a ReadableStream in waiting state which becomes readable after
   enqueue('Hello');
 });
 
-test(`Piping from a ReadableStream in waiting state which becomes errored after pipeTo call to a WritableStream in
- writable state`, t => {
+test('Piping from a ReadableStream in waiting state which becomes errored after pipeTo call to a WritableStream in ' +
+    'writable state', t => {
   var errorReadableStream;
   var pullCount = 0;
   var rs = new ReadableStream({
@@ -409,8 +409,8 @@ test(`Piping from a ReadableStream in waiting state which becomes errored after 
   t.equal(rs.state, 'errored');
 });
 
-test(`Piping from a ReadableStream in waiting state to a WritableStream in writable state which becomes errored after
- pipeTo call`, t => {
+test.only('Piping from a ReadableStream in waiting state to a WritableStream in writable state which becomes errored ' +
+    'after pipeTo call', t => {
   var writeCalled = false;
 
   var pullCount = 0;
@@ -419,8 +419,8 @@ test(`Piping from a ReadableStream in waiting state to a WritableStream in writa
       ++pullCount;
     },
     cancel() {
-      t.equal(pullCount, 1);
-      t.assert(writeCalled);
+      t.equal(pullCount, 1, 'pull should have been called once by cancel-time');
+      t.assert(writeCalled, 'write should have been called by cancel-time');
       t.end();
     }
   });
@@ -428,10 +428,10 @@ test(`Piping from a ReadableStream in waiting state to a WritableStream in writa
   var errorWritableStream;
   var ws = new WritableStream({
     write(chunk, done, error) {
-      t.assert(!writeCalled);
+      t.assert(!writeCalled, 'write should not have been called more than once');
       writeCalled = true;
 
-      t.equal(chunk, 'Hello');
+      t.equal(chunk, 'Hello', 'the chunk passed to write should be the one written');
 
       errorWritableStream = error;
 
@@ -451,24 +451,24 @@ test(`Piping from a ReadableStream in waiting state to a WritableStream in writa
 
   // Wait for ws to start.
   setTimeout(() => {
-    t.equal(ws.state, 'writable');
+    t.equal(ws.state, 'writable', 'ws should start writable');
 
     rs.pipeTo(ws);
-    t.equal(rs.state, 'waiting');
-    t.equal(ws.state, 'writable');
+    t.equal(rs.state, 'waiting', 'rs should be waiting after pipe');
+    t.equal(ws.state, 'writable', 'ws should be writable after pipe');
 
     errorWritableStream();
-    t.equal(ws.state, 'errored');
+    t.equal(ws.state, 'errored', 'ws should be errored after erroring it');
   }, 0);
 });
 
-test(`Piping from a ReadableStream in readable state to a WritableStream in waiting state which becomes writable after
- pipeTo call`, t => {
+test('Piping from a ReadableStream in readable state to a WritableStream in waiting state which becomes writable ' +
+    'after pipeTo call', t => {
   var enqueue;
   var pullCount = 0;
   var rs = new ReadableStream({
     start(enqueue) {
-      enqueue("World");
+      enqueue('World');
     },
     pull() {
       ++pullCount;
@@ -518,14 +518,14 @@ test(`Piping from a ReadableStream in readable state to a WritableStream in wait
   }, 0);
 });
 
-test(`Piping from a ReadableStream in readable state to a WritableStream in waiting state which becomes errored after
- pipeTo call`, t => {
+test('Piping from a ReadableStream in readable state to a WritableStream in waiting state which becomes errored ' +
+    'after pipeTo call', t => {
   var writeCalled = false;
 
   var enqueue;
   var rs = new ReadableStream({
     start(enqueue) {
-      enqueue("World");
+      enqueue('World');
     },
     pull() {
       t.fail('Unexpected pull call');
@@ -571,12 +571,12 @@ test(`Piping from a ReadableStream in readable state to a WritableStream in wait
   }, 0);
 });
 
-test(`Piping from a ReadableStream in readable state which becomes errored after pipeTo call to a WritableStream in
- waiting state`, t => {
+test('Piping from a ReadableStream in readable state which becomes errored after pipeTo call to a WritableStream in ' +
+    'waiting state', t => {
   var errorReadableStream;
   var rs = new ReadableStream({
     start(enqueue, close, error) {
-      enqueue("World");
+      enqueue('World');
       errorReadableStream = error;
     },
     pull() {
@@ -621,8 +621,8 @@ test(`Piping from a ReadableStream in readable state which becomes errored after
   }, 0);
 });
 
-test(`Piping from a ReadableStream in waiting state to a WritableStream in waiting state where both become ready after
- pipeTo`, t => {
+test('Piping from a ReadableStream in waiting state to a WritableStream in waiting state where both become ready ' +
+    'after pipeTo', t => {
   var enqueue;
   var pullCount = 0;
   var rs = new ReadableStream({
@@ -685,8 +685,8 @@ test(`Piping from a ReadableStream in waiting state to a WritableStream in waiti
   }, 0);
 });
 
-test(`Piping from a ReadableStream in waiting state to a WritableStream in waiting state which becomes writable after
- pipeTo call`, t => {
+test('Piping from a ReadableStream in waiting state to a WritableStream in waiting state which becomes writable ' +
+    'after pipeTo call', t => {
   var pullCount = 0;
   var rs = new ReadableStream({
     pull() {
@@ -735,8 +735,8 @@ test(`Piping from a ReadableStream in waiting state to a WritableStream in waiti
   }, 0);
 });
 
-test(`Piping from a ReadableStream in waiting state which becomes closed after pipeTo call to a WritableStream in
- waiting state`, t => {
+test('Piping from a ReadableStream in waiting state which becomes closed after pipeTo call to a WritableStream in ' +
+    'waiting state', t => {
   var closeReadableStream;
   var pullCount = 0;
   var rs = new ReadableStream({
@@ -793,8 +793,8 @@ test(`Piping from a ReadableStream in waiting state which becomes closed after p
   });
 });
 
-test(`Piping from a ReadableStream in waiting state which becomes errored after pipeTo call to a WritableStream in
- waiting state`, t => {
+test('Piping from a ReadableStream in waiting state which becomes errored after pipeTo call to a WritableStream in ' +
+    'waiting state', t => {
   var errorReadableStream;
   var pullCount = 0;
   var rs = new ReadableStream({
@@ -858,6 +858,9 @@ test('Piping to a duck-typed asynchronous "writable stream" works', t => {
     state: 'writable',
     write(chunk) {
       chunksWritten.push(chunk);
+      return Promise.resolve();
+    },
+    wait() {
       return Promise.resolve();
     },
     close() {
