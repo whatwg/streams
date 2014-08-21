@@ -27,15 +27,15 @@ export default params => {
           ++pauses;
         }
 
-        potentiallySyncSetTimeout(generateData, params.underlyingSourceRate);
+        potentiallySyncSetTimeout(generateData, params.underlyingSourceChunkInterval);
       };
 
-      potentiallySyncSetTimeout(generateData, params.underlyingSourceRate);
+      potentiallySyncSetTimeout(generateData, params.underlyingSourceChunkInterval);
     },
 
     pull(enqueue, close) {
       paused = false;
-      potentiallySyncSetTimeout(generateData, params.underlyingSourceRate);
+      potentiallySyncSetTimeout(generateData, params.underlyingSourceChunkInterval);
     },
 
     strategy: new ByteLengthQueuingStrategy({ highWaterMark: params.readableStreamHWM })
@@ -53,7 +53,7 @@ export default params => {
 
   var ws = new WritableStream({
     write(chunk, done) {
-      potentiallySyncSetTimeout(done, params.underlyingSinkRate);
+      potentiallySyncSetTimeout(done, params.underlyingSinkAckLatency);
     },
 
     strategy: new ByteLengthQueuingStrategy({ highWaterMark: params.writableStreamHWM })

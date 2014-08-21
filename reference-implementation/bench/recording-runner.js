@@ -13,7 +13,6 @@ var runner = new Runner((time, data, values) => {
   results[JSON.stringify(values)] = { time: time, data: data };
 });
 
-var start = Date.now();
 runner.run()
   .then(() => {
     var sanitizedDate = (new Date()).toISOString().replace(/[-:.]/g, '');
