@@ -409,7 +409,7 @@ test('Piping from a ReadableStream in waiting state which becomes errored after 
   t.equal(rs.state, 'errored');
 });
 
-test.only('Piping from a ReadableStream in waiting state to a WritableStream in writable state which becomes errored ' +
+test('Piping from a ReadableStream in waiting state to a WritableStream in writable state which becomes errored ' +
     'after pipeTo call', t => {
   var writeCalled = false;
 
