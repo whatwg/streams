@@ -33,6 +33,7 @@ class ReadableByteStream {
 
     // Internal methods for use by the underlying source
     [[notifyReady]]()
+    [[error]](any e)
 }   
 ```
 
@@ -79,7 +80,8 @@ When an error function _F_ is called with argument _error_, the following steps 
 1. Let _stream_.[[waitPromise]] be a new promise.
 1. Let _stream_.[[closedPromise]] be a new promise.
 1. Let _stream_.[[notifyReady]] be a new built-in function object as defined in Notify Ready Function with [[Stream]] internal slot set to _stream_.
-1. Let _startResult_ be the result of calling the [[Call]] internal method of _start_ with **undefined** as _thisArgument_ and (_stream_.[[notifyReady]]) as _argumentList_.
+1. Let _stream_.[[error]] be a new built-in function object as defined in Error Function with [[Stream]] internal slot set to _stream_.
+1. Let _startResult_ be the result of calling the [[Call]] internal method of _start_ with **undefined** as _thisArgument_ and (_stream_.[[notifyReady]], _stream_.[[error]]) as _argumentList_.
 1. ReturnIfAbrupt(_startResult_).
 
 ##### ReadableByteStream.prototype.readInto ( arrayBuffer, offset, size )
