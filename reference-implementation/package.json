@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node traceur-runner.js test/*.js",
+    "test": "node traceur-runner.js test/*.js test/experimental/*.js",
     "bench": "node traceur-runner.js bench/recording-runner.js && node traceur-runner.js bench/recording-differ.js"
   },
   "repository": {
