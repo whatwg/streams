@@ -54,6 +54,7 @@ When a notify ready function _F_ is called, the following steps are taken:
 
 1. If _stream_.[[state]] is `"errored"` or `"closed"`, return.
 1. If _stream_.[[state]] is `"waiting"`, reject _stream_.[[waitPromise]] with _error_.
+1. If _stream_.[[state]] is `"readable"`, let _stream_.[[waitPromise]] be a new promise rejected with _error_.
 1. Set _stream_.[[state]] to `"errored"`.
 1. Set _stream_.[[storedError]] to _error_.
 1. Reject _stream_.[[closedPromise]] with _error_.

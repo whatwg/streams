@@ -1,5 +1,5 @@
 var assert = require('assert');
-module helpers from'../helpers';
+import * as helpers from '../helpers';
 
 export default class ReadableByteStream {
   constructor({
@@ -143,6 +143,10 @@ export default class ReadableByteStream {
 
     if (this._state === 'waiting') {
       this._waitPromise_reject(error);
+      this._waitPromise_resolve = null;
+      this._waitPromise_reject = null;
+    } else {
+      this._waitPromise = Promise.reject(error);
       this._waitPromise_resolve = null;
       this._waitPromise_reject = null;
     }
