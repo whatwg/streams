@@ -1,4 +1,5 @@
 var assert = require('assert');
+module helpers from'../helpers';
 
 export default class ReadableByteStream {
   constructor({
@@ -30,20 +31,10 @@ export default class ReadableByteStream {
       this._closedPromise_reject = reject;
     });
 
-    start(this._notifyReady.bind(this));
-  }
-
-  _toInteger(v) {
-    v = Number(v);
-    if (isNaN(v)) {
-      return 0;
-    }
-
-    if (v < 0) {
-      return -1 * Math.floor(Math.abs(v));
-    }
-
-    return Math.floor(Math.abs(v));
+    start(
+      this._notifyReady.bind(this),
+      this._error.bind(this)
+    );
   }
 
   get state() {
@@ -66,7 +57,7 @@ export default class ReadableByteStream {
     if (offset === undefined) {
       offset = 0;
     } else {
-      offset = this._toInteger(offset);
+      offset = helpers.toInteger(offset);
 
       if (offset < 0) {
         throw new TypeError();
@@ -76,7 +67,7 @@ export default class ReadableByteStream {
     if (size === undefined) {
       size = arraybuffer.byteLength - offset;
     } else {
-      size = this._toInteger(size);
+      size = helpers.toInteger(size);
     }
 
     if (size < 0 || offset + size > arraybuffer.byteLength) {
@@ -91,7 +82,7 @@ export default class ReadableByteStream {
       throw error;
     }
 
-    bytesRead = this._toInteger(bytesRead);
+    bytesRead = Number(bytesRead);
 
     if (bytesRead < -2 || bytesRead > size) {
       var error = new TypeError();

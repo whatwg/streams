@@ -43,3 +43,16 @@ export function getTotalQueueSize(queue) {
 export function typeIsObject(x) {
   return (typeof x === 'object' && x !== null) || typeof x === 'function';
 }
+
+export function toInteger(v) {
+  v = Number(v);
+  if (isNaN(v)) {
+    return 0;
+  }
+
+  if (v < 0) {
+    return -1 * Math.floor(Math.abs(v));
+  }
+
+  return Math.floor(Math.abs(v));
+}
