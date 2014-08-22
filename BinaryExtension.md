@@ -58,7 +58,7 @@ When a notify ready function _F_ is called, the following steps are taken:
 1. Set _stream_.[[storedError]] to _error_.
 1. Reject _stream_.[[closedPromise]] with _error_.
 
-#### Error Function
+##### Error Function
 
 An error function is an anonymous built-in function that has [[Stream]] internal slot.
 
