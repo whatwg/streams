@@ -358,7 +358,7 @@ test('ReadableByteStream: Have readInto() write up to 10 bytes for each call', t
         return;
       } else if (rbs.state === 'closed') {
         t.equal(bytesFilled, dataSize);
-        var view = Uint8Array(buffer);
+        var view = new Uint8Array(buffer);
 
         for (var i = 0; i < bytesFilled; ++i) {
           if (view[i] != i % 256) {
