@@ -89,13 +89,13 @@ test('Piping from a ReadableStream in readable state to a WritableStream in erro
 
   var writeCalled = false;
   var ws = new WritableStream({
-    write(chunk, done, error) {
+    write(chunk) {
       t.assert(!writeCalled, 'write must not be called more than once');
       writeCalled = true;
 
       t.equal(chunk, 'Hello');
 
-      error(passedError);
+      return Promise.reject(passedError);
     },
     close() {
       t.fail('Unexpected close call');
@@ -111,16 +111,21 @@ test('Piping from a ReadableStream in readable state to a WritableStream in erro
   setTimeout(() => {
     ws.write('Hello');
     t.assert(writeCalled, 'write must be called');
-    t.equal(ws.state, 'errored', 'as a result of error call, ws must be in errored state');
 
-    rs.pipeTo(ws);
+    ws.wait().then(
+      () => t.fail('wait promise unexpectedly fulfilled'),
+      () => {
+        t.equal(ws.state, 'errored', 'as a result of error call, ws must be in errored state');
 
-    // Need to delay because pipeTo retrieves error from dest using wait().
-    setTimeout(() => {
-      t.assert(cancelCalled);
-      t.equal(rs.state, 'closed');
-      t.end();
-    }, 0);
+        rs.pipeTo(ws);
+
+        // Need to delay because pipeTo retrieves error from dest using wait().
+        setTimeout(() => {
+          t.assert(cancelCalled);
+          t.equal(rs.state, 'closed');
+          t.end();
+        }, 0);
+      });
   }, 0);
 });
 
@@ -142,7 +147,7 @@ test('Piping from a ReadableStream in closed state to a WritableStream in writab
 
   var closeCalled = false;
   var ws = new WritableStream({
-    write(chunk, done, error) {
+    write() {
       t.fail('Unexpected write call');
       t.end();
     },
@@ -185,7 +190,7 @@ test('Piping from a ReadableStream in errored state to a WritableStream in writa
 
   var abortCalled = false;
   var ws = new WritableStream({
-    write(chunk, done, error) {
+    write() {
       t.fail('Unexpected write call');
       t.end();
     },
@@ -235,11 +240,10 @@ test('Piping from a ReadableStream in readable state which becomes closed after 
 
   var writeCalled = false;
   var ws = new WritableStream({
-    write(chunk, done) {
+    write(chunk) {
       if (!writeCalled) {
         t.equal(chunk, 'Hello');
         writeCalled = true;
-        done();
       } else {
         t.fail('Unexpected extra write call');
         t.end();
@@ -260,8 +264,8 @@ test('Piping from a ReadableStream in readable state which becomes closed after 
   // Wait for ws to start.
   setTimeout(() => {
     rs.pipeTo(ws);
-    t.equal(rs.state, 'waiting', 'transfer must happen synchronously, and then rs enters waiting state');
-    t.equal(ws.state, 'writable');
+    t.equal(rs.state, 'waiting', 'value must leave readable state synchronously');
+    t.equal(ws.state, 'waiting', 'writable stream must be written to, entering a waiting state');
 
     closeReadableStream();
   }, 0);
@@ -289,11 +293,10 @@ test('Piping from a ReadableStream in readable state which becomes errored after
   var writeCalled = false;
   var passedError = new Error('horrible things');
   var ws = new WritableStream({
-    write(chunk, done) {
+    write(chunk) {
       if (!writeCalled) {
         t.equal(chunk, 'Hello');
         writeCalled = true;
-        done();
       } else {
         t.fail('Unexpected extra write call');
         t.end();
@@ -315,8 +318,8 @@ test('Piping from a ReadableStream in readable state which becomes errored after
   // Wait for ws to start.
   setTimeout(() => {
     rs.pipeTo(ws);
-    t.equal(rs.state, 'waiting', 'transfer must happen synchronously, and then rs enters waiting state');
-    t.equal(ws.state, 'writable');
+    t.equal(rs.state, 'waiting', 'value must leave readable state synchronously');
+    t.equal(ws.state, 'waiting', 'writable stream must be written to, entering a waiting state');
 
     errorReadableStream(passedError);
   }, 0);
@@ -427,15 +430,14 @@ test('Piping from a ReadableStream in waiting state to a WritableStream in writa
 
   var errorWritableStream;
   var ws = new WritableStream({
-    write(chunk, done, error) {
+    start(error) {
+      errorWritableStream = error;
+    },
+    write(chunk) {
       t.assert(!writeCalled, 'write should not have been called more than once');
       writeCalled = true;
 
       t.equal(chunk, 'Hello', 'the chunk passed to write should be the one written');
-
-      errorWritableStream = error;
-
-      done();
     },
     close() {
       t.fail('Unexpected close call');
@@ -480,12 +482,12 @@ test('Piping from a ReadableStream in readable state to a WritableStream in wait
   });
   t.equal(rs.state, 'readable');
 
-  var done;
+  var resolveWritePromise;
   var ws = new WritableStream({
-    write(chunk, done_) {
-      if (!done) {
+    write(chunk) {
+      if (!resolveWritePromise) {
         t.equal(chunk, 'Hello');
-        done = done_;
+        return new Promise(resolve => resolveWritePromise = resolve);
       } else {
         t.equal(chunk, 'World');
 
@@ -513,8 +515,11 @@ test('Piping from a ReadableStream in readable state to a WritableStream in wait
     t.equal(rs.state, 'readable', 'transfer of data must not happen until ws becomes writable');
     t.equal(ws.state, 'waiting');
 
-    done();
-    t.equal(ws.state, 'writable');
+    resolveWritePromise();
+    ws.wait().then(() => {
+      t.equal(ws.state, 'writable');
+    })
+    .catch(t.error);
   }, 0);
 });
 
@@ -541,11 +546,14 @@ test('Piping from a ReadableStream in readable state to a WritableStream in wait
 
   var errorWritableStream;
   var ws = new WritableStream({
-    write(chunk, done, error) {
+    start(error) {
+      errorWritableStream = error;
+    },
+    write(chunk) {
       t.assert(!writeCalled);
       t.equal(chunk, 'Hello');
       writeCalled = true;
-      errorWritableStream = error;
+      return new Promise(() => {});
     },
     close() {
       t.fail('Unexpected close call');
@@ -592,11 +600,13 @@ test('Piping from a ReadableStream in readable state which becomes errored after
 
   var writeCalled = false;
   var ws = new WritableStream({
-    write(chunk, done) {
+    write(chunk) {
       t.assert(!writeCalled);
       writeCalled = true;
 
       t.equal(chunk, 'Hello');
+
+      return new Promise(() => {});
     },
     close() {
       t.fail('Unexpected close call');
@@ -640,17 +650,16 @@ test('Piping from a ReadableStream in waiting state to a WritableStream in waiti
 
   var checkSecondWrite = false;
 
-  var done;
+  var resolveWritePromise;
   var ws = new WritableStream({
-    write(chunk, done_) {
+    write(chunk) {
       if (checkSecondWrite) {
         t.equal(chunk, 'Goodbye');
         t.end();
       } else {
-        t.assert(!done);
-        done = done_;
-
+        t.assert(!resolveWritePromise);
         t.equal(chunk, 'Hello');
+        return new Promise(resolve => resolveWritePromise = resolve);
       }
     },
     close() {
@@ -666,7 +675,7 @@ test('Piping from a ReadableStream in waiting state to a WritableStream in waiti
 
   // Wait for ws to start.
   setTimeout(() => {
-    t.assert(done);
+    t.assert(resolveWritePromise);
     t.equal(ws.state, 'waiting');
 
     rs.pipeTo(ws);
@@ -680,7 +689,7 @@ test('Piping from a ReadableStream in waiting state to a WritableStream in waiti
 
       checkSecondWrite = true;
 
-      done();
+      resolveWritePromise();
     }, 100);
   }, 0);
 });
@@ -698,13 +707,12 @@ test('Piping from a ReadableStream in waiting state to a WritableStream in waiti
     }
   });
 
-  var done;
+  var resolveWritePromise;
   var ws = new WritableStream({
-    write(chunk, done_) {
-      t.assert(!done);
-      done = done_;
-
+    write(chunk) {
+      t.assert(!resolveWritePromise);
       t.equal(chunk, 'Hello');
+      return new Promise(resolve => resolveWritePromise = resolve);
     },
     close() {
       t.fail('Unexpected close call');
@@ -725,7 +733,7 @@ test('Piping from a ReadableStream in waiting state to a WritableStream in waiti
     t.equal(rs.state, 'waiting');
     t.equal(ws.state, 'waiting');
 
-    done();
+    resolveWritePromise();
     // Check that nothing happens.
     setTimeout(() => {
       t.equal(pullCount, 1);
@@ -762,6 +770,7 @@ test('Piping from a ReadableStream in waiting state which becomes closed after p
         t.fail('Unexpected extra write call');
         t.end();
       }
+      return new Promise(() => {});
     },
     close() {
       t.fail('Unexpected close call');
@@ -821,6 +830,7 @@ test('Piping from a ReadableStream in waiting state which becomes errored after 
         t.fail('Unexpected extra write call');
         t.end();
       }
+      return new Promise(() => {});
     },
     close() {
       t.fail('Unexpected close call');
@@ -971,12 +981,14 @@ test('Piping to a stream that synchronously errors passes through the error as t
   var written = 0;
   var passedError = new Error('I don\'t like you.');
   var ws = new WritableStream({
-    write(chunk, done, error) {
-      if (++written > 1) {
-        error(passedError);
-      } else {
-        done();
-      }
+    write(chunk) {
+      return new Promise((resolve, reject) => {
+        if (++written > 1) {
+          reject(passedError);
+        } else {
+          resolve();
+        }
+      });
     }
   });
 
@@ -1005,12 +1017,14 @@ test('Piping to a stream that asynchronously errors passes through the error as 
   var written = 0;
   var passedError = new Error('I don\'t like you.');
   var ws = new WritableStream({
-    write(chunk, done, error) {
-      if (++written > 1) {
-        setTimeout(() => error(passedError), 10);
-      } else {
-        done();
-      }
+    write(chunk) {
+      return new Promise((resolve, reject) => {
+        if (++written > 1) {
+          setTimeout(() => reject(passedError), 10);
+        } else {
+          resolve();
+        }
+      });
     }
   });
 
@@ -1038,12 +1052,14 @@ test('Piping to a stream that errors on the last chunk passes through the error 
   var written = 0;
   var passedError = new Error('I don\'t like you.');
   var ws = new WritableStream({
-    write(chunk, done, error) {
-      if (++written > 1) {
-        error(passedError);
-      } else {
-        done();
-      }
+    write(chunk) {
+      return new Promise((resolve, reject) => {
+        if (++written > 1) {
+          reject(passedError);
+        } else {
+          resolve();
+        }
+      });
     }
   });
 
@@ -1070,12 +1086,14 @@ test('Piping to a stream that errors on the last chunk does not pass through the
 
   var written = 0;
   var ws = new WritableStream({
-    write(chunk, done, error) {
-      if (++written > 1) {
-        error(new Error('producer will not see this'));
-      } else {
-        done();
-      }
+    write(chunk) {
+      return new Promise((resolve, reject) => {
+        if (++written > 1) {
+          reject(new Error('producer will not see this'));
+        } else {
+          resolve();
+        }
+      });
     }
   });
 
@@ -1104,11 +1122,13 @@ test('Piping to a writable stream that does not consume the writes fast enough e
 
   var writtenValues = [];
   var ws = new WritableStream({
-    write(chunk, done) {
-      setTimeout(() => {
-        writtenValues.push(chunk);
-        done();
-      }, 25);
+    write(chunk) {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          writtenValues.push(chunk);
+          resolve();
+        }, 25);
+      });
     }
   });
 

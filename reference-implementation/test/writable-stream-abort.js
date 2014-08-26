@@ -5,9 +5,8 @@ import WritableStream from '../lib/writable-stream';
 test('Aborting a WritableStream immediately prevents future writes', t => {
   var chunks = [];
   var ws = new WritableStream({
-    write(chunk, done) {
+    write(chunk) {
       chunks.push(chunk);
-      done();
     }
   });
 
@@ -23,9 +22,9 @@ test('Aborting a WritableStream immediately prevents future writes', t => {
 test('Aborting a WritableStream prevents further writes after any that are in progress', t => {
   var chunks = [];
   var ws = new WritableStream({
-    write(chunk, done) {
+    write(chunk) {
       chunks.push(chunk);
-      setTimeout(done, 50);
+      return new Promise(resolve => setTimeout(resolve, 50));
     }
   });
 
@@ -63,11 +62,7 @@ test('Aborting a WritableStream puts it in an errored state, with stored error e
   t.plan(6);
 
   var recordedReason;
-  var ws = new WritableStream({
-    write(chunk, done) {
-      done();
-    }
-  });
+  var ws = new WritableStream();
 
   var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   ws.abort(passedReason);
@@ -115,23 +110,4 @@ test('Aborting a WritableStream causes any outstanding wait() promises to be rej
 
   var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   ws.abort(passedReason);
-});
-
-test('Aborting a WritableStream makes any future signalDone calls a no-op', t => {
-  var done;
-  var ws = new WritableStream({
-    write(chunk, done_) {
-      done = done_;
-    }
-  });
-
-  setTimeout(() => {
-    ws.write('a');
-    t.notStrictEqual(done, undefined, 'write is called and done is set');
-
-    ws.abort();
-
-    t.doesNotThrow(done);
-    t.end();
-  }, 0);
 });

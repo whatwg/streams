@@ -336,17 +336,19 @@ class WritableFile extends WritableStream {
                 });
             },
 
-            write(chunk, done, error) {
-                fileHandle.write(chunk, err => {
-                    if (err) {
-                        fileHandle.close(closeErr => {
-                            if (closeErr) {
-                                error(closeErr);
-                            }
-                            error(err);
-                        });
-                    }
-                    done();
+            write(chunk) {
+                return new Promise((resolve, reject) => {
+                    fileHandle.write(chunk, err => {
+                        if (err) {
+                            fileHandle.close(closeErr => {
+                                if (closeErr) {
+                                    reject(closeErr);
+                                }
+                                reject(err);
+                            });
+                        }
+                        resolve();
+                    });
                 });
             },
 
@@ -371,4 +373,4 @@ var file = new WritableFile("/example/path/on/fs.txt");
 
 As you can see, this is fairly straightforward: we simply supply constructor parameters that adapt the raw file handle API into an expected form. The writable stream's internal mechanisms will take care of the rest, ensuring that these supplied operations are queued and sequenced correctly when a consumer writes to the resulting writable stream. Most of the boilerplate here comes from adapting callback-based APIs into promise-based ones, really.
 
-Note how backpressure signals are given off by a writable stream. If a particular call to `fileHandle.write` takes a longer time, `done` will be called later. In the meantime, users of the writable stream may have queued up additional writes, which are stored in the stream's internal queue. The accumulation of this queue can move the stream into a "waiting" state, according to the `strategy` parameter, which is a signal to users of the stream that they should back off and stop writing if possible—as seen in our above usage examples.
+Note how backpressure signals are given off by a writable stream. If a particular call to `fileHandle.write` takes a longer time, the returned promise will be resolved later. In the meantime, users of the writable stream may have queued up additional writes, which are stored in the stream's internal queue. The accumulation of this queue can move the stream into a "waiting" state, according to the `strategy` parameter, which is a signal to users of the stream that they should back off and stop writing if possible—as seen in our above usage examples.

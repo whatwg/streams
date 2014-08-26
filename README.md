@@ -278,7 +278,7 @@ enum WritableStreamState {
 The constructor is passed several functions, all optional:
 
 * `start(error)` is called when the writable stream is created, and should open the underlying writable sink. If this process is asynchronous, it can return a promise to signal success or failure.
-* `write(chunk, done, error)` should write `chunk` to the underlying sink. It can call its `done` or `error` parameters, either synchronously or asynchronously, to respectively signal that the underlying resource is ready for more data or that an error occurred writing. The stream implementation guarantees that this function will be called only after previous writes have succeeded (i.e. called their `done` parameter), and never after `close` or `abort` is called.
+* `write(chunk)` should write `chunk` to the underlying sink. It can return a promise to signal success or failure of the write operation to the underlying sink. The stream implementation guarantees that this function will be called only after previous writes have succeeded, and never after `close` or `abort` is called.
 * `close()` should close the underlying sink. If this process is asynchronous, it can return a promise to signal success or failure. The stream implementation guarantees that this function will be called only after all queued-up writes have succeeded.
 * `abort()` is an abrupt close, signaling that all data written so far is suspect. It should clean up underlying resources, much like `close`, but perhaps with some custom handling. Unlike `close`, `abort` will be called even if writes are queued up, throwing away those chunks. If this process is asynchronous, it can return a promise to signal success or failure.
 
@@ -381,7 +381,9 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Otherwise,
     1. Assert: `writeRecord.[[type]]` is `"chunk"`.
     1. Set `this.[[currentWritePromise]]` to `writeRecord.[[promise]]`.
-    1. Let `signalDone` be a new function of zero arguments, closing over `this` and `writeRecord.[[promise]]`, that performs the following steps:
+
+    1. Let _writeResult_ be the result of promise-calling `this.[[onWrite]](writeRecord.[[chunk]])`.
+    1. Upon fulfillment of _writeResult_,
         1. If `this.[[currentWritePromise]]` is not `writeRecord.[[promise]]`, return.
         1. Set `this.[[currentWritePromise]]` to **undefined**.
         1. Resolve `writeRecord.[[promise]]` with **undefined**.
@@ -391,12 +393,11 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
             1. Call `this.[[error]](syncResult.[[value]])`.
             1. Return.
         1. Call `this.[[advanceQueue]]()`.
-    1. Let _writeResult_ be `this.[[onWrite]](chunk, signalDone, this.[[error]])`.
-    1. If _writeResult_ is an abrupt completion, then call `this.[[error]](writeResult.[[value]])`.
+    1. Upon rejection of _writeResult_ with reason _r_, call `this.[[error]](r)`.
 
-Note: if the constructor's `write` option calls `done` more than once, or after calling `error`, or after the stream has been aborted, then `signalDone` ends up doing nothing, since `this.[[currentWritePromise]]` is no longer equal to `writeRecord.[[promise]]`.
+Note: if the constructor's `write` option returns a promise that settles after the stream has been aborted, the early-exit clause is hit, since `this.[[currentWritePromise]]` is no longer equal to `writeRecord.[[promise]]`.
 
-Note: the peeking-then-dequeuing dance is necessary so that during the call to the user-supplied function, `this.[[onWrite]]`, the queue and corresponding public `state` property correctly reflect the ongoing write. The write record only leaves the queue after a call to `signalDone` tells us that the chunk has been successfully written to the underlying sink, and we can advance the queue.
+Note: the peeking-then-dequeuing dance is necessary so that during the call to the user-supplied function, `this.[[onWrite]]`, the queue and corresponding public `state` property correctly reflect the ongoing write. The write record only leaves the queue after the chunk has been successfully written to the underlying sink, and we can advance the queue.
 
 ##### `[[syncStateWithQueue]]()`
 

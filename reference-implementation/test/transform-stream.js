@@ -35,7 +35,7 @@ test('TransformStream inputs and outputs start in the expected states', t => {
 });
 
 test('Pass-through sync TransformStream: can read from output what is put into input', t => {
-  t.plan(4);
+  t.plan(5);
 
   var ts = new TransformStream({
     transform(chunk, enqueue, done) {
@@ -44,18 +44,22 @@ test('Pass-through sync TransformStream: can read from output what is put into i
     }
   });
 
-  ts.input.write('a');
-
   setTimeout(() => {
-    t.equal(ts.input.state, 'writable', 'input is still writable since the transform was sync');
-    t.equal(ts.output.state, 'readable', 'output is readable after writing to input');
+    ts.input.write('a');
+
+    t.equal(ts.input.state, 'waiting', 'input is waiting after one write');
+    t.equal(ts.output.state, 'readable', 'output is readable since transformation is sync');
     t.equal(ts.output.read(), 'a', 'result from reading the output is the same as was written to input');
     t.equal(ts.output.state, 'waiting', 'output is waiting again after having read all that was written');
+    ts.input.wait().then(() => {
+      t.equal(ts.input.state, 'writable', 'input becomes writable again');
+    })
+    .catch(t.error);
   }, 0);
 });
 
 test('Uppercaser sync TransformStream: can read from output transformed version of what is put into input', t => {
-  t.plan(4);
+  t.plan(5);
 
   var ts = new TransformStream({
     transform(chunk, enqueue, done) {
@@ -67,15 +71,19 @@ test('Uppercaser sync TransformStream: can read from output transformed version 
   setTimeout(() => {
     ts.input.write('a');
 
-    t.equal(ts.input.state, 'writable', 'input is still writable since the transform was sync');
-    t.equal(ts.output.state, 'readable', 'output is readable after writing to input');
-    t.equal(ts.output.read(), 'A', 'result from reading the output is the transformation of what was written to input');
+    t.equal(ts.input.state, 'waiting', 'input is waiting after one write');
+    t.equal(ts.output.state, 'readable', 'output is readable since transformation is sync');
+    t.equal(ts.output.read(), 'A', 'result from reading the output is the same as was written to input');
     t.equal(ts.output.state, 'waiting', 'output is waiting again after having read all that was written');
+    ts.input.wait().then(() => {
+      t.equal(ts.input.state, 'writable', 'input becomes writable again');
+    })
+    .catch(t.error);
   }, 0);
 });
 
 test('Uppercaser-doubler sync TransformStream: can read both chunks put into the output', t => {
-  t.plan(6);
+  t.plan(7);
 
   var ts = new TransformStream({
     transform(chunk, enqueue, done) {
@@ -88,12 +96,16 @@ test('Uppercaser-doubler sync TransformStream: can read both chunks put into the
   setTimeout(() => {
     ts.input.write('a');
 
-    t.equal(ts.input.state, 'writable', 'input is still writable since the transform was sync');
+    t.equal(ts.input.state, 'waiting', 'input is waiting after one write');
     t.equal(ts.output.state, 'readable', 'output is readable after writing to input');
     t.equal(ts.output.read(), 'A', 'the first chunk read is the transformation of the single chunk written');
     t.equal(ts.output.state, 'readable', 'output is readable still after reading the first chunk');
     t.equal(ts.output.read(), 'A', 'the second chunk read is also the transformation of the single chunk written');
     t.equal(ts.output.state, 'waiting', 'output is waiting again after having read both enqueued chunks');
+    ts.input.wait().then(() => {
+      t.equal(ts.input.state, 'writable', 'input becomes writable again');
+    })
+    .catch(t.error);
   }, 0);
 });
 
@@ -328,10 +340,13 @@ test('TransformStream flush gets a chance to enqueue more into the output', t =>
     ts.input.write('a');
     t.equal(ts.output.state, 'waiting', 'after a write to the input, the output is still waiting');
     ts.input.close();
-    t.equal(ts.output.state, 'readable', 'after closing the input, the output is now readable as a result of flush');
-    t.equal(ts.output.read(), 'x', 'reading the first chunk gives back what was enqueued');
-    t.equal(ts.output.read(), 'y', 'reading the second chunk gives back what was enqueued');
-    t.equal(ts.output.state, 'waiting', 'after reading both chunks, the output is waiting, since close was not called');
+    ts.output.wait().then(() => {
+      t.equal(ts.output.state, 'readable', 'after closing the input, the output is now readable as a result of flush');
+      t.equal(ts.output.read(), 'x', 'reading the first chunk gives back what was enqueued');
+      t.equal(ts.output.read(), 'y', 'reading the second chunk gives back what was enqueued');
+      t.equal(ts.output.state, 'waiting', 'after reading both chunks, the output is waiting, since close was not called');
+    })
+    .catch(t.error);
   }, 0);
 });
 
@@ -354,10 +369,13 @@ test('TransformStream flush gets a chance to enqueue more into the output, and c
     ts.input.write('a');
     t.equal(ts.output.state, 'waiting', 'after a write to the input, the output is still waiting');
     ts.input.close();
-    t.equal(ts.output.state, 'readable', 'after closing the input, the output is now readable as a result of flush');
-    t.equal(ts.output.read(), 'x', 'reading the first chunk gives back what was enqueued');
-    t.equal(ts.output.read(), 'y', 'reading the second chunk gives back what was enqueued');
-    t.equal(ts.output.state, 'waiting', 'after reading both chunks, the output is waiting, since close was not called');
+    ts.output.wait().then(() => {
+      t.equal(ts.output.state, 'readable', 'after closing the input, the output is now readable as a result of flush');
+      t.equal(ts.output.read(), 'x', 'reading the first chunk gives back what was enqueued');
+      t.equal(ts.output.read(), 'y', 'reading the second chunk gives back what was enqueued');
+      t.equal(ts.output.state, 'waiting', 'after reading both chunks, the output is waiting, since close was not called');
+    })
+    .catch(t.error);
 
     ts.output.closed.then(() => {
       t.equal(ts.output.state, 'closed', 'the output eventually does close, after close is called from flush');

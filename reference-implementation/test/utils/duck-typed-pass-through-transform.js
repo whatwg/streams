@@ -10,9 +10,8 @@ export default function duckTypedPassThroughTransform() {
 
   return {
     input: new WritableStream({
-      write(chunk, done, error) {
+      write(chunk) {
         enqueueInOutput(chunk);
-        done();
       },
 
       close() {

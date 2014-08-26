@@ -15,15 +15,17 @@ test('Closing a writable stream with in-flight writes below the high water mark 
 
   var isDone = false;
   var ws = new WritableStream({
-    write(chunk, done) {
-      setTimeout(() => {
-        isDone = true;
-        done();
-      }, 200);
+    write(chunk) {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          isDone = true;
+          resolve();
+        }, 200);
+      });
     },
 
     close() {
-      t.true(isDone, 'close is only called once the done signal has been sent');
+      t.true(isDone, 'close is only called once the promise has been resolved');
     },
 
     strategy: new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 16 })

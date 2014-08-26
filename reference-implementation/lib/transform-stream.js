@@ -14,14 +14,15 @@ export default class TransformStream {
       start(error) {
         errorInput = error;
       },
-      write(chunk, done, error) {
+      write(chunk) {
         writeChunk = chunk;
-        writeDone = done;
         chunkWrittenButNotYetTransformed = true;
 
+        var p = new Promise(resolve => writeDone = resolve);
         if (output.state === 'waiting') {
           maybeDoTransform();
         }
+        return p;
       },
       close() {
         try {

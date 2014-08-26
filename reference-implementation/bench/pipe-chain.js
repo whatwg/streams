@@ -52,8 +52,8 @@ export default params => {
   });
 
   var ws = new WritableStream({
-    write(chunk, done) {
-      potentiallySyncSetTimeout(done, params.underlyingSinkAckLatency);
+    write(chunk) {
+      return new Promise(resolve => potentiallySyncSetTimeout(resolve, params.underlyingSinkAckLatency));
     },
 
     strategy: new ByteLengthQueuingStrategy({ highWaterMark: params.writableStreamHWM })

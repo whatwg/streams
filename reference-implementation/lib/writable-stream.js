@@ -210,32 +210,31 @@ export default class WritableStream {
       this._currentWritePromise_resolve = writeRecord._resolve;
       this._currentWritePromise_reject = writeRecord._reject;
 
-      var signalDone = () => {
-        if (this._currentWritePromise !== writeRecord.promise) {
-          return;
-        }
-        this._currentWritePromise = undefined;
-        this._currentWritePromise_resolve = null;
-        this._currentWritePromise_reject = null;
+      helpers.promiseCall(this._onWrite, writeRecord.chunk).then(
+        () => {
+          if (this._currentWritePromise !== writeRecord.promise) {
+            // must have errored
+            return;
+          }
 
-        writeRecord._resolve(undefined);
+          this._currentWritePromise = undefined;
+          this._currentWritePromise_resolve = null;
+          this._currentWritePromise_reject = null;
 
-        helpers.dequeueValue(this._queue);
-        try {
-          this._syncStateWithQueue();
-        } catch (e) {
-          this._error(e);
-          return;
-        }
+          writeRecord._resolve(undefined);
 
-        this._advanceQueue();
-      };
+          helpers.dequeueValue(this._queue);
+          try {
+            this._syncStateWithQueue();
+          } catch (e) {
+            this._error(e);
+            return;
+          }
 
-      try {
-        this._onWrite(writeRecord.chunk, signalDone, this._error.bind(this));
-      } catch (error) {
-        this._error(error);
-      }
+          this._advanceQueue();
+        },
+        e => this._error(e)
+      );
     }
   }
 

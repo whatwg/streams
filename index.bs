@@ -330,26 +330,20 @@ writable network socket stream, which cannot acknowledge the incoming data at th
       const ws = new WebSocket(url, protocols);
 
       return new WritableStream({
-        start() {
-          return new Promise((resolve, reject) => {
-            ws.onopen = resolve;
-            ws.onerror = reject;
-          });
+        start(error) {
+          ws.onerror = error;
+          return new Promise(resolve => ws.onopen = resolve);
         },
 
-        write(chunk, done, error) {
-          ws.onerror = error;
+        write(chunk) {
           ws.send(chunk);
-
-          // Call done() immediately since the web socket gives us no way to tell
+          // Return immediately, since the web socket gives us no way to tell
           // when the write completes.
-          done();
         },
 
         close() {
           return new Promise((resolve, reject) => {
             ws.onclose = resolve;
-            ws.onerror = error;
             ws.close();
           });
         }
@@ -383,24 +377,26 @@ writable network socket stream, which cannot acknowledge the incoming data at th
           });
         },
 
-        write(chunk, done, error) {
-          fileHandle.write(chunk, writeErr => {
-            if (writeErr) {
-              // If trying to write results in an error, (attempt to) close the
-              // underlying file handle; we're not going to write any more.
-              fileHandle.close(closeErr => {
-                // If *closing* errors, pass along that error to the stream.
-                if (closeErr) {
-                  error(closeErr);
-                }
+        write(chunk) {
+          return new Promise((resolve, reject) => {
+            fileHandle.write(chunk, writeErr => {
+              if (writeErr) {
+                // If trying to write results in an error, (attempt to) close the
+                // underlying file handle; we're not going to write any more.
+                fileHandle.close(closeErr => {
+                  // If *closing* errors, pass along that error to the stream.
+                  if (closeErr) {
+                    reject(closeErr);
+                  }
 
-                // Otherwise, if closing succeeds, pass along the write error.
-                error(writeErr);
-              });
-            } else {
-              // If there's no error, then signal that this write completed.
-              done();
-            }
+                  // Otherwise, if closing succeeds, pass along the write error.
+                  reject(writeErr);
+                });
+              } else {
+                // If there's no error, then signal that this write completed.
+                resolve();
+              }
+            });
           });
         },
 

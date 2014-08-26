@@ -35,11 +35,7 @@ test('Piping through an identity transform stream will close the destination whe
     }
   });
 
-  var ws = new WritableStream({
-    write(chunk, done) {
-      done();
-    }
-  });
+  var ws = new WritableStream();
 
   rs.pipeThrough(ts).pipeTo(ws).closed.then(() => {
     t.equal(rs.state, 'closed', 'the readable stream was closed');
@@ -74,11 +70,13 @@ test('Piping through a zero-HWM transform stream immediately causes backpressure
 
   var writtenValues = [];
   var ws = new WritableStream({
-    write(chunk, done) {
-      setTimeout(() => {
-        writtenValues.push(chunk);
-        done();
-      }, 90);
+    write(chunk) {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          writtenValues.push(chunk);
+          resolve();
+        }, 90);
+      });
     }
   });
 
