@@ -23,11 +23,11 @@ test('Number-ish high water marks get converted to numbers', t => {
 
 test('Gives a RangeError when the number is negative', t => {
   t.throws(() => new CountQueuingStrategy({ highWaterMark: -4 }),
-           RangeError,
+           /RangeError/,
            'throws for { highWaterMark: -4 }');
 
   t.throws(() => new CountQueuingStrategy({ highWaterMark: '-4' }),
-           RangeError,
+           /RangeError/,
            'throws for { highWaterMark: \'-4\' }');
 
   t.end();
