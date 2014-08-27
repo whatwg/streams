@@ -100,7 +100,7 @@ When an error function _F_ is called with argument _error_, the following steps 
 1. Otherwise,
     1. Let _offset_ be ToInteger(_offset_).
     1. ReturnIfAbrupt(_offset_).
-    1. If _offset_ < 0, throw a **TypeError** exception.
+    1. If _offset_ < 0, throw a **RangeError** exception.
 1. If _size_ is **undefined**, let _size_ be _bufferLength_ - _offset_.
 1. Otherwise,
     1. Let _size_ be ToInteger(_size_).
@@ -109,7 +109,7 @@ When an error function _F_ is called with argument _error_, the following steps 
 1. Let _bytesRead_ be the result of calling the [[Call]] internal method of _stream_.[[onReadInto]] with **undefined** as _thisArgument_ and (_arrayBuffer_, _offset_, _size_) as _argumentsList_.
 1. If _bytesRead_ is an abrupt completion,
     1. ErrorReadableByteStream(_stream_, _bytesRead_.[[value]]).
-    1. Throw _bytesRead_.[[value]].
+    1. Return _bytesRead_.
 1. Let _bytesRead_ be ToNumber(_bytesRead_).
 1. If _bytesRead_ is **NaN** or _bytesRead_ < -2 or _bytesRead_ > _bufferLength_,
     1. Let _error_ be a **RangeError** exception.
@@ -125,17 +125,17 @@ When an error function _F_ is called with argument _error_, the following steps 
     1. Return 0.
 1. Return _bytesRead_.
 
-##### ReadableByteStream.prototype.state
+##### get ReadableByteStream.prototype.state
 
 1. Let _stream_ be the **this** value.
 1. Return _stream_.[[state]].
 
-##### ReadableByteStream.prototype.wait
+##### get ReadableByteStream.prototype.wait
 
 1. Let _stream_ be the **this** value.
 1. Return _stream_.[[waitPromise]].
 
-##### ReadableByteStream.prototype.closed
+##### get ReadableByteStream.prototype.closed
 
 1. Let _stream_ be the **this** value.
 1. Return _stream_.[[closedPromise]].

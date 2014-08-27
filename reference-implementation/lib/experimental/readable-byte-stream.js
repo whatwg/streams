@@ -41,7 +41,7 @@ export default class ReadableByteStream {
     return this._state;
   }
 
-  readInto(arraybuffer, offset, size) {
+  readInto(arrayBuffer, offset, size) {
     if (this._state === 'waiting') {
       throw new TypeError();
     }
@@ -60,23 +60,23 @@ export default class ReadableByteStream {
       offset = helpers.toInteger(offset);
 
       if (offset < 0) {
-        throw new TypeError();
+        throw new RangeError();
       }
     }
 
     if (size === undefined) {
-      size = arraybuffer.byteLength - offset;
+      size = arrayBuffer.byteLength - offset;
     } else {
       size = helpers.toInteger(size);
     }
 
-    if (size < 0 || offset + size > arraybuffer.byteLength) {
-      throw new TypeError();
+    if (size < 0 || offset + size > arrayBuffer.byteLength) {
+      throw new RangeError();
     }
 
     var bytesRead;
     try {
-      bytesRead = this._onReadInto.call(undefined, arraybuffer, offset, size);
+      bytesRead = this._onReadInto.call(undefined, arrayBuffer, offset, size);
     } catch (error) {
       this._error(error);
       throw error;
@@ -84,8 +84,8 @@ export default class ReadableByteStream {
 
     bytesRead = Number(bytesRead);
 
-    if (bytesRead < -2 || bytesRead > size) {
-      var error = new TypeError();
+    if (isNaN(bytesRead) || bytesRead < -2 || bytesRead > size) {
+      var error = new RangeError();
       this._error(error);
       throw error;
     }
