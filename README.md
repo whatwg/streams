@@ -248,9 +248,9 @@ class WritableStream {
     // Internal slots
     [[queue]]
     [[started]] = false
+    [[writing]] = false
     [[state]] = "writable"
     [[storedError]]
-    [[currentWritePromise]]
     [[writablePromise]]
     [[closedPromise]]
     [[startedPromise]]
@@ -356,7 +356,6 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Repeat while `this.[[queue]]` is not empty:
     1. Let `writeRecord` be DequeueValue(`this.[[queue]]`).
     1. Reject `writeRecord.[[promise]]` with `e`.
-1. Set `this.[[currentWritePromise]]` to **undefined**.
 1. Set `this.[[storedError]]` to `e`.
 1. If `this.[[state]]` is `"writable"` or `"closing"`, set `this.[[writablePromise]]` to a new promise rejected with `e`.
 1. If `this.[[state]]` is `"waiting"`, reject `this.[[writablePromise]]` with `e`.
@@ -371,7 +370,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 ##### `[[advanceQueue]]()`
 
-1. If `this.[[queue]]` is empty, or `this.[[currentWritePromise]]` is not **undefined**, return.
+1. If `this.[[queue]]` is empty, or `this.[[writing]]` is **true**, return.
 1. Let `writeRecord` be PeekQueueValue(`this.[[queue]]`).
 1. If `writeRecord.[[type]]` is `"close"`,
     1. Assert: `this.[[state]]` is `"closing"`.
@@ -380,12 +379,11 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
     1. Call `this.[[doClose]]()`.
 1. Otherwise,
     1. Assert: `writeRecord.[[type]]` is `"chunk"`.
-    1. Set `this.[[currentWritePromise]]` to `writeRecord.[[promise]]`.
-
+    1. Set `this.[[writing]]` to **true**.
     1. Let _writeResult_ be the result of promise-calling `this.[[onWrite]](writeRecord.[[chunk]])`.
     1. Upon fulfillment of _writeResult_,
-        1. If `this.[[currentWritePromise]]` is not `writeRecord.[[promise]]`, return.
-        1. Set `this.[[currentWritePromise]]` to **undefined**.
+        1. If `this.[[state]]` is `"errored"`, return.
+        1. Set `this.[[writing]]` to **false**.
         1. Resolve `writeRecord.[[promise]]` with **undefined**.
         1. DequeueValue(`this.[[queue]]`).
         1. Let _syncResult_ be `this.[[syncStateWithQueue]]()`.
@@ -395,7 +393,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
         1. Call `this.[[advanceQueue]]()`.
     1. Upon rejection of _writeResult_ with reason _r_, call `this.[[error]](r)`.
 
-Note: if the constructor's `write` option returns a promise that settles after the stream has been aborted, the early-exit clause is hit, since `this.[[currentWritePromise]]` is no longer equal to `writeRecord.[[promise]]`.
+Note: the early-exit clause in the fulfillment handler will be hit if the constructor's `write` option returns a promise that settles after the stream has been aborted.
 
 Note: the peeking-then-dequeuing dance is necessary so that during the call to the user-supplied function, `this.[[onWrite]]`, the queue and corresponding public `state` property correctly reflect the ongoing write. The write record only leaves the queue after the chunk has been successfully written to the underlying sink, and we can advance the queue.
 

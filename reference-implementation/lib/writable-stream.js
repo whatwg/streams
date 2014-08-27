@@ -27,6 +27,7 @@ export default class WritableStream {
     }
 
     this._started = false;
+    this._writing = false;
     this._state = 'writable';
 
     this._onWrite = write;
@@ -164,9 +165,6 @@ export default class WritableStream {
       writeRecord._reject(error);
     }
 
-    this._currentWritePromise = undefined;
-    this._currentWritePromise_resolve = null;
-    this._currentWritePromise_reject = null;
     this._storedError = error;
     if (this._state === 'writable' || this._state === 'closing') {
       this._writablePromise = Promise.reject(error);
@@ -192,7 +190,7 @@ export default class WritableStream {
   }
 
   _advanceQueue() {
-    if (this._queue.length === 0 || this._currentWritePromise !== undefined) {
+    if (this._queue.length === 0 || this._writing === true) {
       return;
     }
 
@@ -206,20 +204,15 @@ export default class WritableStream {
     } else {
       assert(writeRecord.type === 'chunk', 'invalid write record type ' + writeRecord.type);
 
-      this._currentWritePromise = writeRecord.promise;
-      this._currentWritePromise_resolve = writeRecord._resolve;
-      this._currentWritePromise_reject = writeRecord._reject;
+      this._writing = true;
 
       helpers.promiseCall(this._onWrite, writeRecord.chunk).then(
         () => {
-          if (this._currentWritePromise !== writeRecord.promise) {
-            // must have errored
+          if (this._state === 'errored') {
             return;
           }
 
-          this._currentWritePromise = undefined;
-          this._currentWritePromise_resolve = null;
-          this._currentWritePromise_reject = null;
+          this._writing = false;
 
           writeRecord._resolve(undefined);
 
