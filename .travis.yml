@@ -1,6 +1,6 @@
 language: node_js
 node_js:
-  - "0.10"
+  - "0.11" # until https://github.com/google/traceur-compiler/pull/1293 gets released
 
 env:
   global:
