@@ -24,7 +24,12 @@ test('TransformStream errors thrown in transform put the input and output in an 
     t.equal(ts.output.state, 'errored', 'output becomes errored after writing to the throwing transform');
     t.equal(ts.input.state, 'errored', 'input becomes errored after writing to the throwing transform');
 
-    t.throws(() => ts.output.read(), thrownError, 'output\'s read should throw the thrown error');
+    try {
+      ts.output.read();
+      t.fail('read() didn\'nt throw');
+    } catch (error) {
+      t.strictEqual(error, thrownError, 'output\'s read should throw the thrown error');
+    }
   }, 0);
 
   ts.output.wait().then(
@@ -73,7 +78,12 @@ test('TransformStream errors thrown in flush put the input and output in an erro
     t.equal(ts.output.state, 'errored', 'output becomes errored after closing with the throwing flush');
     t.equal(ts.input.state, 'errored', 'input becomes errored after closing with the throwing flush');
 
-    t.throws(() => ts.output.read(), thrownError, 'output\'s read should throw the thrown error');
+    try {
+      ts.output.read();
+      t.fail('read() didn\'nt throw');
+    } catch (error) {
+      t.strictEqual(error, thrownError, 'output\'s read should throw the thrown error');
+    }
   }, 0);
 
   ts.output.wait().then(

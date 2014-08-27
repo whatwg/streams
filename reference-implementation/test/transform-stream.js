@@ -11,8 +11,8 @@ test('TransformStream can be constructed with a transform function', t => {
 
 test('TransformStream cannot be constructed with no transform function', t => {
   t.plan(2);
-  t.throws(() => new TransformStream(), TypeError, 'TransformStream cannot be constructed with no arguments');
-  t.throws(() => new TransformStream({ }), TypeError, 'TransformStream cannot be constructed with an empty object');
+  t.throws(() => new TransformStream(), /TypeError/, 'TransformStream cannot be constructed with no arguments');
+  t.throws(() => new TransformStream({ }), /TypeError/, 'TransformStream cannot be constructed with an empty object');
 });
 
 test('TransformStream instances must have input and output properties of the correct types', t => {

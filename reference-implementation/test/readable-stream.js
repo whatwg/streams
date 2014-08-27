@@ -60,7 +60,7 @@ test('ReadableStream reading a closed stream throws a TypeError', t => {
     }
   });
 
-  t.throws(() => rs.read(), TypeError);
+  t.throws(() => rs.read(), /TypeError/);
 });
 
 test(`ReadableStream reading a stream makes wait() and closed return a promise resolved with undefined when the stream
@@ -78,7 +78,7 @@ test(`ReadableStream reading a stream makes wait() and closed return a promise r
   t.equal(rs.read(), 'test', 'A test string should be read');
   t.equal(rs.state, 'closed', 'The stream should be in closed state');
 
-  t.throws(() => rs.read(), TypeError);
+  t.throws(() => rs.read(), /TypeError/);
 
   rs.wait().then(
     v => t.equal(v, undefined, 'wait() should return a promise resolved with undefined'),
@@ -119,10 +119,12 @@ test('ReadableStream start throws an error', t => {
 
   var error = new Error('aaaugh!!');
 
-  t.throws(
-    () => new ReadableStream({ start() { throw error; } }),
-    caught => t.equal(caught, error, 'error was allowed to propagate')
-  );
+  try {
+    new ReadableStream({ start() { throw error; } });
+    t.fail('Constructor didn\'t throw');
+  } catch (caughtError) {
+    t.strictEqual(caughtError, error, 'error was allowed to propagate');
+  }
 });
 
 test('ReadableStream pull throws an error', t => {
@@ -368,7 +370,7 @@ test('ReadableStream enqueue fails when the stream is in closing state', t => {
 
       t.throws(
         () => t.equal(enqueue('b'), false),
-        TypeError,
+        /TypeError/,
         'enqueue after close must throw a TypeError'
       );
     },
