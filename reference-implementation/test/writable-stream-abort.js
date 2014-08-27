@@ -111,3 +111,17 @@ test('Aborting a WritableStream causes any outstanding wait() promises to be rej
   var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   ws.abort(passedReason);
 });
+
+test('Aborting a WritableStream causes any outstanding write() promises to be rejected with the abort reason', t => {
+  t.plan(1);
+
+  var ws = new WritableStream();
+
+  ws.write('a').then(
+    () => t.fail('writing should not succeed'),
+    r => t.equal(r, passedReason, 'writing should reject with the given reason')
+  );
+
+  var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+  ws.abort(passedReason);
+});

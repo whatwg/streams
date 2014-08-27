@@ -227,7 +227,8 @@ export default class WritableStream {
           this._advanceQueue();
         },
         e => this._error(e)
-      );
+      )
+      .catch(e => process.nextTick(() => { throw e; })); // to catch assertion failures
     }
   }
 
