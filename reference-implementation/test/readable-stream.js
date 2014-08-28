@@ -438,7 +438,7 @@ test('ReadableStream if size is NaN, the stream is errored', t => {
         enqueue('hi');
         t.fail('The constructor didn\'t throw');
       } catch (error) {
-        t.strictEqual(error.constructor, TypeError);
+        t.strictEqual(error.constructor, RangeError);
         t.end();
       }
     },

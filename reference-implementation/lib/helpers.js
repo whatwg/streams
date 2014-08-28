@@ -11,7 +11,7 @@ export function promiseCall(func, ...args) {
 export function enqueueValueWithSize(queue, value, size) {
   size = Number(size);
   if (Number.isNaN(size)) {
-    throw new TypeError('Size must be a non-NaN number');
+    throw new RangeError('Size must be a non-NaN number');
   }
 
   queue.push({ value: value, size: size });
