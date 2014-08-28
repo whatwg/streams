@@ -430,3 +430,26 @@ test('ReadableStream if size throws, the stream is errored', t => {
     t.end();
   });
 });
+
+test('ReadableStream if size is NaN, the stream is errored', t => {
+  var rs = new ReadableStream({
+    start(enqueue) {
+      try {
+        enqueue('hi');
+        t.fail('The constructor didn\'nt throw');
+      } catch (error) {
+        t.strictEqual(error.constructor, TypeError);
+        t.end();
+      }
+    },
+    strategy: {
+      size() {
+        return NaN;
+      },
+
+      needsMore() {
+        return true;
+      }
+    }
+  });
+});
