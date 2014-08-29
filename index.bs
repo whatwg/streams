@@ -80,9 +80,9 @@ available for reading from the readable side.
 Some examples of transform streams include:
 
 <ul>
-  <li>A text decoder, which takes as input bytes and produces as output strings;</li>
-  <li>A GZIP compressor, which takes as input uncompressed bytes and produces as output compressed bytes;</li>
-  <li>A video decoder, which takes as input encoded bytes and produces as output uncompressed video frames.</li>
+  <li>A text decoder, to which bytes are written and from which strings are read;</li>
+  <li>A GZIP compressor, to which uncompressed bytes are written and from which compressed bytes are read;</li>
+  <li>A video decoder, to which encoded bytes are writen and from which uncompressed video frames are read.</li>
 </ul>
 
 <h3 id="pipe-chains">Pipe Chains and Backpressure</h3>
