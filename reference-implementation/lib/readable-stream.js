@@ -141,7 +141,7 @@ export default class ReadableStream {
         var ds = dest.state;
         if (ds === 'writable') {
           if (source.state === 'readable') {
-            dest.write(source.read()).catch(cancelSource);
+            dest.write(source.read());
             continue;
           } else if (source.state === 'waiting') {
             Promise.race([source.wait(), dest.closed]).then(doPipe, doPipe);
