@@ -47,8 +47,8 @@ export default params => {
       potentiallySyncSetTimeout(() => enqueue(newChunk), params.transformRate / 2);
       potentiallySyncSetTimeout(done, params.transformRate);
     },
-    inputStrategy: new ByteLengthQueuingStrategy({ highWaterMark: params.transformInputHWM }),
-    outputStrategy: new ByteLengthQueuingStrategy({ highWaterMark: params.transformOutputHWM })
+    writableStrategy: new ByteLengthQueuingStrategy({ highWaterMark: params.transformWritableHWM }),
+    readableStrategy: new ByteLengthQueuingStrategy({ highWaterMark: params.transformReadableHWM })
   });
 
   var ws = new WritableStream({

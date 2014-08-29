@@ -178,7 +178,7 @@ A common I/O abstraction is a data source that is both readable and writable, bu
 
 One way enable this concept is to allow readable and writable stream interfaces to both be implemented, by ensuring they do not overlap (e.g. don't both have a `"state"` property or `"error"` event). Thus these duplex interfaces are simple streams that are both readable and writable, so e.g. you would be able to do both `socket.read()` and `socket.write(data)`.
 
-Another way is to demand that such duplex interfaces represent their readable and writable streams separately, e.g. via `input` and `output` properties. In this case you would do `socket.output.read()` and `socket.input.write(data)`. This may feel more awkward for certain cases (like a TCP socket), but more natural in others (like a terminal, which traditionally has both stdout and stdin). It also has the advantage of allowing you to hand out the readable interface without granting write access, or vice-versa.
+Another way is to demand that such duplex interfaces represent their readable and writable streams separately, e.g. via `readable` and `writable` properties. In this case you would do `socket.readable.read()` and `socket.writable.write(data)`. This may feel more awkward for certain cases (like a TCP socket), but more natural in others (like a terminal, which traditionally has both stdout and stdin). It also has the advantage of allowing you to hand out the readable interface without granting write access, or vice-versa.
 
 ### You must have a simple way to determine when a stream is "over".
 

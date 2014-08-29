@@ -73,9 +73,9 @@ creator. In turn, the creator will usually forward them to the <a>underlying sin
 
 <h3 id="ts-model">Transform Streams</h3>
 
-A <dfn>transform stream</dfn> consists of a pair of streams: a writable stream input, and a readable stream output.
-In a manner specific to the transform stream in question, writes to the input side result in new data being made
-available for reading from the output side.
+A <dfn>transform stream</dfn> consists of a pair of streams: a writable stream, and a readable stream.
+In a manner specific to the transform stream in question, writes to the writable side result in new data being made
+available for reading from the readable side.
 
 Some examples of transform streams include:
 

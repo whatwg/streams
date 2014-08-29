@@ -143,14 +143,14 @@ The `pipeTo` method is one of the more complex methods, and is undergoing some r
 
 For now, please consider the reference implementation normative: [reference-implementation/lib/readable-stream.js](https://github.com/whatwg/streams/blob/master/reference-implementation/lib/readable-stream.js), look for the `pipeTo` method.
 
-##### pipeThrough({ input, output }, options)
+##### pipeThrough({ writable, readable }, options)
 
-1. If Type(_input_) is not Object, then throw a **TypeError** exception.
-1. If Type(_output_) is not Object, then throw a **TypeError** exception.
+1. If Type(_writable_) is not Object, then throw a **TypeError** exception.
+1. If Type(_readable_) is not Object, then throw a **TypeError** exception.
 1. Let _stream_ be the **this** value.
-1. Let _result_ be Invoke(_stream_, `"pipeTo"`, (_input_, _options_)).
+1. Let _result_ be Invoke(_stream_, `"pipeTo"`, (_writable_, _options_)).
 1. ReturnIfAbrupt(_result_).
-1. Return _output_.
+1. Return _readable_.
 
 #### Internal Methods of ReadableStream
 

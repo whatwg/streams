@@ -188,17 +188,17 @@ export default class ReadableStream {
     }
   }
 
-  pipeThrough({ input, output }, options) {
-    if (!helpers.typeIsObject(input)) {
-      throw new TypeError('A transform stream must have an input property that is an object.');
+  pipeThrough({ writable, readable }, options) {
+    if (!helpers.typeIsObject(writable)) {
+      throw new TypeError('A transform stream must have an writable property that is an object.');
     }
 
-    if (!helpers.typeIsObject(output)) {
-      throw new TypeError('A transform stream must have an output property that is an object.');
+    if (!helpers.typeIsObject(readable)) {
+      throw new TypeError('A transform stream must have a readable property that is an object.');
     }
 
-    this.pipeTo(input, options);
-    return output;
+    this.pipeTo(writable, options);
+    return readable;
   }
 
   _enqueue(chunk) {

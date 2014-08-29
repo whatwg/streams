@@ -2,7 +2,7 @@ var test = require('tape');
 
 import TransformStream from '../lib/transform-stream';
 
-test('TransformStream errors thrown in transform put the input and output in an errored state', t => {
+test('TransformStream errors thrown in transform put the writable and readable in an errored state', t => {
   t.plan(10);
 
   var thrownError = new Error('bad things are happening!');
@@ -12,43 +12,43 @@ test('TransformStream errors thrown in transform put the input and output in an 
     }
   });
 
-  t.equal(ts.output.state, 'waiting', 'output starts in waiting');
-  t.equal(ts.input.state, 'writable', 'input starts in writable');
+  t.equal(ts.readable.state, 'waiting', 'readable starts in waiting');
+  t.equal(ts.writable.state, 'writable', 'writable starts in writable');
 
-  ts.input.write('a');
+  ts.writable.write('a');
 
-  t.equal(ts.output.state, 'waiting', 'output stays in waiting immediately after throw');
-  t.equal(ts.input.state, 'waiting', 'input stays in waiting immediately after throw');
+  t.equal(ts.readable.state, 'waiting', 'readable stays in waiting immediately after throw');
+  t.equal(ts.writable.state, 'waiting', 'writable stays in waiting immediately after throw');
 
   setTimeout(() => {
-    t.equal(ts.output.state, 'errored', 'output becomes errored after writing to the throwing transform');
-    t.equal(ts.input.state, 'errored', 'input becomes errored after writing to the throwing transform');
+    t.equal(ts.readable.state, 'errored', 'readable becomes errored after writing to the throwing transform');
+    t.equal(ts.writable.state, 'errored', 'writable becomes errored after writing to the throwing transform');
 
     try {
-      ts.output.read();
+      ts.readable.read();
       t.fail('read() didn\'nt throw');
     } catch (error) {
-      t.strictEqual(error, thrownError, 'output\'s read should throw the thrown error');
+      t.strictEqual(error, thrownError, 'readable\'s read should throw the thrown error');
     }
   }, 0);
 
-  ts.output.wait().then(
-    () => t.fail('output\'s wait() should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'output\'s wait() should be rejected with the thrown error')
+  ts.readable.wait().then(
+    () => t.fail('readable\'s wait() should not be fulfilled'),
+    e => t.strictEqual(e, thrownError, 'readable\'s wait() should be rejected with the thrown error')
   );
 
-  ts.output.closed.then(
-    () => t.fail('output\'s closed should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'output\'s closed should be rejected with the thrown error')
+  ts.readable.closed.then(
+    () => t.fail('readable\'s closed should not be fulfilled'),
+    e => t.strictEqual(e, thrownError, 'readable\'s closed should be rejected with the thrown error')
   );
 
-  ts.input.closed.then(
-    () => t.fail('input\'s closed should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'input\'s closed should be rejected with the thrown error')
+  ts.writable.closed.then(
+    () => t.fail('writable\'s closed should not be fulfilled'),
+    e => t.strictEqual(e, thrownError, 'writable\'s closed should be rejected with the thrown error')
   );
 });
 
-test('TransformStream errors thrown in flush put the input and output in an errored state', t => {
+test('TransformStream errors thrown in flush put the writable and readable in an errored state', t => {
   t.plan(12);
 
   var thrownError = new Error('bad things are happening!');
@@ -61,43 +61,43 @@ test('TransformStream errors thrown in flush put the input and output in an erro
     }
   });
 
-  t.equal(ts.output.state, 'waiting', 'output starts in waiting');
-  t.equal(ts.input.state, 'writable', 'input starts in writable');
+  t.equal(ts.readable.state, 'waiting', 'readable starts in waiting');
+  t.equal(ts.writable.state, 'writable', 'writable starts in writable');
 
-  ts.input.write('a');
+  ts.writable.write('a');
 
-  t.equal(ts.output.state, 'waiting', 'output stays in waiting after a write');
-  t.equal(ts.input.state, 'waiting', 'input stays in waiting after a write');
+  t.equal(ts.readable.state, 'waiting', 'readable stays in waiting after a write');
+  t.equal(ts.writable.state, 'waiting', 'writable stays in waiting after a write');
 
-  ts.input.close();
+  ts.writable.close();
 
-  t.equal(ts.output.state, 'waiting', 'output stays in waiting immediately after a throw');
-  t.equal(ts.input.state, 'closing', 'input becomes closing immediately after a throw');
+  t.equal(ts.readable.state, 'waiting', 'readable stays in waiting immediately after a throw');
+  t.equal(ts.writable.state, 'closing', 'writable becomes closing immediately after a throw');
 
   setTimeout(() => {
-    t.equal(ts.output.state, 'errored', 'output becomes errored after closing with the throwing flush');
-    t.equal(ts.input.state, 'errored', 'input becomes errored after closing with the throwing flush');
+    t.equal(ts.readable.state, 'errored', 'readable becomes errored after closing with the throwing flush');
+    t.equal(ts.writable.state, 'errored', 'writable becomes errored after closing with the throwing flush');
 
     try {
-      ts.output.read();
+      ts.readable.read();
       t.fail('read() didn\'nt throw');
     } catch (error) {
-      t.strictEqual(error, thrownError, 'output\'s read should throw the thrown error');
+      t.strictEqual(error, thrownError, 'readable\'s read should throw the thrown error');
     }
   }, 0);
 
-  ts.output.wait().then(
-    () => t.fail('output\'s wait() should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'output\'s wait() should be rejected with the thrown error')
+  ts.readable.wait().then(
+    () => t.fail('readable\'s wait() should not be fulfilled'),
+    e => t.strictEqual(e, thrownError, 'readable\'s wait() should be rejected with the thrown error')
   );
 
-  ts.output.closed.then(
-    () => t.fail('output\'s closed should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'output\'s closed should be rejected with the thrown error')
+  ts.readable.closed.then(
+    () => t.fail('readable\'s closed should not be fulfilled'),
+    e => t.strictEqual(e, thrownError, 'readable\'s closed should be rejected with the thrown error')
   );
 
-  ts.input.closed.then(
-    () => t.fail('input\'s closed should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'input\'s closed should be rejected with the thrown error')
+  ts.writable.closed.then(
+    () => t.fail('writable\'s closed should not be fulfilled'),
+    e => t.strictEqual(e, thrownError, 'writable\'s closed should be rejected with the thrown error')
   );
 });

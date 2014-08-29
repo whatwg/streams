@@ -11,9 +11,9 @@ import noBackpressureStrategy from './utils/no-backpressure-queuing-strategy';
 test('Piping through a duck-typed pass-through transform stream works', t => {
   t.plan(1);
 
-  var output = sequentialReadableStream(5).pipeThrough(duckTypedPassThroughTransform());
+  var readableEnd = sequentialReadableStream(5).pipeThrough(duckTypedPassThroughTransform());
 
-  readableStreamToArray(output).then(chunks => t.deepEqual(chunks, [1, 2, 3, 4, 5]));
+  readableStreamToArray(readableEnd).then(chunks => t.deepEqual(chunks, [1, 2, 3, 4, 5]));
 });
 
 test('Piping through an identity transform stream will close the destination when the source closes', t => {

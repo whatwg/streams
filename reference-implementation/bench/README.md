@@ -26,8 +26,8 @@ The potentially-varying parameters under which the above benchmark is run are fo
 - The rate at which the transform stream completes its transformation
 - The amount of time it takes for the underlying sink to acknowledge consumption of a chunk
 - The high-water mark of the readable stream
-- The high-water mark of the transform stream's input side
-- The high-water mark of the transform stream's output side
+- The high-water mark of the transform stream's writable side
+- The high-water mark of the transform stream's readable side
 - The high-water mark of the writable stream
 
 All rates are specified either in milliseconds, or as happening synchronously. Chunk size and the high-water marks are specified in bytes.

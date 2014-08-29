@@ -1,28 +1,25 @@
 import ReadableStream from '../../lib/readable-stream';
 import WritableStream from '../../lib/writable-stream';
 
-// TODO: an evolved form of this should be part of the standard library. Although before that happens it needs to
-// handle aborts/cancels/errors correctly.
-
 export default function duckTypedPassThroughTransform() {
-  var enqueueInOutput;
-  var closeOutput;
+  var enqueueInReadable;
+  var closeReadable;
 
   return {
-    input: new WritableStream({
+    writable: new WritableStream({
       write(chunk) {
-        enqueueInOutput(chunk);
+        enqueueInReadable(chunk);
       },
 
       close() {
-        closeOutput();
+        closeReadable();
       }
     }),
 
-    output: new ReadableStream({
+    readable: new ReadableStream({
       start(enqueue, close) {
-        enqueueInOutput = enqueue;
-        closeOutput = close;
+        enqueueInReadable = enqueue;
+        closeReadable = close;
       }
     })
   };

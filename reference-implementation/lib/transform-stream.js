@@ -2,63 +2,63 @@ import ReadableStream from './readable-stream';
 import WritableStream from './writable-stream';
 
 export default class TransformStream {
-  constructor({ transform, flush = (enqueue, close) => close(), inputStrategy, outputStrategy }) {
+  constructor({ transform, flush = (enqueue, close) => close(), writableStrategy, readableStrategy }) {
     if (typeof transform !== 'function') {
       throw new TypeError('transform must be a function');
     }
 
-    var writeChunk, writeDone, errorInput;
+    var writeChunk, writeDone, errorWritable;
     var transforming = false;
     var chunkWrittenButNotYetTransformed = false;
-    this.input = new WritableStream({
+    this.writable = new WritableStream({
       start(error) {
-        errorInput = error;
+        errorWritable = error;
       },
       write(chunk) {
         writeChunk = chunk;
         chunkWrittenButNotYetTransformed = true;
 
         var p = new Promise(resolve => writeDone = resolve);
-        if (output.state === 'waiting') {
+        if (readable.state === 'waiting') {
           maybeDoTransform();
         }
         return p;
       },
       close() {
         try {
-          flush(enqueueInOutput, closeOutput);
+          flush(enqueueInReadable, closeReadable);
         } catch (e) {
-          errorInput(e);
-          errorOutput(e);
+          errorWritable(e);
+          errorReadable(e);
         }
       },
-      strategy: inputStrategy
+      strategy: writableStrategy
     });
 
-    var enqueueInOutput, closeOutput, errorOutput;
-    var output = this.output = new ReadableStream({
+    var enqueueInReadable, closeReadable, errorReadable;
+    var readable = this.readable = new ReadableStream({
       start(enqueue, close, error) {
-        enqueueInOutput = enqueue;
-        closeOutput = close;
-        errorOutput = error;
+        enqueueInReadable = enqueue;
+        closeReadable = close;
+        errorReadable = error;
       },
       pull() {
         if (chunkWrittenButNotYetTransformed === true) {
           maybeDoTransform();
         }
       },
-      strategy: outputStrategy
+      strategy: readableStrategy
     });
 
     function maybeDoTransform() {
       if (transforming === false) {
         transforming = true;
         try {
-          transform(writeChunk, enqueueInOutput, transformDone);
+          transform(writeChunk, enqueueInReadable, transformDone);
         } catch (e) {
           transforming = false;
-          errorInput(e);
-          errorOutput(e);
+          errorWritable(e);
+          errorReadable(e);
         }
       }
     }

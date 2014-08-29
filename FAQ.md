@@ -19,9 +19,9 @@ readableStream.cancel().then(
 
 There are only two types of streams: readable and writable streams. `pipeTo` is for piping between them.
 
-For the concept of something with a writable end and a readable end, we have "duplex streams." Duplex streams are really just containers for a pair of streams, one writable and one readable, stored in the properties `input` and `output` respectively.
+For the concept of something with a writable end and a readable end, we have "duplex streams." Duplex streams are really just containers for a pair of streams, one writable and one readable, stored in the properties `writable` and `readable` respectively.
 
-Some duplex streams will be transform streams, wherein the input writable stream and the output readable stream are entangled, so that writing to the input affects what can be read from the output. This could be a very direct entanglement, of the sort produced by the `TransformStream` class, or something more indirect, such as the relationship between `stdin` and `stdout`.
+Some duplex streams will be transform streams, wherein the two streams are entangled, so that writing to the writable side affects what can be read from the readable side. This could be a very direct entanglement, of the sort produced by the `TransformStream` class, or something more indirect, such as the relationship between `stdin` and `stdout`.
 
 `pipeThrough` is for piping into the writable half of the entangled streams and out the readable side. That is,
 
@@ -32,6 +32,6 @@ src.pipeThrough(through).pipeTo(dest);
 is really just sugar for:
 
 ```js
-src.pipeTo(through.input);
-through.output.pipeTo(dest);
+src.pipeTo(through.writable);
+through.readable.pipeTo(dest);
 ```
