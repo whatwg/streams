@@ -248,19 +248,19 @@ export default class WritableStream {
     }
 
     var queueSize = helpers.getTotalQueueSize(this._queue);
-    var needsMore = Boolean(this._strategy.needsMore(queueSize));
+    var shouldApplyBackpressure = Boolean(this._strategy.shouldApplyBackpressure(queueSize));
 
-    if (needsMore === true && this._state === 'waiting') {
-      this._state = 'writable';
-      this._writablePromise_resolve(undefined);
-    }
-
-    if (needsMore === false && this._state === 'writable') {
+    if (shouldApplyBackpressure === true && this._state === 'writable') {
       this._state = 'waiting';
       this._writablePromise = new Promise((resolve, reject) => {
         this._writablePromise_resolve = resolve;
         this._writablePromise_reject = reject;
       });
+    }
+
+    if (shouldApplyBackpressure === false && this._state === 'waiting') {
+      this._state = 'writable';
+      this._writablePromise_resolve(undefined);
     }
   }
 

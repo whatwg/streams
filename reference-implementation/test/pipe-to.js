@@ -115,7 +115,7 @@ test('Piping from a ReadableStream in readable state to a WritableStream in erro
     ws.wait().then(
       () => t.fail('wait promise unexpectedly fulfilled'),
       () => {
-        t.equal(ws.state, 'errored', 'as a result of error call, ws must be in errored state');
+        t.equal(ws.state, 'errored', 'as a result of rejected promise, ws must be in errored state');
 
         rs.pipeTo(ws);
 
@@ -1134,7 +1134,7 @@ test('Piping to a writable stream that does not consume the writes fast enough e
 
   setTimeout(() => {
     rs.pipeTo(ws).closed.then(() => {
-      t.deepEqual(enqueueReturnValues, [false, false, false, false], 'backpressure was correctly exerted at the source');
+      t.deepEqual(enqueueReturnValues, [true, true, false, false], 'backpressure was correctly exerted at the source');
       t.deepEqual(writtenValues, ['a', 'b', 'c', 'd'], 'all chunks were written');
     });
   }, 0);

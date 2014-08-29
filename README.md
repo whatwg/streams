@@ -18,7 +18,7 @@ class ReadableStream {
         function start = () => {},
         function pull = () => {},
         function cancel = () => {},
-        object strategy = new CountQueuingStrategy({ highWaterMark: 0 }),
+        object strategy = new CountQueuingStrategy({ highWaterMark: 1 }),
     })
 
     // Reading data from the underlying source
@@ -165,14 +165,15 @@ For now, please consider the reference implementation normative: [reference-impl
 1. EnqueueValueWithSize(`this.[[queue]]`, `chunk`, _chunkSize_.[[value]]).
 1. Set `this.[[pulling]]` to **false**.
 1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
-1. Let _needsMore_ be ToBoolean(Invoke(`this.[[strategy]]`, `"needsMore"`, (_queueSize_))).
-1. If _needsMore_ is an abrupt completion,
-    1. Call `this.[[error]]`(_needsMore_.[[value]]).
+1. Let _shouldApplyBackpressure_ be ToBoolean(Invoke(`this.[[strategy]]`, `"shouldApplyBackpressure"`, (_queueSize_))).
+1. If _shouldApplyBackpressure_ is an abrupt completion,
+    1. Call `this.[[error]]`(_shouldApplyBackpressure_.[[value]]).
     1. Return **false**.
 1. If `this.[[state]]` is `"waiting"`,
     1. Set `this.[[state]]` to `"readable"`.
     1. Resolve `this.[[waitPromise]]` with **undefined**.
-1. Return _needsMore_.[[value]].
+1. If _shouldApplyBackpressure_.[[value]] is **true**, return **false**.
+1. Return **true**.
 
 ##### `[[close]]()`
 
@@ -406,16 +407,14 @@ Note: the peeking-then-dequeuing dance is necessary so that during the call to t
     1. Resolve `this.[[writablePromise]]` with **undefined**.
     1. Return.
 1. Let _queueSize_ be GetTotalQueueSize(`this.[[queue]]`).
-1. Let _needsMore_ be Invoke(`this.[[strategy]]`, `"needsMore"`, (_queueSize_)).
-1. ReturnIfAbrupt(_needsMore_).
-1. Let _needsMore_ be ToBoolean(_needsMore_).
-1. ReturnIfAbrupt(_needsMore_).
-1. If _needsMore_ is **true** and `this.[[state]]` is `"waiting"`,
-    1. Set `this.[[state]]` to `"writable"`.
-    1. Resolve `this.[[writablePromise]]` with **undefined**.
-1. If _needsMore_ is **false** and `this.[[state]]` is `"writable"`,
+1. Let _shouldApplyBackpressure_ be ToBoolean(Invoke(`this.[[strategy]]`, `"shouldApplyBackpressure"`, (_queueSize_))).
+1. ReturnIfAbrupt(_shouldApplyBackpressure_).
+1. If _shouldApplyBackpressure_ is **true** and `this.[[state]]` is `"writable"`,
     1. Set `this.[[state]]` to `"waiting"`.
     1. Set `this.[[writablePromise]]` to a new promise.
+1. If _shouldApplyBackpressure_ is **false** and `this.[[state]]` is `"waiting"`,
+    1. Set `this.[[state]]` to `"writable"`.
+    1. Resolve `this.[[writablePromise]]` with **undefined**.
 
 ##### `[[doClose]]()`
 
@@ -479,8 +478,8 @@ class ByteLengthQueuingStrategy {
         return chunk.byteLength;
     }
 
-    needsMore(queueSize) {
-        return queueSize < this.highWaterMark;
+    shouldApplyBackpressure(queueSize) {
+        return queueSize > this.highWaterMark;
     }
 }
 ```
@@ -503,8 +502,8 @@ class CountQueuingStrategy {
         return 1;
     }
 
-    needsMore(queueSize) {
-        return queueSize < this.highWaterMark;
+    shouldApplyBackpressure(queueSize) {
+        return queueSize > this.highWaterMark;
     }
 }
 ```

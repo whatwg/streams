@@ -16,7 +16,7 @@ export default class CountQueuingStrategy {
     return 1;
   }
 
-  needsMore(queueSize) {
-    return queueSize < this.highWaterMark;
+  shouldApplyBackpressure(queueSize) {
+    return queueSize > this.highWaterMark;
   }
 }

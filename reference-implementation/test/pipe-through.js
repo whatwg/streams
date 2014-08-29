@@ -42,9 +42,13 @@ test('Piping through an identity transform stream will close the destination whe
   });
 });
 
-test('Piping through a zero-HWM transform stream immediately causes backpressure to be exerted', t => {
+test('Piping through a default transform stream causes backpressure to be exerted after some delay', t => {
   t.plan(2);
 
+  // FIXME: expected results here will probably change as we fix https://github.com/whatwg/streams/issues/190
+  // As they are now they don't make very much sense
+
+  // Producer: every 20 ms
   var enqueueReturnValues = [];
   var rs = new ReadableStream({
     start(enqueue, close) {
@@ -67,6 +71,7 @@ test('Piping through a zero-HWM transform stream immediately causes backpressure
     }
   });
 
+  // Consumer: every 90 ms
   var writtenValues = [];
   var ws = new WritableStream({
     write(chunk) {
@@ -83,7 +88,7 @@ test('Piping through a zero-HWM transform stream immediately causes backpressure
     rs.pipeThrough(ts).pipeTo(ws).closed.then(() => {
       t.deepEqual(
         enqueueReturnValues,
-        [false, false, false, false, false, false, false, false],
+        [true, true, true, true, false, false, false, false],
         'backpressure was correctly exerted at the source');
       t.deepEqual(writtenValues, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'], 'all chunks were written');
     });

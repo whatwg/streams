@@ -211,7 +211,7 @@ test('WritableStream with simple input, processed synchronously', t => {
 
 test('WritableStream wait() fulfills immediately if the stream is writable', t => {
   var ws = new WritableStream({
-    strategy: { needsMore() { return true; } }
+    strategy: { shouldApplyBackpressure() { return true; } }
   });
 
   ws.wait().then(() => {
@@ -474,7 +474,7 @@ test('WritableStream if sink throws an error inside write, the stream becomes er
   );
 });
 
-test('WritableStream exception in needsMore during write moves the stream into errored state', t => {
+test('WritableStream exception in shouldApplyBackpressure during write moves the stream into errored state', t => {
   t.plan(3);
 
   var thrownError = new Error('throw me');
@@ -483,7 +483,7 @@ test('WritableStream exception in needsMore during write moves the stream into e
       size() {
         return 1;
       },
-      needsMore() {
+      shouldApplyBackpressure() {
         throw thrownError;
       }
     }
@@ -491,13 +491,14 @@ test('WritableStream exception in needsMore during write moves the stream into e
   ws.write('a').catch(r => {
     t.strictEqual(r, thrownError);
   });
-  t.equal(ws.state, 'errored', 'the state of ws must be errored as needsMore threw');
+  t.equal(ws.state, 'errored', 'the state of ws must be errored as shouldApplyBackpressure threw');
   ws.closed.catch(r => {
     t.strictEqual(r, thrownError);
   });
 });
 
-test('WritableStream exception in needsMore moves the stream into errored state but previous writes finish', t => {
+test('WritableStream exception in shouldApplyBackpressure moves the stream into errored state but previous writes ' +
+     'finish', t => {
   t.plan(4);
 
   var thrownError;
@@ -511,11 +512,11 @@ test('WritableStream exception in needsMore moves the stream into errored state 
       size() {
         return 1;
       },
-      needsMore() {
+      shouldApplyBackpressure() {
         if (thrownError) {
           throw thrownError;
         } else {
-          return true;
+          return false;
         }
       }
     }
@@ -525,7 +526,7 @@ test('WritableStream exception in needsMore moves the stream into errored state 
     ws.write('a').then(() => {
       t.pass('The write must be successful as the underlying sink acknowledged it');
 
-      t.equal(ws.state, 'errored', 'the state of ws must be errored as needsMore threw');
+      t.equal(ws.state, 'errored', 'the state of ws must be errored as shouldApplyBackpressure threw');
       ws.closed.catch(r => {
         t.strictEqual(r, thrownError);
       });

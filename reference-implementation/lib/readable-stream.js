@@ -7,7 +7,7 @@ export default class ReadableStream {
     start = () => {},
     pull = () => {},
     cancel = () => {},
-    strategy = new CountQueuingStrategy({ highWaterMark: 0 })
+    strategy = new CountQueuingStrategy({ highWaterMark: 1 })
   } = {}) {
     if (typeof start !== 'function') {
       throw new TypeError('start must be a function or undefined');
@@ -222,9 +222,9 @@ export default class ReadableStream {
     this._pulling = false;
 
     var queueSize = helpers.getTotalQueueSize(this._queue);
-    var needsMore;
+    var shouldApplyBackpressure;
     try {
-      needsMore = Boolean(this._strategy.needsMore(queueSize));
+      shouldApplyBackpressure = Boolean(this._strategy.shouldApplyBackpressure(queueSize));
     } catch (error) {
       this._error(error);
       return false;
@@ -235,7 +235,10 @@ export default class ReadableStream {
       this._waitPromise_resolve(undefined);
     }
 
-    return needsMore;
+    if (shouldApplyBackpressure === true) {
+      return false;
+    }
+    return true;
  }
 
   _close() {

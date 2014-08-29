@@ -306,32 +306,17 @@ test('ReadableStream should be able to get data sequentially from an asynchronou
   }
 });
 
-test('Default ReadableStream returns `false` for any `enqueue` call', t => {
+test('Default ReadableStream returns `false` for all but the first `enqueue` call', t => {
   t.plan(5);
 
   new ReadableStream({
     start(enqueue) {
-      t.equal(enqueue('hi'), false);
+      t.equal(enqueue('hi'), true);
       t.equal(enqueue('hey'), false);
       t.equal(enqueue('whee'), false);
       t.equal(enqueue('yo'), false);
       t.equal(enqueue('sup'), false);
     }
-  });
-});
-
-test('ReadableStream returns `true` unless we are at or above the highWaterMark', t => {
-  t.plan(5);
-
-  new ReadableStream({
-    start(enqueue) {
-      t.equal(enqueue('a'), true);
-      t.equal(enqueue('b'), false);
-      t.equal(enqueue('c'), false);
-      t.equal(enqueue('d'), false);
-      t.equal(enqueue('e'), false);
-    },
-    strategy: new CountQueuingStrategy({ highWaterMark: 2 })
   });
 });
 
@@ -383,7 +368,7 @@ test('ReadableStream enqueue fails when the stream is in closing state', t => {
   t.end();
 });
 
-test('ReadableStream if needsMore throws, the stream is errored', t => {
+test('ReadableStream if shouldApplyBackpressure throws, the stream is errored', t => {
   var error = new Error('aaaugh!!');
 
   var rs = new ReadableStream({
@@ -395,7 +380,7 @@ test('ReadableStream if needsMore throws, the stream is errored', t => {
         return 1;
       },
 
-      needsMore() {
+      shouldApplyBackpressure() {
         throw error;
       }
     }
@@ -419,7 +404,7 @@ test('ReadableStream if size throws, the stream is errored', t => {
         throw error;
       },
 
-      needsMore() {
+      shouldApplyBackpressure() {
         return true;
       }
     }
@@ -447,7 +432,7 @@ test('ReadableStream if size is NaN, the stream is errored', t => {
         return NaN;
       },
 
-      needsMore() {
+      shouldApplyBackpressure() {
         return true;
       }
     }

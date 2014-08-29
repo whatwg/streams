@@ -16,7 +16,7 @@ export default class ByteLengthQueuingStrategy {
     return chunk.byteLength;
   }
 
-  needsMore(queueSize) {
-    return queueSize < this.highWaterMark;
+  shouldApplyBackpressure(queueSize) {
+    return queueSize > this.highWaterMark;
   }
 }

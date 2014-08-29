@@ -66,6 +66,33 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
   t.end();
 });
 
+test('Correctly governs the return value of a ReadableStream\'s enqueue function (HWM = 1)', t => {
+  var enqueue;
+  var rs = new ReadableStream({
+    start(enqueue_) { enqueue = enqueue_; },
+    strategy: new CountQueuingStrategy({ highWaterMark: 1 })
+  });
+
+  t.strictEqual(enqueue('a'), true, 'After 0 reads, 1st enqueue should return true (queue now contains 1 chunk)');
+  t.strictEqual(enqueue('b'), false, 'After 0 reads, 2nd enqueue should return false (queue now contains 2 chunks)');
+  t.strictEqual(enqueue('c'), false, 'After 0 reads, 3rd enqueue should return false (queue now contains 3 chunks)');
+  t.strictEqual(enqueue('d'), false, 'After 0 reads, 4th enqueue should return false (queue now contains 4 chunks)');
+
+  t.strictEqual(rs.read(), 'a', '1st read gives back the 1st chunk enqueued (queue now contains 3 chunks)');
+  t.strictEqual(rs.read(), 'b', '2nd read gives back the 2nd chunk enqueued (queue now contains 2 chunks)');
+  t.strictEqual(rs.read(), 'c', '3rd read gives back the 2nd chunk enqueued (queue now contains 1 chunk)');
+
+  t.strictEqual(enqueue('e'), false, 'After 3 reads, 5th enqueue should return false (queue now contains 2 chunks)');
+
+  t.strictEqual(rs.read(), 'd', '4th read gives back the 3rd chunk enqueued (queue now contains 1 chunks)');
+  t.strictEqual(rs.read(), 'e', '5th read gives back the 4th chunk enqueued (queue now contains 0 chunks)');
+
+  t.strictEqual(enqueue('f'), true, 'After 5 reads, 6th enqueue should return true (queue now contains 1 chunk)');
+  t.strictEqual(enqueue('g'), false, 'After 5 reads, 7th enqueue should return false (queue now contains 2 chunks)');
+
+  t.end();
+});
+
 test('Correctly governs the return value of a ReadableStream\'s enqueue function (HWM = 4)', t => {
   var enqueue;
   var rs = new ReadableStream({
@@ -76,7 +103,7 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
   t.strictEqual(enqueue('a'), true, 'After 0 reads, 1st enqueue should return true (queue now contains 1 chunk)');
   t.strictEqual(enqueue('b'), true, 'After 0 reads, 2nd enqueue should return true (queue now contains 2 chunks)');
   t.strictEqual(enqueue('c'), true, 'After 0 reads, 3rd enqueue should return true (queue now contains 3 chunks)');
-  t.strictEqual(enqueue('d'), false, 'After 0 reads, 4th enqueue should return false (queue now contains 4 chunks)');
+  t.strictEqual(enqueue('d'), true, 'After 0 reads, 4th enqueue should return true (queue now contains 4 chunks)');
   t.strictEqual(enqueue('e'), false, 'After 0 reads, 5th enqueue should return false (queue now contains 5 chunks)');
   t.strictEqual(enqueue('f'), false, 'After 0 reads, 6th enqueue should return false (queue now contains 6 chunks)');
 
@@ -92,7 +119,8 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
 
   t.strictEqual(enqueue('h'), true, 'After 6 reads, 8th enqueue should return true (queue now contains 2 chunks)');
   t.strictEqual(enqueue('i'), true, 'After 6 reads, 9th enqueue should return true (queue now contains 3 chunks)');
-  t.strictEqual(enqueue('j'), false, 'After 6 reads, 10th enqueue should return false (queue now contains 4 chunks)');
+  t.strictEqual(enqueue('j'), true, 'After 6 reads, 10th enqueue should return true (queue now contains 4 chunks)');
+  t.strictEqual(enqueue('k'), false, 'After 6 reads, 11th enqueue should return false (queue now contains 5 chunks)');
 
   t.end();
 });
@@ -168,9 +196,9 @@ test('Correctly governs the value of a WritableStream\'s state property (HWM = 4
     t.strictEqual(ws.state, 'writable', 'After 3 writes, 0 of which finished, state should be \'writable\'');
 
     var writePromiseD = ws.write('d');
-    t.strictEqual(ws.state, 'waiting', 'After 4 writes, 0 of which finished, state should be \'waiting\'');
+    t.strictEqual(ws.state, 'writable', 'After 4 writes, 0 of which finished, state should be \'writable\'');
 
-    var writePromiseE = ws.write('e');
+    ws.write('e');
     t.strictEqual(ws.state, 'waiting', 'After 5 writes, 0 of which finished, state should be \'waiting\'');
 
     ws.write('f');
@@ -189,24 +217,19 @@ test('Correctly governs the value of a WritableStream\'s state property (HWM = 4
 
         dones.c();
         return writePromiseC.then(() => {
-          t.strictEqual(ws.state, 'waiting', 'After 7 writes, 3 of which finished, state should be \'waiting\'');
+          t.strictEqual(ws.state, 'writable', 'After 7 writes, 3 of which finished, state should be \'writable\'');
+
+          ws.write('h');
+          t.strictEqual(ws.state, 'waiting', 'After 8 writes, 3 of which finished, state should be \'waiting\'');
 
           dones.d();
           return writePromiseD.then(() => {
-            t.strictEqual(ws.state, 'writable', 'After 7 writes, 4 of which finished, state should be \'writable\'');
+            t.strictEqual(ws.state, 'writable', 'After 8 writes, 4 of which finished, state should be \'writable\'');
 
-            ws.write('h');
-            t.strictEqual(ws.state, 'waiting', 'After 8 writes, 4 of which are finished, state should be \'waiting\'');
+            ws.write('i');
+            t.strictEqual(ws.state, 'waiting', 'After 9 writes, 4 of which finished, state should be \'waiting\'');
 
-            dones.e();
-            return writePromiseE.then(() => {
-              t.strictEqual(ws.state, 'writable', 'After 8 writes, 5 of which are finished, state should be \'writable\'');
-
-              ws.write('i');
-              t.strictEqual(ws.state, 'waiting', 'After 9 writes, 5 of which are finished, state should be \'waiting\'');
-
-              t.end();
-            });
+            t.end();
           });
         });
       });
