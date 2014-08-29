@@ -519,7 +519,7 @@ A number of operations are used to make working with queues-with-sizes more plea
 
 1. Let _size_ be ToNumber(_size_).
 1. ReturnIfAbrupt(_size_).
-1. If _size_ is **NaN**, throw a **RangeError** exception.
+1. If _size_ is **NaN**, **+∞**, or **−∞**, throw a **RangeError** exception.
 1. Append Record{[[value]]: _value_, [[size]]: _size_} as the last element of _queue_.
 
 ### DequeueValue ( _queue_ )

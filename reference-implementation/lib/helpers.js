@@ -10,8 +10,8 @@ export function promiseCall(func, ...args) {
 
 export function enqueueValueWithSize(queue, value, size) {
   size = Number(size);
-  if (Number.isNaN(size)) {
-    throw new RangeError('Size must be a non-NaN number');
+  if (Number.isNaN(size) || size === +Infinity || size === -Infinity) {
+    throw new RangeError('Size must be a finite, non-NaN number');
   }
 
   queue.push({ value: value, size: size });
