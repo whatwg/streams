@@ -6,7 +6,6 @@ import readableStreamToArray from './utils/readable-stream-to-array';
 import ReadableStream from '../lib/readable-stream';
 import WritableStream from '../lib/writable-stream';
 import TransformStream from '../lib/transform-stream';
-import noBackpressureStrategy from './utils/no-backpressure-queuing-strategy';
 
 test('Piping through a duck-typed pass-through transform stream works', t => {
   t.plan(1);
