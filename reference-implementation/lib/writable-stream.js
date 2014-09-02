@@ -28,6 +28,7 @@ export default class WritableStream {
 
     this._started = false;
     this._writing = false;
+    this._abortingWhileClosing = false;
     this._state = 'writable';
 
     this._onWrite = write;
@@ -142,6 +143,36 @@ export default class WritableStream {
         return Promise.resolve(undefined);
       case 'errored':
         return Promise.reject(this._storedError);
+      case 'closing':
+        if (this._abortingWhileClosing === true) {
+          return Promise.reject(new TypeError('close operation is already being aborted'));
+        }
+
+        this._abortingWhileClosing = true;
+
+        return new Promise((resolve, reject) => {
+          Promise.resolve(undefined).then(() => {
+            if (this._state === 'closed') {
+              resolve(undefined);
+              return;
+            }
+            if (this._state === 'errored') {
+              reject(this._storedError);
+              return;
+            }
+
+            assert(this._state === 'closing');
+
+            this._error(reason);
+            try {
+              resolve(this._onAbort(reason));
+            } catch (error) {
+              reject(error);
+            }
+            return;
+          });
+        });
+
       default:
         this._error(reason);
         return helpers.promiseCall(this._onAbort, reason);

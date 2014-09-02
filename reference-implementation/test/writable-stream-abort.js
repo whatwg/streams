@@ -125,3 +125,283 @@ test('Aborting a WritableStream causes any outstanding write() promises to be re
   var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   ws.abort(passedReason);
 });
+
+test('Aborting a WritableStream right after close call whose sink\'s close does nothing asynchronously', t => {
+  var closeCount = 0;
+  var ws = new WritableStream({
+    close() {
+      ++closeCount;
+    },
+    abort() {
+      t.fail('Unexpected abort call');
+      t.end();
+    }
+  });
+
+  // Wait for ws to start.
+  setTimeout(() => {
+    var closePromise = ws.close();
+    t.equal(closeCount, 1, 'sink\'s close is called synchronously');
+
+    // Now, call abort() after the sink's close is finished.
+    var abortPromise = ws.abort();
+
+    t.equal(ws.state, 'closing', 'state must be still closing');
+
+    ws.closed.then(() => {
+      t.equal(ws.state, 'closed', 'abort must have been ignored');
+
+      closePromise.then(() => {
+        abortPromise.then(() => {
+          t.end();
+        }).catch(() => {
+          t.fail('abortPromise is rejected');
+          t.end();
+        });
+      }).catch(() => {
+        t.fail('closePromise is rejected');
+        t.end();
+      });
+    }).catch(() => {
+      t.fail('closedPromise is rejected');
+      t.end();
+    });
+  }, 0);
+});
+
+test('Aborting a WritableStream right after close call whose sink\'s close throws', t => {
+  var closeCount = 0;
+  var passedError = new Error('pass me');
+  var ws = new WritableStream({
+    close() {
+      ++closeCount;
+      throw passedError;
+    },
+    abort() {
+      t.fail('Unexpected abort call');
+      t.end();
+    }
+  });
+
+  // Wait for ws to start.
+  setTimeout(() => {
+    var closePromise = ws.close();
+    t.equal(closeCount, 1, 'sink\'s close is called synchronously');
+
+    // Now, call abort() after the sink's close is finished.
+    var abortPromise = ws.abort();
+
+    t.equal(ws.state, 'closing', 'state must be still closing');
+
+    ws.closed.then(
+      () => {
+        t.fail('closedPromise is fulfilled');
+        t.end();
+      },
+      r => {
+        t.equal(ws.state, 'errored', 'stream must be errored');
+        t.equal(r, passedError, 'abort must have been ignored');
+
+        closePromise.then(
+          () => {
+            t.fail('closePromise is fulfilled');
+            t.end();
+          },
+          r => {
+            t.equal(r, passedError, 'abort must have been ignored');
+            abortPromise.then(
+              () => {
+                t.fail('abortPromise is fulfilled');
+                t.end();
+              },
+              r => {
+                t.equal(r, passedError, 'abort must have been ignored');
+                t.end();
+              }
+            );
+          }
+        );
+      }
+    );
+  }, 0);
+});
+
+test(`Aborting a WritableStream with a sink with close that returns a promise to be fulfilled asynchronously but before
+ abort`, t => {
+  var resolveClosePromise;
+  var ws = new WritableStream({
+    close() {
+      return new Promise((resolve, reject) => resolveClosePromise = resolve);
+    },
+    abort() {
+      t.fail('Unexpected abort call');
+      t.end();
+    }
+  });
+
+  // Wait for ws to start.
+  setTimeout(() => {
+    var closePromise = ws.close();
+    t.notEqual(resolveClosePromise, undefined, 'sink\'s close must have been called');
+
+    resolveClosePromise();
+
+    var abortPromise = ws.abort();
+    t.equal(ws.state, 'closing', 'state must be still closing');
+
+    ws.closed.then(() => {
+      t.equal(ws.state, 'closed', 'abort must have been ignored');
+
+      closePromise.then(() => {
+        abortPromise.then(() => {
+          t.end();
+        }).catch(() => {
+          t.fail('abortPromise is rejected');
+          t.end();
+        });
+      }).catch(() => {
+        t.fail('closePromise is rejected');
+        t.end();
+      });
+    }).catch(() => {
+      t.fail('closedPromise is rejected');
+      t.end();
+    });
+  }, 0);
+});
+
+test('Aborting a WritableStream in closing state whose sink\'s close completes after abort\'s microtask is run', t => {
+  var resolveClosePromise;
+  var abortCount = 0;
+  var sinkAbortReturnValue = 'sink aborted';
+  var ws = new WritableStream({
+    close() {
+      return new Promise((resolve, reject) => resolveClosePromise = resolve);
+    },
+    abort() {
+      ++abortCount;
+      return sinkAbortReturnValue;
+    }
+  });
+
+  // Wait for ws to start.
+  setTimeout(() => {
+    var closePromise = ws.close();
+    t.notEqual(resolveClosePromise, undefined, 'sink\'s close must have been called');
+
+    var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+    var abortPromise = ws.abort(passedReason);
+    t.equal(ws.state, 'closing', 'state must be still closing');
+
+    // Delay to run resolveClosePromise() after ws.abort()'s microtask is done.
+    Promise.resolve(undefined).then(() => {
+      resolveClosePromise();
+
+      t.equal(abortCount, 1);
+      t.equal(ws.state, 'errored', 'close operation must have been aborted');
+      ws.closed.then(
+        () => {
+          t.fail('closedPromise is fulfilled');
+          t.end();
+        },
+        r => {
+          t.equal(r, passedReason, 'closedPromise must be rejected with the error passed to abort()');
+
+          closePromise.then(
+            () => {
+              t.fail('closePromise is fulfilled');
+              t.end();
+            },
+            r => {
+              t.equal(r, passedReason, 'closePromise must be rejected with the error passed to abort()');
+
+              abortPromise.then(x => {
+                t.equal(x, sinkAbortReturnValue,
+                        'abortPromise must be fulfilled with the return value of abort() of the sink');
+                t.end();
+              }).catch(() => {
+                t.fail('abortPromise is rejected');
+                t.end();
+              });
+            }
+          );
+        }
+      );
+    });
+  }, 0);
+});
+
+test(`Aborting a WritableStream in closing state whose sink\'s close completes after abort\'s microtask is run. If the
+ sink's abort throws`, t => {
+  var resolveClosePromise;
+  var abortCount = 0;
+  var errorInSinkAbort = new Error('sink abort failed');
+  var ws = new WritableStream({
+    close() {
+      return new Promise((resolve, reject) => resolveClosePromise = resolve);
+    },
+    abort() {
+      ++abortCount;
+      throw errorInSinkAbort;
+    }
+  });
+
+  // Wait for ws to start.
+  setTimeout(() => {
+    var closePromise = ws.close();
+    t.notEqual(resolveClosePromise, undefined, 'sink\'s close must have been called');
+
+    var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+    var abortPromise = ws.abort(passedReason);
+    t.equal(ws.state, 'closing', 'state must be still closing');
+
+    // Delay to run resolveClosePromise() after ws.abort()'s microtask is done.
+    Promise.resolve(undefined).then(() => {
+      resolveClosePromise();
+
+      t.equal(abortCount, 1);
+      t.equal(ws.state, 'errored', 'close operation must have been aborted');
+      ws.closed.then(
+        () => {
+          t.fail('closedPromise is fulfilled');
+          t.end();
+        },
+        r => {
+          t.equal(r, passedReason, 'closedPromise must be rejected with the error passed to abort()');
+
+          closePromise.then(
+            () => {
+              t.fail('closePromise is fulfilled');
+              t.end();
+            },
+            r => {
+              t.equal(r, passedReason, 'closePromise must be rejected with the error passed to abort()');
+
+              abortPromise.then(() => {
+                t.fail('abortPromise is fulfilled');
+                t.end();
+              }).catch(r => {
+                t.equal(r, errorInSinkAbort,
+                        'abortPromise must be rejected with the error thrown in abort() of the sink');
+                t.end();
+              });
+            }
+          );
+        }
+      );
+    });
+  }, 0);
+});
+
+test('Extra abort calls on a WritableStream in closing state must fail', t => {
+  var ws = new WritableStream();
+
+  ws.close();
+  ws.abort();
+  ws.abort().then(
+    () => t.fail('Extra abort() is not rejected'),
+    r => {
+      t.equal(r.constructor, TypeError);
+      t.end();
+    });
+});
