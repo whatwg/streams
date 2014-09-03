@@ -415,6 +415,47 @@ test('WritableStream if sink\'s close throws', t => {
   }, 0);
 });
 
+test('WritableStream if the promise returned by sink\'s close rejects', t => {
+  var passedError = new Error('pass me');
+  var ws = new WritableStream({
+    write() {
+      t.fail('write of sink called');
+      t.end();
+    },
+    close() {
+      return Promise.reject(passedError);
+    },
+    abort() {
+      t.fail('abort of sink called');
+      t.end();
+    },
+  });
+
+  // Wait for ws to start.
+  setTimeout(() => {
+    var closedPromise = ws.close();
+    t.equal(ws.state, 'closing', 'state must become closing synchronously on close call');
+
+    closedPromise.then(
+      () => {
+        t.fail('closedPromise is fulfilled');
+        t.end();
+      },
+      r => {
+        t.equal(ws.state, 'errored', 'state must be errored as error is called');
+
+        ws.wait().then(
+          () => t.fail('ws.wait() returned a fulfilled promise'),
+          r => {
+            t.equal(r, passedError, 'wait() should be rejected with the passed error');
+            t.end();
+          }
+        );
+      }
+    );
+  }, 0);
+});
+
 test('If sink rejects on a WritableStream in waiting state, wait will return a rejected promise', t => {
   t.plan(5);
 
