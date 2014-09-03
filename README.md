@@ -291,7 +291,6 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. Let `this.[[writablePromise]]` be a new promise resolved with **undefined**.
 1. Let `this.[[closedPromise]]` be a new promise.
 1. Let `this.[[queue]]` be a new empty List.
-1. Upon fulfillment of `this.[[closedPromise]]`, set `this.[[state]]` to `"closed"`.
 1. Let _startResult_ be the result of `start(this.[[error]])`.
 1. ReturnIfAbrupt(_startResult_).
 1. Let `this.[[startedPromise]]` be the result of resolving _startResult_ as a promise.
@@ -333,7 +332,7 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 1. If `this.[[state]]` is `"waiting"`,
     1. Reject `this.[[writablePromise]]` with a **TypeError** exception.
 1. Set `this.[[state]]` to `"closing"`.
-1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"close"`, [[promise]]: `this.[[closedPromise]]`, [[chunk]]: **undefined**}, **0**).
+1. EnqueueValueWithSize(`this.[[queue]]`, Record{[[type]]: `"close"`, [[promise]]: **undefined**, [[chunk]]: **undefined**}, **0**).
 1. Call `this.[[callOrScheduleAdvanceQueue]]()`.
 1. Return `this.[[closedPromise]]`.
 
@@ -354,8 +353,8 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 1. If `this.[[state]]` is `"closed"` or `"errored"`, return.
 1. Repeat while `this.[[queue]]` is not empty:
-    1. Let `writeRecord` be DequeueValue(`this.[[queue]]`).
-    1. Reject `writeRecord.[[promise]]` with `e`.
+    1. Let _writeRecord_ be DequeueValue(`this.[[queue]]`).
+    1. If _writeRecord_.[[type]] is `"write"`, reject _writeRecord_.[[promise]] with `e`.
 1. Set `this.[[storedError]]` to `e`.
 1. If `this.[[state]]` is `"writable"` or `"closing"`, set `this.[[writablePromise]]` to a new promise rejected with `e`.
 1. If `this.[[state]]` is `"waiting"`, reject `this.[[writablePromise]]` with `e`.
@@ -420,10 +419,13 @@ Note: the peeking-then-dequeuing dance is necessary so that during the call to t
 ##### `[[doClose]]()`
 
 1. Assert: `this.[[state]]` is `"closing"`.
-1. Let _closePromise_ be the result of promise-calling `this.[[onClose]]()`.
-1. Upon fulfillment of _closePromise_,
+1. Let _sinkClosePromise_ be the result of promise-calling `this.[[onClose]]()`.
+1. Upon fulfillment of _sinkClosePromise_,
+    1. If **this**.[[state]] is `"errored"`, return.
+    1. Assert: **this**.[[state]] is `"closing"`.
     1. Resolve `this.[[closedPromise]]` with **undefined**.
-1. Upon rejection of _closePromise_ with reason _r_,
+    1. Set **this**.[[state]] to `"closed"`.
+1. Upon rejection of _sinkClosePromise_ with reason _r_,
     1. Call `this.[[error]](r)`.
 
 ## Helper APIs

@@ -44,8 +44,6 @@ export default class WritableStream {
       this._closedPromise_reject = reject;
     });
 
-    this._closedPromise.then(() => this._state = 'closed');
-
     this._queue = [];
 
     this._startedPromise = Promise.resolve(start(this._error.bind(this)));
@@ -75,7 +73,7 @@ export default class WritableStream {
 
         helpers.enqueueValueWithSize(
           this._queue,
-          { type: 'chunk', promise: promise, chunk: chunk, _resolve: resolver, _reject: rejecter },
+          { type: 'chunk', chunk: chunk, _resolve: resolver, _reject: rejecter },
           chunkSize
         );
 
@@ -128,10 +126,9 @@ export default class WritableStream {
       this._queue,
       {
         type: 'close',
-        promise: this._closedPromise,
         chunk: undefined,
-        _resolve: this._closedPromise_resolve,
-        _reject: this._closedPromise_reject
+        _resolve: undefined,
+        _reject: undefined
       },
       0
     );
@@ -162,7 +159,9 @@ export default class WritableStream {
 
     while (this._queue.length > 0) {
       var writeRecord = helpers.dequeueValue(this._queue);
-      writeRecord._reject(error);
+      if (writeRecord.type === 'chunk') {
+        writeRecord._reject(error);
+      }
     }
 
     this._storedError = error;
@@ -270,7 +269,17 @@ export default class WritableStream {
     var closePromise = helpers.promiseCall(this._onClose);
 
     closePromise.then(
-      () => this._closedPromise_resolve(undefined),
+      () => {
+        if (this._state === 'errored') {
+          // Do nothing if the stream has been already errored.
+          return;
+        }
+
+        assert(this._state === 'closing');
+
+        this._closedPromise_resolve(undefined);
+        this._state = 'closed';
+      },
       r => this._error(r)
     );
   }
