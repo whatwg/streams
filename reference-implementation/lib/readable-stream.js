@@ -30,14 +30,13 @@ export default class ReadableStream {
     this._onCancel = cancel;
     this._onPull = pull;
     this._strategy = strategy;
-    this._waitPromise = new Promise((resolve, reject) => {
-      this._waitPromise_resolve = resolve;
-      this._waitPromise_reject = reject;
-    });
+    this._initWaitPromise();
+
     this._closedPromise = new Promise((resolve, reject) => {
       this._closedPromise_resolve = resolve;
       this._closedPromise_reject = reject;
     });
+
     this._queue = [];
 
     this._startedPromise = Promise.resolve(
@@ -74,19 +73,11 @@ export default class ReadableStream {
 
     if (this._queue.length < 1) {
       if (this._draining === true) {
-          this._state = 'closed';
-          this._waitPromise = Promise.resolve(undefined);
-          this._waitPromise_resolve = null;
-          this._waitPromise_reject = null;
-          this._closedPromise_resolve(undefined);
-          this._closedPromise_resolve = null;
-          this._closedPromise_reject = null;
+        this._state = 'closed';
+        this._resolveClosedPromise(undefined);
       } else {
         this._state = 'waiting';
-        this._waitPromise = new Promise((resolve, reject) => {
-          this._waitPromise_resolve = resolve;
-          this._waitPromise_reject = reject;
-        });
+        this._initWaitPromise();
         this._callOrSchedulePull();
       }
     }
@@ -110,17 +101,12 @@ export default class ReadableStream {
       return Promise.reject(this._storedError);
     }
     if (this._state === 'waiting') {
-      this._waitPromise_resolve(undefined);
-    }
-    if (this._state === 'readable') {
-      this._waitPromise = Promise.resolve(undefined);
-      this._waitPromise_resolve = null;
-      this._waitPromise_reject = null;
+      this._resolveWaitPromise(undefined);
     }
 
     this._queue = [];
     this._state = 'closed';
-    this._closedPromise_resolve(undefined);
+    this._resolveClosedPromise(undefined);
 
     return helpers.promiseCall(this._onCancel, reason);
   }
@@ -232,20 +218,20 @@ export default class ReadableStream {
 
     if (this._state === 'waiting') {
       this._state = 'readable';
-      this._waitPromise_resolve(undefined);
+      this._resolveWaitPromise(undefined);
     }
 
     if (shouldApplyBackpressure === true) {
       return false;
     }
     return true;
- }
+  }
 
   _close() {
     if (this._state === 'waiting') {
       this._state = 'closed';
-      this._waitPromise_resolve(undefined);
-      this._closedPromise_resolve(undefined);
+      this._resolveWaitPromise(undefined);
+      this._resolveClosedPromise(undefined);
     }
     else if (this._state === 'readable') {
       this._draining = true;
@@ -256,8 +242,8 @@ export default class ReadableStream {
     if (this._state === 'waiting') {
       this._state = 'errored';
       this._storedError = error;
-      this._waitPromise_reject(error);
-      this._closedPromise_reject(error);
+      this._rejectWaitPromise(error);
+      this._rejectClosedPromise(error);
     }
     else if (this._state === 'readable') {
       this._queue = [];
@@ -267,7 +253,8 @@ export default class ReadableStream {
       this._waitPromise = Promise.reject(error);
       this._waitPromise_resolve = null;
       this._waitPromise_reject = null;
-      this._closedPromise_reject(error);
+
+      this._rejectClosedPromise(error);
     }
   }
 
@@ -298,5 +285,42 @@ export default class ReadableStream {
     } catch (pullResultE) {
       this._error(pullResultE);
     }
+  }
+
+  _initWaitPromise() {
+    this._waitPromise = new Promise((resolve, reject) => {
+      this._waitPromise_resolve = resolve;
+      this._waitPromise_reject = reject;
+    });
+  }
+
+  // Note: The resolve function and reject function are cleared when the
+  // corresponding promise is resolved or rejected. This is for debugging. This
+  // makes extra resolve/reject calls for the same promise fail so that we can
+  // detect unexpected extra resolve/reject calls that may be caused by bugs in
+  // the algorithm.
+
+  _resolveWaitPromise(value) {
+    this._waitPromise_resolve(value);
+    this._waitPromise_resolve = null;
+    this._waitPromise_reject = null;
+  }
+
+  _rejectWaitPromise(reason) {
+    this._waitPromise_reject(reason);
+    this._waitPromise_resolve = null;
+    this._waitPromise_reject = null;
+  }
+
+  _resolveClosedPromise(value) {
+    this._closedPromise_resolve(value);
+    this._closedPromise_resolve = null;
+    this._closedPromise_reject = null;
+  }
+
+  _rejectClosedPromise(reason) {
+    this._closedPromise_reject(reason);
+    this._closedPromise_resolve = null;
+    this._closedPromise_reject = null;
   }
 }
