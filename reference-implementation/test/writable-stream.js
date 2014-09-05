@@ -220,6 +220,24 @@ test('WritableStream wait() fulfills immediately if the stream is writable', t =
   });
 });
 
+test(`Fulfillment value of WritableStream.write() call must be undefined even if the underlying sink returns a
+ non-undefined value`, t => {
+  var ws = new WritableStream({
+    write() {
+      return 'Hello';
+    }
+  });
+
+  var writePromise = ws.write('a');
+  writePromise.then(value => {
+    t.equal(value, undefined, 'fulfillment value must be undefined');
+    t.end();
+  }).catch(() => {
+    t.fail('writePromise is rejected');
+    t.end();
+  });
+});
+
 test('WritableStream transitions to waiting until write is acknowledged', t => {
   t.plan(3);
 
