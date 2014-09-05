@@ -90,6 +90,24 @@ test('Underlying sink\'s close won\'t be called until start finishes', t => {
   }, 100);
 });
 
+test(`Fulfillment value of WritableStream.close() call must be undefined even if the underlying sink returns a
+ non-undefined value`, t => {
+  var ws = new WritableStream({
+    close() {
+      return 'Hello';
+    }
+  });
+
+  var closePromise = ws.close('a');
+  closePromise.then(value => {
+    t.equal(value, undefined, 'fulfillment value must be undefined');
+    t.end();
+  }).catch(() => {
+    t.fail('closePromise is rejected');
+    t.end();
+  });
+});
+
 test('Underlying sink\'s write or close are never invoked if start throws', t => {
   var passedError = new Error('horrible things');
 
