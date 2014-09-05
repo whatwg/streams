@@ -8,7 +8,6 @@ import sequentialReadableStream from './utils/sequential-rs';
 test('ReadableStream canceling an infinite stream', t => {
   var randomSource = new RandomPushSource();
 
-  var cancelationFinished = false;
   var rs = new ReadableStream({
     start(enqueue, close, error) {
       randomSource.ondata = enqueue;
@@ -24,10 +23,7 @@ test('ReadableStream canceling an infinite stream', t => {
       randomSource.readStop();
       randomSource.onend();
 
-      return new Promise(resolve => setTimeout(() => {
-        cancelationFinished = true;
-        resolve();
-      }, 50));
+      t.end();
     }
   });
 
@@ -46,12 +42,7 @@ test('ReadableStream canceling an infinite stream', t => {
     }
   );
 
-  setTimeout(() => {
-    rs.cancel().then(() => {
-      t.equal(cancelationFinished, true, 'it returns a promise that waits for the cancellation to finish');
-      t.end();
-    });
-  }, 150);
+  setTimeout(() => rs.cancel(), 150);
 });
 
 test('ReadableStream cancellation puts the stream in a closed state (no chunks pulled yet)', t => {
