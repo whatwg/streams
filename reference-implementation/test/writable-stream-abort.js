@@ -43,6 +43,24 @@ test('Aborting a WritableStream prevents further writes after any that are in pr
   }, 0);
 });
 
+test(`Fulfillment value of WritableStream.abort() call must be undefined even if the underlying sink returns a
+ non-undefined value`, t => {
+  var ws = new WritableStream({
+    abort() {
+      return 'Hello';
+    }
+  });
+
+  var abortPromise = ws.abort('a');
+  abortPromise.then(value => {
+    t.equal(value, undefined, 'fulfillment value must be undefined');
+    t.end();
+  }).catch(() => {
+    t.fail('abortPromise is rejected');
+    t.end();
+  });
+});
+
 test('Aborting a WritableStream passes through the given reason', t => {
   var recordedReason;
   var ws = new WritableStream({
