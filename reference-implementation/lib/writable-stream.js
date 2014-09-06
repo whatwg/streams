@@ -47,7 +47,10 @@ export default class WritableStream {
     this._queue = [];
 
     this._startedPromise = Promise.resolve(start(this._error.bind(this)));
-    this._startedPromise.then(() => this._started = true);
+    this._startedPromise.then(() => {
+      this._started = true;
+      this._startedPromise = undefined;
+    });
     this._startedPromise.catch(r => this._error(r));
   }
 
@@ -63,7 +66,13 @@ export default class WritableStream {
     switch (this._state) {
       case 'waiting':
       case 'writable':
-        var chunkSize = this._strategy.size(chunk);
+        var chunkSize;
+        try {
+          chunkSize = this._strategy.size(chunk);
+        } catch (e) {
+          this._error(e);
+          return Promise.reject(e);
+        }
 
         var resolver, rejecter;
         var promise = new Promise((resolve, reject) => {
@@ -71,11 +80,16 @@ export default class WritableStream {
           rejecter = reject;
         });
 
-        helpers.enqueueValueWithSize(
-          this._queue,
-          { type: 'chunk', chunk: chunk, _resolve: resolver, _reject: rejecter },
-          chunkSize
-        );
+        try {
+          helpers.enqueueValueWithSize(
+            this._queue,
+            { chunk: chunk, promise: promise, _resolve: resolver, _reject: rejecter },
+            chunkSize
+          );
+        } catch (e) {
+          this._error(e);
+          return Promise.reject(e);
+        }
 
         try {
           this._syncStateWithQueue();
@@ -124,12 +138,7 @@ export default class WritableStream {
     this._state = 'closing';
     helpers.enqueueValueWithSize(
       this._queue,
-      {
-        type: 'close',
-        chunk: undefined,
-        _resolve: undefined,
-        _reject: undefined
-      },
+      'close',
       0
     );
     this._callOrScheduleAdvanceQueue();
@@ -169,7 +178,7 @@ export default class WritableStream {
 
     while (this._queue.length > 0) {
       var writeRecord = helpers.dequeueValue(this._queue);
-      if (writeRecord.type === 'chunk') {
+      if (writeRecord !== 'close') {
         writeRecord._reject(error);
       }
     }
@@ -205,14 +214,12 @@ export default class WritableStream {
 
     var writeRecord = helpers.peekQueueValue(this._queue);
 
-    if (writeRecord.type === 'close') {
+    if (writeRecord === 'close') {
       assert(this._state === 'closing', 'can\'t process final write record unless already closing');
       helpers.dequeueValue(this._queue);
       assert(this._queue.length === 0, 'queue must be empty once the final write record is dequeued');
       this._doClose();
     } else {
-      assert(writeRecord.type === 'chunk', 'invalid write record type ' + writeRecord.type);
-
       this._writing = true;
 
       helpers.promiseCall(this._onWrite, writeRecord.chunk).then(

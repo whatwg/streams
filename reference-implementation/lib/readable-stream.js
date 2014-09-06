@@ -47,7 +47,10 @@ export default class ReadableStream {
       )
     );
 
-    this._startedPromise.then(() => this._started = true);
+    this._startedPromise.then(() => {
+      this._started = true;
+      this._startedPromise = undefined;
+    });
     this._startedPromise.catch(r => this._error(r));
   }
 

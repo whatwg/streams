@@ -574,6 +574,95 @@ test('WritableStream exception in shouldApplyBackpressure during write moves the
   });
 });
 
+test('WritableStream exception in size during write moves the stream into errored state', t => {
+  t.plan(3);
+
+  var thrownError = new Error('throw me');
+  var ws = new WritableStream({
+    strategy: {
+      size() {
+        throw thrownError;
+      },
+      shouldApplyBackpressure() {
+        return false;
+      }
+    }
+  });
+  ws.write('a').catch(r => {
+    t.strictEqual(r, thrownError);
+  });
+  t.equal(ws.state, 'errored', 'the state of ws must be errored as size threw');
+  ws.closed.catch(r => {
+    t.strictEqual(r, thrownError);
+  });
+});
+
+test('WritableStream NaN size during write moves the stream into errored state', t => {
+  t.plan(3);
+
+  var ws = new WritableStream({
+    strategy: {
+      size() {
+        return NaN;
+      },
+      shouldApplyBackpressure() {
+        return false;
+      }
+    }
+  });
+  ws.write('a').catch(r => {
+    t.strictEqual(r.constructor, RangeError);
+  });
+  t.equal(ws.state, 'errored', 'the state of ws must be errored as an invalid size was returned');
+  ws.closed.catch(r => {
+    t.strictEqual(r.constructor, RangeError);
+  });
+});
+
+test('WritableStream +Infinity size during write moves the stream into errored state', t => {
+  t.plan(3);
+
+  var ws = new WritableStream({
+    strategy: {
+      size() {
+        return +Infinity;
+      },
+      shouldApplyBackpressure() {
+        return false;
+      }
+    }
+  });
+  ws.write('a').catch(r => {
+    t.strictEqual(r.constructor, RangeError);
+  });
+  t.equal(ws.state, 'errored', 'the state of ws must be errored as an invalid size was returned');
+  ws.closed.catch(r => {
+    t.strictEqual(r.constructor, RangeError);
+  });
+});
+
+test('WritableStream -Infinity size during write moves the stream into errored state', t => {
+  t.plan(3);
+
+  var ws = new WritableStream({
+    strategy: {
+      size() {
+        return -Infinity;
+      },
+      shouldApplyBackpressure() {
+        return false;
+      }
+    }
+  });
+  ws.write('a').catch(r => {
+    t.strictEqual(r.constructor, RangeError);
+  });
+  t.equal(ws.state, 'errored', 'the state of ws must be errored as an invalid size was returned');
+  ws.closed.catch(r => {
+    t.strictEqual(r.constructor, RangeError);
+  });
+});
+
 test('WritableStream exception in shouldApplyBackpressure moves the stream into errored state but previous writes ' +
      'finish', t => {
   t.plan(4);

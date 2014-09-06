@@ -3,10 +3,9 @@ Title: Streams Standard
 Group: WHATWG
 H1: Streams
 Shortname: streams
-Level: 1
-Status: DREAM
-ED: https://whatwg.github.io/streams
-Editor: Domenic Denicola, <a href="https://www.google.com/">Google</a>, http://domenic.me, domenic@domenicdenicola.com
+Status: LS
+ED: https://streams.spec.whatwg.org/
+Editor: Domenic Denicola, Google https://www.google.com/, domenic@domenicdenicola.com, http://domenic.me/
 Abstract: This specification provides APIs for creating, composing, and consuming streams of data.
 Abstract: These streams are designed to map efficiently to low-level I/O primitives, and allow easy
 Abstract: composition with built-in backpressure and queuing. On top of streams, the web platform can
@@ -19,6 +18,10 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 !Participate: Send feedback to <a href="http://www.whatwg.org/mailing-list">whatwg@whatwg.org</a> (<a href="http://www.whatwg.org/mailing-list#specs">archives</a>)
 !Participate: <a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
 </pre>
+
+<style>
+  ol > li { margin: 0; }
+</style>
 
 
 <h2 id="status" class="no-num no-toc">Status</h2>
@@ -46,18 +49,20 @@ A <dfn>readable stream</dfn> represents a source of data, from which you can rea
 Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O source,
 called the <dfn>underlying source</dfn>. There are two types of underlying source: push sources and pull sources.
 
-<dfn title="push source">Push sources</dfn> push data at you, whether or not you are listening for it. They may also provide a mechanism
-for pausing and resuming the flow of data. An example push source is a TCP socket, where data is constantly being pushed
-from the OS level, at a rate that can be controlled by changing the TCP window size.
+<dfn title="push source">Push sources</dfn> push data at you, whether or not you are listening for it. They may also
+provide a mechanism for pausing and resuming the flow of data. An example push source is a TCP socket, where data is
+constantly being pushed from the OS level, at a rate that can be controlled by changing the TCP window size.
 
-<dfn title="pull source">Pull sources</dfn> require you to request data from them. The data may be available synchronously, e.g. if it is
-held by the operating system's in-memory buffers, or asynchronously, e.g. if it has to be read from disk. An example
-pull source is a file handle, where you seek to specific locations and read specific amounts.
+<dfn title="pull source">Pull sources</dfn> require you to request data from them. The data may be available
+synchronously, e.g. if it is held by the operating system's in-memory buffers, or asynchronously, e.g. if it has to be
+read from disk. An example pull source is a file handle, where you seek to specific locations and read specific amounts.
 
 Readable streams are designed to wrap both types of sources behind a single, unified interface.
 
 <a>Chunks</a> are enqueued into the stream by the stream's creator, who usually derives them from the <a>underlying
 source</a>. They can then be read one at a time via the stream's public interface.
+
+Code that reads from a readable stream using its public interface is known as a <dfn>consumer</dfn>.
 
 <h3 id="ws-model">Writable Streams</h3>
 
@@ -70,6 +75,8 @@ queuing subsequent writes and only delivering them to the underlying sink one by
 
 <a>Chunks</a> are enqueued into the stream via its public interface, and are passed one at a time to the stream's
 creator. In turn, the creator will usually forward them to the <a>underlying sink</a>.
+
+Code that writes into a writable stream using its public interface is known as a <dfn>producer</dfn>.
 
 <h3 id="ts-model">Transform Streams</h3>
 
@@ -91,13 +98,33 @@ Streams are primarily used by <dfn>piping</dfn> them to each other. A readable s
 writable stream, or it can be piped through one or more transform streams first.
 
 A set of streams piped together in this way is referred to as a <dfn>pipe chain</dfn>. In a pipe chain, the
-<dfn>ultimate producer</dfn> is the first readable stream in the chain; the <dfn>ultimate consumer</dfn> is the final
-writable stream in the chain.
+<dfn>original source</dfn> is the <a>underlying source</a> of the first first readable stream in the chain; the
+<dfn>ultimate sink</dfn> is the <a>underlying sink</a> of the final writable stream in the chain.
 
 Once a pipe chain is constructed, it can be used to propagate signals regarding how fast data should flow through
 it. If any step in the chain cannot yet accept data, it propagates a signal backwards through the pipe chain, until
-eventually the ultimate producer is told to stop producing data so fast. This process of normalizing data flow from the
-ultimate producer according to how fast the chain can process data is called <dfn>backpressure</dfn>.
+eventually the original source is told to stop producing data so fast. This process of normalizing data flow from the
+original source according to how fast the chain can process data is called <dfn>backpressure</dfn>.
+
+<h3 id="queueing-strategies">Internal Queues and Queuing Strategies</h3>
+
+Both readable and writable streams maintain <dfn>internal queues</dfn>, which they use for similar purposes. In the
+case of a readable stream, the internal queue contains <a>chunks</a> that have been enqueued by the <a>underlying
+source</a>, but not yet read by the consumer. In the case of a writable stream, the internal queue contains
+<a>chunks</a> which have been written to the stream by the producer, but not yet processed and acknowledged by the
+<a>underlying sink</a>.
+
+A <dfn>queuing strategy</dfn> is a pair of methods that help determine whether a stream should apply
+<a>backpressure</a> based on the state of its <a>internal queue</a>. The queuing strategy assigns a size to each
+<a>chunk</a>; later, the stream implementation asks the queuing strategy whether the stream should apply backpressure,
+based the total size of all chunks in the stream's internal queue.
+
+<div class="example">
+  A simple example of a queuing strategy would be one that assigns a size of one to each chunk, and applies
+  backpressure whenever three or more chunks are in the internal queue. This would mean that up to three chunks could
+  be enqueued in a readable stream, or three chunks could be written to a writable stream, before they send a
+  backpressure signal.
+</div>
 
 <h2 id="rs">Readable Streams</h2>
 
@@ -109,8 +136,8 @@ The readable stream API allows wrapping both pull and push sources into a single
 abstraction. To accomplish this, the API uses the
 <a href="http://domenic.me/2014/02/14/the-revealing-constructor-pattern/">revealing constructor pattern</a>. The
 constructor of a given stream instance is supplied with two functions, <code>start</code> and <code>pull</code>, which
-each are given the parameters <code>(enqueue, close, error)</code> representing capabilities tied to the internals of the
-stream. By mediating all access to the internal state machine through these three functions, the stream's internal
+each are given the parameters <code>(enqueue, close, error)</code> representing capabilities tied to the internals of
+the stream. By mediating all access to the internal state machine through these three functions, the stream's internal
 state and bookkeeping can be kept private, allowing nobody but the original producer of the stream to insert data into
 it.
 
@@ -303,6 +330,409 @@ stream's methods. This can be roughly summarized in the following diagram.
 
 <h3 id="rs-class">Class <code>ReadableStream</code></h3>
 
+### Class Definition
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>ReadableStream</code> class in something close to the syntax of [[!ECMASCRIPT]], it
+would look like
+
+<pre><code>
+class ReadableStream {
+  constructor({
+    start = (enqueue, close, error) => {},
+    pull = (enqueue, close, error) => {},
+    cancel = (reason) => {},
+    strategy = %DefaultReadableStreamStrategy%
+  })
+
+  get closed()
+  get state()
+
+  cancel(reason)
+  pipeThrough({ input, output }, options)
+  pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})
+  read()
+  wait()
+}
+</code></pre>
+
+### Internal Slots
+
+Instances of <code>ReadableStream</code> are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[close]]
+    <td>A <a>Readable Stream Close Function</a> created with the ability to close this stream
+  </tr>
+  <tr>
+    <td>\[[closedPromise]]
+    <td>A promise that becomes fulfilled when the stream becomes <code>"closed"</code>; returned by the
+      <code>closed</code> getter
+  </tr>
+  <tr>
+    <td>\[[draining]]
+    <td>A boolean flag indicating whether the stream has been closed, but still has chunks in its internal queue that
+      have not yet been read
+  </tr>
+  <tr>
+    <td>\[[enqueue]]
+    <td>A <a>Readable Stream Enqueue Function</a> created with the ability to enqueue a passed <a>chunk</a> in this
+      stream
+  </tr>
+  <tr>
+    <td>\[[error]]
+    <td>A <a>Readable Stream Error Function</a> created with the ability to move this stream to an
+      <code>"errored"</code> state
+  </tr>
+  <tr>
+    <td>\[[onCancel]]
+    <td>A function passed to the constructor, meant to clean up and release access to the <a>underlying source</a>
+  </tr>
+  <tr>
+    <td>\[[onPull]]
+    <td>A function passed to the constructor, meant to pull more data from the <a>underlying source</a>
+  </tr>
+  <tr>
+    <td>\[[pulling]]
+    <td>A boolean flag indicating whether data is currently being pulled from the underlying sink
+  </tr>
+  <tr>
+    <td>\[[queue]]
+    <td>A List representing the stream's internal queue of <a>chunks</a>
+  </tr>
+  <tr>
+    <td>\[[started]]
+    <td>A boolean flag indicating whether the <a>underlying source</a> has finished starting
+  </tr>
+  <tr>
+    <td>\[[startedPromise]]
+    <td>A promise storing the result of starting the <a>underlying source</a>, used to delay actions until that is
+      complete
+  </tr>
+  <tr>
+    <td>\[[state]]
+    <td>A string containing the stream's current state; returned by the <code>state</code> getter
+  </tr>
+  <tr>
+    <td>\[[storedError]]
+    <td>A value indicating how the stream failed, to be given as a failure reason or exception when trying to operate
+      on the stream while in the <code>"errored"</code> state
+  </tr>
+  <tr>
+    <td>\[[strategy]]
+    <td>An object containing the stream's <a>queuing strategy</a>
+  </tr>
+  <tr>
+    <td>\[[waitPromise]]
+    <td>A promise that becomes fulfilled when the stream becomes <code>"readable"</code>, and is replaced with a new
+      pending promise when the stream becomes <code>"waiting"</code>; returned by the <code>wait()</code> method
+  </tr>
+</table>
+
+### new ReadableStream({ start, pull, cancel, strategy })
+
+<div class="note">
+  The constructor is passed several functions, all optional, which govern how the constructed stream instance behaves:
+
+  <ul>
+    <li> <var>start</var>(<var>enqueue</var>, <var>close</var>, <var>error</var>) is called immediately, and is
+      typically used to adapt a <a>push source</a> by setting up relevant event listeners, or to acquire access to a
+      <a>pull source</a>. If this process is asynchronous, it can return a promise to signal success or failure.
+    <li> <var>pull</var>(<var>enqueue</var>, <var>close</var>, <var>error</var>) is called when the stream's internal
+      queue of chunks is depleted, and the consumer has signaled that they wish to consume more data. Once it is
+      called, it will not be called again until the passed <var>enqueue</var> callback is called.
+    <li> <var>cancel</var>(<var>reason</var>) is called when the consumer signals that they are no longer interested
+      in the stream. It should perform any actions necessary to release access to the <a>underlying source</a>. If this
+      process is asynchronous, it can return a promise to signal success or failure.
+  </ul>
+
+  Both <var>start</var> and <var>pull</var> are given the ability to manipulate the stream's internal queue and state
+  via the passed <var>enqueue</var>, <var>close</var>, and <var>error</var> callbacks. This is an example of the
+  <a href="http://domenic.me/2014/02/13/the-revealing-constructor-pattern/">revealing constructor pattern</a>.
+</div>
+
+<ol>
+  <li> If <var>start</var> is <b>undefined</b>, set <var>start</var> to a no-op function.
+  <li> If IsCallable(<var>start</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> If <var>pull</var> is <b>undefined</b>, set <var>pull</var> to a no-op function.
+  <li> If IsCallable(<var>pull</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> If <var>cancel</var> is <b>undefined</b>, set <var>cancel</var> to a no-op function.
+  <li> If IsCallable(<var>cancel</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> If <var>strategy</var> is <b>undefined</b>, set <var>strategy</var> to %DefaultReadableStreamStrategy%.
+  <li> Set <b>this</b>@\[[onPull]] to <var>pull</var>.
+  <li> Set <b>this</b>@\[[onCancel]] to <var>cancel</var>.
+  <li> Set <b>this</b>@\[[strategy]] to <var>strategy</var>.
+  <li> Set <b>this</b>@\[[waitPromise]] and <b>this</b>@\[[closedPromise]] to new promises.
+  <li> Set <b>this</b>@\[[queue]] to a new empty List.
+  <li> Set <b>this</b>@\[[state]] to <code>"waiting"</code>.
+  <li> Set <b>this</b>@\[[started]], <b>this</b>@\[[draining]], and <b>this</b>@\[[pulling]] to <b>false</b>.
+  <li> Set <b>this</b>@\[[enqueue]] to CreateReadableStreamEnqueueFunction(<b>this</b>).
+  <li> Set <b>this</b>@\[[close]] to CreateReadableStreamCloseFunction(<b>this</b>).
+  <li> Set <b>this</b>@\[[error]] to CreateReadableStreamErrorFunction(<b>this</b>).
+  <li> Let <var>startResult</var> be the result of calling <var>start</var>(<b>this</b>@\[[enqueue]],
+    <b>this</b>@\[[close]], <b>this</b>@\[[error]]).
+  <li> ReturnIfAbrupt(<var>startResult</var>).
+  <li> Set <b>this</b>@\[[startedPromise]] to the result of resolving <var>startResult</var> as a promise.
+    <ol>
+      <li> Upon fulfillment,
+        <ol>
+          <li> Set <b>this</b>@\[[started]] to <b>true</b>.
+          <li> Set <b>this</b>@\[[startedPromise]] to <b>undefined</b>.
+        </ol>
+      <li> Upon rejection with reason <var>r</var>, call-with-rethrow <b>this</b>@\[[error]](<var>r</var>).
+    </ol>
+</ol>
+
+### Properties of the <code>ReadableStream</code> Prototype
+
+#### get closed
+
+<div class="note">
+  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected
+  if it ever errors.
+</div>
+
+<ol>
+  <li> Return <b>this</b>@\[[closedPromise]].
+</ol>
+
+#### get state
+
+<div class="note">
+  The <code>state</code> getter returns the state of the stream, which will be one of the following:
+
+  <dl>
+    <dt><code>"waiting"</code>
+    <dd>The <a>underlying source</a> is not ready or the stream's internal queue is empty; call <code>.wait()</code>
+      to be notified of any changes.
+
+    <dt><code>"readable"</code>
+    <dd>The stream's internal queue has <a>chunks</a> available; call <code>.read()</code> to retrieve the next one.
+
+    <dt><code>"closed"</code>
+    <dd>All data has been successfully read from the stream, and no more is available.
+
+    <dt><code>"errored"</code>
+    <dd>An error occurred interacting with the <a>underlying source</a>, and so the stream is now dead.
+  </dl>
+</div>
+
+<ol>
+  <li> Return <b>this</b>@\[[state]].
+</ol>
+
+#### cancel(reason)
+
+<div class="note">
+  The <code>cancel</code> method signals a loss of interest in the stream by a consumer. Calling it will immediately
+  move the stream to a <code>"closed"</code> state, throwing away any queued data, as well as executing any
+  cancellation mechanism of the <a>underlying source</a>.
+</div>
+
+<ol>
+  <li> If <b>this</b>@\[[state]] is <code>"closed"</code>, return a new promise resolved with <b>undefined</b>.
+  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with <b>this</b>@\[[storedError]].
+  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, resolve <b>this</b>@\[[waitPromise]] with <b>undefined</b>.
+  <li> Let <b>this</b>@\[[queue]] be a new empty List.
+  <li> Set <b>this</b>@\[[state]] to <code>"closed"</code>.
+  <li> Resolve <b>this</b>@\[[closedPromise]] with <b>undefined</b>.
+  <li> Let <var>cancelPromise</var> be a new promise.
+  <li> Let <var>sourceCancelPromise</var> be the result of promise-calling <b>this</b>@\[[onCancel]](<var>reason</var>).
+    <ol>
+      <li> Upon fulfillment of <var>sourceCancelPromise</var>, resolve <var>cancelPromise</var> with <b>undefined</b>.
+      <li> Upon rejection of <var>sourceCancelPromise</var> with reason <var>r</var>, reject <var>cancelPromise</var>
+        with <var>r</var>.
+    </ol>
+  <li> Return <var>cancelPromise</var>.
+</ol>
+
+#### pipeThrough({ writable, readable }, options)
+
+<ol>
+  <li> If Type(<var>writable</var>) is not Object, then throw a <b>TypeError</b> exception.
+  <li> If Type(<var>readable</var>) is not Object, then throw a <b>TypeError</b> exception.
+  <li> Call-with-rethrow Invoke(<b>this</b>, <code>"pipeTo"</code>, (<var>writable</var>, <var>options</var>)).
+  <li> Return <var>readable</var>.
+</ol>
+
+#### pipeTo(dest, options)
+
+The <code>pipeTo</code> method is one of the more complex methods, and is undergoing some revision and edge-case
+bulletproofing before we write it up in prose.
+
+For now, please consider the reference implementation normative:
+<a href="https://github.com/whatwg/streams/blob/master/reference-implementation/lib/readable-stream.js">reference-implementation/lib/readable-stream.js</a>,
+look for the <code>pipeTo</code> method.
+
+#### read()
+
+<div class="note">
+  The <code>read</code> method will return the next <a>chunk</a> from the stream's internal queue, if available. If
+  this causes the queue to become empty, more data will be pulled from the <a>underlying source</a>.
+</div>
+
+<ol>
+  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code> or <code>"closed"</code>, throw a <b>TypeError</b> exception.
+  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, throw <b>this</b>@\[[storedError]].
+  <li> Assert: <b>this</b>@\[[state]] is <code>"readable"</code>.
+  <li> Assert: <b>this</b>@\[[queue]] is not empty.
+  <li> Let <var>chunk</var> be DequeueValue(<b>this</b>@\[[queue]]).
+  <li> If <b>this</b>@\[[queue]] is now empty,
+    <ol>
+      <li> If <b>this</b>@\[[draining]] is <b>true</b>,
+        <ol>
+          <li> Set <b>this</b>@\[[state]] to <code>"closed"</code>.
+          <li> Resolve <b>this</b>@\[[closedPromise]] with <b>undefined</b>.
+        </ol>
+      <li> If <b>this</b>@\[[draining]] is <b>false</b>,
+        <ol>
+          <li> Set <b>this</b>@\[[state]] to <code>"waiting"</code>.
+          <li> Let <b>this</b>@\[[waitPromise]] be a new promise.
+          <li> Call-with-rethrow CallOrScheduleReadableStreamPull(<b>this</b>).
+        </ol>
+    </ol>
+  <li> Return <var>chunk</var>.
+</ol>
+
+#### wait()
+
+<div class="note">
+  The <code>wait</code> method returns a promise that will be fulfilled either when the stream's internal queue becomes
+  nonempty, or the stream becomes closed. (The promise will be rejected if the stream errors.)
+
+  As a side-effect, it signals interest in reading more <a>chunks</a>, thus causing the stream to pull more data from
+  the underlying source if it isn't already doing so (e.g. because <a>backpressure</a> signals had temporarily stopped
+  the flow).
+</div>
+
+<ol>
+  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, call-with-rethrow
+    CallOrScheduleReadableStreamPull(<b>this</b>).
+  <li> Return <b>this</b>@\[[waitPromise]].
+</ol>
+
+## Readable Stream Abstract Operations
+
+### CallOrScheduleReadableStreamPull ( stream )
+
+<ol>
+  <li> If <var>stream</var>@\[[pulling]] is <b>true</b>, return <b>undefined</b>.
+  <li> Set <var>stream</var>@\[[pulling]] to <b>true</b>.
+  <li> If <var>stream</var>@\[[started]] is <b>false</b>, then
+    <ol>
+      <li> Upon fulfillment of <var>stream</var>@\[[startedPromise]], call-with-rethrow
+        CallReadableStreamPull(<var>stream</var>).
+      <li> Return <b>undefined</b>.
+    </ol>
+  <li> Otherwise, return CallReadableStreamPull(<var>stream</var>).
+</ol>
+
+### CallReadableStreamPull ( stream )
+
+<ol>
+  <li> Let <var>pullResult</var> be the result of calling <var>stream</var>@\[[onPull]](<var>stream</var>@\[[enqueue]],
+    <var>stream</var>@\[[close]], <var>stream</var>@\[[error]]).
+  <li> If <var>pullResult</var> is an abrupt completion, return
+    <var>stream</var>@\[[error]](<var>pullResult</var>.\[[value]]).
+  <li> Otherwise, return <b>undefined</b>.
+</ol>
+
+### CreateReadableStreamCloseFunction ( stream )
+
+<ol>
+  <li> Return a new <a>Readable Stream Close Function</a> closing over <var>stream</var>.
+</ol>
+
+A <dfn>Readable Stream Close Function</dfn> is a built-in anonymous function of zero arguments, closing over a variable
+<var>stream</var>, that performs the following steps:
+
+<ol>
+  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>,
+    <ol>
+      <li> Resolve <var>stream</var>@\[[waitPromise]] with <b>undefined</b>.
+      <li> Resolve <var>stream</var>@\[[closedPromise]] with <b>undefined</b>.
+      <li> Set <var>stream</var>@\[[state]] to <code>"closed"</code>.
+    </ol>
+  <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>,
+    <ol>
+      <li> Set <var>stream</var>@\[[draining]] to <b>true</b>.
+    </ol>
+</ol>
+
+### CreateReadableStreamEnqueueFunction ( stream )
+
+<ol>
+  <li> Return a new <a>Readable Stream Enqueue Function</a> closing over <var>stream</var>.
+</ol>
+
+A <dfn>Readable Stream Enqueue Function</dfn> is a built-in anonymous function of one argument <var>chunk</var>,
+closing over a variable <var>stream</var>, that performs the following steps:
+
+<ol>
+  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code> or <code>"closed"</code>, return <b>false</b>.
+  <li> If <var>stream</var>@\[[draining]] is <b>true</b>, throw a <b>TypeError</b> exception.
+  <li> Let <var>chunkSize</var> be Invoke(<var>stream</var>@\[[strategy]], <code>"size"</code>, (<var>chunk</var>)).
+  <li> If <var>chunkSize</var> is an abrupt completion,
+    <ol>
+      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>chunkSize</var>.\[[value]]).
+      <li> Return <b>false</b>.
+    </ol>
+  <li>Call-with-rethrow EnqueueValueWithSize(<var>stream</var>@\[[queue]], <var>chunk</var>,
+    <var>chunkSize</var>.\[[value]]).
+  <li> Set <var>stream</var>@\[[pulling]] to <b>false</b>.
+  <li> Let <var>queueSize</var> be GetTotalQueueSize(<var>stream</var>@\[[queue]]).
+  <li> ReturnIfAbrupt(<var>queueSize</var>).
+  <li> Let <var>shouldApplyBackpressure</var> be ToBoolean(Invoke(<var>stream</var>@\[[strategy]],
+    <code>"shouldApplyBackpressure"</code>, (<var>queueSize</var>))).
+  <li> If <var>shouldApplyBackpressure</var> is an abrupt completion,
+    <ol>
+      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>shouldApplyBackpressure</var>.\[[value]]).
+      <li> Return <b>false</b>.
+    </ol>
+  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>,
+    <ol>
+      <li> Set <var>stream</var>@\[[state]] to <code>"readable"</code>.
+      <li> Resolve <var>stream</var>@\[[waitPromise]] with <b>undefined</b>.
+    </ol>
+  <li> If <var>shouldApplyBackpressure</var>.\[[value]] is <b>true</b>, return <b>false</b>.
+  <li> Return <b>true</b>.
+</ol>
+
+### CreateReadableStreamErrorFunction ( stream )
+
+<ol>
+  <li> Return a new <a>Readable Stream Error Function</a> closing over <var>stream</var>.
+</ol>
+
+A <dfn>Readable Stream Error Function</dfn> is a built-in anonymous function of one argument <var>e</var>, closing over
+a variable <var>stream</var>, that performs the following steps:
+
+<ol>
+  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>,
+    <ol>
+      <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
+      <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
+      <li> Reject <var>stream</var>@\[[waitPromise]] with <var>e</var>.
+      <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
+    </ol>
+  <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>,
+    <ol>
+      <li> Let <var>stream</var>@\[[queue]] be a new empty List.
+      <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
+      <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
+      <li> Let <var>stream</var>@\[[waitPromise]] be a new promise rejected with <var>e</var>.
+      <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
+    </ol>
+</ol>
+
 <h2 id="ws">Writable Streams</h2>
 
 <h3 id="ws-intro">Introduction to Writable Streams</h3>
@@ -310,14 +740,15 @@ stream's methods. This can be roughly summarized in the following diagram.
 <em>This section is non-normative.</em>
 
 The writable stream API allows wrapping of <a>underlying sinks</a> into an object on which two fundamental operations
-can be performed: data can be written to the stream, and the stream can be closed.
+can be performed: <a>chunks</a> can be written to the stream, and the stream can be closed.
 
 The writable stream implementation is designed to encapsulate the potential complexity of the <a>underlying sink</a>
-from users of the stream API. In particular, users of a stream object can write data to the stream at any pace, without
-regard for whether previous writes have completed or succeeded. It is the job of the stream implementation to ensure
-that writes are forwarded to the <a>underlying sink</a> in order, and only after successful completion of previous writes.
-This allows seamless use of the writable stream even in cases such as piping a fast readable file stream to a slower
-writable network socket stream, which cannot acknowledge the incoming data at the same rate it becomes available.
+from users of the stream API. In particular, users of a stream object can write chunks to the stream at any pace,
+without regard for whether previous writes have completed or succeeded. It is the job of the stream implementation to
+ensure that writes are forwarded to the <a>underlying sink</a> in order, and only after successful completion of
+previous writes. This allows seamless use of the writable stream even in cases such as piping a fast readable file
+stream to a slower writable network socket stream, which cannot acknowledge the incoming data at the same rate it
+becomes available.
 
 <div class="example">
   The following function wraps a web socket [[HTML]] as the <a>underlying sink</a> of a new writable stream. Web
@@ -456,6 +887,557 @@ TODO
 
 <h3 id="ws-class">Class <code>WritableStream</code></h3>
 
+### Class Definition
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>WritableStream</code> class in something close to the syntax of [[!ECMASCRIPT]], it
+would look like
+
+
+<pre>
+class WritableStream {
+  constructor({
+    start = (error) => {},
+    write = (chunk) => {},
+    close = () => {},
+    abort = (reason) => close(),
+    strategy = %DefaultWritableStreamStrategy%
+  })
+
+  get closed()
+  get state()
+
+  abort(reason)
+  close()
+  wait()
+  write(chunk)
+}
+</pre>
+
+### Internal Slots
+
+Instances of <code>WritableStream</code> are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[closedPromise]]
+    <td>A promise that becomes fulfilled when the stream becomes <code>"closed"</code>; returned by the
+      <code>closed</code> getter
+  </tr>
+  <tr>
+    <td>\[[onAbort]]
+    <td>A function passed to the constructor, meant to abruptly clean up and release access to the <a>underlying
+      sink</a>
+  </tr>
+  <tr>
+    <td>\[[onClose]]
+    <td>A function passed to the constructor, meant to close the the <a>underlying sink</a>
+  </tr>
+  <tr>
+    <td>\[[onWrite]]
+    <td>A function passed to the constructor, meant to write to the <a>underlying sink</a>
+  </tr>
+  <tr>
+    <td>\[[error]]
+    <td>A <a>Writable Stream Error Function</a> created with the ability to move this stream to an
+      <code>"errored"</code> state
+  </tr>
+  <tr>
+    <td>\[[queue]]
+    <td>A List representing the stream's internal queue of pending writes
+  </tr>
+  <tr>
+    <td>\[[started]]
+    <td>A boolean flag indicating whether the <a>underlying sink</a> has finished starting
+  </tr>
+  <tr>
+    <td>\[[startedPromise]]
+    <td>A promise storing the result of starting the <a>underlying sink</a>, used to delay actions until that is
+      complete
+  </tr>
+  <tr>
+    <td>\[[state]]
+    <td>A string containing the stream's current state; returned by the <code>state</code> getter
+  </tr>
+  <tr>
+    <td>\[[storedError]]
+    <td>A value indicating how the stream failed, to be given as a failure reason or exception when trying to operate
+      on the stream while in the <code>"errored"</code> state
+  </tr>
+  <tr>
+    <td>\[[strategy]]
+    <td>An object containing the stream's <a>queuing strategy</a>
+  </tr>
+  <tr>
+    <td>\[[waitPromise]]
+    <td>A promise that becomes fulfilled when the stream becomes <code>"writable"</code>, and is replaced with a new
+      pending promise when the stream becomes <code>"waiting"</code>; returned by the <code>wait()</code> method
+  </tr>
+  <tr>
+    <td>\[[writing]]
+    <td>A boolean flag indicating whether the stream is currently writing to the <a>underlying sink</a>, used to
+      prevent concurrent such writes
+  </tr>
+</table>
+
+### new WritableStream({ start, write, close, abort, strategy })
+
+<div class="note">
+  The constructor is passed several functions, all optional, which govern how the constructed stream instance behaves:
+
+  <ul>
+    <li> <var>start</var>(<var>error</var>) is called immediately, and should perform any actions necessary to acquire
+      access to the <a>underlying sink</a>. If this process is asynchronous, it can return a promise to signal success
+      or failure.
+    <li> <var>write</var>(<var>chunk</var>) is called when a new <a>chunk</a> of data is ready to be written to the
+      <a>underlying sink</a>. It can return a promise to signal success or failure of the write operation. The stream
+      implementation guarantees that this function will be called only after previous writes have succeeded, and never
+      after <var>close</var> or <var>abort</var> is called.
+    <li> <var>close</var>() is called after the producer signals that they are done writing chunks to the stream, and
+      all queued-up writes successfully complete. It should perform any actions necessary to finalize writes to the
+      <a>underlying sink</a>, and release access to it. If this process is asynchronous, it can return a promise to
+      signal success or failure. The stream implementation guarantees that this function will be called only after all
+      queued-up writes have succeeded.
+    <li> <var>abort</var>(<var>reason</var>) is called when the producer signals they wish to abruptly close the stream
+      and put it in an <code>"errored"</code> state. It should clean up any held resources, much like <var>close</var>,
+      but perhaps with some custom handling. Unlike <var>close</var>, <var>abort</var> will be called even if writes
+      are queued up; those <a>chunks</a> will be thrown away. If this process is asynchronous, it can return a promise
+      to signal success or failure. If no abort function is passed, by default the <var>close</var> function will be
+      called instead.
+  </ul>
+</div>
+
+<ol>
+  <li> If <var>start</var> is <b>undefined</b>, set <var>start</var> to a no-op function.
+  <li> If IsCallable(<var>start</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> If <var>write</var> is <b>undefined</b>, set <var>write</var> to a no-op function.
+  <li> If IsCallable(<var>write</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> If <var>close</var> is <b>undefined</b>, set <var>close</var> to a no-op function.
+  <li> If IsCallable(<var>close</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> If <var>abort</var> is <b>undefined</b>, set <var>abort</var> to <var>close</var>.
+  <li> If IsCallable(<var>abort</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> If <var>strategy</var> is <b>undefined</b>, set <var>strategy</var> to %DefaultWritableStreamStrategy%.
+  <li> Set <b>this</b>@\[[onWrite]] to <var>write</var>.
+  <li> Set <b>this</b>@\[[onClose]] to <var>onClose</var>.
+  <li> Set <b>this</b>@\[[onAbort]] to <var>abort</var>.
+  <li> Set <b>this</b>@\[[closedPromise]] to a new promise.
+  <li> Set <b>this</b>@\[[writablePromise]] to a new promise resolved with <b>undefined</b>.
+  <li> Set <b>this</b>@\[[queue]] to a new empty List.
+  <li> Set <b>this</b>@\[[state]] to <code>"writable"</code>.
+  <li> Set <b>this</b>@\[[started]] and <b>this</b>@\[[writing]] to <b>false</b>.
+  <li> Set <b>this</b>@\[[error]] to CreateWritableStreamErrorFunction(<b>this</b>).
+  <li> Let <var>startResult</var> be the result calling <var>start</var>(<b>this</b>@\[[error]]).
+  <li> ReturnIfAbrupt(<var>startResult</var>).
+  <li> Set <b>this</b>@\[[startedPromise]] to the result of resolving <var>startResult</var> as a promise.
+    <ol>
+      <li> Upon fulfillment,
+        <ol>
+          <li> Set <b>this</b>@\[[started]] to <b>true</b>.
+          <li> Set <b>this</b>@\[[startedPromise]] to <b>undefined</b>.
+        </ol>
+      <li> Upon rejection with reason <var>r</var>, call-with-rethrow <b>this</b>@\[[error]](<var>r</var>).
+    </ol>
+</ol>
+
+### Properties of the <code>WritableStream</code> Prototype
+
+#### get closed
+
+<div class="note">
+  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected
+  if it ever errors.
+</div>
+
+<ol>
+  <li> Return <b>this</b>@\[[closedPromise]].
+</ol>
+
+#### get state
+
+<div class="note">
+  The <code>state</code> getter returns the state of the stream, which will be one of the following:
+
+  <dl>
+    <dt><code>"waiting"</code>
+    <dd>The <a>underlying sink</a> is not ready or the stream's internal queue is full; that is, the stream is
+      exerting <a>backpressure</a>. Call <code>.wait()</code> to be notified of when the pressure subsides.
+
+    <dt><code>"writable"</code>
+    <dd>The <a>underlying sink</a> is ready and/or the stream's internal queue is not full; call <code>.write()</code>
+    until backpressure is exerted.
+
+    <dt><code>"closing"</code>
+    <dd>The stream's <code>.close()</code> method has been called, and a command to close is in the queue; attempts to
+      write will now fail.
+
+    <dt><code>"closed"</code>
+    <dd>The <a>underlying sink</a> has been closed; writing is no longer possible.
+
+    <dt><code>"errored"</code>
+    <dd>An error occurred interacting with the <a>underlying sink</a>, and so the stream is now dead.
+  </dl>
+</div>
+
+<ol>
+  <li> Return <b>this</b>@\[[state]].
+</ol>
+
+#### abort(reason)
+
+<div class="note">
+  The <code>abort</code> method signals that the producer can no longer successfully write to the stream and it should
+  be immediately moved to an <code>"errored"</code> state, with any queued-up writes discarded. This will also execute
+  any abort mechanism of the <a>underlying sink</a>.
+</div>
+
+<ol>
+  <li> If <b>this</b>@\[[state]] is <code>"closed"</code>, return a new promise resolved with <b>undefined</b>.
+  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with
+    <b>this</b>@\[[storedError]].
+  <li> Call-with-rethrow <b>this</b>@\[[error]](reason).
+  <li> Let <var>abortPromise</var> be a new promise.
+  <li> Let <var>sinkAbortPromise</var> be the result of promise-calling <b>this</b>\[[onAbort]](<var>reason</var>).
+    <ol>
+      <li> Upon fulfillment of <var>sinkAbortPromise</var>, resolve <var>abortPromise</var> with <b>undefined</b>.
+      <li> Upon rejection of <var>sinkAbortPromise</var> with reason <var>r</var>, reject <var>abortPromise</var>
+        with <var>r</var>.
+    </ol>
+  <li> Return <var>abortPromise</var>.
+</ol>
+
+#### close()
+
+<div class="note">
+  The <code>close</code> method signals that the producer is done writing chunks to the stream and wishes to move the
+  stream to a <code>"closed"</code> state. This queues an action to close the stream, such that once any currently
+  queued-up writes complete, the close mechanism of the <a>underlying sink</a> will execute, releasing any held
+  resources. In the meantime, the stream will be in a <code>"closing"</code> state.
+</div>
+
+<ol>
+  <li> If <b>this</b>@\[[state]] is <code>"closing"</code> or <code>"closed"</code>, return a promise rejected with a
+    <b>TypeError</b> exception.
+  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a promise rejected with
+    <b>this</b>@\[[storedError]].
+  <li> If <b>this</b>@\[[state]] is <code>"writable"</code>, set <b>this</b>@\[[writablePromise]] to a new promise
+    rejected with a <b>TypeError</b> exception.
+  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, reject <b>this</b>@\[[writablePromise]] with a
+    <b>TypeError</b> exception.
+  <li> Set <b>this</b>@\[[state]] to <code>"closing"</code>
+  <li> Call-with-rethrow EnqueueValueWithSize(<code>"close"</code>, <b>0</b>).
+  <li> Otherwise, call-with-rethrow CallOrScheduleWritableStreamAdvanceQueue(<b>this</b>).
+  <li>Return <b>this</b>@\[[closedPromise]].
+</ol>
+
+#### wait()
+
+<div class="note">
+  The <code>wait</code> method returns a promise that will be fulfilled when the stream enters the
+  <code>"writable"</code> state, i.e., when the stream's internal queue is not full according to its <a>queuing
+  strategy</a>. (The promise will be rejected if the stream errors.)
+
+  In essence, this method gives a signal as to when any backpressure has let up.
+</div>
+
+<ol>
+  <li> Return <b>this</b>@\[[writablePromise]].
+</ol>
+
+#### write(chunk)
+
+<div class="note">
+  The <code>write</code> method adds a write to the stream's internal queue, instructing the stream to
+  write the given <a>chunk</a> of data to the <a>underlying sink</a> once all other pending writes have finished
+  successfully. It returns a promise that will be fulfilled or rejected depending on the success or failure of writing
+  the chunk to the underlying sink.
+
+  The impact of enqueuing this chunk will be immediately reflected in the stream's <code>state</code> property; in
+  particular, if the internal queue is now full according to the stream's <a>queuing strategy</a>, the stream will
+  exert backpressure by changing its state to <code>"waiting"</code>.
+</div>
+
+<ol>
+  <li>If <b>this</b>@\[[state]] is <code>"closing"</code> or <code>"closed"</code>, return a promise rejected with a
+    <b>TypeError</b>.
+  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a promise rejected with
+    <b>this</b>@\[[storedError]].
+  <li> Assert: <b>this</b>\[[state]] is either <code>"waiting"</code> or <code>"writable"</code>.
+  <li> Let <var>chunkSize</var> be Invoke(<b>this</b>@\[[strategy]], <code>"size"</code>, (<var>chunk</var>)).
+  <li> If <var>chunkSize</var> is an abrupt completion,
+    <ol>
+      <li> Call-with-rethrow <b>this</b>@\[[error]](<var>chunkSize</var>.\[[value]]).
+      <li> Return a new promise rejected with <var>chunkSize</var>.\[[value]].
+    </ol>
+  </li>
+  <li> Set <var>chunkSize</var> to <var>chunkSize</var>.\[[value]].
+  <li> Let <var>promise</var> be a new promise.
+  <li> Let <var>writeRecord</var> be Record{\[[promise]]: <var>promise</var>, \[[chunk]]: <var>chunk</var>}.
+  <li> Let <var>enqueueResult</var> be EnqueueValueWithSize(<var>writeRecord</var>, <var>chunkSize</var>).
+  <li> If <var>enqueueResult</var> is an abrupt completion,
+    <ol>
+      <li> Call-with-rethrow <b>this</b>@\[[error]](<var>enqueueResult</var>.\[[value]]).
+      <li> Return a new promise rejected with <var>enqueueResult</var>.\[[value]].
+    </ol>
+  </li>
+  <li> Let <var>syncResult</var> be SyncWritableStreamStateWithQueue(<b>this</b>).
+  <li> If <var>syncResult</var> is an abrupt completion,
+    <ol>
+      <li> Call-with-rethrow <b>this</b>@\[[error]](<var>syncResult</var>.\[[value]]).
+      <li> Return <var>promise</var>.
+    </ol>
+  </li>
+  <li> Call-with-rethrow CallOrScheduleWritableStreamAdvanceQueue(<b>this</b>).
+  <li> Return <var>promise</var>.
+</ol>
+
+## Writable Stream Abstract Operations
+
+### CallOrScheduleWritableStreamAdvanceQueue ( stream )
+
+<ol>
+  <li> If <var>stream</var>@\[[started]] is <b>false</b>, then
+    <ol>
+      <li> Upon fulfillment of <var>stream</var>\[[startedPromise]], call-with-rethrow
+        WritableStreamAdvanceQueue(<var>stream</var>).
+      <li> Return <b>undefined</b>.
+    </ol>
+  <li> Otherwise, return WritableStreamAdvanceQueue(<var>stream</var>).
+</ol>
+
+### CloseWritableStream ( stream )
+
+<ol>
+  <li> Assert: <var>stream</var>@\[[state]] is <code>"closing"</code>.
+  <li> Let <var>sinkClosePromise</var> be the result of promise-calling <var>stream</var>@\[[onClose]]().
+    <ol>
+      <li> Upon fulfillment,
+        <ol>
+          <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, return.
+          <li> Assert: <var>stream</var>@\[[state]] is <code>"closing"</code>.
+          <li> Resolve <var>stream</var>@\[[closedPromise]] with <b>undefined</b>.
+          <li> Set <var>stream</var>@\[[state]] to <code>"closed"</code>.
+        </ol>
+      <li> Upon rejection with reason <var>r</var>, call-with-rethrow <var>stream</var>@\[[error]](<var>r</var>).
+    </ol>
+  <li> Return <b>undefined</b>.
+</ol>
+
+### CreateWritableStreamErrorFunction ( stream )
+
+<ol>
+  <li> Return a new <a>Writable Stream Error Function</a> closing over <var>stream</var>.
+</ol>
+
+A <dfn>Writable Stream Error Function</dfn> is a built-in anonymous function of one argument <var>e</var>, closing over
+a variable <var>stream</var>, that performs the following steps:
+
+<ol>
+  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, return <b>undefined</b>.
+  <li> Repeat while <var>stream</var>@\[[queue]] is not empty:
+    <ol>
+      <li> Let <var>writeRecord</var> be DequeueValue(<var>stream</var>@\[[queue]]).
+      <li> If <var>writeRecord</var> is not <code>"close"</code>, reject <var>writeRecord</var>.\[[promise]] with
+        <var>e</var>.
+    </ol>
+  <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
+  <li> If <var>stream</var>@\[[state]] is <code>"writable"</code> or <code>"closing"</code>, set
+    <var>stream</var>@\[[writablePromise]] to a new promise rejected with <var>e</var>.
+  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, reject <var>stream</var>@\[[writablePromise]] with
+    <var>e</var>.
+  <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
+  <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
+  <li> Return <b>undefined</b>.
+</ol>
+
+### SyncWritableStreamStateWithQueue ( stream )
+
+<ol>
+  <li> If <var>stream</var>@\[[state]] is <code>"closing"</code>, return <b>undefined</b>.
+  <li> Assert: <var>stream</var>@\[[state]] is either <code>"writable"</code> or <code>"waiting"</code>.
+  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code> and <var>stream</var>@\[[queue]] is empty, then
+    <ol>
+      <li> Set <var>stream</var>@\[[state]] to <code>"writable"</code>.
+      <li> Resolve <var>stream</var>@\[[writablePromise]] with <b>undefined</b>.
+      <li> Return <b>undefined</b>.
+    </ol>
+  <li> Let <var>queueSize</var> be GetTotalQueueSize(<var>stream</var>@\[[queue]]).
+  <li> ReturnIfAbrupt(<var>queueSize</var>).
+  <li> Let <var>shouldApplyBackpressure</var> be ToBoolean(Invoke(<var>stream</var>@\[[strategy]],
+    <code>"shouldApplyBackpressure"</code>, (<var>queueSize</var>))).
+  <li> If <var>shouldApplyBackpressure</var> is <b>true</b> and <var>stream</var>@\[[state]] is
+    <code>"writable"</code>, then
+    <ol>
+      <li> Set <var>stream</var>@\[[state]] to <code>"waiting"</code>.
+      <li> Set <var>stream</var>@\[[writablePromise]] to a new promise.
+    </ol>
+  <li> If <var>shouldApplyBackpressure</var> is <b>false</b> and <var>stream</var>@\[[state]] is
+    <code>"waiting"</code>, then
+    <ol>
+      <li> Set <var>stream</var>@\[[state]] to <code>"writable"</code>.
+      <li> Resolve <var>stream</var>@\[[writablePromise]] with <b>undefined</b>.
+    </ol>
+  <li> Return <b>undefined</b>.
+</ol>
+
+### WritableStreamAdvanceQueue ( stream )
+
+<ol>
+  <li> If <var>stream</var>@\[[queue]] is empty, or <var>stream</var>@\[[writing]] is <b>true</b>, return
+    <b>undefined</b>.
+  <li> Let <var>writeRecord</var> be PeekQueueValue(<var>stream</var>@\[[queue]]).
+  <li> If <var>writeRecord</var> is <code>"close"</code>, then
+    <ol>
+      <li> Assert: <var>stream</var>@\[[state]] is <code>"closing"</code>.
+      <li> DequeueValue(<var>stream</var>@\[[queue]]).
+      <li> Assert: <var>stream</var>@\[[queue]] is now empty.
+      <li> Return CloseWritableStream(<var>stream</var>).
+    </ol>
+  <li> Set <var>stream</var>@\[[writing]] to <b>true</b>.
+  <li> Promise-call <var>stream</var>@\[[onWrite]](<var>writeRecord</var>.\[[chunk]]).
+    <ol>
+      <li> Upon fulfillment,
+        <ol>
+          <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, return.
+          <li> Set <var>stream</var>@\[[writing]] to <b>false</b>.
+          <li> Resolve <var>writeRecord</var>.\[[promise]] with <b>undefined</b>.
+          <li> DequeueValue(<var>stream</var>@\[[queue]]).
+          <li> Let <var>syncResult</var> be SyncWritableStreamStateWithQueue(<var>stream</var>).
+          <li> If <var>syncResult</var> is an abrupt completion, then call-with-rethrow
+            <var>stream</var>@\[[error]](<var>syncResult</var>.\[[value]]).
+          <li> Otherwise, return WritableStreamAdvanceQueue(<var>stream</var>).
+        </ol>
+      <li> Upon rejection with reason <var>r</var>, call-with-rethrow <var>stream</var>@\[[error]](<var>r</var>).
+    </ol>
+</ol>
+
+<h2 id="ts">Transform Streams</h2>
+
+Transform streams have been developed in the testable implementation, but not yet re-encoded in spec language.
+We are waiting to validate their design before doing so. In the meantime, see
+<a href="https://github.com/whatwg/streams/blob/master/reference-implementation/lib/transform-stream.js">reference-implementation/lib/transform-stream.js</a>.
+
+
+<h2 id="other-stuff">Other Stream APIs and Operations</h2>
+
+<h3 id="blqs">Class <code>ByteLengthQueuingStrategy</code></h3>
+
+<div class="note">
+  A common <a>queuing strategy</a> when dealing with binary data is to wait until the accumulated
+  <code>byteLength</code> properties of the incoming chunks reaches a specified high-water mark. As such, this is
+  provided as a built-in <a>queuing strategy</a> that can be used when constructing streams.
+</div>
+
+<pre>
+class ByteLengthQueuingStrategy {
+  constructor({ highWaterMark }) {
+    this.highWaterMark = Number(highWaterMark);
+
+    if (Number.isNaN(this.highWaterMark) || this.highWaterMark < 0) {
+      throw new RangeError("highWaterMark must be a nonnegative number.");
+    }
+  }
+
+  size(chunk) {
+    return chunk.byteLength;
+  }
+
+  shouldApplyBackpressure(queueSize) {
+    return queueSize > this.highWaterMark;
+  }
+}
+</pre>
+
+<h3 id="cqs">Class <code>CountQueuingStrategy</code></h3>
+
+<div class="note">
+  A common <a>queuing strategy</a> when dealing with streams of generic objects is to simply count the number of chunks
+  that have been accumulated so far, waiting until this number reaches a specified high-water mark. As such, this
+  strategy is also provided out of the box.
+</div>
+
+<pre>
+class CountQueuingStrategy {
+  constructor({ highWaterMark }) {
+    this.highWaterMark = Number(highWaterMark);
+
+    if (Number.isNaN(this.highWaterMark) || this.highWaterMark < 0) {
+      throw new RangeError("highWaterMark must be a nonnegative number.");
+    }
+  }
+
+  size(chunk) {
+    return 1;
+  }
+
+  shouldApplyBackpressure(queueSize) {
+    return queueSize > this.highWaterMark;
+  }
+}
+</pre>
+
+<h3 id="default-rs-strategy">%DefaultReadableStreamStrategy%</h3>
+
+Basically, <code>new CountQueuingStrategy({ highWaterMark: 1 })</code>, but a singleton and tamper-proof, etc.
+
+<h3 id="default-ws-strategy">%DefaultWritableStreamStrategy%</h3>
+
+Basically, <code>new CountQueuingStrategy({ highWaterMark: 0 })</code>, but a singleton and tamper-proof, etc.
+
+<h3 id="queue-with-sizes">Queue-with-Sizes Operations</h3>
+
+The streams in this specification use a "queue-with-sizes" data structure to store queued up values, along with their
+determined sizes. A queue-with-sizes is a List of Records with \[[value]] and \[[size]] fields (although in
+implementations it would of course be backed by a more efficient data structure).
+
+A number of abstract operations are specified here to make working with queues-with-sizes more pleasant, and used
+throughout the rest of this standard.
+
+### EnqueueValueWithSize ( queue, value, size )
+
+<ol>
+  <li> Let <var>size</var> be ToNumber(<var>size</var>).
+  <li> ReturnIfAbrupt(<var>size</var>).
+  <li> If <var>size</var> is <b>NaN</b>, <b>+∞</b>, or <b>−∞</b>, throw a <b>RangeError</b> exception.
+  <li> Append Record{\[[value]]: <var>value</var>, \[[size]]: <var>size</var>} as the last element of <var>queue</var>.
+</ol>
+
+### DequeueValue ( queue )
+
+<ol>
+  <li> Assert: <var>queue</var> is not empty.
+  <li> Let <var>pair</var> be the first element of queue.
+  <li> Remove <var>pair</var> from <var>queue</var>, shifting all other elements downward (so that the second becomes
+    the first, and so on).
+  <li> Return <var>pair</var>.\[[value]].
+</ol>
+
+### PeekQueueValue ( queue )
+
+<ol>
+  <li> Assert: <var>queue</var> is not empty.
+  <li> Let <var>pair</var> be the first element of <var>queue</var>.
+  <li> Return <var>pair</var>.\[[value]].
+</ol>
+
+### GetTotalQueueSize ( queue )
+
+<ol>
+  <li> Let <var>totalSize</var> be <b>0</b>.
+  <li> Repeat for each Record{\[[value]], \[[size]]} <var>pair</var> that is an element of <var>queue</var>,
+    <ol>
+      <li> Assert: <var>pair</var>.\[[size]] is a finite, non-<b>NaN</b> number.
+      <li> Add <var>pair</var>.\[[size]] to <var>totalSize</var>.
+    </ol>
+  <li> Return <var>totalSize</var>.
+</ol>
+
 <h2 id="subclassing">Subclassing Streams</h2>
 
 <em>This section is non-normative.</em>
@@ -479,13 +1461,31 @@ Because streams only interact through their public API, all streams—whether su
 interoperate. For example, you can pipe to or from any of the above streams, without worrying what type of
 implementation is under the covers, since they all provide the appropriate properties and methods.
 
-<h2 id="other-apis">Other Stream APIs</h2>
+<h2 id="conventions" class="no-num">Conventions</h2>
 
-<h3 id="tee-stream"><code>TeeStream</code></h3>
+This specification uses algorithm conventions very similar to those of [[!ECMASCRIPT]]. However, it deviates in the
+following ways, mostly for brevity. It is hoped (and vaguely planned) that eventually the conventions of ECMAScript
+itself will evolve in these ways.
 
-<h3 id="ByteLengthQueuingStrategy"><code>ByteLengthQueuingStrategy</code></h3>
-
-<h3 id="CountQueuingStrategy"><code>CountQueuingStrategy</code></h3>
+<ul>
+  <li> We use destructuring notation in function and method declarations, and assume that the destructuring assignment
+    procedure was performed before the algorithm starts.
+  <li> We use the notation <var>x</var>@\[[y]] to refer to internal slots of an object, instead of saying "the \[[y]]
+    internal slot of <var>x</var>."
+  <li> We do not alias <b>this</b> to a local variable in each algorithm, instead using it directly.
+  <li> We use the phrase "calling <var>x</var>(<var>y</var>, <var>z</var>, w</var>)" as a shorthand for "calling the
+    \[[Call]] internal method of <var>x</var> passing <b>undefined</b> as <var>thisArgument</var> and (<var>x</var>,
+    <var>y</var>, <var>z</var>) as <var>argumentsList</var>."
+  <li> We use the phrase "call-with-rethrow AbstractOperation(<var>x</var>, <var>y</var>, <var>z</var>)" as a shorthand
+    for "Let <var>opResult</var> be AbstractOperation(<var>x</var>, <var>y</var>, <var>z</var>).
+    ReturnIfAbrupt(<var>opResult</var>)."
+  <li> We use <a href="https://w3ctag.github.io/promises-guide/#shorthand-phrases">the shorthand phrases from the W3C
+    TAG promises guide</a> to operate on promises at a higher level than the ECMAScript spec does.
+  <li> We introduce the notion of creating a function that "closes over" a given variable. This is meant to work the
+    same as how the ECMAScript spec gives such functions internal slots which get filled in upon creation and then
+    have their values pulled out of during execution, but require less formal contortions.
+  <li> We have use the phrase "no-op function" as a shorthand, without bothering to give it a formal definition.
+</ul>
 
 <h2 id="acks" class="no-num">Acknowledgments</h2>
 
