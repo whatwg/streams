@@ -31,7 +31,7 @@ class ReadableStream {
     ReadableStream pipeThrough({ WritableStream in, ReadableStream out }, options)
 
     // Stop accumulating data
-    void cancel(any reason)
+    Promise<undefined> cancel(any reason)
 
     // Useful helper
     get Promise<undefined> closed
@@ -131,7 +131,11 @@ Both `start` and `pull` are given the ability to manipulate the stream's interna
 1. Let `this.[[queue]]` be a new empty List.
 1. Set `this.[[state]]` to `"closed"`.
 1. Resolve `this.[[closedPromise]]` with **undefined**.
-1. Return the result of promise-calling `this.[[onCancel]](reason)`.
+1. Let _cancelPromise_ be a new promise.
+1. Let _sourceCancelPromise_ be the result of promise-calling **this**.\[\[onCancel]](_reason_).
+1. Upon fulfillment of _sourceCancelPromise_, resolve _cancelPromise_ with **undefined**.
+1. Upon rejection of _sourceCancelPromise_ with reason _r_, reject _cancelPromise_ with _r_.
+1. Return _cancelPromise_.
 
 ##### get closed
 

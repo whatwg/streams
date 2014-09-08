@@ -122,7 +122,17 @@ export default class ReadableStream {
     this._state = 'closed';
     this._closedPromise_resolve(undefined);
 
-    return helpers.promiseCall(this._onCancel, reason);
+    return new Promise((resolve, reject) => {
+      var sourceCancelPromise = helpers.promiseCall(this._onCancel, reason);
+      sourceCancelPromise.then(
+        () => {
+          resolve(undefined);
+        },
+        r => {
+          reject(r);
+        }
+      );
+    });
   }
 
   get closed() {

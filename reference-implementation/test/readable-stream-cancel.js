@@ -131,3 +131,41 @@ test('ReadableStream explicit cancellation passes through the given reason', t =
   t.equal(recordedReason, passedReason);
   t.end();
 });
+
+test('ReadableStream the fulfillment value of the promise rs.cancel() returns must be undefined', t => {
+  var rs = new ReadableStream({
+    cancel(reason) {
+      return "Hello";
+    }
+  });
+
+  var cancelPromise = rs.cancel(undefined);
+  cancelPromise.then(value => {
+    t.equal(value, undefined, 'fulfillment value of cancelPromise must be undefined');
+    t.end();
+  }).catch(r => {
+    t.fail('cancelPromise is rejected');
+    t.end();
+  });
+});
+
+test('ReadableStream if source\'s cancel throws, the promise returned by rs.cancel() rejects', t => {
+  var errorInCancel = new Error('Sorry, it just wasn\'t meant to be.');
+  var rs = new ReadableStream({
+    cancel(reason) {
+      throw errorInCancel;
+    }
+  });
+
+  var cancelPromise = rs.cancel(undefined);
+  cancelPromise.then(
+    () => {
+      t.fail('cancelPromise is resolved');
+      t.end();
+    },
+    r => {
+      t.equal(r, errorInCancel, 'rejection reason of cancelPromise must be errorInCancel');
+      t.end();
+    }
+  );
+});
