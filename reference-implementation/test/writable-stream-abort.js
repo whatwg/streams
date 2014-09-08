@@ -43,7 +43,7 @@ test('Aborting a WritableStream prevents further writes after any that are in pr
   }, 0);
 });
 
-test(`Fulfillment value of WritableStream.abort() call must be undefined even if the underlying sink returns a
+test(`Fulfillment value of ws.abort() call must be undefined even if the underlying sink returns a
  non-undefined value`, t => {
   var ws = new WritableStream({
     abort() {

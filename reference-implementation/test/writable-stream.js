@@ -90,7 +90,7 @@ test('Underlying sink\'s close won\'t be called until start finishes', t => {
   }, 100);
 });
 
-test(`Fulfillment value of WritableStream.close() call must be undefined even if the underlying sink returns a
+test(`Fulfillment value of ws.close() call must be undefined even if the underlying sink returns a
  non-undefined value`, t => {
   var ws = new WritableStream({
     close() {
@@ -238,7 +238,7 @@ test('WritableStream wait() fulfills immediately if the stream is writable', t =
   });
 });
 
-test(`Fulfillment value of WritableStream.write() call must be undefined even if the underlying sink returns a
+test(`Fulfillment value of ws.write() call must be undefined even if the underlying sink returns a
  non-undefined value`, t => {
   var ws = new WritableStream({
     write() {
