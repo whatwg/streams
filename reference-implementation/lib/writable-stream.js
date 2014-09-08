@@ -145,8 +145,8 @@ export default class WritableStream {
       default:
         this._error(reason);
         return new Promise((resolve, reject) => {
-          var abortPromise = helpers.promiseCall(this._onAbort, reason);
-          abortPromise.then(
+          var sinkAbortPromise = helpers.promiseCall(this._onAbort, reason);
+          sinkAbortPromise.then(
             () => {
               resolve(undefined);
             },
