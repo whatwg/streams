@@ -61,6 +61,27 @@ test(`Fulfillment value of ws.abort() call must be undefined even if the underly
   });
 });
 
+test('WritableStream if sink\'s abort throws, the promise returned by ws.abort() rejects', t => {
+  var errorInSinkAbort = new Error('Sorry, it just wasn\'t meant to be.');
+  var ws = new WritableStream({
+    abort() {
+      throw errorInSinkAbort;
+    }
+  });
+
+  var abortPromise = ws.abort(undefined);
+  abortPromise.then(
+    () => {
+      t.fail('abortPromise is resolved');
+      t.end();
+    },
+    r => {
+      t.equal(r, errorInSinkAbort, 'rejection reason of abortPromise must be errorInSinkAbort');
+      t.end();
+    }
+  );
+});
+
 test('Aborting a WritableStream passes through the given reason', t => {
   var recordedReason;
   var ws = new WritableStream({
