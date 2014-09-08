@@ -496,6 +496,7 @@ Marcos Caceres,
 Tim Caswell,
 Forbes Lindesay,
 Thorsten Lorenz,
+Michael Mior,
 Jens Nockert,
 Trevor Norris,
 Dominic Tarr, and
