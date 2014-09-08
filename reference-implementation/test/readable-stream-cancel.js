@@ -160,7 +160,7 @@ test('ReadableStream if source\'s cancel throws, the promise returned by rs.canc
   var cancelPromise = rs.cancel(undefined);
   cancelPromise.then(
     () => {
-      t.fail('cancelPromise is resolved');
+      t.fail('cancelPromise is fulfilled unexpectedly');
       t.end();
     },
     r => {

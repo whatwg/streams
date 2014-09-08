@@ -72,7 +72,7 @@ test('WritableStream if sink\'s abort throws, the promise returned by ws.abort()
   var abortPromise = ws.abort(undefined);
   abortPromise.then(
     () => {
-      t.fail('abortPromise is resolved');
+      t.fail('abortPromise is fulfilled unexpectedly');
       t.end();
     },
     r => {

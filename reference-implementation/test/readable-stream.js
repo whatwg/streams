@@ -41,12 +41,12 @@ test(`ReadableStream closing puts the stream in a closed state, fulfilling the w
   t.equal(rs.state, 'closed', 'The stream should be in closed state');
 
   rs.wait().then(
-    v => t.equal(v, undefined, 'wait() should return a promise resolved with undefined'),
+    v => t.equal(v, undefined, 'wait() should return a promise fulfilled with undefined'),
     () => t.fail('wait() should not return a rejected promise')
   );
 
   rs.closed.then(
-    v => t.equal(v, undefined, 'closed should return a promise resolved with undefined'),
+    v => t.equal(v, undefined, 'closed should return a promise fulfilled with undefined'),
     () => t.fail('closed should not return a rejected promise')
   );
 });
@@ -63,7 +63,7 @@ test('ReadableStream reading a closed stream throws a TypeError', t => {
   t.throws(() => rs.read(), /TypeError/);
 });
 
-test(`ReadableStream reading a stream makes wait() and closed return a promise resolved with undefined when the stream
+test(`ReadableStream reading a stream makes wait() and closed return a promise fulfilled with undefined when the stream
  is fully drained`, t => {
   t.plan(6);
 
@@ -81,12 +81,12 @@ test(`ReadableStream reading a stream makes wait() and closed return a promise r
   t.throws(() => rs.read(), /TypeError/);
 
   rs.wait().then(
-    v => t.equal(v, undefined, 'wait() should return a promise resolved with undefined'),
+    v => t.equal(v, undefined, 'wait() should return a promise fulfilled with undefined'),
     () => t.fail('wait() should not return a rejected promise')
   );
 
   rs.closed.then(
-    v => t.equal(v, undefined, 'closed should return a promise resolved with undefined'),
+    v => t.equal(v, undefined, 'closed should return a promise fulfilled with undefined'),
     () => t.fail('closed should not return a rejected promise')
   );
 });
