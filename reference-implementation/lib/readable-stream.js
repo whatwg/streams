@@ -242,11 +242,7 @@ export default class ReadableStream {
     if (this._state === 'waiting') {
       this._state = 'errored';
       this._storedError = error;
-
-      this._waitPromise_reject(error);
-      this._waitPromise_resolve = null;
-      this._waitPromise_reject = null;
-
+      this._rejectWaitPromise(error);
       this._rejectClosedPromise(error);
     }
     else if (this._state === 'readable') {
@@ -298,8 +294,20 @@ export default class ReadableStream {
     });
   }
 
+  // Note: The resolve function and reject function are cleared when the
+  // corresponding promise is resolved or rejected. This is for debugging. This
+  // makes extra resolve/reject calls for the same promise fail so that we can
+  // detect unexpected extra resolve/reject calls that may be caused by bugs in
+  // the algorithm.
+
   _resolveWaitPromise(value) {
     this._waitPromise_resolve(value);
+    this._waitPromise_resolve = null;
+    this._waitPromise_reject = null;
+  }
+
+  _rejectWaitPromise(reason) {
+    this._waitPromise_reject(reason);
     this._waitPromise_resolve = null;
     this._waitPromise_reject = null;
   }
