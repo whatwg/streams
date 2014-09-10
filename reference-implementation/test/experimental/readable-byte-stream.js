@@ -308,9 +308,6 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
 
 test('ReadableByteStream: readInto() must throw when in waiting state', t => {
   var rbs = new ReadableByteStream({
-    start(notifyReady) {
-      notifyReady();
-    },
     readInto(arraybuffer, offset, size) {
       t.fail('Unexpected readInto call');
       t.end();
@@ -321,8 +318,9 @@ test('ReadableByteStream: readInto() must throw when in waiting state', t => {
     }
   });
 
-  t.throws(() => rbs.readInto(), /TypeError/);
-  t.strictEqual(rbs.state, 'readable', 'readInto() call in invalid state doesn\'t error the stream');
+  t.equal(rbs.state, 'waiting');
+  t.throws(() => rbs.readInto(new ArrayBuffer(10), 0, 10), /TypeError/);
+  t.strictEqual(rbs.state, 'waiting', 'readInto() call in invalid state doesn\'t error the stream');
 
   t.end();
 });
