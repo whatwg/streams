@@ -409,3 +409,46 @@ test('ReadableByteStream: Have readInto() write up to 10 bytes for each call', t
   }
   readAndProcess();
 });
+
+test('ReadableByteStream: cancel() invokes source\'s cancel()', t => {
+  var cancelCount = 0;
+  var resolveSinkCancelPromise;
+  var rbs = new ReadableByteStream({
+    readInto(arraybuffer, offset, size) {
+      t.fail('readInto called');
+      t.end();
+    },
+    cancel() {
+      if (cancelCount > 0) {
+        t.fail('Source\'s cancel() is called more than once');
+        t.end();
+        return;
+      }
+
+      ++cancelCount;
+      return new Promise((resolve, reject) => {
+        resolveSinkCancelPromise = resolve;
+      });
+    }
+  });
+
+  var resolvedSinkCancelPromise = false;
+  var cancelPromiseFulfilled = false;
+  var cancelPromise = rbs.cancel();
+  cancelPromise.then(value => {
+    t.equal(value, undefined, 'fulfillment value of cancelPromise must be undefined');
+    cancelPromiseFulfilled = true;
+    t.true(resolvedSinkCancelPromise);
+    t.end();
+  }).catch(r => {
+    t.fail('cancelPromise is rejected: ' + r);
+  });
+
+  t.equal(cancelCount, 1);
+  setTimeout(() => {
+    t.false(cancelPromiseFulfilled);
+
+    resolveSinkCancelPromise('Hello');
+    resolvedSinkCancelPromise = true;
+  }, 0);
+});
