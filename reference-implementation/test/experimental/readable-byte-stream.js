@@ -7,6 +7,11 @@ test('ReadableByteStream can be constructed with no arguments', t => {
   t.end();
 });
 
+test('ReadableByteStream cannot be constructed if readBufferSize is a negative integer', t => {
+  t.throws(() => new ReadableByteStream({readBufferSize: -1}), /RangeError/);
+  t.end();
+});
+
 test('ReadableByteStream: Call notifyReady() asynchronously to enter readable state', t => {
   var notifyReady;
   var rbs = new ReadableByteStream({
@@ -37,6 +42,26 @@ test('ReadableByteStream: Call notifyReady() asynchronously to enter readable st
         t.fail(error);
         t.end();
       });
+});
+
+test('ReadableByteStream: read() must throw if constructed with passing undefined for readBufferSize', t => {
+  var rbs = new ReadableByteStream({
+    start(notifyReady) {
+      notifyReady();
+    },
+    readInto(arraybuffer, offset, size) {
+      t.fail('Unexpected readInto call');
+      t.end();
+    },
+    cancel() {
+      t.fail('Unexpected cancel call');
+      t.end();
+    },
+    readBufferSize: undefined
+  });
+
+  t.throws(() => rbs.read(), /TypeError/);
+  t.end();
 });
 
 test('ReadableByteStream: Stay in readable state on readInto() call', t => {
@@ -306,6 +331,25 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
   t.end();
 });
 
+test('ReadableByteStream: read() must throw when in waiting state', t => {
+  var rbs = new ReadableByteStream({
+    readInto(arraybuffer, offset, size) {
+      t.fail('Unexpected readInto call');
+      t.end();
+    },
+    cancel() {
+      t.fail('Unexpected cancel call');
+      t.end();
+    }
+  });
+
+  t.equal(rbs.state, 'waiting');
+  t.throws(() => rbs.read(), /TypeError/);
+  t.equal(rbs.state, 'waiting', 'read() call in invalid state doesn\'t error the stream');
+
+  t.end();
+});
+
 test('ReadableByteStream: readInto() must throw when in waiting state', t => {
   var rbs = new ReadableByteStream({
     readInto(arraybuffer, offset, size) {
@@ -325,7 +369,44 @@ test('ReadableByteStream: readInto() must throw when in waiting state', t => {
   t.end();
 });
 
-test('ReadableByteStream: Have readInto() write up to 10 bytes for each call', t => {
+test('ReadableByteStream: ArrayBuffer allocated by read() is partially used', t => {
+  var rbs = new ReadableByteStream({
+    start(notifyReady) {
+      notifyReady();
+    },
+    readInto(arrayBuffer, offset, size) {
+      t.equal(offset, 0);
+      t.equal(size, 10);
+
+      var view = new Uint8Array(arrayBuffer, offset, size);
+      for (var i = 0; i < 8; ++i) {
+        view[i] = i;
+      }
+
+      return 8;
+    },
+    cancel() {
+      t.fail('Unexpected cancel call');
+      t.end();
+    },
+    readBufferSize: 10
+  });
+
+  t.equal(rbs.state, 'readable');
+  var data = rbs.read();
+  t.equal(data.byteLength, 8);
+  var view = new Uint8Array(data);
+  for (var i = 0; i < 8; ++i) {
+    if (view[i] != i) {
+      t.fail('Unexpected value ' + view[i] + ' at data[' + i + ']');
+      t.end();
+    }
+  }
+
+  t.end();
+});
+
+test('ReadableByteStream: Have source\'s readInto() write up to 10 bytes for each call', t => {
   var totalBytesRead = 0;
   var dataSize = 64;
   var doWait = false;
