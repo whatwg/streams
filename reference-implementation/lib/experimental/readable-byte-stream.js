@@ -5,22 +5,31 @@ export default class ReadableByteStream {
   constructor({
     start = () => {},
     readInto = () => {},
-    cancel = () => {}
+    cancel = () => {},
+    readBufferSize = undefined,
   } = {}) {
     if (typeof start !== 'function') {
-      throw new TypeError();
+      throw new TypeError('start must be a function or undefined');
     }
     if (typeof readInto !== 'function') {
-      throw new TypeError();
+      throw new TypeError('readInto must be a function or undefined');
     }
     if (typeof cancel !== 'function') {
-      throw new TypeError();
+      throw new TypeError('cancel must be a function or undefined');
+    }
+    if (readBufferSize !== undefined) {
+      readBufferSize = helpers.toInteger(readBufferSize);
+      if (readBufferSize < 0) {
+        throw new RangeError('readBufferSize must be non-negative');
+      }
     }
 
     this._state = 'waiting';
 
     this._onReadInto = readInto;
     this._onCancel = cancel;
+
+    this._readBufferSize = readBufferSize;
 
     this._waitPromise = new Promise((resolve, reject) => {
       this._waitPromise_resolve = resolve;
@@ -41,12 +50,12 @@ export default class ReadableByteStream {
     return this._state;
   }
 
-  readInto(arrayBuffer, offset, size) {
+  _readIntoArrayBuffer(arrayBuffer, offset, size) {
     if (this._state === 'waiting') {
-      throw new TypeError();
+      throw new TypeError('not ready for read');
     }
     if (this._state === 'closed') {
-      throw new TypeError();
+      throw new TypeError('stream has already been consumed');
     }
     if (this._state === 'errored') {
       throw this._storedError;
@@ -60,7 +69,7 @@ export default class ReadableByteStream {
       offset = helpers.toInteger(offset);
 
       if (offset < 0) {
-        throw new RangeError();
+        throw new RangeError('offset must be non-negative');
       }
     }
 
@@ -70,8 +79,11 @@ export default class ReadableByteStream {
       size = helpers.toInteger(size);
     }
 
-    if (size < 0 || offset + size > arrayBuffer.byteLength) {
-      throw new RangeError();
+    if (size < 0) {
+      throw new RangeError('size must be non-negative');
+    }
+    if (offset + size > arrayBuffer.byteLength) {
+      throw new RangeError('the specified range is out of bounds for arrayBuffer');
     }
 
     var bytesRead;
@@ -85,7 +97,7 @@ export default class ReadableByteStream {
     bytesRead = Number(bytesRead);
 
     if (isNaN(bytesRead) || bytesRead < -2 || bytesRead > size) {
-      var error = new RangeError();
+      var error = new RangeError('readInto of underlying source returned invalid value');
       this._error(error);
       throw error;
     }
@@ -109,6 +121,20 @@ export default class ReadableByteStream {
     }
 
     return bytesRead;
+  }
+
+  read() {
+    if (this._readBufferSize === undefined) {
+      throw new TypeError('readBufferSize is not configured');
+    }
+
+    var arrayBuffer = new ArrayBuffer(this._readBufferSize);
+    var bytesRead = this._readIntoArrayBuffer(arrayBuffer, 0, this._readBufferSize);
+    return new Uint8Array(arrayBuffer, 0, bytesRead);
+  }
+
+  readInto(arrayBuffer, offset, size) {
+    return this._readIntoArrayBuffer(arrayBuffer, offset, size);
   }
 
   get wait() {
