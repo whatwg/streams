@@ -125,6 +125,19 @@ When an error function _F_ is called with argument _error_, the following steps 
     1. Return 0.
 1. Return _bytesRead_.
 
+##### ReadableByteStream.prototype.cancel ( reason )
+
+1. If `this.[[state]]` is `"closed"`, return a new promise resolved with **undefined**.
+1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
+1. If `this.[[state]]` is `"waiting"`, resolve `this.[[waitPromise]]` with **undefined**.
+1. Set `this.[[state]]` to `"closed"`.
+1. Resolve `this.[[closedPromise]]` with **undefined**.
+1. Let _cancelPromise_ be a new promise.
+1. Let _sourceCancelPromise_ be the result of promise-calling **this**.\[\[onCancel]](_reason_).
+1. Upon fulfillment of _sourceCancelPromise_, resolve _cancelPromise_ with **undefined**.
+1. Upon rejection of _sourceCancelPromise_ with reason _r_, reject _cancelPromise_ with _r_.
+1. Return _cancelPromise_.
+
 ##### get ReadableByteStream.prototype.state
 
 1. Let _stream_ be the **this** value.

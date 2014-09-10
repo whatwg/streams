@@ -92,9 +92,7 @@ export default class ReadableByteStream {
 
     if (bytesRead === -1) {
       this._state = 'closed';
-      this._closedPromise_resolve(undefined);
-      this._closedPromise_resolve = null;
-      this._closedPromise_reject = null;
+      this._resolveClosedPromise(undefined);
 
       // Let the user investigate state again.
       return 0;
@@ -118,7 +116,30 @@ export default class ReadableByteStream {
   }
 
   cancel(reason) {
-    throw new TypeError('Not implemented');
+    if (this._state === 'closed') {
+      return Promise.resolve(undefined);
+    }
+    if (this._state === 'errored') {
+      return Promise.reject(this._storedError);
+    }
+    if (this._state === 'waiting') {
+      this._resolveWaitPromise(undefined);
+    }
+
+    this._state = 'closed';
+    this._resolveClosedPromise(undefined);
+
+    return new Promise((resolve, reject) => {
+      var sourceCancelPromise = helpers.promiseCall(this._onCancel, reason);
+      sourceCancelPromise.then(
+        () => {
+          resolve(undefined);
+        },
+        r => {
+          reject(r);
+        }
+      );
+    });
   }
 
   get closed() {
@@ -131,9 +152,7 @@ export default class ReadableByteStream {
     }
 
     this._state = 'readable';
-    this._waitPromise_resolve(undefined);
-    this._waitPromise_resolve = null;
-    this._waitPromise_reject = null;
+    this._resolveWaitPromise(undefined);
   }
 
   _error(error) {
@@ -158,4 +177,17 @@ export default class ReadableByteStream {
     this._closedPromise_resolve = null;
     this._closedPromise_reject = null;
   }
+
+  _resolveWaitPromise(value) {
+    this._waitPromise_resolve(value);
+    this._waitPromise_resolve = null;
+    this._waitPromise_reject = null;
+  }
+
+  _resolveClosedPromise(value) {
+    this._closedPromise_resolve(value);
+    this._closedPromise_resolve = null;
+    this._closedPromise_reject = null;
+  }
+
 }
