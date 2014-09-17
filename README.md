@@ -252,6 +252,7 @@ class WritableStream {
     [[queue]]
     [[started]] = false
     [[writing]] = false
+    [[abortingWhileClosing]] = false
     [[state]] = "writable"
     [[storedError]]
     [[writablePromise]]
@@ -343,12 +344,32 @@ In reaction to calls to the stream's `.write()` method, the `write` constructor 
 
 1. If `this.[[state]]` is `"closed"`, return a new promise resolved with **undefined**.
 1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
+1. If `this.[[state]]` is `"closing"`,
+    1. If **this**.[[abortingWhileClosing]] is **true**, return a new promise rejected with a **TypeError** exception.
+    1. Set **this**.[[abortingWhileClosing]] to **true**.
+    1. Let _abortPromise_ be a new promise.
+    1. Let _delayPromise_ be a new promise resolved with **undefined**.
+        1. Upon fulfillment of _delayPromise_,
+            1. If **this**.[[state]] is `"closed"`, resolve _abortPromise_ with **undefined**.
+            1. If **this**.[[state]] is `"errored"`, reject _abortPromise_ with **this**.[[storedError]].
+            1. Assert: **this**.[[state]] is `"closing"`.
+            1. Call **this**.\[\[error\]\](reason).
+            1. Let _abortResult_ be the result of calling **this**.\[\[onAbort\]\](reason).
+            1. If _abortResult_ is an abrupt completion,
+                1. Reject _abortPromise_ with _abortResult_.[[value]].
+                1. Return.
+            1. Resolve _abortPromise_ with _abortResult_.[[value]].
+    1. Return _abortPromise_.
 1. Call `this.[[error]](reason)`.
 1. Let _abortPromise_ be a new promise.
 1. Let _sinkAbortPromise_ be the result of promise-calling **this**.\[\[onAbort]](_reason_).
 1. Upon fulfillment of _sinkAbortPromise_, resolve _abortPromise_ with **undefined**.
 1. Upon rejection of _sinkAbortPromise_ with reason _r_, reject _abortPromise_ with _r_.
 1. Return _abortPromise_.
+
+Note: When the `WritableStream` is in the `"closing"` state, `abort()` is delayed. This is because we don't want to error the `WritableStream` if [[onClose]] has already completed successfully. Since state transition happens in a fulfill callback set to [[closedPromise]], without delaying we'll void the successful completion of [[onClose]].
+
+Note: A promise _delayPromise_ is used just to enqueue a microtask.
 
 ##### wait()
 
