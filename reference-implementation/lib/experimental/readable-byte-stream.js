@@ -1,6 +1,38 @@
 var assert = require('assert');
 import * as helpers from '../helpers';
 
+function notifyReady(stream) {
+  if (stream._state !== 'waiting') {
+    return;
+  }
+
+  stream._state = 'readable';
+  stream._resolveWaitPromise(undefined);
+}
+
+function errorReadableByteStream(stream, error) {
+  if (stream._state === 'errored' || stream._state === 'closed') {
+    return;
+  }
+
+  if (stream._state === 'waiting') {
+    stream._waitPromise_reject(error);
+    stream._waitPromise_resolve = null;
+    stream._waitPromise_reject = null;
+  } else {
+    stream._waitPromise = Promise.reject(error);
+    stream._waitPromise_resolve = null;
+    stream._waitPromise_reject = null;
+  }
+
+  stream._state = 'errored';
+  stream._storedError = error;
+
+  stream._closedPromise_reject(error);
+  stream._closedPromise_resolve = null;
+  stream._closedPromise_reject = null;
+}
+
 export default class ReadableByteStream {
   constructor({
     start = () => {},
@@ -32,8 +64,8 @@ export default class ReadableByteStream {
     });
 
     start(
-      this._notifyReady.bind(this),
-      this._error.bind(this)
+      notifyReady.bind(null, this),
+      errorReadableByteStream.bind(null, this)
     );
   }
 
@@ -78,7 +110,7 @@ export default class ReadableByteStream {
     try {
       bytesRead = this._onReadInto.call(undefined, arrayBuffer, offset, size);
     } catch (error) {
-      this._error(error);
+      errorReadableByteStream(this, error);
       throw error;
     }
 
@@ -86,7 +118,7 @@ export default class ReadableByteStream {
 
     if (isNaN(bytesRead) || bytesRead < -2 || bytesRead > size) {
       var error = new RangeError();
-      this._error(error);
+      errorReadableByteStream(this, error);
       throw error;
     }
 
@@ -146,38 +178,6 @@ export default class ReadableByteStream {
     return this._closedPromise;
   }
 
-  _notifyReady() {
-    if (this._state !== 'waiting') {
-      return;
-    }
-
-    this._state = 'readable';
-    this._resolveWaitPromise(undefined);
-  }
-
-  _error(error) {
-    if (this._state === 'errored' || this._state === 'closed') {
-      return;
-    }
-
-    if (this._state === 'waiting') {
-      this._waitPromise_reject(error);
-      this._waitPromise_resolve = null;
-      this._waitPromise_reject = null;
-    } else {
-      this._waitPromise = Promise.reject(error);
-      this._waitPromise_resolve = null;
-      this._waitPromise_reject = null;
-    }
-
-    this._state = 'errored';
-    this._storedError = error;
-
-    this._closedPromise_reject(error);
-    this._closedPromise_resolve = null;
-    this._closedPromise_reject = null;
-  }
-
   _resolveWaitPromise(value) {
     this._waitPromise_resolve(value);
     this._waitPromise_resolve = null;
@@ -189,5 +189,4 @@ export default class ReadableByteStream {
     this._closedPromise_resolve = null;
     this._closedPromise_reject = null;
   }
-
 }
