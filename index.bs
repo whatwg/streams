@@ -540,8 +540,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 
   <dl>
     <dt><code>"waiting"</code>
-    <dd>The <a>underlying source</a> is not ready or the stream's internal queue is empty; call <code>.wait()</code>
-      to be notified of any changes.
+    <dd>The stream's internal queue is empty; call <code>.wait()</code> to be notified of any changes.
 
     <dt><code>"readable"</code>
     <dd>The stream's internal queue has <a>chunks</a> available; call <code>.read()</code> to retrieve the next one.
@@ -1095,16 +1094,15 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 
   <dl>
     <dt><code>"waiting"</code>
-    <dd>The <a>underlying sink</a> is not ready or the stream's internal queue is full; that is, the stream is
+    <dd>The stream's internal queue is full; that is, the stream is
       exerting <a>backpressure</a>. Call <code>.wait()</code> to be notified of when the pressure subsides.
 
     <dt><code>"writable"</code>
-    <dd>The <a>underlying sink</a> is ready and/or the stream's internal queue is not full; call <code>.write()</code>
-    until backpressure is exerted.
+    <dd>The stream's internal queue is not full; call <code>.write()</code> until backpressure is exerted.
 
     <dt><code>"closing"</code>
-    <dd>The stream's <code>.close()</code> method has been called, and a command to close is in the queue; attempts to
-      write will now fail.
+    <dd>The stream's <code>.close()</code> method has been called, and a command to close is in the queue or
+      being processed by the <a>underlying sink</a>; attempts to write will now fail.
 
     <dt><code>"closed"</code>
     <dd>The <a>underlying sink</a> has been closed; writing is no longer possible.
