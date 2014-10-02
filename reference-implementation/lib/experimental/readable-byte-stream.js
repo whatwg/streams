@@ -130,7 +130,10 @@ export default class ReadableByteStream {
 
     var arrayBuffer = new ArrayBuffer(this._readBufferSize);
     var bytesRead = this._readIntoArrayBuffer(arrayBuffer, 0, this._readBufferSize);
-    return new Uint8Array(arrayBuffer, 0, bytesRead);
+    // This code should be updated to use ArrayBuffer.prototype.transfer when
+    // it's ready.
+    var resizedArrayBuffer = arrayBuffer.slice(0, bytesRead);
+    return resizedArrayBuffer;
   }
 
   readInto(arrayBuffer, offset, size) {

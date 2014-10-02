@@ -132,10 +132,10 @@ When an error function _F_ is called with argument _error_, the following steps 
 ##### ReadableByteStream.prototype.read ()
 
 1. If **this**.[[readBufferSize]] is **undefined**, throw a **TypeError** exception.
-1. Let _arrayBuffer_ be a new ArrayBuffer with length equals to **this**.[[readBufferSize]].
+1. Let _arrayBuffer_ be a new array buffer with length equals to **this**.[[readBufferSize]].
 1. Let _bytesRead_ be ReadIntoArrayBuffer(**this**, _arrayBuffer_, 0, **this**.[[readBufferSize]]).
-1. Let _arrayBufferView_ be a new Uint8Array constructed with _arrayBuffer_, 0 and _bytesRead_ as arguments.
-1. Return _arrayBufferView_.
+1. Let _resizedArrayBuffer_ be a new array buffer with length equal to _bytesRead_. Transfer _arrayBuffer_ into _resizedArrayBuffer_ using the semantics of [the proposed `ArrayBfufer.prototype.transfer`](https://gist.github.com/andhow/95fb9e49996615764eff).
+1. Return _resizedArrayBuffer_.
 
 ##### ReadableByteStream.prototype.readInto ( arrayBuffer, offset, size )
 

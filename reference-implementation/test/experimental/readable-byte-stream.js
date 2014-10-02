@@ -395,9 +395,10 @@ test('ReadableByteStream: ArrayBuffer allocated by read() is partially used', t 
   t.equal(rbs.state, 'readable');
   var data = rbs.read();
   t.equal(data.byteLength, 8);
+  var view = new Uint8Array(data);
   for (var i = 0; i < 8; ++i) {
-    if (data[i] != i) {
-      t.fail('Unexpected value ' + data[i] + ' at data[' + i + ']');
+    if (view[i] != i) {
+      t.fail('Unexpected value ' + view[i] + ' at data[' + i + ']');
       t.end();
     }
   }
