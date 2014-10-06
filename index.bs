@@ -329,7 +329,7 @@ stream's methods. This can be roughly summarized in the following diagram.
 
 <h3 id="rs-class">Class <code>ReadableStream</code></h3>
 
-### Class Definition
+<h4 id="rs-class-definition">Class Definition </h4>
 
 <em>This section is non-normative.</em>
 
@@ -356,7 +356,7 @@ class ReadableStream {
 }
 </code></pre>
 
-### Internal Slots
+<h4 id="rs-internal-slots">Internal Slots </h4>
 
 Instances of <code>ReadableStream</code> are created with the internal slots described in the following table:
 
@@ -436,7 +436,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </tr>
 </table>
 
-### new ReadableStream({ start, pull, cancel, strategy })
+<h4 id="rs-constructor">new ReadableStream({ start, pull, cancel, strategy })</h4>
 
 <div class="note">
   The constructor is passed several functions, all optional, which govern how the constructed stream instance behaves:
@@ -490,9 +490,9 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     </ol>
 </ol>
 
-### Properties of the <code>ReadableStream</code> Prototype
+<h4 id="rs-prototype">Properties of the <code>ReadableStream</code> Prototype </h4>
 
-#### get closed
+<h5 id="rs-closed">get closed </h5>
 
 <div class="note">
   The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected
@@ -503,7 +503,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Return <b>this</b>@\[[closedPromise]].
 </ol>
 
-#### get state
+<h5 id="rs-state">get state </h5>
 
 <div class="note">
   The <code>state</code> getter returns the state of the stream, which will be one of the following:
@@ -528,7 +528,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Return <b>this</b>@\[[state]].
 </ol>
 
-#### cancel(reason)
+<h5 id="rs-cancel">cancel(reason) </h5>
 
 <div class="note">
   The <code>cancel</code> method signals a loss of interest in the stream by a consumer. Calling it will immediately
@@ -553,7 +553,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Return <var>cancelPromise</var>.
 </ol>
 
-#### pipeThrough({ writable, readable }, options)
+#### pipeThrough({ writable, readable }, options) {#rs-pipe-through}
 
 <ol>
   <li> If Type(<var>writable</var>) is not Object, then throw a <b>TypeError</b> exception.
@@ -562,7 +562,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Return <var>readable</var>.
 </ol>
 
-#### pipeTo(dest, options)
+<h5 id="rs-pipe-to">pipeTo(dest, options) </h5>
 
 The <code>pipeTo</code> method is one of the more complex methods, and is undergoing some revision and edge-case
 bulletproofing before we write it up in prose.
@@ -571,7 +571,7 @@ For now, please consider the reference implementation normative:
 <a href="https://github.com/whatwg/streams/blob/master/reference-implementation/lib/readable-stream.js">reference-implementation/lib/readable-stream.js</a>,
 look for the <code>pipeTo</code> method.
 
-#### read()
+<h5 id="rs-read">read() </h5>
 
 <div class="note">
   The <code>read</code> method will return the next <a>chunk</a> from the stream's internal queue, if available. If
@@ -601,7 +601,7 @@ look for the <code>pipeTo</code> method.
   <li> Return <var>chunk</var>.
 </ol>
 
-#### wait()
+<h5 id="rs-wait">wait() </h5>
 
 <div class="note">
   The <code>wait</code> method returns a promise that will be fulfilled either when the stream's internal queue becomes
@@ -618,7 +618,7 @@ look for the <code>pipeTo</code> method.
   <li> Return <b>this</b>@\[[waitPromise]].
 </ol>
 
-## Readable Stream Abstract Operations
+<h3 id="rs-abstract-ops">Readable Stream Abstract Operations </h3>
 
 ### CallOrScheduleReadableStreamPull ( stream )
 
@@ -886,7 +886,7 @@ TODO
 
 <h3 id="ws-class">Class <code>WritableStream</code></h3>
 
-### Class Definition
+<h4 id="ws-class-definition">Class Definition </h4>
 
 <em>This section is non-normative.</em>
 
@@ -914,7 +914,7 @@ class WritableStream {
 }
 </pre>
 
-### Internal Slots
+<h4 id="ws-internal-slots">Internal Slots </h4>
 
 Instances of <code>WritableStream</code> are created with the internal slots described in the following table:
 
@@ -986,7 +986,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </tr>
 </table>
 
-### new WritableStream({ start, write, close, abort, strategy })
+<h4 id="ws-constructor">new WritableStream({ start, write, close, abort, strategy })</h4>
 
 <div class="note">
   The constructor is passed several functions, all optional, which govern how the constructed stream instance behaves:
@@ -1045,9 +1045,9 @@ Instances of <code>WritableStream</code> are created with the internal slots des
     </ol>
 </ol>
 
-### Properties of the <code>WritableStream</code> Prototype
+<h4 id="ws-prototype">Properties of the <code>WritableStream</code> Prototype </h4>
 
-#### get closed
+<h5 id="ws-closed">get closed </h5>
 
 <div class="note">
   The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected
@@ -1058,7 +1058,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> Return <b>this</b>@\[[closedPromise]].
 </ol>
 
-#### get state
+<h5 id="ws-state">get state </h5>
 
 <div class="note">
   The <code>state</code> getter returns the state of the stream, which will be one of the following:
@@ -1088,7 +1088,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> Return <b>this</b>@\[[state]].
 </ol>
 
-#### abort(reason)
+<h5 id="ws-abort">abort(reason) </h5>
 
 <div class="note">
   The <code>abort</code> method signals that the producer can no longer successfully write to the stream and it should
@@ -1111,7 +1111,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> Return <var>abortPromise</var>.
 </ol>
 
-#### close()
+<h5 id="ws-close">close() </h5>
 
 <div class="note">
   The <code>close</code> method signals that the producer is done writing chunks to the stream and wishes to move the
@@ -1135,7 +1135,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li>Return <b>this</b>@\[[closedPromise]].
 </ol>
 
-#### wait()
+<h5 id="ws-wait">wait() </h5>
 
 <div class="note">
   The <code>wait</code> method returns a promise that will be fulfilled when the stream enters the
@@ -1149,7 +1149,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> Return <b>this</b>@\[[writablePromise]].
 </ol>
 
-#### write(chunk)
+<h5 id="ws-write">write(chunk) </h5>
 
 <div class="note">
   The <code>write</code> method adds a write to the stream's internal queue, instructing the stream to
@@ -1196,7 +1196,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> Return <var>promise</var>.
 </ol>
 
-## Writable Stream Abstract Operations
+<h3 id="ws-abstract-ops">Writable Stream Abstract Operations </h3>
 
 ### CallOrScheduleWritableStreamAdvanceQueue ( stream )
 
