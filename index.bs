@@ -4,7 +4,6 @@ Group: WHATWG
 H1: Streams
 Shortname: streams
 Status: LS
-ED: https://streams.spec.whatwg.org/
 Editor: Domenic Denicola, Google https://www.google.com/, domenic@domenicdenicola.com, http://domenic.me/
 Abstract: This specification provides APIs for creating, composing, and consuming streams of data.
 Abstract: These streams are designed to map efficiently to low-level I/O primitives, and allow easy
