@@ -32,6 +32,36 @@ Although the core algorithms and APIs are largely present and working, prototypi
 underway, and there is still room for additional APIs beyond those specified here. Please join us in the
 <a href="https://github.com/whatwg/streams/issues?state=open">issue tracker</a> for more discussion.
 
+<h2 id="intro">Introduction</h2>
+
+<em>This section is non-normative.</em>
+
+Large swathes of the web platform are built on streaming data: that is, data that is created, processed, and consumed
+in an incremental fashion, without ever reading all of it into memory. The Streams Standard provides a common set of
+APIs for creating and interfacing with such streaming data, embodied in <a>readable streams</a>,
+<a>writable streams</a>, and <a>transform streams</a>.
+
+This standard provides the base stream primitives which other parts of the web platform can use to expose their
+streaming data. For example, [[FETCH]] could expose request bodies as a writable stream, or response bodies as a
+readable stream. More generally, the platform is full of streaming abstractions waiting to be expressed as streams:
+multimedia streams, file streams, interprocess communication, and more benefit from being able to process data
+incrementally instead of buffering it all into memory and processing it in one go. By providing the foundation for
+these streams to be exposed to developers, the Streams Standard enables use cases like:
+
+<ul>
+  <li> Video effects: piping a readable video stream through a transform stream that applies effects in real time.
+  <li> Decompression: piping a file stream through a transform stream that selectively decompresses files from a
+    <kbd>.tgz</kbd> archive, turning them into <code>img</code> elements as the user scrolls through an image gallery.
+  <li> Image decoding: piping a HTTP response stream through a transform stream that decodes bytes into bitmap data,
+    and then through another transform that translates bitmaps into PNGs. If installed inside the <code>fetch</code>
+    hook of a service worker [[SERVICE-WORKERS]], this would allow developers to transparently polyfill new image
+    formats.
+</ul>
+
+The APIs described here provide unifying abstraction for all such streams, encouraging an ecosystem to grow around
+these shared and composable interfaces. At the same time, they have been carefully designed to map efficiently to
+low-level I/O concerns, and to encapsulate the trickier issues (such as <a>backpressure</a>) that come along for the
+ride.
 
 <h2 id="model">Model</h2>
 
