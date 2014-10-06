@@ -164,3 +164,67 @@ test('Aborting a WritableStream causes any outstanding write() promises to be re
   var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   ws.abort(passedReason);
 });
+
+test('Closing but then immediately aborting a WritableStream causes the stream to error', t => {
+  t.plan(2);
+
+  var ws = new WritableStream();
+
+  ws.close();
+
+  var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+  ws.abort(passedReason);
+
+  t.equal(ws.state, 'errored');
+
+  ws.closed.then(
+    () => t.fail('the stream should not close successfully'),
+    r => t.equal(r, passedReason, 'the stream should be errored with the given reason')
+  );
+});
+
+test('Closing a WritableStream and aborting it while it closes causes the stream to error', t => {
+  t.plan(3);
+
+  var ws = new WritableStream({
+    close() {
+      return new Promise(() => {}); // forever-pending
+    }
+  });
+
+  ws.close();
+
+  var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+
+  setTimeout(() => {
+    t.equal(ws.state, 'closing');
+
+    ws.abort(passedReason);
+
+    t.equal(ws.state, 'errored');
+  }, 20);
+
+  ws.closed.then(
+    () => t.fail('the stream should not close successfully'),
+    r => t.equal(r, passedReason, 'the stream should be errored with the given reason')
+  );
+});
+
+test('Aborting a WritableStream after it is closed is a no-op', t => {
+  t.plan(3);
+
+  var ws = new WritableStream();
+
+  ws.close();
+
+  setTimeout(() => {
+    t.equal(ws.state, 'closed');
+
+    ws.abort().then(
+      v => t.equal(v, undefined, 'abort promise should fulfill with undefined'),
+      t.error
+    );
+
+    t.equal(ws.state, 'closed', 'state stays closed');
+  }, 0);
+});

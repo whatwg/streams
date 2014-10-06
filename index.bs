@@ -1054,6 +1054,14 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </ul>
 </div>
 
+<div class="note">
+  Due to the way writable streams asynchronously close, it is possible for both <var>close</var> and <var>abort</var>
+  to be called, in cases where the <a>producer</a> aborts the stream while it is in the <code>"closing"</code> state.
+  Notably, since a stream always spends at least one turn in the <code>"closing"</code> state, code like
+  <code>ws.close(); ws.abort(...);</code> will cause both to be called, even if the <var>close</var> function itself
+  has no asynchronous behavior. A well-designed <a>underlying source</a> should be able to deal with this.
+</div>
+
 <ol>
   <li> If <var>start</var> is <b>undefined</b>, set <var>start</var> to a no-op function.
   <li> If IsCallable(<var>start</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
