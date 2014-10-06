@@ -1080,7 +1080,8 @@ Instances of <code>WritableStream</code> are created with the internal slots des
     <dd>The <a>underlying sink</a> has been closed; writing is no longer possible.
 
     <dt><code>"errored"</code>
-    <dd>An error occurred interacting with the <a>underlying sink</a>, and so the stream is now dead.
+    <dd>An error occurred interacting with the <a>underlying sink</a> or the stream has been aborted, so the stream is
+      now dead.
   </dl>
 </div>
 
