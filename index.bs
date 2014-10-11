@@ -163,7 +163,7 @@ based the total size of all chunks in the stream's internal queue.
 
 The readable stream API allows wrapping both pull and push sources into a single <code>ReadableStream</code>
 abstraction. To accomplish this, the API uses the
-<a href="http://domenic.me/2014/02/14/the-revealing-constructor-pattern/">revealing constructor pattern</a>. The
+<a href="http://domenic.me/2014/02/13/the-revealing-constructor-pattern/">revealing constructor pattern</a>. The
 constructor of a given stream instance is supplied with two functions, <code>start</code> and <code>pull</code>, which
 each are given the parameters <code>(enqueue, close, error)</code> representing capabilities tied to the internals of
 the stream. By mediating all access to the internal state machine through these three functions, the stream's internal
