@@ -201,7 +201,7 @@ it.
   <pre>
     var webSocketStream = makeReadableWebSocketStream("http://example.com", 80);
 
-    socketStream.pipeTo(writableStream).closed
+    webSocketStream.pipeTo(writableStream).closed
       .then(() => console.log("All data successfully written!"))
       .catch(e => console.error("Something went wrong!", e));
   </pre>
