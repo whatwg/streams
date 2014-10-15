@@ -572,14 +572,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Let <b>this</b>@\[[queue]] be a new empty List.
   <li> Set <b>this</b>@\[[state]] to <code>"closed"</code>.
   <li> Resolve <b>this</b>@\[[closedPromise]] with <b>undefined</b>.
-  <li> Let <var>cancelPromise</var> be a new promise.
   <li> Let <var>sourceCancelPromise</var> be the result of promise-calling <b>this</b>@\[[onCancel]](<var>reason</var>).
-    <ol>
-      <li> Upon fulfillment of <var>sourceCancelPromise</var>, resolve <var>cancelPromise</var> with <b>undefined</b>.
-      <li> Upon rejection of <var>sourceCancelPromise</var> with reason <var>r</var>, reject <var>cancelPromise</var>
-        with <var>r</var>.
-    </ol>
-  <li> Return <var>cancelPromise</var>.
+  <li> Return the result of transforming <var>sourceCancelPromise</var> by a fulfillment handler that returns <b>undefined</b>.
 </ol>
 
 #### pipeThrough({ writable, readable }, options) {#rs-pipe-through}
