@@ -49,7 +49,7 @@ test('ReadableByteStream: read() must throw if constructed with passing undefine
     start(notifyReady) {
       notifyReady();
     },
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       t.fail('Unexpected readInto call');
       t.end();
     },
@@ -72,9 +72,9 @@ test('ReadableByteStream: Stay in readable state on readInto() call', t => {
     start(notifyReady) {
       notifyReady();
     },
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
-      t.strictEqual(arraybuffer, buffer);
+      t.strictEqual(arrayBuffer, buffer);
       t.strictEqual(offset, 2);
       t.strictEqual(size, 5);
 
@@ -101,7 +101,7 @@ test('ReadableByteStream: readInto()\'s offset and size argument are automatical
     start(notifyReady) {
       notifyReady();
     },
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
       t.strictEqual(offset, 0);
       t.strictEqual(size, 10);
@@ -128,7 +128,7 @@ test('ReadableByteStream: readInto()\'s size argument is automatically calculate
     start(notifyReady) {
       notifyReady();
     },
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
       t.strictEqual(offset, 3);
       t.strictEqual(size, 7);
@@ -157,9 +157,9 @@ test('ReadableByteStream: Enter waiting state on readInto() call', t => {
     start(notifyReady) {
       notifyReady();
     },
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
-      t.strictEqual(arraybuffer, buffer);
+      t.strictEqual(arrayBuffer, buffer);
       t.strictEqual(offset, 0);
       t.strictEqual(size, 10);
 
@@ -188,9 +188,9 @@ test('ReadableByteStream: Enter closed state on readInto() call', t => {
     start(notifyReady) {
       notifyReady();
     },
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
-      t.strictEqual(arraybuffer, buffer);
+      t.strictEqual(arrayBuffer, buffer);
       t.strictEqual(offset, 0);
       t.strictEqual(size, 10);
 
@@ -222,7 +222,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
     start(notifyReady) {
       notifyReady();
     },
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
       return 5;
     },
@@ -253,7 +253,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
     start(notifyReady) {
       notifyReady();
     },
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
       return NaN;
     },
@@ -283,7 +283,7 @@ test('ReadableByteStream: readInto() fails if the range specified by offset and 
     start(notifyReady) {
       notifyReady();
     },
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       t.fail('Unexpected readInto call');
       t.end();
     },
@@ -314,7 +314,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
     start(notifyReady) {
       notifyReady();
     },
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
       return -3;
     },
@@ -333,7 +333,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
 
 test('ReadableByteStream: read() must throw when in waiting state', t => {
   var rbs = new ReadableByteStream({
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       t.fail('Unexpected readInto call');
       t.end();
     },
@@ -352,7 +352,7 @@ test('ReadableByteStream: read() must throw when in waiting state', t => {
 
 test('ReadableByteStream: readInto() must throw when in waiting state', t => {
   var rbs = new ReadableByteStream({
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       t.fail('Unexpected readInto call');
       t.end();
     },
@@ -365,6 +365,44 @@ test('ReadableByteStream: readInto() must throw when in waiting state', t => {
   t.equal(rbs.state, 'waiting');
   t.throws(() => rbs.readInto(new ArrayBuffer(10), 0, 10), /TypeError/);
   t.strictEqual(rbs.state, 'waiting', 'readInto() call in invalid state doesn\'t error the stream');
+
+  t.end();
+});
+
+test('ReadableByteStream: read() delegates to readInto()', t => {
+  var buffer = new ArrayBuffer(10);
+
+  var rbs = new ReadableByteStream({
+    start(notifyReady) {
+      notifyReady();
+    },
+    readInto(arrayBuffer, offset, size) {
+      t.fail('unexpected call to underlying source readInto');
+      t.end();
+    },
+    cancel() {
+      t.fail('Unexpected cancel call');
+      t.end();
+    },
+    readBufferSize: 10
+  });
+
+  var readIntoArrayBuffer, readIntoOffset, readIntoSize;
+  rbs.readInto = function (arrayBuffer, offset, size) {
+    readIntoArrayBuffer = arrayBuffer;
+    readIntoOffset = offset;
+    readIntoSize = size;
+
+    return 5;
+  };
+
+  var readArrayBuffer = rbs.read();
+
+  t.ok(readIntoArrayBuffer instanceof ArrayBuffer, 'An ArrayBuffer was passed to readInto');
+  t.equal(readIntoOffset, 0, 'readInto was called with offset 0');
+  t.equal(readIntoSize, 10, 'readInto was called with the established readBufferSize');
+
+  t.equal(readArrayBuffer.byteLength, 5, 'The read array buffer was of the length returned by readInto');
 
   t.end();
 });
@@ -416,7 +454,7 @@ test('ReadableByteStream: Have source\'s readInto() write up to 10 bytes for eac
       notifyReady = notifyReady_;
       setTimeout(notifyReady, 0);
     },
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       if (totalBytesRead == dataSize) {
         return -1;
       }
@@ -428,7 +466,7 @@ test('ReadableByteStream: Have source\'s readInto() write up to 10 bytes for eac
       }
       doWait = true;
 
-      var view = new Uint8Array(arraybuffer, offset, size);
+      var view = new Uint8Array(arrayBuffer, offset, size);
       if (size > 10) {
         size = 10;
       }
@@ -493,7 +531,7 @@ test('ReadableByteStream: cancel() invokes source\'s cancel()', t => {
   var cancelCount = 0;
   var resolveSinkCancelPromise;
   var rbs = new ReadableByteStream({
-    readInto(arraybuffer, offset, size) {
+    readInto(arrayBuffer, offset, size) {
       t.fail('readInto called');
       t.end();
     },

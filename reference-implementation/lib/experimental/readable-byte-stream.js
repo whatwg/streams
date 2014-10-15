@@ -82,7 +82,7 @@ export default class ReadableByteStream {
     return this._state;
   }
 
-  _readIntoArrayBuffer(arrayBuffer, offset, size) {
+  readInto(arrayBuffer, offset, size) {
     if (this._state === 'waiting') {
       throw new TypeError('not ready for read');
     }
@@ -161,15 +161,11 @@ export default class ReadableByteStream {
     }
 
     var arrayBuffer = new ArrayBuffer(this._readBufferSize);
-    var bytesRead = this._readIntoArrayBuffer(arrayBuffer, 0, this._readBufferSize);
+    var bytesRead = this.readInto(arrayBuffer, 0, this._readBufferSize);
     // This code should be updated to use ArrayBuffer.prototype.transfer when
     // it's ready.
     var resizedArrayBuffer = arrayBuffer.slice(0, bytesRead);
     return resizedArrayBuffer;
-  }
-
-  readInto(arrayBuffer, offset, size) {
-    return this._readIntoArrayBuffer(arrayBuffer, offset, size);
   }
 
   get wait() {
