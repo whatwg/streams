@@ -20,6 +20,7 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 
 <style>
   ol > li { margin: 0; }
+  .note + .example { margin-top: 1em; }
 </style>
 
 
@@ -577,6 +578,23 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </ol>
 
 <h5 id="rs-pipe-through">pipeThrough({ writable, readable }, options)</h5>
+
+<div class="note">
+  The <code>pipeThrough</code> method provides a convenient, chainable way of <a>piping</a> a <a>readable stream</a>
+  through a <a>transform stream</a> (or any other <code>{ writable, readable }</code> pair). It simply pipes the stream
+  into the writable side of the supplied pair, and returns the readable side for further use.
+</div>
+
+<div class="example">
+  A typical example of constructing <a>pipe chain</a> using <code>pipeThrough</code> would look like
+
+  <pre>
+    httpResponseBody
+      .pipeThrough(decompressorTransform)
+      .pipeThrough(ignoreNonImageFilesTransform)
+      .pipeTo(mediaGallery);
+  </pre>
+</div>
 
 <ol>
   <li> If Type(<var>writable</var>) is not Object, then throw a <b>TypeError</b> exception.
