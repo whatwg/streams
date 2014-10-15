@@ -1124,14 +1124,8 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with
     <b>this</b>@\[[storedError]].
   <li> Call-with-rethrow <b>this</b>@\[[error]](reason).
-  <li> Let <var>abortPromise</var> be a new promise.
   <li> Let <var>sinkAbortPromise</var> be the result of promise-calling <b>this</b>\[[onAbort]](<var>reason</var>).
-    <ol>
-      <li> Upon fulfillment of <var>sinkAbortPromise</var>, resolve <var>abortPromise</var> with <b>undefined</b>.
-      <li> Upon rejection of <var>sinkAbortPromise</var> with reason <var>r</var>, reject <var>abortPromise</var>
-        with <var>r</var>.
-    </ol>
-  <li> Return <var>abortPromise</var>.
+  <li> Return the result of transforming <var>sinkAbortPromise</var> by a fulfillment handler that returns <b>undefined</b>.
 </ol>
 
 <h5 id="ws-close">close() </h5>
