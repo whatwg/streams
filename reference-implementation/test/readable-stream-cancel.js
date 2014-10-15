@@ -169,3 +169,69 @@ test('ReadableStream if source\'s cancel throws, the promise returned by rs.canc
     }
   );
 });
+
+test('ReadableStream onCancel returns a promise that will be resolved asynchronously', t => {
+  var resolveSourceCancelPromise;
+  var rs = new ReadableStream({
+    cancel() {
+      return new Promise((resolve, reject) => {
+        resolveSourceCancelPromise = resolve;
+      });
+    }
+  });
+
+  var hasResolvedSourceCancelPromise = false;
+
+  var cancelPromise = rs.cancel();
+  cancelPromise.then(
+    value => {
+      t.equal(hasResolvedSourceCancelPromise, true,
+              'cancelPromise must not be resolved before the promise returned by onCancel is resolved');
+      t.equal(value, undefined, 'cancelPromise must be fulfilled with undefined');
+      t.end();
+    }
+  ).catch(
+    r => {
+      t.fail('cancelPromise is rejected');
+      t.end();
+    }
+  );
+
+  setTimeout(() => {
+    hasResolvedSourceCancelPromise = true;
+    resolveSourceCancelPromise('Hello');
+  }, 0);
+});
+
+test('ReadableStream onCancel returns a promise that will be rejected asynchronously', t => {
+  var rejectSourceCancelPromise;
+  var rs = new ReadableStream({
+    cancel() {
+      return new Promise((resolve, reject) => {
+        rejectSourceCancelPromise = reject;
+      });
+    }
+  });
+
+  var hasRejectedSourceCancelPromise = false;
+  var errorInCancel = new Error('Sorry, it just wasn\'t meant to be.');
+
+  var cancelPromise = rs.cancel();
+  cancelPromise.then(
+    value => {
+      t.fail('cancelPromise is fulfilled');
+      t.end();
+    },
+    r => {
+      t.equal(hasRejectedSourceCancelPromise, true,
+              'cancelPromise must not be resolved before the promise returned by onCancel is resolved');
+      t.equal(r, errorInCancel, 'cancelPromise must be rejected with errorInCancel');
+      t.end();
+    }
+  );
+
+  setTimeout(() => {
+    hasRejectedSourceCancelPromise = true;
+    rejectSourceCancelPromise(errorInCancel);
+  }, 0);
+});
