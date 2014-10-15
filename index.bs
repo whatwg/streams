@@ -1287,6 +1287,7 @@ a variable <var>stream</var>, that performs the following steps:
   <li> ReturnIfAbrupt(<var>queueSize</var>).
   <li> Let <var>shouldApplyBackpressure</var> be ToBoolean(Invoke(<var>stream</var>@\[[strategy]],
     <code>"shouldApplyBackpressure"</code>, (<var>queueSize</var>))).
+  <li> ReturnIfAbrupt(<var>shouldApplyBackpressure</var>).
   <li> If <var>shouldApplyBackpressure</var> is <b>true</b> and <var>stream</var>@\[[state]] is
     <code>"writable"</code>, then
     <ol>
