@@ -119,9 +119,11 @@ export default class ReadableStream {
     return this._closedPromise;
   }
 
-  pipeTo(dest, { close = true } = {}) {
+  pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) {
     var source = this;
-    close = Boolean(close);
+    preventClose = Boolean(preventClose);
+    preventAbort = Boolean(preventAbort);
+    preventCancel = Boolean(preventCancel);
 
     doPipe();
     return dest;
@@ -163,18 +165,21 @@ export default class ReadableStream {
     }
 
     function cancelSource(reason) {
-      source.cancel(reason);
+      if (preventCancel === false) {
+        source.cancel(reason);
+      }
     }
 
     function closeDest() {
-      if (close) {
+      if (preventClose === false) {
         dest.close();
       }
     }
 
     function abortDest(reason) {
-      // ISSUE: should this be preventable via an option or via `options.close`?
-      dest.abort(reason);
+      if (preventAbort === false) {
+        dest.abort(reason);
+      }
     }
   }
 
