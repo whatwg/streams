@@ -576,7 +576,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Return the result of transforming <var>sourceCancelPromise</var> by a fulfillment handler that returns <b>undefined</b>.
 </ol>
 
-#### pipeThrough({ writable, readable }, options) {#rs-pipe-through}
+<h5 id="rs-pipe-through">pipeThrough({ writable, readable }, options)</h5>
 
 <ol>
   <li> If Type(<var>writable</var>) is not Object, then throw a <b>TypeError</b> exception.
