@@ -1580,11 +1580,49 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
 
 <h3 id="default-rs-strategy">%DefaultReadableStreamStrategy%</h3>
 
-Basically, <code>new CountQueuingStrategy({ highWaterMark: 1 })</code>, but a singleton and tamper-proof, etc.
+%DefaultReadableStreamStrategy% is a well-known intrinsic object representing the default <a>queuing strategy</a> for
+<a>readable streams</a>. It has two methods.
+
+<div class="note">
+  The existence of an independent object for the default readable stream queuing strategy is not actually observable.
+  Thus, implementations could implement this default strategy by other means, e.g. by incorporating the default logic
+  into the readable stream algorithms themselves.
+</div>
+
+<h4 id="default-rs-strategy-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h4>
+
+<ol>
+  <li> Assert: <var>queueSize</var> is a non-<b>NaN</b> number.</li>
+  <li> Return <var>queueSize</var> > 1.
+</ol>
+
+<h4 id="default-rs-strategy-size">size()</h4>
+
+<ol>
+  <li> Return 1.
+</ol>
 
 <h3 id="default-ws-strategy">%DefaultWritableStreamStrategy%</h3>
 
-Basically, <code>new CountQueuingStrategy({ highWaterMark: 0 })</code>, but a singleton and tamper-proof, etc.
+%DefaultWritableStreamStrategy% is a well-known intrinsic object representing the default <a>queuing strategy</a> for
+<a>writable streams</a>. It has two methods.
+
+<div class="note">
+  As with %DefaultReadableStreamStrategy%, this object is simply a spec device, and its existence is not observable.
+</div>
+
+<h4 id="default-ws-strategy-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h4>
+
+<ol>
+  <li> Assert: <var>queueSize</var> is a non-<b>NaN</b> number.</li>
+  <li> Return <var>queueSize</var> > 0.
+</ol>
+
+<h4 id="default-ws-strategy-size">size()</h4>
+
+<ol>
+  <li> Return 1.
+</ol>
 
 <h3 id="queue-with-sizes">Queue-with-Sizes Operations</h3>
 
