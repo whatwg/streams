@@ -1464,7 +1464,7 @@ it would look like
 class CountQueuingStrategy {
   constructor({ highWaterMark })
   shouldApplyBackpressure(queueSize)
-  size(chunk)
+  size()
 }
 </pre>
 
@@ -1513,7 +1513,7 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
   <li> Return <var>queueSize</var> > <b>this</b>@\[[highWaterMark]].
 </ol>
 
-<h5 id="blqs-size">size(chunk)</h5>
+<h5 id="blqs-size">size()</h5>
 
 <div class="note">
   The <code>size</code> method returns one always, so that the total queue size is a count of the number of chunks in
