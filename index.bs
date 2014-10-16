@@ -661,7 +661,7 @@ look for the <code>pipeTo</code> method.
 
 <h3 id="rs-abstract-ops">Readable Stream Abstract Operations </h3>
 
-### CallOrScheduleReadableStreamPull ( stream )
+<h4 id="call-or-schedule-readable-stream-pull">CallOrScheduleReadableStreamPull ( stream )</h4>
 
 <ol>
   <li> If <var>stream</var>@\[[pulling]] is <b>true</b>, return <b>undefined</b>.
@@ -675,7 +675,7 @@ look for the <code>pipeTo</code> method.
   <li> Otherwise, return CallReadableStreamPull(<var>stream</var>).
 </ol>
 
-### CallReadableStreamPull ( stream )
+<h4 id="call-readable-stream-pull">CallReadableStreamPull ( stream )</h4>
 
 <ol>
   <li> Let <var>pullResult</var> be the result of calling <var>stream</var>@\[[onPull]](<var>stream</var>@\[[enqueue]],
@@ -685,7 +685,7 @@ look for the <code>pipeTo</code> method.
   <li> Otherwise, return <b>undefined</b>.
 </ol>
 
-### CreateReadableStreamCloseFunction ( stream )
+<h4 id="create-readable-stream-close-function">CreateReadableStreamCloseFunction ( stream )</h4>
 
 <ol>
   <li> Return a new <a>Readable Stream Close Function</a> closing over <var>stream</var>.
@@ -707,7 +707,7 @@ A <dfn>Readable Stream Close Function</dfn> is a built-in anonymous function of 
     </ol>
 </ol>
 
-### CreateReadableStreamEnqueueFunction ( stream )
+<h4 id="create-readable-stream-enqueue-function">CreateReadableStreamEnqueueFunction ( stream )</h4>
 
 <ol>
   <li> Return a new <a>Readable Stream Enqueue Function</a> closing over <var>stream</var>.
@@ -746,7 +746,7 @@ closing over a variable <var>stream</var>, that performs the following steps:
   <li> Return <b>true</b>.
 </ol>
 
-### CreateReadableStreamErrorFunction ( stream )
+<h4 id="create-readable-stream-error-function">CreateReadableStreamErrorFunction ( stream )</h4>
 
 <ol>
   <li> Return a new <a>Readable Stream Error Function</a> closing over <var>stream</var>.
@@ -1241,7 +1241,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 
 <h3 id="ws-abstract-ops">Writable Stream Abstract Operations </h3>
 
-### CallOrScheduleWritableStreamAdvanceQueue ( stream )
+<h4 id="call-or-schedule-writable-stream-advance-queue">CallOrScheduleWritableStreamAdvanceQueue ( stream )</h4>
 
 <ol>
   <li> If <var>stream</var>@\[[started]] is <b>false</b>, then
@@ -1253,7 +1253,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> Otherwise, return WritableStreamAdvanceQueue(<var>stream</var>).
 </ol>
 
-### CloseWritableStream ( stream )
+<h4 id="close-writable-stream">CloseWritableStream ( stream )</h4>
 
 <ol>
   <li> Assert: <var>stream</var>@\[[state]] is <code>"closing"</code>.
@@ -1271,7 +1271,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> Return <b>undefined</b>.
 </ol>
 
-### CreateWritableStreamErrorFunction ( stream )
+<h4 id="create-writable-stream-error-function">CreateWritableStreamErrorFunction ( stream )</h4>
 
 <ol>
   <li> Return a new <a>Writable Stream Error Function</a> closing over <var>stream</var>.
@@ -1298,7 +1298,7 @@ a variable <var>stream</var>, that performs the following steps:
   <li> Return <b>undefined</b>.
 </ol>
 
-### SyncWritableStreamStateWithQueue ( stream )
+<h4 id="sync-writable-stream-state-with-queue">SyncWritableStreamStateWithQueue ( stream )</h4>
 
 <ol>
   <li> If <var>stream</var>@\[[state]] is <code>"closing"</code>, return <b>undefined</b>.
@@ -1329,7 +1329,7 @@ a variable <var>stream</var>, that performs the following steps:
   <li> Return <b>undefined</b>.
 </ol>
 
-### WritableStreamAdvanceQueue ( stream )
+<h4 id="writable-stream-advance-queue">WritableStreamAdvanceQueue ( stream )</h4>
 
 <ol>
   <li> If <var>stream</var>@\[[queue]] is empty, or <var>stream</var>@\[[writing]] is <b>true</b>, return
@@ -1541,7 +1541,7 @@ implementations it would of course be backed by a more efficient data structure)
 A number of abstract operations are specified here to make working with queues-with-sizes more pleasant, and used
 throughout the rest of this standard.
 
-### EnqueueValueWithSize ( queue, value, size )
+<h4 id="enqueue-value-with-size">EnqueueValueWithSize ( queue, value, size )</h4>
 
 <ol>
   <li> Let <var>size</var> be ToNumber(<var>size</var>).
@@ -1550,7 +1550,7 @@ throughout the rest of this standard.
   <li> Append Record{\[[value]]: <var>value</var>, \[[size]]: <var>size</var>} as the last element of <var>queue</var>.
 </ol>
 
-### DequeueValue ( queue )
+<h4 id="dequeue-value">DequeueValue ( queue )</h4>
 
 <ol>
   <li> Assert: <var>queue</var> is not empty.
@@ -1560,7 +1560,7 @@ throughout the rest of this standard.
   <li> Return <var>pair</var>.\[[value]].
 </ol>
 
-### PeekQueueValue ( queue )
+<h4 id="peek-queue-value">PeekQueueValue ( queue )</h4>
 
 <ol>
   <li> Assert: <var>queue</var> is not empty.
@@ -1568,7 +1568,7 @@ throughout the rest of this standard.
   <li> Return <var>pair</var>.\[[value]].
 </ol>
 
-### GetTotalQueueSize ( queue )
+<h4 id="get-total-queue-size">GetTotalQueueSize ( queue )</h4>
 
 <ol>
   <li> Let <var>totalSize</var> be <b>0</b>.
