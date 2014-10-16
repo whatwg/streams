@@ -1369,61 +1369,160 @@ We are waiting to validate their design before doing so. In the meantime, see
 
 <h2 id="other-stuff">Other Stream APIs and Operations</h2>
 
-<h3 id="blqs">Class <code>ByteLengthQueuingStrategy</code></h3>
+<h3 id="blqs-class">Class <code>ByteLengthQueuingStrategy</code></h3>
 
-<div class="note">
-  A common <a>queuing strategy</a> when dealing with binary data is to wait until the accumulated
-  <code>byteLength</code> properties of the incoming chunks reaches a specified high-water mark. As such, this is
-  provided as a built-in <a>queuing strategy</a> that can be used when constructing streams.
-</div>
+A common <a>queuing strategy</a> when dealing with binary data is to wait until the accumulated <code>byteLength</code>
+properties of the incoming chunks reaches a specified high-water mark. As such, this is provided as a built-in
+<a>queuing strategy</a> that can be used when constructing streams.
+
+<h4 id="blqs-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>ByteLengthQueuingStrategy</code> class in something close to the syntax of
+[[!ECMASCRIPT]], it would look like
 
 <pre>
 class ByteLengthQueuingStrategy {
-  constructor({ highWaterMark }) {
-    this.highWaterMark = Number(highWaterMark);
-
-    if (Number.isNaN(this.highWaterMark) || this.highWaterMark < 0) {
-      throw new RangeError("highWaterMark must be a nonnegative number.");
-    }
-  }
-
-  size(chunk) {
-    return chunk.byteLength;
-  }
-
-  shouldApplyBackpressure(queueSize) {
-    return queueSize > this.highWaterMark;
-  }
+  constructor({ highWaterMark })
+  shouldApplyBackpressure(queueSize)
+  size(chunk)
 }
 </pre>
 
-<h3 id="cqs">Class <code>CountQueuingStrategy</code></h3>
+<h4 id="blqs-internal-slots">Internal Slots</h4>
+
+Instances of <code>ByteLengthQueuingStrategy</code> are created with the internal slots described in the following
+table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[highWaterMark]]
+    <td>A nonnegative number that determines when the strategy applies <a>backpressure</a>
+  </tr>
+</table>
+
+<h4 id="blqs-constructor">new ByteLengthQueuingStrategy({ highWaterMark })</h4>
 
 <div class="note">
-  A common <a>queuing strategy</a> when dealing with streams of generic objects is to simply count the number of chunks
-  that have been accumulated so far, waiting until this number reaches a specified high-water mark. As such, this
-  strategy is also provided out of the box.
+  The constructor takes a nonnegative number for the high-water mark, and stores it for later use.
 </div>
+
+<ol>
+  <li> Let <var>highWaterMark</var> be ToNumber(<var>highWaterMark</var>).
+  <li> If <var>highWaterMark</var> is <b>NaN</b>, throw a <b>TypeError</b> exception.
+  <li> If <var>highWaterMark</bar> &lt; 0, throw a <b>RangeError</b> exception.
+  <li> Set <b>this</b>@\[[highWaterMark]] to <var>highWaterMark</var>
+</ol>
+
+<h4 id="blqs-prototype">Properties of the <code>ByteLengthQueuingStrategy</code> Prototype</h4>
+
+<h5 id="blqs-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h5>
+
+<div class="note">
+  The <code>shouldApplyBackpressure</code> method returns whether or not the given queue size is greater than the
+  queueing strategy's high-water mark.
+</div>
+
+<ol>
+  <li> Let <var>queueSize</var> be ToNumber(<var>queueSize</var>).
+  <li> If <var>queueSize</var> is <b>NaN</b>, return <b>false</b>.
+  <li> Return <var>queueSize</var> > <b>this</b>@\[[highWaterMark]].
+</ol>
+
+<h5 id="blqs-size">size(chunk)</h5>
+
+<div class="note">
+  The <code>size</code> method returns the given chunk's <code>byteLength</code> property. (If the chunk doesn't have
+  one, it will return <b>undefined</b>, causing the stream using this strategy to error.)
+</div>
+
+<ol>
+  <li> Return Get(<var>chunk</var>, <code>"byteLength"</code>).
+</ol>
+
+<h3 id="cqs-class">Class <code>CountQueuingStrategy</code></h3>
+
+A common <a>queuing strategy</a> when dealing with streams of generic objects is to simply count the number of chunks
+that have been accumulated so far, waiting until this number reaches a specified high-water mark. As such, this
+strategy is also provided out of the box.
+
+<h4 id="cqs-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>CountQueuingStrategy</code> class in something close to the syntax of [[!ECMASCRIPT]],
+it would look like
 
 <pre>
 class CountQueuingStrategy {
-  constructor({ highWaterMark }) {
-    this.highWaterMark = Number(highWaterMark);
-
-    if (Number.isNaN(this.highWaterMark) || this.highWaterMark < 0) {
-      throw new RangeError("highWaterMark must be a nonnegative number.");
-    }
-  }
-
-  size(chunk) {
-    return 1;
-  }
-
-  shouldApplyBackpressure(queueSize) {
-    return queueSize > this.highWaterMark;
-  }
+  constructor({ highWaterMark })
+  shouldApplyBackpressure(queueSize)
+  size(chunk)
 }
 </pre>
+
+<h4 id="cqs-internal-slots">Internal Slots</h4>
+
+Instances of <code>CountQueuingStrategy</code> are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[highWaterMark]]
+    <td>A nonnegative number that determines when the strategy applies <a>backpressure</a>
+  </tr>
+</table>
+
+<h4 id="blqs-constructor">new CountQueuingStrategy({ highWaterMark })</h4>
+
+<div class="note">
+  The constructor takes a nonnegative number for the high-water mark, and stores it for later use.
+</div>
+
+<ol>
+  <li> Let <var>highWaterMark</var> be ToNumber(<var>highWaterMark</var>).
+  <li> If <var>highWaterMark</var> is <b>NaN</b>, throw a <b>TypeError</b> exception.
+  <li> If <var>highWaterMark</bar> &lt; 0, throw a <b>RangeError</b> exception.
+  <li> Set <b>this</b>@\[[highWaterMark]] to <var>highWaterMark</var>
+</ol>
+
+<h4 id="blqs-prototype">Properties of the <code>CountQueuingStrategy</code> Prototype</h4>
+
+<h5 id="blqs-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h5>
+
+<div class="note">
+  The <code>shouldApplyBackpressure</code> method returns whether or not the given queue size is greater than the
+  queueing strategy's high-water mark.
+</div>
+
+<ol>
+  <li> Let <var>queueSize</var> be ToNumber(<var>queueSize</var>).
+  <li> If <var>queueSize</var> is <b>NaN</b>, return <b>false</b>.
+  <li> Return <var>queueSize</var> > <b>this</b>@\[[highWaterMark]].
+</ol>
+
+<h5 id="blqs-size">size(chunk)</h5>
+
+<div class="note">
+  The <code>size</code> method returns one always, so that the total queue size is a count of the number of chunks in
+  the queue.
+</div>
+
+<ol>
+  <li> Return 1.
+</ol>
 
 <h3 id="default-rs-strategy">%DefaultReadableStreamStrategy%</h3>
 

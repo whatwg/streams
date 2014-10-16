@@ -6,17 +6,6 @@ import WritableStream from '../lib/writable-stream';
 
 test('Can construct a CountQueuingStrategy with a valid high water mark', t => {
   var strategy = new CountQueuingStrategy({ highWaterMark: 4 });
-  t.equal(strategy.highWaterMark, 4, '{ highWaterMark: 4 } works');
-
-  t.end();
-});
-
-test('Number-ish high water marks get converted to numbers', t => {
-  var strategy1 = new CountQueuingStrategy({ highWaterMark: '4' });
-  t.equal(strategy1.highWaterMark, 4, '{ highWaterMark: \'4\' } works');
-
-  var strategy2 = new CountQueuingStrategy({ highWaterMark: null });
-  t.equal(strategy2.highWaterMark, 0, '{ highWaterMark: null } works');
 
   t.end();
 });

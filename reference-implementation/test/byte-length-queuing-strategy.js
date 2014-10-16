@@ -5,7 +5,6 @@ import WritableStream from '../lib/writable-stream';
 
 test('Can construct a ByteLengthQueuingStrategy with a valid high water mark', t => {
   var strategy = new ByteLengthQueuingStrategy({ highWaterMark: 4 });
-  t.equal(strategy.highWaterMark, 4, '{ highWaterMark: 4 } works');
 
   t.end();
 });

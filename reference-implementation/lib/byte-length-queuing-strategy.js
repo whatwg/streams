@@ -12,11 +12,11 @@ export default class ByteLengthQueuingStrategy {
     this.highWaterMark = highWaterMark;
   }
 
-  size(chunk) {
-    return chunk.byteLength;
-  }
-
   shouldApplyBackpressure(queueSize) {
     return queueSize > this.highWaterMark;
+  }
+
+  size(chunk) {
+    return chunk.byteLength;
   }
 }
