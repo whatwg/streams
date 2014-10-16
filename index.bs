@@ -21,6 +21,60 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 <style>
   ol > li { margin: 0; }
   .note + .example { margin-top: 1em; }
+
+  /* Self-link styles */
+  .heading {
+    position: relative;
+  }
+  a.self-link {
+    position: absolute;
+    top: 0;
+    left: -2.5em;
+    width: 2em;
+    height: 2em;
+    text-align: center;
+    border: none;
+    transition: opacity .2s;
+    opacity: .5;
+  }
+  a.self-link:hover {
+    opacity: 1;
+    text-decoration: none;
+  }
+  .heading > a.self-link {
+    font-size: 83%;
+    color: inherit;
+  }
+  li > a.self-link {
+    left: -3.5em;
+  }
+  dfn > a.self-link {
+    top: auto;
+    left: auto;
+    opacity: 0;
+    width: 1.5em;
+    height: 1.5em;
+    background: gray;
+    color: white;
+    font-style: normal;
+    transition: opacity .2s, background-color .2s, color .2s;
+  }
+  dfn:hover > a.self-link {
+    opacity: 1;
+  }
+  dfn > a.self-link:hover {
+    color: black;
+    background-color: #B1C99D;
+  }
+  a.self-link::before {
+    content: "¶";
+  }
+  .heading > a.self-link::before {
+    content: "§";
+  }
+  dfn > a.self-link::before {
+    content: "#";
+  }
 </style>
 
 
