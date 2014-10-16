@@ -82,7 +82,7 @@ test('Piping from a ReadableStream in readable state to a WritableStream in erro
       t.assert(!cancelCalled, 'cancel must not be called more than once');
       cancelCalled = true;
 
-      t.strictEqual(reason, passedError);
+      t.equal(reason, passedError);
     }
   });
   t.equal(rs.state, 'readable');
@@ -307,7 +307,7 @@ test('Piping from a ReadableStream in readable state which becomes errored after
       t.end();
     },
     abort(reason) {
-      t.strictEqual(reason, passedError);
+      t.equal(reason, passedError);
       t.assert(writeCalled);
       t.equal(pullCount, 1);
 
@@ -396,7 +396,7 @@ test('Piping from a ReadableStream in waiting state which becomes errored after 
       t.end();
     },
     abort(reason) {
-      t.strictEqual(reason, passedError);
+      t.equal(reason, passedError);
 
       t.equal(pullCount, 1);
 
@@ -837,7 +837,7 @@ test('Piping from a ReadableStream in waiting state which becomes errored after 
       t.end();
     },
     abort(reason) {
-      t.strictEqual(reason, passedError);
+      t.equal(reason, passedError);
       t.assert(writeCalled);
       t.equal(pullCount, 1);
       t.end();

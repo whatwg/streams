@@ -28,23 +28,23 @@ test('TransformStream errors thrown in transform put the writable and readable i
       ts.readable.read();
       t.fail('read() didn\'nt throw');
     } catch (error) {
-      t.strictEqual(error, thrownError, 'readable\'s read should throw the thrown error');
+      t.equal(error, thrownError, 'readable\'s read should throw the thrown error');
     }
   }, 0);
 
   ts.readable.wait().then(
     () => t.fail('readable\'s wait() should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'readable\'s wait() should be rejected with the thrown error')
+    e => t.equal(e, thrownError, 'readable\'s wait() should be rejected with the thrown error')
   );
 
   ts.readable.closed.then(
     () => t.fail('readable\'s closed should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'readable\'s closed should be rejected with the thrown error')
+    e => t.equal(e, thrownError, 'readable\'s closed should be rejected with the thrown error')
   );
 
   ts.writable.closed.then(
     () => t.fail('writable\'s closed should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'writable\'s closed should be rejected with the thrown error')
+    e => t.equal(e, thrownError, 'writable\'s closed should be rejected with the thrown error')
   );
 });
 
@@ -82,22 +82,22 @@ test('TransformStream errors thrown in flush put the writable and readable in an
       ts.readable.read();
       t.fail('read() didn\'nt throw');
     } catch (error) {
-      t.strictEqual(error, thrownError, 'readable\'s read should throw the thrown error');
+      t.equal(error, thrownError, 'readable\'s read should throw the thrown error');
     }
   }, 0);
 
   ts.readable.wait().then(
     () => t.fail('readable\'s wait() should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'readable\'s wait() should be rejected with the thrown error')
+    e => t.equal(e, thrownError, 'readable\'s wait() should be rejected with the thrown error')
   );
 
   ts.readable.closed.then(
     () => t.fail('readable\'s closed should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'readable\'s closed should be rejected with the thrown error')
+    e => t.equal(e, thrownError, 'readable\'s closed should be rejected with the thrown error')
   );
 
   ts.writable.closed.then(
     () => t.fail('writable\'s closed should not be fulfilled'),
-    e => t.strictEqual(e, thrownError, 'writable\'s closed should be rejected with the thrown error')
+    e => t.equal(e, thrownError, 'writable\'s closed should be rejected with the thrown error')
   );
 });

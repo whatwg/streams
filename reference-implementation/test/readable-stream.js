@@ -123,7 +123,7 @@ test('ReadableStream start throws an error', t => {
     new ReadableStream({ start() { throw error; } });
     t.fail('Constructor didn\'t throw');
   } catch (caughtError) {
-    t.strictEqual(caughtError, error, 'error was allowed to propagate');
+    t.equal(caughtError, error, 'error was allowed to propagate');
   }
 });
 
@@ -387,7 +387,7 @@ test('ReadableStream if shouldApplyBackpressure throws, the stream is errored', 
   });
 
   rs.closed.catch(r => {
-    t.strictEqual(r, error);
+    t.equal(r, error);
     t.end();
   });
 });
@@ -411,7 +411,7 @@ test('ReadableStream if size throws, the stream is errored', t => {
   });
 
   rs.closed.catch(r => {
-    t.strictEqual(r, error);
+    t.equal(r, error);
     t.end();
   });
 });
@@ -423,7 +423,7 @@ test('ReadableStream if size is NaN, the stream is errored', t => {
         enqueue('hi');
         t.fail('The constructor didn\'t throw');
       } catch (error) {
-        t.strictEqual(error.constructor, RangeError);
+        t.equal(error.constructor, RangeError);
         t.end();
       }
     },

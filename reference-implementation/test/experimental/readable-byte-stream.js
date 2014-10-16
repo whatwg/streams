@@ -30,11 +30,11 @@ test('ReadableByteStream: Call notifyReady() asynchronously to enter readable st
 
   var waitPromise = rbs.wait;
 
-  t.strictEqual(rbs.state, 'waiting');
+  t.equal(rbs.state, 'waiting');
 
   notifyReady();
 
-  t.strictEqual(rbs.state, 'readable');
+  t.equal(rbs.state, 'readable');
 
   waitPromise.then(
       () => t.end(),
@@ -74,9 +74,9 @@ test('ReadableByteStream: Stay in readable state on readInto() call', t => {
     },
     readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
-      t.strictEqual(arrayBuffer, buffer);
-      t.strictEqual(offset, 2);
-      t.strictEqual(size, 5);
+      t.equal(arrayBuffer, buffer);
+      t.equal(offset, 2);
+      t.equal(size, 5);
 
       return 4;
     },
@@ -86,11 +86,11 @@ test('ReadableByteStream: Stay in readable state on readInto() call', t => {
     }
   });
 
-  t.strictEqual(rbs.state, 'readable');
+  t.equal(rbs.state, 'readable');
   var bytesRead = rbs.readInto(buffer, 2, 5);
   t.equal(readIntoCount, 1);
-  t.strictEqual(bytesRead, 4);
-  t.strictEqual(rbs.state, 'readable');
+  t.equal(bytesRead, 4);
+  t.equal(rbs.state, 'readable');
 
   t.end();
 });
@@ -103,8 +103,8 @@ test('ReadableByteStream: readInto()\'s offset and size argument are automatical
     },
     readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
-      t.strictEqual(offset, 0);
-      t.strictEqual(size, 10);
+      t.equal(offset, 0);
+      t.equal(size, 10);
 
       return size;
     },
@@ -116,8 +116,8 @@ test('ReadableByteStream: readInto()\'s offset and size argument are automatical
 
   var bytesRead = rbs.readInto(new ArrayBuffer(10));
   t.equal(readIntoCount, 1);
-  t.strictEqual(bytesRead, 10);
-  t.strictEqual(rbs.state, 'readable');
+  t.equal(bytesRead, 10);
+  t.equal(rbs.state, 'readable');
 
   t.end();
 });
@@ -130,8 +130,8 @@ test('ReadableByteStream: readInto()\'s size argument is automatically calculate
     },
     readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
-      t.strictEqual(offset, 3);
-      t.strictEqual(size, 7);
+      t.equal(offset, 3);
+      t.equal(size, 7);
 
       return size;
     },
@@ -143,8 +143,8 @@ test('ReadableByteStream: readInto()\'s size argument is automatically calculate
 
   var bytesRead = rbs.readInto(new ArrayBuffer(10), 3);
   t.equal(readIntoCount, 1);
-  t.strictEqual(bytesRead, 7);
-  t.strictEqual(rbs.state, 'readable');
+  t.equal(bytesRead, 7);
+  t.equal(rbs.state, 'readable');
 
   t.end();
 });
@@ -159,9 +159,9 @@ test('ReadableByteStream: Enter waiting state on readInto() call', t => {
     },
     readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
-      t.strictEqual(arrayBuffer, buffer);
-      t.strictEqual(offset, 0);
-      t.strictEqual(size, 10);
+      t.equal(arrayBuffer, buffer);
+      t.equal(offset, 0);
+      t.equal(size, 10);
 
       return -2;
     },
@@ -171,11 +171,11 @@ test('ReadableByteStream: Enter waiting state on readInto() call', t => {
     }
   });
 
-  t.strictEqual(rbs.state, 'readable');
+  t.equal(rbs.state, 'readable');
   var bytesRead = rbs.readInto(buffer, 0, 10);
   t.equal(readIntoCount, 1);
-  t.strictEqual(bytesRead, 0);
-  t.strictEqual(rbs.state, 'waiting');
+  t.equal(bytesRead, 0);
+  t.equal(rbs.state, 'waiting');
 
   t.end();
 });
@@ -190,9 +190,9 @@ test('ReadableByteStream: Enter closed state on readInto() call', t => {
     },
     readInto(arrayBuffer, offset, size) {
       ++readIntoCount;
-      t.strictEqual(arrayBuffer, buffer);
-      t.strictEqual(offset, 0);
-      t.strictEqual(size, 10);
+      t.equal(arrayBuffer, buffer);
+      t.equal(offset, 0);
+      t.equal(size, 10);
 
       return -1;
     },
@@ -202,11 +202,11 @@ test('ReadableByteStream: Enter closed state on readInto() call', t => {
     }
   });
 
-  t.strictEqual(rbs.state, 'readable');
+  t.equal(rbs.state, 'readable');
   var bytesRead = rbs.readInto(buffer, 0, 10);
   t.equal(readIntoCount, 1);
-  t.strictEqual(bytesRead, 0);
-  t.strictEqual(rbs.state, 'closed');
+  t.equal(bytesRead, 0);
+  t.equal(rbs.state, 'closed');
 
   rbs.closed.then(
       () => t.end(),
@@ -234,7 +234,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
 
   t.throws(() => rbs.readInto(new ArrayBuffer(10), 3, 3), /RangeError/);
   t.equal(readIntoCount, 1);
-  t.strictEqual(rbs.state, 'errored');
+  t.equal(rbs.state, 'errored');
 
   rbs.closed.then(
       () => {
@@ -242,7 +242,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
         t.end();
       },
       error => {
-        t.strictEqual(error.constructor, RangeError);
+        t.equal(error.constructor, RangeError);
         t.end();
       });
 });
@@ -265,7 +265,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
 
   t.throws(() => rbs.readInto(new ArrayBuffer(10), 3, 3), /RangeError/);
   t.equal(readIntoCount, 1);
-  t.strictEqual(rbs.state, 'errored');
+  t.equal(rbs.state, 'errored');
 
   rbs.closed.then(
       () => {
@@ -273,7 +273,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
         t.end();
       },
       error => {
-        t.strictEqual(error.constructor, RangeError);
+        t.equal(error.constructor, RangeError);
         t.end();
       });
 });
@@ -294,16 +294,16 @@ test('ReadableByteStream: readInto() fails if the range specified by offset and 
   });
 
   t.throws(() => rbs.readInto(new ArrayBuffer(10), 5, 10), /RangeError/);
-  t.strictEqual(rbs.state, 'readable');
+  t.equal(rbs.state, 'readable');
 
   t.throws(() => rbs.readInto(new ArrayBuffer(10), -5, 10), /RangeError/);
-  t.strictEqual(rbs.state, 'readable');
+  t.equal(rbs.state, 'readable');
 
   t.throws(() => rbs.readInto(new ArrayBuffer(10), 0, 20), /RangeError/);
-  t.strictEqual(rbs.state, 'readable');
+  t.equal(rbs.state, 'readable');
 
   t.throws(() => rbs.readInto(new ArrayBuffer(10), 0, -10), /RangeError/);
-  t.strictEqual(rbs.state, 'readable');
+  t.equal(rbs.state, 'readable');
 
   t.end();
 });
@@ -326,7 +326,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
 
   t.throws(() => rbs.readInto(new ArrayBuffer(10), 0 ,10), /RangeError/);
   t.equal(readIntoCount, 1);
-  t.strictEqual(rbs.state, 'errored');
+  t.equal(rbs.state, 'errored');
 
   t.end();
 });
@@ -364,7 +364,7 @@ test('ReadableByteStream: readInto() must throw when in waiting state', t => {
 
   t.equal(rbs.state, 'waiting');
   t.throws(() => rbs.readInto(new ArrayBuffer(10), 0, 10), /TypeError/);
-  t.strictEqual(rbs.state, 'waiting', 'readInto() call in invalid state doesn\'t error the stream');
+  t.equal(rbs.state, 'waiting', 'readInto() call in invalid state doesn\'t error the stream');
 
   t.end();
 });
