@@ -136,7 +136,7 @@ it. If any step in the chain cannot yet accept data, it propagates a signal back
 eventually the original source is told to stop producing data so fast. This process of normalizing data flow from the
 original source according to how fast the chain can process data is called <dfn>backpressure</dfn>.
 
-<h3 id="queueing-strategies">Internal Queues and Queuing Strategies</h3>
+<h3 id="queuing-strategies">Internal Queues and Queuing Strategies</h3>
 
 Both readable and writable streams maintain <dfn>internal queues</dfn>, which they use for similar purposes. In the
 case of a readable stream, the internal queue contains <a>chunks</a> that have been enqueued by the <a>underlying
@@ -1427,7 +1427,7 @@ table:
 
 <div class="note">
   The <code>shouldApplyBackpressure</code> method returns whether or not the given queue size is greater than the
-  queueing strategy's high-water mark.
+  queuing strategy's high-water mark.
 </div>
 
 <ol>
@@ -1504,7 +1504,7 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
 
 <div class="note">
   The <code>shouldApplyBackpressure</code> method returns whether or not the given queue size is greater than the
-  queueing strategy's high-water mark.
+  queuing strategy's high-water mark.
 </div>
 
 <ol>
