@@ -1,32 +1,24 @@
 {
-  "name": "dom-streams-strawman",
+  "name": "whatwg-streams",
   "version": "0.0.0",
-  "description": "ES5 Node candidate implementation / testbed for WHATWG streams proposal",
-  "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
+  "description": "Reference implementation and tests for the WHATWG Streams Standard",
   "scripts": {
     "test": "node traceur-runner.js test/*.js test/experimental/*.js",
     "bench": "node traceur-runner.js bench/recording-runner.js && node traceur-runner.js bench/recording-differ.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/othiym23/streams.git"
-  },
+  "repository": "whatwg/streams",
   "keywords": [
     "streams",
     "whatwg",
-    "w3c",
-    "strawman",
-    "reference"
+    "polyfill"
   ],
-  "author": "Domenic Denicola <domenic@domenicdenicola.com>",
+  "author": "Domenic Denicola <domenic@domenicdenicola.com> (http://domenic.me/)",
+  "contributors": [
+    "Domenic Denicola <domenic@domenicdenicola.com> (http://domenic.me/)",
+    "Forrest L Norvell <ogd@aoaioxxysz.net>",
+    "Takeshi Yoshino <tyoshino@chromium.org>"
+  ],
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/othiym23/streams/issues"
-  },
-  "homepage": "https://github.com/othiym23/streams",
   "devDependencies": {
     "glob": "^4.0.2",
     "mkdirp": "^0.5.0",
