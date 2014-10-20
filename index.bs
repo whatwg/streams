@@ -428,7 +428,7 @@ class ReadableStream {
     pull = (enqueue, close, error) => {},
     cancel = (reason) => {},
     strategy = %DefaultReadableStreamStrategy%
-  })
+  } = {})
 
   get closed()
   get state()
@@ -521,7 +521,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </tr>
 </table>
 
-<h4 id="rs-constructor">new ReadableStream({ start, pull, cancel, strategy })</h4>
+<h4 id="rs-constructor">new ReadableStream({ start, pull, cancel, strategy } = {})</h4>
 
 <div class="note">
   The constructor is passed several functions, all optional, which govern how the constructed stream instance behaves:
@@ -1021,7 +1021,7 @@ class WritableStream {
     close = () => {},
     abort = (reason) => close(),
     strategy = %DefaultWritableStreamStrategy%
-  })
+  } = {})
 
   get closed()
   get state()
@@ -1105,7 +1105,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </tr>
 </table>
 
-<h4 id="ws-constructor">new WritableStream({ start, write, close, abort, strategy })</h4>
+<h4 id="ws-constructor">new WritableStream({ start, write, close, abort, strategy } = {})</h4>
 
 <div class="note">
   The constructor is passed several functions, all optional, which govern how the constructed stream instance behaves:
@@ -1704,6 +1704,7 @@ itself will evolve in these ways.
 <ul>
   <li> We use destructuring notation in function and method declarations, and assume that the destructuring assignment
     procedure was performed before the algorithm starts.
+  <li> We similarly use the default argument notation <code>= {}</code> in a couple of cases.
   <li> We use the notation <var>x</var>@\[[y]] to refer to internal slots of an object, instead of saying "the \[[y]]
     internal slot of <var>x</var>."
   <li> We do not alias <b>this</b> to a local variable in each algorithm, instead using it directly.
