@@ -1,5 +1,6 @@
 var assert = require('assert');
 import * as helpers from './helpers';
+import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } from './queue-with-sizes';
 import CountQueuingStrategy from './count-queuing-strategy';
 
 export default class WritableStream {
@@ -81,7 +82,7 @@ export default class WritableStream {
         });
 
         try {
-          helpers.enqueueValueWithSize(
+          EnqueueValueWithSize(
             this._queue,
             { chunk: chunk, promise: promise, _resolve: resolver, _reject: rejecter },
             chunkSize
@@ -136,7 +137,7 @@ export default class WritableStream {
     }
 
     this._state = 'closing';
-    helpers.enqueueValueWithSize(
+    EnqueueValueWithSize(
       this._queue,
       'close',
       0
@@ -168,7 +169,7 @@ export default class WritableStream {
     }
 
     while (this._queue.length > 0) {
-      var writeRecord = helpers.dequeueValue(this._queue);
+      var writeRecord = DequeueValue(this._queue);
       if (writeRecord !== 'close') {
         writeRecord._reject(error);
       }
@@ -203,11 +204,11 @@ export default class WritableStream {
       return;
     }
 
-    var writeRecord = helpers.peekQueueValue(this._queue);
+    var writeRecord = PeekQueueValue(this._queue);
 
     if (writeRecord === 'close') {
       assert(this._state === 'closing', 'can\'t process final write record unless already closing');
-      helpers.dequeueValue(this._queue);
+      DequeueValue(this._queue);
       assert(this._queue.length === 0, 'queue must be empty once the final write record is dequeued');
       this._doClose();
     } else {
@@ -223,7 +224,7 @@ export default class WritableStream {
 
           writeRecord._resolve(undefined);
 
-          helpers.dequeueValue(this._queue);
+          DequeueValue(this._queue);
           try {
             this._syncStateWithQueue();
           } catch (e) {
@@ -254,7 +255,7 @@ export default class WritableStream {
       return;
     }
 
-    var queueSize = helpers.getTotalQueueSize(this._queue);
+    var queueSize = GetTotalQueueSize(this._queue);
     var shouldApplyBackpressure = Boolean(this._strategy.shouldApplyBackpressure(queueSize));
 
     if (shouldApplyBackpressure === true && this._state === 'writable') {

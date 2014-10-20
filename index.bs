@@ -1633,15 +1633,6 @@ implementations it would of course be backed by a more efficient data structure)
 A number of abstract operations are specified here to make working with queues-with-sizes more pleasant, and used
 throughout the rest of this standard.
 
-<h4 id="enqueue-value-with-size">EnqueueValueWithSize ( queue, value, size )</h4>
-
-<ol>
-  <li> Let <var>size</var> be ToNumber(<var>size</var>).
-  <li> ReturnIfAbrupt(<var>size</var>).
-  <li> If <var>size</var> is <b>NaN</b>, <b>+∞</b>, or <b>−∞</b>, throw a <b>RangeError</b> exception.
-  <li> Append Record{\[[value]]: <var>value</var>, \[[size]]: <var>size</var>} as the last element of <var>queue</var>.
-</ol>
-
 <h4 id="dequeue-value">DequeueValue ( queue )</h4>
 
 <ol>
@@ -1652,12 +1643,13 @@ throughout the rest of this standard.
   <li> Return <var>pair</var>.\[[value]].
 </ol>
 
-<h4 id="peek-queue-value">PeekQueueValue ( queue )</h4>
+<h4 id="enqueue-value-with-size">EnqueueValueWithSize ( queue, value, size )</h4>
 
 <ol>
-  <li> Assert: <var>queue</var> is not empty.
-  <li> Let <var>pair</var> be the first element of <var>queue</var>.
-  <li> Return <var>pair</var>.\[[value]].
+  <li> Let <var>size</var> be ToNumber(<var>size</var>).
+  <li> ReturnIfAbrupt(<var>size</var>).
+  <li> If <var>size</var> is <b>NaN</b>, <b>+∞</b>, or <b>−∞</b>, throw a <b>RangeError</b> exception.
+  <li> Append Record{\[[value]]: <var>value</var>, \[[size]]: <var>size</var>} as the last element of <var>queue</var>.
 </ol>
 
 <h4 id="get-total-queue-size">GetTotalQueueSize ( queue )</h4>
@@ -1670,6 +1662,14 @@ throughout the rest of this standard.
       <li> Add <var>pair</var>.\[[size]] to <var>totalSize</var>.
     </ol>
   <li> Return <var>totalSize</var>.
+</ol>
+
+<h4 id="peek-queue-value">PeekQueueValue ( queue )</h4>
+
+<ol>
+  <li> Assert: <var>queue</var> is not empty.
+  <li> Let <var>pair</var> be the first element of <var>queue</var>.
+  <li> Return <var>pair</var>.\[[value]].
 </ol>
 
 <h2 id="subclassing">Subclassing Streams</h2>

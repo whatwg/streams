@@ -1,5 +1,6 @@
 var assert = require('assert');
 import * as helpers from'./helpers';
+import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
 import CountQueuingStrategy from './count-queuing-strategy';
 
 export default class ReadableStream {
@@ -72,7 +73,7 @@ export default class ReadableStream {
     assert(this._state === 'readable', `stream state ${this._state} is invalid`);
     assert(this._queue.length > 0, 'there must be chunks available to read');
 
-    var chunk = helpers.dequeueValue(this._queue);
+    var chunk = DequeueValue(this._queue);
 
     if (this._queue.length < 1) {
       if (this._draining === true) {
@@ -213,10 +214,10 @@ export default class ReadableStream {
       return false;
     }
 
-    helpers.enqueueValueWithSize(this._queue, chunk, chunkSize);
+    EnqueueValueWithSize(this._queue, chunk, chunkSize);
     this._pulling = false;
 
-    var queueSize = helpers.getTotalQueueSize(this._queue);
+    var queueSize = GetTotalQueueSize(this._queue);
     var shouldApplyBackpressure;
     try {
       shouldApplyBackpressure = Boolean(this._strategy.shouldApplyBackpressure(queueSize));
