@@ -827,6 +827,30 @@ a variable <var>stream</var>, that performs the following steps:
     </ol>
 </ol>
 
+<h3 id="default-rs-strategy">%DefaultReadableStreamStrategy%</h3>
+
+%DefaultReadableStreamStrategy% is a well-known intrinsic object representing the default <a>queuing strategy</a> for
+<a>readable streams</a>. It has two methods.
+
+<div class="note">
+  The existence of an independent object for the default readable stream queuing strategy is not actually observable.
+  Thus, implementations could implement this default strategy by other means, e.g. by incorporating the default logic
+  into the readable stream algorithms themselves.
+</div>
+
+<h4 id="default-rs-strategy-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h4>
+
+<ol>
+  <li> Assert: <var>queueSize</var> is a non-<b>NaN</b> number.</li>
+  <li> Return <var>queueSize</var> > 1.
+</ol>
+
+<h4 id="default-rs-strategy-size">size()</h4>
+
+<ol>
+  <li> Return 1.
+</ol>
+
 <h2 id="ws">Writable Streams</h2>
 
 <h3 id="ws-intro">Introduction to Writable Streams</h3>
@@ -1414,6 +1438,28 @@ a variable <var>stream</var>, that performs the following steps:
     </ol>
 </ol>
 
+<h3 id="default-ws-strategy">%DefaultWritableStreamStrategy%</h3>
+
+%DefaultWritableStreamStrategy% is a well-known intrinsic object representing the default <a>queuing strategy</a> for
+<a>writable streams</a>. It has two methods.
+
+<div class="note">
+  As with %DefaultReadableStreamStrategy%, this object is simply a spec device, and its existence is not observable.
+</div>
+
+<h4 id="default-ws-strategy-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h4>
+
+<ol>
+  <li> Assert: <var>queueSize</var> is a non-<b>NaN</b> number.</li>
+  <li> Return <var>queueSize</var> > 0.
+</ol>
+
+<h4 id="default-ws-strategy-size">size()</h4>
+
+<ol>
+  <li> Return 1.
+</ol>
+
 <h2 id="ts">Transform Streams</h2>
 
 Transform streams have been developed in the testable implementation, but not yet re-encoded in spec language.
@@ -1573,52 +1619,6 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
   The <code>size</code> method returns one always, so that the total queue size is a count of the number of chunks in
   the queue.
 </div>
-
-<ol>
-  <li> Return 1.
-</ol>
-
-<h3 id="default-rs-strategy">%DefaultReadableStreamStrategy%</h3>
-
-%DefaultReadableStreamStrategy% is a well-known intrinsic object representing the default <a>queuing strategy</a> for
-<a>readable streams</a>. It has two methods.
-
-<div class="note">
-  The existence of an independent object for the default readable stream queuing strategy is not actually observable.
-  Thus, implementations could implement this default strategy by other means, e.g. by incorporating the default logic
-  into the readable stream algorithms themselves.
-</div>
-
-<h4 id="default-rs-strategy-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h4>
-
-<ol>
-  <li> Assert: <var>queueSize</var> is a non-<b>NaN</b> number.</li>
-  <li> Return <var>queueSize</var> > 1.
-</ol>
-
-<h4 id="default-rs-strategy-size">size()</h4>
-
-<ol>
-  <li> Return 1.
-</ol>
-
-<h3 id="default-ws-strategy">%DefaultWritableStreamStrategy%</h3>
-
-%DefaultWritableStreamStrategy% is a well-known intrinsic object representing the default <a>queuing strategy</a> for
-<a>writable streams</a>. It has two methods.
-
-<div class="note">
-  As with %DefaultReadableStreamStrategy%, this object is simply a spec device, and its existence is not observable.
-</div>
-
-<h4 id="default-ws-strategy-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h4>
-
-<ol>
-  <li> Assert: <var>queueSize</var> is a non-<b>NaN</b> number.</li>
-  <li> Return <var>queueSize</var> > 0.
-</ol>
-
-<h4 id="default-ws-strategy-size">size()</h4>
 
 <ol>
   <li> Return 1.
