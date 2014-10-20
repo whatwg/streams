@@ -3,6 +3,8 @@ var traceur = require('traceur');
 var glob = require('glob');
 var path = require('path');
 
+require('traceur-source-maps').install(traceur);
+
 traceur.require.makeDefault(function (filename) {
   // Don't compile our dependencies.
   return filename.indexOf('node_modules') === -1;
