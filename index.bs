@@ -1471,8 +1471,8 @@ table:
 <ol>
   <li> Let <var>highWaterMark</var> be ToNumber(<var>highWaterMark</var>).
   <li> If <var>highWaterMark</var> is <b>NaN</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>highWaterMark</bar> &lt; 0, throw a <b>RangeError</b> exception.
-  <li> Set <b>this</b>@\[[highWaterMark]] to <var>highWaterMark</var>
+  <li> If <var>highWaterMark</var> &lt; 0, throw a <b>RangeError</b> exception.
+  <li> Set <b>this</b>@\[[highWaterMark]] to <var>highWaterMark</var>.
 </ol>
 
 <h4 id="blqs-prototype">Properties of the <code>ByteLengthQueuingStrategy</code> Prototype</h4>
@@ -1548,8 +1548,8 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
 <ol>
   <li> Let <var>highWaterMark</var> be ToNumber(<var>highWaterMark</var>).
   <li> If <var>highWaterMark</var> is <b>NaN</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>highWaterMark</bar> &lt; 0, throw a <b>RangeError</b> exception.
-  <li> Set <b>this</b>@\[[highWaterMark]] to <var>highWaterMark</var>
+  <li> If <var>highWaterMark</var> &lt; 0, throw a <b>RangeError</b> exception.
+  <li> Set <b>this</b>@\[[highWaterMark]] to <var>highWaterMark</var>.
 </ol>
 
 <h4 id="blqs-prototype">Properties of the <code>CountQueuingStrategy</code> Prototype</h4>
