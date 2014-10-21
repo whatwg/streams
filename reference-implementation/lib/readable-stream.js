@@ -286,7 +286,7 @@ function CreateReadableStreamEnqueueFunction(stream) {
       chunkSize = stream._strategy.size(chunk);
     } catch (chunkSizeE) {
       stream._error(chunkSizeE);
-      return false;
+      throw chunkSizeE;
     }
 
     EnqueueValueWithSize(stream._queue, chunk, chunkSize);
@@ -298,7 +298,7 @@ function CreateReadableStreamEnqueueFunction(stream) {
       shouldApplyBackpressure = Boolean(stream._strategy.shouldApplyBackpressure(queueSize));
     } catch (shouldApplyBackpressureE) {
       stream._error(shouldApplyBackpressureE);
-      return false;
+      throw shouldApplyBackpressureE;
     }
 
     if (stream._state === 'waiting') {

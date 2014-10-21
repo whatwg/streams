@@ -373,7 +373,13 @@ test('ReadableStream if shouldApplyBackpressure throws, the stream is errored', 
 
   var rs = new ReadableStream({
     start(enqueue) {
-      t.equal(enqueue('hi'), false);
+      try {
+        enqueue('hi');
+        t.fail('enqueue didn\'t throw');
+        t.end();
+      } catch (e) {
+        t.equal(e, error);
+      }
     },
     strategy: {
       size() {
@@ -397,7 +403,13 @@ test('ReadableStream if size throws, the stream is errored', t => {
 
   var rs = new ReadableStream({
     start(enqueue) {
-      t.equal(enqueue('hi'), false);
+      try {
+        enqueue('hi');
+        t.fail('enqueue didn\'t throw');
+        t.end();
+      } catch (e) {
+        t.equal(e, error);
+      }
     },
     strategy: {
       size() {
