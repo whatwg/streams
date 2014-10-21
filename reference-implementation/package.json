@@ -27,6 +27,6 @@
     "tape": "^2.13.2",
     "text-table": "^0.2.0",
     "traceur": "0.0.72",
-    "traceur-source-maps": "git://github.com/domenic/traceur-source-maps#patch-1"
+    "traceur-source-maps": "^1.0.3"
   }
 }
