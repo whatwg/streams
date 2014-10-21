@@ -777,7 +777,7 @@ closing over a variable <var>stream</var>, that performs the following steps:
   <li> If <var>chunkSize</var> is an abrupt completion,
     <ol>
       <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>chunkSize</var>.\[[value]]).
-      <li> Return <b>false</b>.
+      <li> Return <var>chunkSize</var>.
     </ol>
   <li>Call-with-rethrow EnqueueValueWithSize(<var>stream</var>@\[[queue]], <var>chunk</var>,
     <var>chunkSize</var>.\[[value]]).
@@ -789,7 +789,7 @@ closing over a variable <var>stream</var>, that performs the following steps:
   <li> If <var>shouldApplyBackpressure</var> is an abrupt completion,
     <ol>
       <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>shouldApplyBackpressure</var>.\[[value]]).
-      <li> Return <b>false</b>.
+      <li> Return <var>shouldApplyBackpressure</var>.
     </ol>
   <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>,
     <ol>
