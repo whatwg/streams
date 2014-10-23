@@ -435,7 +435,7 @@ class ReadableStream {
   get state()
 
   cancel(reason)
-  pipeThrough({ input, output }, options)
+  pipeThrough({ writable, readable }, options)
   pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})
   read()
   wait()
