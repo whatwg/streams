@@ -1,6 +1,7 @@
 var test = require('tape');
 
 import ReadableByteStream from '../../lib/experimental/readable-byte-stream';
+import WritableStream from '../../lib/writable-stream';
 
 test('ReadableByteStream can be constructed with no arguments', t => {
   t.doesNotThrow(() => new ReadableByteStream());
@@ -568,4 +569,56 @@ test('ReadableByteStream: cancel() invokes source\'s cancel()', t => {
     resolveSinkCancelPromise('Hello');
     resolvedSinkCancelPromise = true;
   }, 0);
+});
+
+test.only('ReadableByteStream: Transfer 1kiB using pipeTo()', t => {
+  var generateCount = 0;
+  var rbs = new ReadableByteStream({
+    start(notifyReady) {
+      notifyReady();
+    },
+    readInto(arrayBuffer, offset, size) {
+      var view = new Uint8Array(arrayBuffer);
+      for (var i = 0; i < size; ++i) {
+        if (generateCount == 1024) {
+          if (i == 0)
+            return -1;
+          return i;
+        }
+
+        view[offset + i] = generateCount % 256;
+        ++generateCount;
+      }
+      return size;
+    },
+    cancel() {
+      t.fail('Source\'s cancel() is called');
+      t.end();
+    },
+    readBufferSize: 10
+  });
+
+  var verifyCount = 0;
+  var ws = new WritableStream({
+    write(chunk) {
+      var view = new Uint8Array(chunk);
+      for (var i = 0; i < chunk.byteLength; ++i) {
+        if (view[i] != verifyCount % 256) {
+          t.fail('Unexpected character');
+          t.end();
+        }
+        ++verifyCount;
+      }
+    },
+    close() {
+      t.equal(verifyCount, 1024);
+      t.end();
+    },
+    abort() {
+      t.fail('abort() is called');
+      t.end();
+    }
+  });
+
+  rbs.pipeTo(ws);
 });

@@ -1,5 +1,6 @@
 var assert = require('assert');
 import * as helpers from '../helpers';
+import ReadableStream from '../readable-stream';
 
 function notifyReady(stream) {
   if (stream._state !== 'waiting') {
@@ -166,6 +167,10 @@ export default class ReadableByteStream {
     // it's ready.
     var resizedArrayBuffer = arrayBuffer.slice(0, bytesRead);
     return resizedArrayBuffer;
+  }
+
+  pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) {
+    ReadableStream.prototype.pipeTo.call(this, dest, {preventClose, preventAbort, preventCancel});
   }
 
   get wait() {
