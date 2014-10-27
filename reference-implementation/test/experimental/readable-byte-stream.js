@@ -571,7 +571,7 @@ test('ReadableByteStream: cancel() invokes source\'s cancel()', t => {
   }, 0);
 });
 
-test.only('ReadableByteStream: Transfer 1kiB using pipeTo()', t => {
+test('ReadableByteStream: Transfer 1kiB using pipeTo()', t => {
   var generateCount = 0;
   var rbs = new ReadableByteStream({
     start(notifyReady) {
