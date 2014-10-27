@@ -1133,7 +1133,7 @@ test('Piping to a writable stream that does not consume the writes fast enough e
   });
 
   setTimeout(() => {
-    rs.pipeTo(ws).closed.then(() => {
+    rs.pipeTo(ws).then(() => {
       t.deepEqual(enqueueReturnValues, [true, true, false, false], 'backpressure was correctly exerted at the source');
       t.deepEqual(writtenValues, ['a', 'b', 'c', 'd'], 'all chunks were written');
     });

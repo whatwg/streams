@@ -36,7 +36,7 @@ test('Piping through an identity transform stream will close the destination whe
 
   var ws = new WritableStream();
 
-  rs.pipeThrough(ts).pipeTo(ws).closed.then(() => {
+  rs.pipeThrough(ts).pipeTo(ws).then(() => {
     t.equal(rs.state, 'closed', 'the readable stream was closed');
     t.equal(ws.state, 'closed', 'the writable stream was closed');
   });
@@ -85,7 +85,7 @@ test('Piping through a default transform stream causes backpressure to be exerte
   });
 
   setTimeout(() => {
-    rs.pipeThrough(ts).pipeTo(ws).closed.then(() => {
+    rs.pipeThrough(ts).pipeTo(ws).then(() => {
       t.deepEqual(
         enqueueReturnValues,
         [true, true, true, true, false, false, false, false],
