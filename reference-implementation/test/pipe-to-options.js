@@ -52,12 +52,22 @@ test('Piping with { preventClose: true } and no errors', t => {
     }
   });
 
-  rs.pipeTo(ws, { preventClose: true });
+  var pipeToPromise = rs.pipeTo(ws, { preventClose: true });
 
   rs.closed.then(() => {
     setTimeout(() => {
       t.equal(ws.state, 'writable', 'destination should be writable');
-      t.end();
+
+      pipeToPromise.then(
+        v => {
+          t.equal(v, undefined);
+          t.end();
+        },
+        r => {
+          t.fail('pipeToPromise is rejected');
+          t.end();
+        }
+      );
     }, 0);
   });
 });
@@ -110,12 +120,22 @@ test('Piping with { preventAbort: true } and a source error', t => {
     }
   });
 
-  rs.pipeTo(ws, { preventAbort: true });
+  var pipeToPromise = rs.pipeTo(ws, { preventAbort: true });
 
   rs.closed.catch(() => {
     setTimeout(() => {
       t.equal(ws.state, 'writable', 'destination should remain writable');
-      t.end();
+
+      pipeToPromise.then(
+        () => {
+          t.fail('pipeToPromise is fulfilled');
+          t.end();
+        },
+        r => {
+          t.equal(r, theError, 'rejection reason of pipeToPromise is the source error');
+          t.end();
+        }
+      );
     }, 0);
   })
 });
@@ -192,12 +212,22 @@ test('Piping with { preventCancel: true } and a destination error', t => {
     }
   });
 
-  rs.pipeTo(ws, { preventCancel: true });
+  var pipeToPromise = rs.pipeTo(ws, { preventCancel: true });
 
   ws.closed.catch(() => {
     setTimeout(() => {
       t.equal(rs.state, 'readable', 'source should remain readable');
-      t.end()
+
+      pipeToPromise.then(
+        () => {
+          t.fail('pipeToPromise is fulfilled');
+          t.end();
+        },
+        r => {
+          t.equal(r, theError, 'rejection reason of pipeToPromise is the sink error');
+          t.end();
+        }
+      );
     }, 30);
   });
 });

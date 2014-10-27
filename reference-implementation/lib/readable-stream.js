@@ -90,8 +90,15 @@ export default class ReadableStream {
     preventAbort = Boolean(preventAbort);
     preventCancel = Boolean(preventCancel);
 
-    doPipe();
-    return dest;
+    var resolvePipeToPromise;
+    var rejectPipeToPromise;
+
+    return new Promise((resolve, reject) => {
+      resolvePipeToPromise = resolve;
+      rejectPipeToPromise = reject;
+
+      doPipe();
+    });
 
     function doPipe() {
       for (;;) {
@@ -131,11 +138,14 @@ export default class ReadableStream {
       if (preventCancel === false) {
         source.cancel(reason);
       }
+      rejectPipeToPromise(reason);
     }
 
     function closeDest() {
       if (preventClose === false) {
-        dest.close();
+        dest.close().then(resolvePipeToPromise, rejectPipeToPromise);
+      } else {
+        resolvePipeToPromise();
       }
     }
 
@@ -143,6 +153,7 @@ export default class ReadableStream {
       if (preventAbort === false) {
         dest.abort(reason);
       }
+      rejectPipeToPromise(reason);
     }
   }
 
