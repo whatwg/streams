@@ -493,11 +493,6 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     <td>A boolean flag indicating whether the <a>underlying source</a> has finished starting
   </tr>
   <tr>
-    <td>\[[startedPromise]]
-    <td>A promise storing the result of starting the <a>underlying source</a>, used to delay actions until that is
-      complete
-  </tr>
-  <tr>
     <td>\[[state]]
     <td>A string containing the stream's current state; returned by the <code>state</code> getter
   </tr>
@@ -560,12 +555,12 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Let <var>startResult</var> be the result of calling <var>start</var>(<b>this</b>@\[[enqueue]],
     <b>this</b>@\[[close]], <b>this</b>@\[[error]]).
   <li> ReturnIfAbrupt(<var>startResult</var>).
-  <li> Set <b>this</b>@\[[startedPromise]] to the result of resolving <var>startResult</var> as a promise.
+  <li> Resolve <var>startResult</var> as a promise:
     <ol>
       <li> Upon fulfillment,
         <ol>
           <li> Set <b>this</b>@\[[started]] to <b>true</b>.
-          <li> Set <b>this</b>@\[[startedPromise]] to <b>undefined</b>.
+          <li> Return CallReadableStreamPull(<b>this</b>).
         </ol>
       <li> Upon rejection with reason <var>r</var>, call-with-rethrow <b>this</b>@\[[error]](<var>r</var>).
     </ol>
@@ -686,9 +681,9 @@ look for the <code>pipeTo</code> method.
         <ol>
           <li> Set <b>this</b>@\[[state]] to <code>"waiting"</code>.
           <li> Let <b>this</b>@\[[waitPromise]] be a new promise.
-          <li> Call-with-rethrow CallOrScheduleReadableStreamPull(<b>this</b>).
         </ol>
     </ol>
+  <li> Call-with-rethrow CallReadableStreamPull(<b>this</b>).
   <li> Return <var>chunk</var>.
 </ol>
 
@@ -704,34 +699,27 @@ look for the <code>pipeTo</code> method.
 </div>
 
 <ol>
-  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, call-with-rethrow
-    CallOrScheduleReadableStreamPull(<b>this</b>).
   <li> Return <b>this</b>@\[[waitPromise]].
 </ol>
 
 <h3 id="rs-abstract-ops">Readable Stream Abstract Operations </h3>
 
-<h4 id="call-or-schedule-readable-stream-pull">CallOrScheduleReadableStreamPull ( stream )</h4>
-
-<ol>
-  <li> If <var>stream</var>@\[[pulling]] is <b>true</b>, return <b>undefined</b>.
-  <li> Set <var>stream</var>@\[[pulling]] to <b>true</b>.
-  <li> If <var>stream</var>@\[[started]] is <b>false</b>, then
-    <ol>
-      <li> Upon fulfillment of <var>stream</var>@\[[startedPromise]], call-with-rethrow
-        CallReadableStreamPull(<var>stream</var>).
-      <li> Return <b>undefined</b>.
-    </ol>
-  <li> Otherwise, return CallReadableStreamPull(<var>stream</var>).
-</ol>
-
 <h4 id="call-readable-stream-pull">CallReadableStreamPull ( stream )</h4>
 
 <ol>
+  <li> If <var>stream</var>@\[[pulling]] is <b>true</b> or <var>stream</var>@\[[draining]] is <b>true</b> or
+    <var>stream</var>@\[[started]] is <b>false</b> or <var>stream</var>@\[[state]] is <code>"closed"</code> or
+    <var>stream</var>@\[[state]] is <code>"errored"</code>, return <b>undefined</b>.
+  <li> Let <var>shouldApplyBackpressure</var> be ShouldReadableStreamApplyBackpressure(<var>stream</var>).
+  <li> If <var>shouldApplyBackpressure</var> is <b>true</b>, return <b>undefined</b>.
+  <li> Set <var>stream</var>@\[[pulling]] to <b>true</b>.
   <li> Let <var>pullResult</var> be the result of calling <var>stream</var>@\[[onPull]](<var>stream</var>@\[[enqueue]],
     <var>stream</var>@\[[close]], <var>stream</var>@\[[error]]).
-  <li> If <var>pullResult</var> is an abrupt completion, return
-    <var>stream</var>@\[[error]](<var>pullResult</var>.\[[value]]).
+  <li> If <var>pullResult</var> is an abrupt completion,
+    <ol>
+      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>pullResult</var>.\[[value]]).
+      <li> Return <var>pullResult</var>.
+    </ol>
   <li> Otherwise, return <b>undefined</b>.
 </ol>
 
@@ -767,7 +755,8 @@ A <dfn>Readable Stream Enqueue Function</dfn> is a built-in anonymous function o
 closing over a variable <var>stream</var>, that performs the following steps:
 
 <ol>
-  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code> or <code>"closed"</code>, return <b>false</b>.
+  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, throw <var>stream</var>@\[[storedError]].
+  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code>, throw a <b>TypeError</b> exception.
   <li> If <var>stream</var>@\[[draining]] is <b>true</b>, throw a <b>TypeError</b> exception.
   <li> Let <var>chunkSize</var> be Invoke(<var>stream</var>@\[[strategy]], <code>"size"</code>, (<var>chunk</var>)).
   <li> If <var>chunkSize</var> is an abrupt completion,
@@ -778,15 +767,7 @@ closing over a variable <var>stream</var>, that performs the following steps:
   <li>Call-with-rethrow EnqueueValueWithSize(<var>stream</var>@\[[queue]], <var>chunk</var>,
     <var>chunkSize</var>.\[[value]]).
   <li> Set <var>stream</var>@\[[pulling]] to <b>false</b>.
-  <li> Let <var>queueSize</var> be GetTotalQueueSize(<var>stream</var>@\[[queue]]).
-  <li> ReturnIfAbrupt(<var>queueSize</var>).
-  <li> Let <var>shouldApplyBackpressure</var> be ToBoolean(Invoke(<var>stream</var>@\[[strategy]],
-    <code>"shouldApplyBackpressure"</code>, (<var>queueSize</var>))).
-  <li> If <var>shouldApplyBackpressure</var> is an abrupt completion,
-    <ol>
-      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>shouldApplyBackpressure</var>.\[[value]]).
-      <li> Return <var>shouldApplyBackpressure</var>.
-    </ol>
+  <li> Let <var>shouldApplyBackpressure</var> be ShouldReadableStreamApplyBackpressure(<var>stream</var>).
   <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>,
     <ol>
       <li> Set <var>stream</var>@\[[state]] to <code>"readable"</code>.
@@ -821,6 +802,21 @@ a variable <var>stream</var>, that performs the following steps:
       <li> Let <var>stream</var>@\[[waitPromise]] be a new promise rejected with <var>e</var>.
       <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
     </ol>
+</ol>
+
+<h4 id="should-readable-stream-apply-backpressure">ShouldReadableStreamApplyBackpressure ( stream )</h4>
+
+<ol>
+  <li> Let <var>queueSize</var> be GetTotalQueueSize(<var>stream</var>@\[[queue]]).
+  <li> ReturnIfAbrupt(<var>queueSize</var>).
+  <li> Let <var>shouldApplyBackpressure</var> be ToBoolean(Invoke(<var>stream</var>@\[[strategy]],
+    <code>"shouldApplyBackpressure"</code>, (<var>queueSize</var>))).
+  <li> If <var>shouldApplyBackpressure</var> is an abrupt completion,
+    <ol>
+      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>shouldApplyBackpressure</var>.\[[value]]).
+      <li> Return <var>shouldApplyBackpressure</var>.
+    </ol>
+  <li> Otherwise, return <var>shouldApplyBackpressure</var>.\[[value]].
 </ol>
 
 <h3 id="default-rs-strategy">%DefaultReadableStreamStrategy%</h3>

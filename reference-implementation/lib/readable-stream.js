@@ -36,12 +36,13 @@ export default class ReadableStream {
     this._error = CreateReadableStreamErrorFunction(this);
 
     var startResult = start(this._enqueue, this._close, this._error);
-    this._startedPromise = Promise.resolve(startResult);
-    this._startedPromise.then(() => {
-      this._started = true;
-      this._startedPromise = undefined;
-    });
-    this._startedPromise.catch(r => this._error(r));
+    Promise.resolve(startResult).then(
+      () => {
+        this._started = true;
+        CallReadableStreamPull(this);
+      },
+      r => this._error(r)
+    );
   }
 
   get closed() {
@@ -180,18 +181,15 @@ export default class ReadableStream {
       } else {
         this._state = 'waiting';
         this._initWaitPromise();
-        CallOrScheduleReadableStreamPull(this);
       }
     }
+
+    CallReadableStreamPull(this);
 
     return chunk;
   }
 
   wait() {
-    if (this._state === 'waiting') {
-      CallOrScheduleReadableStreamPull(this);
-    }
-
     return this._waitPromise;
   }
 
@@ -240,23 +238,19 @@ export default class ReadableStream {
   }
 }
 
-function CallOrScheduleReadableStreamPull(stream) {
-  if (stream._pulling === true) {
+function CallReadableStreamPull(stream) {
+  if (stream._pulling === true || stream._draining === true || stream._started === false ||
+      stream._state === 'closed' || stream._state === 'errored') {
     return undefined;
   }
+
+  var shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
+  if (shouldApplyBackpressure === true) {
+    return undefined;
+  }
+
   stream._pulling = true;
 
-  if (stream._started === false) {
-    stream._startedPromise.then(() => {
-      CallReadableStreamPull(stream);
-    });
-    return undefined;
-  } else {
-    return CallReadableStreamPull(stream);
-  }
-}
-
-function CallReadableStreamPull(stream) {
   try {
     stream._onPull(
       stream._enqueue,
@@ -264,8 +258,10 @@ function CallReadableStreamPull(stream) {
       stream._error
     );
   } catch (pullResultE) {
-    return stream._error(pullResultE);
+    stream._error(pullResultE);
+    throw pullResultE;
   }
+
   return undefined;
 }
 
@@ -284,12 +280,16 @@ function CreateReadableStreamCloseFunction(stream) {
 
 function CreateReadableStreamEnqueueFunction(stream) {
   return chunk => {
-    if (stream._state === 'errored' || stream._state === 'closed') {
-      return false;
+    if (stream._state === 'errored') {
+      throw stream._storedError;
+    }
+
+    if (stream._state === 'closed') {
+      throw new TypeError('stream is closed');
     }
 
     if (stream._draining === true) {
-      throw new TypeError('stream has already been closed');
+      throw new TypeError('stream is draining');
     }
 
     var chunkSize;
@@ -303,14 +303,7 @@ function CreateReadableStreamEnqueueFunction(stream) {
     EnqueueValueWithSize(stream._queue, chunk, chunkSize);
     stream._pulling = false;
 
-    var queueSize = GetTotalQueueSize(stream._queue);
-    var shouldApplyBackpressure;
-    try {
-      shouldApplyBackpressure = Boolean(stream._strategy.shouldApplyBackpressure(queueSize));
-    } catch (shouldApplyBackpressureE) {
-      stream._error(shouldApplyBackpressureE);
-      throw shouldApplyBackpressureE;
-    }
+    var shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
 
     if (stream._state === 'waiting') {
       stream._state = 'readable';
@@ -344,6 +337,19 @@ function CreateReadableStreamErrorFunction(stream) {
       stream._rejectClosedPromise(e);
     }
   };
+}
+
+function ShouldReadableStreamApplyBackpressure(stream) {
+  var queueSize = GetTotalQueueSize(stream._queue);
+  var shouldApplyBackpressure;
+  try {
+    shouldApplyBackpressure = Boolean(stream._strategy.shouldApplyBackpressure(queueSize));
+  } catch (shouldApplyBackpressureE) {
+    stream._error(shouldApplyBackpressureE);
+    throw shouldApplyBackpressureE;
+  }
+
+  return shouldApplyBackpressure;
 }
 
 var defaultReadableStreamStrategy = {

@@ -42,11 +42,11 @@ test('Piping through an identity transform stream will close the destination whe
   });
 });
 
-test('Piping through a default transform stream causes backpressure to be exerted after some delay', t => {
+// FIXME: expected results here will probably change as we fix https://github.com/whatwg/streams/issues/190
+// As they are now they don't make very much sense, so we will skip the test. When #190 is fixed, we should fix the
+// test and re-enable.
+test.skip('Piping through a default transform stream causes backpressure to be exerted after some delay', t => {
   t.plan(2);
-
-  // FIXME: expected results here will probably change as we fix https://github.com/whatwg/streams/issues/190
-  // As they are now they don't make very much sense
 
   // Producer: every 20 ms
   var enqueueReturnValues = [];

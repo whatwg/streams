@@ -273,3 +273,19 @@ test('ReadableStream onCancel returns a promise that will be rejected asynchrono
     rejectSourceCancelPromise(errorInCancel);
   }, 0);
 });
+
+test('ReadableStream cancelation before start finishes prevents pull() from being called', t => {
+  var rs = new ReadableStream({
+    pull() {
+      t.fail('unexpected pull call');
+      t.end();
+    }
+  });
+
+  rs.cancel();
+
+  setTimeout(() => {
+    t.pass('pull was never called');
+    t.end();
+  }, 0);
+});

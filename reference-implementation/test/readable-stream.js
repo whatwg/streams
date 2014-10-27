@@ -377,14 +377,14 @@ test('ReadableStream continues returning `true` from `enqueue` if the data is re
   });
 });
 
-test('ReadableStream enqueue fails when the stream is in closing state', t => {
+test('ReadableStream enqueue fails when the stream is draining', t => {
   var rs = new ReadableStream({
     start(enqueue, close) {
       t.equal(enqueue('a'), true);
       close();
 
       t.throws(
-        () => t.equal(enqueue('b'), false),
+        () => enqueue('b'),
         /TypeError/,
         'enqueue after close must throw a TypeError'
       );
@@ -395,6 +395,41 @@ test('ReadableStream enqueue fails when the stream is in closing state', t => {
   t.equal(rs.state, 'readable');
   t.equal(rs.read(), 'a');
   t.equal(rs.state, 'closed');
+  t.end();
+});
+
+test('ReadableStream enqueue fails when the stream is closed', t => {
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      close();
+
+      t.throws(
+        () => enqueue('a'),
+        /TypeError/,
+        'enqueue after close must throw a TypeError'
+      );
+    }
+  });
+
+  t.equal(rs.state, 'closed');
+  t.end();
+});
+
+test('ReadableStream enqueue fails with the correct error when the stream is errored', t => {
+  var expectedError = new Error('i am sad');
+  var rs = new ReadableStream({
+    start(enqueue, close, error) {
+      error(expectedError);
+
+      t.throws(
+        () => enqueue('a'),
+        /i am sad/,
+        'enqueue after error must throw that error'
+      );
+    }
+  });
+
+  t.equal(rs.state, 'errored');
   t.end();
 });
 
@@ -463,7 +498,7 @@ test('ReadableStream if size is NaN, the stream is errored', t => {
     start(enqueue) {
       try {
         enqueue('hi');
-        t.fail('The constructor didn\'t throw');
+        t.fail('enqueue didn\'t throw');
       } catch (error) {
         t.equal(error.constructor, RangeError);
         t.end();
@@ -479,4 +514,44 @@ test('ReadableStream if size is NaN, the stream is errored', t => {
       }
     }
   });
+});
+
+test('ReadableStream errors in shouldApplyBackpressure prevent wait() from fulfilling', t => {
+  var thrownError = new Error('size failure');
+  var callsToShouldApplyBackpressure = 0;
+  var rs = new ReadableStream({
+    start(enqueue) {
+      setTimeout(() => {
+        try {
+          enqueue('hi');
+          t.fail('enqueue didn\'t throw');
+        } catch (error) {
+          t.equal(error, thrownError, 'error thrown by enqueue should be the thrown error');
+        }
+      }, 0);
+    },
+    strategy: {
+      size() {
+        return 1;
+      },
+      shouldApplyBackpressure() {
+        if (++callsToShouldApplyBackpressure === 2) {
+          throw thrownError;
+        }
+
+        return false;
+      }
+    }
+  });
+
+  rs.wait().then(
+    () => {
+      t.fail('wait() should not be fulfilled');
+      t.end();
+    },
+    e => {
+      t.equal(e, thrownError, 'wait() should be rejected with the thrown error');
+      t.end();
+    }
+  );
 });

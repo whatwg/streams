@@ -141,16 +141,19 @@ test('Piping with { preventAbort: true } and a source error', t => {
 });
 
 test('Piping with no options and a destination error', t => {
+  t.plan(2);
+
   var theError = new Error('destination error');
   var rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       setTimeout(() => enqueue('b'), 10);
-      setTimeout(() => enqueue('c'), 20);
+      setTimeout(() => {
+        t.throws(() => enqueue('c'), /TypeError/, 'enqueue after cancel must throw a TypeError');
+      }, 20);
     },
     cancel(r) {
       t.equal(r, theError, 'reason passed to cancel equals the source error');
-      t.end();
     }
   });
 
@@ -166,16 +169,19 @@ test('Piping with no options and a destination error', t => {
 });
 
 test('Piping with { preventCancel: false } and a destination error', t => {
+  t.plan(2);
+
   var theError = new Error('destination error');
   var rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       setTimeout(() => enqueue('b'), 10);
-      setTimeout(() => enqueue('c'), 20);
+      setTimeout(() => {
+        t.throws(() => enqueue('c'), /TypeError/, 'enqueue after cancel must throw a TypeError');
+      }, 20);
     },
     cancel(r) {
       t.equal(r, theError, 'reason passed to cancel equals the source error');
-      t.end();
     }
   });
 

@@ -225,7 +225,7 @@ test('Piping from a ReadableStream in readable state which becomes closed after 
   var pullCount = 0;
   var rs = new ReadableStream({
     start(enqueue, close) {
-      enqueue("Hello");
+      enqueue('Hello');
       closeReadableStream = close;
     },
     pull() {
@@ -345,10 +345,7 @@ test('Piping from a ReadableStream in waiting state which becomes readable after
   var ws = new WritableStream({
     write(chunk) {
       t.equal(chunk, 'Hello');
-
-      // Includes pull invoked inside read()
-      t.equal(pullCount, 2);
-
+      t.equal(pullCount, 1);
       t.end();
     },
     close() {
@@ -371,13 +368,13 @@ test('Piping from a ReadableStream in waiting state which becomes readable after
 test('Piping from a ReadableStream in waiting state which becomes errored after pipeTo call to a WritableStream in ' +
     'writable state', t => {
   var errorReadableStream;
-  var pullCount = 0;
   var rs = new ReadableStream({
     start(enqueue, close, error) {
       errorReadableStream = error;
     },
     pull() {
-      ++pullCount;
+      t.fail('Unexpected pull call');
+      t.end();
     },
     cancel() {
       t.fail('Unexpected cancel call');
@@ -397,9 +394,6 @@ test('Piping from a ReadableStream in waiting state which becomes errored after 
     },
     abort(reason) {
       t.equal(reason, passedError);
-
-      t.equal(pullCount, 1);
-
       t.end();
     }
   });
@@ -528,17 +522,17 @@ test('Piping from a ReadableStream in readable state to a WritableStream in wait
   var writeCalled = false;
 
   var enqueue;
+  var pullCount = 0;
   var rs = new ReadableStream({
     start(enqueue) {
       enqueue('World');
     },
     pull() {
-      t.fail('Unexpected pull call');
-      t.end();
+      ++pullCount;
     },
     cancel() {
       t.assert(writeCalled);
-
+      t.equal(pullCount, 1);
       t.end();
     }
   });
@@ -582,14 +576,14 @@ test('Piping from a ReadableStream in readable state to a WritableStream in wait
 test('Piping from a ReadableStream in readable state which becomes errored after pipeTo call to a WritableStream in ' +
     'waiting state', t => {
   var errorReadableStream;
+  var pullCount = 0;
   var rs = new ReadableStream({
     start(enqueue, close, error) {
       enqueue('World');
       errorReadableStream = error;
     },
     pull() {
-      t.fail('Unexpected pull call');
-      t.end();
+      ++pullCount;
     },
     cancel() {
       t.fail('Unexpected cancel call');
@@ -621,6 +615,7 @@ test('Piping from a ReadableStream in readable state which becomes errored after
   // Wait for ws to start.
   setTimeout(() => {
     t.equal(ws.state, 'waiting');
+    t.equal(pullCount, 1);
 
     rs.pipeTo(ws);
     t.equal(rs.state, 'readable', 'transfer of data must not happen until ws becomes writable');
