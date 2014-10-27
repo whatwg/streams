@@ -132,6 +132,44 @@ test('ReadableStream explicit cancellation passes through the given reason', t =
   t.end();
 });
 
+test('ReadableStream rs.cancel() on a closed stream returns a promise resolved with undefined', t => {
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      close();
+    }
+  });
+
+  t.equal(rs.state, 'closed');
+  var cancelPromise = rs.cancel(undefined);
+  cancelPromise.then(value => {
+    t.equal(value, undefined, 'fulfillment value of cancelPromise must be undefined');
+    t.end();
+  }).catch(r => {
+    t.fail('cancelPromise is rejected');
+    t.end();
+  });
+});
+
+test('ReadableStream rs.cancel() on an errored stream returns a promise resolved with undefined', t => {
+  var passedError = new Error('aaaugh!!');
+
+  var rs = new ReadableStream({
+    start(enqueue, close, error) {
+      error(passedError);
+    }
+  });
+
+  t.equal(rs.state, 'errored');
+  var cancelPromise = rs.cancel(undefined);
+  cancelPromise.then(() => {
+    t.fail('cancelPromise is fulfilled');
+    t.end();
+  }).catch(r => {
+    t.equal(r, passedError, 'cancelPromise must be rejected with passedError');
+    t.end();
+  });
+});
+
 test('ReadableStream the fulfillment value of the promise rs.cancel() returns must be undefined', t => {
   var rs = new ReadableStream({
     cancel(reason) {

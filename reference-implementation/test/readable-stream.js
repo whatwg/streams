@@ -51,8 +51,17 @@ test(`ReadableStream closing puts the stream in a closed state, fulfilling the w
   );
 });
 
+test('ReadableStream reading a waiting stream throws a TypeError', t => {
+  t.plan(2);
+
+  var rs = new ReadableStream();
+
+  t.equal(rs.state, 'waiting');
+  t.throws(() => rs.read(), /TypeError/);
+});
+
 test('ReadableStream reading a closed stream throws a TypeError', t => {
-  t.plan(1);
+  t.plan(2);
 
   var rs = new ReadableStream({
     start(enqueue, close) {
@@ -60,7 +69,28 @@ test('ReadableStream reading a closed stream throws a TypeError', t => {
     }
   });
 
+  t.equal(rs.state, 'closed');
   t.throws(() => rs.read(), /TypeError/);
+});
+
+test('ReadableStream reading an errored stream throws the stored error', t => {
+  t.plan(2);
+
+  var passedError = new Error('aaaugh!!');
+
+  var rs = new ReadableStream({
+    start(enqueue, close, error) {
+      error(passedError);
+    }
+  });
+
+  t.equal(rs.state, 'errored');
+  try {
+    rs.read();
+    t.fail('rs.read() didn\'t throw');
+  } catch (e) {
+    t.equal(e, passedError);
+  }
 });
 
 test(`ReadableStream reading a stream makes wait() and closed return a promise fulfilled with undefined when the stream
