@@ -1,5 +1,6 @@
 var assert = require('assert');
 import * as helpers from '../helpers';
+import ReadableStream from '../readable-stream';
 
 function notifyReady(stream) {
   if (stream._state !== 'waiting') {
@@ -166,6 +167,13 @@ export default class ReadableByteStream {
     // it's ready.
     var resizedArrayBuffer = arrayBuffer.slice(0, bytesRead);
     return resizedArrayBuffer;
+  }
+
+  // Note: We plan to make this more efficient in the future. But for now this
+  // implementation suffices to show interoperability with a generic
+  // WritableStream.
+  pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) {
+    ReadableStream.prototype.pipeTo.call(this, dest, {preventClose, preventAbort, preventCancel});
   }
 
   get wait() {
