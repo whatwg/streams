@@ -257,7 +257,7 @@ it.
   <pre>
     var webSocketStream = makeReadableWebSocketStream("http://example.com", 80);
 
-    webSocketStream.pipeTo(writableStream).closed
+    webSocketStream.pipeTo(writableStream)
       .then(() => console.log("All data successfully written!"))
       .catch(e => console.error("Something went wrong!", e));
   </pre>
@@ -969,7 +969,7 @@ becomes available.
   <pre>
     var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
 
-    readableStream.pipeTo(fileStream).closed
+    readableStream.pipeTo(fileStream)
       .then(() => console.log("All data successfully written!"))
       .catch(e => console.error("Something went wrong!", e));
   </pre>
