@@ -169,6 +169,9 @@ export default class ReadableByteStream {
     return resizedArrayBuffer;
   }
 
+  // Note: We plan to make this more efficient in the future. But for now this
+  // implementation suffices to show interoperability with a generic
+  // WritableStream.
   pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) {
     ReadableStream.prototype.pipeTo.call(this, dest, {preventClose, preventAbort, preventCancel});
   }
