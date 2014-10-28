@@ -1,206 +1,212 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/" xmlns:gliffy="http://www.gliffy.com" xmlns:graph="http://ns.adobe.com/Graphs/1.0/" xmlns:i="http://ns.adobe.com/AdobeIllustrator/10.0/" xmlns:x="http://ns.adobe.com/Extensibility/1.0/" xmlns:xlink="http://www.w3.org/1999/xlink" width="578" height="700">
-  <g transform="translate(181.5,390.0)">
-    <path d="M0.0,0.0 L-110.0,0.0 Q-120.0,0.0 -120.0,10.0 L-120.0,122.0 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(-111.0,0.0)" />
+<svg xmlns="http://www.w3.org/2000/svg" width="670" height="690">
+  <style>
+    rect {
+      fill: white;
+    }
+
+    rect[rx] {
+      stroke: black;
+      stroke-width: 2;
+    }
+
+    path[marker-end] {
+      stroke: black;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    text {
+      font-family: Arial;
+      font-size: 12px;
+      text-anchor: middle;
+    }
+
+    tspan.constructor-param {
+      font-weight: bold;
+    }
+
+    tspan.method-call {
+      font-family: monospace;
+    }
+
+    tspan.capability {
+      font-style: italic;
+    }
+  </style>
+  <defs>
+    <marker id="arrow" orient="auto" markerWidth="6" markerHeight="6" refX="5" refY="3">
+      <path d="M0,0 V6 L5,3 Z" fill="black" />
+    </marker>
+  </defs>
+
+  <ellipse cx="160" cy="40" rx="7" ry="7" fill="black" />
+  <path d="M160,40 L230,40 Q240,40 240,50 L240,100" marker-end="url(#arrow)" />
+
+  <!-- BOX: Waiting (started = false) -->
+  <g transform="translate(180, 100)">
+    <rect x="0" y="0" width="120" height="60" rx="7" />
+    <text y="27">
+      <tspan x="60">Waiting</tspan>
+      <tspan x="60" dy="14">(started = false)</tspan>
+    </text>
   </g>
-  <g transform="translate(161.0,30.0) rotate(0.0 7.5 7.5)">
-    <ellipse cx="7.5" cy="7.5" rx="7.5" ry="7.5" stroke="#333333" stroke-width="2" fill="#000000" />
-    <g />
+
+  <!-- ARROW: .cancel(reason) -->
+  <path d="M180,130 L70,130 Q60,130 60,140 L60,640 Q60,650 70,650 L180,650" marker-end="url(#arrow)" />
+  <g transform="translate(60,188)">
+    <rect x="-55" y="0" width="110" height="14" />
+    <text y="10">
+      <tspan class="method-call">.cancel(reason)</tspan>
+    </text>
   </g>
-  <g transform="translate(181.5,100.0) rotate(0.0 60.0 30.0)">
-    <path d="M110.0,0 Q120.0,0 120.0,10 L120.0,50.0 Q120.0,60.0 110.0,60.0 L10,60.0 Q0,60.0 0,50.0 L0,10 Q0,0 10,0 Z" stroke="#333333" stroke-width="2" fill="#ffffff" />
-    <g transform="translate(0.0,27.0)">
-      <text x="60.0" style="text-anchor: middle" y="-2.0">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">Waiting</tspan>
-      </text>
-      <text x="60.0" style="text-anchor: middle" y="12.8">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">(started = false)</tspan>
-      </text>
-    </g>
+
+  <!-- ARROW: start() fulfills -->
+  <path d="M240,160 L240,230" marker-end="url(#arrow)" />
+  <g transform="translate(240,188)">
+    <rect x="-40" y="0" width="80" height="14" />
+    <text y="10">
+      <tspan class="constructor-param">start()</tspan>
+      <tspan>fulfills</tspan>
+    </text>
   </g>
-  <g transform="translate(176.0,37.5)">
-    <path d="M0.0,0.0 L55.5,0.0 Q65.5,0.0 65.5,10.0 L65.5,59.5 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(65.5,62.5) rotate(270.0)">
-      <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
-    </g>
-    <g transform="translate(54.0,0.0)" />
+
+  <!-- ARROW: start() rejects -->
+  <path d="M300,112 L610,112 Q620,112 620,122 L620,640 Q620,650 610,650 L580,650" marker-end="url(#arrow)" />
+  <g transform="translate(620,188)">
+    <rect x="-40" y="0" width="80" height="14" />
+    <text y="10">
+      <tspan class="constructor-param">start()</tspan>
+      <tspan>rejects</tspan>
+    </text>
   </g>
-  <g transform="translate(181.5,230.0) rotate(0.0 60.0 30.0)">
-    <path d="M110.0,0 Q120.0,0 120.0,10 L120.0,50.0 Q120.0,60.0 110.0,60.0 L10,60.0 Q0,60.0 0,50.0 L0,10 Q0,0 10,0 Z" stroke="#333333" stroke-width="2" fill="#ffffff" />
-    <g transform="translate(0.0,27.0)">
-      <text x="60.0" style="text-anchor: middle" y="-2.0">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">Waiting</tspan>
-      </text>
-      <text x="60.0" style="text-anchor: middle" y="12.8">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">(started = true)</tspan>
-      </text>
-    </g>
+
+  <!-- UNLABELED ARROW: error(e) -->
+  <path d="M300,124 L510,124 Q520,124 520,134 L520,620" marker-end="url(#arrow)" />
+
+  <!-- UNLABELED ARROW: close() -->
+  <path d="M300,136 L410,136 Q420,136 420,146 L420,640 Q420,650 410,650 L300,650" marker-end="url(#arrow)" />
+
+  <!-- UNLABELED ARROW: enqueue(chunk) -->
+  <path d="M300,148 L330,148 Q340,148 340,158 L340,365 Q340,375 330,375 L300,375" marker-end="url(#arrow)" />
+
+  <!-- BOX: Waiting (started = true) -->
+  <g transform="translate(180, 230)">
+    <rect x="0" y="0" width="120" height="60" rx="7" />
+    <text y="27">
+      <tspan x="60">Waiting</tspan>
+      <tspan x="60" dy="14">(started = true)</tspan>
+    </text>
   </g>
-  <g transform="translate(181.5,360.0) rotate(0.0 60.0 30.0)">
-    <path d="M110.0,0 Q120.0,0 120.0,10 L120.0,50.0 Q120.0,60.0 110.0,60.0 L10,60.0 Q0,60.0 0,50.0 L0,10 Q0,0 10,0 Z" stroke="#333333" stroke-width="2" fill="#ffffff" />
-    <g transform="translate(0.0,27.0)">
-      <text x="60.0" style="text-anchor: middle" y="-2.0">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">Readable</tspan>
-      </text>
-      <text x="60.0" style="text-anchor: middle" y="12.8">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">(draining = false)</tspan>
-      </text>
-    </g>
+
+  <!-- UNLABELED ARROW: .cancel(reason) -->
+  <path d="M180,245 L70,245 Q60,245 60,255 L60,640 Q60,650 70,650 L180,650" marker-end="url(#arrow)" />
+
+  <!-- UNLABELED ARROW: error(e) -->
+  <path d="M300,245 L510,245 Q520,245 520,255 L520,620" marker-end="url(#arrow)" />
+
+  <!-- ARROW: close() -->
+  <path d="M300,260 L410,260 Q420,260 420,275 L420,640 Q420,650 410,650 L300,650" marker-end="url(#arrow)" />
+  <g transform="translate(420,448)">
+    <rect x="-25" y="0" width="50" height="14" />
+    <text y="10">
+      <tspan class="capability">close()</tspan>
+    </text>
   </g>
-  <g transform="translate(181.5,490.0) rotate(0.0 60.0 30.0)">
-    <path d="M110.0,0 Q120.0,0 120.0,10 L120.0,50.0 Q120.0,60.0 110.0,60.0 L10,60.0 Q0,60.0 0,50.0 L0,10 Q0,0 10,0 Z" stroke="#333333" stroke-width="2" fill="#ffffff" />
-    <g transform="translate(0.0,27.0)">
-      <text x="60.0" style="text-anchor: middle" y="-2.0">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">Readable</tspan>
-      </text>
-      <text x="60.0" style="text-anchor: middle" y="12.8">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">(draining = true)</tspan>
-      </text>
-    </g>
+
+  <!-- ARROW: enqueue(chunk) -->
+  <path d="M300,275 L330,275 Q340,275 340,285 L340,365 Q340,375 330,375 L300,375" marker-end="url(#arrow)" />
+  <g transform="translate(340,320)">
+    <rect x="-50" y="0" width="100" height="14" />
+    <text y="10">
+      <tspan class="capability">enqueue(chunk)</tspan>
+    </text>
   </g>
-  <g transform="translate(181.5,620.0) rotate(0.0 60.0 30.0)">
-    <path d="M110.0,0 Q120.0,0 120.0,10 L120.0,50.0 Q120.0,60.0 110.0,60.0 L10,60.0 Q0,60.0 0,50.0 L0,10 Q0,0 10,0 Z" stroke="#333333" stroke-width="2" fill="#ffffff" />
-    <g transform="translate(0.0,35.0)">
-      <text x="60.0" style="text-anchor: middle" y="-2.0">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">Closed</tspan>
-      </text>
-    </g>
+
+  <!-- BOX: Readable (draining = false) -->
+  <g transform="translate(180, 360)">
+    <rect x="0" y="0" width="120" height="60" rx="7" />
+    <text y="27">
+      <tspan x="60">Readable</tspan>
+      <tspan x="60" dy="14">(draining = false)</tspan>
+    </text>
   </g>
-  <g transform="translate(361.0,620.0) rotate(0.0 60.0 30.0)">
-    <path d="M110.0,0 Q120.0,0 120.0,10 L120.0,50.0 Q120.0,60.0 110.0,60.0 L10,60.0 Q0,60.0 0,50.0 L0,10 Q0,0 10,0 Z" stroke="#333333" stroke-width="2" fill="#ffffff" />
-    <g transform="translate(0.0,35.0)">
-      <text x="60.0" style="text-anchor: middle" y="-2.0">
-        <tspan xml:space="preserve" font-size="12" font-family="Arial" fill="#000000">Errored</tspan>
-      </text>
-    </g>
+
+  <!-- ARROW: .read() until queue empty -->
+  <path d="M180,375 L150,375 Q140,375 140,365 L140,285 Q140,275 150,275 L180,275" marker-end="url(#arrow)" />
+  <g transform="translate(140,320)">
+    <rect x="-40" y="-10" width="80" height="30" />
+    <text y="0">
+      <tspan class="method-call">.read()</tspan>
+      <tspan>until</tspan>
+    </text>
+    <text y="16">
+      <tspan>queue empty</tspan>
+    </text>
   </g>
-  <g transform="translate(241.5,160.0)">
-    <path d="M0.0,0.0 L0.0,13.5 Q0.0,23.5 0.0,33.5 L0.0,36.5 Q0.0,46.5 0.0,56.5 L0.0,67.0 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(0.0,70.0) rotate(270.0)">
-      <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
-    </g>
-    <g transform="translate(0.0,35.0)">
-      <rect fill="#ffffff" x="-39.0" y="-9.0" width="78.0" height="14" />
-      <text x="0.0" style="text-anchor: middle" y="2.0">
-        <tspan font-size="12px" font-family="Arial" fill="#000000" font-weight="bold">start()</tspan>
-        <tspan font-size="12px" font-family="Arial" fill="#000000">fulfills</tspan>
-      </text>
-    </g>
+
+  <!-- ARROW: error(e) -->
+  <path d="M300,405 L510,405 Q520,405 520,415 L520,620" marker-end="url(#arrow)" />
+  <g transform="translate(520,448)">
+    <rect x="-25" y="0" width="50" height="14" />
+    <text y="10">
+      <tspan class="capability">error(e)</tspan>
+    </text>
   </g>
-  <g transform="translate(301.5,260.0)">
-    <path d="M0.0,0.0 L30.0,0.0 Q40.0,0.0 40.0,10.0 L40.0,107.5 Q40.0,117.5 30.0,117.5 L3.0,117.5 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(0.0,117.5) rotate(360.0)">
-      <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
-    </g>
-    <g transform="translate(40.0,70)">
-      <rect fill="#ffffff" x="-33.5" y="-9.0" width="67.0" height="14" />
-      <text x="0.0" style="text-anchor: middle" y="2.0">
-        <tspan font-size="12px" font-family="Arial" fill="#000000" font-style="italic">enqueue(chunk)</tspan>
-      </text>
-    </g>
+
+  <!-- ARROW: close() -->
+  <path d="M240,420 L240,490" marker-end="url(#arrow)" />
+  <g transform="translate(240,448)">
+    <rect x="-25" y="0" width="50" height="14" />
+    <text y="10">
+      <tspan class="capability">close()</tspan>
+    </text>
   </g>
-  <g transform="translate(181.5,390.0)">
-    <path d="M0.0,0.0 L-30.0,0.0 Q-40.0,0.0 -40.0,-10.0 L-40.0,-120.0 Q-40.0,-130.0 -30.0,-130.0 L-3.0,-130.0 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(0.0,-130.0) rotate(180.0)">
-      <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
-    </g>
-    <g transform="translate(-40.0,-60.0)">
-      <rect fill="#ffffff" x="-41.5" y="-16.0" width="83.0" height="32" />
-      <text x="0.0" style="text-anchor: middle" y="-5.0">
-        <tspan font-size="12px" font-family="Courier" fill="#000000">.read()</tspan>
-        <tspan font-size="12px" font-family="Arial" fill="#000000">until</tspan>
-      </text>
-      <text x="0.0" style="text-anchor: middle" y="11.8">
-        <tspan font-size="12px" font-family="Arial" fill="#000000">queue empty</tspan>
-      </text>
-    </g>
+
+  <!-- UNLABELED ARROW: .cancel(reason) -->
+  <path d="M180,405 L70,405 Q60,405 60,415 L60,640 Q60,650 70,650 L180,650" marker-end="url(#arrow)" />
+
+  <!-- BOX: Readable (draining = true) -->
+  <g transform="translate(180, 490)">
+    <rect x="0" y="0" width="120" height="60" rx="7" />
+    <text y="27">
+      <tspan x="60">Readable</tspan>
+      <tspan x="60" dy="14">(draining = true)</tspan>
+    </text>
   </g>
-  <g transform="translate(241.5,420.0)">
-    <path d="M0.0,0.0 L0.0,13.5 Q0.0,23.5 0.0,33.5 L0.0,36.5 Q0.0,46.5 0.0,56.5 L0.0,67.0 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(0.0,70.0) rotate(270.0)">
-      <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
-    </g>
-    <g transform="translate(0.0,35.0)">
-      <rect fill="#ffffff" x="-22.5" y="-9.0" width="45.0" height="14" />
-      <text x="0.0" style="text-anchor: middle" y="2.0">
-        <tspan font-size="12px" font-family="Arial" fill="#000000" font-style="italic">close()</tspan>
-      </text>
-    </g>
+
+  <!-- ARROW: .read() until queue empty -->
+  <path d="M240,550 L240,620" marker-end="url(#arrow)" />
+  <g transform="translate(240,575)">
+    <rect x="-40" y="-10" width="80" height="30" />
+    <text y="0">
+      <tspan class="method-call">.read()</tspan>
+      <tspan>until</tspan>
+    </text>
+    <text y="16">
+      <tspan>queue empty</tspan>
+    </text>
   </g>
-  <g transform="translate(241.5,550.0)">
-    <path d="M0.0,0.0 L0.0,13.5 Q0.0,23.5 0.0,33.5 L0.0,36.5 Q0.0,46.5 0.0,56.5 L0.0,67.0 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(0.0,70.0) rotate(270.0)">
-      <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
-    </g>
-    <g transform="translate(0.0,30.0)">
-      <rect fill="#ffffff" x="-41.5" y="-16.0" width="83.0" height="32" />
-      <text x="0.0" style="text-anchor: middle" y="-5.0">
-        <tspan font-size="12px" font-family="Courier" fill="#000000">.read()</tspan>
-        <tspan font-size="12px" font-family="Arial" fill="#000000">until</tspan>
-      </text>
-      <text x="0.0" style="text-anchor: middle" y="11.8">
-        <tspan font-size="12px" font-family="Arial" fill="#000000">queue empty</tspan>
-      </text>
-    </g>
+
+  <!-- UNLABELED ARROW: .cancel(reason) -->
+  <path d="M180,520 L70,520 Q60,520 60,530 L60,640 Q60,650 70,650 L180,650" marker-end="url(#arrow)" />
+
+  <!-- UNLABELED ARROW: error(e) -->
+  <path d="M300,520 L510,520 Q520,520 520,530 L520,620" marker-end="url(#arrow)" />
+
+  <!-- BOX: Closed -->
+  <g transform="translate(180, 620)">
+    <rect x="0" y="0" width="120" height="60" rx="7" />
+    <text y="34">
+      <tspan x="60">Closed</tspan>
+    </text>
   </g>
-  <g transform="translate(301.5,260.0)">
-    <path d="M0.0,0.0 L109.5,0.0 Q119.5,0.0 119.5,10.0 L119.5,357.0 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(119.5,360.0) rotate(270.0)">
-      <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
-    </g>
-    <g transform="translate(119.5,110.25)" />
-  </g>
-  <g transform="translate(181.5,520.0)">
-    <path d="M0.0,0.0 L-110.0,0.0 Q-120.0,0.0 -120.0,10.0 L-120.0,120.5 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(-110.25,0.0)" />
-  </g>
-  <g transform="translate(181.5,260.0)">
-    <path d="M0.0,0.0 L-110.0,0.0 Q-120.0,0.0 -120.0,10.0 L-120.0,150.5 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(-120.0,5.25)" />
-  </g>
-  <g transform="translate(181.5,130.0)">
-    <path d="M0.0,0.0 L-110.0,0.0 Q-120.0,0.0 -120.0,10.0 L-120.0,510.0 Q-120.0,520.0 -110.0,520.0 L-3.0,520.0 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(0.0,520.0) rotate(180.0)">
-      <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
-    </g>
-    <g transform="translate(-120.0,460.0)">
-      <rect fill="#ffffff" x="-53.0" y="-9.0" width="106.0" height="14" />
-      <text x="0.0" style="text-anchor: middle" y="2.0">
-        <tspan font-size="12px" font-family="Courier" fill="#000000">.cancel(reason)</tspan>
-      </text>
-    </g>
-  </g>
-  <g transform="translate(301.5,402.5)">
-    <path d="M0.0,0.0 L109.5,0.0 Q119.5,0.0 119.5,10.0 L119.5,214.5 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(119.5,217.5) rotate(270.0)">
-      <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
-    </g>
-    <g transform="translate(119.5,60.0)">
-      <rect fill="#ffffff" x="-24.5" y="-9.0" width="49.0" height="14" />
-      <text x="0.0" style="text-anchor: middle" y="2.0">
-        <tspan font-size="12px" font-family="Arial" fill="#000000" font-style="italic">error(e)</tspan>
-      </text>
-    </g>
-  </g>
-  <g transform="translate(301.5,520.0)">
-    <path d="M0.0,0.0 L109.5,0.0 Q119.5,0.0 119.5,10.0 L119.5,97.0 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(119.5,100.0) rotate(270.0)">
-      <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
-    </g>
-    <g transform="translate(99.75,0.0)" />
-  </g>
-  <g transform="translate(301.5,130.0)">
-    <path d="M0.0,0.0 L209.5,0.0 Q219.5,0.0 219.5,10.0 L219.5,510.0 Q219.5,520.0 209.5,520.0 L182.5,520.0 " stroke-dasharray="23, 0" fill="none" stroke="#000000" stroke-width="2" />
-    <g transform="translate(179.5,520.0) rotate(360.0)">
-      <polygon points="3.0,0 9.0,-3.0 9.0,3.0" fill="#000000" stroke="#000000" stroke-width="2.0" />
-    </g>
-    <g transform="translate(219.5,65)">
-      <rect fill="#ffffff" x="-41.5" y="-9.0" width="83.0" height="14" />
-      <text x="0.0" style="text-anchor: middle" y="2.0">
-        <tspan font-size="12px" font-family="Arial" fill="#000000" font-weight="bold">start()</tspan>
-        <tspan font-size="12px" font-family="Arial" fill="#000000">rejects</tspan>
-      </text>
-    </g>
+
+  <!-- BOX: Errored -->
+  <g transform="translate(460, 620)">
+    <rect x="0" y="0" width="120" height="60" rx="7" />
+    <text y="34">
+      <tspan x="60">Errored</tspan>
+    </text>
   </g>
 </svg>

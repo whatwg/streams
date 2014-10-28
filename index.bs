@@ -396,7 +396,7 @@ responsible for keeping track of the internal queue, and initiating appropriate 
 stream's methods. This can be roughly summarized in the following diagram.
 
 <figure>
-  <img src="readable-stream.svg" width="578" alt="The readable stream state machine diagram." />
+  <img src="readable-stream.svg" width="670" alt="The readable stream state machine diagram." />
 
   <figcaption>
     <dl>
