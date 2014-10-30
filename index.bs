@@ -4,7 +4,7 @@ Group: WHATWG
 H1: Streams
 Shortname: streams
 Status: LS
-Editor: Domenic Denicola, Google https://www.google.com/, domenic@domenicdenicola.com, http://domenic.me/
+Editor: Domenic Denicola, Google https://www.google.com/, d@domenic.me, https://domenic.me/
 Abstract: This specification provides APIs for creating, composing, and consuming streams of data.
 Abstract: These streams are designed to map efficiently to low-level I/O primitives, and allow easy
 Abstract: composition with built-in backpressure and queuing. On top of streams, the web platform can
@@ -12,11 +12,10 @@ Abstract: build higher-level abstractions, such as filesystem or socket APIs, wh
 Abstract: users can use the supplied tools to build their own streams which integrate well with those
 Abstract: of the web platform.
 Logo: https://resources.whatwg.org/logo-streams.svg
+!Participate: <a href="https://github.com/whatwg/streams/issues/new">File an issue</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open issues</a>)
+!Participate: <a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
 !Version History: <a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a>
 !Version History: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
-!Participate: <a href="https://github.com/whatwg/streams/issues/new">File an issue</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open issues</a>)
-!Participate: Send feedback to <a href="http://www.whatwg.org/mailing-list">whatwg@whatwg.org</a> (<a href="http://lists.w3.org/Archives/Public/public-whatwg-archive/">archives</a>)
-!Participate: <a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
 </pre>
 
 <style>
@@ -75,6 +74,11 @@ Logo: https://resources.whatwg.org/logo-streams.svg
   }
   dfn > a.self-link::before {
     content: "#";
+  }
+
+  /* Hide editor visually, but leave it for scraping tools */
+  .head .editor {
+    display: none;
   }
 </style>
 
@@ -1737,6 +1741,12 @@ Janessa Det for the logo,
 Gorgi Kosev for his breakthrough idea of separating piping into two methods, thus resolving
   <a href="https://github.com/whatwg/streams/issues/44">a major sticking point</a>;
 Forrest Norvell for his enthusiastic iteration on the reference implementation;
-Isaac Schlueter for his pioneering work on JavaScript streams in Node.js;
-Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward; and
-Takeshi Yoshino for his careful review of and contributions to this spec's algorithms and concepts.
+Isaac Schlueter for his pioneering work on JavaScript streams in Node.js; and
+Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward.
+
+This standard is written by <a href="https://domenic.me/">Domenic Denicola</a>
+(<a href="https://google.com">Google</a>, <a href="mailto:d@domenic.me">d@domenic.me</a>) with substantial help from
+Takeshi Yoshino (<a href="https://google.com">Google</a>,
+<a href="mailto:tyoshino@chromium.org">tyoshino@chromium.org</a>).
+
+Per <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a>, to the extent possible under law, the editor has waived all copyright and related or neighboring rights to this work.
