@@ -79,15 +79,6 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 </style>
 
 
-<h2 id="status" class="no-num no-toc">Status</h2>
-
-This specification is in the process of establishing itself in the WHATWG. As such, the term "Living Standard"
-indicates a goal, rather than reality.
-
-Although the core algorithms and APIs are largely present and working, prototyping and testing of them is still
-underway, and there is still room for additional APIs beyond those specified here. Please join us in the
-<a href="https://github.com/whatwg/streams/issues?state=open">issue tracker</a> for more discussion.
-
 <h2 id="intro">Introduction</h2>
 
 <em>This section is non-normative.</em>
