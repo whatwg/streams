@@ -1705,8 +1705,8 @@ itself will evolve in these ways.
     internal slot of <var>x</var>."
   <li> We do not alias <b>this</b> to a local variable in each algorithm, instead using it directly.
   <li> We use the phrase "calling <var>x</var>(<var>y</var>, <var>z</var>, w</var>)" as a shorthand for "calling the
-    \[[Call]] internal method of <var>x</var> passing <b>undefined</b> as <var>thisArgument</var> and (<var>x</var>,
-    <var>y</var>, <var>z</var>) as <var>argumentsList</var>."
+    \[[Call]] internal method of <var>x</var> passing <b>undefined</b> as <var>thisArgument</var> and (<var>y</var>,
+    <var>z</var>, <var>w</var>) as <var>argumentsList</var>."
   <li> We use the phrase "call-with-rethrow AbstractOperation(<var>x</var>, <var>y</var>, <var>z</var>)" as a shorthand
     for "Let <var>opResult</var> be AbstractOperation(<var>x</var>, <var>y</var>, <var>z</var>).
     ReturnIfAbrupt(<var>opResult</var>)."
