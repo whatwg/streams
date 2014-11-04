@@ -1321,7 +1321,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 <ol>
   <li> If <var>stream</var>@\[[started]] is <b>false</b>, then
     <ol>
-      <li> Upon fulfillment of <var>stream</var>\[[startedPromise]], call-with-rethrow
+      <li> Upon fulfillment of <var>stream</var>@\[[startedPromise]], call-with-rethrow
         WritableStreamAdvanceQueue(<var>stream</var>).
       <li> Return <b>undefined</b>.
     </ol>
