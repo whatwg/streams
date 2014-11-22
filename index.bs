@@ -225,7 +225,7 @@ it.
   The following function creates readable streams that wrap web sockets [[HTML]], which are push sources that do not
   support backpressure signals.
 
-  <pre>
+  <pre><code class="lang-javascript">
     function makeReadableWebSocketStream(url, protocols) {
       const ws = new WebSocket(url, protocols);
       ws.binaryType = "arraybuffer";
@@ -244,18 +244,18 @@ it.
         }
       });
     }
-  </pre>
+  </code></pre>
 
   We can then use this function to create readable streams for web sockets, and pipe those streams to arbitrary
   writable streams:
 
-  <pre>
+  <pre><code class="lang-javascript">
     var webSocketStream = makeReadableWebSocketStream("http://example.com", 80);
 
     webSocketStream.pipeTo(writableStream)
       .then(() => console.log("All data successfully written!"))
       .catch(e => console.error("Something went wrong!", e));
-  </pre>
+  </code></pre>
 </div>
 
 <div class="example">
@@ -263,7 +263,7 @@ it.
   events for data, end, and error (much like a web socket), but also provides the ability to pause and resume the flow
   of data. Thus, this example shows how to apply backpressure to <a>underlying sources</a> that support it.
 
-  <pre>
+  <pre><code class="lang-javascript">
     function makeSocketStream(host, port) {
       const rawSocket = createRawSocketObject(host, port);
 
@@ -293,7 +293,7 @@ it.
         }
       });
     }
-  </pre>
+  </code></pre>
 
   We can then use this function to create readable streams for such "raw sockets" in the same way we do for web
   sockets. This time, however, when we pipe to a destination that cannot accept data as fast as the socket is producing
@@ -306,7 +306,7 @@ it.
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
   hide from our users by wrapping them in a readable stream.
 
-  <pre>
+  <pre><code class="lang-javascript">
     function makeReadableFileStream(filename) {
       const fileHandle = createRawFileHandle(filename, "r");
 
@@ -350,7 +350,7 @@ it.
         }
       });
     }
-  </pre>
+  </code></pre>
 
   We can then create and use readable streams for files just as we could before for sockets.
 </div>
@@ -361,7 +361,7 @@ it.
   value of the <code>state</code> property. For example, this function writes the contents of a readable stream to the
   console as fast as they are available.
 
-  <pre>
+  <pre><code class="lang-javascript">
     function streamToConsole(readableStream) {
       pump();
 
@@ -379,7 +379,7 @@ it.
         }
       }
     }
-  </pre>
+  </code></pre>
 </div>
 
 <h3 id="rs-state-diagram">The Readable Stream State Diagram</h3>
@@ -417,24 +417,24 @@ stream's methods. This can be roughly summarized in the following diagram.
 If one were to write the <code>ReadableStream</code> class in something close to the syntax of [[!ECMASCRIPT]], it
 would look like
 
-<pre><code>
-class ReadableStream {
-  constructor({
-    start = (enqueue, close, error) => {},
-    pull = (enqueue, close, error) => {},
-    cancel = (reason) => {},
-    strategy = %DefaultReadableStreamStrategy%
-  } = {})
+<pre><code class="lang-javascript">
+  class ReadableStream {
+    constructor({
+      start = (enqueue, close, error) => {},
+      pull = (enqueue, close, error) => {},
+      cancel = (reason) => {},
+      strategy = %DefaultReadableStreamStrategy%
+    } = {})
 
-  get closed()
-  get state()
+    get closed()
+    get state()
 
-  cancel(reason)
-  pipeThrough({ writable, readable }, options)
-  pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})
-  read()
-  wait()
-}
+    cancel(reason)
+    pipeThrough({ writable, readable }, options)
+    pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})
+    read()
+    wait()
+  }
 </code></pre>
 
 <h4 id="rs-internal-slots">Internal Slots </h4>
@@ -633,12 +633,12 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 <div class="example">
   A typical example of constructing <a>pipe chain</a> using <code>pipeThrough</code> would look like
 
-  <pre>
+  <pre><code class="lang-javascript">
     httpResponseBody
       .pipeThrough(decompressorTransform)
       .pipeThrough(ignoreNonImageFilesTransform)
       .pipeTo(mediaGallery);
-  </pre>
+  </code></pre>
 </div>
 
 <ol>
@@ -866,7 +866,7 @@ becomes available.
   has no ability to communicate backpressure signals to any users: it will always be in the <code>"writable"</code>
   state.
 
-  <pre>
+  <pre><code class="lang-javascript">
     function makeWritableWebSocketStream(url, protocols) {
       const ws = new WebSocket(url, protocols);
 
@@ -890,7 +890,7 @@ becomes available.
         }
       });
     }
-  </pre>
+  </code></pre>
 </div>
 
 <div class="example">
@@ -902,7 +902,7 @@ becomes available.
   <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
   hide from our users by wrapping them in a writable stream.
 
-  <pre>
+  <pre><code class="lang-javascript">
     function makeWritableFileStream(filename) {
       const fileHandle = createRawFileHandle(filename, "w");
 
@@ -953,17 +953,17 @@ becomes available.
         }
       });
     }
-  </pre>
+  </code></pre>
 
   We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:
 
-  <pre>
+  <pre><code class="lang-javascript">
     var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
 
     readableStream.pipeTo(fileStream)
       .then(() => console.log("All data successfully written!"))
       .catch(e => console.error("Something went wrong!", e));
-  </pre>
+  </code></pre>
 
   Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
   called later. In the meantime, additional writes can be queued up, which are stored in the stream's internal queue.
@@ -976,7 +976,7 @@ becomes available.
   directly. Since they queue any incoming writes, and take care internally to forward them to the <a>underlying sink</a>
   in sequence, you can indiscriminately write to a writable stream without much ceremony:
 
-  <pre>
+  <pre><code class="lang-javascript">
     function writeArrayToStream(array, writableStream) {
       array.forEach(chunk => writableStream.write(chunk));
 
@@ -986,7 +986,7 @@ becomes available.
     writeArrayToStream([1, 2, 3, 4, 5], writableStream)
       .then(() => console.log("All done!"))
       .catch(e => console.error("Error with the stream: " + e));
-  </pre>
+  </code></pre>
 </div>
 
 <h3 id="ws-state-diagram">The Writable Stream State Diagram</h3>
@@ -1005,25 +1005,25 @@ If one were to write the <code>WritableStream</code> class in something close to
 would look like
 
 
-<pre>
-class WritableStream {
-  constructor({
-    start = (error) => {},
-    write = (chunk) => {},
-    close = () => {},
-    abort = (reason) => close(),
-    strategy = %DefaultWritableStreamStrategy%
-  } = {})
+<pre><code class="lang-javascript">
+  class WritableStream {
+    constructor({
+      start = (error) => {},
+      write = (chunk) => {},
+      close = () => {},
+      abort = (reason) => close(),
+      strategy = %DefaultWritableStreamStrategy%
+    } = {})
 
-  get closed()
-  get state()
+    get closed()
+    get state()
 
-  abort(reason)
-  close()
-  wait()
-  write(chunk)
-}
-</pre>
+    abort(reason)
+    close()
+    wait()
+    write(chunk)
+  }
+</code></pre>
 
 <h4 id="ws-internal-slots">Internal Slots </h4>
 
@@ -1474,13 +1474,13 @@ properties of the incoming chunks reaches a specified high-water mark. As such, 
 If one were to write the <code>ByteLengthQueuingStrategy</code> class in something close to the syntax of
 [[!ECMASCRIPT]], it would look like
 
-<pre>
-class ByteLengthQueuingStrategy {
-  constructor({ highWaterMark })
-  shouldApplyBackpressure(queueSize)
-  size(chunk)
-}
-</pre>
+<pre><code class="lang-javascript">
+  class ByteLengthQueuingStrategy {
+    constructor({ highWaterMark })
+    shouldApplyBackpressure(queueSize)
+    size(chunk)
+  }
+</code></pre>
 
 <h4 id="blqs-internal-slots">Internal Slots</h4>
 
@@ -1552,13 +1552,13 @@ strategy is also provided out of the box.
 If one were to write the <code>CountQueuingStrategy</code> class in something close to the syntax of [[!ECMASCRIPT]],
 it would look like
 
-<pre>
-class CountQueuingStrategy {
-  constructor({ highWaterMark })
-  shouldApplyBackpressure(queueSize)
-  size()
-}
-</pre>
+<pre><code class="lang-javascript">
+  class CountQueuingStrategy {
+    constructor({ highWaterMark })
+    shouldApplyBackpressure(queueSize)
+    size()
+  }
+</code></pre>
 
 <h4 id="cqs-internal-slots">Internal Slots</h4>
 
