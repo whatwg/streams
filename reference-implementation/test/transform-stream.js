@@ -51,7 +51,7 @@ test('Pass-through sync TransformStream: can read from readable what is put into
     t.equal(ts.readable.state, 'readable', 'readable is readable since transformation is sync');
     t.equal(ts.readable.read(), 'a', 'result from reading the readable is the same as was written to writable');
     t.equal(ts.readable.state, 'waiting', 'readable is waiting again after having read all that was written');
-    ts.writable.wait().then(() => {
+    ts.writable.ready.then(() => {
       t.equal(ts.writable.state, 'writable', 'writable becomes writable again');
     })
     .catch(t.error);
@@ -75,7 +75,7 @@ test('Uppercaser sync TransformStream: can read from readable transformed versio
     t.equal(ts.readable.state, 'readable', 'readable is readable since transformation is sync');
     t.equal(ts.readable.read(), 'A', 'result from reading the readable is the same as was written to writable');
     t.equal(ts.readable.state, 'waiting', 'readable is waiting again after having read all that was written');
-    ts.writable.wait().then(() => {
+    ts.writable.ready.then(() => {
       t.equal(ts.writable.state, 'writable', 'writable becomes writable again');
     })
     .catch(t.error);
@@ -102,7 +102,7 @@ test('Uppercaser-doubler sync TransformStream: can read both chunks put into the
     t.equal(ts.readable.state, 'readable', 'readable is readable still after reading the first chunk');
     t.equal(ts.readable.read(), 'A', 'the second chunk read is also the transformation of the single chunk written');
     t.equal(ts.readable.state, 'waiting', 'readable is waiting again after having read both enqueued chunks');
-    ts.writable.wait().then(() => {
+    ts.writable.ready.then(() => {
       t.equal(ts.writable.state, 'writable', 'writable becomes writable again');
     })
     .catch(t.error);
@@ -125,14 +125,14 @@ test('Uppercaser async TransformStream: readable chunk becomes available asynchr
     t.equal(ts.writable.state, 'waiting', 'writable is now waiting since the transform has not signaled done');
     t.equal(ts.readable.state, 'waiting', 'readable is still not readable');
 
-    ts.readable.wait().then(() => {
+    ts.readable.ready.then(() => {
       t.equal(ts.readable.state, 'readable', 'readable eventually becomes readable');
       t.equal(ts.readable.read(), 'A', 'chunk read from readable is the transformation result');
       t.equal(ts.readable.state, 'waiting', 'readable is waiting again after having read the chunk');
 
       t.equal(ts.writable.state, 'waiting', 'writable is still waiting since the transform still has not signaled done');
 
-      return ts.writable.wait().then(() => {
+      return ts.writable.ready.then(() => {
         t.equal(ts.writable.state, 'writable', 'writable eventually becomes writable (after the transform signals done)');
       });
     })
@@ -157,21 +157,21 @@ test('Uppercaser-doubler async TransformStream: readable chunks becomes availabl
     t.equal(ts.writable.state, 'waiting', 'writable is now waiting since the transform has not signaled done');
     t.equal(ts.readable.state, 'waiting', 'readable is still not readable');
 
-    ts.readable.wait().then(() => {
+    ts.readable.ready.then(() => {
       t.equal(ts.readable.state, 'readable', 'readable eventually becomes readable');
       t.equal(ts.readable.read(), 'A', 'chunk read from readable is the transformation result');
       t.equal(ts.readable.state, 'waiting', 'readable is waiting again after having read the chunk');
 
       t.equal(ts.writable.state, 'waiting', 'writable is still waiting since the transform still has not signaled done');
 
-      return ts.readable.wait().then(() => {
+      return ts.readable.ready.then(() => {
         t.equal(ts.readable.state, 'readable', 'readable becomes readable again');
         t.equal(ts.readable.read(), 'A', 'chunk read from readable is the transformation result');
         t.equal(ts.readable.state, 'waiting', 'readable is waiting again after having read the chunk');
 
         t.equal(ts.writable.state, 'waiting', 'writable is still waiting since the transform still has not signaled done');
 
-        return ts.writable.wait().then(() => {
+        return ts.writable.ready.then(() => {
           t.equal(ts.writable.state, 'writable', 'writable eventually becomes writable (after the transform signals done)');
         });
       });
@@ -340,7 +340,7 @@ test('TransformStream flush gets a chance to enqueue more into the readable', t 
     ts.writable.write('a');
     t.equal(ts.readable.state, 'waiting', 'after a write to the writable, the readable is still waiting');
     ts.writable.close();
-    ts.readable.wait().then(() => {
+    ts.readable.ready.then(() => {
       t.equal(ts.readable.state, 'readable', 'after closing the writable, the readable is now readable as a result of flush');
       t.equal(ts.readable.read(), 'x', 'reading the first chunk gives back what was enqueued');
       t.equal(ts.readable.read(), 'y', 'reading the second chunk gives back what was enqueued');
@@ -369,7 +369,7 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
     ts.writable.write('a');
     t.equal(ts.readable.state, 'waiting', 'after a write to the writable, the readable is still waiting');
     ts.writable.close();
-    ts.readable.wait().then(() => {
+    ts.readable.ready.then(() => {
       t.equal(ts.readable.state, 'readable', 'after closing the writable, the readable is now readable as a result of flush');
       t.equal(ts.readable.read(), 'x', 'reading the first chunk gives back what was enqueued');
       t.equal(ts.readable.read(), 'y', 'reading the second chunk gives back what was enqueued');

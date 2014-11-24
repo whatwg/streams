@@ -112,7 +112,7 @@ test('Piping from a ReadableStream in readable state to a WritableStream in erro
     ws.write('Hello');
     t.assert(writeCalled, 'write must be called');
 
-    ws.wait().then(
+    ws.ready.then(
       () => t.fail('wait promise unexpectedly fulfilled'),
       () => {
         t.equal(ws.state, 'errored', 'as a result of rejected promise, ws must be in errored state');
@@ -510,7 +510,7 @@ test('Piping from a ReadableStream in readable state to a WritableStream in wait
     t.equal(ws.state, 'waiting');
 
     resolveWritePromise();
-    ws.wait().then(() => {
+    ws.ready.then(() => {
       t.equal(ws.state, 'writable');
     })
     .catch(t.error);

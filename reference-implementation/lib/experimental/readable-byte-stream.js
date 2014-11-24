@@ -17,13 +17,13 @@ function errorReadableByteStream(stream, error) {
   }
 
   if (stream._state === 'waiting') {
-    stream._waitPromise_reject(error);
-    stream._waitPromise_resolve = null;
-    stream._waitPromise_reject = null;
+    stream._readyPromise_reject(error);
+    stream._readyPromise_resolve = null;
+    stream._readyPromise_reject = null;
   } else {
-    stream._waitPromise = Promise.reject(error);
-    stream._waitPromise_resolve = null;
-    stream._waitPromise_reject = null;
+    stream._readyPromise = Promise.reject(error);
+    stream._readyPromise_resolve = null;
+    stream._readyPromise_reject = null;
   }
 
   stream._state = 'errored';
@@ -64,9 +64,9 @@ export default class ReadableByteStream {
 
     this._readBufferSize = readBufferSize;
 
-    this._waitPromise = new Promise((resolve, reject) => {
-      this._waitPromise_resolve = resolve;
-      this._waitPromise_reject = reject;
+    this._readyPromise = new Promise((resolve, reject) => {
+      this._readyPromise_resolve = resolve;
+      this._readyPromise_reject = reject;
     });
     this._closedPromise = new Promise((resolve, reject) => {
       this._closedPromise_resolve = resolve;
@@ -145,9 +145,9 @@ export default class ReadableByteStream {
 
     if (bytesRead === -2) {
       this._state = 'waiting';
-      this._waitPromise = new Promise((resolve, reject) => {
-        this._waitPromise_resolve = resolve;
-        this._waitPromise_reject = reject;
+      this._readyPromise = new Promise((resolve, reject) => {
+        this._readyPromise_resolve = resolve;
+        this._readyPromise_reject = reject;
       });
 
       return 0;
@@ -176,8 +176,8 @@ export default class ReadableByteStream {
     ReadableStream.prototype.pipeTo.call(this, dest, {preventClose, preventAbort, preventCancel});
   }
 
-  get wait() {
-    return this._waitPromise;
+  get ready() {
+    return this._readyPromise;
   }
 
   cancel(reason) {
@@ -212,9 +212,9 @@ export default class ReadableByteStream {
   }
 
   _resolveWaitPromise(value) {
-    this._waitPromise_resolve(value);
-    this._waitPromise_resolve = null;
-    this._waitPromise_reject = null;
+    this._readyPromise_resolve(value);
+    this._readyPromise_resolve = null;
+    this._readyPromise_reject = null;
   }
 
   _resolveClosedPromise(value) {

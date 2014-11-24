@@ -11,7 +11,7 @@ export default function readableStreamToArray(readable) {
       }
 
       if (readable.state === 'waiting') {
-        readable.wait().then(pump);
+        readable.ready.then(pump);
       }
     }
   });

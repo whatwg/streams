@@ -12,18 +12,19 @@ test('ReadableStream can be constructed with no arguments', t => {
 });
 
 test('ReadableStream instances have the correct methods and properties', t => {
-  t.plan(8);
+  t.plan(9);
 
   var rs = new ReadableStream();
 
   t.equal(typeof rs.read, 'function', 'has a read method');
-  t.equal(typeof rs.wait, 'function', 'has a wait method');
   t.equal(typeof rs.cancel, 'function', 'has an cancel method');
   t.equal(typeof rs.pipeTo, 'function', 'has a pipeTo method');
   t.equal(typeof rs.pipeThrough, 'function', 'has a pipeThrough method');
 
   t.equal(rs.state, 'waiting', 'state starts out waiting');
 
+  t.ok(rs.ready, 'has a ready property');
+  t.ok(rs.ready.then, 'ready property is a thenable');
   t.ok(rs.closed, 'has a closed property');
   t.ok(rs.closed.then, 'closed property is thenable');
 });
@@ -40,7 +41,7 @@ test(`ReadableStream closing puts the stream in a closed state, fulfilling the w
 
   t.equal(rs.state, 'closed', 'The stream should be in closed state');
 
-  rs.wait().then(
+  rs.ready.then(
     v => t.equal(v, undefined, 'wait() should return a promise fulfilled with undefined'),
     () => t.fail('wait() should not return a rejected promise')
   );
@@ -110,7 +111,7 @@ test(`ReadableStream reading a stream makes wait() and closed return a promise f
 
   t.throws(() => rs.read(), /TypeError/);
 
-  rs.wait().then(
+  rs.ready.then(
     v => t.equal(v, undefined, 'wait() should return a promise fulfilled with undefined'),
     () => t.fail('wait() should not return a rejected promise')
   );
@@ -133,9 +134,9 @@ test('ReadableStream avoid redundant pull call', t => {
     }
   });
 
-  rs.wait();
-  rs.wait();
-  rs.wait();
+  rs.ready;
+  rs.ready;
+  rs.ready;
 
   // Use setTimeout to ensure we run after any promises.
   setTimeout(() => {
@@ -163,7 +164,7 @@ test('ReadableStream pull throws an error', t => {
   var error = new Error('aaaugh!!');
   var rs = new ReadableStream({ pull() { throw error; } });
 
-  rs.wait().then(() => {
+  rs.ready.then(() => {
     t.fail('waiting should fail');
     t.end();
   });
@@ -173,7 +174,7 @@ test('ReadableStream pull throws an error', t => {
     t.end();
   });
 
-  rs.wait().catch(caught => {
+  rs.ready.catch(caught => {
     t.equal(rs.state, 'errored', 'state is "errored" after waiting');
     t.equal(caught, error, 'error was passed through as rejection of wait() call');
   });
@@ -263,7 +264,7 @@ test('ReadableStream is able to pull data repeatedly if it\'s available synchron
     }
   });
 
-  rs.wait().then(() => {
+  rs.ready.then(() => {
     var data = [];
     while (rs.state === 'readable') {
       data.push(rs.read());
@@ -292,7 +293,7 @@ test('ReadableStream wait() does not error when no more data is available', t =>
     if (rs.state === 'closed') {
       t.deepEqual(result, [1, 2, 3, 4, 5], 'got the expected 5 chunks');
     } else {
-      rs.wait().then(pump, r => t.ifError(r));
+      rs.ready.then(pump, r => t.ifError(r));
     }
   }
 });
@@ -326,7 +327,7 @@ test('ReadableStream should be able to get data sequentially from an asynchronou
       return Promise.resolve(EOF);
     }
 
-    return rs.wait().then(() => {
+    return rs.ready.then(() => {
       if (rs.state === 'readable') {
         return rs.read();
       } else if (rs.state === 'closed') {
@@ -544,7 +545,7 @@ test('ReadableStream errors in shouldApplyBackpressure prevent wait() from fulfi
     }
   });
 
-  rs.wait().then(
+  rs.ready.then(
     () => {
       t.fail('wait() should not be fulfilled');
       t.end();

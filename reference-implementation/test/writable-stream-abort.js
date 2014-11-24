@@ -113,7 +113,7 @@ test('Aborting a WritableStream puts it in an errored state, with stored error e
     r => t.equal(r, passedReason, 'writing should reject with the given reason')
   );
 
-  ws.wait().then(
+  ws.ready.then(
     () => t.fail('waiting should not succeed'),
     r => t.equal(r, passedReason, 'waiting should reject with the given reason')
   );
@@ -142,7 +142,7 @@ test('Aborting a WritableStream causes any outstanding wait() promises to be rej
   ws.write('a');
   t.equal(ws.state, 'waiting', 'state should be waiting');
 
-  ws.wait().then(
+  ws.ready.then(
     () => t.fail('waiting should not succeed'),
     r => t.equal(r, passedReason, 'waiting should reject with the given reason')
   );

@@ -32,7 +32,7 @@ test('TransformStream errors thrown in transform put the writable and readable i
     }
   }, 0);
 
-  ts.readable.wait().then(
+  ts.readable.ready.then(
     () => t.fail('readable\'s wait() should not be fulfilled'),
     e => t.equal(e, thrownError, 'readable\'s wait() should be rejected with the thrown error')
   );
@@ -86,7 +86,7 @@ test('TransformStream errors thrown in flush put the writable and readable in an
     }
   }, 0);
 
-  ts.readable.wait().then(
+  ts.readable.ready.then(
     () => t.fail('readable\'s wait() should not be fulfilled'),
     e => t.equal(e, thrownError, 'readable\'s wait() should be rejected with the thrown error')
   );

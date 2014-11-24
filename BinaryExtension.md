@@ -50,7 +50,7 @@ class ReadableByteStream {
     [[state]] = "waiting"
     [[storedError]]
 
-    [[waitPromise]]
+    [[readyPromise]]
     [[closedPromise]]
 
     // Holders for stuff given by the underlying source
@@ -74,13 +74,13 @@ When a notify ready function _F_ is called, the following steps are taken:
 1. Let _stream_ be the value of _F_'s [[Stream]] internal slot.
 1. If _stream_.[[state]] is not `"waiting"`, return.
 1. Set _stream_.[[state]] to `"readable"`.
-1. Resolve _stream_.[[waitPromise]] with **undefined**.
+1. Resolve _stream_.[[readyPromise]] with **undefined**.
 
 ##### ErrorReadableByteStream( stream, error )
 
 1. If _stream_.[[state]] is `"errored"` or `"closed"`, return.
-1. If _stream_.[[state]] is `"waiting"`, reject _stream_.[[waitPromise]] with _error_.
-1. If _stream_.[[state]] is `"readable"`, let _stream_.[[waitPromise]] be a new promise rejected with _error_.
+1. If _stream_.[[state]] is `"waiting"`, reject _stream_.[[readyPromise]] with _error_.
+1. If _stream_.[[state]] is `"readable"`, let _stream_.[[readyPromise]] be a new promise rejected with _error_.
 1. Set _stream_.[[state]] to `"errored"`.
 1. Set _stream_.[[storedError]] to _error_.
 1. Reject _stream_.[[closedPromise]] with _error_.
@@ -108,7 +108,7 @@ When an error function _F_ is called with argument _error_, the following steps 
 1. Set _stream_.[[onReadInto]] to _readInto_.
 1. Set _stream_.[[onCancel]] to _cancel_.
 1. Set _stream_.[[readBufferSize]] to _readBufferSize_.
-1. Let _stream_.[[waitPromise]] be a new promise.
+1. Let _stream_.[[readyPromise]] be a new promise.
 1. Let _stream_.[[closedPromise]] be a new promise.
 1. Let _stream_.[[notifyReady]] be a new built-in function object as defined in Notify Ready Function with [[Stream]] internal slot set to _stream_.
 1. Let _stream_.[[error]] be a new built-in function object as defined in Error Function with [[Stream]] internal slot set to _stream_.
@@ -154,7 +154,7 @@ When an error function _F_ is called with argument _error_, the following steps 
     1. Throw _error_.
 1. If _bytesRead_ is -2,
     1. Set **this**.[[state]] to `"waiting"`.
-    1. Let **this**.[[waitPromise]] be a new promise.
+    1. Let **this**.[[readyPromise]] be a new promise.
     1. Return 0.
 1. If _bytesRead_ is -1,
     1. Set **this**.[[state]] to `"closed"`
@@ -166,7 +166,7 @@ When an error function _F_ is called with argument _error_, the following steps 
 
 1. If `this.[[state]]` is `"closed"`, return a new promise resolved with **undefined**.
 1. If `this.[[state]]` is `"errored"`, return a new promise rejected with `this.[[storedError]]`.
-1. If `this.[[state]]` is `"waiting"`, resolve `this.[[waitPromise]]` with **undefined**.
+1. If `this.[[state]]` is `"waiting"`, resolve `this.[[readyPromise]]` with **undefined**.
 1. Set `this.[[state]]` to `"closed"`.
 1. Resolve `this.[[closedPromise]]` with **undefined**.
 1. Let _cancelPromise_ be a new promise.
@@ -180,10 +180,10 @@ When an error function _F_ is called with argument _error_, the following steps 
 1. Let _stream_ be the **this** value.
 1. Return _stream_.[[state]].
 
-##### get ReadableByteStream.prototype.wait
+##### get ReadableByteStream.prototype.ready
 
 1. Let _stream_ be the **this** value.
-1. Return _stream_.[[waitPromise]].
+1. Return _stream_.[[readyPromise]].
 
 ##### get ReadableByteStream.prototype.closed
 

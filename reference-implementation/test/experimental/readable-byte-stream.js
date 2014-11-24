@@ -29,7 +29,7 @@ test('ReadableByteStream: Call notifyReady() asynchronously to enter readable st
     }
   });
 
-  var waitPromise = rbs.wait;
+  var readyPromise = rbs.ready;
 
   t.equal(rbs.state, 'waiting');
 
@@ -37,12 +37,13 @@ test('ReadableByteStream: Call notifyReady() asynchronously to enter readable st
 
   t.equal(rbs.state, 'readable');
 
-  waitPromise.then(
-      () => t.end(),
-      error => {
-        t.fail(error);
-        t.end();
-      });
+  readyPromise.then(
+    () => t.end(),
+    error => {
+      t.fail(error);
+      t.end();
+    }
+  );
 });
 
 test('ReadableByteStream: read() must throw if constructed with passing undefined for readBufferSize', t => {
@@ -497,7 +498,7 @@ test('ReadableByteStream: Have source\'s readInto() write up to 10 bytes for eac
         var bytesRead = rbs.readInto(buffer, bytesFilled);
         bytesFilled += bytesRead;
       } else if (rbs.state === 'waiting') {
-        rbs.wait
+        rbs.ready
             .then(readAndProcess, readAndProcess)
             .catch(
                 error => {

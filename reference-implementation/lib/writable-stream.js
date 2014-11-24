@@ -34,9 +34,9 @@ export default class WritableStream {
       this._closedPromise_reject = reject;
     });
 
-    this._writablePromise = Promise.resolve(undefined);
-    this._writablePromise_resolve = null;
-    this._writablePromise_reject = null;
+    this._readyPromise = Promise.resolve(undefined);
+    this._readyPromise_resolve = null;
+    this._readyPromise_reject = null;
 
     this._queue = [];
     this._state = 'writable';
@@ -86,12 +86,12 @@ export default class WritableStream {
       return Promise.reject(this._storedError);
     }
     if (this._state === 'writable') {
-      this._writablePromise = Promise.reject(new TypeError('stream has already been closed'));
-      this._writablePromise_resolve = null;
-      this._writablePromise_reject = null;
+      this._readyPromise = Promise.reject(new TypeError('stream has already been closed'));
+      this._readyPromise_resolve = null;
+      this._readyPromise_reject = null;
     }
     if (this._state === 'waiting') {
-      this._writablePromise_reject(new TypeError('stream has already been closed'));
+      this._readyPromise_reject(new TypeError('stream has already been closed'));
     }
 
     this._state = 'closing';
@@ -101,8 +101,8 @@ export default class WritableStream {
     return this._closedPromise;
   }
 
-  wait() {
-    return this._writablePromise;
+  get ready() {
+    return this._readyPromise;
   }
 
   write(chunk) {
@@ -202,12 +202,12 @@ function CreateWritableStreamErrorFunction(stream) {
     stream._storedError = e;
 
     if (stream._state === 'writable' || stream._state === 'closing') {
-      stream._writablePromise = Promise.reject(e);
-      stream._writablePromise_resolve = null;
-      stream._writablePromise_reject = null;
+      stream._readyPromise = Promise.reject(e);
+      stream._readyPromise_resolve = null;
+      stream._readyPromise_reject = null;
     }
     if (stream._state === 'waiting') {
-      stream._writablePromise_reject(e);
+      stream._readyPromise_reject(e);
     }
     stream._closedPromise_reject(e);
     stream._state = 'errored';
@@ -224,7 +224,7 @@ function SyncWritableStreamStateWithQueue(stream) {
 
   if (stream._state === 'waiting' && stream._queue.length === 0) {
     stream._state = 'writable';
-    stream._writablePromise_resolve(undefined);
+    stream._readyPromise_resolve(undefined);
     return undefined;
   }
 
@@ -233,15 +233,15 @@ function SyncWritableStreamStateWithQueue(stream) {
 
   if (shouldApplyBackpressure === true && stream._state === 'writable') {
     stream._state = 'waiting';
-    stream._writablePromise = new Promise((resolve, reject) => {
-      stream._writablePromise_resolve = resolve;
-      stream._writablePromise_reject = reject;
+    stream._readyPromise = new Promise((resolve, reject) => {
+      stream._readyPromise_resolve = resolve;
+      stream._readyPromise_reject = reject;
     });
   }
 
   if (shouldApplyBackpressure === false && stream._state === 'waiting') {
     stream._state = 'writable';
-    stream._writablePromise_resolve(undefined);
+    stream._readyPromise_resolve(undefined);
   }
 
   return undefined;

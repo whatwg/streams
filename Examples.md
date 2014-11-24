@@ -26,7 +26,7 @@ function streamToConsole(readable) {
         } else {
             // If we're in an error state, the returned promise will be rejected with that error,
             // so no need to handle "waiting" vs. "errored" separately.
-            readable.wait().then(pump, e => console.error(e));
+            readable.ready.then(pump, e => console.error(e));
         }
     }
 }
@@ -44,7 +44,7 @@ function getNext(stream) {
         return Promise.resolve(EOF);
     }
 
-    return stream.wait().then(function () {
+    return stream.ready.then(function () {
         if (stream.state === "readable") {
             return stream.read();
         }
@@ -80,7 +80,7 @@ function readableStreamToArray(readable) {
             }
 
             if (readable.state === "waiting") {
-                readable.wait().then(pump);
+                readable.ready.then(pump);
             }
 
             // All other cases will go through `readable.closed.then(...)` above.
@@ -293,7 +293,7 @@ function promptAndWrite(myStream) {
         });
     } else if (writableStream.state === "waiting") {
         console.log("Waiting for the stream to flush to the underlying sink, please hold...");
-        writableStream.wait()
+        writableStream.ready
             .then(promptAndWrite)
             .catch(e => console.error("While flushing, an error occurred: ", e));
     } else if (writableStream.state === "errored") {

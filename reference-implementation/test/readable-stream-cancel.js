@@ -64,7 +64,7 @@ test('ReadableStream cancellation puts the stream in a closed state (no chunks p
     () => t.fail('closed promise vended before the cancellation should not be rejected')
   );
 
-  rs.wait().then(
+  rs.ready.then(
     () => t.assert(true, 'wait() promise vended before the cancellation should fulfill'),
     () => t.fail('wait() promise vended before the cancellation should not be rejected')
   );
@@ -77,7 +77,7 @@ test('ReadableStream cancellation puts the stream in a closed state (no chunks p
     () => t.assert(true, 'closed promise vended after the cancellation should fulfill'),
     () => t.fail('closed promise vended after the cancellation should not be rejected')
   );
-  rs.wait().then(
+  rs.ready.then(
     () => t.assert(true, 'wait promise vended after the cancellation should fulfill'),
     () => t.fail('wait promise vended after the cancellation should not be rejected')
   );
@@ -88,14 +88,14 @@ test('ReadableStream cancellation puts the stream in a closed state (after waiti
 
   t.plan(5);
 
-  rs.wait().then(
+  rs.ready.then(
     () => {
       rs.closed.then(
         () => t.assert(true, 'closed promise vended before the cancellation should fulfill'),
         () => t.fail('closed promise vended before the cancellation should not be rejected')
       );
 
-      rs.wait().then(
+      rs.ready.then(
         () => t.assert(true, 'wait() promise vended before the cancellation should fulfill'),
         () => t.fail('wait() promise vended before the cancellation should not be rejected')
       );
@@ -108,7 +108,7 @@ test('ReadableStream cancellation puts the stream in a closed state (after waiti
         () => t.assert(true, 'closed promise vended after the cancellation should fulfill'),
         () => t.fail('closed promise vended after the cancellation should not be rejected')
       );
-      rs.wait().then(
+      rs.ready.then(
         () => t.assert(true, 'wait promise vended after the cancellation should fulfill'),
         () => t.fail('wait promise vended after the cancellation should not be rejected')
       );

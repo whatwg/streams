@@ -23,7 +23,7 @@ export default class ReadableStream {
     this._onPull = pull;
     this._onCancel = cancel;
     this._strategy = strategy;
-    this._initWaitPromise();
+    this._initReadyPromise();
     this._initClosedPromise();
     this._queue = [];
     this._state = 'waiting';
@@ -61,7 +61,7 @@ export default class ReadableStream {
       return Promise.reject(this._storedError);
     }
     if (this._state === 'waiting') {
-      this._resolveWaitPromise(undefined);
+      this._resolveReadyPromise(undefined);
     }
 
     this._queue = [];
@@ -109,24 +109,24 @@ export default class ReadableStream {
             dest.write(source.read());
             continue;
           } else if (source.state === 'waiting') {
-            Promise.race([source.wait(), dest.closed]).then(doPipe, doPipe);
+            Promise.race([source.ready, dest.closed]).then(doPipe, doPipe);
           } else if (source.state === 'errored') {
-            source.wait().catch(abortDest);
+            source.ready.catch(abortDest);
           } else if (source.state === 'closed') {
             closeDest();
           }
         } else if (ds === 'waiting') {
           if (source.state === 'readable') {
-            Promise.race([source.closed, dest.wait()]).then(doPipe, doPipe);
+            Promise.race([source.closed, dest.ready]).then(doPipe, doPipe);
           } else if (source.state === 'waiting') {
-            Promise.race([source.wait(), dest.wait()]).then(doPipe, doPipe);
+            Promise.race([source.ready, dest.ready]).then(doPipe, doPipe);
           } else if (source.state === 'errored') {
-            source.wait().catch(abortDest);
+            source.ready.catch(abortDest);
           } else if (source.state === 'closed') {
             closeDest();
           }
         } else if (ds === 'errored' && (source.state === 'readable' || source.state === 'waiting')) {
-          dest.wait().catch(cancelSource);
+          dest.ready.catch(cancelSource);
         } else if ((ds === 'closing' || ds === 'closed') &&
             (source.state === 'readable' || source.state === 'waiting')) {
           cancelSource(new TypeError('destination is closing or closed and cannot be piped to anymore'));
@@ -180,7 +180,7 @@ export default class ReadableStream {
         this._resolveClosedPromise(undefined);
       } else {
         this._state = 'waiting';
-        this._initWaitPromise();
+        this._initReadyPromise();
       }
     }
 
@@ -189,14 +189,14 @@ export default class ReadableStream {
     return chunk;
   }
 
-  wait() {
-    return this._waitPromise;
+  get ready() {
+    return this._readyPromise;
   }
 
-  _initWaitPromise() {
-    this._waitPromise = new Promise((resolve, reject) => {
-      this._waitPromise_resolve = resolve;
-      this._waitPromise_reject = reject;
+  _initReadyPromise() {
+    this._readyPromise = new Promise((resolve, reject) => {
+      this._readyPromise_resolve = resolve;
+      this._readyPromise_reject = reject;
     });
   }
 
@@ -213,16 +213,16 @@ export default class ReadableStream {
   // detect unexpected extra resolve/reject calls that may be caused by bugs in
   // the algorithm.
 
-  _resolveWaitPromise(value) {
-    this._waitPromise_resolve(value);
-    this._waitPromise_resolve = null;
-    this._waitPromise_reject = null;
+  _resolveReadyPromise(value) {
+    this._readyPromise_resolve(value);
+    this._readyPromise_resolve = null;
+    this._readyPromise_reject = null;
   }
 
-  _rejectWaitPromise(reason) {
-    this._waitPromise_reject(reason);
-    this._waitPromise_resolve = null;
-    this._waitPromise_reject = null;
+  _rejectReadyPromise(reason) {
+    this._readyPromise_reject(reason);
+    this._readyPromise_resolve = null;
+    this._readyPromise_reject = null;
   }
 
   _resolveClosedPromise(value) {
@@ -268,7 +268,7 @@ function CallReadableStreamPull(stream) {
 function CreateReadableStreamCloseFunction(stream) {
   return () => {
     if (stream._state === 'waiting') {
-      stream._resolveWaitPromise(undefined);
+      stream._resolveReadyPromise(undefined);
       stream._resolveClosedPromise(undefined);
       stream._state = 'closed';
     }
@@ -307,7 +307,7 @@ function CreateReadableStreamEnqueueFunction(stream) {
 
     if (stream._state === 'waiting') {
       stream._state = 'readable';
-      stream._resolveWaitPromise(undefined);
+      stream._resolveReadyPromise(undefined);
     }
 
     if (shouldApplyBackpressure === true) {
@@ -322,7 +322,7 @@ function CreateReadableStreamErrorFunction(stream) {
     if (stream._state === 'waiting') {
       stream._state = 'errored';
       stream._storedError = e;
-      stream._rejectWaitPromise(e);
+      stream._rejectReadyPromise(e);
       stream._rejectClosedPromise(e);
     }
     else if (stream._state === 'readable') {
@@ -330,9 +330,9 @@ function CreateReadableStreamErrorFunction(stream) {
       stream._state = 'errored';
       stream._storedError = e;
 
-      stream._waitPromise = Promise.reject(e);
-      stream._waitPromise_resolve = null;
-      stream._waitPromise_reject = null;
+      stream._readyPromise = Promise.reject(e);
+      stream._readyPromise_resolve = null;
+      stream._readyPromise_reject = null;
 
       stream._rejectClosedPromise(e);
     }
