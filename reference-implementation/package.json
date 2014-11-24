@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Reference implementation and tests for the WHATWG Streams Standard",
   "scripts": {
-    "test": "node traceur-runner.js test/*.js test/experimental/*.js",
+    "test": "node traceur-runner.js test/*.js test/experimental/*.js | tap-spec",
     "bench": "node traceur-runner.js bench/recording-runner.js && node traceur-runner.js bench/recording-differ.js"
   },
   "repository": "whatwg/streams",
@@ -24,6 +24,7 @@
     "mkdirp": "^0.5.0",
     "ms": "^0.6.2",
     "sandwich": "^0.1.1",
+    "tap-spec": "^2.1.0",
     "tape": "^2.13.2",
     "text-table": "^0.2.0",
     "traceur": "0.0.72",
