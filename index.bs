@@ -305,6 +305,11 @@ it.
 
   <pre><code class="lang-javascript">
     function streamToConsole(readableStream) {
+      readableStream.closed.then(
+        () => console.log("--- all done!"),
+        e => console.error(e);
+      );
+
       pump();
 
       function pump() {
@@ -312,13 +317,11 @@ it.
           console.log(readableStream.read());
         }
 
-        if (readableStream.state === "closed") {
-          console.log("--- all done!");
-        } else {
-          // If we're in an error state, the returned promise will be rejected with
-          // that error, so no need to handle "waiting" vs. "errored" separately.
-          readableStream.ready.then(pump, e => console.error(e));
+        if (readableStream.state === "waiting") {
+          readableStream.ready.then(pump);
         }
+
+        // otherwise "closed" or "errored", which will be handled above.
       }
     }
   </code></pre>
@@ -449,8 +452,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </tr>
   <tr>
     <td>\[[readyPromise]]
-    <td>A promise that becomes fulfilled when the stream becomes <code>"readable"</code>, and is replaced with a new
-      pending promise when the stream becomes <code>"waiting"</code>; returned by the <code>ready</code> getter
+    <td>A promise returned by the <code>ready</code> getter
   </tr>
 </table>
 
@@ -524,8 +526,9 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 <h5 id="rs-ready">get ready</h5>
 
 <div class="note">
-  The <code>ready</code> getter returns a promise that will be fulfilled either when the stream's internal queue becomes
-  nonempty, or the stream becomes closed. (The promise will be rejected if the stream errors.)
+  The <code>ready</code> getter returns a promise that will be fulfilled when the stream transitions away from the
+  <code>"waiting"</code> state to any other state. Once the stream transitions back to <code>"waiting"</code>, the
+  getter will return a new promise that stays pending until the next state transition.
 </div>
 
 <ol>
@@ -729,7 +732,7 @@ a variable <var>stream</var>, that performs the following steps:
     <ol>
       <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
       <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
-      <li> Reject <var>stream</var>@\[[readyPromise]] with <var>e</var>.
+      <li> Resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
       <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
     </ol>
   <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>,
@@ -737,7 +740,6 @@ a variable <var>stream</var>, that performs the following steps:
       <li> Let <var>stream</var>@\[[queue]] be a new empty List.
       <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
       <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
-      <li> Let <var>stream</var>@\[[readyPromise]] be a new promise rejected with <var>e</var>.
       <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
     </ol>
 </ol>

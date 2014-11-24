@@ -164,19 +164,14 @@ test('ReadableStream pull throws an error', t => {
   var error = new Error('aaaugh!!');
   var rs = new ReadableStream({ pull() { throw error; } });
 
-  rs.ready.then(() => {
-    t.fail('waiting should fail');
-    t.end();
-  });
-
   rs.closed.then(() => {
     t.fail('the stream should not close successfully');
     t.end();
   });
 
-  rs.ready.catch(caught => {
-    t.equal(rs.state, 'errored', 'state is "errored" after waiting');
-    t.equal(caught, error, 'error was passed through as rejection of ready');
+  rs.ready.then(v => {
+    t.equal(rs.state, 'errored', 'state is "errored" after waiting'),
+    t.equal(v, undefined, 'ready fulfills with undefined')
   });
 
   rs.closed.catch(caught => {
@@ -517,7 +512,9 @@ test('ReadableStream if size is NaN, the stream is errored', t => {
   });
 });
 
-test('ReadableStream errors in shouldApplyBackpressure prevent ready from fulfilling', t => {
+test('ReadableStream errors in shouldApplyBackpressure cause ready to fulfill and closed to rejected', t => {
+  t.plan(3);
+
   var thrownError = new Error('size failure');
   var callsToShouldApplyBackpressure = 0;
   var rs = new ReadableStream({
@@ -546,13 +543,12 @@ test('ReadableStream errors in shouldApplyBackpressure prevent ready from fulfil
   });
 
   rs.ready.then(
-    () => {
-      t.fail('ready should not be fulfilled');
-      t.end();
-    },
-    e => {
-      t.equal(e, thrownError, 'ready should be rejected with the thrown error');
-      t.end();
-    }
+    v => t.equal(v, undefined, 'ready should be fulfilled with undefined'),
+    e => t.fail('ready should not be rejected')
+  );
+
+  rs.closed.then(
+    v => t.fail('closed should not be fulfilled'),
+    e => t.equal(e, thrownError, 'closed should be rejected with the thrown error')
   );
 });

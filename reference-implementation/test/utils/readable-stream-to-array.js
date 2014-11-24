@@ -1,18 +1,18 @@
 export default function readableStreamToArray(readable) {
-  return new Promise((resolve, reject) => {
-    var chunks = [];
+  var chunks = [];
 
-    readable.closed.then(() => resolve(chunks), reject);
-    pump();
+  pump();
+  return readable.closed.then(() => chunks);
 
-    function pump() {
-      while (readable.state === 'readable') {
-        chunks.push(readable.read());
-      }
-
-      if (readable.state === 'waiting') {
-        readable.ready.then(pump);
-      }
+  function pump() {
+    while (readable.state === "readable") {
+      chunks.push(readable.read());
     }
-  });
+
+    if (readable.state === "waiting") {
+      readable.ready.then(pump);
+    }
+
+    // Otherwise the stream is "closed" or "errored", which will be handled above.
+  }
 }

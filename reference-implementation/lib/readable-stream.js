@@ -111,7 +111,7 @@ export default class ReadableStream {
           } else if (source.state === 'waiting') {
             Promise.race([source.ready, dest.closed]).then(doPipe, doPipe);
           } else if (source.state === 'errored') {
-            source.ready.catch(abortDest);
+            source.closed.catch(abortDest);
           } else if (source.state === 'closed') {
             closeDest();
           }
@@ -121,12 +121,12 @@ export default class ReadableStream {
           } else if (source.state === 'waiting') {
             Promise.race([source.ready, dest.ready]).then(doPipe, doPipe);
           } else if (source.state === 'errored') {
-            source.ready.catch(abortDest);
+            source.closed.catch(abortDest);
           } else if (source.state === 'closed') {
             closeDest();
           }
         } else if (ds === 'errored' && (source.state === 'readable' || source.state === 'waiting')) {
-          dest.ready.catch(cancelSource);
+          dest.closed.catch(cancelSource);
         } else if ((ds === 'closing' || ds === 'closed') &&
             (source.state === 'readable' || source.state === 'waiting')) {
           cancelSource(new TypeError('destination is closing or closed and cannot be piped to anymore'));
@@ -196,7 +196,6 @@ export default class ReadableStream {
   _initReadyPromise() {
     this._readyPromise = new Promise((resolve, reject) => {
       this._readyPromise_resolve = resolve;
-      this._readyPromise_reject = reject;
     });
   }
 
@@ -216,13 +215,6 @@ export default class ReadableStream {
   _resolveReadyPromise(value) {
     this._readyPromise_resolve(value);
     this._readyPromise_resolve = null;
-    this._readyPromise_reject = null;
-  }
-
-  _rejectReadyPromise(reason) {
-    this._readyPromise_reject(reason);
-    this._readyPromise_resolve = null;
-    this._readyPromise_reject = null;
   }
 
   _resolveClosedPromise(value) {
@@ -322,18 +314,13 @@ function CreateReadableStreamErrorFunction(stream) {
     if (stream._state === 'waiting') {
       stream._state = 'errored';
       stream._storedError = e;
-      stream._rejectReadyPromise(e);
+      stream._resolveReadyPromise(undefined);
       stream._rejectClosedPromise(e);
     }
     else if (stream._state === 'readable') {
       stream._queue = [];
       stream._state = 'errored';
       stream._storedError = e;
-
-      stream._readyPromise = Promise.reject(e);
-      stream._readyPromise_resolve = null;
-      stream._readyPromise_reject = null;
-
       stream._rejectClosedPromise(e);
     }
   };

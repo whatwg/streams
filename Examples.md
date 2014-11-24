@@ -14,6 +14,11 @@ Although the by-far most common way of consuming a readable stream will be to pi
 
 ```js
 function streamToConsole(readable) {
+    readable.closed.then(
+        () => console.log("--- all done!"),
+        e => console.error(e);
+    );
+
     pump();
 
     function pump() {
@@ -21,13 +26,11 @@ function streamToConsole(readable) {
             console.log(readable.read());
         }
 
-        if (readable.state === "closed") {
-            console.log("--- all done!");
-        } else {
-            // If we're in an error state, the returned promise will be rejected with that error,
-            // so no need to handle "waiting" vs. "errored" separately.
-            readable.ready.then(pump, e => console.error(e));
+        if (readable.state === "waiting") {
+            readable.ready.then(pump);
         }
+
+        // Otherwise the stream is "closed" or "errored", which will be handled above.
     }
 }
 ```
@@ -45,12 +48,12 @@ function getNext(stream) {
     }
 
     return stream.ready.then(function () {
-        if (stream.state === "readable") {
-            return stream.read();
+        if (stream.state === "closed") {
+            return EOF;
         }
 
-        // State must be "closed":
-        return EOF;
+        // If stream is "errored", this will throw, causing the promise to be rejected.
+        return stream.read();
     });
 }
 
@@ -68,24 +71,22 @@ As a final example, this function uses the reading APIs to buffer the entire str
 
 ```js
 function readableStreamToArray(readable) {
-    return new Promise((resolve, reject) => {
-        var chunks = [];
+    var chunks = [];
 
-        readable.closed.then(() => resolve(chunks), reject);
-        pump();
+    pump();
+    return readable.closed.then(() => chunks);
 
-        function pump() {
-            while (readable.state === "readable") {
-                chunks.push(readable.read());
-            }
-
-            if (readable.state === "waiting") {
-                readable.ready.then(pump);
-            }
-
-            // All other cases will go through `readable.closed.then(...)` above.
+    function pump() {
+        while (readable.state === "readable") {
+            chunks.push(readable.read());
         }
-    });
+
+        if (readable.state === "waiting") {
+            readable.ready.then(pump);
+        }
+
+        // Otherwise the stream is "closed" or "errored", which will be handled above.
+    }
 }
 
 readableStreamToArray(myStream).then(chunks => {
