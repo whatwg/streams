@@ -114,8 +114,8 @@ test('Aborting a WritableStream puts it in an errored state, with stored error e
   );
 
   ws.ready.then(
-    () => t.fail('waiting should not succeed'),
-    r => t.equal(r, passedReason, 'waiting should reject with the given reason')
+    () => t.fail('ready should not succeed'),
+    r => t.equal(r, passedReason, 'ready should reject with the given reason')
   );
 
   ws.close().then(
@@ -134,7 +134,7 @@ test('Aborting a WritableStream puts it in an errored state, with stored error e
   );
 });
 
-test('Aborting a WritableStream causes any outstanding wait() promises to be rejected with the abort reason', t => {
+test('Aborting a WritableStream causes any outstanding ready promises to be rejected with the abort reason', t => {
   t.plan(2);
 
   var recordedReason;
@@ -143,8 +143,8 @@ test('Aborting a WritableStream causes any outstanding wait() promises to be rej
   t.equal(ws.state, 'waiting', 'state should be waiting');
 
   ws.ready.then(
-    () => t.fail('waiting should not succeed'),
-    r => t.equal(r, passedReason, 'waiting should reject with the given reason')
+    () => t.fail('ready should not succeed'),
+    r => t.equal(r, passedReason, 'ready should reject with the given reason')
   );
 
   var passedReason = new Error('Sorry, it just wasn\'t meant to be.');

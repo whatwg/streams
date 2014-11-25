@@ -113,13 +113,13 @@ test('Piping from a ReadableStream in readable state to a WritableStream in erro
     t.assert(writeCalled, 'write must be called');
 
     ws.ready.then(
-      () => t.fail('wait promise unexpectedly fulfilled'),
+      () => t.fail('ready promise unexpectedly fulfilled'),
       () => {
         t.equal(ws.state, 'errored', 'as a result of rejected promise, ws must be in errored state');
 
         rs.pipeTo(ws);
 
-        // Need to delay because pipeTo retrieves error from dest using wait().
+        // Need to delay because pipeTo retrieves error from dest using ready.
         setTimeout(() => {
           t.assert(cancelCalled);
           t.equal(rs.state, 'closed');
@@ -210,7 +210,7 @@ test('Piping from a ReadableStream in errored state to a WritableStream in writa
 
     rs.pipeTo(ws);
 
-    // Need to delay because pipeTo retrieves error from dest using wait().
+    // Need to delay because pipeTo retrieves error from dest using ready.
     setTimeout(() => {
       t.assert(abortCalled);
       t.equal(ws.state, 'errored');
@@ -865,7 +865,7 @@ test('Piping to a duck-typed asynchronous "writable stream" works', t => {
       chunksWritten.push(chunk);
       return Promise.resolve();
     },
-    wait() {
+    get ready() {
       return Promise.resolve();
     },
     close() {

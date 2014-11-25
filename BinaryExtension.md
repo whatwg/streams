@@ -43,7 +43,7 @@ class ReadableByteStream {
 
     get ReadableStreamState state
 
-    get Promise<undefined> wait
+    get Promise<undefined> ready
     get Promise<undefined> closed
 
     // Internal slots

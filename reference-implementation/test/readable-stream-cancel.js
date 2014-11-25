@@ -48,7 +48,7 @@ test('ReadableStream canceling an infinite stream', t => {
 
   setTimeout(() => {
     rs.cancel().then(() => {
-      t.equal(cancelationFinished, true, 'it returns a promise that waits for the cancellation to finish');
+      t.equal(cancelationFinished, true, 'it returns a promise that is fulfilled when the cancellation finishes');
       t.end();
     });
   }, 150);
@@ -65,8 +65,8 @@ test('ReadableStream cancellation puts the stream in a closed state (no chunks p
   );
 
   rs.ready.then(
-    () => t.assert(true, 'wait() promise vended before the cancellation should fulfill'),
-    () => t.fail('wait() promise vended before the cancellation should not be rejected')
+    () => t.assert(true, 'ready promise vended before the cancellation should fulfill'),
+    () => t.fail('ready promise vended before the cancellation should not be rejected')
   );
 
   rs.cancel();
@@ -78,8 +78,8 @@ test('ReadableStream cancellation puts the stream in a closed state (no chunks p
     () => t.fail('closed promise vended after the cancellation should not be rejected')
   );
   rs.ready.then(
-    () => t.assert(true, 'wait promise vended after the cancellation should fulfill'),
-    () => t.fail('wait promise vended after the cancellation should not be rejected')
+    () => t.assert(true, 'ready promise vended after the cancellation should fulfill'),
+    () => t.fail('ready promise vended after the cancellation should not be rejected')
   );
 });
 
@@ -96,8 +96,8 @@ test('ReadableStream cancellation puts the stream in a closed state (after waiti
       );
 
       rs.ready.then(
-        () => t.assert(true, 'wait() promise vended before the cancellation should fulfill'),
-        () => t.fail('wait() promise vended before the cancellation should not be rejected')
+        () => t.assert(true, 'ready promise vended before the cancellation should fulfill'),
+        () => t.fail('ready promise vended before the cancellation should not be rejected')
       );
 
       rs.cancel();
@@ -109,8 +109,8 @@ test('ReadableStream cancellation puts the stream in a closed state (after waiti
         () => t.fail('closed promise vended after the cancellation should not be rejected')
       );
       rs.ready.then(
-        () => t.assert(true, 'wait promise vended after the cancellation should fulfill'),
-        () => t.fail('wait promise vended after the cancellation should not be rejected')
+        () => t.assert(true, 'ready promise vended after the cancellation should fulfill'),
+        () => t.fail('ready promise vended after the cancellation should not be rejected')
       );
     },
     r => t.ifError(r)

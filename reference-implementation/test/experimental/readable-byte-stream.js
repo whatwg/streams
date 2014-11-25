@@ -240,7 +240,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
 
   rbs.closed.then(
       () => {
-        t.fail('waitPromise is fulfilled unexpectedly');
+        t.fail('closed is fulfilled unexpectedly');
         t.end();
       },
       error => {
@@ -271,7 +271,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
 
   rbs.closed.then(
       () => {
-        t.fail('waitPromise is fulfilled unexpectedly');
+        t.fail('closed is fulfilled unexpectedly');
         t.end();
       },
       error => {

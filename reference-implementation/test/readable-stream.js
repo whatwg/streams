@@ -29,8 +29,8 @@ test('ReadableStream instances have the correct methods and properties', t => {
   t.ok(rs.closed.then, 'closed property is thenable');
 });
 
-test(`ReadableStream closing puts the stream in a closed state, fulfilling the wait() and closed promises with
- undefined`, t => {
+test('ReadableStream closing puts the stream in a closed state, fulfilling the ready and closed promises with ' +
+    'undefined', t => {
   t.plan(3);
 
   var rs = new ReadableStream({
@@ -42,8 +42,8 @@ test(`ReadableStream closing puts the stream in a closed state, fulfilling the w
   t.equal(rs.state, 'closed', 'The stream should be in closed state');
 
   rs.ready.then(
-    v => t.equal(v, undefined, 'wait() should return a promise fulfilled with undefined'),
-    () => t.fail('wait() should not return a rejected promise')
+    v => t.equal(v, undefined, 'ready should return a promise fulfilled with undefined'),
+    () => t.fail('ready should not return a rejected promise')
   );
 
   rs.closed.then(
@@ -94,8 +94,8 @@ test('ReadableStream reading an errored stream throws the stored error', t => {
   }
 });
 
-test(`ReadableStream reading a stream makes wait() and closed return a promise fulfilled with undefined when the stream
- is fully drained`, t => {
+test('ReadableStream reading a stream makes ready and closed return a promise fulfilled with undefined when the ' +
+    'stream is fully drained', t => {
   t.plan(6);
 
   var rs = new ReadableStream({
@@ -112,8 +112,8 @@ test(`ReadableStream reading a stream makes wait() and closed return a promise f
   t.throws(() => rs.read(), /TypeError/);
 
   rs.ready.then(
-    v => t.equal(v, undefined, 'wait() should return a promise fulfilled with undefined'),
-    () => t.fail('wait() should not return a rejected promise')
+    v => t.equal(v, undefined, 'ready should return a promise fulfilled with undefined'),
+    () => t.fail('ready should not return a rejected promise')
   );
 
   rs.closed.then(
@@ -176,7 +176,7 @@ test('ReadableStream pull throws an error', t => {
 
   rs.ready.catch(caught => {
     t.equal(rs.state, 'errored', 'state is "errored" after waiting');
-    t.equal(caught, error, 'error was passed through as rejection of wait() call');
+    t.equal(caught, error, 'error was passed through as rejection of ready');
   });
 
   rs.closed.catch(caught => {
@@ -275,7 +275,7 @@ test('ReadableStream is able to pull data repeatedly if it\'s available synchron
   });
 });
 
-test('ReadableStream wait() does not error when no more data is available', t => {
+test('ReadableStream ready does not error when no more data is available', t => {
   // https://github.com/whatwg/streams/issues/80
 
   t.plan(1);
@@ -517,7 +517,7 @@ test('ReadableStream if size is NaN, the stream is errored', t => {
   });
 });
 
-test('ReadableStream errors in shouldApplyBackpressure prevent wait() from fulfilling', t => {
+test('ReadableStream errors in shouldApplyBackpressure prevent ready from fulfilling', t => {
   var thrownError = new Error('size failure');
   var callsToShouldApplyBackpressure = 0;
   var rs = new ReadableStream({
@@ -547,11 +547,11 @@ test('ReadableStream errors in shouldApplyBackpressure prevent wait() from fulfi
 
   rs.ready.then(
     () => {
-      t.fail('wait() should not be fulfilled');
+      t.fail('ready should not be fulfilled');
       t.end();
     },
     e => {
-      t.equal(e, thrownError, 'wait() should be rejected with the thrown error');
+      t.equal(e, thrownError, 'ready should be rejected with the thrown error');
       t.end();
     }
   );

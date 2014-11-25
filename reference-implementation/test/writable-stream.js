@@ -228,13 +228,13 @@ test('WritableStream with simple input, processed synchronously', t => {
   );
 });
 
-test('WritableStream wait() fulfills immediately if the stream is writable', t => {
+test('WritableStream ready fulfills immediately if the stream is writable', t => {
   var ws = new WritableStream({
     strategy: { shouldApplyBackpressure() { return true; } }
   });
 
   ws.ready.then(() => {
-    t.pass('wait() promise was fulfilled');
+    t.pass('ready promise was fulfilled');
     t.end();
   });
 });
@@ -321,7 +321,7 @@ test('WritableStream if write returns a rejected promise, queued write and close
   }, 0);
 });
 
-test('If close is called on a WritableStream in writable state, wait will return a rejected promise', t => {
+test('If close is called on a WritableStream in writable state, ready will return a rejected promise', t => {
   var ws = new WritableStream({
     write() {
       t.fail('Unexpected write call');
@@ -341,17 +341,17 @@ test('If close is called on a WritableStream in writable state, wait will return
     t.equal(ws.state, 'closing', 'state must become closing synchronously on close call');
 
     ws.ready.then(
-      () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
+      () => t.fail('ready on ws returned a fulfilled promise unexpectedly'),
       r => {
         t.equal(r.constructor, TypeError,
-                      'wait() must start returning a promise rejected with a TypeError exception');
+                      'ready must start returning a promise rejected with a TypeError exception');
         t.end();
       }
     );
   }, 0);
 });
 
-test('If close is called on a WritableStream in waiting state, wait will return a rejected promise', t => {
+test('If close is called on a WritableStream in waiting state, ready will return a rejected promise', t => {
   var ws = new WritableStream({
     abort() {
       t.fail('Unexpected abort call');
@@ -368,17 +368,17 @@ test('If close is called on a WritableStream in waiting state, wait will return 
     t.equal(ws.state, 'closing', 'state must become closing synchronously on close call');
 
     ws.ready.then(
-      () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
+      () => t.fail('ready on ws returned a fulfilled promise unexpectedly'),
       r => {
         t.equal(r.constructor, TypeError,
-                      'wait() must start returning a promise rejected with a TypeError exception');
+                      'ready must start returning a promise rejected with a TypeError exception');
         t.end();
       }
     );
   }, 0);
 });
 
-test('If sink rejects on a WritableStream in writable state, wait will return a rejected promise', t => {
+test('If sink rejects on a WritableStream in writable state, ready will return a rejected promise', t => {
   t.plan(5);
 
   var rejectWritePromise;
@@ -403,8 +403,8 @@ test('If sink rejects on a WritableStream in writable state, wait will return a 
         t.equal(ws.state, 'errored', 'state is errored as error is called');
 
         ws.ready.then(
-          () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
-          r => t.equal(r, passedError, 'wait() should be rejected with the passed error')
+          () => t.fail('ready on ws returned a fulfilled promise unexpectedly'),
+          r => t.equal(r, passedError, 'ready should be rejected with the passed error')
         );
       }
     );
@@ -441,9 +441,9 @@ test('WritableStream if sink\'s close throws', t => {
         t.equal(ws.state, 'errored', 'state must be errored as error is called');
 
         ws.ready.then(
-          () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
+          () => t.fail('ready on ws returned a fulfilled promise unexpectedly'),
           r => {
-            t.equal(r, passedError, 'wait() should be rejected with the passed error');
+            t.equal(r, passedError, 'ready should be rejected with the passed error');
             t.end();
           }
         );
@@ -484,7 +484,7 @@ test('WritableStream if the promise returned by sink\'s close rejects', t => {
         ws.ready.then(
           () => t.fail('ws.ready returned a fulfilled promise'),
           r => {
-            t.equal(r, passedError, 'wait() should be rejected with the passed error');
+            t.equal(r, passedError, 'ready should be rejected with the passed error');
             t.end();
           }
         );
@@ -493,7 +493,7 @@ test('WritableStream if the promise returned by sink\'s close rejects', t => {
   }, 0);
 });
 
-test('If sink rejects on a WritableStream in waiting state, wait will return a rejected promise', t => {
+test('If sink rejects on a WritableStream in waiting state, ready will return a rejected promise', t => {
   t.plan(5);
 
   var passedError = new Error('pass me');
@@ -520,8 +520,8 @@ test('If sink rejects on a WritableStream in waiting state, wait will return a r
         t.equal(ws.state, 'errored', 'state is errored as error is called');
 
         ws.ready.then(
-          () => t.fail('wait on ws returned a fulfilled promise unexpectedly'),
-          r => t.equal(r, passedError, 'wait() should be rejected with the passed error')
+          () => t.fail('ready on ws returned a fulfilled promise unexpectedly'),
+          r => t.equal(r, passedError, 'ready should be rejected with the passed error')
         );
       }
     );

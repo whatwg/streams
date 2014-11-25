@@ -579,7 +579,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Return <b>this</b>@\[[closedPromise]].
 </ol>
 
-<h5 id="rs-wait">get ready</h5>
+<h5 id="rs-ready">get ready</h5>
 
 <div class="note">
   The <code>ready</code> getter returns a promise that will be fulfilled either when the stream's internal queue becomes
@@ -1174,7 +1174,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> Return <b>this</b>@\[[closedPromise]].
 </ol>
 
-<h5 id="ws-wait">get ready</h5>
+<h5 id="ws-ready">get ready</h5>
 
 <div class="note">
   The <code>ready</code> getter returns a promise that will be fulfilled when the stream enters the
