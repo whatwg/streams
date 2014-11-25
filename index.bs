@@ -357,7 +357,7 @@ it.
 
 <div class="example">
   Although readable streams will usually be used by piping them to a writable stream, you can also "pump" them
-  directly, alternating between using the <code>read()</code> and <code>wait()</code> methods according to the current
+  directly, alternating between using the <code>read()</code> method and the <code>ready</code> getter according to the current
   value of the <code>state</code> property. For example, this function writes the contents of a readable stream to the
   console as fast as they are available.
 
@@ -508,7 +508,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <tr>
     <td>\[[readyPromise]]
     <td>A promise that becomes fulfilled when the stream becomes <code>"readable"</code>, and is replaced with a new
-      pending promise when the stream becomes <code>"waiting"</code>; returned by the <code>wait()</code> method
+      pending promise when the stream becomes <code>"waiting"</code>; returned by the <code>ready</code> getter
   </tr>
 </table>
 
@@ -1084,7 +1084,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <tr>
     <td>\[[readyPromise]]
     <td>A promise that becomes fulfilled when the stream becomes <code>"writable"</code>, and is replaced with a new
-      pending promise when the stream becomes <code>"waiting"</code>; returned by the <code>wait()</code> method
+      pending promise when the stream becomes <code>"waiting"</code>; returned by the <code>ready</code> getter
   </tr>
   <tr>
     <td>\[[writing]]
@@ -1670,7 +1670,7 @@ additional functionality. Examples would include:
 <ul>
   <li>A file stream that is constructed from a filename, and includes file metadata</li>
   <li>A HTTP stream that is constructed from a URL, and includes header-accessing APIs</li>
-  <li>A TCP stream that overrides <code>read</code>, <code>wait</code>, <code>cancel</code>, <code>state</code>, and
+  <li>A TCP stream that overrides <code>read</code>, <code>ready</code>, <code>cancel</code>, <code>state</code>, and
   <code>closed</code> to reflect and manipulate a kernel-level TCP buffer</li>
 </ul>
 
