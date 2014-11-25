@@ -2,6 +2,7 @@ var assert = require('assert');
 import * as helpers from './helpers';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
 import CountQueuingStrategy from './count-queuing-strategy';
+import ExclusiveStreamReader from './exclusive-stream-reader';
 
 export default class ReadableStream {
   constructor({
@@ -30,6 +31,7 @@ export default class ReadableStream {
     this._started = false;
     this._draining = false;
     this._pulling = false;
+    this._reader = undefined;
 
     this._enqueue = CreateReadableStreamEnqueueFunction(this);
     this._close = CreateReadableStreamCloseFunction(this);
@@ -50,10 +52,19 @@ export default class ReadableStream {
   }
 
   get state() {
+    if (this._reader !== undefined) {
+      return 'waiting';
+    }
+
     return this._state;
   }
 
   cancel(reason) {
+    if (this._reader !== undefined) {
+      return Promise.reject(
+        new TypeError('This stream is locked to a single exclusive reader and cannot be cancelled directly'));
+    }
+
     if (this._state === 'closed') {
       return Promise.resolve(undefined);
     }
@@ -65,11 +76,21 @@ export default class ReadableStream {
     }
 
     this._queue = [];
-    this._state = 'closed';
-    this._resolveClosedPromise(undefined);
+    CloseReadableStream(this);
 
     var sourceCancelPromise = helpers.promiseCall(this._onCancel, reason);
     return sourceCancelPromise.then(() => undefined);
+  }
+
+  getReader() {
+    if (this._state === 'closed') {
+      throw new TypeError('The stream has already been closed, so a reader cannot be acquired.');
+    }
+    if (this._state === 'errored') {
+      throw this._storedError;
+    }
+
+    return new ExclusiveStreamReader(this);
   }
 
   pipeThrough({ writable, readable }, options) {
@@ -86,11 +107,11 @@ export default class ReadableStream {
   }
 
   pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) {
-    var source = this;
     preventClose = Boolean(preventClose);
     preventAbort = Boolean(preventAbort);
     preventCancel = Boolean(preventCancel);
 
+    var source;
     var resolvePipeToPromise;
     var rejectPipeToPromise;
 
@@ -98,6 +119,7 @@ export default class ReadableStream {
       resolvePipeToPromise = resolve;
       rejectPipeToPromise = reject;
 
+      source = this.getReader();
       doPipe();
     });
 
@@ -137,12 +159,16 @@ export default class ReadableStream {
 
     function cancelSource(reason) {
       if (preventCancel === false) {
+        // implicitly releases the lock
         source.cancel(reason);
+      } else {
+        source.releaseLock();
       }
       rejectPipeToPromise(reason);
     }
 
     function closeDest() {
+      source.releaseLock();
       if (preventClose === false) {
         dest.close().then(resolvePipeToPromise, rejectPipeToPromise);
       } else {
@@ -151,6 +177,7 @@ export default class ReadableStream {
     }
 
     function abortDest(reason) {
+      source.releaseLock();
       if (preventAbort === false) {
         dest.abort(reason);
       }
@@ -159,6 +186,10 @@ export default class ReadableStream {
   }
 
   read() {
+    if (this._reader !== undefined) {
+      throw new TypeError('This stream is locked to a single exclusive reader and cannot be read from directly');
+    }
+
     if (this._state === 'waiting') {
       throw new TypeError('no chunks available (yet)');
     }
@@ -176,8 +207,7 @@ export default class ReadableStream {
 
     if (this._queue.length === 0) {
       if (this._draining === true) {
-        this._state = 'closed';
-        this._resolveClosedPromise(undefined);
+        CloseReadableStream(this);
       } else {
         this._state = 'waiting';
         this._initReadyPromise();
@@ -190,6 +220,10 @@ export default class ReadableStream {
   }
 
   get ready() {
+    if (this._reader !== undefined) {
+      return this._reader._lockReleased;
+    }
+
     return this._readyPromise;
   }
 
@@ -261,8 +295,7 @@ function CreateReadableStreamCloseFunction(stream) {
   return () => {
     if (stream._state === 'waiting') {
       stream._resolveReadyPromise(undefined);
-      stream._resolveClosedPromise(undefined);
-      stream._state = 'closed';
+      return CloseReadableStream(stream);
     }
     if (stream._state === 'readable') {
       stream._draining = true;
@@ -312,16 +345,18 @@ function CreateReadableStreamEnqueueFunction(stream) {
 function CreateReadableStreamErrorFunction(stream) {
   return e => {
     if (stream._state === 'waiting') {
-      stream._state = 'errored';
-      stream._storedError = e;
       stream._resolveReadyPromise(undefined);
-      stream._rejectClosedPromise(e);
     }
-    else if (stream._state === 'readable') {
+    if (stream._state === 'readable') {
       stream._queue = [];
+    }
+    if (stream._state === 'waiting' || stream._state === 'readable') {
       stream._state = 'errored';
       stream._storedError = e;
       stream._rejectClosedPromise(e);
+      if (stream._reader !== undefined) {
+        stream._reader.releaseLock();
+      }
     }
   };
 }
@@ -337,6 +372,17 @@ function ShouldReadableStreamApplyBackpressure(stream) {
   }
 
   return shouldApplyBackpressure;
+}
+
+function CloseReadableStream(stream) {
+  stream._state = 'closed';
+  stream._resolveClosedPromise(undefined);
+
+  if (stream._reader !== undefined) {
+    stream._reader.releaseLock();
+  }
+
+  return undefined;
 }
 
 var defaultReadableStreamStrategy = {

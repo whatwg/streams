@@ -57,6 +57,7 @@ export default class ReadableByteStream {
       }
     }
 
+    this._reader = undefined;
     this._state = 'waiting';
 
     this._onReadInto = readInto;
@@ -80,6 +81,10 @@ export default class ReadableByteStream {
   }
 
   get state() {
+    if (this._reader !== undefined) {
+      return 'waiting';
+    }
+
     return this._state;
   }
 
@@ -169,14 +174,11 @@ export default class ReadableByteStream {
     return resizedArrayBuffer;
   }
 
-  // Note: We plan to make this more efficient in the future. But for now this
-  // implementation suffices to show interoperability with a generic
-  // WritableStream.
-  pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) {
-    ReadableStream.prototype.pipeTo.call(this, dest, {preventClose, preventAbort, preventCancel});
-  }
-
   get ready() {
+    if (this._reader !== undefined) {
+      return this._reader._lockReleased;
+    }
+
     return this._readyPromise;
   }
 
@@ -192,6 +194,7 @@ export default class ReadableByteStream {
     }
 
     this._state = 'closed';
+    this._reader = undefined;
     this._resolveClosedPromise(undefined);
 
     return new Promise((resolve, reject) => {
@@ -208,6 +211,10 @@ export default class ReadableByteStream {
   }
 
   get closed() {
+    if (this._reader !== undefined) {
+      return this._reader._lockReleased.then(() => this._closedPromise);
+    }
+
     return this._closedPromise;
   }
 
@@ -223,3 +230,12 @@ export default class ReadableByteStream {
     this._closedPromise_reject = null;
   }
 }
+
+// Note: We plan to make this more efficient in the future. But for now this
+// implementation suffices to show interoperability with a generic
+// WritableStream.
+ReadableByteStream.prototype.pipeTo = ReadableStream.prototype.pipeTo;
+
+// These can be direct copies. Per spec though they probably should not be === since that might preclude optimizations.
+ReadableByteStream.prototype.pipeThrough = ReadableStream.prototype.pipeThrough;
+ReadableByteStream.prototype.getReader = ReadableStream.prototype.getReader;
