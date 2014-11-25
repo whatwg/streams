@@ -45,6 +45,8 @@ export default class WritableStream {
 
     this._error = CreateWritableStreamErrorFunction(this);
 
+    SyncWritableStreamStateWithQueue(this);
+
     var startResult = start(this._error);
     this._startedPromise = Promise.resolve(startResult);
     this._startedPromise.then(() => {

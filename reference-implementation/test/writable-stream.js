@@ -228,15 +228,35 @@ test('WritableStream with simple input, processed synchronously', t => {
   );
 });
 
-test('WritableStream ready fulfills immediately if the stream is writable', t => {
+test('WritableStream is writable and ready fulfills immediately if the strategy does not apply backpressure', t => {
   var ws = new WritableStream({
-    strategy: { shouldApplyBackpressure() { return true; } }
+    strategy: { shouldApplyBackpressure() { return false; } }
   });
+
+  t.equal(ws.state, 'writable');
 
   ws.ready.then(() => {
     t.pass('ready promise was fulfilled');
     t.end();
   });
+});
+
+test('WritableStream is waiting and ready does not fulfill immediately if the stream is applying backpressure', t => {
+  var ws = new WritableStream({
+    strategy: { shouldApplyBackpressure() { return true; } }
+  });
+
+  t.equal(ws.state, 'waiting');
+
+  ws.ready.then(() => {
+    t.fail('ready promise was fulfilled');
+    t.end();
+  });
+
+  setTimeout(() => {
+    t.pass('ready promise was left pending');
+    t.end();
+  }, 30);
 });
 
 test('Fulfillment value of ws.write() call must be undefined even if the underlying sink returns a non-undefined ' +
@@ -555,6 +575,7 @@ test('WritableStream if sink throws an error inside write, the stream becomes er
 test('WritableStream exception in shouldApplyBackpressure during write moves the stream into errored state', t => {
   t.plan(3);
 
+  var aboutToWrite = false;
   var thrownError = new Error('throw me');
   var ws = new WritableStream({
     strategy: {
@@ -562,13 +583,18 @@ test('WritableStream exception in shouldApplyBackpressure during write moves the
         return 1;
       },
       shouldApplyBackpressure() {
-        throw thrownError;
+        if (aboutToWrite) {
+          throw thrownError;
+        }
       }
     }
   });
+
+  aboutToWrite = true;
   ws.write('a').catch(r => {
     t.equal(r, thrownError);
   });
+
   t.equal(ws.state, 'errored', 'the state of ws must be errored as shouldApplyBackpressure threw');
   ws.closed.catch(r => {
     t.equal(r, thrownError);
