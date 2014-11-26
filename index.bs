@@ -1510,7 +1510,7 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
   </tr>
 </table>
 
-<h4 id="blqs-constructor">new CountQueuingStrategy({ highWaterMark })</h4>
+<h4 id="cqs-constructor">new CountQueuingStrategy({ highWaterMark })</h4>
 
 <div class="note">
   The constructor takes a nonnegative number for the high-water mark, and stores it for later use.
@@ -1523,9 +1523,9 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
   <li> Set <b>this</b>@\[[highWaterMark]] to <var>highWaterMark</var>.
 </ol>
 
-<h4 id="blqs-prototype">Properties of the <code>CountQueuingStrategy</code> Prototype</h4>
+<h4 id="cqs-prototype">Properties of the <code>CountQueuingStrategy</code> Prototype</h4>
 
-<h5 id="blqs-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h5>
+<h5 id="cqs-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h5>
 
 <div class="note">
   The <code>shouldApplyBackpressure</code> method returns whether or not the given queue size is greater than the
@@ -1538,7 +1538,7 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
   <li> Return <var>queueSize</var> > <b>this</b>@\[[highWaterMark]].
 </ol>
 
-<h5 id="blqs-size">size()</h5>
+<h5 id="cqs-size">size()</h5>
 
 <div class="note">
   The <code>size</code> method returns one always, so that the total queue size is a count of the number of chunks in
