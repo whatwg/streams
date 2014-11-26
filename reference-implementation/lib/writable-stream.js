@@ -224,12 +224,6 @@ function SyncWritableStreamStateWithQueue(stream) {
   assert(stream._state === 'writable' || stream._state === 'waiting',
     'stream must be in a writable or waiting state while calling SyncWritableStreamStateWithQueue');
 
-  if (stream._state === 'waiting' && stream._queue.length === 0) {
-    stream._state = 'writable';
-    stream._readyPromise_resolve(undefined);
-    return undefined;
-  }
-
   var queueSize = GetTotalQueueSize(stream._queue);
   var shouldApplyBackpressure = Boolean(stream._strategy.shouldApplyBackpressure(queueSize));
 
