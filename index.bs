@@ -81,6 +81,7 @@ Logo: https://resources.whatwg.org/logo-streams.svg
     display: none;
   }
 </style>
+<script src="https://resources.whatwg.org/file-issue.js" async></script>
 
 
 <h2 id="intro">Introduction</h2>
