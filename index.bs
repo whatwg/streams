@@ -1312,12 +1312,6 @@ a variable <var>stream</var>, that performs the following steps:
 <ol>
   <li> If <var>stream</var>@\[[state]] is <code>"closing"</code>, return <b>undefined</b>.
   <li> Assert: <var>stream</var>@\[[state]] is either <code>"writable"</code> or <code>"waiting"</code>.
-  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code> and <var>stream</var>@\[[queue]] is empty, then
-    <ol>
-      <li> Set <var>stream</var>@\[[state]] to <code>"writable"</code>.
-      <li> Resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
-      <li> Return <b>undefined</b>.
-    </ol>
   <li> Let <var>queueSize</var> be GetTotalQueueSize(<var>stream</var>@\[[queue]]).
   <li> ReturnIfAbrupt(<var>queueSize</var>).
   <li> Let <var>shouldApplyBackpressure</var> be ToBoolean(Invoke(<var>stream</var>@\[[strategy]],
