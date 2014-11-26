@@ -36,7 +36,6 @@ export default class WritableStream {
 
     this._readyPromise = Promise.resolve(undefined);
     this._readyPromise_resolve = null;
-    this._readyPromise_reject = null;
 
     this._queue = [];
     this._state = 'writable';
@@ -87,13 +86,8 @@ export default class WritableStream {
     if (this._state === 'errored') {
       return Promise.reject(this._storedError);
     }
-    if (this._state === 'writable') {
-      this._readyPromise = Promise.reject(new TypeError('stream has already been closed'));
-      this._readyPromise_resolve = null;
-      this._readyPromise_reject = null;
-    }
     if (this._state === 'waiting') {
-      this._readyPromise_reject(new TypeError('stream has already been closed'));
+      this._readyPromise_resolve(undefined);
     }
 
     this._state = 'closing';
@@ -203,13 +197,8 @@ function CreateWritableStreamErrorFunction(stream) {
 
     stream._storedError = e;
 
-    if (stream._state === 'writable' || stream._state === 'closing') {
-      stream._readyPromise = Promise.reject(e);
-      stream._readyPromise_resolve = null;
-      stream._readyPromise_reject = null;
-    }
     if (stream._state === 'waiting') {
-      stream._readyPromise_reject(e);
+      stream._readyPromise_resolve(undefined);
     }
     stream._closedPromise_reject(e);
     stream._state = 'errored';
@@ -231,7 +220,6 @@ function SyncWritableStreamStateWithQueue(stream) {
     stream._state = 'waiting';
     stream._readyPromise = new Promise((resolve, reject) => {
       stream._readyPromise_resolve = resolve;
-      stream._readyPromise_reject = reject;
     });
   }
 

@@ -341,7 +341,7 @@ test('WritableStream if write returns a rejected promise, queued write and close
   }, 0);
 });
 
-test('If close is called on a WritableStream in writable state, ready will return a rejected promise', t => {
+test('If close is called on a WritableStream in writable state, ready will return a fulfilled promise', t => {
   var ws = new WritableStream({
     write() {
       t.fail('Unexpected write call');
@@ -350,7 +350,7 @@ test('If close is called on a WritableStream in writable state, ready will retur
     abort() {
       t.fail('Unexpected abort call');
       t.end();
-    },
+    }
   });
 
   // Wait for ws to start.
@@ -360,23 +360,20 @@ test('If close is called on a WritableStream in writable state, ready will retur
     ws.close();
     t.equal(ws.state, 'closing', 'state must become closing synchronously on close call');
 
-    ws.ready.then(
-      () => t.fail('ready on ws returned a fulfilled promise unexpectedly'),
-      r => {
-        t.equal(r.constructor, TypeError,
-                      'ready must start returning a promise rejected with a TypeError exception');
-        t.end();
-      }
-    );
+    ws.ready.then(v => {
+      t.equal(ws.state, 'closed', 'state must be closed by the time ready fulfills (because microtasks ordering)');
+      t.equal(v, undefined, 'ready promise was fulfilled with undefined');
+      t.end();
+    });
   }, 0);
 });
 
-test('If close is called on a WritableStream in waiting state, ready will return a rejected promise', t => {
+test('If close is called on a WritableStream in waiting state, ready will return a fulfilled promise', t => {
   var ws = new WritableStream({
     abort() {
       t.fail('Unexpected abort call');
       t.end();
-    },
+    }
   });
 
   // Wait for ws to start.
@@ -387,18 +384,51 @@ test('If close is called on a WritableStream in waiting state, ready will return
     ws.close();
     t.equal(ws.state, 'closing', 'state must become closing synchronously on close call');
 
-    ws.ready.then(
-      () => t.fail('ready on ws returned a fulfilled promise unexpectedly'),
-      r => {
-        t.equal(r.constructor, TypeError,
-                      'ready must start returning a promise rejected with a TypeError exception');
-        t.end();
-      }
-    );
+    ws.ready.then(v => {
+      t.equal(ws.state, 'closing', 'state must still be closing when ready fulfills');
+      t.equal(v, undefined, 'ready promise was fulfilled with undefined');
+      t.end();
+    });
   }, 0);
 });
 
-test('If sink rejects on a WritableStream in writable state, ready will return a rejected promise', t => {
+test('If close is called on a WritableStream in waiting state, ready will be fulfilled immediately even if close ' +
+     'takes a long time', t => {
+
+  var readyFulfilledAlready = false;
+  var ws = new WritableStream({
+    abort() {
+      t.fail('Unexpected abort call');
+      t.end();
+    },
+    close() {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          t.ok(readyFulfilledAlready, 'ready should have fulfilled already');
+          resolve();
+        }, 50);
+      });
+    }
+  });
+
+  // Wait for ws to start.
+  setTimeout(() => {
+    ws.write('a');
+    t.equal(ws.state, 'waiting', 'state must become waiting synchronously on write call');
+
+    ws.close();
+    t.equal(ws.state, 'closing', 'state must become closing synchronously on close call');
+
+    ws.ready.then(v => {
+      readyFulfilledAlready = true;
+      t.equal(ws.state, 'closing', 'state must still be closing when ready fulfills');
+      t.equal(v, undefined, 'ready promise was fulfilled with undefined');
+      t.end();
+    });
+  }, 0);
+});
+
+test('If sink rejects on a WritableStream in writable state, ready will return a fulfilled promise', t => {
   t.plan(5);
 
   var rejectWritePromise;
@@ -422,10 +452,10 @@ test('If sink rejects on a WritableStream in writable state, ready will return a
         t.equal(r, passedError, 'write() should be rejected with the passed error');
         t.equal(ws.state, 'errored', 'state is errored as error is called');
 
-        ws.ready.then(
-          () => t.fail('ready on ws returned a fulfilled promise unexpectedly'),
-          r => t.equal(r, passedError, 'ready should be rejected with the passed error')
-        );
+        ws.ready.then(v => {
+          t.equal(v, undefined, 'ready promise was fulfilled with undefined');
+          t.end();
+        });
       }
     );
   }, 0);
@@ -459,14 +489,12 @@ test('WritableStream if sink\'s close throws', t => {
       },
       r => {
         t.equal(ws.state, 'errored', 'state must be errored as error is called');
+        t.equal(r, passedError, 'close() should be rejected with the passed error');
 
-        ws.ready.then(
-          () => t.fail('ready on ws returned a fulfilled promise unexpectedly'),
-          r => {
-            t.equal(r, passedError, 'ready should be rejected with the passed error');
-            t.end();
-          }
-        );
+        ws.ready.then(v => {
+          t.equal(v, undefined, 'ready promise was fulfilled with undefined');
+          t.end();
+        });
       }
     );
   }, 0);
@@ -500,14 +528,12 @@ test('WritableStream if the promise returned by sink\'s close rejects', t => {
       },
       r => {
         t.equal(ws.state, 'errored', 'state must be errored as error is called');
+        t.equal(r, passedError, 'close() should be rejected with the passed error');
 
-        ws.ready.then(
-          () => t.fail('ws.ready returned a fulfilled promise'),
-          r => {
-            t.equal(r, passedError, 'ready should be rejected with the passed error');
-            t.end();
-          }
-        );
+        ws.ready.then(v => {
+          t.equal(v, undefined, 'ready promise was fulfilled with undefined');
+          t.end();
+        });
       }
     );
   }, 0);
@@ -539,10 +565,10 @@ test('If sink rejects on a WritableStream in waiting state, ready will return a 
         t.equal(r, passedError, 'write() should be rejected with the passed error');
         t.equal(ws.state, 'errored', 'state is errored as error is called');
 
-        ws.ready.then(
-          () => t.fail('ready on ws returned a fulfilled promise unexpectedly'),
-          r => t.equal(r, passedError, 'ready should be rejected with the passed error')
-        );
+        ws.ready.then(v => {
+          t.equal(v, undefined, 'ready promise was fulfilled with undefined');
+          t.end();
+        });
       }
     );
   }, 0);

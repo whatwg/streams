@@ -112,20 +112,18 @@ test('Piping from a ReadableStream in readable state to a WritableStream in erro
     ws.write('Hello');
     t.assert(writeCalled, 'write must be called');
 
-    ws.ready.then(
-      () => t.fail('ready promise unexpectedly fulfilled'),
-      () => {
-        t.equal(ws.state, 'errored', 'as a result of rejected promise, ws must be in errored state');
+    ws.ready.then(() => {
+      t.equal(ws.state, 'errored', 'as a result of rejected promise, ws must be in errored state');
 
-        rs.pipeTo(ws);
+      rs.pipeTo(ws);
 
-        // Need to delay because pipeTo retrieves error from dest using ready.
-        setTimeout(() => {
-          t.assert(cancelCalled);
-          t.equal(rs.state, 'closed');
-          t.end();
-        }, 0);
-      });
+      // Need to delay because pipeTo retrieves error from dest using ready.
+      setTimeout(() => {
+        t.assert(cancelCalled);
+        t.equal(rs.state, 'closed');
+        t.end();
+      }, 0);
+    });
   }, 0);
 });
 

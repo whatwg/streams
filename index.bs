@@ -1027,8 +1027,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </tr>
   <tr>
     <td>\[[readyPromise]]
-    <td>A promise that becomes fulfilled when the stream becomes <code>"writable"</code>, and is replaced with a new
-      pending promise when the stream becomes <code>"waiting"</code>; returned by the <code>ready</code> getter
+    <td>A promise returned by the <code>ready</code> getter
   </tr>
   <tr>
     <td>\[[writing]]
@@ -1122,11 +1121,12 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 <h5 id="ws-ready">get ready</h5>
 
 <div class="note">
-  The <code>ready</code> getter returns a promise that will be fulfilled when the stream enters the
-  <code>"writable"</code> state, i.e., when the stream's internal queue is not full according to its <a>queuing
-  strategy</a>. (The promise will be rejected if the stream errors.)
+  The <code>ready</code> getter returns a promise that will be fulfilled when the stream transitions away from the
+  <code>"waiting"</code> state to any other state. Once the stream transitions back to <code>"waiting"</code>, the
+  getter will return a new promise that stays pending until the next state transition.
 
-  In essence, this promise gives a signal as to when any backpressure has let up.
+  In essence, this promise gives a signal as to when any backpressure has let up (or that the stream has been closed
+  or errored).
 </div>
 
 <ol>
@@ -1194,10 +1194,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
     <b>TypeError</b> exception.
   <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a promise rejected with
     <b>this</b>@\[[storedError]].
-  <li> If <b>this</b>@\[[state]] is <code>"writable"</code>, set <b>this</b>@\[[readyPromise]] to a new promise
-    rejected with a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, reject <b>this</b>@\[[readyPromise]] with a
-    <b>TypeError</b> exception.
+  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, resolve <b>this</b>@\[[readyPromise]] with <b>undefined</b>.
   <li> Set <b>this</b>@\[[state]] to <code>"closing"</code>
   <li> Call-with-rethrow EnqueueValueWithSize(<b>this</b>@\[[queue]], <code>"close"</code>, <b>0</b>).
   <li> Call-with-rethrow CallOrScheduleWritableStreamAdvanceQueue(<b>this</b>).
@@ -1301,10 +1298,8 @@ a variable <var>stream</var>, that performs the following steps:
         <var>e</var>.
     </ol>
   <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
-  <li> If <var>stream</var>@\[[state]] is <code>"writable"</code> or <code>"closing"</code>, set
-    <var>stream</var>@\[[readyPromise]] to a new promise rejected with <var>e</var>.
-  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, reject <var>stream</var>@\[[readyPromise]] with
-    <var>e</var>.
+  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, resolve <var>stream</var>@\[[readyPromise]] with
+    <b>undefined</b>.
   <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
   <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
 </ol>

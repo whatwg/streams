@@ -119,7 +119,7 @@ export default class ReadableStream {
           if (source.state === 'readable') {
             Promise.race([source.closed, dest.ready]).then(doPipe, doPipe);
           } else if (source.state === 'waiting') {
-            Promise.race([source.ready, dest.ready]).then(doPipe, doPipe);
+            Promise.race([source.ready, dest.ready]).then(doPipe);
           } else if (source.state === 'errored') {
             source.closed.catch(abortDest);
           } else if (source.state === 'closed') {

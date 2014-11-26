@@ -294,9 +294,7 @@ function promptAndWrite(myStream) {
         });
     } else if (writableStream.state === "waiting") {
         console.log("Waiting for the stream to flush to the underlying sink, please hold...");
-        writableStream.ready
-            .then(promptAndWrite)
-            .catch(e => console.error("While flushing, an error occurred: ", e));
+        writableStream.ready.then(promptAndWrite);
     } else if (writableStream.state === "errored") {
         console.error("Error writing; this session is over!");
     }
