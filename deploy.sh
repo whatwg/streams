@@ -6,47 +6,47 @@ if [ "$DEPLOY_USER" == "" ]; then
     exit 0
 fi
 
+LS_URL="https://streams.spec.whatwg.org/"
+COMMIT_URL_BASE="https://github.com/whatwg/streams/commit/"
+BRANCH_URL_BASE="https://github.com/whatwg/streams/tree/"
+
 SERVER="streams.spec.whatwg.org"
-DESTINATION=$DEPLOY_USER:$DEPLOY_PASSWORD@$SERVER
 WEB_ROOT="streams.spec.whatwg.org"
 COMMITS_DIR="commit-snapshots"
 BRANCHES_DIR="branch-snapshots"
 
 SHA="`git rev-parse HEAD`"
 BRANCH="`git rev-parse --abbrev-ref HEAD`"
-
 if [ "$BRANCH" == "HEAD" ]; then # Travis does this for some reason
     BRANCH=$TRAVIS_BRANCH
 fi
 
+rm -rf $WEB_ROOT || exit 0
 
-# Clear anything left over from last time
-rm -rf out || exit 0
+# Commit snapshot
+COMMIT_DIR=$WEB_ROOT/$COMMITS_DIR/$SHA
+mkdir -p $COMMIT_DIR
+curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F md-status=LS-COMMIT \
+     -F md-warning="Commit $SHA $COMMIT_URL_BASE$SHA replaced by $LS_URL" \
+     -F md-title="Streams Standard (Commit Snapshot $SHA)" \
+     > $COMMIT_DIR/index.html;
+cp *.svg $COMMIT_DIR
 
-# Make a directory to put the output files
-mkdir out
+if [ $BRANCH != "master" ] ; then
+    # Branch snapshot, if not master
+    BRANCH_DIR=$WEB_ROOT/$BRANCHES_DIR/$BRANCH
+    mkdir -p $BRANCH_DIR
+    curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F md-status=LS-BRANCH \
+         -F md-warning="Branch $BRANCH $BRANCH_URL_BASE$BRANCH replaced by $LS_URL" \
+         -F md-title="Streams Standard (Branch Snapshot $BRANCH)" \
+         > $BRANCH_DIR/index.html;
+    cp *.svg $BRANCH_DIR
+else
+    # Living standard, if master
+    curl https://api.csswg.org/bikeshed/ -F file=@index.bs > $WEB_ROOT/index.html;
+    cp *.svg $WEB_ROOT
+fi
 
-# Create the spec and save it in the local output directory
-curl https://api.csswg.org/bikeshed/ -F file=@index.bs > out/index.html;
-
-# Copy over any resources (for now just SVG) to the local output directory
-cp *.svg out
-
-# Install scp2 as a cross-platform scp that supports passwords
-npm install -g scp2@0.1.4 # 0.2.0 gives "Error: handle is not a Buffer"
-
-for f in out/*; do
-    # Deploy to the commit snapshot location
-    scp2 $f $DESTINATION:$WEB_ROOT/$COMMITS_DIR/$SHA/
-    echo "Deployed $f to /$COMMITS_DIR/$SHA/"
-
-    if [ $BRANCH != "master" ] ; then
-        # Deploy to the branch snapshot location, if not master
-        scp2 $f $DESTINATION:$WEB_ROOT/$BRANCHES_DIR/$BRANCH/
-        echo "Deployed $f to /$BRANCHES_DIR/$BRANCH/"
-    else
-        # Deploy master to the root
-        scp2 $f $DESTINATION:$WEB_ROOT/
-        echo "Deployed $f to /"
-    fi
-done
+# scp the output directory up
+sudo apt-get install sshpass
+sshpass -p $DEPLOY_PASSWORD scp -r -o StrictHostKeyChecking=no $WEB_ROOT $DEPLOY_USER@$SERVER:
