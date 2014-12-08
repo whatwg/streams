@@ -555,6 +555,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Let <var>startResult</var> be the result of calling <var>start</var>(<b>this</b>@\[[enqueue]],
     <b>this</b>@\[[close]], <b>this</b>@\[[error]]).
   <li> ReturnIfAbrupt(<var>startResult</var>).
+  <li> If <var>startResult</var> is <b>undefined</b>, return CallReadableStreamPull(<b>this</b>).
   <li> Resolve <var>startResult</var> as a promise:
     <ol>
       <li> Upon fulfillment,
