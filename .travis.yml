@@ -8,6 +8,7 @@ env:
     - secure: "Ga/n9txTxjBDFxsyhbthRZyqVTZA1cOmhH5WaQEWoMcG9yU+RvAdEjqdFmUFHE7SArHIKovyzoupQ9FELESeu8/lkbDtin3MZn3Aj6QXHioBSMihGbduHsGK8yJ1WyjDYXC3fN8XdwNQRZrVFq0ocauPkml/w8uauEsiMo3PX8A="
 before_install:
   - cd reference-implementation
-after_success:
+script:
+  - npm test
   - cd ..
   - bash ./deploy.sh

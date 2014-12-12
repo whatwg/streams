@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 if [ "$DEPLOY_USER" == "" ]; then
     echo "No deploy credentials present; skipping deploy"
@@ -32,7 +33,7 @@ curl https://api.csswg.org/bikeshed/ -F file=@index.bs > out/index.html;
 cp *.svg out
 
 # Install scp2 as a cross-platform scp that supports passwords
-npm install -g scp2
+npm install -g scp2@0.1.4 # 0.2.0 gives "Error: handle is not a Buffer"
 
 for f in out/*; do
     # Deploy to the commit snapshot location
