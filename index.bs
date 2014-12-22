@@ -120,7 +120,7 @@ Streams are primarily used by <dfn>piping</dfn> them to each other. A readable s
 writable stream, or it can be piped through one or more transform streams first.
 
 A set of streams piped together in this way is referred to as a <dfn>pipe chain</dfn>. In a pipe chain, the
-<dfn>original source</dfn> is the <a>underlying source</a> of the first first readable stream in the chain; the
+<dfn>original source</dfn> is the <a>underlying source</a> of the first readable stream in the chain; the
 <dfn>ultimate sink</dfn> is the <a>underlying sink</a> of the final writable stream in the chain.
 
 Once a pipe chain is constructed, it can be used to propagate signals regarding how fast data should flow through
