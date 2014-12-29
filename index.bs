@@ -109,9 +109,11 @@ available for reading from the readable side.
 Some examples of transform streams include:
 
 <ul>
-  <li>A text decoder, to which bytes are written and from which strings are read;</li>
   <li>A GZIP compressor, to which uncompressed bytes are written and from which compressed bytes are read;</li>
-  <li>A video decoder, to which encoded bytes are writen and from which uncompressed video frames are read.</li>
+  <li>A video decoder, to which encoded bytes are writen and from which uncompressed video frames are read;</li>
+  <li>A text decoder, to which bytes are written and from which strings are read;</li>
+  <li>A CSV-to-JSON converter, to which strings representing lines of a CSV file are written and from which
+    corresponding JavaScript objects are read.
 </ul>
 
 <h3 id="pipe-chains">Pipe Chains and Backpressure</h3>
