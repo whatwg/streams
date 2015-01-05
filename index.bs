@@ -628,9 +628,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <ol>
-  <li> If <b>this</b>@\[[state]] is <code>"closed"</code>, throw a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, throw <b>this</b>@\[[storedError]].
-  <li> Return Construct(<code>ExclusiveStreamReader</code>, (<b>this</b>)).
+  <li> Return AcquireExclusiveStreamReader(<b>this</b>).
 </ol>
 
 <h5 id="rs-pipe-through">pipeThrough({ writable, readable }, options)</h5>
@@ -862,6 +860,20 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 </ol>
 
 <h3 id="rs-abstract-ops">Readable Stream Abstract Operations</h3>
+
+<h4 id="acquire-exclusive-stream-reader">AcquireExclusiveStreamReader ( stream )</h4>
+
+<div class="note">
+  This abstract operation is meant to be called from other specifications that may wish to acquire an
+  <a>exclusive stream reader</a> for a given stream. Within this specification, it is only used once, in the definition
+  of <a href="#rs-get-reader"><code>ReadableStream.prototype.getReader</code></a>.
+</div>
+
+<ol>
+  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code>, throw a <b>TypeError</b> exception.
+  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, throw <var>this</var>@\[[storedError]].
+  <li> Return Construct(<code>ExclusiveStreamReader</code>, (<var>stream</var>)).
+</ol>
 
 <h4 id="call-readable-stream-pull">CallReadableStreamPull ( stream )</h4>
 
