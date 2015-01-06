@@ -172,180 +172,43 @@ associated reader will automatically release its lock.
 
 <h2 id="rs">Readable Streams</h2>
 
-<h3 id="rs-intro">Introduction to Readable Streams</h3>
-
-<em>This section is non-normative.</em>
-
-The readable stream API allows wrapping both pull and push sources into a single <code>ReadableStream</code>
-abstraction. To accomplish this, the API uses the
-<a href="http://domenic.me/2014/02/13/the-revealing-constructor-pattern/">revealing constructor pattern</a>. The
-constructor of a given stream instance is supplied with two functions, <code>start</code> and <code>pull</code>, which
-each are given the parameters <code>(enqueue, close, error)</code> representing capabilities tied to the internals of
-the stream. By mediating all access to the internal state machine through these three functions, the stream's internal
-state and bookkeeping can be kept private, allowing nobody but the original producer of the stream to insert data into
-it.
+<h3 id="rs-intro">Using Readable Streams</h3>
 
 <div class="example">
-  The following function creates readable streams that wrap web sockets [[HTML]], which are push sources that do not
-  support backpressure signals.
+  The simplest way to consume a readable stream is to simply <a title="piping">pipe</a> it to a <a>writable stream</a>.
+  This ensures that <a>backpressure</a> is respected, and any errors (either writing or reading) are propagated through
+  the chain:
 
   <pre><code class="lang-javascript">
-    function makeReadableWebSocketStream(url, protocols) {
-      const ws = new WebSocket(url, protocols);
-      ws.binaryType = "arraybuffer";
-
-      return new ReadableStream({
-        start(enqueue, close, error) {
-          // When adapting a push source, usually most of the work happens in start.
-
-          ws.onmessage = event => enqueue(event.data);
-          ws.onend = close;
-          ws.onerror = error;
-        },
-
-        cancel() {
-          ws.close();
-        }
-      });
-    }
-  </code></pre>
-
-  We can then use this function to create readable streams for web sockets, and pipe those streams to arbitrary
-  writable streams:
-
-  <pre><code class="lang-javascript">
-    var webSocketStream = makeReadableWebSocketStream("http://example.com", 80);
-
-    webSocketStream.pipeTo(writableStream)
+    readableStream.pipeTo(writableStream)
       .then(() => console.log("All data successfully written!"))
       .catch(e => console.error("Something went wrong!", e));
   </code></pre>
 </div>
 
 <div class="example">
-  The following function wraps a push source, represented by a hypothetical "raw socket" interface, which triggers
-  events for data, end, and error (much like a web socket), but also provides the ability to pause and resume the flow
-  of data. Thus, this example shows how to apply backpressure to <a>underlying sources</a> that support it.
-
-  <pre><code class="lang-javascript">
-    function makeSocketStream(host, port) {
-      const rawSocket = createRawSocketObject(host, port);
-
-      return new ReadableStream({
-        start(enqueue, close, error) {
-          rawSocket.ondata = event => {
-            if (!enqueue(event.data)) {
-              // If enqueue returns false, the internal queue is full, so propagate
-              // the backpressure signal to the underlying source.
-              rawSocket.readStop();
-            }
-          };
-
-          rawSocket.onend = close;
-          rawSocket.onerror = error;
-        },
-
-        pull() {
-          // This is called if the internal queue has been emptied, but the
-          // stream's consumer still wants more data. In that case, restart
-          // the flow of data if we have previously paused it.
-          rawSocket.readStart();
-        },
-
-        cancel() {
-          rawSocket.readStop();
-        }
-      });
-    }
-  </code></pre>
-
-  We can then use this function to create readable streams for such "raw sockets" in the same way we do for web
-  sockets. This time, however, when we pipe to a destination that cannot accept data as fast as the socket is producing
-  it, a backpressure signal will be sent to the raw socket.
-</div>
-
-<div class="example">
-  The following function wraps a pull source, represented by a "raw file handle," which provides methods for opening,
-  reading from, and closing itself. These methods can call their callbacks either synchronously or asynchronously—a
-  <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
-  hide from our users by wrapping them in a readable stream.
-
-  <pre><code class="lang-javascript">
-    function makeReadableFileStream(filename) {
-      const fileHandle = createRawFileHandle(filename, "r");
-
-      return new ReadableStream({
-        start() {
-          return new Promise((resolve, reject) => {
-            fileHandle.open(err => {
-              if (err) {
-                reject(err);
-              }
-              resolve();
-            });
-          });
-        },
-
-        pull(enqueue, close, error) {
-          // When adapting a pull source, usually most of the work happens in pull.
-
-          fileHandle.read((err, isDone, chunk) => {
-            if (err) {
-              // If trying to read data results in an error, report that.
-              error(err);
-            } else if (isDone) {
-              // If there's no more data to read, be sure to close the underlying
-              // source, ensuring that it succeeds before reporting success.
-              fileHandle.close(err => {
-                if (err) {
-                  error(err);
-                }
-                close();
-              });
-            } else {
-              // If data was read successfully, enqueue it into the internal queue.
-              enqueue(chunk);
-            }
-          });
-        },
-
-        cancel() {
-          fileHandle.close();
-        }
-      });
-    }
-  </code></pre>
-
-  We can then create and use readable streams for files just as we could before for sockets.
-</div>
-
-<div class="example">
   Although readable streams will usually be used by piping them to a writable stream, you can also "pump" them
-  directly, alternating between using the <code>read()</code> method and the <code>ready</code> getter according to the current
-  value of the <code>state</code> property. For example, this function writes the contents of a readable stream to the
-  console as fast as they are available.
+  directly, alternating between using the <code>read()</code> method and the <code>ready</code> getter according to the
+  current value of the <code>state</code> property. For example, this function writes the contents of a readable stream
+  to the console as fast as they are available.
 
   <pre><code class="lang-javascript">
-    function streamToConsole(readableStream) {
-      readableStream.closed.then(
-        () => console.log("--- all done!"),
-        e => console.error(e);
-      );
-
-      pump();
-
-      function pump() {
-        while (readableStream.state === "readable") {
-          console.log(readableStream.read());
-        }
-
-        if (readableStream.state === "waiting") {
-          readableStream.ready.then(pump);
-        }
-
-        // otherwise "closed" or "errored", which will be handled above.
+    function logChunks(readableStream) {
+      while (readableStream.state === "readable") {
+        console.log(readableStream.read());
       }
+
+      if (readableStream.state === "waiting") {
+        console.log("--- waiting for more data to be available...");
+        readableStream.ready.then(() => logChunks(readableStream));
+      }
+
+      return readableStream.closed;
     }
+
+    logChunks(readableStream)
+      .then(() => console.log("--- all done!"))
+      .catch(e => console.error("!!! error reading from the stream", e));
   </code></pre>
 </div>
 
@@ -353,7 +216,7 @@ it.
 
 <em>This section is non-normative.</em>
 
-As evidenced by the above explanations, readable streams have a fairly complex internal state machine, which is
+As can be glimpsed in the above example, readable streams have a fairly complex internal state machine, which is
 responsible for keeping track of the internal queue, and initiating appropriate actions in response to calls to a
 stream's methods. This can be roughly summarized in the following diagram.
 
@@ -1089,136 +952,25 @@ a variable <var>stream</var>, that performs the following steps:
 
 <h2 id="ws">Writable Streams</h2>
 
-<h3 id="ws-intro">Introduction to Writable Streams</h3>
-
-<em>This section is non-normative.</em>
-
-The writable stream API allows wrapping of <a>underlying sinks</a> into an object on which two fundamental operations
-can be performed: <a>chunks</a> can be written to the stream, and the stream can be closed.
-
-The writable stream implementation is designed to encapsulate the potential complexity of the <a>underlying sink</a>
-from users of the stream API. In particular, users of a stream object can write chunks to the stream at any pace,
-without regard for whether previous writes have completed or succeeded. It is the job of the stream implementation to
-ensure that writes are forwarded to the <a>underlying sink</a> in order, and only after successful completion of
-previous writes. This allows seamless use of the writable stream even in cases such as piping a fast readable file
-stream to a slower writable network socket stream, which cannot acknowledge the incoming data at the same rate it
-becomes available.
+<h3 id="ws-intro">Using Writable Streams</h3>
 
 <div class="example">
-  The following function wraps a web socket [[HTML]] as the <a>underlying sink</a> of a new writable stream. Web
-  sockets do not provide any way to tell when a given chunk of data has been successfully sent, so this writable stream
-  has no ability to communicate backpressure signals to any users: it will always be in the <code>"writable"</code>
-  state.
+  The usual way to write to a writable stream is to simply <a title="piping">pipe</a> a <a>readable stream</a> to it.
+  This ensures that <a>backpressure</a> is respected, so that if the writable stream's <a>underlying sink</a> is not
+  able to accept data as fast as the readable stream can produce it, the readable stream is informed of this and has a
+  chance to slow down its data production.
 
   <pre><code class="lang-javascript">
-    function makeWritableWebSocketStream(url, protocols) {
-      const ws = new WebSocket(url, protocols);
-
-      return new WritableStream({
-        start(error) {
-          ws.onerror = error;
-          return new Promise(resolve => ws.onopen = resolve);
-        },
-
-        write(chunk) {
-          ws.send(chunk);
-          // Return immediately, since the web socket gives us no way to tell
-          // when the write completes.
-        },
-
-        close() {
-          return new Promise((resolve, reject) => {
-            ws.onclose = resolve;
-            ws.close();
-          });
-        }
-      });
-    }
-  </code></pre>
-</div>
-
-<div class="example">
-  The following function wraps an <a>underlying sink</a>, represented as a hypothetical "raw file handle," which
-  provides methods for opening, writing to, and closing itself. Notably, the raw file handle's <code>write</code> method
-  calls back to signal when writes are complete, which allows the stream to correctly communicate backpressure signals
-  to any users by setting its state to <code>"waiting"</code> instead of <code>"writable"</code> when the queue gets too
-  full. Allow of the raw file handle's methods can call their callbacks either synchronously or asynchronously—a
-  <a href="http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony">Zalgo-releasing</a> horror which we can
-  hide from our users by wrapping them in a writable stream.
-
-  <pre><code class="lang-javascript">
-    function makeWritableFileStream(filename) {
-      const fileHandle = createRawFileHandle(filename, "w");
-
-      return new WritableStream({
-        start() {
-          return new Promise((resolve, reject) => {
-            fileHandle.open(err => {
-              if (err) {
-                reject(err);
-              }
-              resolve();
-            });
-          });
-        },
-
-        write(chunk) {
-          return new Promise((resolve, reject) => {
-            fileHandle.write(chunk, writeErr => {
-              if (writeErr) {
-                // If trying to write results in an error, (attempt to) close the
-                // underlying file handle; we're not going to write any more.
-                fileHandle.close(closeErr => {
-                  // If *closing* errors, pass along that error to the stream.
-                  if (closeErr) {
-                    reject(closeErr);
-                  }
-
-                  // Otherwise, if closing succeeds, pass along the write error.
-                  reject(writeErr);
-                });
-              } else {
-                // If there's no error, then signal that this write completed.
-                resolve();
-              }
-            });
-          });
-        },
-
-        close() {
-          return new Promise((resolve, reject) => {
-            fileHandle.close(err => {
-              if (err) {
-                reject(err);
-              }
-              resolve();
-            });
-          });
-        }
-      });
-    }
-  </code></pre>
-
-  We can then use this function to create a writable stream for a file, and then pipe a readable stream to it:
-
-  <pre><code class="lang-javascript">
-    var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
-
-    readableStream.pipeTo(fileStream)
+    readableStream.pipeTo(writableStream)
       .then(() => console.log("All data successfully written!"))
       .catch(e => console.error("Something went wrong!", e));
   </code></pre>
-
-  Note that if a particular call to <code>fileHandle.write</code> takes a longer time, <code>done</code> will be
-  called later. In the meantime, additional writes can be queued up, which are stored in the stream's internal queue.
-  The accumulation of this queue can move the stream into a <code>"waiting"</code> state, which is a signal to users
-  of the stream that they should back off and stop writing if possible.
 </div>
 
 <div class="example">
-  Although writable streams will usually be used by piping to them from a readable stream, you can also write to them
-  directly. Since they queue any incoming writes, and take care internally to forward them to the <a>underlying sink</a>
-  in sequence, you can indiscriminately write to a writable stream without much ceremony:
+  You can also write directly to writable streams using their <code>write()</code> and <code>close()</code> methods.
+  Since writable streams queue any incoming writes, and take care internally to forward them to the <a>underlying
+  sink</a> in sequence, you can indiscriminately write to a writable stream without much ceremony:
 
   <pre><code class="lang-javascript">
     function writeArrayToStream(array, writableStream) {
@@ -1233,11 +985,25 @@ becomes available.
   </code></pre>
 </div>
 
-<h3 id="ws-state-diagram">The Writable Stream State Diagram</h3>
+<div class="example">
+  In the previous example we only paid attention to the success or failure of the entire stream, by looking at the
+  promise returned by its <code>close()</code> method. That promise (which can also be accessed using the
+  <code>closed</code> getter) will reject if anything goes wrong with the stream—initializing it, writing to it, or
+  closing it. And it will fulfill once the stream is successfully closed. Often this is all you care about.
 
-<em>This section is non-normative.</em>
+  However, if you care about the success of writing a specific <a>chunk</a>, you can use the promise returned by the
+  stream's <code>write()</code> method:
 
-TODO
+  <pre><code class="lang-javascript">
+    writableStream.write("i am a chunk of data")
+      .then(() => console.log("chunk successfully written!"))
+      .catch(e => console.error(e));
+  </code></pre>
+
+  What "success" means is up to a given stream instance (or more precisely, its <a>underlying sink</a>) to decide. For
+  example, for a file stream it could simply mean that the OS has accepted the write, and not necessarily that the
+  chunk has been flushed to disk.
+</div>
 
 <h3 id="ws-class">Class <code>WritableStream</code></h3>
 
@@ -1980,6 +1746,242 @@ complex requirements baked into the readable stream state machine and the contra
 Because streams only interact through their public API, all streams—whether subclassed or not—can coexist and
 interoperate. For example, you can pipe to or from any of the above streams, without worrying what type of
 implementation is under the covers, since they all provide the appropriate properties and methods.
+
+<h2 id="creating-examples">Examples of Creating Streams</h2>
+
+<em>This section, and all its subsections, are non-normative.</em>
+
+The previous examples throughout the standard have focused on how to use streams. Here we show how to create a stream,
+using the <code>ReadableStream</code> or <code>WritableStream</code> constructors.
+
+<h3 id="example-rs-push-no-backpressure">A readable stream with an underlying push source (no backpressure support)</h3>
+
+The following function creates <a>readable streams</a> that wrap web sockets [[HTML]], which are <a>push sources</a>
+that do not support backpressure signals. It illustrates how, when adapting a push source, usually most of the work
+happens in the <code>start</code> function.
+
+<pre><code class="lang-javascript">
+  function makeReadableWebSocketStream(url, protocols) {
+    const ws = new WebSocket(url, protocols);
+    ws.binaryType = "arraybuffer";
+
+    return new ReadableStream({
+      start(enqueue, close, error) {
+        ws.onmessage = event => enqueue(event.data);
+        ws.onend = close;
+        ws.onerror = error;
+      },
+
+      cancel() {
+        ws.close();
+      }
+    });
+  }
+</code></pre>
+
+We can then use this function to create readable streams for a web socket, and pipe that stream to an arbitrary
+writable stream:
+
+<pre><code class="lang-javascript">
+  const webSocketStream = makeReadableWebSocketStream("wss://example.com", 443);
+
+  webSocketStream.pipeTo(writableStream)
+    .then(() => console.log("All data successfully written!"))
+    .catch(e => console.error("Something went wrong!", e));
+</code></pre>
+
+<h3 id="example-rs-push-backpressure">A readable stream with an underlying push source and backpressure support</h3>
+
+The following function returns <a>readable streams</a> that wrap "backpressure sockets," which are hypothetical objects
+that have the same API as web sockets, but also provide the ability to pause and resume the flow of data with their
+<code>readStop</code> and <code>readStart</code> methods. In doing so, this example shows how to apply
+<a>backpressure</a> to <a>underlying sources</a> that support it.
+
+<pre><code class="lang-javascript">
+  function makeReadableBackpressureSocketStream(host, port) {
+    const socket = createBackpressureSocket(host, port);
+
+    return new ReadableStream({
+      start(enqueue, close, error) {
+        socket.ondata = event => {
+          if (!enqueue(event.data)) {
+            // If enqueue returns false, the internal queue is full, so propagate
+            // the backpressure signal to the underlying source.
+            socket.readStop();
+          }
+        };
+
+        socket.onend = close;
+        socket.onerror = error;
+      },
+
+      pull() {
+        // This is called if the internal queue has been emptied, but the
+        // stream's consumer still wants more data. In that case, restart
+        // the flow of data if we have previously paused it.
+        socket.readStart();
+      },
+
+      cancel() {
+        socket.close();
+      }
+    });
+  }
+</code></pre>
+
+We can then use this function to create readable streams for such "backpressure sockets" in the same way we do for web
+sockets. This time, however, when we pipe to a destination that cannot accept data as fast as the socket is producing
+it, or if we leave the stream alone without reading from it for some time, a backpressure signal will be sent to the
+socket.
+
+<h3 id="example-rs-pull">A readable stream with an underlying pull source</h3>
+
+The following function returns <a>readable streams</a> that wrap portions of the
+<a href="https://iojs.org/api/fs.html">io.js file system API</a> (which themselves map fairly directly to C's
+<code>fopen</code>, <code>fread</code>, and <code>fclose</code> trio). Files are a typical example of <a>pull
+sources</a>. Note how in contrast to the examples with push sources, most of the work here happens on-demand in the
+<code>pull</code> function, and not at startup time in the <code>start</code> function.
+
+<pre><code class="lang-javascript">
+  const fs = require("pr/fs"); // https://github.com/jden/pr
+  const CHUNK_SIZE = 1024;
+
+  function makeReadableFileStream(filename) {
+    let fd;
+    let position = 0;
+
+    return new ReadableStream({
+      start() {
+        return fs.open(filename, "r").then(result => {
+          fd = result;
+        });
+      },
+
+      pull(enqueue, close, error) {
+        const buffer = new ArrayBuffer(CHUNK_SIZE);
+
+        fs.read(fd, buffer, 0, CHUNK_SIZE, position).then(bytesRead => {
+          if (bytesRead === 0) {
+            return fs.close(fd).then(close);
+          } else {
+            position += bytesRead;
+            enqueue(buffer);
+          }
+        })
+        .catch(error);
+      },
+
+      cancel() {
+        return fs.close(fd);
+      }
+    });
+  }
+</code></pre>
+
+We can then create and use readable streams for files just as we could before for sockets.
+
+<h3 id="example-ws-no-backpressure">A writable stream with no backpressure or success signals</h3>
+
+The following function returns a <a>writable stream</a> that wraps a web socket [[HTML]]. Web sockets do not provide
+any way to tell when a given chunk of data has been successfully sent, so this writable stream has no ability to
+communicate <a>backpressure</a> signals or write success/failure to its <a>producers</a>. That is, it will always be in
+the <code>"writable"</code> state, and the promise returned by its <code>write()</code> method will always fulfill
+immediately.
+
+<pre><code class="lang-javascript">
+  function makeWritableWebSocketStream(url, protocols) {
+    const ws = new WebSocket(url, protocols);
+
+    return new WritableStream({
+      start(error) {
+        ws.onerror = error;
+        return new Promise(resolve => ws.onopen = resolve);
+      },
+
+      write(chunk) {
+        ws.send(chunk);
+        // Return immediately, since the web socket gives us no way to tell
+        // when the write completes.
+      },
+
+      close() {
+        return new Promise((resolve, reject) => {
+          ws.onclose = resolve;
+          ws.close();
+        });
+      }
+    });
+  }
+</code></pre>
+
+We can then use this function to create writable streams for a web socket, and pipe an arbitrary readable stream to it:
+
+<pre><code class="lang-javascript">
+  const webSocketStream = makeWritableWebSocketStream("wss://example.com", 443);
+
+  readableStream.pipeTo(webSocketStream)
+    .then(() => console.log("All data successfully written!"))
+    .catch(e => console.error("Something went wrong!", e));
+</code></pre>
+
+<h3 id="example-ws-backpressure">A writable stream with backpressure and success signals</h3>
+
+The following function returns <a>writable streams</a> that wrap portions of the
+<a href="https://iojs.org/api/fs.html">io.js file system API</a> (which themselves map fairly directly to C's
+  <code>fopen</code>, <code>fwrite</code>, and <code>fclose</code> trio). Since the API we are wrapping provides
+a way to tell when a given write succeeds, this stream will be able to communicate <a>backpressure</a> signals as well
+as whether an individual write succeeded or failed.
+
+<pre><code class="lang-javascript">
+  const fs = require("pr/fs"); // https://github.com/jden/pr
+
+  function makeWritableFileStream(filename) {
+    let fd;
+
+    return new WritableStream({
+      start() {
+        return fs.open(filename, "w").then(result => {
+          fd = result;
+        });
+      },
+
+      write(chunk) {
+        return fs.write(fd, chunk, 0, chunk.length);
+      }
+
+      close() {
+        return fs.close(fd);
+      }
+    });
+  }
+</code></pre>
+
+We can then use this function to create a writable stream for a file, and write individual <a>chunks</a> of data to it:
+
+<pre><code class="lang-javascript">
+  var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
+
+  fileStream.write("To stream, or not to stream\n");
+  fileStream.write("That is the question\n");
+
+  fileStream.close()
+    .then(() => console.log("chunks written and stream closed successfully!"))
+    .catch(e => console.error(e));
+</code></pre>
+
+Note that if a particular call to <code>fs.write</code> takes a longer time, the returned promise will fulfill later.
+In the meantime, additional writes can be queued up, which are stored in the stream's internal queue. The accumulation
+of chunks in this queue can move the stream into a <code>"waiting"</code> state, which is a signal to <a>producers</a>
+that they should back off and stop writing if possible.
+
+The way in which the writable stream queues up writes is especially important in this case, since as stated in
+<a href="https://iojs.org/api/fs.html#fs_fs_write_fd_data_position_encoding_callback">the documentation for
+<code>fs.write</code></a>, "it is unsafe to use <code>fs.write</code> multiple times on the same file without waiting
+for the [promise]." But we don't have to worry about that when writing the <code>makeWritableFileStream</code>
+function, since the stream implementation guarantees that the <a>underlying sink</a>'s <code>write</code> method will
+not be called until any promises returned by previous calls have fulfilled!
+
+
 
 <h2 id="conventions" class="no-num">Conventions</h2>
 
