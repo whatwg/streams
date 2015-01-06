@@ -81,8 +81,8 @@ read from disk. An example pull source is a file handle, where you seek to speci
 
 Readable streams are designed to wrap both types of sources behind a single, unified interface.
 
-<a>Chunks</a> are enqueued into the stream by the stream's creator, who usually derives them from the <a>underlying
-source</a>. They can then be read one at a time via the stream's public interface.
+<a>Chunks</a> are enqueued into the stream by the stream's <a>underlying source</a>. They can then be read one at a
+time via the stream's public interface.
 
 Code that reads from a readable stream using its public interface is known as a <dfn>consumer</dfn>.
 
@@ -95,8 +95,8 @@ Analogously to readable streams, most writable streams wrap a lower-level I/O si
 <dfn>underlying sink</dfn>. Writable streams work to abstract away some of the complexity of the underlying sink, by
 queuing subsequent writes and only delivering them to the underlying sink one by one.
 
-<a>Chunks</a> are enqueued into the stream via its public interface, and are passed one at a time to the stream's
-creator. In turn, the creator will usually forward them to the <a>underlying sink</a>.
+<a>Chunks</a> are written to the stream via its public interface, and are passed one at a time to the stream's
+<a>underlying sink</a>.
 
 Code that writes into a writable stream using its public interface is known as a <dfn>producer</dfn>.
 
@@ -125,10 +125,10 @@ A set of streams piped together in this way is referred to as a <dfn>pipe chain<
 <dfn>original source</dfn> is the <a>underlying source</a> of the first readable stream in the chain; the
 <dfn>ultimate sink</dfn> is the <a>underlying sink</a> of the final writable stream in the chain.
 
-Once a pipe chain is constructed, it can be used to propagate signals regarding how fast data should flow through
-it. If any step in the chain cannot yet accept data, it propagates a signal backwards through the pipe chain, until
-eventually the original source is told to stop producing data so fast. This process of normalizing data flow from the
-original source according to how fast the chain can process data is called <dfn>backpressure</dfn>.
+Once a pipe chain is constructed, it can be used to propagate signals regarding how fast <a>chunks</a> should flow
+through it. If any step in the chain cannot yet accept chunks, it propagates a signal backwards through the pipe chain,
+until eventually the original source is told to stop producing chunks so fast. This process of normalizing flow from
+the original source according to how fast the chain can process chunks is called <dfn>backpressure</dfn>.
 
 <h3 id="queuing-strategies">Internal Queues and Queuing Strategies</h3>
 
