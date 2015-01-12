@@ -552,3 +552,25 @@ test('ReadableStream errors in shouldApplyBackpressure cause ready to fulfill an
     e => t.equal(e, thrownError, 'closed should be rejected with the thrown error')
   );
 });
+
+test('ReadableStream cancel() and closed on a closed stream should return the same promise', t => {
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      close();
+    }
+  });
+
+  t.equal(rs.cancel(), rs.closed, 'the promises returned should be the same');
+  t.end();
+});
+
+test('ReadableStream cancel() and closed on an errored stream should return the same promise', t => {
+  var rs = new ReadableStream({
+    start(enqueue, close, error) {
+      error(new Error('boo!'));
+    }
+  });
+
+  t.equal(rs.cancel(), rs.closed, 'the promises returned should be the same');
+  t.end();
+});

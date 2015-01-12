@@ -14,6 +14,10 @@ export default class ExclusiveStreamReader {
 
     this._stream = stream;
 
+    this._closedAfterRelease = undefined;
+    this._readyAfterRelease = undefined;
+    this._stateAfterRelease = undefined;
+
     this._lockReleased = new Promise(resolve => {
       this._lockReleased_resolve = resolve;
     });
@@ -21,12 +25,12 @@ export default class ExclusiveStreamReader {
 
   get ready() {
     if (this._stream._reader !== this) {
-      return this._stream.ready;
+      return this._readyAfterRelease;
     }
 
     this._stream._reader = undefined;
     try {
-      return this._stream.ready;
+      return Promise.race([this._stream.ready, this._lockReleased]);
     } finally {
       this._stream._reader = this;
     }
@@ -34,7 +38,7 @@ export default class ExclusiveStreamReader {
 
   get state() {
     if (this._stream._reader !== this) {
-      return this._stream.state;
+      return this._stateAfterRelease;
     }
 
     this._stream._reader = undefined;
@@ -46,6 +50,10 @@ export default class ExclusiveStreamReader {
   }
 
   get closed() {
+    if (this._stream._reader !== this) {
+      return this._closedAfterRelease;
+    }
+
     return this._stream.closed;
   }
 
@@ -68,8 +76,7 @@ export default class ExclusiveStreamReader {
 
   cancel(reason, ...args) {
     if (this._stream._reader !== this) {
-      return Promise.reject(
-        new TypeError('This stream reader has released its lock on the stream and can no longer be used'));
+      return this._closedAfterRelease;
     }
 
     this.releaseLock();
@@ -82,6 +89,16 @@ export default class ExclusiveStreamReader {
     }
 
     this._stream._reader = undefined;
+
+    this._stateAfterRelease = this._stream.state;
+    this._readyAfterRelease = Promise.resolve(undefined);
+    if (this._stateAfterRelease === 'closed' || this._stateAfterRelease === 'errored') {
+      this._closedAfterRelease = this._stream.closed;
+    } else {
+      this._stateAfterRelease = 'closed';
+      this._closedAfterRelease = Promise.resolve(undefined);
+    }
+
     this._lockReleased_resolve(undefined);
   }
 }

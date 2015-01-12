@@ -601,8 +601,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 
 <ol>
   <li> If <b>this</b>@\[[reader]] is not <b>undefined</b>, return a new promise rejected with a <b>TypeError</b>.
-  <li> If <b>this</b>@\[[state]] is <code>"closed"</code>, return a new promise resolved with <b>undefined</b>.
-  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with <b>this</b>@\[[storedError]].
+  <li> If <b>this</b>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, return
+    <b>this</b>@\[[closedPromise]].
   <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, resolve <b>this</b>@\[[readyPromise]] with <b>undefined</b>.
   <li> Let <b>this</b>@\[[queue]] be a new empty List.
   <li> Call-with-rethrow CloseReadableStream(<b>this</b>).
@@ -729,12 +729,27 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
     </tr>
   </thead>
   <tr>
-    <td>\[[stream]]
-    <td>A <code>ReadableStream</code> instance that this reader encapsulates
+    <td>\[[closedAfterRelease]]
+    <td>A promise returned by the reader's <code>closed</code> getter after the reader's lock is released, or
+      <b>undefined</b> before then
   </tr>
   <tr>
     <td>\[[lockReleased]]
     <td>A promise that becomes fulfilled when the reader releases its lock on the stream
+  </tr>
+  <tr>
+    <td>\[[readyAfterRelease]]
+    <td>A promise returned by the reader's <code>ready</code> getter after the reader's lock is released, or
+      <b>undefined</b> before then
+  </tr>
+  <tr>
+    <td>\[[stateAfterRelease]]
+    <td>A string returned by the reader's <code>state</code> getter after the reader's lock is released, or
+      <b>undefined</b> before then
+  </tr>
+  <tr>
+    <td>\[[stream]]
+    <td>A <code>ReadableStream</code> instance that this reader encapsulates
   </tr>
 </table>
 
@@ -745,6 +760,8 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
   <li> If <var>stream</var>@\[[reader]] is not <b>undefined</b>, throw a <b>TypeError</b> exception.
   <li> Set <var>stream</var>@\[[reader]] to <b>this</b>.
   <li> Set <b>this</b>@\[[stream]] to <var>stream</var>.
+  <li> Set <b>this</b>@\[[closedAfterRelease]], <b>this</b>@\[[readyAfterRelease]], and
+    <b>this</b>@\[[stateAfterRelease]] to <b>undefined</b>.
   <li> Set <b>this</b>@\[[lockReleased]] to a new promise.
 </ol>
 
@@ -753,11 +770,14 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 <h5 id="reader-closed">get closed</h5>
 
 <div class="note">
-  The <code>closed</code> getter for a stream reader simply delegates to the encapsulated stream, to allow consumers to
-  use the reader interface as they would the readable stream interface.
+  While the reader is <a title="active reader">active</a>, the <code>closed</code> getter for a stream reader simply
+  delegates to the encapsulated stream, to allow consumers to use the reader interface as they would the readable
+  stream interface.
 </div>
 
 <ol>
+  <li> If SameValue(<b>this</b>@\[[stream]]@\[[reader]], <b>this</b>) is <b>false</b>, return
+    <b>this</b>@\[[closedAfterRelease]].
   <li> Return Get(<b>this</b>@\[[stream]], <code>"closed"</code>).
 </ol>
 
@@ -776,33 +796,33 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 
 <div class="note">
   The <code>ready</code> getter behaves the same as that for the readable stream encapsulated by this reader, except
-  that while the reader has exclusive access to the stream, the promise returned will reveal the stream's true state
-  transitions. (In contrast, the stream itself does not signal any state transitions while
+  that while the reader is <a title="active reader">active</a>, the promise returned will reveal the stream's true
+  state transitions. (In contrast, the stream itself does not signal any state transitions while
   <a title="locked to a reader">locked</a>, giving off the appearance of being <code>"waiting"</code> for the
   duration.)
 </div>
 
 <ol>
   <li> If SameValue(<b>this</b>@\[[stream]]@\[[reader]], <b>this</b>) is <b>false</b>, return
-    Get(<b>this</b>@\[[stream]], <code>"ready"</code>).
+    <b>this</b>@\[[readyAfterRelease]].
   <li> Set <b>this</b>@\[[stream]]@\[[reader]] to <b>undefined</b>.
   <li> Let <var>readyResult</var> be Get(<b>this</b>@\[[stream]], <code>"ready"</code>).
   <li> Set <b>this</b>@\[[stream]]@\[[reader]] to <b>this</b>.
-  <li> Return <var>readyResult</var>.
+  <li> Return the result of racing <var>readyResult</var> and <b>this</b>@\[[lockReleased]].
 </ol>
 
 <h5 id="reader-state">get state</h5>
 
 <div class="note">
   The <code>state</code> getter behaves the same as that for the readable stream encapsulated by this reader, except
-  that while the reader has exclusive access to the stream, it will reveal the stream's true state. (In contrast, the
-  stream itself gives off the appearance of being <code>"waiting"</code> while it is
+  that while the reader is <a title="active reader">active</a>, it will reveal the stream's true state. (In contrast,
+  the stream itself gives off the appearance of being <code>"waiting"</code> while it is
   <a title="locked to a reader">locked</a>.)
 </div>
 
 <ol>
   <li> If SameValue(<b>this</b>@\[[stream]]@\[[reader]], <b>this</b>) is <b>false</b>, return
-    Get(<b>this</b>@\[[stream]], <code>"state"</code>).
+    <b>this</b>@\[[stateAfterRelease]].
   <li> Set <b>this</b>@\[[stream]]@\[[reader]] to <b>undefined</b>.
   <li> Let <var>stateResult</var> be Get(<b>this</b>@\[[stream]], <code>"state"</code>).
   <li> Set <b>this</b>@\[[stream]]@\[[reader]] to <b>this</b>.
@@ -818,8 +838,8 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 </div>
 
 <ol>
-  <li> If SameValue(<b>this</b>@\[[stream]]@\[[reader]], <b>this</b>) is <b>false</b>, return a new promise rejected with a
-    <b>TypeError</b>.
+  <li> If SameValue(<b>this</b>@\[[stream]]@\[[reader]], <b>this</b>) is <b>false</b>, return
+    <b>this</b>@\[[closedAfterRelease]].
   <li> Call-with-rethrow Invoke(<b>this</b>, <code>"releaseLock"</code>).
   <li> Return Invoke(<b>this</b>@\[[stream]], <code>"cancel"</code>, <var>args</var>).
 </ol>
@@ -848,14 +868,29 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 
 <div class="note">
   The <code>releaseLock</code> method <a title="release a read lock">releases the reader's lock</a> on the encapsulated
-  stream. After the lock is released, the reader is no longer <a title="active reader">active</a>, and its
-  <code>cancel</code> and <code>read</code> methods will fail, while its <code>closed</code>, <code>ready</code>, and
-  <code>state</code> getters will simply delegate to the encapsulated stream.
+  stream. After the lock is released, the reader is no longer <a title="active reader">active</a>. If the encapsulated
+  stream is errored when the lock is released, the reader will appear errored in the same way from now on; otherwise,
+  the reader will appear closed.
 </div>
 
 <ol>
   <li> If SameValue(<b>this</b>@\[[stream]]@\[[reader]], <b>this</b>) is <b>false</b>, return <b>undefined</b>.
   <li> Set <b>this</b>@\[[stream]]@\[[reader]] to <b>undefined</b>.
+  <li> Let <var>stateAfterRelease</var> be Get(<b>this</b>@\[[stream]], <code>"state"</code>).
+  <li> ReturnIfAbrupt(<var>stateAfterRelease</var>).
+  <li> Set <b>this</b>@\[[stateAfterRelease]] to <var>stateAfterRelease</var>.
+  <li> Set <b>this</b>@\[[readyAfterRelease]] to a new promise resolved with <b>undefined</b>.
+  <li> If <var>stateAfterRelease</var> is <code>"closed"</code> or <code>"errored"</code>, then
+    <ol>
+      <li> Let <var>closedAfterRelease</var> be Get(<b>this</b>@\[[stream]], <code>"closed"</code>).
+      <li> ReturnIfAbrupt(<var>closedAfterRelease</var>).
+      <li> Set <b>this</b>@\[[closedAfterRelease]] to <var>closedAfterRelease</var>.
+    </ol>
+  <li> Otherwise,
+    <ol>
+      <li> Set <b>this</b>@\[[stateAfterRelease]] to <code>"closed"</code>.
+      <li> Set <b>this</b>@\[[closedAfterRelease]] to a new promise resolved with <b>undefined</b>.
+    </ol>
   <li> Resolve <b>this</b>@\[[lockReleased]] with <b>undefined</b>.
 </ol>
 

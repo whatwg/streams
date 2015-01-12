@@ -59,41 +59,46 @@ test('Using the reader directly on a mundane stream', t => {
 });
 
 test('Readers delegate to underlying stream implementations', t => {
-  t.plan(3 * 3 + 2 * 4);
+  t.plan(2 + 3 + 3 + 4 + (4 + 2));
 
   var rs = new ReadableStream();
   var reader = rs.getReader();
 
-  testGetter('ready');
-  testGetter('state');
-  testGetter('closed');
-  testMethod('read');
-  testMethod('cancel');
+  testGetter('ready', { skipValueTest: true }); // 3
+  testGetter('state'); // 4
+  testGetter('closed'); // 4
+  testMethod('read'); // 5
+  testMethod('cancel'); // 5, but indirectly gets state, so +2
 
-  // Generates 4 assertions
-  function testGetter(propertyName) {
+  // Generates 3 assertions, or 2 with skipValueTest
+  function testGetter(propertyName, { skipValueTest = false } = {}) {
     Object.defineProperty(rs, propertyName, {
       get() {
-        t.pass('overriden ' + propertyName + ' called');
-        t.equal(this, rs, propertyName + ' called with the correct this value');
+        t.pass(propertyName + ': overridden property called');
+        t.equal(this, rs, propertyName + ': property retrieved with the correct this value');
         return propertyName + ' return value';
       }
     });
-    t.equal(reader[propertyName], propertyName + ' return value',
-      `reader's ${propertyName} returns the return value of the stream's ${propertyName}`);
+
+    if (skipValueTest) {
+      reader[propertyName];
+    } else {
+      t.equal(reader[propertyName], propertyName + ' return value',
+        propertyName + ': reader\'s getter returns the same value as the stream\'s getter');
+    }
   }
 
-  // Generates 5 assertions
+  // Generates 4 assertions
   function testMethod(methodName) {
     var testArgs = ['arg1', 'arg2', 'arg3'];
     rs[methodName] = function (...args) {
-      t.pass('overridden ' + methodName + ' called');
-      t.deepEqual(args, testArgs, methodName + ' called with the correct arguments');
-      t.equal(this, rs, methodName + ' called with the correct this value');
+      t.pass(methodName + ': overridden method called');
+      t.deepEqual(args, testArgs, methodName + ': called with the correct arguments');
+      t.equal(this, rs, methodName + ': called with the correct this value');
       return methodName + ' return value';
     }
     t.equal(reader[methodName](...testArgs), methodName + ' return value',
-      `reader's ${methodName} returns the return value of the stream's ${methodName}`);
+      methodName + ': reader\'s method returns the same value as the stream\'s method');
   }
 });
 
@@ -121,34 +126,24 @@ test('Reading from a reader for an empty stream throws but doesn\'t break anythi
   });
 });
 
-test('Trying to use a released reader should work for ready/state/closed but fail for read/cancel', t => {
-  t.plan(9);
+test('A released reader should present like a closed stream', t => {
+  t.plan(7);
 
-  var rs = new ReadableStream({
-    start(enqueue, close) {
-      enqueue('a');
-      enqueue('b');
-      setTimeout(close, 40);
-    }
-  });
+  var rs = new ReadableStream();
   var reader = rs.getReader();
   reader.releaseLock();
 
   t.equal(reader.isActive, false, 'isActive returns false');
-  t.equal(reader.state, 'readable', 'reader.state returns readable');
-  t.equal(rs.state, 'readable', 'rs.state returns readable');
+  t.equal(reader.state, 'closed', 'reader.state returns closed');
+  t.equal(rs.state, 'waiting', 'rs.state returns waiting');
 
   t.throws(() => reader.read(), /TypeError/, 'trying to read gives a TypeError');
   reader.cancel().then(
-    () => t.fail('reader.cancel() should not be fulfilled'),
-    e => t.equal(e.constructor, TypeError, 'reader.cancel() should be rejected with a TypeError')
+    v => t.equal(v, undefined, 'reader.cancel() should fulfill with undefined'),
+    e => t.fail('reader.cancel() should not reject')
   );
 
-  reader.ready.then(() => {
-    t.pass('reader.ready should be fulfilled');
-    t.equal(rs.read(), 'a', 'reading from the stream should give back the first enqueued chunk');
-    t.equal(rs.read(), 'b', 'reading from the stream should give back the second enqueued chunk');
-  });
+  reader.ready.then(() => t.pass('reader.ready should be fulfilled'));
   reader.closed.then(() => t.pass('reader.closed should be fulfilled'));
 });
 
@@ -158,6 +153,7 @@ test('cancel() on a reader implicitly releases the reader before calling through
   var passedReason = new Error('it wasn\'t the right time, sorry');
   var rs = new ReadableStream({
     cancel(reason) {
+      t.equal(reader.isActive, false, 'canceling via the reader should release the reader\'s lock');
       t.equal(reason, passedReason, 'the cancellation reason is passed through to the underlying source');
     }
   });
@@ -167,8 +163,6 @@ test('cancel() on a reader implicitly releases the reader before calling through
     () => t.pass('reader.cancel() should fulfill'),
     e => t.fail('reader.cancel() should not reject')
   );
-
-  t.equal(reader.isActive, false, 'canceling via the reader should release the reader\'s lock');
 });
 
 test('cancel() on a reader calls this.releaseLock directly instead of cheating', t => {
@@ -297,6 +291,40 @@ test('closed should be fulfilled after reader releases its lock (multiple stream
   });
 });
 
+test('ready should fulfill after reader releases its lock and stream is waiting (.ready access before releasing)',
+    t => {
+  t.plan(5);
+
+  var rs = new ReadableStream();
+  var reader = rs.getReader();
+
+  t.equal(rs.state, 'waiting', 'the stream\'s state is initially waiting');
+  t.equal(reader.state, 'waiting', 'the reader\'s state is initially waiting');
+  reader.ready.then(() => {
+    t.pass('reader ready should be fulfilled');
+    t.equal(rs.state, 'waiting', 'the stream\'s state is still waiting');
+    t.equal(reader.state, 'closed', 'the reader\'s state is now closed');
+  });
+  reader.releaseLock();
+});
+
+test('ready should fulfill after reader releases its lock and stream is waiting (.ready access after releasing)',
+    t => {
+  t.plan(5);
+
+  var rs = new ReadableStream();
+  var reader = rs.getReader();
+
+  t.equal(rs.state, 'waiting', 'the stream\'s state is initially waiting');
+  t.equal(reader.state, 'waiting', 'the reader\'s state is initially waiting');
+  reader.releaseLock();
+  reader.ready.then(() => {
+    t.pass('reader ready should be fulfilled');
+    t.equal(rs.state, 'waiting', 'the stream\'s state is still waiting');
+    t.equal(reader.state, 'closed', 'the reader\'s state is now closed');
+  });
+});
+
 test('Multiple readers can access the stream in sequence', t => {
   var rs = new ReadableStream({
     start(enqueue, close) {
@@ -314,12 +342,14 @@ test('Multiple readers can access the stream in sequence', t => {
   var reader1 = rs.getReader();
   t.equal(reader1.read(), 'b', 'reading the second chunk from reader1 works');
   reader1.releaseLock();
+  t.equal(reader1.state, 'closed', 'reader1 is closed after being released');
 
   t.equal(rs.read(), 'c', 'reading the third chunk from the stream after releasing reader1 works');
 
   var reader2 = rs.getReader();
   t.equal(reader2.read(), 'd', 'reading the fourth chunk from reader2 works');
   reader2.releaseLock();
+  t.equal(reader2.state, 'closed', 'reader2 is closed after being released');
 
   t.equal(rs.read(), 'e', 'reading the fifth chunk from the stream after releasing reader2 works');
 

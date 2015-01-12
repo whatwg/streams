@@ -65,11 +65,8 @@ export default class ReadableStream {
         new TypeError('This stream is locked to a single exclusive reader and cannot be cancelled directly'));
     }
 
-    if (this._state === 'closed') {
-      return Promise.resolve(undefined);
-    }
-    if (this._state === 'errored') {
-      return Promise.reject(this._storedError);
+    if (this._state === 'closed' || this._state === 'errored') {
+      return this._closedPromise;
     }
     if (this._state === 'waiting') {
       this._resolveReadyPromise(undefined);
