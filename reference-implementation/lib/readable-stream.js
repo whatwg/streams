@@ -1,8 +1,8 @@
 var assert = require('assert');
 import * as helpers from './helpers';
-import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
-import CountQueuingStrategy from './count-queuing-strategy';
-import ExclusiveStreamReader from './exclusive-stream-reader';
+import { AcquireExclusiveStreamReader, CallReadableStreamPull, CloseReadableStream, CreateReadableStreamCloseFunction,
+  CreateReadableStreamEnqueueFunction, CreateReadableStreamErrorFunction, ReadFromReadableStream,
+  ShouldReadableStreamApplyBackpressure } from './readable-stream-abstract-ops';
 
 export default class ReadableStream {
   constructor({
@@ -80,14 +80,7 @@ export default class ReadableStream {
   }
 
   getReader() {
-    if (this._state === 'closed') {
-      throw new TypeError('The stream has already been closed, so a reader cannot be acquired.');
-    }
-    if (this._state === 'errored') {
-      throw this._storedError;
-    }
-
-    return new ExclusiveStreamReader(this);
+    return AcquireExclusiveStreamReader(this);
   }
 
   pipeThrough({ writable, readable }, options) {
@@ -187,33 +180,7 @@ export default class ReadableStream {
       throw new TypeError('This stream is locked to a single exclusive reader and cannot be read from directly');
     }
 
-    if (this._state === 'waiting') {
-      throw new TypeError('no chunks available (yet)');
-    }
-    if (this._state === 'closed') {
-      throw new TypeError('stream has already been consumed');
-    }
-    if (this._state === 'errored') {
-      throw this._storedError;
-    }
-
-    assert(this._state === 'readable', `stream state ${this._state} is invalid`);
-    assert(this._queue.length > 0, 'there must be chunks available to read');
-
-    var chunk = DequeueValue(this._queue);
-
-    if (this._queue.length === 0) {
-      if (this._draining === true) {
-        CloseReadableStream(this);
-      } else {
-        this._state = 'waiting';
-        this._initReadyPromise();
-      }
-    }
-
-    CallReadableStreamPull(this);
-
-    return chunk;
+    return ReadFromReadableStream(this);
   }
 
   get ready() {
@@ -221,7 +188,7 @@ export default class ReadableStream {
       return this._reader._lockReleased.then(() => this.ready);
     }
 
-    return this._readyPromise;
+    return this._readyPromise.then(() => this._reader === undefined ? undefined : this._reader._lockReleased);
   }
 
   _initReadyPromise() {
@@ -259,127 +226,6 @@ export default class ReadableStream {
     this._closedPromise_resolve = null;
     this._closedPromise_reject = null;
   }
-}
-
-function CallReadableStreamPull(stream) {
-  if (stream._pulling === true || stream._draining === true || stream._started === false ||
-      stream._state === 'closed' || stream._state === 'errored') {
-    return undefined;
-  }
-
-  var shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
-  if (shouldApplyBackpressure === true) {
-    return undefined;
-  }
-
-  stream._pulling = true;
-
-  try {
-    stream._onPull(
-      stream._enqueue,
-      stream._close,
-      stream._error
-    );
-  } catch (pullResultE) {
-    stream._error(pullResultE);
-    throw pullResultE;
-  }
-
-  return undefined;
-}
-
-function CreateReadableStreamCloseFunction(stream) {
-  return () => {
-    if (stream._state === 'waiting') {
-      stream._resolveReadyPromise(undefined);
-      return CloseReadableStream(stream);
-    }
-    if (stream._state === 'readable') {
-      stream._draining = true;
-    }
-  };
-}
-
-function CreateReadableStreamEnqueueFunction(stream) {
-  return chunk => {
-    if (stream._state === 'errored') {
-      throw stream._storedError;
-    }
-
-    if (stream._state === 'closed') {
-      throw new TypeError('stream is closed');
-    }
-
-    if (stream._draining === true) {
-      throw new TypeError('stream is draining');
-    }
-
-    var chunkSize;
-    try {
-      chunkSize = stream._strategy.size(chunk);
-    } catch (chunkSizeE) {
-      stream._error(chunkSizeE);
-      throw chunkSizeE;
-    }
-
-    EnqueueValueWithSize(stream._queue, chunk, chunkSize);
-    stream._pulling = false;
-
-    var shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
-
-    if (stream._state === 'waiting') {
-      stream._state = 'readable';
-      stream._resolveReadyPromise(undefined);
-    }
-
-    if (shouldApplyBackpressure === true) {
-      return false;
-    }
-    return true;
-  };
-}
-
-function CreateReadableStreamErrorFunction(stream) {
-  return e => {
-    if (stream._state === 'waiting') {
-      stream._resolveReadyPromise(undefined);
-    }
-    if (stream._state === 'readable') {
-      stream._queue = [];
-    }
-    if (stream._state === 'waiting' || stream._state === 'readable') {
-      stream._state = 'errored';
-      stream._storedError = e;
-      stream._rejectClosedPromise(e);
-      if (stream._reader !== undefined) {
-        stream._reader.releaseLock();
-      }
-    }
-  };
-}
-
-function ShouldReadableStreamApplyBackpressure(stream) {
-  var queueSize = GetTotalQueueSize(stream._queue);
-  var shouldApplyBackpressure;
-  try {
-    shouldApplyBackpressure = Boolean(stream._strategy.shouldApplyBackpressure(queueSize));
-  } catch (shouldApplyBackpressureE) {
-    stream._error(shouldApplyBackpressureE);
-    throw shouldApplyBackpressureE;
-  }
-
-  return shouldApplyBackpressure;
-}
-
-function CloseReadableStream(stream) {
-  stream._state = 'closed';
-  stream._resolveClosedPromise(undefined);
-
-  if (stream._reader !== undefined) {
-    stream._reader.releaseLock();
-  }
-
-  return undefined;
 }
 
 var defaultReadableStreamStrategy = {

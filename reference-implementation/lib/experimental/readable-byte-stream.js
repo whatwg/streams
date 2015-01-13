@@ -1,7 +1,10 @@
 var assert = require('assert');
 import * as helpers from '../helpers';
 import ReadableStream from '../readable-stream';
+import ExclusiveByteStreamReader from './exclusive-byte-stream-reader';
+import { ReadFromReadableByteStream } from './readable-byte-stream-abstract-ops';
 
+// TODO: convert these to abstract ops that vend functions, instead of functions that we `.bind`.
 function notifyReady(stream) {
   if (stream._state !== 'waiting') {
     return;
@@ -162,24 +165,19 @@ export default class ReadableByteStream {
   }
 
   read() {
-    if (this._readBufferSize === undefined) {
-      throw new TypeError('readBufferSize is not configured');
+    if (this._reader !== undefined) {
+      throw new TypeError('This stream is locked to a single exclusive reader and cannot be read from directly');
     }
 
-    var arrayBuffer = new ArrayBuffer(this._readBufferSize);
-    var bytesRead = this.readInto(arrayBuffer, 0, this._readBufferSize);
-    // This code should be updated to use ArrayBuffer.prototype.transfer when
-    // it's ready.
-    var resizedArrayBuffer = arrayBuffer.slice(0, bytesRead);
-    return resizedArrayBuffer;
+    return ReadFromReadableByteStream(this);
   }
 
   get ready() {
     if (this._reader !== undefined) {
-      return this._reader._lockReleased;
+      return this._reader._lockReleased.then(() => this._readyPromise);
     }
 
-    return this._readyPromise;
+    return this._readyPromise.then(() => this._reader === undefined ? undefined : this._reader._lockReleased);
   }
 
   cancel(reason) {
@@ -210,6 +208,17 @@ export default class ReadableByteStream {
     });
   }
 
+  getReader() {
+    if (this._state === 'closed') {
+      throw new TypeError('The stream has already been closed, so a reader cannot be acquired.');
+    }
+    if (this._state === 'errored') {
+      throw this._storedError;
+    }
+
+    return new ExclusiveByteStreamReader(this);
+  }
+
   get closed() {
     if (this._reader !== undefined) {
       return this._reader._lockReleased.then(() => this._closedPromise);
@@ -238,4 +247,3 @@ ReadableByteStream.prototype.pipeTo = ReadableStream.prototype.pipeTo;
 
 // These can be direct copies. Per spec though they probably should not be === since that might preclude optimizations.
 ReadableByteStream.prototype.pipeThrough = ReadableStream.prototype.pipeThrough;
-ReadableByteStream.prototype.getReader = ReadableStream.prototype.getReader;

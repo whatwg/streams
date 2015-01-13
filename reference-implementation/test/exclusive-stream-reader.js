@@ -59,19 +59,16 @@ test('Using the reader directly on a mundane stream', t => {
 });
 
 test('Readers delegate to underlying stream implementations', t => {
-  t.plan(2 + 3 + 3 + 4 + (4 + 2));
+  t.plan(3 + 4);
 
   var rs = new ReadableStream();
   var reader = rs.getReader();
 
-  testGetter('ready', { skipValueTest: true }); // 3
-  testGetter('state'); // 4
-  testGetter('closed'); // 4
-  testMethod('read'); // 5
-  testMethod('cancel'); // 5, but indirectly gets state, so +2
+  testGetter('closed'); // 3
+  testMethod('cancel'); // 4
 
-  // Generates 3 assertions, or 2 with skipValueTest
-  function testGetter(propertyName, { skipValueTest = false } = {}) {
+  // Generates 3 assertions
+  function testGetter(propertyName) {
     Object.defineProperty(rs, propertyName, {
       get() {
         t.pass(propertyName + ': overridden property called');
@@ -80,12 +77,8 @@ test('Readers delegate to underlying stream implementations', t => {
       }
     });
 
-    if (skipValueTest) {
-      reader[propertyName];
-    } else {
-      t.equal(reader[propertyName], propertyName + ' return value',
-        propertyName + ': reader\'s getter returns the same value as the stream\'s getter');
-    }
+    t.equal(reader[propertyName], propertyName + ' return value',
+      propertyName + ': reader\'s getter returns the same value as the stream\'s getter');
   }
 
   // Generates 4 assertions
@@ -332,6 +325,26 @@ test('stream\'s ready should not fulfill when acquiring, then releasing, a reade
   rs.ready.then(() => t.fail('stream ready should not be fulfilled'));
   reader.releaseLock();
 
+  setTimeout(() => t.end(), 20);
+});
+
+test('stream\'s ready should not fulfill while locked, even if accessed before locking', t => {
+  var doEnqueue;
+  var rs = new ReadableStream({
+    start(enqueue) {
+      doEnqueue = enqueue;
+    }
+  });
+  var ready = rs.ready;
+
+  var reader = rs.getReader();
+
+  ready.then(() => {
+    t.equal(rs.state, 'waiting', 'ready fulfilled but the state was waiting; next assert will fail');
+    t.fail('stream ready should not be fulfilled');
+  });
+
+  doEnqueue();
   setTimeout(() => t.end(), 20);
 });
 

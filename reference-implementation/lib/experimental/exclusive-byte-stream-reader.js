@@ -1,10 +1,10 @@
 var assert = require('assert');
-import { ReadFromReadableStream } from './readable-stream-abstract-ops';
+import { ReadFromReadableByteStream } from './readable-byte-stream-abstract-ops';
 
-export default class ExclusiveStreamReader {
+export default class ExclusiveByteStreamReader {
   constructor(stream) {
     if (!('_reader' in stream)) {
-      throw new TypeError('ExclusiveStreamReader can only be used with ReadableStream objects or subclasses');
+      throw new TypeError('ExclusiveByteStreamReader can only be used with ReadableByteStream objects or subclasses');
     }
 
     if (stream._reader !== undefined) {
@@ -57,7 +57,7 @@ export default class ExclusiveStreamReader {
       throw new TypeError('This stream reader has released its lock on the stream and can no longer be used');
     }
 
-    return ReadFromReadableStream(this._stream);
+    return ReadFromReadableByteStream(this._stream);
   }
 
   cancel(reason, ...args) {

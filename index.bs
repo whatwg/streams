@@ -561,7 +561,11 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> If <b>this</b>@\[[reader]] is not <b>undefined</b>, return the result of transforming
     <b>this</b>@\[[reader]]@\[[lockReleased]] by a fulfillment handler that returns Get(<b>this</b>,
     <code>"ready"</code>).
-  <li> Return <b>this</b>@\[[readyPromise]].
+  <li> Return the result of transforming <b>this</b>@\[[readyPromise]] by the following fulfillment handler:
+    <ol>
+      <li> If <b>this</b>@\[[reader]] is <b>undefined</b>, return <b>undefined</b>.
+      <li> Otherwise, return <b>this</b>@\[[reader]]@\[[lockReleased]].
+    </ol>
 </ol>
 
 <h5 id="rs-state">get state</h5>
@@ -677,22 +681,7 @@ look for the <code>pipeTo</code> method.
 
 <ol>
   <li> If <b>this</b>@\[[reader]] is not <b>undefined</b>, throw a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code> or <code>"closed"</code>, throw a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, throw <b>this</b>@\[[storedError]].
-  <li> Assert: <b>this</b>@\[[state]] is <code>"readable"</code>.
-  <li> Assert: <b>this</b>@\[[queue]] is not empty.
-  <li> Let <var>chunk</var> be DequeueValue(<b>this</b>@\[[queue]]).
-  <li> If <b>this</b>@\[[queue]] is now empty,
-    <ol>
-      <li> If <b>this</b>@\[[draining]] is <b>true</b>, call-with-rethrow CloseReadableStream(<b>this</b>).
-      <li> If <b>this</b>@\[[draining]] is <b>false</b>,
-        <ol>
-          <li> Set <b>this</b>@\[[state]] to <code>"waiting"</code>.
-          <li> Let <b>this</b>@\[[readyPromise]] be a new promise.
-        </ol>
-    </ol>
-  <li> Call-with-rethrow CallReadableStreamPull(<b>this</b>).
-  <li> Return <var>chunk</var>.
+  <li> Return ReadFromReadableStream(this).
 </ol>
 
 <h3 id="reader-class">Class <code>ExclusiveStreamReader</code></h3>
@@ -807,10 +796,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 <ol>
   <li> If SameValue(<b>this</b>@\[[stream]]@\[[reader]], <b>this</b>) is <b>false</b>, return
     <b>this</b>@\[[readyAfterRelease]].
-  <li> Set <b>this</b>@\[[stream]]@\[[reader]] to <b>undefined</b>.
-  <li> Let <var>readyResult</var> be Get(<b>this</b>@\[[stream]], <code>"ready"</code>).
-  <li> Set <b>this</b>@\[[stream]]@\[[reader]] to <b>this</b>.
-  <li> Return the result of racing <var>readyResult</var> and <b>this</b>@\[[lockReleased]].
+  <li> Return the result of racing <b>this</b>@\[[stream]]@\[[readyPromise]] and <b>this</b>@\[[lockReleased]].
 </ol>
 
 <h5 id="reader-state">get state</h5>
@@ -825,10 +811,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 <ol>
   <li> If SameValue(<b>this</b>@\[[stream]]@\[[reader]], <b>this</b>) is <b>false</b>, return
     <b>this</b>@\[[stateAfterRelease]].
-  <li> Set <b>this</b>@\[[stream]]@\[[reader]] to <b>undefined</b>.
-  <li> Let <var>stateResult</var> be Get(<b>this</b>@\[[stream]], <code>"state"</code>).
-  <li> Set <b>this</b>@\[[stream]]@\[[reader]] to <b>this</b>.
-  <li> Return <var>stateResult</var>.
+  <li> Return <b>this</b>@\[[stream]]@\[[state]].
 </ol>
 
 <h5 id="reader-cancel">cancel(...args)</h5>
@@ -848,7 +831,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 
 The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 
-<h5 id="reader-read">read(...args)</h5>
+<h5 id="reader-read">read()</h5>
 
 <div class="note">
   If the reader is <a title="active reader">active</a>, the <code>read</code> method behaves the same as that for the
@@ -860,10 +843,7 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 <ol>
   <li> If SameValue(<b>this</b>@\[[stream]]@\[[reader]], <b>this</b>) is <b>false</b>, throw a <b>TypeError</b>
     exception.
-  <li> Set <b>this</b>@\[[stream]]@\[[reader]] to <b>undefined</b>.
-  <li> Let <var>readResult</var> be Invoke(<b>this</b>@\[[stream]], <code>"read"</code>, <var>args</var>).
-  <li> Set <b>this</b>@\[[stream]]@\[[reader]] to <b>this</b>.
-  <li> Return <var>readResult</var>.
+  <li> Return ReadFromReadableStream(<b>this</b>@\[[stream]]).
 </ol>
 
 <h5 id="reader-release-lock">releaseLock()</h5>
@@ -1012,6 +992,27 @@ a variable <var>stream</var>, that performs the following steps:
       <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
       <li> If <var>stream</var>@\[[reader]] is not <b>undefined</b>, call-with-rethrow Invoke(<var>stream</var>@\[[reader]], <code>"releaseLock"</code>).
     </ol>
+</ol>
+
+<h4 id="read-from-readable-stream">ReadFromReadableStream ( stream )</h4>
+
+<ol>
+  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code> or <code>"closed"</code>, throw a <b>TypeError</b> exception.
+  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, throw <var>stream</var>@\[[storedError]].
+  <li> Assert: <var>stream</var>@\[[state]] is <code>"readable"</code>.
+  <li> Assert: <var>stream</var>@\[[queue]] is not empty.
+  <li> Let <var>chunk</var> be DequeueValue(<var>stream</var>@\[[queue]]).
+  <li> If <var>stream</var>@\[[queue]] is now empty,
+    <ol>
+      <li> If <var>stream</var>@\[[draining]] is <b>true</b>, call-with-rethrow CloseReadableStream(<var>stream</var>).
+      <li> If <var>stream</var>@\[[draining]] is <b>false</b>,
+        <ol>
+          <li> Set <var>stream</var>@\[[state]] to <code>"waiting"</code>.
+          <li> Let <var>stream</var>@\[[readyPromise]] be a new promise.
+        </ol>
+    </ol>
+  <li> Call-with-rethrow CallReadableStreamPull(<var>stream</var>).
+  <li> Return <var>chunk</var>.
 </ol>
 
 <h4 id="should-readable-stream-apply-backpressure">ShouldReadableStreamApplyBackpressure ( stream )</h4>
