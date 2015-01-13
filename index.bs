@@ -558,7 +558,9 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <ol>
-  <li> If <b>this</b>@\[[reader]] is not <b>undefined</b>, return <b>this</b>@\[[reader]]@\[[lockReleased]].
+  <li> If <b>this</b>@\[[reader]] is not <b>undefined</b>, return the result of transforming
+    <b>this</b>@\[[reader]]@\[[lockReleased]] by a fulfillment handler that returns Get(<b>this</b>,
+    <code>"ready"</code>).
   <li> Return <b>this</b>@\[[readyPromise]].
 </ol>
 

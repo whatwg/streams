@@ -325,6 +325,40 @@ test('ready should fulfill after reader releases its lock and stream is waiting 
   });
 });
 
+test('stream\'s ready should not fulfill when acquiring, then releasing, a reader', t => {
+  var rs = new ReadableStream();
+  var reader = rs.getReader();
+
+  rs.ready.then(() => t.fail('stream ready should not be fulfilled'));
+  reader.releaseLock();
+
+  setTimeout(() => t.end(), 20);
+});
+
+test('stream\'s ready should not fulfill when acquiring a reader, accessing ready, releasing the reader, acquiring ' +
+    'another reader, then enqueuing a chunk', t => {
+  // https://github.com/whatwg/streams/pull/262#discussion_r22990833
+
+  var doEnqueue;
+  var rs = new ReadableStream({
+    start(enqueue) {
+      doEnqueue = enqueue;
+    }
+  });
+
+  var reader = rs.getReader();
+  rs.ready.then(() => {
+    t.equal(rs.state, 'waiting', 'ready fulfilled but the state was waiting; next assert will fail');
+    t.fail('stream ready should not be fulfilled')
+  });
+
+  reader.releaseLock();
+  rs.getReader();
+  doEnqueue('a');
+
+  setTimeout(() => t.end(), 20);
+});
+
 test('Multiple readers can access the stream in sequence', t => {
   var rs = new ReadableStream({
     start(enqueue, close) {

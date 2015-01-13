@@ -218,7 +218,7 @@ export default class ReadableStream {
 
   get ready() {
     if (this._reader !== undefined) {
-      return this._reader._lockReleased;
+      return this._reader._lockReleased.then(() => this.ready);
     }
 
     return this._readyPromise;
