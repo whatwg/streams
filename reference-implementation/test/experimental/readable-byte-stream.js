@@ -1,7 +1,10 @@
 var test = require('tape');
 
 import ReadableByteStream from '../../lib/experimental/readable-byte-stream';
+import ReadableStream from '../../lib/readable-stream';
 import WritableStream from '../../lib/writable-stream';
+import ExclusiveStreamReader from '../../lib/exclusive-stream-reader';
+import ExclusiveByteStreamReader from '../../lib/experimental/exclusive-byte-stream-reader';
 
 test('ReadableByteStream can be constructed with no arguments', t => {
   t.doesNotThrow(() => new ReadableByteStream());
@@ -622,4 +625,14 @@ test('ReadableByteStream: Transfer 1kiB using pipeTo()', t => {
   });
 
   rbs.pipeTo(ws);
+});
+
+test('ReadableByteStream and ReadableByteStream readers should not interoperate', t => {
+  t.throws(() => new ExclusiveStreamReader(new ReadableByteStream()), /TypeError/,
+    'cannot construct an ExclusiveStreamReader passing a ReadableByteStream');
+
+  t.throws(() => new ExclusiveByteStreamReader(new ReadableStream()), /TypeError/,
+    'cannot construct an ExclusiveByteStreamReader passing a ReadableStream');
+
+  t.end();
 });

@@ -60,7 +60,7 @@ export default class ReadableByteStream {
       }
     }
 
-    this._reader = undefined;
+    this._readableByteStreamReader = undefined;
     this._state = 'waiting';
 
     this._onReadInto = readInto;
@@ -84,7 +84,7 @@ export default class ReadableByteStream {
   }
 
   get state() {
-    if (this._reader !== undefined) {
+    if (this._readableByteStreamReader !== undefined) {
       return 'waiting';
     }
 
@@ -165,7 +165,7 @@ export default class ReadableByteStream {
   }
 
   read() {
-    if (this._reader !== undefined) {
+    if (this._readableByteStreamReader !== undefined) {
       throw new TypeError('This stream is locked to a single exclusive reader and cannot be read from directly');
     }
 
@@ -173,11 +173,11 @@ export default class ReadableByteStream {
   }
 
   get ready() {
-    if (this._reader !== undefined) {
-      return this._reader._lockReleased.then(() => this._readyPromise);
+    if (this._readableByteStreamReader !== undefined) {
+      return this._readableByteStreamReader._lockReleased.then(() => this._readyPromise);
     }
 
-    return this._readyPromise.then(() => this._reader === undefined ? undefined : this._reader._lockReleased);
+    return this._readyPromise.then(() => this._readableByteStreamReader === undefined ? undefined : this._readableByteStreamReader._lockReleased);
   }
 
   cancel(reason) {
@@ -192,7 +192,7 @@ export default class ReadableByteStream {
     }
 
     this._state = 'closed';
-    this._reader = undefined;
+    this._readableByteStreamReader = undefined;
     this._resolveClosedPromise(undefined);
 
     return new Promise((resolve, reject) => {
@@ -220,8 +220,8 @@ export default class ReadableByteStream {
   }
 
   get closed() {
-    if (this._reader !== undefined) {
-      return this._reader._lockReleased.then(() => this._closedPromise);
+    if (this._readableByteStreamReader !== undefined) {
+      return this._readableByteStreamReader._lockReleased.then(() => this._closedPromise);
     }
 
     return this._closedPromise;

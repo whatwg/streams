@@ -44,8 +44,8 @@ export function CloseReadableStream(stream) {
   stream._state = 'closed';
   stream._resolveClosedPromise(undefined);
 
-  if (stream._reader !== undefined) {
-    stream._reader.releaseLock();
+  if (stream._readableStreamReader !== undefined) {
+    stream._readableStreamReader.releaseLock();
   }
 
   return undefined;
@@ -114,8 +114,8 @@ export function CreateReadableStreamErrorFunction(stream) {
       stream._state = 'errored';
       stream._storedError = e;
       stream._rejectClosedPromise(e);
-      if (stream._reader !== undefined) {
-        stream._reader.releaseLock();
+      if (stream._readableStreamReader !== undefined) {
+        stream._readableStreamReader.releaseLock();
       }
     }
   };

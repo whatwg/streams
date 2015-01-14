@@ -3,15 +3,15 @@ import { ReadFromReadableByteStream } from './readable-byte-stream-abstract-ops'
 
 export default class ExclusiveByteStreamReader {
   constructor(stream) {
-    if (!('_reader' in stream)) {
+    if (!('_readableByteStreamReader' in stream)) {
       throw new TypeError('ExclusiveByteStreamReader can only be used with ReadableByteStream objects or subclasses');
     }
 
-    if (stream._reader !== undefined) {
+    if (stream._readableByteStreamReader !== undefined) {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
-    stream._reader = this;
+    stream._readableByteStreamReader = this;
 
     this._stream = stream;
 
@@ -25,7 +25,7 @@ export default class ExclusiveByteStreamReader {
   }
 
   get ready() {
-    if (this._stream._reader !== this) {
+    if (this._stream._readableByteStreamReader !== this) {
       return this._readyAfterRelease;
     }
 
@@ -33,7 +33,7 @@ export default class ExclusiveByteStreamReader {
   }
 
   get state() {
-    if (this._stream._reader !== this) {
+    if (this._stream._readableByteStreamReader !== this) {
       return this._stateAfterRelease;
     }
 
@@ -41,7 +41,7 @@ export default class ExclusiveByteStreamReader {
   }
 
   get closed() {
-    if (this._stream._reader !== this) {
+    if (this._stream._readableByteStreamReader !== this) {
       return this._closedAfterRelease;
     }
 
@@ -49,11 +49,11 @@ export default class ExclusiveByteStreamReader {
   }
 
   get isActive() {
-    return this._stream._reader === this;
+    return this._stream._readableByteStreamReader === this;
   }
 
   read() {
-    if (this._stream._reader !== this) {
+    if (this._stream._readableByteStreamReader !== this) {
       throw new TypeError('This stream reader has released its lock on the stream and can no longer be used');
     }
 
@@ -61,7 +61,7 @@ export default class ExclusiveByteStreamReader {
   }
 
   cancel(reason, ...args) {
-    if (this._stream._reader !== this) {
+    if (this._stream._readableByteStreamReader !== this) {
       return this._closedAfterRelease;
     }
 
@@ -70,11 +70,11 @@ export default class ExclusiveByteStreamReader {
   }
 
   releaseLock() {
-    if (this._stream._reader !== this) {
+    if (this._stream._readableByteStreamReader !== this) {
       return undefined;
     }
 
-    this._stream._reader = undefined;
+    this._stream._readableByteStreamReader = undefined;
 
     this._stateAfterRelease = this._stream.state;
     this._readyAfterRelease = Promise.resolve(undefined);

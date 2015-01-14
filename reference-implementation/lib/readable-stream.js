@@ -31,7 +31,7 @@ export default class ReadableStream {
     this._started = false;
     this._draining = false;
     this._pulling = false;
-    this._reader = undefined;
+    this._readableStreamReader = undefined;
 
     this._enqueue = CreateReadableStreamEnqueueFunction(this);
     this._close = CreateReadableStreamCloseFunction(this);
@@ -52,7 +52,7 @@ export default class ReadableStream {
   }
 
   get state() {
-    if (this._reader !== undefined) {
+    if (this._readableStreamReader !== undefined) {
       return 'waiting';
     }
 
@@ -60,7 +60,7 @@ export default class ReadableStream {
   }
 
   cancel(reason) {
-    if (this._reader !== undefined) {
+    if (this._readableStreamReader !== undefined) {
       return Promise.reject(
         new TypeError('This stream is locked to a single exclusive reader and cannot be cancelled directly'));
     }
@@ -176,7 +176,7 @@ export default class ReadableStream {
   }
 
   read() {
-    if (this._reader !== undefined) {
+    if (this._readableStreamReader !== undefined) {
       throw new TypeError('This stream is locked to a single exclusive reader and cannot be read from directly');
     }
 
@@ -184,11 +184,11 @@ export default class ReadableStream {
   }
 
   get ready() {
-    if (this._reader !== undefined) {
-      return this._reader._lockReleased.then(() => this.ready);
+    if (this._readableStreamReader !== undefined) {
+      return this._readableStreamReader._lockReleased.then(() => this.ready);
     }
 
-    return this._readyPromise.then(() => this._reader === undefined ? undefined : this._reader._lockReleased);
+    return this._readyPromise.then(() => this._readableStreamReader === undefined ? undefined : this._readableStreamReader._lockReleased);
   }
 
   _initReadyPromise() {
