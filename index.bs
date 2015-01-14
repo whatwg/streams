@@ -871,7 +871,7 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 
 <ol>
   <li> If <var>stream</var>@\[[state]] is <code>"closed"</code>, throw a <b>TypeError</b> exception.
-  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, throw <var>this</var>@\[[storedError]].
+  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, throw <var>stream</var>@\[[storedError]].
   <li> Return Construct(<code>ExclusiveStreamReader</code>, (<var>stream</var>)).
 </ol>
 
