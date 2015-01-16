@@ -49,3 +49,22 @@ export function PromiseInvokeOrNoop(O, P, args) {
     return Promise.reject(e);
   }
 }
+
+export function PromiseInvokeOrFallbackOrNoop(O, P1, args1, P2, args2) {
+  var method;
+  try {
+    method = O[P1];
+  } catch (methodE) {
+    return Promise.reject(methodE);
+  }
+
+  if (method === undefined) {
+    return PromiseInvokeOrNoop(O, P2, args2);
+  }
+
+  try {
+    return Promise.resolve(method.apply(O, args1));
+  } catch (e) {
+    return Promise.reject(e);
+  }
+}

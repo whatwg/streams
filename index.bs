@@ -20,7 +20,7 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 
 <style>
   ol > li { margin: 0; }
-  .note + .example { margin-top: 1em; }
+  .note + .example, .note + .note { margin-top: 1em; }
 </style>
 <script src="https://resources.whatwg.org/file-issue.js" async></script>
 
@@ -1201,13 +1201,7 @@ would look like
 
 <pre><code class="lang-javascript">
   class WritableStream {
-    constructor({
-      start = (error) => {},
-      write = (chunk) => {},
-      close = () => {},
-      abort = (reason) => close(),
-      strategy = %DefaultWritableStreamStrategy%
-    } = {})
+    constructor(underlyingSink = {})
 
     get closed()
     get ready()
@@ -1234,19 +1228,6 @@ Instances of <code>WritableStream</code> are created with the internal slots des
     <td>\[[closedPromise]]
     <td>A promise that becomes fulfilled when the stream becomes <code>"closed"</code>; returned by the
       <code>closed</code> getter
-  </tr>
-  <tr>
-    <td>\[[onAbort]]
-    <td>A function passed to the constructor, meant to abruptly clean up and release access to the <a>underlying
-      sink</a>
-  </tr>
-  <tr>
-    <td>\[[onClose]]
-    <td>A function passed to the constructor, meant to close the the <a>underlying sink</a>
-  </tr>
-  <tr>
-    <td>\[[onWrite]]
-    <td>A function passed to the constructor, meant to write to the <a>underlying sink</a>
   </tr>
   <tr>
     <td>\[[error]]
@@ -1276,12 +1257,12 @@ Instances of <code>WritableStream</code> are created with the internal slots des
       on the stream while in the <code>"errored"</code> state
   </tr>
   <tr>
-    <td>\[[strategy]]
-    <td>An object containing the stream's <a>queuing strategy</a>
-  </tr>
-  <tr>
     <td>\[[readyPromise]]
     <td>A promise returned by the <code>ready</code> getter
+  </tr>
+  <tr>
+    <td>\[[underlyingSink]]
+    <td>An object representation of the stream's <a>underlying sink</a>, including its <a>queuing strategy</a>
   </tr>
   <tr>
     <td>\[[writing]]
@@ -1290,55 +1271,50 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </tr>
 </table>
 
-<h4 id="ws-constructor">new WritableStream({ start, write, close, abort, strategy } = {})</h4>
+<h4 id="ws-constructor">new WritableStream(underlyingSink = {})</h4>
 
 <div class="note">
-  The constructor is passed several functions, all optional, which govern how the constructed stream instance behaves:
+  The <var>underlyingSink</var> object passed to the constructor can implement any of the following methods to govern
+  how the constructed stream instance behaves:
 
   <ul>
-    <li> <var>start</var>(<var>error</var>) is called immediately, and should perform any actions necessary to acquire
+    <li> <code>start(error)</code> is called immediately, and should perform any actions necessary to acquire
       access to the <a>underlying sink</a>. If this process is asynchronous, it can return a promise to signal success
       or failure.
-    <li> <var>write</var>(<var>chunk</var>) is called when a new <a>chunk</a> of data is ready to be written to the
+    <li> <code>write(chunk)</code> is called when a new <a>chunk</a> of data is ready to be written to the
       <a>underlying sink</a>. It can return a promise to signal success or failure of the write operation. The stream
-      implementation guarantees that this function will be called only after previous writes have succeeded, and never
-      after <var>close</var> or <var>abort</var> is called.
-    <li> <var>close</var>() is called after the producer signals that they are done writing chunks to the stream, and
+      implementation guarantees that this method will be called only after previous writes have succeeded, and never
+      after <code>close</code> or <code>abort</code> is called.
+    <li> <code>close()</code> is called after the producer signals that they are done writing chunks to the stream, and
       all queued-up writes successfully complete. It should perform any actions necessary to finalize writes to the
       <a>underlying sink</a>, and release access to it. If this process is asynchronous, it can return a promise to
-      signal success or failure. The stream implementation guarantees that this function will be called only after all
+      signal success or failure. The stream implementation guarantees that this method will be called only after all
       queued-up writes have succeeded.
-    <li> <var>abort</var>(<var>reason</var>) is called when the producer signals they wish to abruptly close the stream
-      and put it in an <code>"errored"</code> state. It should clean up any held resources, much like <var>close</var>,
-      but perhaps with some custom handling. Unlike <var>close</var>, <var>abort</var> will be called even if writes
-      are queued up; those <a>chunks</a> will be thrown away. If this process is asynchronous, it can return a promise
-      to signal success or failure. If no abort function is passed, by default the <var>close</var> function will be
-      called instead.
+    <li> <code>abort(reason)</code> is called when the producer signals they wish to abruptly close the stream
+      and put it in an <code>"errored"</code> state. It should clean up any held resources, much like
+      <code>close</code>, but perhaps with some custom handling. Unlike <code>close</code>, <var>abort</var> will be
+      called even if writes are queued up; those <a>chunks</a> will be thrown away. If this process is asynchronous, it
+      can return a promise to signal success or failure. If no abort method is passed, by default the
+      <code>close</code> method will be called instead.
   </ul>
+
+  The underlying sink can also have a <code>strategy</code> property containing a <a>queuing strategy</a> object with
+  two methods <code>shouldApplyBackpressure(queueSize)</code> and <code>size(chunk)</code>. These could be instances of
+  the built-in <code>CountQueuingStrategy</code> or <code>ByteLengthQueuingStrategy</code> classes, or custom strategy
+  objects. By default, a strategy that applies backpressure whenever writing into a non-empty queue will be used.
 </div>
 
 <div class="note">
-  Due to the way writable streams asynchronously close, it is possible for both <var>close</var> and <var>abort</var>
-  to be called, in cases where the <a>producer</a> aborts the stream while it is in the <code>"closing"</code> state.
-  Notably, since a stream always spends at least one turn in the <code>"closing"</code> state, code like
-  <code>ws.close(); ws.abort(...);</code> will cause both to be called, even if the <var>close</var> function itself
-  has no asynchronous behavior. A well-designed <a>underlying source</a> should be able to deal with this.
+  Due to the way writable streams asynchronously close, it is possible for both <code>close</code> and
+  <code>abort</code> to be called, in cases where the <a>producer</a> aborts the stream while it is in the
+  <code>"closing"</code> state. Notably, since a stream always spends at least one turn in the <code>"closing"</code>
+  state, code like <code>ws.close(); ws.abort(...);</code> will cause both to be called, even if the <code>close</code>
+  method itself has no asynchronous behavior. A well-designed <a>underlying sink</a> object should be able to deal with
+  this.
 </div>
 
 <ol>
-  <li> If <var>start</var> is <b>undefined</b>, set <var>start</var> to a no-op function.
-  <li> If IsCallable(<var>start</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>write</var> is <b>undefined</b>, set <var>write</var> to a no-op function.
-  <li> If IsCallable(<var>write</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>close</var> is <b>undefined</b>, set <var>close</var> to a no-op function.
-  <li> If IsCallable(<var>close</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>abort</var> is <b>undefined</b>, set <var>abort</var> to <var>close</var>.
-  <li> If IsCallable(<var>abort</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>strategy</var> is <b>undefined</b>, set <var>strategy</var> to %DefaultWritableStreamStrategy%.
-  <li> Set <b>this</b>@\[[onWrite]] to <var>write</var>.
-  <li> Set <b>this</b>@\[[onClose]] to <var>onClose</var>.
-  <li> Set <b>this</b>@\[[onAbort]] to <var>abort</var>.
-  <li> Set <b>this</b>@\[[strategy]] to <var>strategy</var>.
+  <li> Set <b>this</b>@\[[underlyingSink]] to <var>underlyingSink</var>.
   <li> Set <b>this</b>@\[[closedPromise]] to a new promise.
   <li> Set <b>this</b>@\[[readyPromise]] to a new promise resolved with <b>undefined</b>.
   <li> Set <b>this</b>@\[[queue]] to a new empty List.
@@ -1346,7 +1322,8 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> Set <b>this</b>@\[[started]] and <b>this</b>@\[[writing]] to <b>false</b>.
   <li> Set <b>this</b>@\[[error]] to CreateWritableStreamErrorFunction(<b>this</b>).
   <li> Call-with-rethrow SyncWritableStreamStateWithQueue(<b>this</b>).
-  <li> Let <var>startResult</var> be the result calling <var>start</var>(<b>this</b>@\[[error]]).
+  <li> Let <var>startResult</var> be InvokeOrNoop(<var>underlyingSink</var>, <code>"start"</code>,
+    (<b>this</b>@\[[error]])).
   <li> ReturnIfAbrupt(<var>startResult</var>).
   <li> Set <b>this</b>@\[[startedPromise]] to the result of resolving <var>startResult</var> as a promise.
     <ol>
@@ -1430,7 +1407,8 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with
     <b>this</b>@\[[storedError]].
   <li> Call-with-rethrow <b>this</b>@\[[error]](reason).
-  <li> Let <var>sinkAbortPromise</var> be the result of promise-calling <b>this</b>\[[onAbort]](<var>reason</var>).
+  <li> Let <var>sinkAbortPromise</var> be PromiseInvokeOrFallbackOrNoop(<b>this</b>\[[underlyingSink]],
+    <code>"abort"</code>, (<var>reason</var>), <code>"close"</code>, ()).
   <li> Return the result of transforming <var>sinkAbortPromise</var> by a fulfillment handler that returns <b>undefined</b>.
 </ol>
 
@@ -1473,15 +1451,24 @@ Instances of <code>WritableStream</code> are created with the internal slots des
     <b>TypeError</b>.
   <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a promise rejected with
     <b>this</b>@\[[storedError]].
-  <li> Assert: <b>this</b>\[[state]] is either <code>"waiting"</code> or <code>"writable"</code>.
-  <li> Let <var>chunkSize</var> be Invoke(<b>this</b>@\[[strategy]], <code>"size"</code>, (<var>chunk</var>)).
-  <li> If <var>chunkSize</var> is an abrupt completion,
+  <li> Assert: <b>this</b>@\[[state]] is either <code>"waiting"</code> or <code>"writable"</code>.
+  <li> Let <var>chunkSize</var> be <b>1</b>.
+  <li> Let <var>strategy</var> be Get(<b>this</b>@\[[underlyingSink]], <code>"strategy"</code>).
+  <li> If <var>strategy</var> is an abrupt completion,
     <ol>
-      <li> Call-with-rethrow <b>this</b>@\[[error]](<var>chunkSize</var>.\[[value]]).
-      <li> Return a new promise rejected with <var>chunkSize</var>.\[[value]].
+      <li> Call-with-rethrow <b>this</b>@\[[error]](<var>strategy</var>.\[[value]]).
+      <li> Return a new promise rejected with <var>strategy</var>.\[[value]].
     </ol>
-  </li>
-  <li> Set <var>chunkSize</var> to <var>chunkSize</var>.\[[value]].
+  <li> Set <var>strategy</var> to <var>strategy</var>.\[[value]].
+  <li> If <var>strategy</var> is not <b>undefined</b>, then
+    <li> Set <var>chunkSize</var> to Invoke(<var>strategy</var>, <code>"size"</code>, (<var>chunk</var>)).
+    <li> If <var>chunkSize</var> is an abrupt completion,
+      <ol>
+        <li> Call-with-rethrow <b>this</b>@\[[error]](<var>chunkSize</var>.\[[value]]).
+        <li> Return a new promise rejected with <var>chunkSize</var>.\[[value]].
+      </ol>
+    </li>
+    <li> Set <var>chunkSize</var> to <var>chunkSize</var>.\[[value]].
   <li> Let <var>promise</var> be a new promise.
   <li> Let <var>writeRecord</var> be Record{\[[promise]]: <var>promise</var>, \[[chunk]]: <var>chunk</var>}.
   <li> Let <var>enqueueResult</var> be EnqueueValueWithSize(<b>this</b>@\[[queue]], <var>writeRecord</var>, <var>chunkSize</var>).
@@ -1520,7 +1507,8 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 
 <ol>
   <li> Assert: <var>stream</var>@\[[state]] is <code>"closing"</code>.
-  <li> Let <var>sinkClosePromise</var> be the result of promise-calling <var>stream</var>@\[[onClose]]().
+  <li> Let <var>sinkClosePromise</var> be PromiseInvokeOrNoop(<var>stream</var>@\[[underlyingSink]],
+    <code>"close"</code>).
     <ol>
       <li> Upon fulfillment,
         <ol>
@@ -1565,9 +1553,15 @@ a variable <var>stream</var>, that performs the following steps:
   <li> Assert: <var>stream</var>@\[[state]] is either <code>"writable"</code> or <code>"waiting"</code>.
   <li> Let <var>queueSize</var> be GetTotalQueueSize(<var>stream</var>@\[[queue]]).
   <li> ReturnIfAbrupt(<var>queueSize</var>).
-  <li> Let <var>shouldApplyBackpressure</var> be ToBoolean(Invoke(<var>stream</var>@\[[strategy]],
-    <code>"shouldApplyBackpressure"</code>, (<var>queueSize</var>))).
-  <li> ReturnIfAbrupt(<var>shouldApplyBackpressure</var>).
+  <li> Let <var>shouldApplyBackpressure</var> be <b>true</b> if <var>queueSize</var> > 0, and <b>false</b> otherwise.
+  <li> Let <var>strategy</var> be Get(<var>stream</var>@\[[underlyingSink]], <code>"strategy"</code>).
+  <li> ReturnIfAbrupt(<var>strategy</var>).
+  <li> If <var>strategy</var> is not <b>undefined</b>, then
+    <ol>
+      <li> Set <var>shouldApplyBackpressure</var> to ToBoolean(Invoke(<var>strategy</var>,
+        <code>"shouldApplyBackpressure"</code>, (<var>queueSize</var>))).
+      <li> ReturnIfAbrupt(<var>shouldApplyBackpressure</var>).
+    </ol>
   <li> If <var>shouldApplyBackpressure</var> is <b>true</b> and <var>stream</var>@\[[state]] is
     <code>"writable"</code>, then
     <ol>
@@ -1597,43 +1591,21 @@ a variable <var>stream</var>, that performs the following steps:
       <li> Return CloseWritableStream(<var>stream</var>).
     </ol>
   <li> Set <var>stream</var>@\[[writing]] to <b>true</b>.
-  <li> Promise-call <var>stream</var>@\[[onWrite]](<var>writeRecord</var>.\[[chunk]]).
+  <li> Let <var>writeResult</var> be PromiseInvokeOrNoop(<var>stream</var>@\[[underlyingSink]], <code>"write"</code>,
+    (<var>writeRecord</var>.\[[chunk]])).
+  <li> Upon fulfillment of <var>writeResult</var>,
     <ol>
-      <li> Upon fulfillment,
-        <ol>
-          <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, return.
-          <li> Set <var>stream</var>@\[[writing]] to <b>false</b>.
-          <li> Resolve <var>writeRecord</var>.\[[promise]] with <b>undefined</b>.
-          <li> DequeueValue(<var>stream</var>@\[[queue]]).
-          <li> Let <var>syncResult</var> be SyncWritableStreamStateWithQueue(<var>stream</var>).
-          <li> If <var>syncResult</var> is an abrupt completion, then call-with-rethrow
-            <var>stream</var>@\[[error]](<var>syncResult</var>.\[[value]]).
-          <li> Otherwise, return WritableStreamAdvanceQueue(<var>stream</var>).
-        </ol>
-      <li> Upon rejection with reason <var>r</var>, call-with-rethrow <var>stream</var>@\[[error]](<var>r</var>).
+      <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, return.
+      <li> Set <var>stream</var>@\[[writing]] to <b>false</b>.
+      <li> Resolve <var>writeRecord</var>.\[[promise]] with <b>undefined</b>.
+      <li> DequeueValue(<var>stream</var>@\[[queue]]).
+      <li> Let <var>syncResult</var> be SyncWritableStreamStateWithQueue(<var>stream</var>).
+      <li> If <var>syncResult</var> is an abrupt completion, then call-with-rethrow
+        <var>stream</var>@\[[error]](<var>syncResult</var>.\[[value]]).
+      <li> Otherwise, return WritableStreamAdvanceQueue(<var>stream</var>).
     </ol>
-</ol>
-
-<h3 id="default-ws-strategy">%DefaultWritableStreamStrategy%</h3>
-
-%DefaultWritableStreamStrategy% is a well-known intrinsic object representing the default <a>queuing strategy</a> for
-<a>writable streams</a>. It has two methods.
-
-<div class="note">
-  As with %DefaultReadableStreamStrategy%, this object is simply a spec device, and its existence is not observable.
-</div>
-
-<h4 id="default-ws-strategy-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h4>
-
-<ol>
-  <li> Assert: <var>queueSize</var> is a non-<b>NaN</b> number.</li>
-  <li> Return <var>queueSize</var> > 0.
-</ol>
-
-<h4 id="default-ws-strategy-size">size()</h4>
-
-<ol>
-  <li> Return 1.
+  <li> Upon rejection of <var>writeResult</var> with reason <var>r</var>, call-with-rethrow
+    <var>stream</var>@\[[error]](<var>r</var>).
 </ol>
 
 <h2 id="ts">Transform Streams</h2>

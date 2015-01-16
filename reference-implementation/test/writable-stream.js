@@ -874,3 +874,41 @@ test('WritableStream queue lots of data and have all of them processed at once',
     );
   }, 0);
 });
+
+test('WritableStream should call underlying sink methods as methods', t => {
+  t.plan(7);
+
+  class Sink {
+    start() {
+      t.equal(this, theSink, 'start() should be called with the correct this');
+    }
+
+    write() {
+      t.equal(this, theSink, 'pull() should be called with the correct this');
+    }
+
+    close() {
+      t.equal(this, theSink, 'close() should be called with the correct this');
+    }
+
+    abort() {
+      t.equal(this, theSink, 'abort() should be called with the correct this');
+    }
+
+    get strategy() {
+      // Called three times
+      t.equal(this, theSink, 'strategy getter should be called with the correct this');
+      return undefined;
+    }
+  }
+
+  var theSink = new Sink();
+  theSink.debugName = "the sink object passed to the constructor";
+  var ws = new WritableStream(theSink);
+
+  ws.write('a');
+  ws.close();
+
+  var ws2 = new WritableStream(theSink);
+  ws.abort();
+});

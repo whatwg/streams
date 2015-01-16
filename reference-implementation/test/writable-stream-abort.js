@@ -226,3 +226,15 @@ test('Aborting a WritableStream after it is closed is a no-op', t => {
     t.equal(ws.state, 'closed', 'state stays closed');
   }, 0);
 });
+
+test('WritableStream should call underlying sink\'s close if no abort is supplied', t => {
+  t.plan(1);
+
+  var ws = new WritableStream({
+    close() {
+      t.equal(arguments.length, 0, 'close() was called (with no arguments)');
+    }
+  });
+
+  ws.abort();
+});

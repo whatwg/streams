@@ -4,30 +4,8 @@ import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue }
 import CountQueuingStrategy from './count-queuing-strategy';
 
 export default class WritableStream {
-  constructor({
-    start = () => {},
-    write = () => {},
-    close = () => {},
-    abort = () => {},
-    strategy = defaultWritableStreamStrategy
-  } = {}) {
-    if (typeof start !== 'function') {
-      throw new TypeError('start must be a function or undefined');
-    }
-    if (typeof write !== 'function') {
-      throw new TypeError('write must be a function or undefined');
-    }
-    if (typeof close !== 'function') {
-      throw new TypeError('close must be a function or undefined');
-    }
-    if (typeof abort !== 'function') {
-      throw new TypeError('abort must be a function or undefined');
-    }
-
-    this._onWrite = write;
-    this._onClose = close;
-    this._onAbort = abort;
-    this._strategy = strategy;
+  constructor(underlyingSink = {}) {
+    this._underlyingSink = underlyingSink;
 
     this._closedPromise = new Promise((resolve, reject) => {
       this._closedPromise_resolve = resolve;
@@ -46,7 +24,7 @@ export default class WritableStream {
 
     SyncWritableStreamStateWithQueue(this);
 
-    var startResult = start(this._error);
+    var startResult = helpers.InvokeOrNoop(underlyingSink, 'start', [this._error]);
     this._startedPromise = Promise.resolve(startResult);
     this._startedPromise.then(() => {
       this._started = true;
@@ -72,7 +50,7 @@ export default class WritableStream {
     }
 
     this._error(reason);
-    var sinkAbortPromise = helpers.promiseCall(this._onAbort, reason);
+    var sinkAbortPromise = helpers.PromiseInvokeOrFallbackOrNoop(this._underlyingSink, 'abort', [reason], 'close', []);
     return sinkAbortPromise.then(() => undefined);
   }
 
@@ -114,12 +92,23 @@ export default class WritableStream {
 
     assert(this._state === 'waiting' || this._state === 'writable');
 
-    var chunkSize;
+    var chunkSize = 1;
+
+    var strategy;
     try {
-      chunkSize = this._strategy.size(chunk);
-    } catch (chunkSizeE) {
-      this._error(chunkSizeE);
-      return Promise.reject(chunkSizeE);
+      strategy = this._underlyingSink.strategy;
+    } catch (strategyE) {
+      this._error(strategyE);
+      return Promise.reject(strategyE);
+    }
+
+    if (strategy !== undefined) {
+      try {
+        chunkSize = strategy.size(chunk);
+      } catch (chunkSizeE) {
+        this._error(chunkSizeE);
+        return Promise.reject(chunkSizeE);
+      }
     }
 
     var resolver, rejecter;
@@ -164,7 +153,7 @@ function CallOrScheduleWritableStreamAdvanceQueue(stream) {
 function CloseWritableStream(stream) {
   assert(stream._state === 'closing', 'stream must be in closing state while calling CloseWritableStream');
 
-  var sinkClosePromise = helpers.promiseCall(stream._onClose);
+  var sinkClosePromise = helpers.PromiseInvokeOrNoop(stream._underlyingSink, 'close');
   sinkClosePromise.then(
     () => {
       if (stream._state === 'errored') {
@@ -214,7 +203,12 @@ function SyncWritableStreamStateWithQueue(stream) {
     'stream must be in a writable or waiting state while calling SyncWritableStreamStateWithQueue');
 
   var queueSize = GetTotalQueueSize(stream._queue);
-  var shouldApplyBackpressure = Boolean(stream._strategy.shouldApplyBackpressure(queueSize));
+  var shouldApplyBackpressure = queueSize > 0;
+
+  var strategy = stream._underlyingSink.strategy;
+  if (strategy !== undefined) {
+    shouldApplyBackpressure = Boolean(strategy.shouldApplyBackpressure(queueSize));
+  }
 
   if (shouldApplyBackpressure === true && stream._state === 'writable') {
     stream._state = 'waiting';
@@ -246,7 +240,7 @@ function WritableStreamAdvanceQueue(stream) {
   } else {
     stream._writing = true;
 
-    helpers.promiseCall(stream._onWrite, writeRecord.chunk).then(
+    helpers.PromiseInvokeOrNoop(stream._underlyingSink, 'write', [writeRecord.chunk]).then(
       () => {
         if (stream._state === 'errored') {
           return;
@@ -272,13 +266,3 @@ function WritableStreamAdvanceQueue(stream) {
     .catch(e => process.nextTick(() => { throw e; })); // to catch assertion failures
   }
 }
-
-var defaultWritableStreamStrategy = {
-  shouldApplyBackpressure(queueSize) {
-    assert(typeof queueSize === 'number' && !Number.isNaN(queueSize));
-    return queueSize > 0;
-  },
-  size() {
-    return 1;
-  }
-};
