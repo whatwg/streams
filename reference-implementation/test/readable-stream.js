@@ -594,3 +594,34 @@ test('ReadableStream cancel() and closed on an errored stream should return the 
   t.equal(rs.cancel(), rs.closed, 'the promises returned should be the same');
   t.end();
 });
+
+test('ReadableStream should call underlying source methods as methods', t => {
+  t.plan(6);
+
+  class Source {
+    start(enqueue) {
+      t.equal(this, theSource, 'start() should be called with the correct this');
+      enqueue('a');
+    }
+
+    pull() {
+      t.equal(this, theSource, 'pull() should be called with the correct this');
+    }
+
+    cancel() {
+      t.equal(this, theSource, 'cancel() should be called with the correct this');
+    }
+
+    get strategy() {
+      // Called three times
+      t.equal(this, theSource, 'strategy getter should be called with the correct this');
+      return undefined;
+    }
+  }
+
+  var theSource = new Source();
+  theSource.debugName = "the source object passed to the constructor";
+  var rs = new ReadableStream(theSource);
+
+  rs.ready.then(() => rs.cancel());
+});

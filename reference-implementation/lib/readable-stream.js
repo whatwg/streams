@@ -5,25 +5,8 @@ import { AcquireExclusiveStreamReader, CallReadableStreamPull, CloseReadableStre
   ShouldReadableStreamApplyBackpressure } from './readable-stream-abstract-ops';
 
 export default class ReadableStream {
-  constructor({
-    start = () => {},
-    pull = () => {},
-    cancel = () => {},
-    strategy = defaultReadableStreamStrategy
-  } = {}) {
-    if (typeof start !== 'function') {
-      throw new TypeError('start must be a function or undefined');
-    }
-    if (typeof pull !== 'function') {
-      throw new TypeError('pull must be a function or undefined');
-    }
-    if (typeof cancel !== 'function') {
-      throw new TypeError('cancel must be a function or undefined');
-    }
-
-    this._onPull = pull;
-    this._onCancel = cancel;
-    this._strategy = strategy;
+  constructor(underlyingSource = {}) {
+    this._underlyingSource = underlyingSource;
     this._initReadyPromise();
     this._initClosedPromise();
     this._queue = [];
@@ -37,7 +20,7 @@ export default class ReadableStream {
     this._close = CreateReadableStreamCloseFunction(this);
     this._error = CreateReadableStreamErrorFunction(this);
 
-    var startResult = start(this._enqueue, this._close, this._error);
+    var startResult = helpers.InvokeOrNoop(underlyingSource, 'start', [this._enqueue, this._close, this._error]);
     Promise.resolve(startResult).then(
       () => {
         this._started = true;
@@ -75,7 +58,7 @@ export default class ReadableStream {
     this._queue = [];
     CloseReadableStream(this);
 
-    var sourceCancelPromise = helpers.promiseCall(this._onCancel, reason);
+    var sourceCancelPromise = helpers.PromiseInvokeOrNoop(this._underlyingSource, 'cancel', [reason]);
     return sourceCancelPromise.then(() => undefined);
   }
 
@@ -231,13 +214,3 @@ export default class ReadableStream {
     this._closedPromise_reject = null;
   }
 }
-
-var defaultReadableStreamStrategy = {
-  shouldApplyBackpressure(queueSize) {
-    assert(typeof queueSize === 'number' && !Number.isNaN(queueSize));
-    return queueSize > 1;
-  },
-  size() {
-    return 1;
-  }
-};

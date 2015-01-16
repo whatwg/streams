@@ -1,6 +1,7 @@
 var assert = require('assert');
 import ExclusiveStreamReader from './exclusive-stream-reader';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
+import { InvokeOrNoop } from './helpers';
 
 export function AcquireExclusiveStreamReader(stream) {
   if (stream._state === 'closed') {
@@ -27,11 +28,7 @@ export function CallReadableStreamPull(stream) {
   stream._pulling = true;
 
   try {
-    stream._onPull(
-      stream._enqueue,
-      stream._close,
-      stream._error
-    );
+    InvokeOrNoop(stream._underlyingSource, 'pull', [stream._enqueue, stream._close, stream._error]);
   } catch (pullResultE) {
     stream._error(pullResultE);
     throw pullResultE;
@@ -77,12 +74,23 @@ export function CreateReadableStreamEnqueueFunction(stream) {
       throw new TypeError('stream is draining');
     }
 
-    var chunkSize;
+    var chunkSize = 1;
+
+    var strategy;
     try {
-      chunkSize = stream._strategy.size(chunk);
-    } catch (chunkSizeE) {
-      stream._error(chunkSizeE);
-      throw chunkSizeE;
+      strategy = stream._underlyingSource.strategy;
+    } catch (strategyE) {
+      stream._error(strategyE);
+      throw strategyE;
+    }
+
+    if (strategy !== undefined) {
+      try {
+        chunkSize = strategy.size(chunk);
+      } catch (chunkSizeE) {
+        stream._error(chunkSizeE);
+        throw chunkSizeE;
+      }
     }
 
     EnqueueValueWithSize(stream._queue, chunk, chunkSize);
@@ -153,12 +161,23 @@ export function ReadFromReadableStream(stream) {
 
 export function ShouldReadableStreamApplyBackpressure(stream) {
   var queueSize = GetTotalQueueSize(stream._queue);
-  var shouldApplyBackpressure;
+  var shouldApplyBackpressure = queueSize > 1;
+
+  var strategy;
   try {
-    shouldApplyBackpressure = Boolean(stream._strategy.shouldApplyBackpressure(queueSize));
-  } catch (shouldApplyBackpressureE) {
-    stream._error(shouldApplyBackpressureE);
-    throw shouldApplyBackpressureE;
+    strategy = stream._underlyingSource.strategy;
+  } catch (strategyE) {
+    stream._error(strategyE);
+    throw strategyE;
+  }
+
+  if (strategy !== undefined) {
+    try {
+      shouldApplyBackpressure = Boolean(strategy.shouldApplyBackpressure(queueSize));
+    } catch (shouldApplyBackpressureE) {
+      stream._error(shouldApplyBackpressureE);
+      throw shouldApplyBackpressureE;
+    }
   }
 
   return shouldApplyBackpressure;

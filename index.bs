@@ -150,6 +150,8 @@ based the total size of all chunks in the stream's internal queue.
   backpressure signal.
 </div>
 
+A queuing strategy is generally associated with a specific type of <a>underlying source</a> or <a>underlying sink</a>.
+
 <h3 id="locking">Locking</h3>
 
 <!-- TODO: writable streams too, probably -->
@@ -384,12 +386,7 @@ would look like
 
 <pre><code class="lang-javascript">
   class ReadableStream {
-    constructor({
-      start = (enqueue, close, error) => {},
-      pull = (enqueue, close, error) => {},
-      cancel = (reason) => {},
-      strategy = %DefaultReadableStreamStrategy%
-    } = {})
+    constructor(underlyingSource = {})
 
     get closed()
     get ready()
@@ -439,14 +436,6 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
       <code>"errored"</code> state
   </tr>
   <tr>
-    <td>\[[onCancel]]
-    <td>A function passed to the constructor, meant to clean up and release access to the <a>underlying source</a>
-  </tr>
-  <tr>
-    <td>\[[onPull]]
-    <td>A function passed to the constructor, meant to pull more data from the <a>underlying source</a>
-  </tr>
-  <tr>
     <td>\[[pulling]]
     <td>A boolean flag indicating whether data is currently being pulled from the underlying sink
   </tr>
@@ -472,48 +461,46 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
       on the stream while in the <code>"errored"</code> state
   </tr>
   <tr>
-    <td>\[[strategy]]
-    <td>An object containing the stream's <a>queuing strategy</a>
-  </tr>
-  <tr>
     <td>\[[readyPromise]]
     <td>A promise returned by the <code>ready</code> getter
   </tr>
+  <tr>
+    <td>\[[underlyingSource]]
+    <td>An object representation of the stream's <a>underlying source</a>, including its <a>queuing strategy</a>
+  </tr>
 </table>
 
-<h4 id="rs-constructor">new ReadableStream({ start, pull, cancel, strategy } = {})</h4>
+<h4 id="rs-constructor">new ReadableStream(underlyingSource = {})</h4>
 
 <div class="note">
-  The constructor is passed several functions, all optional, which govern how the constructed stream instance behaves:
+  The <var>underlyingSource</var> object passed to the constructor can implement any of the following methods to
+  govern how the constructed stream instance behaves:
 
   <ul>
-    <li> <var>start</var>(<var>enqueue</var>, <var>close</var>, <var>error</var>) is called immediately, and is
-      typically used to adapt a <a>push source</a> by setting up relevant event listeners, or to acquire access to a
-      <a>pull source</a>. If this process is asynchronous, it can return a promise to signal success or failure.
-    <li> <var>pull</var>(<var>enqueue</var>, <var>close</var>, <var>error</var>) is called when the stream's internal
-      queue of chunks is depleted, and the consumer has signaled that they wish to consume more data. Once it is
-      called, it will not be called again until the passed <var>enqueue</var> callback is called.
-    <li> <var>cancel</var>(<var>reason</var>) is called when the consumer signals that they are no longer interested
-      in the stream. It should perform any actions necessary to release access to the <a>underlying source</a>. If this
+    <li> <code>start(enqueue, close, error)</code> is called immediately, and is typically used to adapt a <a>push
+      source</a> by setting up relevant event listeners, or to acquire access to a <a>pull source</a>. If this process
+      is asynchronous, it can return a promise to signal success or failure.
+    <li> <code>pull(enqueue, close, error)</code> is called when the stream's internal queue of chunks is depleted, and
+      the consumer has signaled that they wish to consume more data. Once it is called, it will not be called again
+      until the passed <code>enqueue</code> callback is called.
+    <li> <code>cancel(reason)</code> is called when the consumer signals that they are no longer interested in the
+      stream. It should perform any actions necessary to release access to the <a>underlying source</a>. If this
       process is asynchronous, it can return a promise to signal success or failure.
   </ul>
 
-  Both <var>start</var> and <var>pull</var> are given the ability to manipulate the stream's internal queue and state
-  via the passed <var>enqueue</var>, <var>close</var>, and <var>error</var> callbacks. This is an example of the
-  <a href="http://domenic.me/2014/02/13/the-revealing-constructor-pattern/">revealing constructor pattern</a>.
+  Both <code>start</code> and <code>pull</code> are given the ability to manipulate the stream's internal queue and
+  state via the passed <code>enqueue</code>, <code>close</code>, and <code>error</code> callbacks. This is an example
+  of the <a href="https://blog.domenic.me/the-revealing-constructor-pattern/">revealing constructor pattern</a>.
+
+  The underlying source can also have a <code>strategy</code> property containing a <a>queuing strategy</a> object with
+  two methods <code>shouldApplyBackpressure(queueSize)</code> and <code>size(chunk)</code>. These could be instances of
+  the built-in <code>CountQueuingStrategy</code> or <code>ByteLengthQueuingStrategy</code> classes, or custom strategy
+  objects. If no strategy is supplied, the default behavior will be to apply backpressure (via the return value of
+  <code>enqueue</code>) when enqueuing into a non-empty queue.
 </div>
 
 <ol>
-  <li> If <var>start</var> is <b>undefined</b>, set <var>start</var> to a no-op function.
-  <li> If IsCallable(<var>start</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>pull</var> is <b>undefined</b>, set <var>pull</var> to a no-op function.
-  <li> If IsCallable(<var>pull</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>cancel</var> is <b>undefined</b>, set <var>cancel</var> to a no-op function.
-  <li> If IsCallable(<var>cancel</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>strategy</var> is <b>undefined</b>, set <var>strategy</var> to %DefaultReadableStreamStrategy%.
-  <li> Set <b>this</b>@\[[onPull]] to <var>pull</var>.
-  <li> Set <b>this</b>@\[[onCancel]] to <var>cancel</var>.
-  <li> Set <b>this</b>@\[[strategy]] to <var>strategy</var>.
+  <li> Set <b>this</b>@\[[underlyingSource]] to <var>underlyingSource</var>.
   <li> Set <b>this</b>@\[[readyPromise]] and <b>this</b>@\[[closedPromise]] to new promises.
   <li> Set <b>this</b>@\[[queue]] to a new empty List.
   <li> Set <b>this</b>@\[[state]] to <code>"waiting"</code>.
@@ -522,8 +509,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Set <b>this</b>@\[[enqueue]] to CreateReadableStreamEnqueueFunction(<b>this</b>).
   <li> Set <b>this</b>@\[[close]] to CreateReadableStreamCloseFunction(<b>this</b>).
   <li> Set <b>this</b>@\[[error]] to CreateReadableStreamErrorFunction(<b>this</b>).
-  <li> Let <var>startResult</var> be the result of calling <var>start</var>(<b>this</b>@\[[enqueue]],
-    <b>this</b>@\[[close]], <b>this</b>@\[[error]]).
+  <li> Let <var>startResult</var> be InvokeOrNoop(<var>underlyingSource</var>, <code>"start"</code>,
+    (<b>this</b>@\[[enqueue]], <b>this</b>@\[[close]], <b>this</b>@\[[error]])).
   <li> ReturnIfAbrupt(<var>startResult</var>).
   <li> Resolve <var>startResult</var> as a promise:
     <ol>
@@ -610,7 +597,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, resolve <b>this</b>@\[[readyPromise]] with <b>undefined</b>.
   <li> Let <b>this</b>@\[[queue]] be a new empty List.
   <li> Call-with-rethrow CloseReadableStream(<b>this</b>).
-  <li> Let <var>sourceCancelPromise</var> be the result of promise-calling <b>this</b>@\[[onCancel]](<var>reason</var>).
+  <li> Let <var>sourceCancelPromise</var> be PromiseInvokeOrNoop(<b>this</b>@\[[underlyingSource]],
+    <code>"cancel"</code>, (<var>reason</var>)).
   <li> Return the result of transforming <var>sourceCancelPromise</var> by a fulfillment handler that returns <b>undefined</b>.
 </ol>
 
@@ -899,8 +887,8 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
   <li> Let <var>shouldApplyBackpressure</var> be ShouldReadableStreamApplyBackpressure(<var>stream</var>).
   <li> If <var>shouldApplyBackpressure</var> is <b>true</b>, return <b>undefined</b>.
   <li> Set <var>stream</var>@\[[pulling]] to <b>true</b>.
-  <li> Let <var>pullResult</var> be the result of calling <var>stream</var>@\[[onPull]](<var>stream</var>@\[[enqueue]],
-    <var>stream</var>@\[[close]], <var>stream</var>@\[[error]]).
+  <li> Let <var>pullResult</var> be InvokeOrNoop(<var>stream</var>@\[[underlyingSource]], <code>"pull"</code>,
+    (<var>stream</var>@\[[enqueue]], <var>stream</var>@\[[close]], <var>stream</var>@\[[error]]).
   <li> If <var>pullResult</var> is an abrupt completion,
     <ol>
       <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>pullResult</var>.\[[value]]).
@@ -912,8 +900,8 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 <h4 id="close-readable-stream">CloseReadableStream ( stream )</h4>
 
 <ol>
-  <li> Set <var>stream</stream>@\[[state]] to <code>"closed"</code>.
-  <li> Resolve <var>stream</stream>@\[[closedPromise]] with <b>undefined</b>.
+  <li> Set <var>stream</var>@\[[state]] to <code>"closed"</code>.
+  <li> Resolve <var>stream</var>@\[[closedPromise]] with <b>undefined</b>.
   <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>, call-with-rethrow Invoke(<var>stream</var>@\[[readableStreamReader]], <code>"releaseLock"</code>).
   <li> Return <b>undefined</b>.
 </ol>
@@ -952,11 +940,23 @@ closing over a variable <var>stream</var>, that performs the following steps:
   <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, throw <var>stream</var>@\[[storedError]].
   <li> If <var>stream</var>@\[[state]] is <code>"closed"</code>, throw a <b>TypeError</b> exception.
   <li> If <var>stream</var>@\[[draining]] is <b>true</b>, throw a <b>TypeError</b> exception.
-  <li> Let <var>chunkSize</var> be Invoke(<var>stream</var>@\[[strategy]], <code>"size"</code>, (<var>chunk</var>)).
-  <li> If <var>chunkSize</var> is an abrupt completion,
+  <li> Let <var>chunkSize</var> be <b>1</b>.
+  <li> Let <var>strategy</var> be Get(<var>stream</var>@\[[underlyingSource]], <code>"strategy"</code>).
+  <li> If <var>strategy</var> is an abrupt completion,
     <ol>
-      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>chunkSize</var>.\[[value]]).
-      <li> Return <var>chunkSize</var>.
+      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>strategy</var>.\[[value]]).
+      <li> Return <var>strategy</var>.
+    </ol>
+  <li> Let <var>strategy</var> be <var>strategy</var>.\[[value]].
+  <li> If <var>strategy</var> is not <b>undefined</b>, then
+    <ol>
+      <li> Set <var>chunkSize</var> to Invoke(<var>strategy</var>, <code>"size"</code>, (<var>chunk</var>)).
+      <li> If <var>chunkSize</var> is an abrupt completion,
+        <ol>
+          <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>chunkSize</var>.\[[value]]).
+          <li> Return <var>chunkSize</var>.
+        </ol>
+      <li> Let <var>chunkSize</var> be <var>chunkSize</var>.\[[value]].
     </ol>
   <li>Call-with-rethrow EnqueueValueWithSize(<var>stream</var>@\[[queue]], <var>chunk</var>,
     <var>chunkSize</var>.\[[value]]).
@@ -1018,38 +1018,23 @@ a variable <var>stream</var>, that performs the following steps:
 <ol>
   <li> Let <var>queueSize</var> be GetTotalQueueSize(<var>stream</var>@\[[queue]]).
   <li> ReturnIfAbrupt(<var>queueSize</var>).
-  <li> Let <var>shouldApplyBackpressure</var> be ToBoolean(Invoke(<var>stream</var>@\[[strategy]],
-    <code>"shouldApplyBackpressure"</code>, (<var>queueSize</var>))).
-  <li> If <var>shouldApplyBackpressure</var> is an abrupt completion,
+  <li> Let <var>shouldApplyBackpressure</var> be <b>true</b> if <var>queueSize</var> > <b>1</b>, and <b>false</b>
+    otherwise.
+  <li> Let <var>strategy</var> be Get(<var>stream</var>@\[[underlyingSource]], <code>"strategy"</code>).
+  <li> If <var>strategy</var> is an abrupt completion,
     <ol>
-      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>shouldApplyBackpressure</var>.\[[value]]).
-      <li> Return <var>shouldApplyBackpressure</var>.
+      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>strategy</var>.\[[value]]).
+      <li> Return <var>strategy</var>.
     </ol>
-  <li> Otherwise, return <var>shouldApplyBackpressure</var>.\[[value]].
-</ol>
-
-<h3 id="default-rs-strategy">%DefaultReadableStreamStrategy%</h3>
-
-%DefaultReadableStreamStrategy% is a well-known intrinsic object representing the default <a>queuing strategy</a> for
-<a>readable streams</a>. It has two methods.
-
-<div class="note">
-  The existence of an independent object for the default readable stream queuing strategy is not actually observable.
-  Thus, implementations could implement this default strategy by other means, e.g. by incorporating the default logic
-  into the readable stream algorithms themselves.
-</div>
-
-<h4 id="default-rs-strategy-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h4>
-
-<ol>
-  <li> Assert: <var>queueSize</var> is a non-<b>NaN</b> number.</li>
-  <li> Return <var>queueSize</var> > 1.
-</ol>
-
-<h4 id="default-rs-strategy-size">size()</h4>
-
-<ol>
-  <li> Return 1.
+  <li> Let <var>strategy</var> be <var>strategy</var>.\[[value]].
+  <li> If <var>strategy</var> is not <b>undefined</b>, then
+    <ol>
+      <li> Set <var>shouldApplyBackpressure</var> to ToBoolean(Invoke(<var>strategy</var>,
+        <code>"shouldApplyBackpressure"</code>, (<var>queueSize</var>))).
+      <li> If <var>shouldApplyBackpressure</var> is an abrupt completion, call-with-rethrow
+        <var>stream</var>@\[[error]](<var>shouldApplyBackpressure</var>.\[[value]]).
+    </ol>
+  <li> Return <var>shouldApplyBackpressure</var>.
 </ol>
 
 <h2 id="ws">Writable Streams</h2>
@@ -1861,6 +1846,46 @@ throughout the rest of this standard.
   <li> Assert: <var>queue</var> is not empty.
   <li> Let <var>pair</var> be the first element of <var>queue</var>.
   <li> Return <var>pair</var>.\[[value]].
+</ol>
+
+<h3 id="misc-abstract-ops">Miscellaneous Operations</h3>
+
+A few abstract operations are used in this specification for utility purposes. We define them here.
+
+<h4 id="invoke-or-noop">InvokeOrNoop ( O, P, args )</h4>
+
+<div class="note">
+  InvokeOrNoop is a slight modification of the [[!ECMASCRIPT]]
+  <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-invoke">Invoke</a> abstract operation to return
+  <b>undefined</b> when the method is not present.
+</div>
+
+<ol>
+  <li> Assert: <var>P</var> is a valid property key.
+  <li> Let <var>method</var> be GetV(<var>O</var>, <var>P</var>).
+  <li> ReturnIfAbrupt(<var>method</var>).
+  <li> If <var>method</var> is <b>undefined</b>, return <b>undefined</b>.
+  <li> Return Call(<var>method</var>, <var>O</var>, <var>args</var>).
+</ol>
+
+<h4 id="promise-invoke-or-noop">PromiseInvokeOrNoop ( O, P, args )</h4>
+
+<div class="note">
+  PromiseInvokeOrNoop is a specialized version of
+  <a href="http://www.w3.org/2001/tag/doc/promises-guide#promise-calling">promise-calling</a> that both works on
+  methods and returns a promise for <b>undefined</b> when the method is not present.
+</div>
+
+<ol>
+  <li> Assert: <var>P</var> is a valid property key.
+  <li> Let <var>method</var> be GetV(<var>O</var>, <var>P</var>).
+  <li> If <var>method</var> is an abrupt completion, return a new promise rejected with <var>method</var>.\[[value]].
+  <li> Let <var>method</var> be <var>method</var>.\[[value]].
+  <li> If <var>method</var> is <b>undefined</b>, return a new promise resolved with <b>undefined</b>.
+  <li> Let <var>returnValue</var> be Call(<var>method</var>, <var>O</var>, <var>args</var>).
+  <li> If <var>returnValue</var> is an abrupt completion, return a new promise rejected with
+    <var>returnValue</var>.\[[value]].
+  <li> Otherwise, return a new promise resolved with <var>returnValue</var>.\[[value]].
 </ol>
 
 <h2 id="subclassing">Subclassing Streams</h2>

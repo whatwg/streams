@@ -22,3 +22,30 @@ export function toInteger(v) {
 
   return Math.floor(Math.abs(v));
 }
+
+export function InvokeOrNoop(O, P, args) {
+  var method = O[P];
+  if (method === undefined) {
+    return undefined;
+  }
+  return method.apply(O, args);
+}
+
+export function PromiseInvokeOrNoop(O, P, args) {
+  var method;
+  try {
+    method = O[P];
+  } catch (methodE) {
+    return Promise.reject(methodE);
+  }
+
+  if (method === undefined) {
+    return Promise.resolve(undefined);
+  }
+
+  try {
+    return Promise.resolve(method.apply(O, args));
+  } catch (e) {
+    return Promise.reject(e);
+  }
+}
