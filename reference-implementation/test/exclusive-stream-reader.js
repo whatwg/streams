@@ -253,7 +253,7 @@ test('closed should be fulfilled after stream is closed (stream .closed access b
 test('reader.closed should be fulfilled after reader releases its lock (.closed access before release)', t => {
   var rs = new ReadableStream();
   var reader = rs.getReader();
-  reader.closed.then(t.end);
+  reader.closed.then(() => t.end());
   reader.releaseLock();
 });
 
@@ -261,7 +261,7 @@ test('reader.closed should be fulfilled after reader releases its lock (.closed 
   var rs = new ReadableStream();
   var reader = rs.getReader();
   reader.releaseLock();
-  reader.closed.then(t.end);
+  reader.closed.then(() => t.end());
 });
 
 test('closed should be fulfilled after reader releases its lock (multiple stream locks)', t => {
@@ -359,6 +359,62 @@ test('stream\'s ready should not fulfill while locked, even if accessed before l
 
   doEnqueue();
   setTimeout(() => t.end(), 20);
+});
+
+test('stream\'s ready accessed before locking should not fulfill if stream becomes readable while locked, becomes ' +
+    'waiting again and then is released', t => {
+  var doEnqueue;
+  var rs = new ReadableStream({
+    start(enqueue) {
+      doEnqueue = enqueue;
+    }
+  });
+  var ready = rs.ready;
+
+  var reader = rs.getReader();
+
+  ready.then(() => {
+    t.fail('stream ready should not be fulfilled');
+  });
+
+  doEnqueue();
+  t.equal(reader.state, 'readable', 'reader should be readable after enqueue');
+  reader.read();
+  t.equal(reader.state, 'waiting', 'reader should be waiting again after read');
+  reader.releaseLock();
+  t.equal(rs.state, 'waiting', 'stream should be waiting again after read');
+  setTimeout(() => t.end(), 20);
+});
+
+test('stream\'s ready accessed before locking should not fulfill if stream becomes readable while locked, becomes ' +
+    'waiting again and then is released in another microtask', t => {
+  var doEnqueue;
+  var rs = new ReadableStream({
+    start(enqueue) {
+      doEnqueue = enqueue;
+    }
+  });
+  var ready = rs.ready;
+
+  var reader = rs.getReader();
+
+  ready.then(() => {
+    t.fail('stream ready should not be fulfilled');
+  });
+
+  doEnqueue();
+  t.equal(reader.state, 'readable', 'reader should be readable after enqueue');
+  reader.read();
+  t.equal(reader.state, 'waiting', 'reader should be waiting again after read');
+
+  // Let the fulfillment callback used in the algorithm of rs.ready run. This
+  // covers the code path in rs.ready which is run when
+  // this._readableStreamReader is not undefined.
+  Promise.resolve().then(() => {
+    reader.releaseLock();
+    t.equal(rs.state, 'waiting', 'stream should be waiting again after read');
+    setTimeout(() => t.end(), 20);
+  });
 });
 
 test('stream\'s ready should not fulfill when acquiring a reader, accessing ready, releasing the reader, acquiring ' +
