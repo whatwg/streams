@@ -122,6 +122,26 @@ test('ReadableStream reading a stream makes ready and closed return a promise fu
   );
 });
 
+test('ReadableStream avoids waiting-to-waiting transitions when immediately reading', t => {
+  var doEnqueue;
+  var rs = new ReadableStream({
+    start(enqueue) {
+      doEnqueue = enqueue;
+    }
+  });
+
+  t.equal(rs.state, 'waiting', 'state is waiting to start');
+  rs.ready.then(() => t.fail('ready should not fulfill'));
+
+  doEnqueue('a');
+  t.equal(rs.state, 'readable', 'state is readable after enqueue');
+  rs.read();
+
+  t.equal(rs.state, 'waiting', 'state is waiting at the end');
+
+  setTimeout(() => t.end(), 20);
+});
+
 test('ReadableStream avoid redundant pull call', t => {
   var pullCount = 0;
   var rs = new ReadableStream({
