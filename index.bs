@@ -561,11 +561,9 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> If <b>this</b>@\[[readableStreamReader]] is not <b>undefined</b>, return the result of transforming
     <b>this</b>@\[[readableStreamReader]]@\[[lockReleased]] by a fulfillment handler that returns Get(<b>this</b>,
     <code>"ready"</code>).
-  <li> Return the result of transforming <b>this</b>@\[[readyPromise]] by the following fulfillment handler:
-    <ol>
-      <li> If <b>this</b>@\[[readableStreamReader]] is <b>undefined</b>, return <b>undefined</b>.
-      <li> Otherwise, return <b>this</b>@\[[readableStreamReader]]@\[[lockReleased]].
-    </ol>
+  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, return the result of transforming <b>this</b>@\[[readyPromise]]
+    by a fulfillment handler that returns Get(<b>this</b>, <code>"ready"</code>).
+  <li> Return <b>this</b>@\[[readyPromise]].
 </ol>
 
 <h5 id="rs-state">get state</h5>
