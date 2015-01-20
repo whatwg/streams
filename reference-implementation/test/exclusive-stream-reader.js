@@ -59,12 +59,11 @@ test('Using the reader directly on a mundane stream', t => {
 });
 
 test('Readers delegate to underlying stream implementations', t => {
-  t.plan(3 + 4);
+  t.plan(4);
 
   var rs = new ReadableStream();
   var reader = rs.getReader();
 
-  testGetter('closed'); // 3
   testMethod('cancel'); // 4
 
   // Generates 3 assertions
@@ -207,7 +206,7 @@ test('getReader() on an errored stream should rethrow the error', t => {
   t.end();
 });
 
-test('closed should be fulfilled after reader releases its lock (both .closed accesses after acquiring)', t => {
+test('closed should be fulfilled after stream is closed (both .closed accesses after acquiring)', t => {
   t.plan(2);
 
   var doClose;
@@ -229,7 +228,7 @@ test('closed should be fulfilled after reader releases its lock (both .closed ac
   });
 });
 
-test('closed should be fulfilled after reader releases its lock (stream .closed access before acquiring)', t => {
+test('closed should be fulfilled after stream is closed (stream .closed access before acquiring)', t => {
   t.plan(2);
 
   var doClose;
@@ -249,6 +248,20 @@ test('closed should be fulfilled after reader releases its lock (stream .closed 
   reader.closed.then(() => {
     t.equal(reader.isActive, false, 'reader is no longer active when reader closed is fulfilled');
   });
+});
+
+test('reader.closed should be fulfilled after reader releases its lock (.closed access before release)', t => {
+  var rs = new ReadableStream();
+  var reader = rs.getReader();
+  reader.closed.then(t.end);
+  reader.releaseLock();
+});
+
+test('reader.closed should be fulfilled after reader releases its lock (.closed access after release)', t => {
+  var rs = new ReadableStream();
+  var reader = rs.getReader();
+  reader.releaseLock();
+  reader.closed.then(t.end);
 });
 
 test('closed should be fulfilled after reader releases its lock (multiple stream locks)', t => {

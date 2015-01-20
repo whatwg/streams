@@ -45,7 +45,7 @@ export default class ExclusiveStreamReader {
       return this._closedAfterRelease;
     }
 
-    return this._stream.closed;
+    return Promise.race([this._stream._closedPromise, this._lockReleased]);
   }
 
   get isActive() {

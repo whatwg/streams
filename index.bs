@@ -769,7 +769,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 <ol>
   <li> If SameValue(<b>this</b>@\[[stream]]@\[[readableStreamReader]], <b>this</b>) is <b>false</b>, return
     <b>this</b>@\[[closedAfterRelease]].
-  <li> Return Get(<b>this</b>@\[[stream]], <code>"closed"</code>).
+  <li> Return the result of racing <b>this</b>@\[[stream]]@\[[closedPromise]] and <b>this</b>@\[[lockReleased]].
 </ol>
 
 <h5 id="reader-is-active">get isActive</h5>
