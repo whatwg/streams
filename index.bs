@@ -212,32 +212,6 @@ associated reader will automatically release its lock.
   </code></pre>
 </div>
 
-<h3 id="rs-state-diagram">The Readable Stream State Diagram</h3>
-
-<em>This section is non-normative.</em>
-
-As can be glimpsed in the above example, readable streams have a fairly complex internal state machine, which is
-responsible for keeping track of the internal queue, and initiating appropriate actions in response to calls to a
-stream's methods. This can be roughly summarized in the following diagram.
-
-<figure>
-  <img src="readable-stream.svg" width="670" alt="The readable stream state machine diagram." />
-
-  <figcaption>
-    <dl>
-      <dt><span style="font-style: normal; font-weight: normal; font-family: monospace;">monospace</span></dt>
-      <dd>Methods of the stream</dd>
-
-      <dt><span style="font-style: normal; font-weight: bold;">bold</span></dt>
-      <dd>Constructor parameters</dd>
-
-      <dt><span style="font-style: italic; font-weight: normal;">italic</span></dt>
-      <dd>Capabilities given to constructor parameters</dd>
-    </dl>
-  </figcaption>
-</figure>
-
-
 <h3 id="rs-class">Class <code>ReadableStream</code></h3>
 
 <h4 id="rs-class-definition">Class Definition</h4>
@@ -439,6 +413,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </dl>
 
   If the stream is <a>locked to a reader</a>, the stream will appear to be <code>"waiting"</code>.
+
+  The way in which the stream will transition between states is summarized in more detail in [[#rs-state-diagram]].
 </div>
 
 <ol>
@@ -1981,6 +1957,45 @@ for the [promise]." But we don't have to worry about that when writing the <code
 function, since the stream implementation guarantees that the <a>underlying sink</a>'s <code>write</code> method will
 not be called until any promises returned by previous calls have fulfilled!
 
+
+<h2 id="state-machines">State Machine Diagrams</h2>
+
+<em>This section, and all its subsections, are non-normative.</em>
+
+As explained in excruciating detail above, both readable and writable streams have fairly complex internal state
+machines. In reaction to stimuli from various parts of the system, they transfer between several states. The public
+<code>state</code> properties of each stream give a high-level overview of how developers should interact with the
+rest of the stream's public API. However there are also a number of private flags used for tracking more subtle state
+within the stream.
+
+The diagrams in these sections aim to summarize, at least partially, the way in which readable and writable streams
+transition between their states.
+
+<h3 id="rs-state-diagram">The Readable Stream State Diagram</h3>
+
+Readable streams transition in response to both actions from the <a>consumer</a> on the stream's public API, and
+events instigated by the <a>underlying source</a> when the stream implementation calls the source's methods.
+
+<figure>
+  <img src="readable-stream.svg" width="670" alt="The readable stream state machine diagram." />
+
+  <figcaption>
+    <dl>
+      <dt><span style="font-style: normal; font-weight: normal; font-family: monospace;">monospace</span></dt>
+      <dd>Methods of the stream, called by consumers</dd>
+
+      <dt><span style="font-style: normal; font-weight: bold;">bold</span></dt>
+      <dd>Underlying source methods, called by the stream</dd>
+
+      <dt><span style="font-style: italic; font-weight: normal;">italic</span></dt>
+      <dd>Capabilities given to the underlying source, called by the underlying source methods</dd>
+    </dl>
+  </figcaption>
+</figure>
+
+<h3 id="ws-state-diagram">The Writable Stream State Diagram</h3>
+
+TODO
 
 
 <h2 id="conventions" class="no-num">Conventions</h2>
