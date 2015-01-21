@@ -21,6 +21,10 @@ if [ "$BRANCH" == "HEAD" ]; then # Travis does this for some reason
     BRANCH=$TRAVIS_BRANCH
 fi
 
+echo "Branch = $BRANCH"
+echo "Commit = $SHA"
+echo ""
+
 rm -rf $WEB_ROOT || exit 0
 
 # Commit snapshot
@@ -31,6 +35,7 @@ curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F md-status=LS-COMMIT \
      -F md-title="Streams Standard (Commit Snapshot $SHA)" \
      > $COMMIT_DIR/index.html;
 cp *.svg $COMMIT_DIR
+echo "Commit snapshot output to $WEB_ROOT/$COMMITS_DIR/$SHA"
 
 if [ $BRANCH != "master" ] ; then
     # Branch snapshot, if not master
@@ -41,12 +46,19 @@ if [ $BRANCH != "master" ] ; then
          -F md-title="Streams Standard (Branch Snapshot $BRANCH)" \
          > $BRANCH_DIR/index.html;
     cp *.svg $BRANCH_DIR
+    echo "Branch snapshot output to $WEB_ROOT/$BRANCHES_DIR/$BRANCH"
 else
     # Living standard, if master
     curl https://api.csswg.org/bikeshed/ -F file=@index.bs > $WEB_ROOT/index.html;
     cp *.svg $WEB_ROOT
+    echo "Living standard output to $WEB_ROOT"
 fi
 
 # scp the output directory up
 sudo apt-get install sshpass
+
+echo ""
+find $WEB_ROOT -print
+echo ""
+
 sshpass -p $DEPLOY_PASSWORD scp -r -o StrictHostKeyChecking=no $WEB_ROOT $DEPLOY_USER@$SERVER:
