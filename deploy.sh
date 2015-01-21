@@ -21,6 +21,11 @@ if [ "$BRANCH" == "HEAD" ]; then # Travis does this for some reason
     BRANCH=$TRAVIS_BRANCH
 fi
 
+if [ "$BRANCH" == "master" -a "$TRAVIS_PULL_REQUEST" != "false" ]; then
+    echo "Skipping deploy for a pull request; the branch build will suffice"
+    exit 0
+fi
+
 echo "Branch = $BRANCH"
 echo "Commit = $SHA"
 echo ""
