@@ -1,5 +1,5 @@
 var assert = require('assert');
-import * as helpers from './helpers';
+import { InvokeOrNoop, PromiseInvokeOrNoop, PromiseInvokeOrFallbackOrNoop, typeIsObject } from './helpers';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } from './queue-with-sizes';
 import CountQueuingStrategy from './count-queuing-strategy';
 
@@ -24,7 +24,7 @@ export default class WritableStream {
 
     SyncWritableStreamStateWithQueue(this);
 
-    var startResult = helpers.InvokeOrNoop(underlyingSink, 'start', [this._error]);
+    var startResult = InvokeOrNoop(underlyingSink, 'start', [this._error]);
     this._startedPromise = Promise.resolve(startResult);
     this._startedPromise.then(() => {
       this._started = true;
@@ -34,14 +34,26 @@ export default class WritableStream {
   }
 
   get closed() {
+    if (!IsWritableStream(this)) {
+      return Promise.reject(new TypeError('WritableStream.prototype.closed can only be used on a WritableStream'));
+    }
+
     return this._closedPromise;
   }
 
   get state() {
+    if (!IsWritableStream(this)) {
+      throw new TypeError('WritableStream.prototype.state can only be used on a WritableStream');
+    }
+
     return this._state;
   }
 
   abort(reason) {
+    if (!IsWritableStream(this)) {
+      return Promise.reject(new TypeError('WritableStream.prototype.abort can only be used on a WritableStream'));
+    }
+
     if (this._state === 'closed') {
       return Promise.resolve(undefined);
     }
@@ -50,11 +62,15 @@ export default class WritableStream {
     }
 
     this._error(reason);
-    var sinkAbortPromise = helpers.PromiseInvokeOrFallbackOrNoop(this._underlyingSink, 'abort', [reason], 'close', []);
+    var sinkAbortPromise = PromiseInvokeOrFallbackOrNoop(this._underlyingSink, 'abort', [reason], 'close', []);
     return sinkAbortPromise.then(() => undefined);
   }
 
   close() {
+    if (!IsWritableStream(this)) {
+      return Promise.reject(new TypeError('WritableStream.prototype.close can only be used on a WritableStream'));
+    }
+
     if (this._state === 'closing') {
       return Promise.reject(new TypeError('cannot close an already-closing stream'));
     }
@@ -76,10 +92,18 @@ export default class WritableStream {
   }
 
   get ready() {
+    if (!IsWritableStream(this)) {
+      return Promise.reject(new TypeError('WritableStream.prototype.ready can only be used on a WritableStream'));
+    }
+
     return this._readyPromise;
   }
 
   write(chunk) {
+    if (!IsWritableStream(this)) {
+      return Promise.reject(new TypeError('WritableStream.prototype.write can only be used on a WritableStream'));
+    }
+
     if (this._state === 'closing') {
       return Promise.reject(new TypeError('cannot write while stream is closing'));
     }
@@ -153,7 +177,7 @@ function CallOrScheduleWritableStreamAdvanceQueue(stream) {
 function CloseWritableStream(stream) {
   assert(stream._state === 'closing', 'stream must be in closing state while calling CloseWritableStream');
 
-  var sinkClosePromise = helpers.PromiseInvokeOrNoop(stream._underlyingSink, 'close');
+  var sinkClosePromise = PromiseInvokeOrNoop(stream._underlyingSink, 'close');
   sinkClosePromise.then(
     () => {
       if (stream._state === 'errored') {
@@ -192,6 +216,18 @@ function CreateWritableStreamErrorFunction(stream) {
     stream._closedPromise_reject(e);
     stream._state = 'errored';
   };
+}
+
+export function IsWritableStream(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_underlyingSink')) {
+    return false;
+  }
+
+  return true;
 }
 
 function SyncWritableStreamStateWithQueue(stream) {
@@ -240,7 +276,7 @@ function WritableStreamAdvanceQueue(stream) {
   } else {
     stream._writing = true;
 
-    helpers.PromiseInvokeOrNoop(stream._underlyingSink, 'write', [writeRecord.chunk]).then(
+    PromiseInvokeOrNoop(stream._underlyingSink, 'write', [writeRecord.chunk]).then(
       () => {
         if (stream._state === 'errored') {
           return;

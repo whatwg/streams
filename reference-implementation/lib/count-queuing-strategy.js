@@ -1,3 +1,5 @@
+import { typeIsObject } from './helpers';
+
 export default class CountQueuingStrategy {
   constructor({ highWaterMark }) {
     highWaterMark = Number(highWaterMark);
@@ -9,11 +11,19 @@ export default class CountQueuingStrategy {
       throw new RangeError('highWaterMark must be nonnegative.');
     }
 
-    this._highWaterMark = highWaterMark;
+    this._cqsHighWaterMark = highWaterMark;
   }
 
   shouldApplyBackpressure(queueSize) {
-    return queueSize > this._highWaterMark;
+    if (!typeIsObject(this)) {
+      throw new TypeError('CountQueuingStrategy.prototype.shouldApplyBackpressure can only be applied to objects');
+    }
+    if (!Object.prototype.hasOwnProperty.call(this, '_cqsHighWaterMark')) {
+      throw new TypeError('CountQueuingStrategy.prototype.shouldApplyBackpressure can only be applied to a ' +
+        'CountQueuingStrategy');
+    }
+
+    return queueSize > this._cqsHighWaterMark;
   }
 
   size(chunk) {

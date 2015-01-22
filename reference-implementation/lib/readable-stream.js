@@ -1,7 +1,7 @@
 var assert = require('assert');
 import * as helpers from './helpers';
 import { AcquireExclusiveStreamReader, CallReadableStreamPull, CloseReadableStream, CreateReadableStreamCloseFunction,
-  CreateReadableStreamEnqueueFunction, CreateReadableStreamErrorFunction, ReadFromReadableStream,
+  CreateReadableStreamEnqueueFunction, CreateReadableStreamErrorFunction, IsReadableStream, ReadFromReadableStream,
   ShouldReadableStreamApplyBackpressure } from './readable-stream-abstract-ops';
 
 export default class ReadableStream {
@@ -31,10 +31,17 @@ export default class ReadableStream {
   }
 
   get closed() {
+    if (!IsReadableStream(this)) {
+      return Promise.reject(new TypeError('ReadableStream.prototype.closed can only be used on a ReadableStream'));
+    }
     return this._closedPromise;
   }
 
   get state() {
+    if (!IsReadableStream(this)) {
+      throw new TypeError('ReadableStream.prototype.state can only be used on a ReadableStream');
+    }
+
     if (this._readableStreamReader !== undefined) {
       return 'waiting';
     }
@@ -43,6 +50,10 @@ export default class ReadableStream {
   }
 
   cancel(reason) {
+    if (!IsReadableStream(this)) {
+      return Promise.reject(new TypeError('ReadableStream.prototype.cancel can only be used on a ReadableStream'));
+    }
+
     if (this._readableStreamReader !== undefined) {
       return Promise.reject(
         new TypeError('This stream is locked to a single exclusive reader and cannot be cancelled directly'));
@@ -63,6 +74,10 @@ export default class ReadableStream {
   }
 
   getReader() {
+    if (!IsReadableStream(this)) {
+      throw new TypeError('ReadableStream.prototype.getReader can only be used on a ReadableStream');
+    }
+
     return AcquireExclusiveStreamReader(this);
   }
 
@@ -159,6 +174,10 @@ export default class ReadableStream {
   }
 
   read() {
+    if (!IsReadableStream(this)) {
+      throw new TypeError('ReadableStream.prototype.read can only be used on a ReadableStream');
+    }
+
     if (this._readableStreamReader !== undefined) {
       throw new TypeError('This stream is locked to a single exclusive reader and cannot be read from directly');
     }
@@ -167,6 +186,10 @@ export default class ReadableStream {
   }
 
   get ready() {
+    if (!IsReadableStream(this)) {
+      return Promise.reject(new TypeError('ReadableStream.prototype.ready can only be used on a ReadableStream'));
+    }
+
     if (this._readableStreamReader !== undefined) {
       return this._readableStreamReader._lockReleased.then(() => this.ready);
     }

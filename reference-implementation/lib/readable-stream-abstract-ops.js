@@ -1,7 +1,7 @@
 var assert = require('assert');
 import ExclusiveStreamReader from './exclusive-stream-reader';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
-import { InvokeOrNoop } from './helpers';
+import { InvokeOrNoop, typeIsObject } from './helpers';
 
 export function AcquireExclusiveStreamReader(stream) {
   if (stream._state === 'closed') {
@@ -129,34 +129,58 @@ export function CreateReadableStreamErrorFunction(stream) {
   };
 }
 
+export function IsExclusiveStreamReader(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_encapsulatedReadableStream')) {
+    return false;
+  }
+
+  return true;
+}
+
+export function IsReadableStream(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_underlyingSource')) {
+    return false;
+  }
+
+  return true;
+}
+
 export function ReadFromReadableStream(stream) {
-    if (stream._state === 'waiting') {
-      throw new TypeError('no chunks available (yet)');
+  if (stream._state === 'waiting') {
+    throw new TypeError('no chunks available (yet)');
+  }
+  if (stream._state === 'closed') {
+    throw new TypeError('stream has already been consumed');
+  }
+  if (stream._state === 'errored') {
+    throw stream._storedError;
+  }
+
+  assert(stream._state === 'readable', `stream state ${stream._state} is invalid`);
+  assert(stream._queue.length > 0, 'there must be chunks available to read');
+
+  var chunk = DequeueValue(stream._queue);
+
+  if (stream._queue.length === 0) {
+    if (stream._draining === true) {
+      CloseReadableStream(stream);
+    } else {
+      stream._state = 'waiting';
+      stream._initReadyPromise();
     }
-    if (stream._state === 'closed') {
-      throw new TypeError('stream has already been consumed');
-    }
-    if (stream._state === 'errored') {
-      throw stream._storedError;
-    }
+  }
 
-    assert(stream._state === 'readable', `stream state ${stream._state} is invalid`);
-    assert(stream._queue.length > 0, 'there must be chunks available to read');
+  CallReadableStreamPull(stream);
 
-    var chunk = DequeueValue(stream._queue);
-
-    if (stream._queue.length === 0) {
-      if (stream._draining === true) {
-        CloseReadableStream(stream);
-      } else {
-        stream._state = 'waiting';
-        stream._initReadyPromise();
-      }
-    }
-
-    CallReadableStreamPull(stream);
-
-    return chunk;
+  return chunk;
 }
 
 export function ShouldReadableStreamApplyBackpressure(stream) {

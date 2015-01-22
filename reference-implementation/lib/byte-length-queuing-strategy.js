@@ -1,3 +1,5 @@
+import { typeIsObject } from './helpers';
+
 export default class ByteLengthQueuingStrategy {
   constructor({ highWaterMark }) {
     highWaterMark = Number(highWaterMark);
@@ -9,11 +11,19 @@ export default class ByteLengthQueuingStrategy {
       throw new RangeError('highWaterMark must be nonnegative.');
     }
 
-    this._highWaterMark = highWaterMark;
+    this._blqsHighWaterMark = highWaterMark;
   }
 
   shouldApplyBackpressure(queueSize) {
-    return queueSize > this._highWaterMark;
+    if (!typeIsObject(this)) {
+      throw new TypeError('ByteLengthQueuingStrategy.prototype.shouldApplyBackpressure can only be applied to objects');
+    }
+    if (!Object.prototype.hasOwnProperty.call(this, '_blqsHighWaterMark')) {
+      throw new TypeError('ByteLengthQueuingStrategy.prototype.shouldApplyBackpressure can only be applied to a ' +
+        'ByteLengthQueuingStrategy');
+    }
+
+    return queueSize > this._blqsHighWaterMark;
   }
 
   size(chunk) {

@@ -466,7 +466,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </tr>
   <tr>
     <td>\[[underlyingSource]]
-    <td>An object representation of the stream's <a>underlying source</a>, including its <a>queuing strategy</a>
+    <td>An object representation of the stream's <a>underlying source</a>, including its <a>queuing strategy</a>; also
+      used for the <a href="#is-readable-stream">IsReadableStream</a> brand check
   </tr>
 </table>
 
@@ -533,6 +534,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <ol>
+  <li> If IsReadableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> Return <b>this</b>@\[[closedPromise]].
 </ol>
 
@@ -545,6 +547,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <ol>
+  <li> If IsReadableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> If <b>this</b>@\[[readableStreamReader]] is not <b>undefined</b>, return the result of transforming
     <b>this</b>@\[[readableStreamReader]]@\[[lockReleased]] by a fulfillment handler that returns Get(<b>this</b>,
     <code>"ready"</code>).
@@ -576,6 +579,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <ol>
+  <li> If IsReadableStream(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
   <li> If <b>this</b>@\[[readableStreamReader]] is not <b>undefined</b>, return <code>"waiting"</code>.
   <li> Return <b>this</b>@\[[state]].
 </ol>
@@ -591,6 +595,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <ol>
+  <li> If IsReadableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> If <b>this</b>@\[[readableStreamReader]] is not <b>undefined</b>, return a new promise rejected with a <b>TypeError</b>.
   <li> If <b>this</b>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, return
     <b>this</b>@\[[closedPromise]].
@@ -620,15 +625,20 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <ol>
+  <li> If IsReadableStream(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
   <li> Return AcquireExclusiveStreamReader(<b>this</b>).
 </ol>
 
 <h5 id="rs-pipe-through">pipeThrough({ writable, readable }, options)</h5>
 
 <div class="note">
-  The <code>pipeThrough</code> method provides a convenient, chainable way of <a>piping</a> a <a>readable stream</a>
+  The <code>pipeThrough</code> method provides a convenient, chainable way of <a>piping</a> this <a>readable stream</a>
   through a <a>transform stream</a> (or any other <code>{ writable, readable }</code> pair). It simply pipes the stream
   into the writable side of the supplied pair, and returns the readable side for further use.
+
+  This method is intentionally generic; it does not require that its <b>this</b> value be a <code>ReadableStream</code>
+  object. It also does not require that its <code>writable</code> argument be a <code>WritableStream</code> instance,
+  or that its <code>readable</code> argument be a <code>ReadableStream</code> instance.
 </div>
 
 <div class="example">
@@ -643,13 +653,21 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <ol>
-  <li> If Type(<var>writable</var>) is not Object, then throw a <b>TypeError</b> exception.
-  <li> If Type(<var>readable</var>) is not Object, then throw a <b>TypeError</b> exception.
   <li> Call-with-rethrow Invoke(<b>this</b>, <code>"pipeTo"</code>, (<var>writable</var>, <var>options</var>)).
   <li> Return <var>readable</var>.
 </ol>
 
-<h5 id="rs-pipe-to">pipeTo(dest, options)</h5>
+<h5 id="rs-pipe-to">pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})</h5>
+
+<div class="note">
+  The <code>pipeTo</code> method <a title="piping">pipes</a> this <a>readable stream</a> to a given <a>writable
+  stream</a>. The way in which the piping process behaves under various error conditions can be customized with a
+  number of passed options. It returns a promise that fulfills when the piping process completes successfully, or
+  rejects if any errors were encountered.
+
+  This method is intentionally generic; it does not require that its <b>this</b> value be a <code>ReadableStream</code>
+  object.
+</div>
 
 The <code>pipeTo</code> method is one of the more complex methods, and is undergoing some revision and edge-case
 bulletproofing before we write it up in prose.
@@ -666,6 +684,7 @@ look for the <code>pipeTo</code> method.
 </div>
 
 <ol>
+  <li> If IsReadableStream(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
   <li> If <b>this</b>@\[[readableStreamReader]] is not <b>undefined</b>, throw a <b>TypeError</b> exception.
   <li> Return ReadFromReadableStream(this).
 </ol>
@@ -711,6 +730,11 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
       <b>undefined</b> before then
   </tr>
   <tr>
+    <td>\[[encapsulatedReadableStream]]
+    <td>A <code>ReadableStream</code> instance that this reader encapsulates; also used for the
+      <a href="#is-exclusive-stream-reader">IsExclusiveStreamReader</a> brand check
+  </tr>
+  <tr>
     <td>\[[lockReleased]]
     <td>A promise that becomes fulfilled when the reader releases its lock on the stream
   </tr>
@@ -724,10 +748,6 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
     <td>A string returned by the reader's <code>state</code> getter after the reader's lock is released, or
       <b>undefined</b> before then
   </tr>
-  <tr>
-    <td>\[[stream]]
-    <td>A <code>ReadableStream</code> instance that this reader encapsulates
-  </tr>
 </table>
 
 <h4 id="reader-constructor">new ExclusiveStreamReader(stream)</h4>
@@ -736,7 +756,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
   <li> If <var>stream</var> does not have a \[[readableStreamReader]] internal slot, throw a <b>TypeError</b> exception.
   <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>, throw a <b>TypeError</b> exception.
   <li> Set <var>stream</var>@\[[readableStreamReader]] to <b>this</b>.
-  <li> Set <b>this</b>@\[[stream]] to <var>stream</var>.
+  <li> Set <b>this</b>@\[[encapsulatedReadableStream]] to <var>stream</var>.
   <li> Set <b>this</b>@\[[closedAfterRelease]], <b>this</b>@\[[readyAfterRelease]], and
     <b>this</b>@\[[stateAfterRelease]] to <b>undefined</b>.
   <li> Set <b>this</b>@\[[lockReleased]] to a new promise.
@@ -753,9 +773,11 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 </div>
 
 <ol>
-  <li> If SameValue(<b>this</b>@\[[stream]]@\[[readableStreamReader]], <b>this</b>) is <b>false</b>, return
-    <b>this</b>@\[[closedAfterRelease]].
-  <li> Return the result of racing <b>this</b>@\[[stream]]@\[[closedPromise]] and <b>this</b>@\[[lockReleased]].
+  <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
+  <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
+    <b>false</b>, return <b>this</b>@\[[closedAfterRelease]].
+  <li> Return the result of racing <b>this</b>@\[[encapsulatedReadableStream]]@\[[closedPromise]] and
+    <b>this</b>@\[[lockReleased]].
 </ol>
 
 <h5 id="reader-is-active">get isActive</h5>
@@ -766,7 +788,8 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 </div>
 
 <ol>
- <li> Return SameValue(<b>this</b>@\[[stream]]@\[[readableStreamReader]], <b>this</b>).
+  <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> Return SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>).
 </ol>
 
 <h5 id="reader-ready">get ready</h5>
@@ -780,9 +803,11 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 </div>
 
 <ol>
-  <li> If SameValue(<b>this</b>@\[[stream]]@\[[readableStreamReader]], <b>this</b>) is <b>false</b>, return
-    <b>this</b>@\[[readyAfterRelease]].
-  <li> Return the result of racing <b>this</b>@\[[stream]]@\[[readyPromise]] and <b>this</b>@\[[lockReleased]].
+  <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
+  <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
+    <b>false</b>, return <b>this</b>@\[[readyAfterRelease]].
+  <li> Return the result of racing <b>this</b>@\[[encapsulatedReadableStream]]@\[[readyPromise]] and
+    <b>this</b>@\[[lockReleased]].
 </ol>
 
 <h5 id="reader-state">get state</h5>
@@ -795,9 +820,10 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 </div>
 
 <ol>
-  <li> If SameValue(<b>this</b>@\[[stream]]@\[[readableStreamReader]], <b>this</b>) is <b>false</b>, return
-    <b>this</b>@\[[stateAfterRelease]].
-  <li> Return <b>this</b>@\[[stream]]@\[[state]].
+  <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
+    <b>false</b>, return <b>this</b>@\[[stateAfterRelease]].
+  <li> Return <b>this</b>@\[[encapsulatedReadableStream]]@\[[state]].
 </ol>
 
 <h5 id="reader-cancel">cancel(...args)</h5>
@@ -809,10 +835,11 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 </div>
 
 <ol>
-  <li> If SameValue(<b>this</b>@\[[stream]]@\[[readableStreamReader]], <b>this</b>) is <b>false</b>, return
-    <b>this</b>@\[[closedAfterRelease]].
+  <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
+  <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
+    <b>false</b>, return <b>this</b>@\[[closedAfterRelease]].
   <li> Call-with-rethrow Invoke(<b>this</b>, <code>"releaseLock"</code>).
-  <li> Return Invoke(<b>this</b>@\[[stream]], <code>"cancel"</code>, <var>args</var>).
+  <li> Return Invoke(<b>this</b>@\[[encapsulatedReadableStream]], <code>"cancel"</code>, <var>args</var>).
 </ol>
 
 The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
@@ -827,9 +854,10 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 </div>
 
 <ol>
-  <li> If SameValue(<b>this</b>@\[[stream]]@\[[readableStreamReader]], <b>this</b>) is <b>false</b>, throw a <b>TypeError</b>
-    exception.
-  <li> Return ReadFromReadableStream(<b>this</b>@\[[stream]]).
+  <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
+    <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> Return ReadFromReadableStream(<b>this</b>@\[[encapsulatedReadableStream]]).
 </ol>
 
 <h5 id="reader-release-lock">releaseLock()</h5>
@@ -842,15 +870,17 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 </div>
 
 <ol>
-  <li> If SameValue(<b>this</b>@\[[stream]]@\[[readableStreamReader]], <b>this</b>) is <b>false</b>, return <b>undefined</b>.
-  <li> Set <b>this</b>@\[[stream]]@\[[readableStreamReader]] to <b>undefined</b>.
-  <li> Let <var>stateAfterRelease</var> be Get(<b>this</b>@\[[stream]], <code>"state"</code>).
+  <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
+  <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
+    <b>false</b>, return <b>undefined</b>.
+  <li> Set <b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]] to <b>undefined</b>.
+  <li> Let <var>stateAfterRelease</var> be Get(<b>this</b>@\[[encapsulatedReadableStream]], <code>"state"</code>).
   <li> ReturnIfAbrupt(<var>stateAfterRelease</var>).
   <li> Set <b>this</b>@\[[stateAfterRelease]] to <var>stateAfterRelease</var>.
   <li> Set <b>this</b>@\[[readyAfterRelease]] to a new promise resolved with <b>undefined</b>.
   <li> If <var>stateAfterRelease</var> is <code>"closed"</code> or <code>"errored"</code>, then
     <ol>
-      <li> Let <var>closedAfterRelease</var> be Get(<b>this</b>@\[[stream]], <code>"closed"</code>).
+      <li> Let <var>closedAfterRelease</var> be Get(<b>this</b>@\[[encapsulatedReadableStream]], <code>"closed"</code>).
       <li> ReturnIfAbrupt(<var>closedAfterRelease</var>).
       <li> Set <b>this</b>@\[[closedAfterRelease]] to <var>closedAfterRelease</var>.
     </ol>
@@ -902,7 +932,8 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 <ol>
   <li> Set <var>stream</var>@\[[state]] to <code>"closed"</code>.
   <li> Resolve <var>stream</var>@\[[closedPromise]] with <b>undefined</b>.
-  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>, call-with-rethrow Invoke(<var>stream</var>@\[[readableStreamReader]], <code>"releaseLock"</code>).
+  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>, call-with-rethrow
+    Invoke(<var>stream</var>@\[[readableStreamReader]], <code>"releaseLock"</code>).
   <li> Return <b>undefined</b>.
 </ol>
 
@@ -981,21 +1012,40 @@ A <dfn>Readable Stream Error Function</dfn> is a built-in anonymous function of 
 a variable <var>stream</var>, that performs the following steps:
 
 <ol>
-  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
+  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, resolve <var>stream</var>@\[[readyPromise]] with
+    <b>undefined</b>.
   <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>, let <var>stream</var>@\[[queue]] be a new empty List.
   <li> If <var>stream</var>@\[[state]] is either <code>"waiting"</code> or <code>"readable"</code>,
     <ol>
       <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
       <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
       <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
-      <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>, call-with-rethrow Invoke(<var>stream</var>@\[[readableStreamReader]], <code>"releaseLock"</code>).
+      <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>, call-with-rethrow
+        Invoke(<var>stream</var>@\[[readableStreamReader]], <code>"releaseLock"</code>).
     </ol>
+</ol>
+
+<h4 id="is-exclusive-stream-reader">IsExclusiveStreamReader ( x )</h4>
+
+<ol>
+  <li> If Type(<var>x</var>) is not Object, return <b>false</b>.
+  <li> If <var>x</var> does not have a \[[encapsulatedReadableStream]] internal slot, return <b>false</b>.
+  <li> Return <b>true</b>.
+</ol>
+
+<h4 id="is-readable-stream">IsReadableStream ( x )</h4>
+
+<ol>
+  <li> If Type(<var>x</var>) is not Object, return <b>false</b>.
+  <li> If <var>x</var> does not have a \[[underlyingSource]] internal slot, return <b>false</b>.
+  <li> Return <b>true</b>.
 </ol>
 
 <h4 id="read-from-readable-stream">ReadFromReadableStream ( stream )</h4>
 
 <ol>
-  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code> or <code>"closed"</code>, throw a <b>TypeError</b> exception.
+  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code> or <code>"closed"</code>, throw a <b>TypeError</b>
+    exception.
   <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, throw <var>stream</var>@\[[storedError]].
   <li> Assert: <var>stream</var>@\[[state]] is <code>"readable"</code>.
   <li> Assert: <var>stream</var>@\[[queue]] is not empty.
@@ -1262,7 +1312,8 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </tr>
   <tr>
     <td>\[[underlyingSink]]
-    <td>An object representation of the stream's <a>underlying sink</a>, including its <a>queuing strategy</a>
+    <td>An object representation of the stream's <a>underlying sink</a>, including its <a>queuing strategy</a>; also
+      used for the <a href="#is-writable-stream">IsWritableStream</a> brand check
   </tr>
   <tr>
     <td>\[[writing]]
@@ -1346,6 +1397,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 </div>
 
 <ol>
+  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> Return <b>this</b>@\[[closedPromise]].
 </ol>
 
@@ -1361,6 +1413,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 </div>
 
 <ol>
+  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> Return <b>this</b>@\[[readyPromise]].
 </ol>
 
@@ -1391,6 +1444,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 </div>
 
 <ol>
+  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
   <li> Return <b>this</b>@\[[state]].
 </ol>
 
@@ -1403,6 +1457,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 </div>
 
 <ol>
+  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> If <b>this</b>@\[[state]] is <code>"closed"</code>, return a new promise resolved with <b>undefined</b>.
   <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with
     <b>this</b>@\[[storedError]].
@@ -1422,6 +1477,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 </div>
 
 <ol>
+  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> If <b>this</b>@\[[state]] is <code>"closing"</code> or <code>"closed"</code>, return a promise rejected with a
     <b>TypeError</b> exception.
   <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a promise rejected with
@@ -1447,7 +1503,8 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 </div>
 
 <ol>
-  <li>If <b>this</b>@\[[state]] is <code>"closing"</code> or <code>"closed"</code>, return a promise rejected with a
+  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
+  <li> If <b>this</b>@\[[state]] is <code>"closing"</code> or <code>"closed"</code>, return a promise rejected with a
     <b>TypeError</b>.
   <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a promise rejected with
     <b>this</b>@\[[storedError]].
@@ -1544,6 +1601,14 @@ a variable <var>stream</var>, that performs the following steps:
     <b>undefined</b>.
   <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
   <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
+</ol>
+
+<h4 id="is-writable-stream">IsWritableStream ( x )</h4>
+
+<ol>
+  <li> If Type(<var>x</var>) is not Object, return <b>false</b>.
+  <li> If <var>x</var> does not have a \[[underlyingSink]] internal slot, return <b>false</b>.
+  <li> Return <b>true</b>.
 </ol>
 
 <h4 id="sync-writable-stream-state-with-queue">SyncWritableStreamStateWithQueue ( stream )</h4>
@@ -1651,7 +1716,7 @@ table:
     </tr>
   </thead>
   <tr>
-    <td>\[[highWaterMark]]
+    <td>\[[blqsHighWaterMark]]
     <td>A nonnegative number that determines when the strategy applies <a>backpressure</a>
   </tr>
 </table>
@@ -1666,7 +1731,7 @@ table:
   <li> Let <var>highWaterMark</var> be ToNumber(<var>highWaterMark</var>).
   <li> If <var>highWaterMark</var> is <b>NaN</b>, throw a <b>TypeError</b> exception.
   <li> If <var>highWaterMark</var> &lt; 0, throw a <b>RangeError</b> exception.
-  <li> Set <b>this</b>@\[[highWaterMark]] to <var>highWaterMark</var>.
+  <li> Set <b>this</b>@\[[blqsHighWaterMark]] to <var>highWaterMark</var>.
 </ol>
 
 <h4 id="blqs-prototype">Properties of the <code>ByteLengthQueuingStrategy</code> Prototype</h4>
@@ -1679,9 +1744,11 @@ table:
 </div>
 
 <ol>
+  <li> If Type(<b>this</b>) is not Object, throw a <b>TypeError</b> exception.
+  <li> If <b>this</b> does not have a \[[blqsHighWaterMark]] internal slot, throw a <b>TypeError</b> exception.
   <li> Let <var>queueSize</var> be ToNumber(<var>queueSize</var>).
   <li> If <var>queueSize</var> is <b>NaN</b>, return <b>false</b>.
-  <li> Return <var>queueSize</var> > <b>this</b>@\[[highWaterMark]].
+  <li> Return <var>queueSize</var> > <b>this</b>@\[[blqsHighWaterMark]].
 </ol>
 
 <h5 id="blqs-size">size(chunk)</h5>
@@ -1689,6 +1756,9 @@ table:
 <div class="note">
   The <code>size</code> method returns the given chunk's <code>byteLength</code> property. (If the chunk doesn't have
   one, it will return <b>undefined</b>, causing the stream using this strategy to error.)
+
+  This method is intentionally generic; it does not require that its <b>this</b> value be a
+  <code>ByteLengthQueuingStrategy</code> object.
 </div>
 
 <ol>
@@ -1728,7 +1798,7 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
     </tr>
   </thead>
   <tr>
-    <td>\[[highWaterMark]]
+    <td>\[[cqsHighWaterMark]]
     <td>A nonnegative number that determines when the strategy applies <a>backpressure</a>
   </tr>
 </table>
@@ -1743,7 +1813,7 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
   <li> Let <var>highWaterMark</var> be ToNumber(<var>highWaterMark</var>).
   <li> If <var>highWaterMark</var> is <b>NaN</b>, throw a <b>TypeError</b> exception.
   <li> If <var>highWaterMark</var> &lt; 0, throw a <b>RangeError</b> exception.
-  <li> Set <b>this</b>@\[[highWaterMark]] to <var>highWaterMark</var>.
+  <li> Set <b>this</b>@\[[cqsHighWaterMark]] to <var>highWaterMark</var>.
 </ol>
 
 <h4 id="cqs-prototype">Properties of the <code>CountQueuingStrategy</code> Prototype</h4>
@@ -1756,9 +1826,11 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
 </div>
 
 <ol>
+  <li> If Type(<b>this</b>) is not Object, throw a <b>TypeError</b> exception.
+  <li> If <b>this</b> does not have a \[[cqsHighWaterMark]] internal slot, throw a <b>TypeError</b> exception.
   <li> Let <var>queueSize</var> be ToNumber(<var>queueSize</var>).
   <li> If <var>queueSize</var> is <b>NaN</b>, return <b>false</b>.
-  <li> Return <var>queueSize</var> > <b>this</b>@\[[highWaterMark]].
+  <li> Return <var>queueSize</var> > <b>this</b>@\[[cqsHighWaterMark]].
 </ol>
 
 <h5 id="cqs-size">size()</h5>
@@ -1766,6 +1838,9 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
 <div class="note">
   The <code>size</code> method returns one always, so that the total queue size is a count of the number of chunks in
   the queue.
+
+  This method is intentionally generic; it does not require that its <b>this</b> value be a
+  <code>CountQueuingStrategy</code> object.
 </div>
 
 <ol>
