@@ -1460,6 +1460,32 @@ A common <a>queuing strategy</a> when dealing with binary data is to wait until 
 properties of the incoming chunks reaches a specified high-water mark. As such, this is provided as a built-in
 <a>queuing strategy</a> that can be used when constructing streams.
 
+<div class="example">
+  When creating a <a>readable stream</a> or <a>writable stream</a>, you can supply a byte-length queuing strategy
+  directly:
+
+  <pre><code class="lang-javascript">
+    const stream = new ReadableStream({
+      ...,
+      strategy: new ByteLengthQueuingStrategy({ highWaterMark: 16 * 1024 })
+    });
+  </code></pre>
+
+  In this case, 16 KiB worth of <a>chunks</a> can be enqueued by the readable stream's <a>underlying source</a> before
+  the readable stream implementation starts sending <a>backpressure</a> signals to the underlying source.
+
+  <pre><code class="lang-javascript">
+    const stream = new WritableStream({
+      ...,
+      strategy: new ByteLengthQueuingStrategy({ highWaterMark: 32 * 1024 })
+    });
+  </code></pre>
+
+  In this case, 32 KiB worth of <a>chunks</a> can be accumulated in the writable stream's internal queue, waiting for
+  previous writes to the <a>underlying sink</a> to finish, before the writable stream starts sending
+  <a>backpressure</a> signals to any <a>producers</a>.
+</div>
+
 <h4 id="blqs-class-definition">Class Definition</h4>
 
 <em>This section is non-normative.</em>
@@ -1542,6 +1568,31 @@ table:
 A common <a>queuing strategy</a> when dealing with streams of generic objects is to simply count the number of chunks
 that have been accumulated so far, waiting until this number reaches a specified high-water mark. As such, this
 strategy is also provided out of the box.
+
+<div class="example">
+  When creating a <a>readable stream</a> or <a>writable stream</a>, you can supply a count queuing strategy directly:
+
+  <pre><code class="lang-javascript">
+    const stream = new ReadableStream({
+      ...,
+      strategy: new CountQueuingStrategy({ highWaterMark: 10 })
+    });
+  </code></pre>
+
+  In this case, 10 <a>chunks</a> (of any kind) can be enqueued by the readable stream's <a>underlying source</a> before
+  the readable stream implementation starts sending <a>backpressure</a> signals to the underlying source.
+
+  <pre><code class="lang-javascript">
+    const stream = new WritableStream({
+      ...,
+      strategy: new CountQueuingStrategy({ highWaterMark: 5 })
+    });
+  </code></pre>
+
+  In this case, five <a>chunks</a> (of any kind) can be accumulated in the writable stream's internal queue, waiting
+  for previous writes to the <a>underlying sink</a> to finish, before the writable stream starts sending
+  <a>backpressure</a> signals to any <a>producers</a>.
+</div>
 
 <h4 id="cqs-class-definition">Class Definition</h4>
 
