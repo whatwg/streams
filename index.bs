@@ -468,6 +468,34 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Return AcquireExclusiveStreamReader(<b>this</b>).
 </ol>
 
+<div class="example">
+  An example of an abstraction that might benefit from using an exclusive reader is a function like the following,
+  which is designed to read an entire readable stream into memory as an array of <a>chunks</a>.
+
+  <pre><code class="lang-javascript">
+    function readAllChunks(readableStream) {
+      const reader = readableStream.getReader();
+      const chunks = [];
+
+      pump();
+
+      return reader.closed.then(() => chunks);
+
+      function pump() {
+        while (reader.state === "readable") {
+          chunks.push(reader.read());
+        }
+
+        if (reader.state === "waiting") {
+          reader.ready.then(pump);
+        }
+      }
+    }
+  </code></pre>
+
+  Note how the first thing it does is obtain a reader, and from then on it uses the reader exclusively.
+</div>
+
 <h5 id="rs-pipe-through">pipeThrough({ writable, readable }, options)</h5>
 
 <div class="note">
@@ -480,6 +508,13 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   or that its <code>readable</code> argument be a <code>ReadableStream</code> instance.
 </div>
 
+<ol>
+  <li> If Type(<var>writable</var>) is not Object, then throw a <b>TypeError</b> exception.
+  <li> If Type(<var>readable</var>) is not Object, then throw a <b>TypeError</b> exception.
+  <li> Call-with-rethrow Invoke(<b>this</b>, <code>"pipeTo"</code>, (<var>writable</var>, <var>options</var>)).
+  <li> Return <var>readable</var>.
+</ol>
+
 <div class="example">
   A typical example of constructing <a>pipe chain</a> using <code>pipeThrough</code> would look like
 
@@ -490,11 +525,6 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
       .pipeTo(mediaGallery);
   </code></pre>
 </div>
-
-<ol>
-  <li> Call-with-rethrow Invoke(<b>this</b>, <code>"pipeTo"</code>, (<var>writable</var>, <var>options</var>)).
-  <li> Return <var>readable</var>.
-</ol>
 
 <h5 id="rs-pipe-to">pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})</h5>
 
