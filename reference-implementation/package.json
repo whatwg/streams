@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "description": "Reference implementation and tests for the WHATWG Streams Standard",
   "scripts": {
-    "test": "node traceur-runner.js test/*.js test/experimental/*.js | tap-spec",
-    "bench": "node traceur-runner.js bench/recording-runner.js && node traceur-runner.js bench/recording-differ.js"
+    "test": "traceur-runner test/*.js test/experimental/*.js | tap-spec",
+    "bench": "traceur-runner bench/recording-runner.js && traceur-runner bench/recording-differ.js"
   },
   "repository": "whatwg/streams",
   "keywords": [
@@ -12,22 +12,23 @@
     "whatwg",
     "polyfill"
   ],
-  "author": "Domenic Denicola <domenic@domenicdenicola.com> (http://domenic.me/)",
+  "author": "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
   "contributors": [
-    "Domenic Denicola <domenic@domenicdenicola.com> (http://domenic.me/)",
+    "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
     "Forrest L Norvell <ogd@aoaioxxysz.net>",
     "Takeshi Yoshino <tyoshino@chromium.org>"
   ],
   "license": "MIT",
+  "traceur-runner": true,
   "devDependencies": {
-    "glob": "^4.0.2",
+    "glob": "^4.3.5",
     "mkdirp": "^0.5.0",
     "ms": "^0.7.0",
     "sandwich": "^0.1.1",
-    "tap-spec": "^2.1.0",
-    "tape": "^3.0.3",
+    "tap-spec": "^2.2.0",
+    "tape": "^3.4.0",
     "text-table": "^0.2.0",
-    "traceur": "0.0.79",
-    "traceur-source-maps": "^1.0.3"
+    "traceur": "0.0.81",
+    "traceur-runner": "^1.0.2"
   }
 }

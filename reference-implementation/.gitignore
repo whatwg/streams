@@ -1,2 +1,3 @@
 node_modules/
 bench/results/
+npm-debug.log
