@@ -1915,6 +1915,29 @@ A few abstract operations are used in this specification for utility purposes. W
   <li> Return Call(<var>method</var>, <var>O</var>, <var>args</var>).
 </ol>
 
+<h4 id="promise-invoke-or-fallback-or-noop">PromiseInvokeOrFallbackOrNoop ( O, P1, args1, P2, args2 )</h4>
+
+<div class="note">
+  PromiseInvokeOrFallbackOrNoop is a specialized version of
+  <a href="http://www.w3.org/2001/tag/doc/promises-guide#promise-calling">promise-calling</a> that works on methods,
+  calls a fallback method if the first method is not present, and returns a promise for <b>undefined</b> when neither
+  method is not present.
+</div>
+
+<ol>
+  <li> Assert: <var>P1</var> is a valid property key.
+  <li> Assert: <var>P2</var> is a valid property key.
+  <li> Let <var>method</var> be GetV(<var>O</var>, <var>P1</var>).
+  <li> If <var>method</var> is an abrupt completion, return a new promise rejected with <var>method</var>.\[[value]].
+  <li> Let <var>method</var> be <var>method</var>.\[[value]].
+  <li> If <var>method</var> is <b>undefined</b>, return PromiseInvokeOrNoop(<var>O</var>, <var>P2</var>,
+    <var>args2</var>).
+  <li> Let <var>returnValue</var> be Call(<var>method</var>, <var>O</var>, <var>args1</var>).
+  <li> If <var>returnValue</var> is an abrupt completion, return a new promise rejected with
+    <var>returnValue</var>.\[[value]].
+  <li> Otherwise, return a new promise resolved with <var>returnValue</var>.\[[value]].
+</ol>
+
 <h4 id="promise-invoke-or-noop">PromiseInvokeOrNoop ( O, P, args )</h4>
 
 <div class="note">
