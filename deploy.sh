@@ -26,6 +26,9 @@ if [ "$BRANCH" == "master" -a "$TRAVIS_PULL_REQUEST" != "false" ]; then
     exit 0
 fi
 
+BACK_TO_LS_LINK="<a href=\"$LS_URL\" id=\"commit-snapshot-link\">Go to the living standard</a>"
+SNAPSHOT_LINK="<a href=\"https://streams.spec.whatwg.org/commit-snapshots/$SHA\" id=\"commit-snapshot-link\">Snapshot as of this commit</a>"
+
 echo "Branch = $BRANCH"
 echo "Commit = $SHA"
 echo ""
@@ -38,6 +41,7 @@ mkdir -p $COMMIT_DIR
 curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F md-status=LS-COMMIT \
      -F md-warning="Commit $SHA $COMMIT_URL_BASE$SHA replaced by $LS_URL" \
      -F md-title="Streams Standard (Commit Snapshot $SHA)" \
+     -F md-Text-Macro="SNAPSHOT-LINK $BACK_TO_LS_LINK" \
      > $COMMIT_DIR/index.html;
 cp *.svg $COMMIT_DIR
 echo "Commit snapshot output to $WEB_ROOT/$COMMITS_DIR/$SHA"
@@ -49,12 +53,15 @@ if [ $BRANCH != "master" ] ; then
     curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F md-status=LS-BRANCH \
          -F md-warning="Branch $BRANCH $BRANCH_URL_BASE$BRANCH replaced by $LS_URL" \
          -F md-title="Streams Standard (Branch Snapshot $BRANCH)" \
+         -F md-Text-Macro="SNAPSHOT-LINK $SNAPSHOT_LINK" \
          > $BRANCH_DIR/index.html;
     cp *.svg $BRANCH_DIR
     echo "Branch snapshot output to $WEB_ROOT/$BRANCHES_DIR/$BRANCH"
 else
     # Living standard, if master
-    curl https://api.csswg.org/bikeshed/ -F file=@index.bs > $WEB_ROOT/index.html;
+    curl https://api.csswg.org/bikeshed/ -F file=@index.bs \
+         -F md-Text-Macro="SNAPSHOT-LINK $SNAPSHOT_LINK" \
+         > $WEB_ROOT/index.html
     cp *.svg $WEB_ROOT
     echo "Living standard output to $WEB_ROOT"
 fi

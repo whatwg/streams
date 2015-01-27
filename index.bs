@@ -15,6 +15,7 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 !Participate: <a href="https://github.com/whatwg/streams/issues/new">File an issue</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open issues</a>)
 !Participate: <a href="http://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
 !Version History: <a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a>
+!Version History: [SNAPSHOT-LINK]
 !Version History: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
 </pre>
 
@@ -23,6 +24,7 @@ Logo: https://resources.whatwg.org/logo-streams.svg
   .note + .example, .note + .note { margin-top: 1em; }
 </style>
 <script src="https://resources.whatwg.org/file-issue.js" async></script>
+<script src="https://resources.whatwg.org/commit-snapshot-shortcut-key.js" async></script>
 
 
 <h2 id="intro">Introduction</h2>
