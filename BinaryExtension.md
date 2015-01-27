@@ -31,20 +31,17 @@ By admitting returning the ArrayBuffer with no data written on it, `ReadableByte
 
 ```
 class ReadableByteStream {
-    constructor({
-        function start = () => {},
-        function readInto = () => {},
-        function cancel() => {},
-        readBufferSize = undefined
-    })
+    constructor(underlyingByteSource = {})
 
-    any readInto(arrayBuffer, offset, size)
-    void cancel(any reason)
+    get closed()
+    get ready()
+    get state()
 
-    get ReadableStreamState state
-
-    get Promise<undefined> ready
-    get Promise<undefined> closed
+    cancel(reason)
+    pipeThrough({ writable, readable }, options)
+    pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) 
+    read()
+    readInto(arrayBuffer, offset, size)
 
     // Internal slots
     [[state]] = "waiting"
@@ -62,6 +59,8 @@ class ReadableByteStream {
     [[error]](any e)
 }
 ```
+
+`underlyingByteSource` has optional methods `start`, `readInto` and `cancel`, and an optional property `readBufferSize`.
 
 #### Abstract Operations For ReadableByteStream Objects
 
