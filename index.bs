@@ -357,7 +357,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
           <li> Set <b>this</b>@\[[started]] to <b>true</b>.
           <li> Return CallReadableStreamPull(<b>this</b>).
         </ol>
-      <li> Upon rejection with reason <var>r</var>, call-with-rethrow <b>this</b>@\[[error]](<var>r</var>).
+      <li> Upon rejection with reason <var>r</var>, call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>,
+        «‍<var>r</var>»).
     </ol>
 </ol>
 
@@ -509,7 +510,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <ol>
-  <li> Call-with-rethrow Invoke(<b>this</b>, <code>"pipeTo"</code>, (<var>writable</var>, <var>options</var>)).
+  <li> Call-with-rethrow Invoke(<b>this</b>, <code>"pipeTo"</code>, «‍<var>writable</var>, <var>options</var>»).
   <li> Return <var>readable</var>.
 </ol>
 
@@ -772,7 +773,7 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 <ol>
   <li> If <var>stream</var>@\[[state]] is <code>"closed"</code>, throw a <b>TypeError</b> exception.
   <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, throw <var>stream</var>@\[[storedError]].
-  <li> Return Construct(<code>ExclusiveStreamReader</code>, (<var>stream</var>)).
+  <li> Return Construct(<code>ExclusiveStreamReader</code>, «‍<var>stream</var>»).
 </ol>
 
 <h4 id="call-readable-stream-pull">CallReadableStreamPull ( stream )</h4>
@@ -788,7 +789,7 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
     (<var>stream</var>@\[[enqueue]], <var>stream</var>@\[[close]], <var>stream</var>@\[[error]]).
   <li> If <var>pullResult</var> is an abrupt completion,
     <ol>
-      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>pullResult</var>.\[[value]]).
+      <li> Call-with-rethrow Call(<var>stream</var>@\[[error]], <b>undefined</b>, «‍<var>pullResult</var>.\[[value]]»).
       <li> Return <var>pullResult</var>.
     </ol>
   <li> Otherwise, return <b>undefined</b>.
@@ -842,16 +843,17 @@ closing over a variable <var>stream</var>, that performs the following steps:
   <li> Let <var>strategy</var> be Get(<var>stream</var>@\[[underlyingSource]], <code>"strategy"</code>).
   <li> If <var>strategy</var> is an abrupt completion,
     <ol>
-      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>strategy</var>.\[[value]]).
+      <li> Call-with-rethrow Call(<var>stream</var>@\[[error]], <b>undefined</b>, «‍<var>strategy</var>.\[[value]]»).
       <li> Return <var>strategy</var>.
     </ol>
   <li> Let <var>strategy</var> be <var>strategy</var>.\[[value]].
   <li> If <var>strategy</var> is not <b>undefined</b>, then
     <ol>
-      <li> Set <var>chunkSize</var> to Invoke(<var>strategy</var>, <code>"size"</code>, (<var>chunk</var>)).
+      <li> Set <var>chunkSize</var> to Invoke(<var>strategy</var>, <code>"size"</code>, «‍<var>chunk</var>»).
       <li> If <var>chunkSize</var> is an abrupt completion,
         <ol>
-          <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>chunkSize</var>.\[[value]]).
+          <li> Call-with-rethrow Call(<var>stream</var>@\[[error]], <b>undefined</b>,
+            «‍<var>chunkSize</var>.\[[value]]»).
           <li> Return <var>chunkSize</var>.
         </ol>
       <li> Let <var>chunkSize</var> be <var>chunkSize</var>.\[[value]].
@@ -940,16 +942,16 @@ a variable <var>stream</var>, that performs the following steps:
   <li> Let <var>strategy</var> be Get(<var>stream</var>@\[[underlyingSource]], <code>"strategy"</code>).
   <li> If <var>strategy</var> is an abrupt completion,
     <ol>
-      <li> Call-with-rethrow <var>stream</var>@\[[error]](<var>strategy</var>.\[[value]]).
+      <li> Call-with-rethrow Call(<var>stream</var>@\[[error]], <b>undefined</b>, «‍<var>strategy</var>.\[[value]]»).
       <li> Return <var>strategy</var>.
     </ol>
   <li> Let <var>strategy</var> be <var>strategy</var>.\[[value]].
   <li> If <var>strategy</var> is not <b>undefined</b>, then
     <ol>
       <li> Set <var>shouldApplyBackpressure</var> to ToBoolean(Invoke(<var>strategy</var>,
-        <code>"shouldApplyBackpressure"</code>, (<var>queueSize</var>))).
+        <code>"shouldApplyBackpressure"</code>, «‍<var>queueSize</var>»)).
       <li> If <var>shouldApplyBackpressure</var> is an abrupt completion, call-with-rethrow
-        <var>stream</var>@\[[error]](<var>shouldApplyBackpressure</var>.\[[value]]).
+        Call(<var>stream</var>@\[[error]], <b>undefined</b>, «‍<var>shouldApplyBackpressure</var>.\[[value]]»).
     </ol>
   <li> Return <var>shouldApplyBackpressure</var>.
 </ol>
@@ -1144,7 +1146,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> Set <b>this</b>@\[[error]] to CreateWritableStreamErrorFunction(<b>this</b>).
   <li> Call-with-rethrow SyncWritableStreamStateWithQueue(<b>this</b>).
   <li> Let <var>startResult</var> be InvokeOrNoop(<var>underlyingSink</var>, <code>"start"</code>,
-    (<b>this</b>@\[[error]])).
+    «‍<b>this</b>@\[[error]]»).
   <li> ReturnIfAbrupt(<var>startResult</var>).
   <li> Set <b>this</b>@\[[startedPromise]] to the result of resolving <var>startResult</var> as a promise.
     <ol>
@@ -1153,7 +1155,8 @@ Instances of <code>WritableStream</code> are created with the internal slots des
           <li> Set <b>this</b>@\[[started]] to <b>true</b>.
           <li> Set <b>this</b>@\[[startedPromise]] to <b>undefined</b>.
         </ol>
-      <li> Upon rejection with reason <var>r</var>, call-with-rethrow <b>this</b>@\[[error]](<var>r</var>).
+      <li> Upon rejection with reason <var>r</var>, call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>,
+        «‍<var>r</var>»).
     </ol>
 </ol>
 
@@ -1231,9 +1234,9 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> If <b>this</b>@\[[state]] is <code>"closed"</code>, return a new promise resolved with <b>undefined</b>.
   <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with
     <b>this</b>@\[[storedError]].
-  <li> Call-with-rethrow <b>this</b>@\[[error]](reason).
+  <li> Call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>, «‍reason»).
   <li> Let <var>sinkAbortPromise</var> be PromiseInvokeOrFallbackOrNoop(<b>this</b>\[[underlyingSink]],
-    <code>"abort"</code>, (<var>reason</var>), <code>"close"</code>, ()).
+    <code>"abort"</code>, (<var>reason</var>), <code>"close"</code>, «‍»).
   <li> Return the result of transforming <var>sinkAbortPromise</var> by a fulfillment handler that returns <b>undefined</b>.
 </ol>
 
@@ -1283,32 +1286,33 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <li> Let <var>strategy</var> be Get(<b>this</b>@\[[underlyingSink]], <code>"strategy"</code>).
   <li> If <var>strategy</var> is an abrupt completion,
     <ol>
-      <li> Call-with-rethrow <b>this</b>@\[[error]](<var>strategy</var>.\[[value]]).
+      <li> Call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>, «‍<var>strategy</var>.\[[value]]»).
       <li> Return a new promise rejected with <var>strategy</var>.\[[value]].
     </ol>
   <li> Set <var>strategy</var> to <var>strategy</var>.\[[value]].
   <li> If <var>strategy</var> is not <b>undefined</b>, then
-    <li> Set <var>chunkSize</var> to Invoke(<var>strategy</var>, <code>"size"</code>, (<var>chunk</var>)).
+    <li> Set <var>chunkSize</var> to Invoke(<var>strategy</var>, <code>"size"</code>, «‍<var>chunk</var>»).
     <li> If <var>chunkSize</var> is an abrupt completion,
       <ol>
-        <li> Call-with-rethrow <b>this</b>@\[[error]](<var>chunkSize</var>.\[[value]]).
+        <li> Call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>, «‍<var>chunkSize</var>.\[[value]]»).
         <li> Return a new promise rejected with <var>chunkSize</var>.\[[value]].
       </ol>
     </li>
     <li> Set <var>chunkSize</var> to <var>chunkSize</var>.\[[value]].
   <li> Let <var>promise</var> be a new promise.
   <li> Let <var>writeRecord</var> be Record{\[[promise]]: <var>promise</var>, \[[chunk]]: <var>chunk</var>}.
-  <li> Let <var>enqueueResult</var> be EnqueueValueWithSize(<b>this</b>@\[[queue]], <var>writeRecord</var>, <var>chunkSize</var>).
+  <li> Let <var>enqueueResult</var> be EnqueueValueWithSize(<b>this</b>@\[[queue]], <var>writeRecord</var>,
+    <var>chunkSize</var>).
   <li> If <var>enqueueResult</var> is an abrupt completion,
     <ol>
-      <li> Call-with-rethrow <b>this</b>@\[[error]](<var>enqueueResult</var>.\[[value]]).
+      <li> Call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>, «‍<var>enqueueResult</var>.\[[value]]»).
       <li> Return a new promise rejected with <var>enqueueResult</var>.\[[value]].
     </ol>
   </li>
   <li> Let <var>syncResult</var> be SyncWritableStreamStateWithQueue(<b>this</b>).
   <li> If <var>syncResult</var> is an abrupt completion,
     <ol>
-      <li> Call-with-rethrow <b>this</b>@\[[error]](<var>syncResult</var>.\[[value]]).
+      <li> Call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>, «‍<var>syncResult</var>.\[[value]]»).
       <li> Return <var>promise</var>.
     </ol>
   </li>
@@ -1344,7 +1348,8 @@ Instances of <code>WritableStream</code> are created with the internal slots des
           <li> Resolve <var>stream</var>@\[[closedPromise]] with <b>undefined</b>.
           <li> Set <var>stream</var>@\[[state]] to <code>"closed"</code>.
         </ol>
-      <li> Upon rejection with reason <var>r</var>, call-with-rethrow <var>stream</var>@\[[error]](<var>r</var>).
+      <li> Upon rejection with reason <var>r</var>, call-with-rethrow Call(<var>stream</var>@\[[error]],
+        <b>undefined</b>, «‍<var>r</var>»).
     </ol>
   <li> Return <b>undefined</b>.
 </ol>
@@ -1394,7 +1399,7 @@ a variable <var>stream</var>, that performs the following steps:
   <li> If <var>strategy</var> is not <b>undefined</b>, then
     <ol>
       <li> Set <var>shouldApplyBackpressure</var> to ToBoolean(Invoke(<var>strategy</var>,
-        <code>"shouldApplyBackpressure"</code>, (<var>queueSize</var>))).
+        <code>"shouldApplyBackpressure"</code>, «‍<var>queueSize</var>»)).
       <li> ReturnIfAbrupt(<var>shouldApplyBackpressure</var>).
     </ol>
   <li> If <var>shouldApplyBackpressure</var> is <b>true</b> and <var>stream</var>@\[[state]] is
@@ -1427,7 +1432,7 @@ a variable <var>stream</var>, that performs the following steps:
     </ol>
   <li> Set <var>stream</var>@\[[writing]] to <b>true</b>.
   <li> Let <var>writeResult</var> be PromiseInvokeOrNoop(<var>stream</var>@\[[underlyingSink]], <code>"write"</code>,
-    (<var>writeRecord</var>.\[[chunk]])).
+    «‍<var>writeRecord</var>.\[[chunk]]»).
   <li> Upon fulfillment of <var>writeResult</var>,
     <ol>
       <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, return.
@@ -1435,12 +1440,12 @@ a variable <var>stream</var>, that performs the following steps:
       <li> Resolve <var>writeRecord</var>.\[[promise]] with <b>undefined</b>.
       <li> DequeueValue(<var>stream</var>@\[[queue]]).
       <li> Let <var>syncResult</var> be SyncWritableStreamStateWithQueue(<var>stream</var>).
-      <li> If <var>syncResult</var> is an abrupt completion, then call-with-rethrow
-        <var>stream</var>@\[[error]](<var>syncResult</var>.\[[value]]).
+      <li> If <var>syncResult</var> is an abrupt completion, then call-with-rethrow Call(<var>stream</var>@\[[error]],
+        <b>undefined</b>, «‍<var>syncResult</var>.\[[value]]»).
       <li> Otherwise, return WritableStreamAdvanceQueue(<var>stream</var>).
     </ol>
   <li> Upon rejection of <var>writeResult</var> with reason <var>r</var>, call-with-rethrow
-    <var>stream</var>@\[[error]](<var>r</var>).
+    Call(<var>stream</var>@\[[error]], <b>undefined</b>, «‍<var>r</var>»).
 </ol>
 
 <h2 id="ts">Transform Streams</h2>
@@ -2201,9 +2206,6 @@ itself will evolve in these ways.
   <li> We use the notation <var>x</var>@\[[y]] to refer to internal slots of an object, instead of saying "the \[[y]]
     internal slot of <var>x</var>."
   <li> We do not alias <b>this</b> to a local variable in each algorithm, instead using it directly.
-  <li> We use the phrase "calling <var>x</var>(<var>y</var>, <var>z</var>, w</var>)" as a shorthand for "calling the
-    \[[Call]] internal method of <var>x</var> passing <b>undefined</b> as <var>thisArgument</var> and (<var>y</var>,
-    <var>z</var>, <var>w</var>) as <var>argumentsList</var>."
   <li> We use the phrase "call-with-rethrow AbstractOperation(<var>x</var>, <var>y</var>, <var>z</var>)" as a shorthand
     for "Let <var>opResult</var> be AbstractOperation(<var>x</var>, <var>y</var>, <var>z</var>).
     ReturnIfAbrupt(<var>opResult</var>)."
@@ -2212,7 +2214,6 @@ itself will evolve in these ways.
   <li> We introduce the notion of creating a function that "closes over" a given variable. This is meant to work the
     same as how the ECMAScript spec gives such functions internal slots which get filled in upon creation and then
     have their values pulled out of during execution, but require less formal contortions.
-  <li> We have use the phrase "no-op function" as a shorthand, without bothering to give it a formal definition.
 </ul>
 
 <h2 id="acks" class="no-num">Acknowledgments</h2>
