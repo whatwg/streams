@@ -220,12 +220,11 @@ test('ReadableStream adapting a push source', t => {
       randomSource.onerror = error;
     },
 
-    pull(enqueue, close, error) {
+    pull(enqueue, close) {
       if (!pullChecked) {
         pullChecked = true;
         t.equal(typeof enqueue, 'function', 'enqueue is a function in pull');
         t.equal(typeof close, 'function', 'close is a function in pull');
-        t.equal(typeof error, 'function', 'error is a function in pull');
       }
 
       randomSource.readStart();
@@ -267,15 +266,15 @@ test('ReadableStream adapting an async pull source', t => {
   });
 });
 
-test('ReadableStream is able to pull data repeatedly if it\'s available synchronously', t => {
+test('ReadableStream is able to enqueue lots of data in a single pull, making it available synchronously', t => {
   var i = 0;
   var rs = new ReadableStream({
     pull(enqueue, close) {
-      if (++i <= 10) {
+      while (++i <= 10) {
         enqueue(i);
-      } else {
-        close();
       }
+
+      close();
     }
   });
 
@@ -288,6 +287,58 @@ test('ReadableStream is able to pull data repeatedly if it\'s available synchron
     t.deepEqual(data, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     t.end();
   });
+});
+
+test('ReadableStream does not call pull until previous pull\'s promise fulfills', t => {
+  var resolve;
+  var returnedPromise;
+  var timesCalled = 0;
+  var rs = new ReadableStream({
+    pull(enqueue) {
+      ++timesCalled;
+      enqueue(timesCalled);
+      returnedPromise = new Promise(r => { resolve = r; });
+      return returnedPromise;
+    }
+  });
+
+  t.equal(rs.state, 'waiting', 'stream starts out waiting');
+
+  rs.ready.then(() => {
+    t.equal(rs.state, 'readable', 'stream becomes readable (even before promise fulfills)');
+    t.equal(timesCalled, 1, 'pull is not yet called a second time');
+    t.equal(rs.read(), 1, 'read() returns enqueued value');
+
+    setTimeout(() => {
+      t.equal(timesCalled, 1, 'after 30 ms, pull has still only been called once');
+
+      resolve();
+
+      returnedPromise.then(() => {
+        t.equal(timesCalled, 2, 'after the promise is fulfilled, pull is called a second time');
+        t.equal(rs.read(), 2, 'read() returns the second enqueued value');
+        t.end();
+      });
+    }, 30);
+  });
+});
+
+test('ReadableStream pull rejection makes stream errored', t => {
+  t.plan(2);
+
+  var theError = new Error('pull failure');
+  var rs = new ReadableStream({
+    pull() {
+      return Promise.reject(theError);
+    }
+  });
+
+  t.equal(rs.state, 'waiting', 'stream starts out waiting');
+
+  rs.closed.then(
+    () => t.fail('.closed should not fulfill'),
+    e => t.equal(e, theError, '.closed should reject with the error')
+  );
 });
 
 test('ReadableStream ready does not error when no more data is available', t => {

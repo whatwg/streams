@@ -238,7 +238,7 @@ test('Piping from a ReadableStream in readable state which becomes closed after 
     },
     close() {
       t.assert(writeCalled);
-      t.equal(pullCount, 1);
+      t.equal(pullCount, 2);
 
       t.end();
     },
@@ -296,7 +296,7 @@ test('Piping from a ReadableStream in readable state which becomes errored after
     abort(reason) {
       t.equal(reason, passedError);
       t.assert(writeCalled);
-      t.equal(pullCount, 1);
+      t.equal(pullCount, 2);
 
       t.end();
     }
@@ -332,7 +332,7 @@ test('Piping from a ReadableStream in waiting state which becomes readable after
   var ws = new WritableStream({
     write(chunk) {
       t.equal(chunk, 'Hello');
-      t.equal(pullCount, 1);
+      t.equal(pullCount, 2);
       t.end();
     },
     close() {
@@ -473,7 +473,7 @@ test('Piping from a ReadableStream in readable state to a WritableStream in wait
       } else {
         t.equal(chunk, 'World');
 
-        t.equal(pullCount, 1);
+        t.equal(pullCount, 2);
 
         t.end();
       }

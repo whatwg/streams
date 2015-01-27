@@ -16,20 +16,24 @@ export default function sequentialReadableStream(limit, options) {
       });
     },
 
-    pull(enqueue, finish, error) {
-      sequentialSource.read((err, done, chunk) => {
-        if (err) {
-          error(err);
-        } else if (done) {
-          sequentialSource.close(err => {
-            if (err) {
-              error(err);
-            }
-            finish();
-          });
-        } else {
-          enqueue(chunk);
-        }
+    pull(enqueue, close) {
+      return new Promise((resolve, reject) => {
+        sequentialSource.read((err, done, chunk) => {
+          if (err) {
+            reject(err);
+          } else if (done) {
+            sequentialSource.close(err => {
+              if (err) {
+                reject(err);
+              }
+              close();
+              resolve();
+            });
+          } else {
+            enqueue(chunk);
+            resolve();
+          }
+        });
       });
     }
   });

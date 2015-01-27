@@ -78,8 +78,7 @@ test('Throwing underlying source pull getter (second pull)', t => {
 
   rs.ready.then(() => {
     t.equal(rs.state, 'readable', 'sanity check: the stream becomes readable without issue');
-
-    t.throws(() => rs.read(), /a unique string/, 'reading triggers a pull, and the error is re-thrown');
+    t.equal(rs.read(), 'a', 'the initially-enqueued chunk can be read from the stream');
   });
 
   rs.closed.then(
@@ -106,8 +105,7 @@ test('Throwing underlying source pull method (second pull)', t => {
 
   rs.ready.then(() => {
     t.equal(rs.state, 'readable', 'sanity check: the stream becomes readable without issue');
-
-    t.throws(() => rs.read(), /a unique string/, 'reading triggers a pull, and the error is re-thrown');
+    t.equal(rs.read(), 'a', 'the initially-enqueued chunk can be read from the stream');
   });
 
   rs.closed.then(

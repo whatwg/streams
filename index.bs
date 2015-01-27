@@ -275,8 +275,9 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
       <code>"errored"</code> state
   </tr>
   <tr>
-    <td>\[[pulling]]
-    <td>A boolean flag indicating whether data is currently being pulled from the underlying sink
+    <td>\[[pullingPromise]]
+    <td>A promise returned by the <a>underlying source</a>'s <code>pull</code> method, stored so that the stream can
+      re-pull when it fulfills
   </tr>
   <tr>
     <td>\[[queue]]
@@ -320,9 +321,10 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     <li> <code>start(enqueue, close, error)</code> is called immediately, and is typically used to adapt a <a>push
       source</a> by setting up relevant event listeners, or to acquire access to a <a>pull source</a>. If this process
       is asynchronous, it can return a promise to signal success or failure.
-    <li> <code>pull(enqueue, close, error)</code> is called when the stream's internal queue of chunks is depleted, and
-      the consumer has signaled that they wish to consume more data. Once it is called, it will not be called again
-      until the passed <code>enqueue</code> callback is called.
+    <li> <code>pull(enqueue, close)</code> is called when the stream's internal queue of chunks is depleted, and the
+      consumer has signaled that they wish to consume more data. If <code>pull</code> returns a promise, then it will
+      not be called again until the promise returned by the previous call has fulfilled; if the promise rejects, the
+      stream will become errored.
     <li> <code>cancel(reason)</code> is called when the consumer signals that they are no longer interested in the
       stream. It should perform any actions necessary to release access to the <a>underlying source</a>. If this
       process is asynchronous, it can return a promise to signal success or failure.
@@ -344,7 +346,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Set <b>this</b>@\[[readyPromise]] and <b>this</b>@\[[closedPromise]] to new promises.
   <li> Set <b>this</b>@\[[queue]] to a new empty List.
   <li> Set <b>this</b>@\[[state]] to <code>"waiting"</code>.
-  <li> Set <b>this</b>@\[[started]], <b>this</b>@\[[draining]], and <b>this</b>@\[[pulling]] to <b>false</b>.
+  <li> Set <b>this</b>@\[[started]] and <b>this</b>@\[[draining]] to <b>false</b>.
   <li> Set <b>this</b>@\[[readableStreamReader]] to <b>undefined</b>.
   <li> Set <b>this</b>@\[[enqueue]] to CreateReadableStreamEnqueueFunction(<b>this</b>).
   <li> Set <b>this</b>@\[[close]] to CreateReadableStreamCloseFunction(<b>this</b>).
@@ -781,20 +783,24 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 <h4 id="call-readable-stream-pull">CallReadableStreamPull ( stream )</h4>
 
 <ol>
-  <li> If <var>stream</var>@\[[pulling]] is <b>true</b> or <var>stream</var>@\[[draining]] is <b>true</b> or
-    <var>stream</var>@\[[started]] is <b>false</b> or <var>stream</var>@\[[state]] is <code>"closed"</code> or
-    <var>stream</var>@\[[state]] is <code>"errored"</code>, return <b>undefined</b>.
+  <li> If <var>stream</var>@\[[draining]] is <b>true</b> or <var>stream</var>@\[[started]] is <b>false</b> or
+    <var>stream</var>@\[[state]] is <code>"closed"</code> or <var>stream</var>@\[[state]] is <code>"errored"</code>,
+    return <b>undefined</b>.
+  <li> If <var>stream</var>@\[[pullingPromise]] is not <b>undefined</b>,
+    <ol>
+      <li> Upon fulfillment of <var>stream</var>@\[[pullingPromise]], call-with-rethrow
+        CallReadableStreamPull(<var>stream</var>).
+      <li> Return <b>undefined</b>.
+    </ol>
   <li> Let <var>shouldApplyBackpressure</var> be ShouldReadableStreamApplyBackpressure(<var>stream</var>).
   <li> If <var>shouldApplyBackpressure</var> is <b>true</b>, return <b>undefined</b>.
-  <li> Set <var>stream</var>@\[[pulling]] to <b>true</b>.
-  <li> Let <var>pullResult</var> be InvokeOrNoop(<var>stream</var>@\[[underlyingSource]], <code>"pull"</code>,
-    (<var>stream</var>@\[[enqueue]], <var>stream</var>@\[[close]], <var>stream</var>@\[[error]]).
-  <li> If <var>pullResult</var> is an abrupt completion,
-    <ol>
-      <li> Call-with-rethrow Call(<var>stream</var>@\[[error]], <b>undefined</b>, «‍<var>pullResult</var>.\[[value]]»).
-      <li> Return <var>pullResult</var>.
-    </ol>
-  <li> Otherwise, return <b>undefined</b>.
+  <li> Set <var>stream</var>@\[[pullingPromise]] to PromiseInvokeOrNoop(<var>stream</var>@\[[underlyingSource]],
+    <code>"pull"</code>, (<var>stream</var>@\[[enqueue]], <var>stream</var>@\[[close]])).
+  <li> Upon fulfillment of <var>stream</var>@\[[pullingPromise]], set <var>stream</var>@\[[pullingPromise]] to
+    <b>undefined</b>.
+  <li> Upon rejection of <var>stream</var>@\[[pullingPromise]] with reason <var>e</var>, call-with-rethrow
+    <var>stream</var>@\[[error]](<var>e</var>).
+  <li> Return <b>undefined</b>.
 </ol>
 
 <h4 id="close-readable-stream">CloseReadableStream ( stream )</h4>
@@ -868,7 +874,6 @@ closing over a variable <var>stream</var>, that performs the following steps:
         «‍<var>enqueueResult</var>.\[[value]]»).
       <li> Return <var>enqueueResult</var>.
     </ol>
-  <li> Set <var>stream</var>@\[[pulling]] to <b>false</b>.
   <li> Let <var>shouldApplyBackpressure</var> be ShouldReadableStreamApplyBackpressure(<var>stream</var>).
   <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>,
     <ol>
@@ -1953,18 +1958,17 @@ sources</a>. Note how in contrast to the examples with push sources, most of the
         });
       },
 
-      pull(enqueue, close, error) {
+      pull(enqueue, close) {
         const buffer = new ArrayBuffer(CHUNK_SIZE);
 
-        fs.read(fd, buffer, 0, CHUNK_SIZE, position).then(bytesRead => {
+        return fs.read(fd, buffer, 0, CHUNK_SIZE, position).then(bytesRead => {
           if (bytesRead === 0) {
             return fs.close(fd).then(close);
           } else {
             position += bytesRead;
             enqueue(buffer);
           }
-        })
-        .catch(error);
+        });
       },
 
       cancel() {

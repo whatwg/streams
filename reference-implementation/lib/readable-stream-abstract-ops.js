@@ -1,7 +1,7 @@
 var assert = require('assert');
 import ExclusiveStreamReader from './exclusive-stream-reader';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
-import { InvokeOrNoop, typeIsObject } from './helpers';
+import { PromiseInvokeOrNoop, typeIsObject } from './helpers';
 
 export function AcquireExclusiveStreamReader(stream) {
   if (stream._state === 'closed') {
@@ -15,8 +15,13 @@ export function AcquireExclusiveStreamReader(stream) {
 }
 
 export function CallReadableStreamPull(stream) {
-  if (stream._pulling === true || stream._draining === true || stream._started === false ||
+  if (stream._draining === true || stream._started === false ||
       stream._state === 'closed' || stream._state === 'errored') {
+    return undefined;
+  }
+
+  if (stream._pullingPromise !== undefined) {
+    stream._pullingPromise.then(() => CallReadableStreamPull(stream));
     return undefined;
   }
 
@@ -25,14 +30,11 @@ export function CallReadableStreamPull(stream) {
     return undefined;
   }
 
-  stream._pulling = true;
-
-  try {
-    InvokeOrNoop(stream._underlyingSource, 'pull', [stream._enqueue, stream._close, stream._error]);
-  } catch (pullResultE) {
-    stream._error(pullResultE);
-    throw pullResultE;
-  }
+  stream._pullingPromise = PromiseInvokeOrNoop(stream._underlyingSource, 'pull', [stream._enqueue, stream._close]);
+  stream._pullingPromise.then(
+    () => { stream._pullingPromise = undefined; },
+    e => { stream._error(e); }
+  );
 
   return undefined;
 }
@@ -100,7 +102,6 @@ export function CreateReadableStreamEnqueueFunction(stream) {
       throw enqueueE;
     }
 
-    stream._pulling = false;
 
     var shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
 
