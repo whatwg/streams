@@ -1781,6 +1781,34 @@ A few abstract operations are used in this specification for utility purposes. W
   <li> Otherwise, return a new promise resolved with <var>returnValue</var>.\[[value]].
 </ol>
 
+<h2 id="globals">Global Properties</h2>
+
+Ideally, this standard would add no new properties to the global object, instead relying on a standard ECMAScript
+module. However, given that the specification for and implementation of modules in a browser environment is still in
+flux, in the meantime the following properties must be exposed on the global object:
+
+<ul>
+  <li> <code>ReadableStream</code>
+  <li> <code>WritableStream</code>
+  <li> <code>ByteLengthQueuingStrategy</code>
+  <li> <code>CountQueuingStrategy</code>
+</ul>
+
+In all cases the property must be a data property, with its value being the corresponding constructor defined in this
+standard, and other attributes { \[[Writable]]: <b>true</b>, \[[Enumerable]]: <b>false</b>, \[[Configurable]]:
+<b>true</b> }.
+
+<div class="note">
+  The <code>ExclusiveStreamReader</code> class is specifically <em>not</em> exposed, as while it does have a
+  functioning constructor, instances should instead be created through the <code>getReader</code> method of a
+  <code>ReadableStream</code> instance.
+</div>
+
+<div class="note">
+  If by the time implementers begin implementing this standard, modules start becoming feasible in the relevant
+  environments, then we should reconsider this requirement.
+</div>
+
 <h2 id="subclassing">Subclassing Streams</h2>
 
 <em>This section is non-normative.</em>
