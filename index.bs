@@ -509,8 +509,6 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <ol>
-  <li> If Type(<var>writable</var>) is not Object, then throw a <b>TypeError</b> exception.
-  <li> If Type(<var>readable</var>) is not Object, then throw a <b>TypeError</b> exception.
   <li> Call-with-rethrow Invoke(<b>this</b>, <code>"pipeTo"</code>, (<var>writable</var>, <var>options</var>)).
   <li> Return <var>readable</var>.
 </ol>
