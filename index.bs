@@ -2228,9 +2228,12 @@ Tim Caswell,
 Brian di Palma,
 Forbes Lindesay,
 Thorsten Lorenz,
+Calvin Metcalf,
 Michael Mior,
 Jens Nockert,
 Trevor Norris,
+Xabier Rodríguez,
+HE Shi-Jun,
 Dominic Tarr, and
 tzik
 for their contributions to this specification.
@@ -2238,6 +2241,7 @@ for their contributions to this specification.
 Special thanks to:
 Will Chan for his help ensuring that the API allows high-performance network streaming,
 Janessa Det for the logo,
+Yutaka Hirano for his help with the exclusive reader design,
 Gorgi Kosev for his breakthrough idea of separating piping into two methods, thus resolving
   <a href="https://github.com/whatwg/streams/issues/44">a major sticking point</a>;
 Forrest Norvell for his enthusiastic iteration on the reference implementation;
