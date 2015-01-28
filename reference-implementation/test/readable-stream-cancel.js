@@ -150,7 +150,7 @@ test('ReadableStream rs.cancel() on a closed stream returns a promise resolved w
   });
 });
 
-test('ReadableStream rs.cancel() on an errored stream returns a promise resolved with undefined', t => {
+test('ReadableStream rs.cancel() on an errored stream returns a promise rejected with the error', t => {
   var passedError = new Error('aaaugh!!');
 
   var rs = new ReadableStream({
