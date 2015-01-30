@@ -73,11 +73,11 @@ A <dfn>readable stream</dfn> represents a source of data, from which you can rea
 Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O source,
 called the <dfn>underlying source</dfn>. There are two types of underlying source: push sources and pull sources.
 
-<dfn title="push source">Push sources</dfn> push data at you, whether or not you are listening for it. They may also
+<dfn lt="push source">Push sources</dfn> push data at you, whether or not you are listening for it. They may also
 provide a mechanism for pausing and resuming the flow of data. An example push source is a TCP socket, where data is
 constantly being pushed from the OS level, at a rate that can be controlled by changing the TCP window size.
 
-<dfn title="pull source">Pull sources</dfn> require you to request data from them. The data may be available
+<dfn lt="pull source">Pull sources</dfn> require you to request data from them. The data may be available
 synchronously, e.g. if it is held by the operating system's in-memory buffers, or asynchronously, e.g. if it has to be
 read from disk. An example pull source is a file handle, where you seek to specific locations and read specific amounts.
 
@@ -160,14 +160,14 @@ A queuing strategy is generally associated with a specific type of <a>underlying
 
 An <dfn>exclusive stream reader</dfn> or simply reader is an object that encapsulates a <a>readable stream</a>,
 preventing access to the stream except through the reader's interface. We say in this case the stream is
-<dfn title="locked to a reader">locked to the reader</dfn>, and that the reader is
-<dfn title="active reader">active</dfn>. A readable stream can have at most one reader at a time.
+<dfn lt="locked to a reader">locked to the reader</dfn>, and that the reader is
+<dfn lt="active reader">active</dfn>. A readable stream can have at most one reader at a time.
 
 The reader presents most of the stream's interface, but while it is active, only the reader's methods and properties
 can be used to successfully manipulate and interrogate the state of the stream; when the stream is used directly, it
 appears as if it is empty.
 
-A reader also has the capability to <dfn title="release a read lock">release its read lock</dfn>, which makes it no
+A reader also has the capability to <dfn lt="release a read lock">release its read lock</dfn>, which makes it no
 longer active. At this point the original stream can be used as before, and the reader becomes inert. If the
 encapsulated stream becomes closed or errored as a result of the behavior of its <a>underlying source</a>, any
 associated reader will automatically release its lock.
@@ -177,7 +177,7 @@ associated reader will automatically release its lock.
 <h3 id="rs-intro">Using Readable Streams</h3>
 
 <div class="example">
-  The simplest way to consume a readable stream is to simply <a title="piping">pipe</a> it to a <a>writable stream</a>.
+  The simplest way to consume a readable stream is to simply <a lt="piping">pipe</a> it to a <a>writable stream</a>.
   This ensures that <a>backpressure</a> is respected, and any errors (either writing or reading) are propagated through
   the chain:
 
@@ -453,10 +453,10 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 
 <div class="note">
   The <code>getReader</code> method creates an <a>exclusive stream reader</a> and
-  <a title="locked to a reader">locks</a> the stream to the the new reader. While the stream is locked, it cannot be
+  <a lt="locked to a reader">locks</a> the stream to the the new reader. While the stream is locked, it cannot be
   manipulated directly, and will appear to be an inert, empty stream waiting for new <a>chunks</a> to be enqueued.
   Instead, the returned reader object can be used to read from or cancel the stream, or to discern its state and state
-  transitions. If or when the lock is <a title="release a read lock">released</a>, the stream can be used again as
+  transitions. If or when the lock is <a lt="release a read lock">released</a>, the stream can be used again as
   normal.
 
   This functionality is especially useful for creating abstractions that desire the ability to consume a stream in its
@@ -530,7 +530,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 <h5 id="rs-pipe-to">pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})</h5>
 
 <div class="note">
-  The <code>pipeTo</code> method <a title="piping">pipes</a> this <a>readable stream</a> to a given <a>writable
+  The <code>pipeTo</code> method <a lt="piping">pipes</a> this <a>readable stream</a> to a given <a>writable
   stream</a>. The way in which the piping process behaves under various error conditions can be customized with a
   number of passed options. It returns a promise that fulfills when the piping process completes successfully, or
   rejects if any errors were encountered.
@@ -637,7 +637,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 <h5 id="reader-closed">get closed</h5>
 
 <div class="note">
-  While the reader is <a title="active reader">active</a>, the <code>closed</code> getter for a stream reader simply
+  While the reader is <a lt="active reader">active</a>, the <code>closed</code> getter for a stream reader simply
   delegates to the encapsulated stream, to allow consumers to use the reader interface as they would the readable
   stream interface.
 </div>
@@ -654,7 +654,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 
 <div class="note">
   The <code>isActive</code> getter returns whether or not the stream reader is currently
-  <a title="active reader">active</a>.
+  <a lt="active reader">active</a>.
 </div>
 
 <ol>
@@ -666,9 +666,9 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 
 <div class="note">
   The <code>ready</code> getter behaves the same as that for the readable stream encapsulated by this reader, except
-  that while the reader is <a title="active reader">active</a>, the promise returned will reveal the stream's true
+  that while the reader is <a lt="active reader">active</a>, the promise returned will reveal the stream's true
   state transitions. (In contrast, the stream itself does not signal any state transitions while
-  <a title="locked to a reader">locked</a>, giving off the appearance of being <code>"waiting"</code> for the
+  <a lt="locked to a reader">locked</a>, giving off the appearance of being <code>"waiting"</code> for the
   duration.)
 </div>
 
@@ -684,9 +684,9 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 
 <div class="note">
   The <code>state</code> getter behaves the same as that for the readable stream encapsulated by this reader, except
-  that while the reader is <a title="active reader">active</a>, it will reveal the stream's true state. (In contrast,
+  that while the reader is <a lt="active reader">active</a>, it will reveal the stream's true state. (In contrast,
   the stream itself gives off the appearance of being <code>"waiting"</code> while it is
-  <a title="locked to a reader">locked</a>.)
+  <a lt="locked to a reader">locked</a>.)
 </div>
 
 <ol>
@@ -699,8 +699,8 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 <h5 id="reader-cancel">cancel(...args)</h5>
 
 <div class="note">
-  If the reader is <a title="active reader">active</a>, the <code>cancel</code> method will
-  <a title="release a read lock">release the lock</a> and then call through to the stream's own <code>cancel</code>
+  If the reader is <a lt="active reader">active</a>, the <code>cancel</code> method will
+  <a lt="release a read lock">release the lock</a> and then call through to the stream's own <code>cancel</code>
   method.
 </div>
 
@@ -717,10 +717,10 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 <h5 id="reader-read">read()</h5>
 
 <div class="note">
-  If the reader is <a title="active reader">active</a>, the <code>read</code> method behaves the same as that for the
+  If the reader is <a lt="active reader">active</a>, the <code>read</code> method behaves the same as that for the
   encapsulated stream, except that the reader will be able to use its exclusive access to the stream to retrieve
   <a>chunks</a>. (In contrast, the stream itself will not allow any chunks to be read from it while it is
-  <a title="locked to a reader">locked</a>.)
+  <a lt="locked to a reader">locked</a>.)
 </div>
 
 <ol>
@@ -733,8 +733,8 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 <h5 id="reader-release-lock">releaseLock()</h5>
 
 <div class="note">
-  The <code>releaseLock</code> method <a title="release a read lock">releases the reader's lock</a> on the encapsulated
-  stream. After the lock is released, the reader is no longer <a title="active reader">active</a>. If the encapsulated
+  The <code>releaseLock</code> method <a lt="release a read lock">releases the reader's lock</a> on the encapsulated
+  stream. After the lock is released, the reader is no longer <a lt="active reader">active</a>. If the encapsulated
   stream is errored when the lock is released, the reader will appear errored in the same way from now on; otherwise,
   the reader will appear closed.
 </div>
@@ -963,7 +963,7 @@ a variable <var>stream</var>, that performs the following steps:
 <h3 id="ws-intro">Using Writable Streams</h3>
 
 <div class="example">
-  The usual way to write to a writable stream is to simply <a title="piping">pipe</a> a <a>readable stream</a> to it.
+  The usual way to write to a writable stream is to simply <a lt="piping">pipe</a> a <a>readable stream</a> to it.
   This ensures that <a>backpressure</a> is respected, so that if the writable stream's <a>underlying sink</a> is not
   able to accept data as fast as the readable stream can produce it, the readable stream is informed of this and has a
   chance to slow down its data production.
