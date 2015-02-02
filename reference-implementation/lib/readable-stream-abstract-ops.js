@@ -16,12 +16,17 @@ export function AcquireExclusiveStreamReader(stream) {
 
 export function CallReadableStreamPull(stream) {
   if (stream._draining === true || stream._started === false ||
-      stream._state === 'closed' || stream._state === 'errored') {
+      stream._state === 'closed' || stream._state === 'errored' ||
+      stream._pullScheduled === true) {
     return undefined;
   }
 
   if (stream._pullingPromise !== undefined) {
-    stream._pullingPromise.then(() => CallReadableStreamPull(stream));
+    stream._pullScheduled = true;
+    stream._pullingPromise.then(() => {
+      stream._pullScheduled = false;
+      CallReadableStreamPull(stream);
+    });
     return undefined;
   }
 

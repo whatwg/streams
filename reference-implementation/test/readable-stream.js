@@ -323,6 +323,44 @@ test('ReadableStream does not call pull until previous pull\'s promise fulfills'
   });
 });
 
+test('ReadableStream does not call pull multiple times after previous pull finishes', t => {
+  var timesCalled = 0;
+
+  var rs = new ReadableStream({
+    start(enqueue) {
+      enqueue('a');
+      enqueue('b');
+      enqueue('c');
+    },
+    pull() {
+      ++timesCalled;
+    },
+    strategy: {
+      size() {
+        return 1;
+      },
+      shouldApplyBackpressure() {
+        return false;
+      }
+    }
+  });
+
+  t.equal(rs.state, 'readable', 'since start() synchronously enqueued chunks, the stream is readable');
+
+  // Wait for start to finish
+  rs.ready.then(() => {
+    t.equal(rs.read(), 'a', 'first chunk should be as expected');
+    t.equal(rs.read(), 'b', 'second chunk should be as expected');
+    t.equal(rs.read(), 'c', 'third chunk should be as expected');
+
+    setTimeout(() => {
+      // Once for after start, and once for after rs.read() === 'a'.
+      t.equal(timesCalled, 2, 'pull() should only be called twice');
+      t.end();
+    }, 50);
+  });
+});
+
 test('ReadableStream pull rejection makes stream errored', t => {
   t.plan(2);
 

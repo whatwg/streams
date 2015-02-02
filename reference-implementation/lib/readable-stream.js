@@ -13,6 +13,7 @@ export default class ReadableStream {
     this._state = 'waiting';
     this._started = false;
     this._draining = false;
+    this._pullScheduled = false;
     this._pullingPromise = undefined;
     this._readableStreamReader = undefined;
 
