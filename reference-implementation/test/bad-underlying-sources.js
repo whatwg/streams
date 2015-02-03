@@ -149,26 +149,29 @@ test('Throwing underlying source cancel method', t => {
 });
 
 test('Throwing underlying source strategy getter', t => {
+  t.plan(2);
+
   var theError = new Error('a unique string');
 
-  new ReadableStream({
+  var rs = new ReadableStream({
     start(enqueue) {
       t.throws(() => enqueue('a'), /a unique string/);
-      t.end();
     },
     get strategy() {
       throw theError;
     }
   });
+
+  t.equal(rs.state, 'errored', 'state should be errored');
 });
 
 test('Throwing underlying source strategy.size getter', t => {
-  var theError = new Error('a unique string');
+  t.plan(2);
 
-  new ReadableStream({
+  var theError = new Error('a unique string');
+  var rs = new ReadableStream({
     start(enqueue) {
       t.throws(() => enqueue('a'), /a unique string/);
-      t.end();
     },
     strategy: {
       get size() {
@@ -179,15 +182,17 @@ test('Throwing underlying source strategy.size getter', t => {
       }
     }
   });
+
+  t.equal(rs.state, 'errored', 'state should be errored');
 });
 
 test('Throwing underlying source strategy.size method', t => {
-  var theError = new Error('a unique string');
+  t.plan(2);
 
-  new ReadableStream({
+  var theError = new Error('a unique string');
+  var rs = new ReadableStream({
     start(enqueue) {
       t.throws(() => enqueue('a'), /a unique string/);
-      t.end();
     },
     strategy: {
       size() {
@@ -198,15 +203,17 @@ test('Throwing underlying source strategy.size method', t => {
       }
     }
   });
+
+  t.equal(rs.state, 'errored', 'state should be errored');
 });
 
 test('Throwing underlying source strategy.shouldApplyBackpressure getter', t => {
-  var theError = new Error('a unique string');
+  t.plan(2);
 
-  new ReadableStream({
+  var theError = new Error('a unique string');
+  var rs = new ReadableStream({
     start(enqueue) {
       t.throws(() => enqueue('a'), /a unique string/);
-      t.end();
     },
     strategy: {
       size() {
@@ -217,15 +224,17 @@ test('Throwing underlying source strategy.shouldApplyBackpressure getter', t => 
       }
     }
   });
+
+  t.equal(rs.state, 'errored', 'state should be errored');
 });
 
 test('Throwing underlying source strategy.shouldApplyBackpressure method', t => {
-  var theError = new Error('a unique string');
+  t.plan(2);
 
-  new ReadableStream({
+  var theError = new Error('a unique string');
+  var rs = new ReadableStream({
     start(enqueue) {
       t.throws(() => enqueue('a'), /a unique string/);
-      t.end();
     },
     strategy: {
       size() {
@@ -236,4 +245,6 @@ test('Throwing underlying source strategy.shouldApplyBackpressure method', t => 
       }
     }
   });
+
+  t.equal(rs.state, 'errored', 'state should be errored');
 });

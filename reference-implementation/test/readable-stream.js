@@ -510,6 +510,8 @@ test('ReadableStream if size throws, the stream is errored', t => {
 });
 
 test('ReadableStream if size is NaN, the stream is errored', t => {
+  t.plan(2);
+
   var rs = new ReadableStream({
     start(enqueue) {
       try {
@@ -517,7 +519,6 @@ test('ReadableStream if size is NaN, the stream is errored', t => {
         t.fail('enqueue didn\'t throw');
       } catch (error) {
         t.equal(error.constructor, RangeError);
-        t.end();
       }
     },
     strategy: {
@@ -530,6 +531,60 @@ test('ReadableStream if size is NaN, the stream is errored', t => {
       }
     }
   });
+
+  t.equal(rs.state, 'errored', 'state should be errored');
+});
+
+test('ReadableStream if size is -Infinity, the stream is errored', t => {
+  t.plan(2);
+
+  var rs = new ReadableStream({
+    start(enqueue) {
+      try {
+        enqueue('hi');
+        t.fail('enqueue didn\'t throw');
+      } catch (error) {
+        t.equal(error.constructor, RangeError);
+      }
+    },
+    strategy: {
+      size() {
+        return -Infinity;
+      },
+
+      shouldApplyBackpressure() {
+        return true;
+      }
+    }
+  });
+
+  t.equal(rs.state, 'errored', 'state should be errored');
+});
+
+test('ReadableStream if size is +Infinity, the stream is errored', t => {
+  t.plan(2);
+
+  var rs = new ReadableStream({
+    start(enqueue) {
+      try {
+        enqueue('hi');
+        t.fail('enqueue didn\'t throw');
+      } catch (error) {
+        t.equal(error.constructor, RangeError);
+      }
+    },
+    strategy: {
+      size() {
+        return +Infinity;
+      },
+
+      shouldApplyBackpressure() {
+        return true;
+      }
+    }
+  });
+
+  t.equal(rs.state, 'errored', 'state should be errored');
 });
 
 test('ReadableStream errors in shouldApplyBackpressure cause ready to fulfill and closed to rejected', t => {

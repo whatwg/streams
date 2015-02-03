@@ -93,7 +93,13 @@ export function CreateReadableStreamEnqueueFunction(stream) {
       }
     }
 
-    EnqueueValueWithSize(stream._queue, chunk, chunkSize);
+    try {
+      EnqueueValueWithSize(stream._queue, chunk, chunkSize);
+    } catch (enqueueE) {
+      stream._error(enqueueE);
+      throw enqueueE;
+    }
+
     stream._pulling = false;
 
     var shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);

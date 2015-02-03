@@ -860,8 +860,14 @@ closing over a variable <var>stream</var>, that performs the following steps:
         </ol>
       <li> Let <var>chunkSize</var> be <var>chunkSize</var>.\[[value]].
     </ol>
-  <li>Call-with-rethrow EnqueueValueWithSize(<var>stream</var>@\[[queue]], <var>chunk</var>,
+  <li>Let <var>enqueueResult</var> be EnqueueValueWithSize(<var>stream</var>@\[[queue]], <var>chunk</var>,
     <var>chunkSize</var>.\[[value]]).
+  <li> If <var>enqueueResult</var> is an abrupt completion,
+    <ol>
+      <li> Call-with-rethrow Call(<var>stream</var>@\[[error]], <b>undefined</b>,
+        «‍<var>enqueueResult</var>.\[[value]]»).
+      <li> Return <var>enqueueResult</var>.
+    </ol>
   <li> Set <var>stream</var>@\[[pulling]] to <b>false</b>.
   <li> Let <var>shouldApplyBackpressure</var> be ShouldReadableStreamApplyBackpressure(<var>stream</var>).
   <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>,
