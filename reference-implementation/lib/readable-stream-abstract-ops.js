@@ -1,6 +1,6 @@
 var assert = require('assert');
 import ExclusiveStreamReader from './exclusive-stream-reader';
-import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
+import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PutBackValueWithSize } from './queue-with-sizes';
 import { InvokeOrNoop, typeIsObject } from './helpers';
 
 export function AcquireExclusiveStreamReader(stream) {
@@ -157,6 +157,42 @@ export function IsReadableStream(x) {
   }
 
   return true;
+}
+
+export function PutBackIntoReadableStream(stream, chunk) {
+  if (stream._state === 'closed') {
+    throw new TypeError('stream is closed');
+  }
+  if (stream._state === 'errored') {
+    throw stream._storedError;
+  }
+
+
+  var chunkSize = 1;
+
+  var strategy;
+  try {
+    strategy = stream._underlyingSource.strategy;
+  } catch (strategyE) {
+    stream._error(strategyE);
+    throw strategyE;
+  }
+
+  if (strategy !== undefined) {
+    try {
+      chunkSize = strategy.size(chunk);
+    } catch (chunkSizeE) {
+      stream._error(chunkSizeE);
+      throw chunkSizeE;
+    }
+  }
+
+  PutBackValueWithSize(stream._queue, chunk, chunkSize);
+
+  if (stream._state === 'waiting') {
+    stream._state = 'readable';
+    stream._resolveReadyPromise(undefined);
+  }
 }
 
 export function ReadFromReadableStream(stream) {

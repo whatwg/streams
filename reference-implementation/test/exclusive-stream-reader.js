@@ -3,7 +3,7 @@ var test = require('tape');
 import ReadableStream from '../lib/readable-stream';
 
 test('Using the reader directly on a mundane stream', t => {
-  t.plan(22);
+  t.plan(25);
 
   var rs = new ReadableStream({
     start(enqueue, close) {
@@ -23,6 +23,7 @@ test('Using the reader directly on a mundane stream', t => {
   t.equal(reader.state, 'readable', 'the reader state is readable');
 
   t.throws(() => rs.read(), /TypeError/, 'trying to read from the stream directly throws a TypeError');
+  t.throws(() => rs.putBack('a'), /TypeError/, 'trying to putBack into the stream directly throws a TypeError');
   t.equal(reader.read(), 'a', 'trying to read from the reader works and gives back the first enqueued value');
   t.equal(reader.state, 'waiting', 'the reader state is now waiting since the queue has been drained');
   rs.cancel().then(
@@ -34,6 +35,8 @@ test('Using the reader directly on a mundane stream', t => {
     t.equal(reader.state, 'readable', 'ready for reader is fulfilled when second chunk is enqueued');
     t.equal(rs.state, 'waiting', 'the stream state is still waiting');
     t.equal(reader.read(), 'b', 'you can read the second chunk from the reader');
+    t.doesNotThrow(() => reader.putBack('c'), 'you can put back into the reader');
+    t.equal(reader.read(), 'c', 'you can read the chunk that was put back via the reader');
   });
 
   reader.closed.then(() => {
@@ -119,7 +122,7 @@ test('Reading from a reader for an empty stream throws but doesn\'t break anythi
 });
 
 test('A released reader should present like a closed stream', t => {
-  t.plan(7);
+  t.plan(8);
 
   var rs = new ReadableStream();
   var reader = rs.getReader();
@@ -130,6 +133,7 @@ test('A released reader should present like a closed stream', t => {
   t.equal(rs.state, 'waiting', 'rs.state returns waiting');
 
   t.throws(() => reader.read(), /TypeError/, 'trying to read gives a TypeError');
+  t.throws(() => reader.putBack('a'), /TypeError/, 'trying to put back gives a TypeError');
   reader.cancel().then(
     v => t.equal(v, undefined, 'reader.cancel() should fulfill with undefined'),
     e => t.fail('reader.cancel() should not reject')

@@ -166,6 +166,12 @@ test('ReadableStream.prototype.pipeTo works generically on its this and its argu
   t.doesNotThrow(() => ReadableStream.prototype.pipeTo.call(fakeReadableStream(), fakeWritableStream()));
 });
 
+test('ReadableStream.prototype.putBack enforces a brand check', t => {
+  t.plan(2);
+  methodThrows(t, ReadableStream.prototype, 'putBack', fakeReadableStream());
+  methodThrows(t, ReadableStream.prototype, 'putBack', realWritableStream());
+});
+
 test('ReadableStream.prototype.read enforces a brand check', t => {
   t.plan(2);
   methodThrows(t, ReadableStream.prototype, 'read', fakeReadableStream());

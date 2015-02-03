@@ -12,7 +12,7 @@ export function EnqueueValueWithSize(queue, value, size) {
     throw new RangeError('Size must be a finite, non-NaN number.');
   }
 
-  queue.push({ value: value, size: size });
+  queue.push({ value, size });
 }
 
 export function GetTotalQueueSize(queue) {
@@ -32,4 +32,13 @@ export function PeekQueueValue(queue) {
   assert(queue.length > 0, 'Spec-level failure: should never peek at an empty queue.');
   var pair = queue[0];
   return pair.value;
+}
+
+export function PutBackValueWithSize(queue, value, size) {
+  size = Number(size);
+  if (Number.isNaN(size) || size === +Infinity || size === -Infinity) {
+    throw new RangeError('Size must be a finite, non-NaN number.');
+  }
+
+  queue.unshift({ value, size });
 }
