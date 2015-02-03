@@ -1,8 +1,8 @@
 var assert = require('assert');
 import * as helpers from './helpers';
 import { AcquireExclusiveStreamReader, CallReadableStreamPull, CloseReadableStream, CreateReadableStreamCloseFunction,
-  CreateReadableStreamEnqueueFunction, CreateReadableStreamErrorFunction, IsReadableStream, ReadFromReadableStream,
-  ShouldReadableStreamApplyBackpressure } from './readable-stream-abstract-ops';
+  CreateReadableStreamEnqueueFunction, CreateReadableStreamErrorFunction, IsReadableStream, PutBackIntoReadableStream,
+  ReadFromReadableStream, ShouldReadableStreamApplyBackpressure } from './readable-stream-abstract-ops';
 
 export default class ReadableStream {
   constructor(underlyingSource = {}) {
@@ -183,6 +183,18 @@ export default class ReadableStream {
     }
 
     return ReadFromReadableStream(this);
+  }
+
+  putBack(chunk) {
+    if (!IsReadableStream(this)) {
+      throw new TypeError('ReadableStream.prototype.read can only be used on a ReadableStream');
+    }
+
+    if (this._readableStreamReader !== undefined) {
+      throw new TypeError('This stream is locked to a single exclusive reader and putBack cannot be used directly');
+    }
+
+    return PutBackIntoReadableStream(this, chunk);
   }
 
   get ready() {

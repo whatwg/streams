@@ -148,11 +148,10 @@ test('Throwing underlying source cancel method', t => {
   );
 });
 
-test('Throwing underlying source strategy getter', t => {
+test('Throwing underlying source strategy getter: enqueue', t => {
   t.plan(2);
 
   var theError = new Error('a unique string');
-
   var rs = new ReadableStream({
     start(enqueue) {
       t.throws(() => enqueue('a'), /a unique string/);
@@ -165,7 +164,21 @@ test('Throwing underlying source strategy getter', t => {
   t.equal(rs.state, 'errored', 'state should be errored');
 });
 
-test('Throwing underlying source strategy.size getter', t => {
+test('Throwing underlying source strategy getter: putBack', t => {
+  t.plan(2);
+
+  var theError = new Error('a unique string');
+  var rs = new ReadableStream({
+    get strategy() {
+      throw theError;
+    }
+  });
+
+  t.throws(() => rs.putBack('a'), /a unique string/);
+  t.equal(rs.state, 'errored', 'state should be errored');
+});
+
+test('Throwing underlying source strategy.size getter: enqueue', t => {
   t.plan(2);
 
   var theError = new Error('a unique string');
@@ -186,7 +199,26 @@ test('Throwing underlying source strategy.size getter', t => {
   t.equal(rs.state, 'errored', 'state should be errored');
 });
 
-test('Throwing underlying source strategy.size method', t => {
+test('Throwing underlying source strategy.size getter: putBack', t => {
+  t.plan(2);
+
+  var theError = new Error('a unique string');
+  var rs = new ReadableStream({
+    strategy: {
+      get size() {
+        throw theError;
+      },
+      shouldApplyBackpressure() {
+        return true;
+      }
+    }
+  });
+
+  t.throws(() => rs.putBack('a'), /a unique string/);
+  t.equal(rs.state, 'errored', 'state should be errored');
+});
+
+test('Throwing underlying source strategy.size method: enqueue', t => {
   t.plan(2);
 
   var theError = new Error('a unique string');
@@ -207,7 +239,26 @@ test('Throwing underlying source strategy.size method', t => {
   t.equal(rs.state, 'errored', 'state should be errored');
 });
 
-test('Throwing underlying source strategy.shouldApplyBackpressure getter', t => {
+test('Throwing underlying source strategy.size method: putBack', t => {
+  t.plan(2);
+
+  var theError = new Error('a unique string');
+  var rs = new ReadableStream({
+    strategy: {
+      size() {
+        throw theError;
+      },
+      shouldApplyBackpressure() {
+        return true;
+      }
+    }
+  });
+
+  t.throws(() => rs.putBack('a'), /a unique string/);
+  t.equal(rs.state, 'errored', 'state should be errored');
+});
+
+test('Throwing underlying source strategy.shouldApplyBackpressure getter: enqueue', t => {
   t.plan(2);
 
   var theError = new Error('a unique string');
@@ -228,7 +279,26 @@ test('Throwing underlying source strategy.shouldApplyBackpressure getter', t => 
   t.equal(rs.state, 'errored', 'state should be errored');
 });
 
-test('Throwing underlying source strategy.shouldApplyBackpressure method', t => {
+test('Throwing underlying source strategy.shouldApplyBackpressure getter: putBack', t => {
+  t.plan(2);
+
+  var theError = new Error('a unique string');
+  var rs = new ReadableStream({
+    strategy: {
+      size() {
+        return 1;
+      },
+      get shouldApplyBackpressure() {
+        throw theError;
+      }
+    }
+  });
+
+  t.doesNotThrow(() => rs.putBack('a'), 'putBack should not consult shouldApplyBackpressure and thus should not throw');
+  t.equal(rs.state, 'readable', 'state should be readable');
+});
+
+test('Throwing underlying source strategy.shouldApplyBackpressure method: enqueue', t => {
   t.plan(2);
 
   var theError = new Error('a unique string');
@@ -247,4 +317,23 @@ test('Throwing underlying source strategy.shouldApplyBackpressure method', t => 
   });
 
   t.equal(rs.state, 'errored', 'state should be errored');
+});
+
+test('Throwing underlying source strategy.shouldApplyBackpressure method: putBack', t => {
+  t.plan(2);
+
+  var theError = new Error('a unique string');
+  var rs = new ReadableStream({
+    strategy: {
+      size() {
+        return 1;
+      },
+      shouldApplyBackpressure() {
+        throw theError;
+      }
+    }
+  });
+
+  t.doesNotThrow(() => rs.putBack('a'), 'putBack should not consult shouldApplyBackpressure and thus should not throw');
+  t.equal(rs.state, 'readable', 'state should be readable');
 });

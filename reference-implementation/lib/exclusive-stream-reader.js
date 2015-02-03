@@ -1,5 +1,9 @@
 var assert = require('assert');
-import { ReadFromReadableStream, IsExclusiveStreamReader } from './readable-stream-abstract-ops';
+import {
+  IsExclusiveStreamReader,
+  PutBackIntoReadableStream,
+  ReadFromReadableStream
+} from './readable-stream-abstract-ops';
 
 export default class ExclusiveStreamReader {
   constructor(stream) {
@@ -80,6 +84,18 @@ export default class ExclusiveStreamReader {
     }
 
     return ReadFromReadableStream(this._encapsulatedReadableStream);
+  }
+
+  putBack(chunk) {
+    if (!IsExclusiveStreamReader(this)) {
+      throw new TypeError('ExclusiveStreamReader.prototype.putBack can only be used on a ExclusiveStreamReader');
+    }
+
+    if (this._encapsulatedReadableStream._readableStreamReader !== this) {
+      throw new TypeError('This stream reader has released its lock on the stream and can no longer be used');
+    }
+
+    return PutBackIntoReadableStream(this._encapsulatedReadableStream, chunk);
   }
 
   cancel(reason, ...args) {

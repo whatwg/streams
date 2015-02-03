@@ -12,11 +12,12 @@ test('ReadableStream can be constructed with no arguments', t => {
 });
 
 test('ReadableStream instances have the correct methods and properties', t => {
-  t.plan(9);
+  t.plan(10);
 
   var rs = new ReadableStream();
 
   t.equal(typeof rs.read, 'function', 'has a read method');
+  t.equal(typeof rs.putBack, 'function', 'has a putBack method');
   t.equal(typeof rs.cancel, 'function', 'has an cancel method');
   t.equal(typeof rs.pipeTo, 'function', 'has a pipeTo method');
   t.equal(typeof rs.pipeThrough, 'function', 'has a pipeThrough method');
@@ -366,6 +367,29 @@ test('Default ReadableStream returns `false` for all but the first `enqueue` cal
   });
 });
 
+test('Default ReadableStream returns `false` for all but the first `enqueue` call (putBack interleaved)', t => {
+  var doEnqueue;
+  var rs = new ReadableStream({
+    start(enqueue) {
+      doEnqueue = enqueue;
+    }
+  });
+
+  t.equal(doEnqueue('a'), true);
+  t.equal(doEnqueue('b'), false);
+  t.equal(rs.read(), 'a');
+  t.equal(doEnqueue('c'), false);
+  t.equal(rs.read(), 'b');
+  t.equal(rs.read(), 'c');
+  rs.putBack('d');
+  t.equal(doEnqueue('e'), false);
+  t.equal(rs.read(), 'd');
+  t.equal(rs.read(), 'e');
+  t.equal(doEnqueue('f'), true);
+
+  t.end();
+});
+
 test('ReadableStream continues returning `true` from `enqueue` if the data is read out of it in time', t => {
   t.plan(12);
 
@@ -679,4 +703,78 @@ test('ReadableStream should call underlying source methods as methods', t => {
   var rs = new ReadableStream(theSource);
 
   rs.ready.then(() => rs.cancel());
+});
+
+test('ReadableStream putBack on an empty stream makes it readable', t => {
+  var rs = new ReadableStream();
+
+  t.equal(rs.state, 'waiting', 'the stream starts out waiting');
+  t.equal(rs.putBack('a'), undefined, 'putBack returns undefined');
+  t.equal(rs.state, 'readable', 'the stream is now readable');
+  t.equal(rs.read(), 'a', 'read() returns the chunk put into the stream');
+  t.equal(rs.state, 'waiting', 'the stream is now waiting');
+  t.end();
+});
+
+test('ReadableStream putBack on an empty stream causes ready to fulfill', t => {
+  var rs = new ReadableStream();
+
+  rs.ready.then(() => {
+    t.equal(rs.state, 'readable', 'state should be readable after ready is fulfilled');
+    t.equal(rs.read(), 'a', 'read() returns the chunk that was put back');
+    t.end();
+  });
+
+  t.equal(rs.state, 'waiting', 'the stream starts out waiting');
+  t.equal(rs.putBack('a'), undefined, 'putBack returns undefined');
+});
+
+test('ReadableStream putBack on a stream that is recently empty causes ready to fulfill', t => {
+  var rs = new ReadableStream({
+    start(enqueue) {
+      enqueue('a');
+      enqueue('b');
+    }
+  });
+
+
+  t.equal(rs.state, 'readable', 'the stream starts out readable');
+  t.equal(rs.read(), 'a', 'the first chunk is read successfully');
+  t.equal(rs.read(), 'b', 'the second chunk is read successfully');
+  t.equal(rs.state, 'waiting', 'the stream should be waiting after reading all its chunks');
+
+  rs.ready.then(() => {
+    t.equal(rs.state, 'readable', 'state should be readable after ready is fulfilled');
+    t.equal(rs.read(), 'c', 'read() returns the chunk that was put back');
+    t.end();
+  })
+
+  t.equal(rs.putBack('c'), undefined, 'putBack returns undefined');
+});
+
+test('ReadableStream putBack throws on a closed stream', t => {
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      close();
+    }
+  });
+
+  t.equal(rs.state, 'closed', 'state should be closed');
+  t.throws(() => rs.putBack('a'), /TypeError/, 'calling putBack on the closed stream throws');
+  t.end();
+});
+
+test('ReadableStream putBack works fine on a draining stream', t => {
+  var rs = new ReadableStream({
+    start(enqueue, close) {
+      enqueue('a');
+      close();
+    }
+  });
+
+  t.equal(rs.state, 'readable', 'state should be readable');
+  t.doesNotThrow(() => rs.putBack('b'), 'putting back another chunk into the draining stream should not throw');
+  t.equal(rs.read(), 'b', 'reading the put-back chunk should work');
+  t.equal(rs.read(), 'a', 'reading the originally-enqueued chunk should work');
+  t.end();
 });
