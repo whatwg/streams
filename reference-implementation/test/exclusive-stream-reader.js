@@ -58,42 +58,6 @@ test('Using the reader directly on a mundane stream', t => {
   });
 });
 
-test('Readers delegate to underlying stream implementations', t => {
-  t.plan(4);
-
-  var rs = new ReadableStream();
-  var reader = rs.getReader();
-
-  testMethod('cancel'); // 4
-
-  // Generates 3 assertions
-  function testGetter(propertyName) {
-    Object.defineProperty(rs, propertyName, {
-      get() {
-        t.pass(propertyName + ': overridden property called');
-        t.equal(this, rs, propertyName + ': property retrieved with the correct this value');
-        return propertyName + ' return value';
-      }
-    });
-
-    t.equal(reader[propertyName], propertyName + ' return value',
-      propertyName + ': reader\'s getter returns the same value as the stream\'s getter');
-  }
-
-  // Generates 4 assertions
-  function testMethod(methodName) {
-    var testArgs = ['arg1', 'arg2', 'arg3'];
-    rs[methodName] = function (...args) {
-      t.pass(methodName + ': overridden method called');
-      t.deepEqual(args, testArgs, methodName + ': called with the correct arguments');
-      t.equal(this, rs, methodName + ': called with the correct this value');
-      return methodName + ' return value';
-    }
-    t.equal(reader[methodName](...testArgs), methodName + ' return value',
-      methodName + ': reader\'s method returns the same value as the stream\'s method');
-  }
-});
-
 test('Reading from a reader for an empty stream throws but doesn\'t break anything', t => {
   var enqueue;
   var rs = new ReadableStream({
@@ -155,21 +119,6 @@ test('cancel() on a reader implicitly releases the reader before calling through
     () => t.pass('reader.cancel() should fulfill'),
     e => t.fail('reader.cancel() should not reject')
   );
-});
-
-test('cancel() on a reader calls this.releaseLock directly instead of cheating', t => {
-  t.plan(3);
-
-  var rs = new ReadableStream();
-
-  var reader = rs.getReader();
-  reader.releaseLock = function (...args) {
-    t.pass('releaseLock was called directly');
-    t.equal(args.length, 0, 'no arguments were passed');
-    t.equal(this, reader, 'the correct this value was passed');
-  };
-
-  reader.cancel();
 });
 
 test('getReader() on a closed stream should fail', t => {

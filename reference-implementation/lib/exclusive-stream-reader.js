@@ -1,5 +1,5 @@
 var assert = require('assert');
-import { ReadFromReadableStream, IsExclusiveStreamReader } from './readable-stream-abstract-ops';
+import { ReadFromReadableStream, CancelReadableStream, IsExclusiveStreamReader } from './readable-stream-abstract-ops';
 
 export default class ExclusiveStreamReader {
   constructor(stream) {
@@ -15,13 +15,18 @@ export default class ExclusiveStreamReader {
 
     this._encapsulatedReadableStream = stream;
 
-    this._closedAfterRelease = undefined;
-    this._readyAfterRelease = undefined;
-    this._stateAfterRelease = undefined;
+    assert(this._encapsulatedReadableStream._state === 'waiting' ||
+           this._encapsulatedReadableStream._state === 'readable');
+    this._initClosedPromise();
+    if (this._encapsulatedReadableStream._state === 'waiting') {
+      this._initReadyPromise();
+      this._state = 'waiting';
+    } else {
+      this._encapsulatedReadableStream._initReadyPromise();
 
-    this._lockReleased = new Promise(resolve => {
-      this._lockReleased_resolve = resolve;
-    });
+      this._readyPromise = Promise.resolve(undefined);
+      this._state = 'readable';
+    }
   }
 
   get ready() {
@@ -30,11 +35,7 @@ export default class ExclusiveStreamReader {
         'ExclusiveStreamReader'));
     }
 
-    if (this._encapsulatedReadableStream._readableStreamReader !== this) {
-      return this._readyAfterRelease;
-    }
-
-    return Promise.race([this._encapsulatedReadableStream._readyPromise, this._lockReleased]);
+    return this._readyPromise;
   }
 
   get state() {
@@ -42,11 +43,7 @@ export default class ExclusiveStreamReader {
       throw new TypeError('ExclusiveStreamReader.prototype.state can only be used on a ExclusiveStreamReader');
     }
 
-    if (this._encapsulatedReadableStream._readableStreamReader !== this) {
-      return this._stateAfterRelease;
-    }
-
-    return this._encapsulatedReadableStream._state;
+    return this._state;
   }
 
   get closed() {
@@ -55,11 +52,7 @@ export default class ExclusiveStreamReader {
         'ExclusiveStreamReader'));
     }
 
-    if (this._encapsulatedReadableStream._readableStreamReader !== this) {
-      return this._closedAfterRelease;
-    }
-
-    return Promise.race([this._encapsulatedReadableStream._closedPromise, this._lockReleased]);
+    return this._closedPromise;
   }
 
   get isActive() {
@@ -79,6 +72,7 @@ export default class ExclusiveStreamReader {
       throw new TypeError('This stream reader has released its lock on the stream and can no longer be used');
     }
 
+    // Bypass lock check.
     return ReadFromReadableStream(this._encapsulatedReadableStream);
   }
 
@@ -89,11 +83,11 @@ export default class ExclusiveStreamReader {
     }
 
     if (this._encapsulatedReadableStream._readableStreamReader !== this) {
-      return this._closedAfterRelease;
+      return this._closedPromise;
     }
 
-    this.releaseLock();
-    return this._encapsulatedReadableStream.cancel(reason, ...args);
+    // Bypass lock check.
+    return CancelReadableStream(this._encapsulatedReadableStream, reason, ...args);
   }
 
   releaseLock() {
@@ -105,17 +99,49 @@ export default class ExclusiveStreamReader {
       return undefined;
     }
 
-    this._encapsulatedReadableStream._readableStreamReader = undefined;
-
-    this._stateAfterRelease = this._encapsulatedReadableStream.state;
-    this._readyAfterRelease = Promise.resolve(undefined);
-    if (this._stateAfterRelease === 'closed' || this._stateAfterRelease === 'errored') {
-      this._closedAfterRelease = this._encapsulatedReadableStream.closed;
+    // When the stream is errored or closed, the reader is released automatically. So, here, this._state is neither
+    // 'closed' nor 'errored'.
+    assert(this._state === 'waiting' || this._state === 'readable');
+    this._resolveClosedPromise(undefined);
+    if (this._state === 'waiting') {
+      this._resolveReadyPromise(undefined);
     } else {
-      this._stateAfterRelease = 'closed';
-      this._closedAfterRelease = Promise.resolve(undefined);
+      this._encapsulatedReadableStream._resolveReadyPromise();
     }
+    this._state = 'closed';
 
-    this._lockReleased_resolve(undefined);
+    this._encapsulatedReadableStream._readableStreamReader = undefined;
+  }
+
+  // Utility functions
+
+  _initReadyPromise() {
+    this._readyPromise = new Promise((resolve, reject) => {
+      this._readyPromise_resolve = resolve;
+    });
+  }
+
+  _initClosedPromise() {
+    this._closedPromise = new Promise((resolve, reject) => {
+      this._closedPromise_resolve = resolve;
+      this._closedPromise_reject = reject;
+    });
+  }
+
+  _resolveReadyPromise(value) {
+    this._readyPromise_resolve(value);
+    this._readyPromise_resolve = null;
+  }
+
+  _resolveClosedPromise(value) {
+    this._closedPromise_resolve(value);
+    this._closedPromise_resolve = null;
+    this._closedPromise_reject = null;
+  }
+
+  _rejectClosedPromise(reason) {
+    this._closedPromise_reject(reason);
+    this._closedPromise_resolve = null;
+    this._closedPromise_reject = null;
   }
 }
