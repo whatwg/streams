@@ -15,7 +15,6 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 !Participate: <a href="https://github.com/whatwg/streams/issues/new">File an issue</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open issues</a>)
 !Participate: <a href="https://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
 !Version History: <a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a>
-!Version History: [SNAPSHOT-LINK]
 !Version History: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
 </pre>
 
@@ -395,11 +394,6 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 
 <ol>
   <li> If IsReadableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[readableStreamReader]] is not <b>undefined</b>, return the result of transforming
-    <b>this</b>@\[[readableStreamReader]]@\[[lockReleased]] by a fulfillment handler that returns Get(<b>this</b>,
-    <code>"ready"</code>).
-  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, return the result of transforming <b>this</b>@\[[readyPromise]]
-    by a fulfillment handler that returns Get(<b>this</b>, <code>"ready"</code>).
   <li> Return <b>this</b>@\[[readyPromise]].
 </ol>
 
@@ -595,9 +589,8 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
     </tr>
   </thead>
   <tr>
-    <td>\[[closedAfterRelease]]
-    <td>A promise returned by the reader's <code>closed</code> getter after the reader's lock is released, or
-      <b>undefined</b> before then
+    <td>\[[closedPromise]]
+    <td>A promise returned by the reader's <code>closed</code> getter
   </tr>
   <tr>
     <td>\[[encapsulatedReadableStream]]
@@ -605,18 +598,12 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
       <a href="#is-exclusive-stream-reader">IsExclusiveStreamReader</a> brand check
   </tr>
   <tr>
-    <td>\[[lockReleased]]
-    <td>A promise that becomes fulfilled when the reader releases its lock on the stream
+    <td>\[[state]]
+    <td>A string returned by the reader's <code>state</code> getter
   </tr>
   <tr>
-    <td>\[[readyAfterRelease]]
-    <td>A promise returned by the reader's <code>ready</code> getter after the reader's lock is released, or
-      <b>undefined</b> before then
-  </tr>
-  <tr>
-    <td>\[[stateAfterRelease]]
-    <td>A string returned by the reader's <code>state</code> getter after the reader's lock is released, or
-      <b>undefined</b> before then
+    <td>\[[readyPromise]]
+    <td>A promise returned by the reader's <code>ready</code> getter
   </tr>
 </table>
 
@@ -625,11 +612,12 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 <ol>
   <li> If <var>stream</var> does not have a \[[readableStreamReader]] internal slot, throw a <b>TypeError</b> exception.
   <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>, throw a <b>TypeError</b> exception.
-  <li> Set <var>stream</var>@\[[readableStreamReader]] to <b>this</b>.
+  <li> Call-with-rethrow AttachExclusiveStreamReader(<var>stream</var>, <b>this</b>).
+  <li> Set <b>this</b>@\[[state]] to <var>stream</var>@\[[state]].
+  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, set <b>this</b>@\[[readyPromise]] to a new promise.
+  <li> Otherwise, set <b>this</b>@\[[readyPromise]] to a new promise resolved with <b>undefined</b>.
+  <li> Set <b>this</b>@\[[closedPromise]] to a new promise.
   <li> Set <b>this</b>@\[[encapsulatedReadableStream]] to <var>stream</var>.
-  <li> Set <b>this</b>@\[[closedAfterRelease]], <b>this</b>@\[[readyAfterRelease]], and
-    <b>this</b>@\[[stateAfterRelease]] to <b>undefined</b>.
-  <li> Set <b>this</b>@\[[lockReleased]] to a new promise.
 </ol>
 
 <h4 id="reader-prototype">Properties of the <code>ExclusiveStreamReader</code> Prototype</h4>
@@ -646,8 +634,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
   <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
     <b>false</b>, return <b>this</b>@\[[closedAfterRelease]].
-  <li> Return the result of racing <b>this</b>@\[[encapsulatedReadableStream]]@\[[closedPromise]] and
-    <b>this</b>@\[[lockReleased]].
+  <li> Return <b>this</b>@\[[closedPromise]].
 </ol>
 
 <h5 id="reader-is-active">get isActive</h5>
@@ -676,8 +663,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
   <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
     <b>false</b>, return <b>this</b>@\[[readyAfterRelease]].
-  <li> Return the result of racing <b>this</b>@\[[encapsulatedReadableStream]]@\[[readyPromise]] and
-    <b>this</b>@\[[lockReleased]].
+  <li> Return <b>this</b>@\[[readyPromise]].
 </ol>
 
 <h5 id="reader-state">get state</h5>
@@ -693,7 +679,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
   <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
   <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
     <b>false</b>, return <b>this</b>@\[[stateAfterRelease]].
-  <li> Return <b>this</b>@\[[encapsulatedReadableStream]]@\[[state]].
+  <li> Return <b>this</b>@\[[state]].
 </ol>
 
 <h5 id="reader-cancel">cancel(...args)</h5>
@@ -707,9 +693,8 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 <ol>
   <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
-    <b>false</b>, return <b>this</b>@\[[closedAfterRelease]].
-  <li> Call-with-rethrow Invoke(<b>this</b>, <code>"releaseLock"</code>).
-  <li> Return Invoke(<b>this</b>@\[[encapsulatedReadableStream]], <code>"cancel"</code>, <var>args</var>).
+    <b>false</b>, return <b>this</b>@\[[closedPromise]].
+  <li> Call-with-rethrow CancelReadableStream(<b>this</b>@\[[encapsulatedReadableStream]], <var>args</var>).
 </ol>
 
 The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
@@ -743,23 +728,8 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
   <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
   <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
     <b>false</b>, return <b>undefined</b>.
-  <li> Set <b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]] to <b>undefined</b>.
-  <li> Let <var>stateAfterRelease</var> be Get(<b>this</b>@\[[encapsulatedReadableStream]], <code>"state"</code>).
-  <li> ReturnIfAbrupt(<var>stateAfterRelease</var>).
-  <li> Set <b>this</b>@\[[stateAfterRelease]] to <var>stateAfterRelease</var>.
-  <li> Set <b>this</b>@\[[readyAfterRelease]] to a new promise resolved with <b>undefined</b>.
-  <li> If <var>stateAfterRelease</var> is <code>"closed"</code> or <code>"errored"</code>, then
-    <ol>
-      <li> Let <var>closedAfterRelease</var> be Get(<b>this</b>@\[[encapsulatedReadableStream]], <code>"closed"</code>).
-      <li> ReturnIfAbrupt(<var>closedAfterRelease</var>).
-      <li> Set <b>this</b>@\[[closedAfterRelease]] to <var>closedAfterRelease</var>.
-    </ol>
-  <li> Otherwise,
-    <ol>
-      <li> Set <b>this</b>@\[[stateAfterRelease]] to <code>"closed"</code>.
-      <li> Set <b>this</b>@\[[closedAfterRelease]] to a new promise resolved with <b>undefined</b>.
-    </ol>
-  <li> Resolve <b>this</b>@\[[lockReleased]] with <b>undefined</b>.
+  <li> Call-with-rethrow CloseReadableStreamReader(<b>this</b>).
+  <li> Call-with-rethrow DetachReadableStreamReader(<b>this</b>@\[[encapsulatedReadableStream]]).
 </ol>
 
 <h3 id="rs-abstract-ops">Readable Stream Abstract Operations</h3>
@@ -782,7 +752,7 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 
 <ol>
   <li> Assert: <var>stream</var>@\[[state]] is <code>"waiting"</code> or <code>"readable"</code>.
-  <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>, set <var>stream</var>\@[[readyPromise]] to a new promise.
+  <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>, set <var>stream</var>@\[[readyPromise]] to a new promise.
   <li> Set <var>stream</var>@\[[readableStreamReader]] to <var>reader</var>.
 </ol>
 
@@ -863,7 +833,6 @@ A <dfn>Readable Stream Close Function</dfn> is a built-in anonymous function of 
 <ol>
   <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>,
     <ol>
-      <li> Resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
       <li> Return CloseReadableStream(<b>this</b>).
     </ol>
   <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>,
@@ -915,8 +884,7 @@ closing over a variable <var>stream</var>, that performs the following steps:
   <li> Let <var>shouldApplyBackpressure</var> be ShouldReadableStreamApplyBackpressure(<var>stream</var>).
   <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>,
     <ol>
-      <li> Set <var>stream</var>@\[[state]] to <code>"readable"</code>.
-      <li> Resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
+      <li> Call-with-rethrow MarkReadableStreamReadable(<var>stream</var>).
     </ol>
   <li> If <var>shouldApplyBackpressure</var>.\[[value]] is <b>true</b>, return <b>false</b>.
   <li> Return <b>true</b>.
@@ -969,6 +937,36 @@ a variable <var>stream</var>, that performs the following steps:
   <li> Return <b>true</b>.
 </ol>
 
+<h4 id="mark-readable-stream-readable">MarkReadableStreamReadable ( stream )</h4>
+
+<ol>
+  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>,
+    <ol>
+      <li> Resolve <var>stream</var>@\[[readableStreamReader]]@\[[readyPromise]] with <b>undefined</b>.
+      <li> Set <var>stream</var>@\[[readableStreamReader]]@\[[state]] to <code>"readable"</code>.
+  <li> Otherwise,
+    <ol>
+      <li> Resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
+    </ol>
+  <li> Set <var>stream</var>@\[[state]] to <code>"readable"</code>.
+  <li> Return <b>undefined</b>.
+</ol>
+
+<h4 id="mark-readable-stream-readable">MarkReadableStreamWaiting ( stream )</h4>
+
+<ol>
+  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>,
+    <ol>
+      <li> Set <var>stream</var>@\[[readableStreamReader]]@\[[readyPromise]] to a new promise.
+      <li> Set <var>stream</var>@\[[readableStreamReader]]@\[[state]] to <code>"waiting"</code>.
+  <li> Otherwise,
+    <ol>
+      <li> Set <var>stream</var>@\[[readyPromise]] to a new promise.
+    </ol>
+  <li> Set <var>stream</var>@\[[state]] to <code>"waiting"</code>.
+  <li> Return <b>undefined</b>.
+</ol>
+
 <h4 id="is-readable-stream">IsReadableStream ( x )</h4>
 
 <ol>
@@ -991,8 +989,7 @@ a variable <var>stream</var>, that performs the following steps:
       <li> If <var>stream</var>@\[[draining]] is <b>true</b>, call-with-rethrow CloseReadableStream(<var>stream</var>).
       <li> If <var>stream</var>@\[[draining]] is <b>false</b>,
         <ol>
-          <li> Set <var>stream</var>@\[[state]] to <code>"waiting"</code>.
-          <li> Let <var>stream</var>@\[[readyPromise]] be a new promise.
+          Call-with-rethrow MarkReadableStreamWaiting(<var>stream</var>).
         </ol>
     </ol>
   <li> Call-with-rethrow CallReadableStreamPull(<var>stream</var>).
