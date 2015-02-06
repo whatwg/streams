@@ -469,3 +469,65 @@ test('Cannot use an already-released reader to unlock a stream again', t => {
   reader1.releaseLock();
   t.equal(reader2.isActive, true, 'reader2 state is still active after releasing reader1 again');
 });
+
+test('stream\'s ready returns the same instance as long as there\'s no state transition visible on stream even ' +
+    'if the reader became readable while the stream was locked', t => {
+  var enqueue;
+  var rs = new ReadableStream({
+    start(enqueue_) {
+      enqueue = enqueue_
+    }
+  });
+
+  var ready = rs.ready;
+
+  var reader = rs.getReader();
+
+  enqueue('a');
+  t.equal(reader.state, 'readable', 'reader should be readable after enqueuing');
+  t.equal(reader.read(), 'a', 'the enqueued data should be read');
+
+  reader.releaseLock();
+
+  t.equal(ready, rs.ready, 'rs.ready should return the same instance as before locking');
+  t.end();
+});
+
+test('reader\'s ready and close returns the same instance as long as there\'s no state transition',
+    t => {
+  var rs = new ReadableStream();
+  var reader = rs.getReader();
+
+  var ready = reader.ready;
+  var closed = reader.closed;
+
+  reader.releaseLock();
+
+  t.equal(ready, reader.ready, 'reader.ready should return the same instance as before releasing');
+  t.equal(closed, reader.closed, 'reader.ready should return the same instance as before releasing');
+  t.end();
+});
+
+test('reader\'s ready and close returns the same instance as long as there\'s no state transition to waiting',
+    t => {
+  var enqueue;
+  var rs = new ReadableStream({
+    start(enqueue_) {
+      enqueue = enqueue_
+    }
+  });
+
+  var reader = rs.getReader();
+
+  var ready = reader.ready;
+  var closed = reader.closed;
+
+  enqueue('a');
+  t.equal(reader.state, 'readable', 'reader should be readable after enqueuing');
+
+  reader.releaseLock();
+
+  t.equal(ready, reader.ready, 'reader.ready should return the same instance as before releasing');
+  t.equal(closed, reader.closed, 'reader.ready should return the same instance as before releasing');
+  t.end();
+});

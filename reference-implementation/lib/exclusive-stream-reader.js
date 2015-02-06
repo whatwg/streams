@@ -1,5 +1,6 @@
 var assert = require('assert');
-import { ReadFromReadableStream, CancelReadableStream, IsExclusiveStreamReader } from './readable-stream-abstract-ops';
+import { AttachExclusiveStreamReader, ReadFromReadableStream, CancelReadableStream, CloseReadableStreamReader,
+  DetachReadableStreamReader, IsExclusiveStreamReader } from './readable-stream-abstract-ops';
 
 export default class ExclusiveStreamReader {
   constructor(stream) {
@@ -11,22 +12,17 @@ export default class ExclusiveStreamReader {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
-    stream._readableStreamReader = this;
+    AttachExclusiveStreamReader(stream, this);
+
+    this._state = stream._state;
+    if (stream._state === 'waiting') {
+      this._initReadyPromise();
+    } else {
+      this._readyPromise = Promise.resolve(undefined);
+    }
+    this._initClosedPromise();
 
     this._encapsulatedReadableStream = stream;
-
-    assert(this._encapsulatedReadableStream._state === 'waiting' ||
-           this._encapsulatedReadableStream._state === 'readable');
-    this._initClosedPromise();
-    if (this._encapsulatedReadableStream._state === 'waiting') {
-      this._initReadyPromise();
-      this._state = 'waiting';
-    } else {
-      this._encapsulatedReadableStream._initReadyPromise();
-
-      this._readyPromise = Promise.resolve(undefined);
-      this._state = 'readable';
-    }
   }
 
   get ready() {
@@ -102,15 +98,9 @@ export default class ExclusiveStreamReader {
     // When the stream is errored or closed, the reader is released automatically. So, here, this._state is neither
     // 'closed' nor 'errored'.
     assert(this._state === 'waiting' || this._state === 'readable');
-    this._resolveClosedPromise(undefined);
-    if (this._state === 'waiting') {
-      this._resolveReadyPromise(undefined);
-    } else {
-      this._encapsulatedReadableStream._resolveReadyPromise();
-    }
-    this._state = 'closed';
 
-    this._encapsulatedReadableStream._readableStreamReader = undefined;
+    CloseReadableStreamReader(this);
+    DetachReadableStreamReader(this._encapsulatedReadableStream);
   }
 
   // Utility functions

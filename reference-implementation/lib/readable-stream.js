@@ -1,8 +1,7 @@
 var assert = require('assert');
 import * as helpers from './helpers';
-import { AcquireExclusiveStreamReader, CallReadableStreamPull,
-  CreateReadableStreamCloseFunction, CreateReadableStreamEnqueueFunction, CreateReadableStreamErrorFunction,
-  IsReadableStream, CancelReadableStream, ReadFromReadableStream,
+import { AcquireExclusiveStreamReader, CallReadableStreamPull, CancelReadableStream, CreateReadableStreamCloseFunction,
+  CreateReadableStreamEnqueueFunction, CreateReadableStreamErrorFunction, IsReadableStream, ReadFromReadableStream,
   ShouldReadableStreamApplyBackpressure } from './readable-stream-abstract-ops';
 
 export default class ReadableStream {
