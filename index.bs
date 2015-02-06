@@ -446,14 +446,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 <ol>
   <li> If IsReadableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> If <b>this</b>@\[[readableStreamReader]] is not <b>undefined</b>, return a new promise rejected with a <b>TypeError</b>.
-  <li> If <b>this</b>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, return
-    <b>this</b>@\[[closedPromise]].
-  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, resolve <b>this</b>@\[[readyPromise]] with <b>undefined</b>.
-  <li> Let <b>this</b>@\[[queue]] be a new empty List.
-  <li> Call-with-rethrow CloseReadableStream(<b>this</b>).
-  <li> Let <var>sourceCancelPromise</var> be PromiseInvokeOrNoop(<b>this</b>@\[[underlyingSource]],
-    <code>"cancel"</code>, (<var>reason</var>)).
-  <li> Return the result of transforming <var>sourceCancelPromise</var> by a fulfillment handler that returns <b>undefined</b>.
+  <li> Call-with-rethrow CancelReadableStream(<b>this</b>, <var>reason</var>).
 </ol>
 
 <h5 id="rs-get-reader">getReader()</h5>
@@ -785,6 +778,26 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
   <li> Return Construct(<code>ExclusiveStreamReader</code>, «‍<var>stream</var>»).
 </ol>
 
+<h4 id="attach-exclusive-stream-reader">AttachExclusiveStreamReader ( stream, reader )</h4>
+
+<ol>
+  <li> Assert: <var>stream</var>@\[[state]] is <code>"waiting"</code> or <code>"readable"</code>.
+  <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>, set <var>stream</var>\@[[readyPromise]] to a new promise.
+  <li> Set <var>stream</var>@\[[readableStreamReader]] to <var>reader</var>.
+</ol>
+
+<h4 id="cancel-readable-stream">CancelReadableStream ( stream )</h4>
+
+<ol>
+  <li> If <b>this</b>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, return
+    <b>this</b>@\[[closedPromise]].
+  <li> Let <b>this</b>@\[[queue]] be a new empty List.
+  <li> Call-with-rethrow CloseReadableStream(<b>this</b>).
+  <li> Let <var>sourceCancelPromise</var> be PromiseInvokeOrNoop(<b>this</b>@\[[underlyingSource]],
+    <code>"cancel"</code>, (<var>reason</var>)).
+  <li> Return the result of transforming <var>sourceCancelPromise</var> by a fulfillment handler that returns <b>undefined</b>.
+</ol>
+
 <h4 id="call-readable-stream-pull">CallReadableStreamPull ( stream )</h4>
 
 <ol>
@@ -815,11 +828,27 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 <h4 id="close-readable-stream">CloseReadableStream ( stream )</h4>
 
 <ol>
-  <li> Set <var>stream</var>@\[[state]] to <code>"closed"</code>.
+  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>,
+    <ol>
+      <li> Call-with-rethrow CloseReadableStreamReader(<var>stream</var>@\[[readableStreamReader]]).
+      <li> Set <var>stream</var>@\[[readableStreamReader]] to <b>undefined</b>
+      <li> Resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
+    </ol>
+  <li> Otherwise,
+    <ol>
+      <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
+    </ol>
   <li> Resolve <var>stream</var>@\[[closedPromise]] with <b>undefined</b>.
-  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>, call-with-rethrow
-    Invoke(<var>stream</var>@\[[readableStreamReader]], <code>"releaseLock"</code>).
+  <li> Set <var>stream</var>@\[[state]] to <code>"closed"</code>.
   <li> Return <b>undefined</b>.
+</ol>
+
+<h4 id="close-readable-stream-reader">CloseReadableStreamReader ( reader )</h4>
+
+<ol>
+  <li> If <var>reader</var>@\[[state]] is <code>"waiting"</code>, resolve <var>reader</var>@\[[readyPromise]] with <b>undefined</b>.
+  <li> Resolve <var>reader</var>@\[[closedPromise]] with <b>undefined</b>.
+  <li> Set <var>reader</var>@\[[state]] to <code>"closed"</code>.
 </ol>
 
 <h4 id="create-readable-stream-close-function">CreateReadableStreamCloseFunction ( stream )</h4>
@@ -902,19 +931,35 @@ closing over a variable <var>stream</var>, that performs the following steps:
 A <dfn>Readable Stream Error Function</dfn> is a built-in anonymous function of one argument <var>e</var>, closing over
 a variable <var>stream</var>, that performs the following steps:
 
+<h4 id="detach-readable-stream-reader">DetachReadableStreamReader ( stream )</h4>
+
 <ol>
-  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, resolve <var>stream</var>@\[[readyPromise]] with
-    <b>undefined</b>.
-  <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>, let <var>stream</var>@\[[queue]] be a new empty List.
-  <li> If <var>stream</var>@\[[state]] is either <code>"waiting"</code> or <code>"readable"</code>,
-    <ol>
-      <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
-      <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
-      <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
-      <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>, call-with-rethrow
-        Invoke(<var>stream</var>@\[[readableStreamReader]], <code>"releaseLock"</code>).
-    </ol>
+  <li> If <var>reader</var>@\[[state]] is <code>"readable"</code>, resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
+  <li> Set <var>stream</var>@\[[readableStreamReader]] to <b>undefined</b>.
 </ol>
+
+<h4 id="error-readable-stream">ErrorReadableStream ( stream, )
+
+<ol>
+  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, return <b>undefined</b>.
+  <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>, let <var>stream</var>@\[[queue]] be a new empty List.
+  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>,
+    <ol>
+      <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, resolve <var>stream</var>@\[[readableStreamReader]]@\[[readyPromise]] with <b>undefined</b>.
+      <li> Resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
+      <li> Resolve <var>stream</var>@\[[readableStreamReader]]@\[[closedPromise]] with <b>undefined</b>.
+      <li> Set <var>stream</var>@\[[readableStreamReader]]@\[[state]] to <code>"errored"</code>.
+      <li> Set <var>stream</var>@\[[readableStreamReader]] to <b>undefined</b>.
+    </ol>
+  <li> Otherwise,
+    <ol>
+      <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
+    </ol>
+  <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
+  <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
+  <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
+</ol>
+
 
 <h4 id="is-exclusive-stream-reader">IsExclusiveStreamReader ( x )</h4>
 
