@@ -708,6 +708,23 @@ test('ReadableStream cancel() and closed on a closed stream should return the sa
   t.end();
 });
 
+test('ReadableStream ready returns the same value when called on a new, empty stream', t => {
+  var rs = new ReadableStream();
+  t.equal(rs.ready, rs.ready, 'rs.ready should not change between gets');
+  t.end();
+});
+
+test('ReadableStream ready returns the same value when called on a readable stream', t => {
+  var rs = new ReadableStream({
+    start(enqueue) {
+      enqueue('a');
+    }
+  });
+
+  t.equal(rs.ready, rs.ready, 'rs.ready should not change between gets');
+  t.end();
+});
+
 test('ReadableStream cancel() and closed on an errored stream should return the same promise', t => {
   var rs = new ReadableStream({
     start(enqueue, close, error) {
