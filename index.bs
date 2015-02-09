@@ -572,8 +572,8 @@ it would look like
     get ready()
     get state()
 
-    cancel(reason, ...args)
-    read(...args)
+    cancel(reason)
+    read()
     releaseLock()
   }
 </code></pre>
@@ -599,12 +599,12 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
       <a href="#is-exclusive-stream-reader">IsExclusiveStreamReader</a> brand check
   </tr>
   <tr>
-    <td>\[[state]]
-    <td>A string returned by the reader's <code>state</code> getter
-  </tr>
-  <tr>
     <td>\[[readyPromise]]
     <td>A promise returned by the reader's <code>ready</code> getter
+  </tr>
+  <tr>
+    <td>\[[state]]
+    <td>A string returned by the reader's <code>state</code> getter
   </tr>
 </table>
 
@@ -613,7 +613,9 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 <ol>
   <li> If <var>stream</var> does not have a \[[readableStreamReader]] internal slot, throw a <b>TypeError</b> exception.
   <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>, throw a <b>TypeError</b> exception.
-  <li> Call-with-rethrow AttachExclusiveStreamReader(<var>stream</var>, <b>this</b>).
+  <li> Assert: <var>stream</var>@\[[state]] is <code>"waiting"</code> or <code>"readable"</code>.
+  <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>, set <var>stream</var>@\[[readyPromise]] to a new promise.
+  <li> Set <var>stream</var>@\[[readableStreamReader]] to <b>this</b>.
   <li> Set <b>this</b>@\[[state]] to <var>stream</var>@\[[state]].
   <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, set <b>this</b>@\[[readyPromise]] to a new promise.
   <li> Otherwise, set <b>this</b>@\[[readyPromise]] to a new promise resolved with <b>undefined</b>.
@@ -677,7 +679,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
   <li> Return <b>this</b>@\[[state]].
 </ol>
 
-<h5 id="reader-cancel">cancel(...args)</h5>
+<h5 id="reader-cancel">cancel(reason)</h5>
 
 <div class="note">
   If the reader is <a lt="active reader">active</a>, the <code>cancel</code> method behaves the same as that for the
@@ -688,10 +690,8 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
   <li> If IsExclusiveStreamReader(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> If SameValue(<b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]], <b>this</b>) is
     <b>false</b>, return <b>this</b>@\[[closedPromise]].
-  <li> Call-with-rethrow CancelReadableStream(<b>this</b>@\[[encapsulatedReadableStream]], <var>args</var>).
+  <li> Call-with-rethrow CancelReadableStream(<b>this</b>@\[[encapsulatedReadableStream]], <var>reason</var>).
 </ol>
-
-The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
 
 <h5 id="reader-read">read()</h5>
 
@@ -724,7 +724,8 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
     <b>false</b>, return <b>undefined</b>.
   <li> Assert: <b>this</b>@\[[state]] is <code>"waiting"</code> or <code>"readable"</code>.
   <li> Call-with-rethrow CloseReadableStreamReader(<b>this</b>).
-  <li> Call-with-rethrow DetachReadableStreamReader(<b>this</b>@\[[encapsulatedReadableStream]]).
+  <li> If <b>this</b>@\[[encapsulatedReadableStream]]@\[[state]] is <code>"readable"</code>, resolve <b>this</b>@\[[encapsulatedReadableStream]]@\[[readyPromise]] with <b>undefined</b>.
+  <li> Set <b>this</b>@\[[encapsulatedReadableStream]]@\[[readableStreamReader]] to <b>undefined</b>.
 </ol>
 
 <h3 id="rs-abstract-ops">Readable Stream Abstract Operations</h3>
@@ -741,14 +742,6 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
   <li> If <var>stream</var>@\[[state]] is <code>"closed"</code>, throw a <b>TypeError</b> exception.
   <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, throw <var>stream</var>@\[[storedError]].
   <li> Return Construct(<code>ExclusiveStreamReader</code>, «‍<var>stream</var>»).
-</ol>
-
-<h4 id="attach-exclusive-stream-reader">AttachExclusiveStreamReader ( stream, reader )</h4>
-
-<ol>
-  <li> Assert: <var>stream</var>@\[[state]] is <code>"waiting"</code> or <code>"readable"</code>.
-  <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>, set <var>stream</var>@\[[readyPromise]] to a new promise.
-  <li> Set <var>stream</var>@\[[readableStreamReader]] to <var>reader</var>.
 </ol>
 
 <h4 id="call-readable-stream-pull">CallReadableStreamPull ( stream )</h4>
@@ -786,7 +779,7 @@ The <code>length</code> property of the <code>cancel</code> method is <b>1</b>.
   <li> Let <b>this</b>@\[[queue]] be a new empty List.
   <li> Call-with-rethrow CloseReadableStream(<var>stream</var>).
   <li> Let <var>sourceCancelPromise</var> be PromiseInvokeOrNoop(<b>this</b>@\[[underlyingSource]],
-    <code>"cancel"</code>, (<var>reason</var>)).
+    <code>"cancel"</code>, &laquo;<var>reason</var>&raquo;).
   <li> Return the result of transforming <var>sourceCancelPromise</var> by a fulfillment handler that returns <b>undefined</b>.
 </ol>
 
@@ -891,17 +884,7 @@ closing over a variable <var>stream</var>, that performs the following steps:
   <li> Return a new <a>Readable Stream Error Function</a> closing over <var>stream</var>.
 </ol>
 
-A <dfn>Readable Stream Error Function</dfn> is <a href="#error-readable-stream">ErrorReadableStream</a> closing over
-a variable <var>stream</var>.
-
-<h4 id="detach-readable-stream-reader">DetachReadableStreamReader ( stream )</h4>
-
-<ol>
-  <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>, resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
-  <li> Set <var>stream</var>@\[[readableStreamReader]] to <b>undefined</b>.
-</ol>
-
-<h4 id="error-readable-stream">ErrorReadableStream ( stream, e )</h4>
+A <dfn>Readable Stream Error Function</dfn> is an anonymous function of one argument <var>e</var>, closing over a variable <var>stream</var>, that performs the following steps:
 
 <ol>
   <li> If <var>stream</var>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, return <b>undefined</b>.
@@ -922,7 +905,6 @@ a variable <var>stream</var>.
   <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
   <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
 </ol>
-
 
 <h4 id="is-exclusive-stream-reader">IsExclusiveStreamReader ( x )</h4>
 

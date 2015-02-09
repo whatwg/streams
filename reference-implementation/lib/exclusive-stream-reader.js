@@ -12,8 +12,15 @@ export default class ExclusiveStreamReader {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
-    AttachExclusiveStreamReader(stream, this);
+    assert(stream._state === 'waiting' || stream._state === 'readable');
 
+    // Update the states of the encapsulated stream to represent a locked stream.
+    if (stream._state === 'readable') {
+      stream._initReadyPromise();
+    }
+    stream._readableStreamReader = this;
+
+    // Sync the states of this reader with the encapsulated stream.
     this._state = stream._state;
     if (stream._state === 'waiting') {
       this._initReadyPromise();
@@ -72,7 +79,7 @@ export default class ExclusiveStreamReader {
     return ReadFromReadableStream(this._encapsulatedReadableStream);
   }
 
-  cancel(reason, ...args) {
+  cancel(reason) {
     if (!IsExclusiveStreamReader(this)) {
       return Promise.reject(new TypeError('ExclusiveStreamReader.prototype.cancel can only be used on a ' +
         'ExclusiveStreamReader'));
@@ -83,7 +90,7 @@ export default class ExclusiveStreamReader {
     }
 
     // Bypass lock check.
-    return CancelReadableStream(this._encapsulatedReadableStream, reason, ...args);
+    return CancelReadableStream(this._encapsulatedReadableStream, reason);
   }
 
   releaseLock() {
@@ -100,7 +107,11 @@ export default class ExclusiveStreamReader {
     assert(this._state === 'waiting' || this._state === 'readable');
 
     CloseReadableStreamReader(this);
-    DetachReadableStreamReader(this._encapsulatedReadableStream);
+
+    if (this._encapsulatedReadableStream._state === 'readable') {
+      this._encapsulatedReadableStream._resolveReadyPromise(undefined);
+    }
+    this._encapsulatedReadableStream._readableStreamReader = undefined;
   }
 
   // Utility functions

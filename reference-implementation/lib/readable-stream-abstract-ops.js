@@ -14,16 +14,6 @@ export function AcquireExclusiveStreamReader(stream) {
   return new ExclusiveStreamReader(stream);
 }
 
-export function AttachExclusiveStreamReader(stream, reader) {
-  assert(stream._state === 'waiting' || stream._state === 'readable');
-
-  if (stream._state === 'readable') {
-    stream._initReadyPromise();
-  }
-
-  stream._readableStreamReader = reader;
-}
-
 export function CallReadableStreamPull(stream) {
   if (stream._draining === true || stream._started === false ||
       stream._state === 'closed' || stream._state === 'errored' ||
@@ -159,47 +149,38 @@ export function CreateReadableStreamEnqueueFunction(stream) {
 }
 
 export function CreateReadableStreamErrorFunction(stream) {
-  return e => ErrorReadableStream(stream, e);
-}
-
-export function DetachReadableStreamReader(stream) {
-  if (stream._state === 'readable') {
-    stream._resolveReadyPromise(undefined);
-  }
-  stream._readableStreamReader = undefined;
-}
-
-function ErrorReadableStream(stream, e) {
-  if (stream._state === 'closed' || stream._state === 'errored') {
-    return;
-  }
-
-  if (stream._state === 'readable') {
-    stream._queue = [];
-  }
-
-  if (stream._readableStreamReader !== undefined) {
-    if (stream._state === 'waiting') {
-      stream._readableStreamReader._resolveReadyPromise(undefined);
+  return e => {
+    if (stream._state === 'closed' || stream._state === 'errored') {
+      return;
     }
 
-    // rs.ready() was pending because there was a reader.
-    stream._resolveReadyPromise(undefined);
+    if (stream._state === 'readable') {
+      stream._queue = [];
+    }
 
-    stream._readableStreamReader._rejectClosedPromise(e);
+    if (stream._readableStreamReader !== undefined) {
+      if (stream._state === 'waiting') {
+        stream._readableStreamReader._resolveReadyPromise(undefined);
+      }
 
-    stream._readableStreamReader._state = 'errored';
+      // rs.ready() was pending because there was a reader.
+      stream._resolveReadyPromise(undefined);
 
-    stream._readableStreamReader = undefined;
-  } else if (stream._state === 'waiting') {
-    stream._resolveReadyPromise(undefined);
-  }
-  stream._rejectClosedPromise(e);
+      stream._readableStreamReader._rejectClosedPromise(e);
 
-  stream._storedError = e;
-  stream._state = 'errored';
+      stream._readableStreamReader._state = 'errored';
 
-  return undefined;
+      stream._readableStreamReader = undefined;
+    } else if (stream._state === 'waiting') {
+      stream._resolveReadyPromise(undefined);
+    }
+    stream._rejectClosedPromise(e);
+
+    stream._storedError = e;
+    stream._state = 'errored';
+
+    return undefined;
+  };
 }
 
 export function IsExclusiveStreamReader(x) {
