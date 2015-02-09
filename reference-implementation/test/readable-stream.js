@@ -122,26 +122,6 @@ test('ReadableStream reading a stream makes ready and closed return a promise fu
   );
 });
 
-test('ReadableStream avoids waiting-to-waiting transitions when immediately reading', t => {
-  var doEnqueue;
-  var rs = new ReadableStream({
-    start(enqueue) {
-      doEnqueue = enqueue;
-    }
-  });
-
-  t.equal(rs.state, 'waiting', 'state is waiting to start');
-  rs.ready.then(() => t.fail('ready should not fulfill'));
-
-  doEnqueue('a');
-  t.equal(rs.state, 'readable', 'state is readable after enqueue');
-  rs.read();
-
-  t.equal(rs.state, 'waiting', 'state is waiting at the end');
-
-  setTimeout(() => t.end(), 20);
-});
-
 test('ReadableStream avoid redundant pull call', t => {
   var pullCount = 0;
   var rs = new ReadableStream({
@@ -725,6 +705,23 @@ test('ReadableStream cancel() and closed on a closed stream should return the sa
   });
 
   t.equal(rs.cancel(), rs.closed, 'the promises returned should be the same');
+  t.end();
+});
+
+test('ReadableStream ready returns the same value when called on a new, empty stream', t => {
+  var rs = new ReadableStream();
+  t.equal(rs.ready, rs.ready, 'rs.ready should not change between gets');
+  t.end();
+});
+
+test('ReadableStream ready returns the same value when called on a readable stream', t => {
+  var rs = new ReadableStream({
+    start(enqueue) {
+      enqueue('a');
+    }
+  });
+
+  t.equal(rs.ready, rs.ready, 'rs.ready should not change between gets');
   t.end();
 });
 
