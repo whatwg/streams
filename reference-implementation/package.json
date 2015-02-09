@@ -18,7 +18,7 @@
     "Forrest L Norvell <ogd@aoaioxxysz.net>",
     "Takeshi Yoshino <tyoshino@chromium.org>"
   ],
-  "license": "MIT",
+  "license": "CC0",
   "traceur-runner": true,
   "devDependencies": {
     "glob": "^4.3.5",
