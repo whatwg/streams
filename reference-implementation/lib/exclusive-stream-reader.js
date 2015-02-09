@@ -1,6 +1,6 @@
 var assert = require('assert');
-import { AttachExclusiveStreamReader, ReadFromReadableStream, CancelReadableStream, CloseReadableStreamReader,
-  DetachReadableStreamReader, IsExclusiveStreamReader } from './readable-stream-abstract-ops';
+import { ReadFromReadableStream, CancelReadableStream, CloseReadableStreamReader, IsExclusiveStreamReader
+  } from './readable-stream-abstract-ops';
 
 export default class ExclusiveStreamReader {
   constructor(stream) {

@@ -885,7 +885,8 @@ closing over a variable <var>stream</var>, that performs the following steps:
   <li> Return a new <a>Readable Stream Error Function</a> closing over <var>stream</var>.
 </ol>
 
-A <dfn>Readable Stream Error Function</dfn> is an anonymous function of one argument <var>e</var>, closing over a variable <var>stream</var>, that performs the following steps:
+A <dfn>Readable Stream Error Function</dfn> is a built-in anonymous function of one argument <var>e</var>, closing over
+a variable <var>stream</var>, that performs the following steps:
 
 <ol>
   <li> If <var>stream</var>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, return <b>undefined</b>.
