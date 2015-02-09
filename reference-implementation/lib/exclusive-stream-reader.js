@@ -1,6 +1,6 @@
 var assert = require('assert');
-import { ReadFromReadableStream, CancelReadableStream, CloseReadableStreamReader, IsExclusiveStreamReader
-  } from './readable-stream-abstract-ops';
+import { ReadFromReadableStream, CancelReadableStream, CloseReadableStreamReader, IsExclusiveStreamReader,
+  IsReadableStreamLocked } from './readable-stream-abstract-ops';
 
 export default class ExclusiveStreamReader {
   constructor(stream) {
@@ -8,7 +8,7 @@ export default class ExclusiveStreamReader {
       throw new TypeError('ExclusiveStreamReader can only be used with ReadableStream objects or subclasses');
     }
 
-    if (stream._readableStreamReader !== undefined) {
+    if (IsReadableStreamLocked(stream)) {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 

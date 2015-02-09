@@ -425,7 +425,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 
 <ol>
   <li> If IsReadableStream(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[readableStreamReader]] is not <b>undefined</b>, return <code>"waiting"</code>.
+  <li> If IsReadableStreamLocked(<b>this</b>) is <b>true</b>, return <code>"waiting"</code>.
   <li> Return <b>this</b>@\[[state]].
 </ol>
 
@@ -441,8 +441,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 
 <ol>
   <li> If IsReadableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[readableStreamReader]] is not <b>undefined</b>, return a new promise rejected with a
-    <b>TypeError</b> exception.
+  <li> If IsReadableStreamLocked(<b>this</b>) is <b>true</b>, return a new promise rejected with a <b>TypeError</b>
+    exception.
   <li> Return CancelReadableStream(<b>this</b>, <var>reason</var>).
 </ol>
 
@@ -552,7 +552,7 @@ look for the <code>pipeTo</code> method.
 
 <ol>
   <li> If IsReadableStream(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[readableStreamReader]] is not <b>undefined</b>, throw a <b>TypeError</b> exception.
+  <li> If IsReadableStreamLocked(<b>this</b>) is <b>true</b>, throw a <b>TypeError</b> exception.
   <li> Return ReadFromReadableStream(this).
 </ol>
 
@@ -614,7 +614,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 
 <ol>
   <li> If <var>stream</var> does not have a \[[readableStreamReader]] internal slot, throw a <b>TypeError</b> exception.
-  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>, throw a <b>TypeError</b> exception.
+  <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>, throw a <b>TypeError</b> exception.
   <li> Assert: <var>stream</var>@\[[state]] is <code>"waiting"</code> or <code>"readable"</code>.
   <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>, set <var>stream</var>@\[[readyPromise]] to a new
     promise.
@@ -794,7 +794,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
 <h4 id="close-readable-stream">CloseReadableStream ( stream )</h4>
 
 <ol>
-  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>,
+  <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>,
     <ol>
       <li> Call-with-rethrow CloseReadableStreamReader(<var>stream</var>@\[[readableStreamReader]]).
       <li> Set <var>stream</var>@\[[readableStreamReader]] to <b>undefined</b>
@@ -900,7 +900,7 @@ a variable <var>stream</var>, that performs the following steps:
 <ol>
   <li> If <var>stream</var>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, return <b>undefined</b>.
   <li> If <var>stream</var>@\[[state]] is <code>"readable"</code>, let <var>stream</var>@\[[queue]] be a new empty List.
-  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>,
+  <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>,
     <ol>
       <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, resolve
         <var>stream</var>@\[[readableStreamReader]]@\[[readyPromise]] with <b>undefined</b>.
@@ -927,10 +927,31 @@ a variable <var>stream</var>, that performs the following steps:
   <li> Return <b>true</b>.
 </ol>
 
+<h4 id="is-readable-stream">IsReadableStream ( x )</h4>
+
+<ol>
+  <li> If Type(<var>x</var>) is not Object, return <b>false</b>.
+  <li> If <var>x</var> does not have a \[[underlyingSource]] internal slot, return <b>false</b>.
+  <li> Return <b>true</b>.
+</ol>
+
+<h4 id="is-readable-stream-locked">IsReadableStreamLocked ( stream )</h4>
+
+<div class="note">
+  This abstract operation is meant to be called from other specifications that may wish to query whether or not a
+  readable stream is <a>locked to a reader</a>.
+</div>
+
+<ol>
+  <li> Assert: IsReadableStream(<var>stream</var>) is <b>true</b>.
+  <li> If <var>stream</var>@\[[readableStreamReader]] is <b>undefined</b>, return <b>false</b>.
+  <li> Return <b>true</b>.
+</ol>
+
 <h4 id="mark-readable-stream-readable">MarkReadableStreamReadable ( stream )</h4>
 
 <ol>
-  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>,
+  <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>,
     <ol>
       <li> Resolve <var>stream</var>@\[[readableStreamReader]]@\[[readyPromise]] with <b>undefined</b>.
       <li> Set <var>stream</var>@\[[readableStreamReader]]@\[[state]] to <code>"readable"</code>.
@@ -946,7 +967,7 @@ a variable <var>stream</var>, that performs the following steps:
 <h4 id="mark-readable-stream-waiting">MarkReadableStreamWaiting ( stream )</h4>
 
 <ol>
-  <li> If <var>stream</var>@\[[readableStreamReader]] is not <b>undefined</b>,
+  <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>,
     <ol>
       <li> Set <var>stream</var>@\[[readableStreamReader]]@\[[readyPromise]] to a new promise.
       <li> Set <var>stream</var>@\[[readableStreamReader]]@\[[state]] to <code>"waiting"</code>.
@@ -957,14 +978,6 @@ a variable <var>stream</var>, that performs the following steps:
     </ol>
   <li> Set <var>stream</var>@\[[state]] to <code>"waiting"</code>.
   <li> Return <b>undefined</b>.
-</ol>
-
-<h4 id="is-readable-stream">IsReadableStream ( x )</h4>
-
-<ol>
-  <li> If Type(<var>x</var>) is not Object, return <b>false</b>.
-  <li> If <var>x</var> does not have a \[[underlyingSource]] internal slot, return <b>false</b>.
-  <li> Return <b>true</b>.
 </ol>
 
 <h4 id="read-from-readable-stream">ReadFromReadableStream ( stream )</h4>

@@ -1,8 +1,8 @@
 var assert = require('assert');
 import * as helpers from './helpers';
 import { AcquireExclusiveStreamReader, CallReadableStreamPull, CancelReadableStream, CreateReadableStreamCloseFunction,
-  CreateReadableStreamEnqueueFunction, CreateReadableStreamErrorFunction, IsReadableStream, ReadFromReadableStream,
-  ShouldReadableStreamApplyBackpressure } from './readable-stream-abstract-ops';
+  CreateReadableStreamEnqueueFunction, CreateReadableStreamErrorFunction, IsReadableStream, IsReadableStreamLocked,
+  ReadFromReadableStream, ShouldReadableStreamApplyBackpressure } from './readable-stream-abstract-ops';
 
 export default class ReadableStream {
   constructor(underlyingSource = {}) {
@@ -44,7 +44,7 @@ export default class ReadableStream {
       throw new TypeError('ReadableStream.prototype.state can only be used on a ReadableStream');
     }
 
-    if (this._readableStreamReader !== undefined) {
+    if (IsReadableStreamLocked(this)) {
       return 'waiting';
     }
 
@@ -56,7 +56,7 @@ export default class ReadableStream {
       return Promise.reject(new TypeError('ReadableStream.prototype.cancel can only be used on a ReadableStream'));
     }
 
-    if (this._readableStreamReader !== undefined) {
+    if (IsReadableStreamLocked(this)) {
       return Promise.reject(
         new TypeError('This stream is locked to a single exclusive reader and cannot be cancelled directly'));
     }
@@ -169,7 +169,7 @@ export default class ReadableStream {
       throw new TypeError('ReadableStream.prototype.read can only be used on a ReadableStream');
     }
 
-    if (this._readableStreamReader !== undefined) {
+    if (IsReadableStreamLocked(this)) {
       throw new TypeError('This stream is locked to a single exclusive reader and cannot be read from directly');
     }
 

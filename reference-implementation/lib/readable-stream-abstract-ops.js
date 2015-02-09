@@ -57,7 +57,7 @@ export function CancelReadableStream(stream, reason) {
 }
 
 function CloseReadableStream(stream) {
-  if (stream._readableStreamReader !== undefined) {
+  if (IsReadableStreamLocked(stream)) {
     CloseReadableStreamReader(stream._readableStreamReader);
 
     stream._readableStreamReader = undefined;
@@ -158,7 +158,7 @@ export function CreateReadableStreamErrorFunction(stream) {
       stream._queue = [];
     }
 
-    if (stream._readableStreamReader !== undefined) {
+    if (IsReadableStreamLocked(stream)) {
       if (stream._state === 'waiting') {
         stream._readableStreamReader._resolveReadyPromise(undefined);
       }
@@ -195,6 +195,16 @@ export function IsExclusiveStreamReader(x) {
   return true;
 }
 
+export function IsReadableStreamLocked(stream) {
+  assert(IsReadableStream(stream) === true, 'IsReadableStreamLocked should only be used on known readable streams');
+
+  if (stream._readableStreamReader === undefined) {
+    return false;
+  }
+
+  return true;
+}
+
 export function IsReadableStream(x) {
   if (!typeIsObject(x)) {
     return false;
@@ -208,7 +218,7 @@ export function IsReadableStream(x) {
 }
 
 function MarkReadableStreamReadable(stream) {
-  if (stream._readableStreamReader !== undefined) {
+  if (IsReadableStreamLocked(stream)) {
     stream._readableStreamReader._resolveReadyPromise(undefined);
 
     stream._readableStreamReader._state = 'readable';
@@ -222,7 +232,7 @@ function MarkReadableStreamReadable(stream) {
 }
 
 function MarkReadableStreamWaiting(stream) {
-  if (stream._readableStreamReader !== undefined) {
+  if (IsReadableStreamLocked(stream)) {
     stream._readableStreamReader._initReadyPromise();
 
     stream._readableStreamReader._state = 'waiting';
