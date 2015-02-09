@@ -15,7 +15,7 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 !Participate: <a href="https://github.com/whatwg/streams/issues/new">File an issue</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open issues</a>)
 !Participate: <a href="https://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
 !Version History: <a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a>
-!Version History: [SNAPSHOT-LINK]
+!Version History: SNAPSHOT-LINK]
 !Version History: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
 </pre>
 
@@ -292,6 +292,11 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     <td>\[[readableStreamReader]]
     <td>A <code>ExclusiveStreamReader</code> instance, if the stream is locked to an exclusive reader, or
       <b>undefined</b> if it is not
+  </tr>
+  <tr>
+    <td>\[[readyPromise]]
+    <td>A promise returned by the <code>ready</code> getter
+  </tr>
   <tr>
     <td>\[[started]]
     <td>A boolean flag indicating whether the <a>underlying source</a> has finished starting
@@ -304,10 +309,6 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     <td>\[[storedError]]
     <td>A value indicating how the stream failed, to be given as a failure reason or exception when trying to operate
       on the stream while in the <code>"errored"</code> state
-  </tr>
-  <tr>
-    <td>\[[readyPromise]]
-    <td>A promise returned by the <code>ready</code> getter
   </tr>
   <tr>
     <td>\[[underlyingSource]]
