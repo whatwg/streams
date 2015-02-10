@@ -28,6 +28,24 @@ export function CloseReadableByteStreamReader(reader) {
   reader._state = 'closed';
 }
 
+export function CreateNotifyReadyFunction(stream) {
+  return () => {
+    if (stream._state !== 'waiting') {
+      return;
+    }
+
+    if (IsReadableByteStreamLocked(stream)) {
+      stream._readableByteStreamReader._resolveReadyPromise(undefined);
+
+      stream._readableByteStreamReader._state = 'readable';
+    } else {
+      stream._resolveReadyPromise(undefined);
+    }
+
+    stream._state = 'readable';
+  };
+}
+
 export function ErrorReadableByteStream(stream, e) {
   if (stream._state === 'errored' || stream._state === 'closed') {
     return;
