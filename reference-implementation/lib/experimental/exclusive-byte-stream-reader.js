@@ -1,5 +1,7 @@
 var assert = require('assert');
-import { ReadFromReadableByteStream } from './readable-byte-stream-abstract-ops';
+import { CancelReadableByteStream, CloseReadableByteStreamReader, IsReadableByteStreamLocked,
+  IsExclusiveByteStreamReader, ReadFromReadableByteStream, ReadIntoFromReadableByteStream
+  } from './readable-byte-stream-abstract-ops';
 
 export default class ExclusiveByteStreamReader {
   constructor(stream) {
@@ -7,84 +9,148 @@ export default class ExclusiveByteStreamReader {
       throw new TypeError('ExclusiveByteStreamReader can only be used with ReadableByteStream objects or subclasses');
     }
 
-    if (stream._readableByteStreamReader !== undefined) {
+    if (IsReadableByteStreamLocked(stream)) {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
+    // Update the states of the encapsulated stream to represent a locked stream.
+    if (stream._state === 'readable') {
+      stream._initReadyPromise();
+    }
     stream._readableByteStreamReader = this;
 
-    this._stream = stream;
+    // Sync the states of this reader with the encapsulated stream.
+    this._state = stream._state;
+    if (stream._state === 'waiting') {
+      this._initReadyPromise();
+    } else {
+      this._readyPromise = Promise.resolve(undefined);
+    }
+    this._initClosedPromise();
 
-    this._closedAfterRelease = undefined;
-    this._readyAfterRelease = undefined;
-    this._stateAfterRelease = undefined;
-
-    this._lockReleased = new Promise(resolve => {
-      this._lockReleased_resolve = resolve;
-    });
+    this._encapsulatedReadableByteStream = stream;
   }
 
   get ready() {
-    if (this._stream._readableByteStreamReader !== this) {
-      return this._readyAfterRelease;
+    if (!IsExclusiveByteStreamReader(this)) {
+      return Promise.reject(new TypeError('ExclusiveByteStreamReader.prototype.ready can only be used on a ' +
+        'ExclusiveByteStreamReader'));
     }
 
-    return Promise.race([this._stream._readyPromise, this._lockReleased]);
+    return this._readyPromise;
   }
 
   get state() {
-    if (this._stream._readableByteStreamReader !== this) {
-      return this._stateAfterRelease;
+    if (!IsExclusiveByteStreamReader(this)) {
+      throw new TypeError('ExclusiveByteStreamReader.prototype.state can only be used on a ExclusiveByteStreamReader');
     }
 
-    return this._stream._state;
+    return this._state;
   }
 
   get closed() {
-    if (this._stream._readableByteStreamReader !== this) {
-      return this._closedAfterRelease;
+    if (!IsExclusiveByteStreamReader(this)) {
+      return Promise.reject(new TypeError('ExclusiveByteStreamReader.prototype.closed can only be used on a ' +
+        'ExclusiveByteStreamReader'));
     }
 
-    return this._stream.closed;
+    return this._closedPromise;
   }
 
   get isActive() {
-    return this._stream._readableByteStreamReader === this;
+    if (!IsExclusiveByteStreamReader(this)) {
+      throw new TypeError('ExclusiveByteStreamReader.prototype.isActive can only be used on a ' +
+        'ExclusiveByteStreamReader');
+    }
+
+    return this._encapsulatedReadableByteStream._readableByteStreamReader === this;
   }
 
   read() {
-    if (this._stream._readableByteStreamReader !== this) {
+    if (!IsExclusiveByteStreamReader(this)) {
+      throw new TypeError('ExclusiveByteStreamReader.prototype.read can only be used on a ExclusiveByteStreamReader');
+    }
+
+    if (this._encapsulatedReadableByteStream._readableByteStreamReader !== this) {
       throw new TypeError('This stream reader has released its lock on the stream and can no longer be used');
     }
 
-    return ReadFromReadableByteStream(this._stream);
+    return ReadFromReadableByteStream(this._encapsulatedReadableByteStream);
   }
 
-  cancel(reason, ...args) {
-    if (this._stream._readableByteStreamReader !== this) {
-      return this._closedAfterRelease;
+  readInto(arrayBuffer, offset, size) {
+    if (!IsExclusiveByteStreamReader(this)) {
+      throw new TypeError(
+          'ExclusiveByteStreamReader.prototype.readInto can only be used on a ExclusiveByteStreamReader');
     }
 
-    this.releaseLock();
-    return this._stream.cancel(reason, ...args);
+    if (this._encapsulatedReadableByteStream._readableByteStreamReader !== this) {
+      throw new TypeError('This stream reader has released its lock on the stream and can no longer be used');
+    }
+
+    return ReadIntoFromReadableByteStream(this._encapsulatedReadableByteStream, arrayBuffer, offset, size);
+  }
+
+  cancel(reason) {
+    if (!IsExclusiveByteStreamReader(this)) {
+      return Promise.reject(new TypeError('ExclusiveByteStreamReader.prototype.cancel can only be used on a ' +
+        'ExclusiveByteStreamReader'));
+    }
+
+    if (this._encapsulatedReadableByteStream._readableByteStreamReader !== this) {
+      return this._closedPromise;
+    }
+
+    return CancelReadableByteStream(this._encapsulatedReadableByteStream, reason);
   }
 
   releaseLock() {
-    if (this._stream._readableByteStreamReader !== this) {
+    if (!IsExclusiveByteStreamReader(this)) {
+      throw new TypeError('ExclusiveByteStreamReader.prototype.releaseLock can only be used on a ' +
+        'ExclusiveByteStreamReader');
+    }
+
+    if (this._encapsulatedReadableByteStream._readableByteStreamReader !== this) {
       return undefined;
     }
 
-    this._stream._readableByteStreamReader = undefined;
+    assert(this._state === 'waiting' || this._state === 'readable');
 
-    this._stateAfterRelease = this._stream.state;
-    this._readyAfterRelease = Promise.resolve(undefined);
-    if (this._stateAfterRelease === 'closed' || this._stateAfterRelease === 'errored') {
-      this._closedAfterRelease = this._stream.closed;
-    } else {
-      this._stateAfterRelease = 'closed';
-      this._closedAfterRelease = Promise.resolve(undefined);
+    CloseReadableByteStreamReader(this);
+
+    if (this._encapsulatedReadableByteStream._state === 'readable') {
+      this._encapsulatedReadableByteStream._resolveReadyPromise(undefined);
     }
+    this._encapsulatedReadableByteStream._readableStreamReader = undefined;
+  }
 
-    this._lockReleased_resolve(undefined);
+  _initReadyPromise() {
+    this._readyPromise = new Promise((resolve, reject) => {
+      this._readyPromise_resolve = resolve;
+    });
+  }
+
+  _initClosedPromise() {
+    this._closedPromise = new Promise((resolve, reject) => {
+      this._closedPromise_resolve = resolve;
+      this._closedPromise_reject = reject;
+    });
+  }
+
+  _resolveReadyPromise(value) {
+    this._readyPromise_resolve(value);
+    this._readyPromise_resolve = null;
+  }
+
+  _resolveClosedPromise(value) {
+    this._closedPromise_resolve(value);
+    this._closedPromise_resolve = null;
+    this._closedPromise_reject = null;
+  }
+
+  _rejectClosedPromise(reason) {
+    this._closedPromise_reject(reason);
+    this._closedPromise_resolve = null;
+    this._closedPromise_reject = null;
   }
 }
