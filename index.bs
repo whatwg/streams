@@ -358,7 +358,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <li> Set <b>this</b>@\[[close]] to CreateReadableStreamCloseFunction(<b>this</b>).
   <li> Set <b>this</b>@\[[error]] to CreateReadableStreamErrorFunction(<b>this</b>).
   <li> Let <var>startResult</var> be InvokeOrNoop(<var>underlyingSource</var>, <code>"start"</code>,
-    (<b>this</b>@\[[enqueue]], <b>this</b>@\[[close]], <b>this</b>@\[[error]])).
+    «‍<b>this</b>@\[[enqueue]], <b>this</b>@\[[close]], <b>this</b>@\[[error]]»).
   <li> ReturnIfAbrupt(<var>startResult</var>).
   <li> Resolve <var>startResult</var> as a promise:
     <ol>
@@ -770,7 +770,7 @@ Instances of <code>ExclusiveStreamReader</code> are created with the internal sl
   <li> Let <var>shouldApplyBackpressure</var> be ShouldReadableStreamApplyBackpressure(<var>stream</var>).
   <li> If <var>shouldApplyBackpressure</var> is <b>true</b>, return <b>undefined</b>.
   <li> Set <var>stream</var>@\[[pullingPromise]] to PromiseInvokeOrNoop(<var>stream</var>@\[[underlyingSource]],
-    <code>"pull"</code>, (<var>stream</var>@\[[enqueue]], <var>stream</var>@\[[close]])).
+    <code>"pull"</code>, «‍<var>stream</var>@\[[enqueue]], <var>stream</var>@\[[close]]»).
   <li> Upon fulfillment of <var>stream</var>@\[[pullingPromise]], set <var>stream</var>@\[[pullingPromise]] to
     <b>undefined</b>.
   <li> Upon rejection of <var>stream</var>@\[[pullingPromise]] with reason <var>e</var>, call-with-rethrow
@@ -1406,7 +1406,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 <ol>
   <li> Assert: <var>stream</var>@\[[state]] is <code>"closing"</code>.
   <li> Let <var>sinkClosePromise</var> be PromiseInvokeOrNoop(<var>stream</var>@\[[underlyingSink]],
-    <code>"close"</code>).
+    <code>"close"</code>, «‍»).
     <ol>
       <li> Upon fulfillment,
         <ol>
@@ -1499,7 +1499,7 @@ a variable <var>stream</var>, that performs the following steps:
     </ol>
   <li> Set <var>stream</var>@\[[writing]] to <b>true</b>.
   <li> Let <var>writeResult</var> be PromiseInvokeOrNoop(<var>stream</var>@\[[underlyingSink]], <code>"write"</code>,
-    «‍<var>writeRecord</var>.\[[chunk]]»).
+    « <var>writeRecord</var>.\[[chunk]]»).
   <li> Upon fulfillment of <var>writeResult</var>,
     <ol>
       <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, return.
