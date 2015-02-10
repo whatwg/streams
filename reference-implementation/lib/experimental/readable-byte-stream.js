@@ -16,35 +16,11 @@ function notifyReady(stream) {
 }
 
 export default class ReadableByteStream {
-  constructor({
-    start = () => {},
-    readInto = () => {},
-    cancel = () => {},
-    readBufferSize = undefined,
-  } = {}) {
-    if (typeof start !== 'function') {
-      throw new TypeError('start must be a function or undefined');
-    }
-    if (typeof readInto !== 'function') {
-      throw new TypeError('readInto must be a function or undefined');
-    }
-    if (typeof cancel !== 'function') {
-      throw new TypeError('cancel must be a function or undefined');
-    }
-    if (readBufferSize !== undefined) {
-      readBufferSize = helpers.toInteger(readBufferSize);
-      if (readBufferSize < 0) {
-        throw new RangeError('readBufferSize must be non-negative');
-      }
-    }
+  constructor(underlyingByteSource = {}) {
+    this._underlyingByteSource = underlyingByteSource;
 
     this._readableByteStreamReader = undefined;
     this._state = 'waiting';
-
-    this._onReadInto = readInto;
-    this._onCancel = cancel;
-
-    this._readBufferSize = readBufferSize;
 
     this._readyPromise = new Promise((resolve, reject) => {
       this._readyPromise_resolve = resolve;
@@ -55,10 +31,8 @@ export default class ReadableByteStream {
       this._closedPromise_reject = reject;
     });
 
-    start(
-      notifyReady.bind(null, this),
-      ErrorReadableByteStream.bind(null, this)
-    );
+    helpers.InvokeOrNoop(underlyingByteSource, 'start',
+                         [notifyReady.bind(null, this), ErrorReadableByteStream.bind(null, this)])
   }
 
   get state() {
@@ -107,7 +81,11 @@ export default class ReadableByteStream {
 
     var bytesRead;
     try {
-      bytesRead = this._onReadInto.call(undefined, arrayBuffer, offset, size);
+      var readInto = this._underlyingByteSource['readInto'];
+      if (readInto === undefined) {
+        throw new TypeError('readInto is not defiend on the underlying byte source');
+      }
+      bytesRead = readInto.call(this._underlyingByteSource, arrayBuffer, offset, size);
     } catch (error) {
       ErrorReadableByteStream(this, error);
       throw error;
@@ -174,7 +152,7 @@ export default class ReadableByteStream {
     this._resolveClosedPromise(undefined);
 
     return new Promise((resolve, reject) => {
-      var sourceCancelPromise = helpers.promiseCall(this._onCancel, reason);
+      var sourceCancelPromise = helpers.PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
       sourceCancelPromise.then(
         () => {
           resolve(undefined);
