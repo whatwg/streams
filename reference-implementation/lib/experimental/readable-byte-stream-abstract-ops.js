@@ -1,3 +1,4 @@
+var assert = require('assert');
 import * as helpers from '../helpers';
 
 export function ErrorReadableByteStream(stream, error) {
@@ -36,6 +37,9 @@ export function IsReadableByteStream(x) {
 }
 
 export function IsReadableByteStreamLocked(stream) {
+  assert(IsReadableByteStream(stream) === true,
+         'IsReadableByteStreamLocked should only be used on known readable byte streams');
+
   if (stream._readableByteStreamReader === undefined) {
     return false;
   }
