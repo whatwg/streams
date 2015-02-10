@@ -1802,6 +1802,7 @@ A few abstract operations are used in this specification for utility purposes. W
 
 <ol>
   <li> Assert: <var>P</var> is a valid property key.
+  <li> If <var>args</var> was not passed, let <var>args</var> be a new empty List.
   <li> Let <var>method</var> be GetV(<var>O</var>, <var>P</var>).
   <li> ReturnIfAbrupt(<var>method</var>).
   <li> If <var>method</var> is <b>undefined</b>, return <b>undefined</b>.
@@ -1841,6 +1842,7 @@ A few abstract operations are used in this specification for utility purposes. W
 
 <ol>
   <li> Assert: <var>P</var> is a valid property key.
+  <li> If <var>args</var> was not passed, let <var>args</var> be a new empty List.
   <li> Let <var>method</var> be GetV(<var>O</var>, <var>P</var>).
   <li> If <var>method</var> is an abrupt completion, return a new promise rejected with <var>method</var>.\[[value]].
   <li> Let <var>method</var> be <var>method</var>.\[[value]].
