@@ -2,7 +2,7 @@ var assert = require('assert');
 import * as helpers from '../helpers';
 import ReadableStream from '../readable-stream';
 import ExclusiveByteStreamReader from './exclusive-byte-stream-reader';
-import { ErrorReadableByteStream, IsReadableByteStreamLocked, ReadFromReadableByteStream
+import { ErrorReadableByteStream, IsReadableByteStream, IsReadableByteStreamLocked, ReadFromReadableByteStream
   } from './readable-byte-stream-abstract-ops';
 
 // TODO: convert these to abstract ops that vend functions, instead of functions that we `.bind`.
@@ -36,6 +36,10 @@ export default class ReadableByteStream {
   }
 
   get state() {
+    if (!IsReadableByteStream(this)) {
+      throw new TypeError('ReadableByteStream.prototype.state can only be used on a ReadableByteStream');
+    }
+
     if (IsReadableByteStreamLocked(this)) {
       return 'waiting';
     }
@@ -44,6 +48,11 @@ export default class ReadableByteStream {
   }
 
   readInto(arrayBuffer, offset, size) {
+    if (!IsReadableByteStream(this)) {
+      return Promise.reject(
+          new TypeError('ReadableByteStream.prototype.ready can only be used on a ReadableByteStream'));
+    }
+
     if (this._state === 'waiting') {
       throw new TypeError('not ready for read');
     }
@@ -121,6 +130,10 @@ export default class ReadableByteStream {
   }
 
   read() {
+    if (!IsReadableByteStream(this)) {
+      throw new TypeError('ReadableByteStream.prototype.read can only be used on a ReadableByteStream');
+    }
+
     if (IsReadableByteStreamLocked(this)) {
       throw new TypeError('This stream is locked to a single exclusive reader and cannot be read from directly');
     }
@@ -129,6 +142,11 @@ export default class ReadableByteStream {
   }
 
   get ready() {
+    if (!IsReadableByteStream(this)) {
+      return Promise.reject(
+          new TypeError('ReadableByteStream.prototype.ready can only be used on a ReadableByteStream'));
+    }
+
     if (IsReadableByteStreamLocked(this)) {
       return this._readableByteStreamReader._lockReleased.then(() => this._readyPromise);
     }
@@ -137,6 +155,11 @@ export default class ReadableByteStream {
   }
 
   cancel(reason) {
+    if (!IsReadableByteStream(this)) {
+      return Promise.reject(
+          new TypeError('ReadableByteStream.prototype.cancel can only be used on a ReadableByteStream'));
+    }
+
     if (this._state === 'closed') {
       return Promise.resolve(undefined);
     }
@@ -165,6 +188,10 @@ export default class ReadableByteStream {
   }
 
   getReader() {
+    if (!IsReadableByteStream(this)) {
+      throw new TypeError('ReadableByteStream.prototype.getReader can only be used on a ReadableByteStream');
+    }
+
     if (this._state === 'closed') {
       throw new TypeError('The stream has already been closed, so a reader cannot be acquired.');
     }
@@ -176,6 +203,11 @@ export default class ReadableByteStream {
   }
 
   get closed() {
+    if (!IsReadableByteStream(this)) {
+      return Promise.reject(
+          new TypeError('ReadableByteStream.prototype.closed can only be used on a ReadableByteStream'));
+    }
+
     if (IsReadableByteStreamLocked(this)) {
       return this._readableByteStreamReader._lockReleased.then(() => this._closedPromise);
     }

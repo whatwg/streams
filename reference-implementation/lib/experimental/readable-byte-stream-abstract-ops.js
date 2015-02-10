@@ -23,6 +23,18 @@ export function ErrorReadableByteStream(stream, error) {
   stream._closedPromise_reject = null;
 }
 
+export function IsReadableByteStream(x) {
+  if (!helpers.typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_underlyingByteSource')) {
+    return false;
+  }
+
+  return true;
+}
+
 export function IsReadableByteStreamLocked(stream) {
   if (stream._readableByteStreamReader === undefined) {
     return false;
