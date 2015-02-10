@@ -1,3 +1,5 @@
+import * as helpers from '../helpers';
+
 export function ErrorReadableByteStream(stream, error) {
   if (stream._state === 'errored' || stream._state === 'closed') {
     return;
@@ -30,12 +32,17 @@ export function IsReadableByteStreamLocked(stream) {
 }
 
 export function ReadFromReadableByteStream(stream) {
-  if (stream._readBufferSize === undefined) {
-    throw new TypeError('readBufferSize is not configured');
+  var readBufferSizeGetter = stream._underlyingByteSource['readBufferSize'];
+  if (readBufferSizeGetter === undefined) {
+    throw new TypeError('readBufferSize getter is not defined on the underlying byte source');
+  }
+  var readBufferSize = helpers.toInteger(readBufferSizeGetter.call(stream._underlyingByteSource));
+  if (readBufferSize < 0) {
+    throw new RangeError('readBufferSize must be non-negative');
   }
 
-  var arrayBuffer = new ArrayBuffer(stream._readBufferSize);
-  var bytesRead = stream.readInto(arrayBuffer, 0, stream._readBufferSize);
+  var arrayBuffer = new ArrayBuffer(readBufferSize);
+  var bytesRead = stream.readInto(arrayBuffer, 0, readBufferSize);
   // This code should be updated to use ArrayBuffer.prototype.transfer when
   // it's ready.
   var resizedArrayBuffer = arrayBuffer.slice(0, bytesRead);
