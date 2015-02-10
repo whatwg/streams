@@ -28,6 +28,10 @@ export function CloseReadableByteStreamReader(reader) {
   reader._state = 'closed';
 }
 
+export function CreateErrorReadableByteStreamFunction(stream) {
+  return e => ErrorReadableByteStream(stream, e);
+}
+
 export function CreateNotifyReadyFunction(stream) {
   return () => {
     if (stream._state !== 'waiting') {
@@ -46,7 +50,7 @@ export function CreateNotifyReadyFunction(stream) {
   };
 }
 
-export function ErrorReadableByteStream(stream, e) {
+function ErrorReadableByteStream(stream, e) {
   if (stream._state === 'errored' || stream._state === 'closed') {
     return;
   }
