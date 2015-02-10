@@ -112,6 +112,24 @@ export function IsReadableByteStreamLocked(stream) {
   return true;
 }
 
+export function ReadFromReadableByteStream(stream) {
+  var readBufferSizeGetter = stream._underlyingByteSource['readBufferSize'];
+  if (readBufferSizeGetter === undefined) {
+    throw new TypeError('readBufferSize getter is not defined on the underlying byte source');
+  }
+  var readBufferSize = helpers.toInteger(readBufferSizeGetter.call(stream._underlyingByteSource));
+  if (readBufferSize < 0) {
+    throw new RangeError('readBufferSize must be non-negative');
+  }
+
+  var arrayBuffer = new ArrayBuffer(readBufferSize);
+  var bytesRead = ReadIntoFromReadableByteStream(stream, arrayBuffer, 0, readBufferSize);
+  // This code should be updated to use ArrayBuffer.prototype.transfer when
+  // it's ready.
+  var resizedArrayBuffer = arrayBuffer.slice(0, bytesRead);
+  return resizedArrayBuffer;
+}
+
 export function ReadIntoFromReadableByteStream(stream, arrayBuffer, offset, size) {
   if (stream._state === 'waiting') {
     throw new TypeError('not ready for read');
@@ -190,22 +208,4 @@ export function ReadIntoFromReadableByteStream(stream, arrayBuffer, offset, size
   }
 
   return bytesRead;
-}
-
-export function ReadFromReadableByteStream(stream) {
-  var readBufferSizeGetter = stream._underlyingByteSource['readBufferSize'];
-  if (readBufferSizeGetter === undefined) {
-    throw new TypeError('readBufferSize getter is not defined on the underlying byte source');
-  }
-  var readBufferSize = helpers.toInteger(readBufferSizeGetter.call(stream._underlyingByteSource));
-  if (readBufferSize < 0) {
-    throw new RangeError('readBufferSize must be non-negative');
-  }
-
-  var arrayBuffer = new ArrayBuffer(readBufferSize);
-  var bytesRead = ReadIntoFromReadableByteStream(stream, arrayBuffer, 0, readBufferSize);
-  // This code should be updated to use ArrayBuffer.prototype.transfer when
-  // it's ready.
-  var resizedArrayBuffer = arrayBuffer.slice(0, bytesRead);
-  return resizedArrayBuffer;
 }
