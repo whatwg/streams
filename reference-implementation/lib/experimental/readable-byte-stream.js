@@ -2,7 +2,7 @@ var assert = require('assert');
 import * as helpers from '../helpers';
 import ReadableStream from '../readable-stream';
 import ExclusiveByteStreamReader from './exclusive-byte-stream-reader';
-import { ReadFromReadableByteStream } from './readable-byte-stream-abstract-ops';
+import { ErrorReadableByteStream, ReadFromReadableByteStream } from './readable-byte-stream-abstract-ops';
 
 // TODO: convert these to abstract ops that vend functions, instead of functions that we `.bind`.
 function notifyReady(stream) {
@@ -12,29 +12,6 @@ function notifyReady(stream) {
 
   stream._state = 'readable';
   stream._resolveWaitPromise(undefined);
-}
-
-function errorReadableByteStream(stream, error) {
-  if (stream._state === 'errored' || stream._state === 'closed') {
-    return;
-  }
-
-  if (stream._state === 'waiting') {
-    stream._readyPromise_reject(error);
-    stream._readyPromise_resolve = null;
-    stream._readyPromise_reject = null;
-  } else {
-    stream._readyPromise = Promise.reject(error);
-    stream._readyPromise_resolve = null;
-    stream._readyPromise_reject = null;
-  }
-
-  stream._state = 'errored';
-  stream._storedError = error;
-
-  stream._closedPromise_reject(error);
-  stream._closedPromise_resolve = null;
-  stream._closedPromise_reject = null;
 }
 
 export default class ReadableByteStream {
@@ -79,7 +56,7 @@ export default class ReadableByteStream {
 
     start(
       notifyReady.bind(null, this),
-      errorReadableByteStream.bind(null, this)
+      ErrorReadableByteStream.bind(null, this)
     );
   }
 
@@ -131,7 +108,7 @@ export default class ReadableByteStream {
     try {
       bytesRead = this._onReadInto.call(undefined, arrayBuffer, offset, size);
     } catch (error) {
-      errorReadableByteStream(this, error);
+      ErrorReadableByteStream(this, error);
       throw error;
     }
 
@@ -139,7 +116,7 @@ export default class ReadableByteStream {
 
     if (isNaN(bytesRead) || bytesRead < -2 || bytesRead > size) {
       var error = new RangeError('readInto of underlying source returned invalid value');
-      errorReadableByteStream(this, error);
+      ErrorReadableByteStream(this, error);
       throw error;
     }
 
