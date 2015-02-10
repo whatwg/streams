@@ -38,7 +38,7 @@ export default class ReadableByteStream {
   readInto(arrayBuffer, offset, size) {
     if (!IsReadableByteStream(this)) {
       return Promise.reject(
-          new TypeError('ReadableByteStream.prototype.ready can only be used on a ReadableByteStream'));
+          new TypeError('ReadableByteStream.prototype.readInto can only be used on a ReadableByteStream'));
     }
 
     if (IsReadableByteStreamLocked(this)) {
