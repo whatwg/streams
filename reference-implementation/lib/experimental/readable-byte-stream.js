@@ -11,7 +11,7 @@ function notifyReady(stream) {
   }
 
   stream._state = 'readable';
-  stream._resolveWaitPromise(undefined);
+  stream._resolveReadyPromise(undefined);
 }
 
 export default class ReadableByteStream {
@@ -165,7 +165,7 @@ export default class ReadableByteStream {
       return Promise.reject(this._storedError);
     }
     if (this._state === 'waiting') {
-      this._resolveWaitPromise(undefined);
+      this._resolveReadyPromise(undefined);
     }
 
     this._state = 'closed';
@@ -204,7 +204,7 @@ export default class ReadableByteStream {
     return this._closedPromise;
   }
 
-  _resolveWaitPromise(value) {
+  _resolveReadyPromise(value) {
     this._readyPromise_resolve(value);
     this._readyPromise_resolve = null;
     this._readyPromise_reject = null;
