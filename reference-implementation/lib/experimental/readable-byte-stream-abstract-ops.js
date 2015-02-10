@@ -1,3 +1,26 @@
+export function ErrorReadableByteStream(stream, error) {
+  if (stream._state === 'errored' || stream._state === 'closed') {
+    return;
+  }
+
+  if (stream._state === 'waiting') {
+    stream._readyPromise_reject(error);
+    stream._readyPromise_resolve = null;
+    stream._readyPromise_reject = null;
+  } else {
+    stream._readyPromise = Promise.reject(error);
+    stream._readyPromise_resolve = null;
+    stream._readyPromise_reject = null;
+  }
+
+  stream._state = 'errored';
+  stream._storedError = error;
+
+  stream._closedPromise_reject(error);
+  stream._closedPromise_resolve = null;
+  stream._closedPromise_reject = null;
+}
+
 export function ReadFromReadableByteStream(stream) {
   if (stream._readBufferSize === undefined) {
     throw new TypeError('readBufferSize is not configured');
