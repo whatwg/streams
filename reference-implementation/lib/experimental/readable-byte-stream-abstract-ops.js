@@ -21,6 +21,14 @@ export function ErrorReadableByteStream(stream, error) {
   stream._closedPromise_reject = null;
 }
 
+export function IsReadableByteStreamLocked(stream) {
+  if (stream._readableByteStreamReader === undefined) {
+    return false;
+  }
+
+  return true;
+}
+
 export function ReadFromReadableByteStream(stream) {
   if (stream._readBufferSize === undefined) {
     throw new TypeError('readBufferSize is not configured');
