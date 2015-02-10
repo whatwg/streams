@@ -2,8 +2,8 @@ var assert = require('assert');
 import * as helpers from '../helpers';
 import ReadableStream from '../readable-stream';
 import ExclusiveByteStreamReader from './exclusive-byte-stream-reader';
-import { ErrorReadableByteStream, IsReadableByteStream, IsReadableByteStreamLocked, ReadFromReadableByteStream
-  } from './readable-byte-stream-abstract-ops';
+import { CloseReadableByteStream, ErrorReadableByteStream, IsReadableByteStream, IsReadableByteStreamLocked,
+  ReadFromReadableByteStream, ReadIntoFromReadableByteStream } from './readable-byte-stream-abstract-ops';
 
 // TODO: convert these to abstract ops that vend functions, instead of functions that we `.bind`.
 function notifyReady(stream) {
@@ -11,8 +11,15 @@ function notifyReady(stream) {
     return;
   }
 
+  if (IsReadableByteStreamLocked(stream)) {
+    stream._readableByteStreamReader._resolveReadyPromise(undefined);
+
+    stream._readableByteStreamReader._state = 'readable';
+  } else {
+    stream._resolveReadyPromise(undefined);
+  }
+
   stream._state = 'readable';
-  stream._resolveReadyPromise(undefined);
 }
 
 export default class ReadableByteStream {
@@ -22,10 +29,7 @@ export default class ReadableByteStream {
     this._readableByteStreamReader = undefined;
     this._state = 'waiting';
 
-    this._readyPromise = new Promise((resolve, reject) => {
-      this._readyPromise_resolve = resolve;
-      this._readyPromise_reject = reject;
-    });
+    this._initReadyPromise();
     this._closedPromise = new Promise((resolve, reject) => {
       this._closedPromise_resolve = resolve;
       this._closedPromise_reject = reject;
@@ -53,80 +57,11 @@ export default class ReadableByteStream {
           new TypeError('ReadableByteStream.prototype.ready can only be used on a ReadableByteStream'));
     }
 
-    if (this._state === 'waiting') {
-      throw new TypeError('not ready for read');
-    }
-    if (this._state === 'closed') {
-      throw new TypeError('stream has already been consumed');
-    }
-    if (this._state === 'errored') {
-      throw this._storedError;
+    if (IsReadableByteStreamLocked(this)) {
+      throw new TypeError('This stream is locked to a single exclusive reader and cannot be read from directly');
     }
 
-    assert(this._state === 'readable');
-
-    if (offset === undefined) {
-      offset = 0;
-    } else {
-      offset = helpers.toInteger(offset);
-
-      if (offset < 0) {
-        throw new RangeError('offset must be non-negative');
-      }
-    }
-
-    if (size === undefined) {
-      size = arrayBuffer.byteLength - offset;
-    } else {
-      size = helpers.toInteger(size);
-    }
-
-    if (size < 0) {
-      throw new RangeError('size must be non-negative');
-    }
-    if (offset + size > arrayBuffer.byteLength) {
-      throw new RangeError('the specified range is out of bounds for arrayBuffer');
-    }
-
-    var bytesRead;
-    try {
-      var readInto = this._underlyingByteSource['readInto'];
-      if (readInto === undefined) {
-        throw new TypeError('readInto is not defiend on the underlying byte source');
-      }
-      bytesRead = readInto.call(this._underlyingByteSource, arrayBuffer, offset, size);
-    } catch (error) {
-      ErrorReadableByteStream(this, error);
-      throw error;
-    }
-
-    bytesRead = Number(bytesRead);
-
-    if (isNaN(bytesRead) || bytesRead < -2 || bytesRead > size) {
-      var error = new RangeError('readInto of underlying source returned invalid value');
-      ErrorReadableByteStream(this, error);
-      throw error;
-    }
-
-    if (bytesRead === -1) {
-      this._state = 'closed';
-      this._resolveClosedPromise(undefined);
-
-      // Let the user investigate state again.
-      return 0;
-    }
-
-    if (bytesRead === -2) {
-      this._state = 'waiting';
-      this._readyPromise = new Promise((resolve, reject) => {
-        this._readyPromise_resolve = resolve;
-        this._readyPromise_reject = reject;
-      });
-
-      return 0;
-    }
-
-    return bytesRead;
+    return ReadIntoFromReadableByteStream(this, arrayBuffer, offset, size);
   }
 
   read() {
@@ -147,11 +82,7 @@ export default class ReadableByteStream {
           new TypeError('ReadableByteStream.prototype.ready can only be used on a ReadableByteStream'));
     }
 
-    if (IsReadableByteStreamLocked(this)) {
-      return this._readableByteStreamReader._lockReleased.then(() => this._readyPromise);
-    }
-
-    return this._readyPromise.then(() => this._readableByteStreamReader === undefined ? undefined : this._readableByteStreamReader._lockReleased);
+    return this._readyPromise;
   }
 
   cancel(reason) {
@@ -160,31 +91,14 @@ export default class ReadableByteStream {
           new TypeError('ReadableByteStream.prototype.cancel can only be used on a ReadableByteStream'));
     }
 
-    if (this._state === 'closed') {
-      return Promise.resolve(undefined);
-    }
-    if (this._state === 'errored') {
-      return Promise.reject(this._storedError);
-    }
-    if (this._state === 'waiting') {
-      this._resolveReadyPromise(undefined);
+    if (this._state === 'closed' || this._state === 'errored') {
+      return this._closedPromise;
     }
 
-    this._state = 'closed';
-    this._readableByteStreamReader = undefined;
-    this._resolveClosedPromise(undefined);
+    CloseReadableByteStream(this);
 
-    return new Promise((resolve, reject) => {
-      var sourceCancelPromise = helpers.PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
-      sourceCancelPromise.then(
-        () => {
-          resolve(undefined);
-        },
-        r => {
-          reject(r);
-        }
-      );
-    });
+    var sourceCancelPromise = helpers.PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
+    return sourceCancelPromise.then(() => undefined);
   }
 
   getReader() {
@@ -208,21 +122,28 @@ export default class ReadableByteStream {
           new TypeError('ReadableByteStream.prototype.closed can only be used on a ReadableByteStream'));
     }
 
-    if (IsReadableByteStreamLocked(this)) {
-      return this._readableByteStreamReader._lockReleased.then(() => this._closedPromise);
-    }
-
     return this._closedPromise;
+  }
+
+  _initReadyPromise() {
+    this._readyPromise = new Promise((resolve, reject) => {
+      this._readyPromise_resolve = resolve;
+    });
   }
 
   _resolveReadyPromise(value) {
     this._readyPromise_resolve(value);
     this._readyPromise_resolve = null;
-    this._readyPromise_reject = null;
   }
 
   _resolveClosedPromise(value) {
     this._closedPromise_resolve(value);
+    this._closedPromise_resolve = null;
+    this._closedPromise_reject = null;
+  }
+
+  _rejectClosedPromise(reason) {
+    this._closedPromise_reject(reason);
     this._closedPromise_resolve = null;
     this._closedPromise_reject = null;
   }

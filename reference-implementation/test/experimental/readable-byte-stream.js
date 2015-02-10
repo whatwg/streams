@@ -368,46 +368,6 @@ test('ReadableByteStream: readInto() must throw when in waiting state', t => {
   t.end();
 });
 
-test('ReadableByteStream: read() delegates to readInto()', t => {
-  var buffer = new ArrayBuffer(10);
-
-  var rbs = new ReadableByteStream({
-    start(notifyReady) {
-      notifyReady();
-    },
-    readInto(arrayBuffer, offset, size) {
-      t.fail('unexpected call to underlying source readInto');
-      t.end();
-    },
-    cancel() {
-      t.fail('Unexpected cancel call');
-      t.end();
-    },
-    readBufferSize() {
-      return 10;
-    }
-  });
-
-  var readIntoArrayBuffer, readIntoOffset, readIntoSize;
-  rbs.readInto = function (arrayBuffer, offset, size) {
-    readIntoArrayBuffer = arrayBuffer;
-    readIntoOffset = offset;
-    readIntoSize = size;
-
-    return 5;
-  };
-
-  var readArrayBuffer = rbs.read();
-
-  t.ok(readIntoArrayBuffer instanceof ArrayBuffer, 'An ArrayBuffer was passed to readInto');
-  t.equal(readIntoOffset, 0, 'readInto was called with offset 0');
-  t.equal(readIntoSize, 10, 'readInto was called with the established readBufferSize');
-
-  t.equal(readArrayBuffer.byteLength, 5, 'The read array buffer was of the length returned by readInto');
-
-  t.end();
-});
-
 test('ReadableByteStream: ArrayBuffer allocated by read() is partially used', t => {
   var rbs = new ReadableByteStream({
     start(notifyReady) {
