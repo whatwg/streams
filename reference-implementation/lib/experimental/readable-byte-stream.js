@@ -2,7 +2,8 @@ var assert = require('assert');
 import * as helpers from '../helpers';
 import ReadableStream from '../readable-stream';
 import ExclusiveByteStreamReader from './exclusive-byte-stream-reader';
-import { ErrorReadableByteStream, ReadFromReadableByteStream } from './readable-byte-stream-abstract-ops';
+import { ErrorReadableByteStream, IsReadableByteStreamLocked, ReadFromReadableByteStream
+  } from './readable-byte-stream-abstract-ops';
 
 // TODO: convert these to abstract ops that vend functions, instead of functions that we `.bind`.
 function notifyReady(stream) {
@@ -61,7 +62,7 @@ export default class ReadableByteStream {
   }
 
   get state() {
-    if (this._readableByteStreamReader !== undefined) {
+    if (IsReadableByteStreamLocked(this)) {
       return 'waiting';
     }
 
@@ -142,7 +143,7 @@ export default class ReadableByteStream {
   }
 
   read() {
-    if (this._readableByteStreamReader !== undefined) {
+    if (IsReadableByteStreamLocked(this)) {
       throw new TypeError('This stream is locked to a single exclusive reader and cannot be read from directly');
     }
 
@@ -150,7 +151,7 @@ export default class ReadableByteStream {
   }
 
   get ready() {
-    if (this._readableByteStreamReader !== undefined) {
+    if (IsReadableByteStreamLocked(this)) {
       return this._readableByteStreamReader._lockReleased.then(() => this._readyPromise);
     }
 
@@ -197,7 +198,7 @@ export default class ReadableByteStream {
   }
 
   get closed() {
-    if (this._readableByteStreamReader !== undefined) {
+    if (IsReadableByteStreamLocked(this)) {
       return this._readableByteStreamReader._lockReleased.then(() => this._closedPromise);
     }
 
