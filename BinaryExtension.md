@@ -27,6 +27,8 @@ When a `ReadableByteStream` is constructed, the underlying source watches for ev
 
 By admitting returning the ArrayBuffer with no data written on it, `ReadableByteStream` satisfies the semantics of `ReadableStream`.
 
+Underlying sources that can determine how many bytes can be read synchronously may optinally implement a getter `readableAmount()` to allow the user of the `ReadableByteStream` to adjust the size of an ArrayBuffer to pass to `readInto()`.
+
 ### ReadableByteStream
 
 ```
@@ -34,6 +36,7 @@ class ReadableByteStream {
     constructor(underlyingByteSource = {})
 
     get closed()
+    get readableAmount()
     get ready()
     get state()
 
@@ -183,6 +186,10 @@ When an error function _F_ is called with argument _error_, the following steps 
 
 1. Let _stream_ be the **this** value.
 1. Return _stream_.[[readyPromise]].
+
+##### get ReadableByteStream.prototype.readableAmount
+
+1. Return InvokeOrNoop(**this**@[[underlyingSink]], `"readableAmount"`, «»).
 
 ##### get ReadableByteStream.prototype.closed
 
