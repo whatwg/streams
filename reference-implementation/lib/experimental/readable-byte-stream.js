@@ -2,8 +2,8 @@ var assert = require('assert');
 import * as helpers from '../helpers';
 import ReadableStream from '../readable-stream';
 import ExclusiveByteStreamReader from './exclusive-byte-stream-reader';
-import { CloseReadableByteStream, CreateNotifyReadyFunction, ErrorReadableByteStream, IsReadableByteStream,
-  IsReadableByteStreamLocked, ReadFromReadableByteStream, ReadIntoFromReadableByteStream
+import { CloseReadableByteStream, CreateNotifyReadyFunction, CreateErrorReadableByteStreamFunction,
+  IsReadableByteStream, IsReadableByteStreamLocked, ReadFromReadableByteStream, ReadIntoFromReadableByteStream
   } from './readable-byte-stream-abstract-ops';
 
 export default class ReadableByteStream {
@@ -20,7 +20,7 @@ export default class ReadableByteStream {
     });
 
     helpers.InvokeOrNoop(underlyingByteSource, 'start',
-                         [CreateNotifyReadyFunction(this), ErrorReadableByteStream.bind(null, this)])
+                         [CreateNotifyReadyFunction(this), CreateErrorReadableByteStreamFunction(this)])
   }
 
   get state() {
