@@ -2,25 +2,9 @@ var assert = require('assert');
 import * as helpers from '../helpers';
 import ReadableStream from '../readable-stream';
 import ExclusiveByteStreamReader from './exclusive-byte-stream-reader';
-import { CloseReadableByteStream, ErrorReadableByteStream, IsReadableByteStream, IsReadableByteStreamLocked,
-  ReadFromReadableByteStream, ReadIntoFromReadableByteStream } from './readable-byte-stream-abstract-ops';
-
-// TODO: convert these to abstract ops that vend functions, instead of functions that we `.bind`.
-function notifyReady(stream) {
-  if (stream._state !== 'waiting') {
-    return;
-  }
-
-  if (IsReadableByteStreamLocked(stream)) {
-    stream._readableByteStreamReader._resolveReadyPromise(undefined);
-
-    stream._readableByteStreamReader._state = 'readable';
-  } else {
-    stream._resolveReadyPromise(undefined);
-  }
-
-  stream._state = 'readable';
-}
+import { CloseReadableByteStream, CreateNotifyReadyFunction, ErrorReadableByteStream, IsReadableByteStream,
+  IsReadableByteStreamLocked, ReadFromReadableByteStream, ReadIntoFromReadableByteStream
+  } from './readable-byte-stream-abstract-ops';
 
 export default class ReadableByteStream {
   constructor(underlyingByteSource = {}) {
@@ -36,7 +20,7 @@ export default class ReadableByteStream {
     });
 
     helpers.InvokeOrNoop(underlyingByteSource, 'start',
-                         [notifyReady.bind(null, this), ErrorReadableByteStream.bind(null, this)])
+                         [CreateNotifyReadyFunction(this), ErrorReadableByteStream.bind(null, this)])
   }
 
   get state() {
