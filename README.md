@@ -9,7 +9,8 @@ Snapshots of any given commit or branch are available at specially-crafted URLs:
 - https://streams.spec.whatwg.org/commit-snapshots/ contains snapshots of any given commit
 - https://streams.spec.whatwg.org/branch-snapshots/ contains snapshots of the latest commit to any given branch
 
-This repository also includes a polyfill and test suite under `reference-implementation/`. See the README under that directory for more details.
+This repository also includes a polyfill and test suite under `reference-implementation/`. See the README under that directory for more details. The test suite is automatically deployed, in a form viable for running against browsers, to https://streams.spec.whatwg.org/tests/.
+
 
 ## Building the spec
 

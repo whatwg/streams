@@ -14,6 +14,7 @@ SERVER="streams.spec.whatwg.org"
 WEB_ROOT="streams.spec.whatwg.org"
 COMMITS_DIR="commit-snapshots"
 BRANCHES_DIR="branch-snapshots"
+TESTS_DIR="tests"
 
 SHA="`git rev-parse HEAD`"
 BRANCH="`git rev-parse --abbrev-ref HEAD`"
@@ -64,6 +65,13 @@ else
          > $WEB_ROOT/index.html
     cp *.svg $WEB_ROOT
     echo "Living standard output to $WEB_ROOT"
+
+    # Test suite, if master
+    cd reference-implementation
+    npm run build-browser-tests
+    cd ..
+    mkdir "$WEB_ROOT/$TESTS_DIR"
+    cp reference-implementation/browser-tests/{index.html,bundle.js} "$WEB_ROOT/$TESTS_DIR"
 fi
 
 # scp the output directory up
