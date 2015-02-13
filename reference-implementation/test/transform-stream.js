@@ -1,9 +1,5 @@
 var test = require('tape');
 
-import TransformStream from '../lib/transform-stream';
-import ReadableStream from '../lib/readable-stream';
-import WritableStream from '../lib/writable-stream';
-
 test('TransformStream can be constructed with a transform function', t => {
   t.plan(1);
   t.doesNotThrow(() => new TransformStream({ transform() { } }), 'TransformStream constructed with no errors');

@@ -1,8 +1,5 @@
 var test = require('tape');
 
-import ReadableStream from '../lib/readable-stream';
-import WritableStream from '../lib/writable-stream';
-import CountQueuingStrategy from '../lib/count-queuing-strategy';
 import sequentialReadableStream from './utils/sequential-rs';
 
 test('Piping from a ReadableStream from which lots of data are readable synchronously', t => {

@@ -1,7 +1,5 @@
 var test = require('tape');
 
-import WritableStream from '../lib/writable-stream';
-
 test('Throwing underlying sink start getter', t => {
   var theError = new Error('a unique string');
 

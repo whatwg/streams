@@ -1,7 +1,5 @@
 var test = require('tape');
 
-import WritableStream from '../lib/writable-stream';
-
 function writeArrayToStream(array, writableStream) {
   array.forEach(chunk => writableStream.write(chunk));
   return writableStream.close();

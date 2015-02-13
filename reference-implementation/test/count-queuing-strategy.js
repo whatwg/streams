@@ -1,9 +1,5 @@
 var test = require('tape');
 
-import CountQueuingStrategy from '../lib/count-queuing-strategy';
-import ReadableStream from '../lib/readable-stream';
-import WritableStream from '../lib/writable-stream';
-
 test('Can construct a CountQueuingStrategy with a valid high water mark', t => {
   var strategy = new CountQueuingStrategy({ highWaterMark: 4 });
 

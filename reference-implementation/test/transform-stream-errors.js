@@ -1,7 +1,5 @@
 var test = require('tape');
 
-import TransformStream from '../lib/transform-stream';
-
 test('TransformStream errors thrown in transform put the writable and readable in an errored state', t => {
   t.plan(9);
 

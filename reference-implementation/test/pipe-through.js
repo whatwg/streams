@@ -3,9 +3,6 @@ var test = require('tape');
 import sequentialReadableStream from './utils/sequential-rs';
 import duckTypedPassThroughTransform from './utils/duck-typed-pass-through-transform';
 import readableStreamToArray from './utils/readable-stream-to-array';
-import ReadableStream from '../lib/readable-stream';
-import WritableStream from '../lib/writable-stream';
-import TransformStream from '../lib/transform-stream';
 
 test('Piping through a duck-typed pass-through transform stream works', t => {
   t.plan(1);

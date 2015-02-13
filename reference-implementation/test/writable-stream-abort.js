@@ -1,7 +1,5 @@
 var test = require('tape');
 
-import WritableStream from '../lib/writable-stream';
-
 test('Aborting a WritableStream immediately prevents future writes', t => {
   var chunks = [];
   var ws = new WritableStream({

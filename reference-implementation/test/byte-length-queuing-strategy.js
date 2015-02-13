@@ -1,8 +1,5 @@
 var test = require('tape');
 
-import ByteLengthQueuingStrategy from '../lib/byte-length-queuing-strategy';
-import WritableStream from '../lib/writable-stream';
-
 test('Can construct a ByteLengthQueuingStrategy with a valid high water mark', t => {
   var strategy = new ByteLengthQueuingStrategy({ highWaterMark: 4 });
 

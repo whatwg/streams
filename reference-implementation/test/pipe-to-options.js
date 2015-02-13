@@ -1,7 +1,5 @@
 var test = require('tape');
 
-import ReadableStream from '../lib/readable-stream';
-import WritableStream from '../lib/writable-stream';
 import sequentialReadableStream from './utils/sequential-rs';
 
 test('Piping with no options and no errors', t => {

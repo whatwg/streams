@@ -1,7 +1,5 @@
 var test = require('tape');
 
-import ReadableStream from '../lib/readable-stream';
-
 test('Using the reader directly on a mundane stream', t => {
   t.plan(22);
 

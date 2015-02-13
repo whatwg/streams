@@ -1,7 +1,5 @@
 var test = require('tape');
 
-import ReadableStream from '../lib/readable-stream';
-import CountQueuingStrategy from '../lib/count-queuing-strategy';
 import RandomPushSource from './utils/random-push-source';
 import readableStreamToArray from './utils/readable-stream-to-array';
 import sequentialReadableStream from './utils/sequential-rs';

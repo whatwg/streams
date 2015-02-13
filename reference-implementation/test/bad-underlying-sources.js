@@ -1,7 +1,5 @@
 var test = require('tape');
 
-import ReadableStream from '../lib/readable-stream';
-
 test('Throwing underlying source start getter', t => {
   var theError = new Error('a unique string');
 

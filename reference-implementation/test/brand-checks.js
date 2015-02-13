@@ -1,10 +1,14 @@
 var test = require('tape');
 
-import ReadableStream from '../lib/readable-stream';
-import WritableStream from '../lib/writable-stream';
-import ExclusiveStreamReader from '../lib/exclusive-stream-reader';
-import ByteLengthQueuingStrategy from '../lib/byte-length-queuing-strategy';
-import CountQueuingStrategy from '../lib/count-queuing-strategy';
+let ExclusiveStreamReader;
+
+test('Can get the ExclusiveStreamReader constructor indirectly', t => {
+  t.doesNotThrow(() => {
+    // It's not exposed globally, but we test a few of its properties here.
+    ExclusiveStreamReader = (new ReadableStream()).getReader().constructor;
+  });
+  t.end();
+});
 
 function fakeReadableStream() {
   return {
