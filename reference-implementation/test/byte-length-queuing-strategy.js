@@ -1,7 +1,7 @@
-var test = require('tape');
+const test = require('tape');
 
 test('Can construct a ByteLengthQueuingStrategy with a valid high water mark', t => {
-  var strategy = new ByteLengthQueuingStrategy({ highWaterMark: 4 });
+  const strategy = new ByteLengthQueuingStrategy({ highWaterMark: 4 });
 
   t.end();
 });
@@ -9,8 +9,8 @@ test('Can construct a ByteLengthQueuingStrategy with a valid high water mark', t
 test('Closing a writable stream with in-flight writes below the high water mark delays the close call properly', t => {
   t.plan(1);
 
-  var isDone = false;
-  var ws = new WritableStream({
+  let isDone = false;
+  const ws = new WritableStream({
     write(chunk) {
       return new Promise(resolve => {
         setTimeout(() => {

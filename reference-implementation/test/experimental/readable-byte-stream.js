@@ -1,4 +1,4 @@
-var test = require('tape');
+const test = require('tape');
 
 import ReadableByteStream from '../../lib/experimental/readable-byte-stream';
 import ReadableStream from '../../lib/readable-stream';
@@ -12,8 +12,8 @@ test('ReadableByteStream can be constructed with no arguments', t => {
 });
 
 test('ReadableByteStream: Call notifyReady() asynchronously to enter readable state', t => {
-  var notifyReady;
-  var rbs = new ReadableByteStream({
+  let notifyReady;
+  const rbs = new ReadableByteStream({
     start(notifyReady_) {
       notifyReady = notifyReady_;
     },
@@ -27,7 +27,7 @@ test('ReadableByteStream: Call notifyReady() asynchronously to enter readable st
     }
   });
 
-  var readyPromise = rbs.ready;
+  const readyPromise = rbs.ready;
 
   t.equal(rbs.state, 'waiting');
 
@@ -45,7 +45,7 @@ test('ReadableByteStream: Call notifyReady() asynchronously to enter readable st
 });
 
 test('ReadableByteStream: read() must throw if constructed with passing undefined for readBufferSize', t => {
-  var rbs = new ReadableByteStream({
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
@@ -64,10 +64,10 @@ test('ReadableByteStream: read() must throw if constructed with passing undefine
 });
 
 test('ReadableByteStream: Stay in readable state on readInto() call', t => {
-  var buffer = new ArrayBuffer(10);
+  const buffer = new ArrayBuffer(10);
 
-  var readIntoCount = 0;
-  var rbs = new ReadableByteStream({
+  let readIntoCount = 0;
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
@@ -86,7 +86,7 @@ test('ReadableByteStream: Stay in readable state on readInto() call', t => {
   });
 
   t.equal(rbs.state, 'readable');
-  var bytesRead = rbs.readInto(buffer, 2, 5);
+  const bytesRead = rbs.readInto(buffer, 2, 5);
   t.equal(readIntoCount, 1);
   t.equal(bytesRead, 4);
   t.equal(rbs.state, 'readable');
@@ -95,8 +95,8 @@ test('ReadableByteStream: Stay in readable state on readInto() call', t => {
 });
 
 test('ReadableByteStream: readInto()\'s offset and size argument are automatically calculated if omitted', t => {
-  var readIntoCount = 0;
-  var rbs = new ReadableByteStream({
+  let readIntoCount = 0;
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
@@ -113,7 +113,7 @@ test('ReadableByteStream: readInto()\'s offset and size argument are automatical
     }
   });
 
-  var bytesRead = rbs.readInto(new ArrayBuffer(10));
+  const bytesRead = rbs.readInto(new ArrayBuffer(10));
   t.equal(readIntoCount, 1);
   t.equal(bytesRead, 10);
   t.equal(rbs.state, 'readable');
@@ -122,8 +122,8 @@ test('ReadableByteStream: readInto()\'s offset and size argument are automatical
 });
 
 test('ReadableByteStream: readInto()\'s size argument is automatically calculated if omitted', t => {
-  var readIntoCount = 0;
-  var rbs = new ReadableByteStream({
+  let readIntoCount = 0;
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
@@ -140,7 +140,7 @@ test('ReadableByteStream: readInto()\'s size argument is automatically calculate
     }
   });
 
-  var bytesRead = rbs.readInto(new ArrayBuffer(10), 3);
+  const bytesRead = rbs.readInto(new ArrayBuffer(10), 3);
   t.equal(readIntoCount, 1);
   t.equal(bytesRead, 7);
   t.equal(rbs.state, 'readable');
@@ -149,10 +149,10 @@ test('ReadableByteStream: readInto()\'s size argument is automatically calculate
 });
 
 test('ReadableByteStream: Enter waiting state on readInto() call', t => {
-  var buffer = new ArrayBuffer(10);
+  const buffer = new ArrayBuffer(10);
 
-  var readIntoCount = 0;
-  var rbs = new ReadableByteStream({
+  let readIntoCount = 0;
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
@@ -171,7 +171,7 @@ test('ReadableByteStream: Enter waiting state on readInto() call', t => {
   });
 
   t.equal(rbs.state, 'readable');
-  var bytesRead = rbs.readInto(buffer, 0, 10);
+  const bytesRead = rbs.readInto(buffer, 0, 10);
   t.equal(readIntoCount, 1);
   t.equal(bytesRead, 0);
   t.equal(rbs.state, 'waiting');
@@ -180,10 +180,10 @@ test('ReadableByteStream: Enter waiting state on readInto() call', t => {
 });
 
 test('ReadableByteStream: Enter closed state on readInto() call', t => {
-  var buffer = new ArrayBuffer(10);
+  const buffer = new ArrayBuffer(10);
 
-  var readIntoCount = 0;
-  var rbs = new ReadableByteStream({
+  let readIntoCount = 0;
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
@@ -202,7 +202,7 @@ test('ReadableByteStream: Enter closed state on readInto() call', t => {
   });
 
   t.equal(rbs.state, 'readable');
-  var bytesRead = rbs.readInto(buffer, 0, 10);
+  const bytesRead = rbs.readInto(buffer, 0, 10);
   t.equal(readIntoCount, 1);
   t.equal(bytesRead, 0);
   t.equal(rbs.state, 'closed');
@@ -216,8 +216,8 @@ test('ReadableByteStream: Enter closed state on readInto() call', t => {
 });
 
 test('ReadableByteStream: Enter errored state when readInto()\'s return value is out of range', t => {
-  var readIntoCount = 0;
-  var rbs = new ReadableByteStream({
+  let readIntoCount = 0;
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
@@ -247,8 +247,8 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
 });
 
 test('ReadableByteStream: Enter errored state when readInto()\'s return value is NaN', t => {
-  var readIntoCount = 0;
-  var rbs = new ReadableByteStream({
+  let readIntoCount = 0;
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
@@ -278,7 +278,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
 });
 
 test('ReadableByteStream: readInto() fails if the range specified by offset and size is invalid', t => {
-  var rbs = new ReadableByteStream({
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
@@ -308,8 +308,8 @@ test('ReadableByteStream: readInto() fails if the range specified by offset and 
 });
 
 test('ReadableByteStream: Enter errored state when readInto()\'s return value is smaller than -2', t => {
-  var readIntoCount = 0;
-  var rbs = new ReadableByteStream({
+  let readIntoCount = 0;
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
@@ -331,7 +331,7 @@ test('ReadableByteStream: Enter errored state when readInto()\'s return value is
 });
 
 test('ReadableByteStream: read() must throw when in waiting state', t => {
-  var rbs = new ReadableByteStream({
+  const rbs = new ReadableByteStream({
     readInto(arrayBuffer, offset, size) {
       t.fail('Unexpected readInto call');
       t.end();
@@ -350,7 +350,7 @@ test('ReadableByteStream: read() must throw when in waiting state', t => {
 });
 
 test('ReadableByteStream: readInto() must throw when in waiting state', t => {
-  var rbs = new ReadableByteStream({
+  const rbs = new ReadableByteStream({
     readInto(arrayBuffer, offset, size) {
       t.fail('Unexpected readInto call');
       t.end();
@@ -369,7 +369,7 @@ test('ReadableByteStream: readInto() must throw when in waiting state', t => {
 });
 
 test('ReadableByteStream: ArrayBuffer allocated by read() is partially used', t => {
-  var rbs = new ReadableByteStream({
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
@@ -377,8 +377,8 @@ test('ReadableByteStream: ArrayBuffer allocated by read() is partially used', t 
       t.equal(offset, 0);
       t.equal(size, 10);
 
-      var view = new Uint8Array(arrayBuffer, offset, size);
-      for (var i = 0; i < 8; ++i) {
+      const view = new Uint8Array(arrayBuffer, offset, size);
+      for (let i = 0; i < 8; ++i) {
         view[i] = i;
       }
 
@@ -394,10 +394,10 @@ test('ReadableByteStream: ArrayBuffer allocated by read() is partially used', t 
   });
 
   t.equal(rbs.state, 'readable');
-  var data = rbs.read();
+  const data = rbs.read();
   t.equal(data.byteLength, 8);
-  var view = new Uint8Array(data);
-  for (var i = 0; i < 8; ++i) {
+  const view = new Uint8Array(data);
+  for (let i = 0; i < 8; ++i) {
     if (view[i] != i) {
       t.fail('Unexpected value ' + view[i] + ' at data[' + i + ']');
       t.end();
@@ -408,11 +408,11 @@ test('ReadableByteStream: ArrayBuffer allocated by read() is partially used', t 
 });
 
 test('ReadableByteStream: Have source\'s readInto() write up to 10 bytes for each call', t => {
-  var totalBytesRead = 0;
-  var dataSize = 64;
-  var doWait = false;
-  var notifyReady;
-  var rbs = new ReadableByteStream({
+  let totalBytesRead = 0;
+  const dataSize = 64;
+  let doWait = false;
+  let notifyReady;
+  const rbs = new ReadableByteStream({
     start(notifyReady_) {
       notifyReady = notifyReady_;
       setTimeout(notifyReady, 0);
@@ -429,11 +429,11 @@ test('ReadableByteStream: Have source\'s readInto() write up to 10 bytes for eac
       }
       doWait = true;
 
-      var view = new Uint8Array(arrayBuffer, offset, size);
+      const view = new Uint8Array(arrayBuffer, offset, size);
       if (size > 10) {
         size = 10;
       }
-      var i = 0;
+      let i = 0;
       for (; i < size; ++i) {
         if (totalBytesRead == dataSize) {
           break;
@@ -451,12 +451,12 @@ test('ReadableByteStream: Have source\'s readInto() write up to 10 bytes for eac
     }
   });
 
-  var buffer = new ArrayBuffer(100);
-  var bytesFilled = 0;
+  const buffer = new ArrayBuffer(100);
+  let bytesFilled = 0;
   function readAndProcess(v) {
     for (;;) {
       if (rbs.state === 'readable') {
-        var bytesRead = rbs.readInto(buffer, bytesFilled);
+        const bytesRead = rbs.readInto(buffer, bytesFilled);
         bytesFilled += bytesRead;
       } else if (rbs.state === 'waiting') {
         rbs.ready
@@ -469,9 +469,9 @@ test('ReadableByteStream: Have source\'s readInto() write up to 10 bytes for eac
         return;
       } else if (rbs.state === 'closed') {
         t.equal(bytesFilled, dataSize);
-        var view = new Uint8Array(buffer);
+        const view = new Uint8Array(buffer);
 
-        for (var i = 0; i < bytesFilled; ++i) {
+        for (let i = 0; i < bytesFilled; ++i) {
           if (view[i] != i % 256) {
             t.fail('Unexpected value ' + view[i] + ' at view[' + i + ']');
             t.end();
@@ -491,9 +491,9 @@ test('ReadableByteStream: Have source\'s readInto() write up to 10 bytes for eac
 });
 
 test('ReadableByteStream: cancel() invokes source\'s cancel()', t => {
-  var cancelCount = 0;
-  var resolveSinkCancelPromise;
-  var rbs = new ReadableByteStream({
+  let cancelCount = 0;
+  let resolveSinkCancelPromise;
+  const rbs = new ReadableByteStream({
     readInto(arrayBuffer, offset, size) {
       t.fail('readInto called');
       t.end();
@@ -512,9 +512,9 @@ test('ReadableByteStream: cancel() invokes source\'s cancel()', t => {
     }
   });
 
-  var resolvedSinkCancelPromise = false;
-  var cancelPromiseFulfilled = false;
-  var cancelPromise = rbs.cancel();
+  let resolvedSinkCancelPromise = false;
+  let cancelPromiseFulfilled = false;
+  const cancelPromise = rbs.cancel();
   cancelPromise.then(value => {
     t.equal(value, undefined, 'fulfillment value of cancelPromise must be undefined');
     cancelPromiseFulfilled = true;
@@ -534,14 +534,14 @@ test('ReadableByteStream: cancel() invokes source\'s cancel()', t => {
 });
 
 test('ReadableByteStream: Transfer 1kiB using pipeTo()', t => {
-  var generateCount = 0;
-  var rbs = new ReadableByteStream({
+  let generateCount = 0;
+  const rbs = new ReadableByteStream({
     start(notifyReady) {
       notifyReady();
     },
     readInto(arrayBuffer, offset, size) {
-      var view = new Uint8Array(arrayBuffer);
-      for (var i = 0; i < size; ++i) {
+      const view = new Uint8Array(arrayBuffer);
+      for (let i = 0; i < size; ++i) {
         if (generateCount == 1024) {
           if (i == 0)
             return -1;
@@ -562,11 +562,11 @@ test('ReadableByteStream: Transfer 1kiB using pipeTo()', t => {
     }
   });
 
-  var verifyCount = 0;
-  var ws = new WritableStream({
+  let verifyCount = 0;
+  const ws = new WritableStream({
     write(chunk) {
-      var view = new Uint8Array(chunk);
-      for (var i = 0; i < chunk.byteLength; ++i) {
+      const view = new Uint8Array(chunk);
+      for (let i = 0; i < chunk.byteLength; ++i) {
         if (view[i] != verifyCount % 256) {
           t.fail('Unexpected character');
           t.end();

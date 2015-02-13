@@ -7,9 +7,9 @@ export default class TransformStream {
       throw new TypeError('transform must be a function');
     }
 
-    var writeChunk, writeDone, errorWritable;
-    var transforming = false;
-    var chunkWrittenButNotYetTransformed = false;
+    let writeChunk, writeDone, errorWritable;
+    let transforming = false;
+    let chunkWrittenButNotYetTransformed = false;
     this.writable = new WritableStream({
       start(error) {
         errorWritable = error;
@@ -18,7 +18,7 @@ export default class TransformStream {
         writeChunk = chunk;
         chunkWrittenButNotYetTransformed = true;
 
-        var p = new Promise(resolve => writeDone = resolve);
+        const p = new Promise(resolve => writeDone = resolve);
         if (readable.state === 'waiting') {
           maybeDoTransform();
         }
@@ -35,8 +35,8 @@ export default class TransformStream {
       strategy: writableStrategy
     });
 
-    var enqueueInReadable, closeReadable, errorReadable;
-    var readable = this.readable = new ReadableStream({
+    let enqueueInReadable, closeReadable, errorReadable;
+    const readable = this.readable = new ReadableStream({
       start(enqueue, close, error) {
         enqueueInReadable = enqueue;
         closeReadable = close;

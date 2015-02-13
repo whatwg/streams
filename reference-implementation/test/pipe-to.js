@@ -1,11 +1,11 @@
-var test = require('tape');
+const test = require('tape');
 
 import sequentialReadableStream from './utils/sequential-rs';
 
 test('Piping from a ReadableStream from which lots of data are readable synchronously', t => {
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
-      for (var i = 0; i < 1000; ++i) {
+      for (let i = 0; i < 1000; ++i) {
         enqueue(i);
       }
       close();
@@ -13,7 +13,7 @@ test('Piping from a ReadableStream from which lots of data are readable synchron
   });
   t.equal(rs.state, 'readable');
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     strategy: new CountQueuingStrategy({
       highWaterMark: 1000
     })
@@ -28,9 +28,9 @@ test('Piping from a ReadableStream from which lots of data are readable synchron
 });
 
 test('Piping from a ReadableStream in readable state to a WritableStream in closing state', t => {
-  var pullCount = 0;
-  var cancelCalled = false;
-  var rs = new ReadableStream({
+  let pullCount = 0;
+  let cancelCalled = false;
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue("Hello");
     },
@@ -44,7 +44,7 @@ test('Piping from a ReadableStream in readable state to a WritableStream in clos
   });
   t.equal(rs.state, 'readable');
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     write() {
       t.fail('Unexpected write call');
       t.end();
@@ -65,10 +65,10 @@ test('Piping from a ReadableStream in readable state to a WritableStream in clos
 });
 
 test('Piping from a ReadableStream in readable state to a WritableStream in errored state', t => {
-  var pullCount = 0;
-  var cancelCalled = false;
-  var passedError = new Error('horrible things');
-  var rs = new ReadableStream({
+  let pullCount = 0;
+  let cancelCalled = false;
+  const passedError = new Error('horrible things');
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue("Hello");
     },
@@ -84,8 +84,8 @@ test('Piping from a ReadableStream in readable state to a WritableStream in erro
   });
   t.equal(rs.state, 'readable');
 
-  var writeCalled = false;
-  var ws = new WritableStream({
+  let writeCalled = false;
+  const ws = new WritableStream({
     write(chunk) {
       t.assert(!writeCalled, 'write must not be called more than once');
       writeCalled = true;
@@ -127,7 +127,7 @@ test('Piping from a ReadableStream in readable state to a WritableStream in erro
 test('Piping from a ReadableStream in closed state to a WritableStream in writable state', t => {
   t.plan(3);
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       close();
     },
@@ -140,7 +140,7 @@ test('Piping from a ReadableStream in closed state to a WritableStream in writab
   });
   t.equal(rs.state, 'closed');
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     write() {
       t.fail('Unexpected write call');
     },
@@ -166,8 +166,8 @@ test('Piping from a ReadableStream in closed state to a WritableStream in writab
 test('Piping from a ReadableStream in errored state to a WritableStream in writable state', t => {
   t.plan(3);
 
-  var theError = new Error('piping is too hard today');
-  var rs = new ReadableStream({
+  const theError = new Error('piping is too hard today');
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       error(theError);
     },
@@ -180,7 +180,7 @@ test('Piping from a ReadableStream in errored state to a WritableStream in writa
   });
   t.equal(rs.state, 'errored');
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     write() {
       t.fail('Unexpected write call');
     },
@@ -205,9 +205,9 @@ test('Piping from a ReadableStream in errored state to a WritableStream in writa
 
 test('Piping from a ReadableStream in readable state which becomes closed after pipeTo call to a WritableStream in ' +
     'writable state', t => {
-  var closeReadableStream;
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let closeReadableStream;
+  let pullCount = 0;
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('Hello');
       closeReadableStream = close;
@@ -222,8 +222,8 @@ test('Piping from a ReadableStream in readable state which becomes closed after 
   });
   t.equal(rs.state, 'readable');
 
-  var writeCalled = false;
-  var ws = new WritableStream({
+  let writeCalled = false;
+  const ws = new WritableStream({
     write(chunk) {
       if (!writeCalled) {
         t.equal(chunk, 'Hello');
@@ -257,9 +257,9 @@ test('Piping from a ReadableStream in readable state which becomes closed after 
 
 test('Piping from a ReadableStream in readable state which becomes errored after pipeTo call to a WritableStream in ' +
     'writable state', t => {
-  var errorReadableStream;
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let errorReadableStream;
+  let pullCount = 0;
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       enqueue("Hello");
       errorReadableStream = error;
@@ -274,9 +274,9 @@ test('Piping from a ReadableStream in readable state which becomes errored after
   });
   t.equal(rs.state, 'readable');
 
-  var writeCalled = false;
-  var passedError = new Error('horrible things');
-  var ws = new WritableStream({
+  let writeCalled = false;
+  let passedError = new Error('horrible things');
+  const ws = new WritableStream({
     write(chunk) {
       if (!writeCalled) {
         t.equal(chunk, 'Hello');
@@ -311,9 +311,9 @@ test('Piping from a ReadableStream in readable state which becomes errored after
 
 test('Piping from a ReadableStream in waiting state which becomes readable after pipeTo call to a WritableStream in ' +
     'writable state', t => {
-  var enqueue;
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let enqueue;
+  let pullCount = 0;
+  const rs = new ReadableStream({
     start(enqueue_) {
       enqueue = enqueue_;
     },
@@ -326,7 +326,7 @@ test('Piping from a ReadableStream in waiting state which becomes readable after
     }
   });
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     write(chunk) {
       t.equal(chunk, 'Hello');
       t.equal(pullCount, 2);
@@ -353,8 +353,8 @@ test('Piping from a ReadableStream in waiting state which becomes errored after 
     'writable state', t => {
   t.plan(4);
 
-  var errorReadableStream;
-  var rs = new ReadableStream({
+  let errorReadableStream;
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       errorReadableStream = error;
     },
@@ -368,8 +368,8 @@ test('Piping from a ReadableStream in waiting state which becomes errored after 
     }
   });
 
-  var passedError = new Error('horrible things');
-  var ws = new WritableStream({
+  const passedError = new Error('horrible things');
+  const ws = new WritableStream({
     write() {
       t.fail('Unexpected write call');
       t.end();
@@ -393,10 +393,10 @@ test('Piping from a ReadableStream in waiting state which becomes errored after 
 
 test('Piping from a ReadableStream in waiting state to a WritableStream in writable state which becomes errored ' +
     'after pipeTo call', t => {
-  var writeCalled = false;
+  let writeCalled = false;
 
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let pullCount = 0;
+  const rs = new ReadableStream({
     pull() {
       ++pullCount;
     },
@@ -407,8 +407,8 @@ test('Piping from a ReadableStream in waiting state to a WritableStream in writa
     }
   });
 
-  var errorWritableStream;
-  var ws = new WritableStream({
+  let errorWritableStream;
+  const ws = new WritableStream({
     start(error) {
       errorWritableStream = error;
     },
@@ -445,9 +445,9 @@ test('Piping from a ReadableStream in waiting state to a WritableStream in writa
 
 test('Piping from a ReadableStream in readable state to a WritableStream in waiting state which becomes writable ' +
     'after pipeTo call', t => {
-  var enqueue;
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let enqueue;
+  let pullCount = 0;
+  const rs = new ReadableStream({
     start(enqueue) {
       enqueue('World');
     },
@@ -461,8 +461,8 @@ test('Piping from a ReadableStream in readable state to a WritableStream in wait
   });
   t.equal(rs.state, 'readable');
 
-  var resolveWritePromise;
-  var ws = new WritableStream({
+  let resolveWritePromise;
+  const ws = new WritableStream({
     write(chunk) {
       if (!resolveWritePromise) {
         t.equal(chunk, 'Hello');
@@ -504,11 +504,11 @@ test('Piping from a ReadableStream in readable state to a WritableStream in wait
 
 test('Piping from a ReadableStream in readable state to a WritableStream in waiting state which becomes errored ' +
     'after pipeTo call', t => {
-  var writeCalled = false;
+  let writeCalled = false;
 
-  var enqueue;
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let enqueue;
+  let pullCount = 0;
+  const rs = new ReadableStream({
     start(enqueue) {
       enqueue('World');
     },
@@ -523,8 +523,8 @@ test('Piping from a ReadableStream in readable state to a WritableStream in wait
   });
   t.equal(rs.state, 'readable');
 
-  var errorWritableStream;
-  var ws = new WritableStream({
+  let errorWritableStream;
+  const ws = new WritableStream({
     start(error) {
       errorWritableStream = error;
     },
@@ -563,9 +563,9 @@ test('Piping from a ReadableStream in readable state which becomes errored after
     'waiting state', t => {
   t.plan(10);
 
-  var errorReadableStream;
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let errorReadableStream;
+  let pullCount = 0;
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       enqueue('World');
       errorReadableStream = error;
@@ -580,8 +580,8 @@ test('Piping from a ReadableStream in readable state which becomes errored after
   });
   t.equal(rs.state, 'readable');
 
-  var writeCalled = false;
-  var ws = new WritableStream({
+  let writeCalled = false;
+  const ws = new WritableStream({
     write(chunk) {
       t.assert(!writeCalled);
       writeCalled = true;
@@ -616,9 +616,9 @@ test('Piping from a ReadableStream in readable state which becomes errored after
 
 test('Piping from a ReadableStream in waiting state to a WritableStream in waiting state where both become ready ' +
     'after pipeTo', t => {
-  var enqueue;
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let enqueue;
+  let pullCount = 0;
+  const rs = new ReadableStream({
     start(enqueue_) {
       enqueue = enqueue_;
     },
@@ -631,10 +631,10 @@ test('Piping from a ReadableStream in waiting state to a WritableStream in waiti
     }
   });
 
-  var checkSecondWrite = false;
+  let checkSecondWrite = false;
 
-  var resolveWritePromise;
-  var ws = new WritableStream({
+  let resolveWritePromise;
+  const ws = new WritableStream({
     write(chunk) {
       if (checkSecondWrite) {
         t.equal(chunk, 'Goodbye');
@@ -679,8 +679,8 @@ test('Piping from a ReadableStream in waiting state to a WritableStream in waiti
 
 test('Piping from a ReadableStream in waiting state to a WritableStream in waiting state which becomes writable ' +
     'after pipeTo call', t => {
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let pullCount = 0;
+  const rs = new ReadableStream({
     pull() {
       ++pullCount;
     },
@@ -690,8 +690,8 @@ test('Piping from a ReadableStream in waiting state to a WritableStream in waiti
     }
   });
 
-  var resolveWritePromise;
-  var ws = new WritableStream({
+  let resolveWritePromise;
+  const ws = new WritableStream({
     write(chunk) {
       t.assert(!resolveWritePromise);
       t.equal(chunk, 'Hello');
@@ -730,9 +730,9 @@ test('Piping from a ReadableStream in waiting state which becomes closed after p
     'waiting state', t => {
   t.plan(5);
 
-  var closeReadableStream;
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let closeReadableStream;
+  let pullCount = 0;
+  const rs = new ReadableStream({
     start(enqueue, close) {
       closeReadableStream = close;
     },
@@ -745,8 +745,8 @@ test('Piping from a ReadableStream in waiting state which becomes closed after p
     }
   });
 
-  var writeCalled = false;
-  var ws = new WritableStream({
+  let writeCalled = false;
+  const ws = new WritableStream({
     write(chunk) {
       if (!writeCalled) {
         t.equal(chunk, 'Hello');
@@ -791,9 +791,9 @@ test('Piping from a ReadableStream in waiting state which becomes errored after 
     'waiting state', t => {
   t.plan(6);
 
-  var errorReadableStream;
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let errorReadableStream;
+  let pullCount = 0;
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       errorReadableStream = error;
     },
@@ -806,9 +806,9 @@ test('Piping from a ReadableStream in waiting state which becomes errored after 
     }
   });
 
-  var writeCalled = false;
-  var passedError = new Error('horrible things');
-  var ws = new WritableStream({
+  let writeCalled = false;
+  const passedError = new Error('horrible things');
+  const ws = new WritableStream({
     write(chunk) {
       if (!writeCalled) {
         t.equal(chunk, 'Hello');
@@ -848,10 +848,10 @@ test('Piping to a duck-typed asynchronous "writable stream" works', t => {
 
   t.plan(1);
 
-  var rs = sequentialReadableStream(5, { async: true });
+  const rs = sequentialReadableStream(5, { async: true });
 
-  var chunksWritten = [];
-  var dest = {
+  const chunksWritten = [];
+  const dest = {
     state: 'writable',
     write(chunk) {
       chunksWritten.push(chunk);
@@ -874,15 +874,15 @@ test('Piping to a duck-typed asynchronous "writable stream" works', t => {
 });
 
 test('Piping to a stream that has been aborted passes through the error as the cancellation reason', t => {
-  var recordedReason;
-  var rs = new ReadableStream({
+  let recordedReason;
+  const rs = new ReadableStream({
     cancel(reason) {
       recordedReason = reason;
     }
   });
 
-  var ws = new WritableStream();
-  var passedReason = new Error('I don\'t like you.');
+  const ws = new WritableStream();
+  const passedReason = new Error('I don\'t like you.');
   ws.abort(passedReason);
 
   rs.pipeTo(ws);
@@ -894,15 +894,15 @@ test('Piping to a stream that has been aborted passes through the error as the c
 });
 
 test('Piping to a stream and then aborting it passes through the error as the cancellation reason', t => {
-  var recordedReason;
-  var rs = new ReadableStream({
+  let recordedReason;
+  const rs = new ReadableStream({
     cancel(reason) {
       recordedReason = reason;
     }
   });
 
-  var ws = new WritableStream();
-  var passedReason = new Error('I don\'t like you.');
+  const ws = new WritableStream();
+  const passedReason = new Error('I don\'t like you.');
 
   rs.pipeTo(ws);
   ws.abort(passedReason);
@@ -914,14 +914,14 @@ test('Piping to a stream and then aborting it passes through the error as the ca
 });
 
 test('Piping to a stream that has been closed propagates a TypeError cancellation reason backward', t => {
-  var recordedReason;
-  var rs = new ReadableStream({
+  let recordedReason;
+  const rs = new ReadableStream({
     cancel(reason) {
       recordedReason = reason;
     }
   });
 
-  var ws = new WritableStream();
+  const ws = new WritableStream();
   ws.close();
 
   rs.pipeTo(ws);
@@ -933,14 +933,14 @@ test('Piping to a stream that has been closed propagates a TypeError cancellatio
 });
 
 test('Piping to a stream and then closing it propagates a TypeError cancellation reason backward', t => {
-  var recordedReason;
-  var rs = new ReadableStream({
+  let recordedReason;
+  const rs = new ReadableStream({
     cancel(reason) {
       recordedReason = reason;
     }
   });
 
-  var ws = new WritableStream();
+  const ws = new WritableStream();
 
   rs.pipeTo(ws);
   ws.close();
@@ -952,8 +952,8 @@ test('Piping to a stream and then closing it propagates a TypeError cancellation
 });
 
 test('Piping to a stream that synchronously errors passes through the error as the cancellation reason', t => {
-  var recordedReason;
-  var rs = new ReadableStream({
+  let recordedReason;
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       enqueue('b');
@@ -965,9 +965,9 @@ test('Piping to a stream that synchronously errors passes through the error as t
     }
   });
 
-  var written = 0;
-  var passedError = new Error('I don\'t like you.');
-  var ws = new WritableStream({
+  let written = 0;
+  const passedError = new Error('I don\'t like you.');
+  const ws = new WritableStream({
     write(chunk) {
       return new Promise((resolve, reject) => {
         if (++written > 1) {
@@ -988,8 +988,8 @@ test('Piping to a stream that synchronously errors passes through the error as t
 });
 
 test('Piping to a stream that asynchronously errors passes through the error as the cancellation reason', t => {
-  var recordedReason;
-  var rs = new ReadableStream({
+  let recordedReason;
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       enqueue('b');
@@ -1001,9 +1001,9 @@ test('Piping to a stream that asynchronously errors passes through the error as 
     }
   });
 
-  var written = 0;
-  var passedError = new Error('I don\'t like you.');
-  var ws = new WritableStream({
+  let written = 0;
+  const passedError = new Error('I don\'t like you.');
+  const ws = new WritableStream({
     write(chunk) {
       return new Promise((resolve, reject) => {
         if (++written > 1) {
@@ -1024,8 +1024,8 @@ test('Piping to a stream that asynchronously errors passes through the error as 
 });
 
 test('Piping to a stream that errors on the last chunk passes through the error to a non-closed producer', t => {
-  var recordedReason;
-  var rs = new ReadableStream({
+  let recordedReason;
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       enqueue('b');
@@ -1036,9 +1036,9 @@ test('Piping to a stream that errors on the last chunk passes through the error 
     }
   });
 
-  var written = 0;
-  var passedError = new Error('I don\'t like you.');
-  var ws = new WritableStream({
+  let written = 0;
+  const passedError = new Error('I don\'t like you.');
+  const ws = new WritableStream({
     write(chunk) {
       return new Promise((resolve, reject) => {
         if (++written > 1) {
@@ -1059,8 +1059,8 @@ test('Piping to a stream that errors on the last chunk passes through the error 
 });
 
 test('Piping to a stream that errors on the last chunk does not pass through the error to a closed producer', t => {
-  var cancelCalled = false;
-  var rs = new ReadableStream({
+  let cancelCalled = false;
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       enqueue('b');
@@ -1071,8 +1071,8 @@ test('Piping to a stream that errors on the last chunk does not pass through the
     }
   });
 
-  var written = 0;
-  var ws = new WritableStream({
+  let written = 0;
+  const ws = new WritableStream({
     write(chunk) {
       return new Promise((resolve, reject) => {
         if (++written > 1) {
@@ -1096,8 +1096,8 @@ test('Piping to a stream that errors on the last chunk does not pass through the
 test('Piping to a writable stream that does not consume the writes fast enough exerts backpressure on the source', t => {
   t.plan(2);
 
-  var enqueueReturnValues = [];
-  var rs = new ReadableStream({
+  const enqueueReturnValues = [];
+  const rs = new ReadableStream({
     start(enqueue, close) {
       setTimeout(() => enqueueReturnValues.push(enqueue('a')), 10);
       setTimeout(() => enqueueReturnValues.push(enqueue('b')), 20);
@@ -1107,8 +1107,8 @@ test('Piping to a writable stream that does not consume the writes fast enough e
     }
   });
 
-  var writtenValues = [];
-  var ws = new WritableStream({
+  let writtenValues = [];
+  const ws = new WritableStream({
     write(chunk) {
       return new Promise(resolve => {
         setTimeout(() => {

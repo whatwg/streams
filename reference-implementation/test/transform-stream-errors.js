@@ -1,10 +1,10 @@
-var test = require('tape');
+const test = require('tape');
 
 test('TransformStream errors thrown in transform put the writable and readable in an errored state', t => {
   t.plan(9);
 
-  var thrownError = new Error('bad things are happening!');
-  var ts = new TransformStream({
+  const thrownError = new Error('bad things are happening!');
+  const ts = new TransformStream({
     transform() {
       throw thrownError;
     }
@@ -44,8 +44,8 @@ test('TransformStream errors thrown in transform put the writable and readable i
 test('TransformStream errors thrown in flush put the writable and readable in an errored state', t => {
   t.plan(11);
 
-  var thrownError = new Error('bad things are happening!');
-  var ts = new TransformStream({
+  const thrownError = new Error('bad things are happening!');
+  const ts = new TransformStream({
     transform(chunk, enqueue, done) {
       done();
     },

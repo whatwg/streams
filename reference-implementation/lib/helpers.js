@@ -24,7 +24,7 @@ export function toInteger(v) {
 }
 
 export function InvokeOrNoop(O, P, args) {
-  var method = O[P];
+  const method = O[P];
   if (method === undefined) {
     return undefined;
   }
@@ -32,7 +32,7 @@ export function InvokeOrNoop(O, P, args) {
 }
 
 export function PromiseInvokeOrNoop(O, P, args) {
-  var method;
+  let method;
   try {
     method = O[P];
   } catch (methodE) {
@@ -51,7 +51,7 @@ export function PromiseInvokeOrNoop(O, P, args) {
 }
 
 export function PromiseInvokeOrFallbackOrNoop(O, P1, args1, P2, args2) {
-  var method;
+  let method;
   try {
     method = O[P1];
   } catch (methodE) {

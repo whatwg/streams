@@ -1,7 +1,7 @@
-var test = require('tape');
+const test = require('tape');
 
 test('Throwing underlying source start getter', t => {
-  var theError = new Error('a unique string');
+  const theError = new Error('a unique string');
 
   t.throws(() => {
     new ReadableStream({
@@ -14,7 +14,7 @@ test('Throwing underlying source start getter', t => {
 });
 
 test('Throwing underlying source start method', t => {
-  var theError = new Error('a unique string');
+  const theError = new Error('a unique string');
 
   t.throws(() => {
     new ReadableStream({
@@ -29,8 +29,8 @@ test('Throwing underlying source start method', t => {
 test('Throwing underlying source pull getter (initial pull)', t => {
   t.plan(1);
 
-  var theError = new Error('a unique string');
-  var rs = new ReadableStream({
+  const theError = new Error('a unique string');
+  const rs = new ReadableStream({
     get pull() {
       throw theError;
     }
@@ -45,8 +45,8 @@ test('Throwing underlying source pull getter (initial pull)', t => {
 test('Throwing underlying source pull method (initial pull)', t => {
   t.plan(1);
 
-  var theError = new Error('a unique string');
-  var rs = new ReadableStream({
+  const theError = new Error('a unique string');
+  const rs = new ReadableStream({
     pull() {
       throw theError;
     }
@@ -61,9 +61,9 @@ test('Throwing underlying source pull method (initial pull)', t => {
 test('Throwing underlying source pull getter (second pull)', t => {
   t.plan(3);
 
-  var theError = new Error('a unique string');
-  var counter = 0;
-  var rs = new ReadableStream({
+  const theError = new Error('a unique string');
+  let counter = 0;
+  const rs = new ReadableStream({
     get pull() {
       ++counter;
       if (counter === 1) {
@@ -88,9 +88,9 @@ test('Throwing underlying source pull getter (second pull)', t => {
 test('Throwing underlying source pull method (second pull)', t => {
   t.plan(3);
 
-  var theError = new Error('a unique string');
-  var counter = 0;
-  var rs = new ReadableStream({
+  const theError = new Error('a unique string');
+  let counter = 0;
+  const rs = new ReadableStream({
     pull(enqueue) {
       ++counter;
       if (counter === 1) {
@@ -115,8 +115,8 @@ test('Throwing underlying source pull method (second pull)', t => {
 test('Throwing underlying source cancel getter', t => {
   t.plan(1);
 
-  var theError = new Error('a unique string');
-  var rs = new ReadableStream({
+  const theError = new Error('a unique string');
+  const rs = new ReadableStream({
     get cancel() {
       throw theError;
     }
@@ -131,8 +131,8 @@ test('Throwing underlying source cancel getter', t => {
 test('Throwing underlying source cancel method', t => {
   t.plan(1);
 
-  var theError = new Error('a unique string');
-  var rs = new ReadableStream({
+  const theError = new Error('a unique string');
+  const rs = new ReadableStream({
     cancel() {
       throw theError;
     }
@@ -147,9 +147,9 @@ test('Throwing underlying source cancel method', t => {
 test('Throwing underlying source strategy getter', t => {
   t.plan(2);
 
-  var theError = new Error('a unique string');
+  const theError = new Error('a unique string');
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue) {
       t.throws(() => enqueue('a'), /a unique string/);
     },
@@ -164,8 +164,8 @@ test('Throwing underlying source strategy getter', t => {
 test('Throwing underlying source strategy.size getter', t => {
   t.plan(2);
 
-  var theError = new Error('a unique string');
-  var rs = new ReadableStream({
+  const theError = new Error('a unique string');
+  const rs = new ReadableStream({
     start(enqueue) {
       t.throws(() => enqueue('a'), /a unique string/);
     },
@@ -185,8 +185,8 @@ test('Throwing underlying source strategy.size getter', t => {
 test('Throwing underlying source strategy.size method', t => {
   t.plan(2);
 
-  var theError = new Error('a unique string');
-  var rs = new ReadableStream({
+  const theError = new Error('a unique string');
+  const rs = new ReadableStream({
     start(enqueue) {
       t.throws(() => enqueue('a'), /a unique string/);
     },
@@ -206,8 +206,8 @@ test('Throwing underlying source strategy.size method', t => {
 test('Throwing underlying source strategy.shouldApplyBackpressure getter', t => {
   t.plan(2);
 
-  var theError = new Error('a unique string');
-  var rs = new ReadableStream({
+  const theError = new Error('a unique string');
+  const rs = new ReadableStream({
     start(enqueue) {
       t.throws(() => enqueue('a'), /a unique string/);
     },
@@ -227,8 +227,8 @@ test('Throwing underlying source strategy.shouldApplyBackpressure getter', t => 
 test('Throwing underlying source strategy.shouldApplyBackpressure method', t => {
   t.plan(2);
 
-  var theError = new Error('a unique string');
-  var rs = new ReadableStream({
+  const theError = new Error('a unique string');
+  const rs = new ReadableStream({
     start(enqueue) {
       t.throws(() => enqueue('a'), /a unique string/);
     },

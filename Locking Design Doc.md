@@ -26,8 +26,8 @@ Example code:
 
 ```js
 function readAsJson(rs) {
-    var string = "";
-    var reader = rs.getReader();
+    let string = "";
+    const reader = rs.getReader();
 
     pump();
 

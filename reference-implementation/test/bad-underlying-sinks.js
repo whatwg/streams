@@ -1,7 +1,7 @@
-var test = require('tape');
+const test = require('tape');
 
 test('Throwing underlying sink start getter', t => {
-  var theError = new Error('a unique string');
+  const theError = new Error('a unique string');
 
   t.throws(() => {
     new WritableStream({
@@ -14,7 +14,7 @@ test('Throwing underlying sink start getter', t => {
 });
 
 test('Throwing underlying sink start method', t => {
-  var theError = new Error('a unique string');
+  const theError = new Error('a unique string');
 
   t.throws(() => {
     new WritableStream({
@@ -29,8 +29,8 @@ test('Throwing underlying sink start method', t => {
 test('Throwing underlying source write getter', t => {
   t.plan(2);
 
-  var theError = new Error('a unique string');
-  var ws = new WritableStream({
+  const theError = new Error('a unique string');
+  const ws = new WritableStream({
     get write() {
       throw theError;
     }
@@ -50,8 +50,8 @@ test('Throwing underlying source write getter', t => {
 test('Throwing underlying source write method', t => {
   t.plan(2);
 
-  var theError = new Error('a unique string');
-  var ws = new WritableStream({
+  const theError = new Error('a unique string');
+  const ws = new WritableStream({
     write() {
       throw theError;
     }
@@ -71,9 +71,9 @@ test('Throwing underlying source write method', t => {
 test('Throwing underlying sink abort getter', t => {
   t.plan(2);
 
-  var theError = new Error('a unique string');
-  var abortReason = new Error('different string');
-  var ws = new WritableStream({
+  const theError = new Error('a unique string');
+  const abortReason = new Error('different string');
+  const ws = new WritableStream({
     get abort() {
       throw theError;
     }
@@ -93,9 +93,9 @@ test('Throwing underlying sink abort getter', t => {
 test('Throwing underlying sink abort method', t => {
   t.plan(2);
 
-  var theError = new Error('a unique string');
-  var abortReason = new Error('different string');
-  var ws = new WritableStream({
+  const theError = new Error('a unique string');
+  const abortReason = new Error('different string');
+  const ws = new WritableStream({
     abort() {
       throw theError;
     }
@@ -115,8 +115,8 @@ test('Throwing underlying sink abort method', t => {
 test('Throwing underlying sink close getter', t => {
   t.plan(1);
 
-  var theError = new Error('a unique string');
-  var ws = new WritableStream({
+  const theError = new Error('a unique string');
+  const ws = new WritableStream({
     get close() {
       throw theError;
     }
@@ -131,8 +131,8 @@ test('Throwing underlying sink close getter', t => {
 test('Throwing underlying sink close method', t => {
   t.plan(1);
 
-  var theError = new Error('a unique string');
-  var ws = new WritableStream({
+  const theError = new Error('a unique string');
+  const ws = new WritableStream({
     close() {
       throw theError;
     }
@@ -145,7 +145,7 @@ test('Throwing underlying sink close method', t => {
 });
 
 test('Throwing underlying source strategy getter: initial construction', t => {
-  var theError = new Error('a unique string');
+  const theError = new Error('a unique string');
 
   t.throws(() => {
     new WritableStream({
@@ -160,9 +160,9 @@ test('Throwing underlying source strategy getter: initial construction', t => {
 test('Throwing underlying source strategy getter: first write', t => {
   t.plan(2);
 
-  var counter = 0;
-  var theError = new Error('a unique string');
-  var ws = new WritableStream({
+  let counter = 0;
+  const theError = new Error('a unique string');
+  const ws = new WritableStream({
     get strategy() {
       ++counter;
       if (counter === 1) {
@@ -226,8 +226,8 @@ test('Throwing underlying source strategy.size method: initial construction', t 
 test('Throwing underlying source strategy.size getter: first write', t => {
   t.plan(2);
 
-  var theError = new Error('a unique string');
-  var ws = new WritableStream({
+  const theError = new Error('a unique string');
+  const ws = new WritableStream({
     strategy: {
       get size() {
         throw theError;
@@ -252,8 +252,8 @@ test('Throwing underlying source strategy.size getter: first write', t => {
 test('Throwing underlying source strategy.size method: first write', t => {
   t.plan(2);
 
-  var theError = new Error('a unique string');
-  var ws = new WritableStream({
+  const theError = new Error('a unique string');
+  const ws = new WritableStream({
     strategy: {
       size() {
         throw theError;
@@ -276,7 +276,7 @@ test('Throwing underlying source strategy.size method: first write', t => {
 });
 
 test('Throwing underlying source strategy.shouldApplyBackpressure getter: initial construction', t => {
-  var theError = new Error('a unique string');
+  const theError = new Error('a unique string');
 
   t.throws(() => {
     new WritableStream({
@@ -294,7 +294,7 @@ test('Throwing underlying source strategy.shouldApplyBackpressure getter: initia
 });
 
 test('Throwing underlying source strategy.shouldApplyBackpressure method: initial construction', t => {
-  var theError = new Error('a unique string');
+  const theError = new Error('a unique string');
 
   t.throws(() => {
     new WritableStream({

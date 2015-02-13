@@ -1,9 +1,9 @@
-var test = require('tape');
+const test = require('tape');
 
 test('Using the reader directly on a mundane stream', t => {
   t.plan(22);
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       setTimeout(() => enqueue('b'), 30);
@@ -13,7 +13,7 @@ test('Using the reader directly on a mundane stream', t => {
 
   t.equal(rs.state, 'readable', 'stream starts out readable');
 
-  var reader = rs.getReader();
+  const reader = rs.getReader();
 
   t.equal(reader.isActive, true, 'reader isActive is true');
 
@@ -57,13 +57,13 @@ test('Using the reader directly on a mundane stream', t => {
 });
 
 test('Reading from a reader for an empty stream throws but doesn\'t break anything', t => {
-  var enqueue;
-  var rs = new ReadableStream({
+  let enqueue;
+  const rs = new ReadableStream({
     start(e) {
       enqueue = e;
     }
   });
-  var reader = rs.getReader();
+  const reader = rs.getReader();
 
   t.equal(reader.isActive, true, 'reader is active to start with');
   t.equal(reader.state, 'waiting', 'reader state is waiting to start with');
@@ -83,8 +83,8 @@ test('Reading from a reader for an empty stream throws but doesn\'t break anythi
 test('A released reader should present like a closed stream', t => {
   t.plan(7);
 
-  var rs = new ReadableStream();
-  var reader = rs.getReader();
+  const rs = new ReadableStream();
+  const reader = rs.getReader();
   reader.releaseLock();
 
   t.equal(reader.isActive, false, 'isActive returns false');
@@ -104,15 +104,15 @@ test('A released reader should present like a closed stream', t => {
 test('cancel() on a reader implicitly releases the reader before calling through', t => {
   t.plan(3);
 
-  var passedReason = new Error('it wasn\'t the right time, sorry');
-  var rs = new ReadableStream({
+  const passedReason = new Error('it wasn\'t the right time, sorry');
+  const rs = new ReadableStream({
     cancel(reason) {
       t.equal(reader.isActive, false, 'canceling via the reader should release the reader\'s lock');
       t.equal(reason, passedReason, 'the cancellation reason is passed through to the underlying source');
     }
   });
 
-  var reader = rs.getReader();
+  const reader = rs.getReader();
   reader.cancel(passedReason).then(
     () => t.pass('reader.cancel() should fulfill'),
     e => t.fail('reader.cancel() should not reject')
@@ -120,7 +120,7 @@ test('cancel() on a reader implicitly releases the reader before calling through
 });
 
 test('getReader() on a closed stream should fail', t => {
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       close();
     }
@@ -132,7 +132,7 @@ test('getReader() on a closed stream should fail', t => {
 });
 
 test('getReader() on a cancelled stream should fail (since cancelling closes)', t => {
-  var rs = new ReadableStream();
+  const rs = new ReadableStream();
   rs.cancel(new Error('fun time is over'));
 
   t.equal(rs.state, 'closed', 'the stream should be closed');
@@ -141,8 +141,8 @@ test('getReader() on a cancelled stream should fail (since cancelling closes)', 
 });
 
 test('getReader() on an errored stream should rethrow the error', t => {
-  var theError = new Error('don\'t say i didn\'t warn ya');
-  var rs = new ReadableStream({
+  const theError = new Error('don\'t say i didn\'t warn ya');
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       error(theError);
     }
@@ -156,14 +156,14 @@ test('getReader() on an errored stream should rethrow the error', t => {
 test('closed should be fulfilled after stream is closed (both .closed accesses after acquiring)', t => {
   t.plan(2);
 
-  var doClose;
-  var rs = new ReadableStream({
+  let doClose;
+  const rs = new ReadableStream({
     start(enqueue, close) {
       doClose = close;
     }
   });
 
-  var reader = rs.getReader();
+  const reader = rs.getReader();
   doClose();
 
   reader.closed.then(() => {
@@ -178,8 +178,8 @@ test('closed should be fulfilled after stream is closed (both .closed accesses a
 test('closed should be fulfilled after stream is closed (stream .closed access before acquiring)', t => {
   t.plan(2);
 
-  var doClose;
-  var rs = new ReadableStream({
+  let doClose;
+  const rs = new ReadableStream({
     start(enqueue, close) {
       doClose = close;
     }
@@ -189,7 +189,7 @@ test('closed should be fulfilled after stream is closed (stream .closed access b
     t.equal(reader.isActive, false, 'reader is no longer active when stream closed is fulfilled');
   });
 
-  var reader = rs.getReader();
+  const reader = rs.getReader();
   doClose();
 
   reader.closed.then(() => {
@@ -198,15 +198,15 @@ test('closed should be fulfilled after stream is closed (stream .closed access b
 });
 
 test('reader.closed should be fulfilled after reader releases its lock (.closed access before release)', t => {
-  var rs = new ReadableStream();
-  var reader = rs.getReader();
+  const rs = new ReadableStream();
+  const reader = rs.getReader();
   reader.closed.then(() => t.end());
   reader.releaseLock();
 });
 
 test('reader.closed should be fulfilled after reader releases its lock (.closed access after release)', t => {
-  var rs = new ReadableStream();
-  var reader = rs.getReader();
+  const rs = new ReadableStream();
+  const reader = rs.getReader();
   reader.releaseLock();
   reader.closed.then(() => t.end());
 });
@@ -214,14 +214,14 @@ test('reader.closed should be fulfilled after reader releases its lock (.closed 
 test('closed should be fulfilled after reader releases its lock (multiple stream locks)', t => {
   t.plan(6);
 
-  var doClose;
-  var rs = new ReadableStream({
+  let doClose;
+  const rs = new ReadableStream({
     start(enqueue, close) {
       doClose = close;
     }
   });
 
-  var reader1 = rs.getReader();
+  const reader1 = rs.getReader();
 
   rs.closed.then(() => {
     t.equal(reader1.isActive, false, 'reader1 is no longer active when stream closed is fulfilled');
@@ -230,7 +230,7 @@ test('closed should be fulfilled after reader releases its lock (multiple stream
 
   reader1.releaseLock();
 
-  var reader2 = rs.getReader();
+  const reader2 = rs.getReader();
   doClose();
 
   reader1.closed.then(() => {
@@ -248,8 +248,8 @@ test('ready should fulfill after reader releases its lock and stream is waiting 
     t => {
   t.plan(5);
 
-  var rs = new ReadableStream();
-  var reader = rs.getReader();
+  const rs = new ReadableStream();
+  const reader = rs.getReader();
 
   t.equal(rs.state, 'waiting', 'the stream\'s state is initially waiting');
   t.equal(reader.state, 'waiting', 'the reader\'s state is initially waiting');
@@ -265,8 +265,8 @@ test('ready should fulfill after reader releases its lock and stream is waiting 
     t => {
   t.plan(5);
 
-  var rs = new ReadableStream();
-  var reader = rs.getReader();
+  const rs = new ReadableStream();
+  const reader = rs.getReader();
 
   t.equal(rs.state, 'waiting', 'the stream\'s state is initially waiting');
   t.equal(reader.state, 'waiting', 'the reader\'s state is initially waiting');
@@ -279,8 +279,8 @@ test('ready should fulfill after reader releases its lock and stream is waiting 
 });
 
 test('stream\'s ready should not fulfill when acquiring, then releasing, a reader', t => {
-  var rs = new ReadableStream();
-  var reader = rs.getReader();
+  const rs = new ReadableStream();
+  const reader = rs.getReader();
 
   rs.ready.then(() => t.fail('stream ready should not be fulfilled'));
   reader.releaseLock();
@@ -289,15 +289,15 @@ test('stream\'s ready should not fulfill when acquiring, then releasing, a reade
 });
 
 test('stream\'s ready should not fulfill while locked, even if accessed before locking', t => {
-  var doEnqueue;
-  var rs = new ReadableStream({
+  let doEnqueue;
+  const rs = new ReadableStream({
     start(enqueue) {
       doEnqueue = enqueue;
     }
   });
-  var ready = rs.ready;
+  const ready = rs.ready;
 
-  var reader = rs.getReader();
+  const reader = rs.getReader();
 
   ready.then(() => {
     t.equal(rs.state, 'waiting', 'ready fulfilled but the state was waiting; next assert will fail');
@@ -310,15 +310,15 @@ test('stream\'s ready should not fulfill while locked, even if accessed before l
 
 test('stream\'s ready accessed before locking should not fulfill if stream becomes readable while locked, becomes ' +
     'waiting again and then is released', t => {
-  var doEnqueue;
-  var rs = new ReadableStream({
+  let doEnqueue;
+  const rs = new ReadableStream({
     start(enqueue) {
       doEnqueue = enqueue;
     }
   });
-  var ready = rs.ready;
+  const ready = rs.ready;
 
-  var reader = rs.getReader();
+  const reader = rs.getReader();
 
   ready.then(() => {
     t.fail('stream ready should not be fulfilled');
@@ -335,15 +335,15 @@ test('stream\'s ready accessed before locking should not fulfill if stream becom
 
 test('stream\'s ready accessed before locking should not fulfill if stream becomes readable while locked, becomes ' +
     'waiting again and then is released in another microtask', t => {
-  var doEnqueue;
-  var rs = new ReadableStream({
+  let doEnqueue;
+  const rs = new ReadableStream({
     start(enqueue) {
       doEnqueue = enqueue;
     }
   });
-  var ready = rs.ready;
+  const ready = rs.ready;
 
-  var reader = rs.getReader();
+  const reader = rs.getReader();
 
   ready.then(() => {
     t.fail('stream ready should not be fulfilled');
@@ -368,14 +368,14 @@ test('stream\'s ready should not fulfill when acquiring a reader, accessing read
     'another reader, then enqueuing a chunk', t => {
   // https://github.com/whatwg/streams/pull/262#discussion_r22990833
 
-  var doEnqueue;
-  var rs = new ReadableStream({
+  let doEnqueue;
+  const rs = new ReadableStream({
     start(enqueue) {
       doEnqueue = enqueue;
     }
   });
 
-  var reader = rs.getReader();
+  const reader = rs.getReader();
   rs.ready.then(() => {
     t.equal(rs.state, 'waiting', 'ready fulfilled but the state was waiting; next assert will fail');
     t.fail('stream ready should not be fulfilled')
@@ -389,7 +389,7 @@ test('stream\'s ready should not fulfill when acquiring a reader, accessing read
 });
 
 test('Multiple readers can access the stream in sequence', t => {
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       enqueue('b');
@@ -402,14 +402,14 @@ test('Multiple readers can access the stream in sequence', t => {
 
   t.equal(rs.read(), 'a', 'reading the first chunk directly from the stream works');
 
-  var reader1 = rs.getReader();
+  const reader1 = rs.getReader();
   t.equal(reader1.read(), 'b', 'reading the second chunk from reader1 works');
   reader1.releaseLock();
   t.equal(reader1.state, 'closed', 'reader1 is closed after being released');
 
   t.equal(rs.read(), 'c', 'reading the third chunk from the stream after releasing reader1 works');
 
-  var reader2 = rs.getReader();
+  const reader2 = rs.getReader();
   t.equal(reader2.read(), 'd', 'reading the fourth chunk from reader2 works');
   reader2.releaseLock();
   t.equal(reader2.state, 'closed', 'reader2 is closed after being released');
@@ -422,16 +422,16 @@ test('Multiple readers can access the stream in sequence', t => {
 test('A stream that errors has that reflected in the reader and the stream', t => {
   t.plan(9);
 
-  var error;
-  var rs = new ReadableStream({
+  let error;
+  const rs = new ReadableStream({
     start(enqueue, close, error_) {
       error = error_;
     }
   });
 
-  var reader = rs.getReader();
+  const reader = rs.getReader();
 
-  var passedError = new Error('too exclusive');
+  const passedError = new Error('too exclusive');
   error(passedError);
 
   t.equal(reader.isActive, false, 'the reader should have lost its lock');
@@ -456,12 +456,12 @@ test('A stream that errors has that reflected in the reader and the stream', t =
 test('Cannot use an already-released reader to unlock a stream again', t => {
   t.plan(2);
 
-  var rs = new ReadableStream();
+  const rs = new ReadableStream();
 
-  var reader1 = rs.getReader();
+  const reader1 = rs.getReader();
   reader1.releaseLock();
 
-  var reader2 = rs.getReader();
+  const reader2 = rs.getReader();
   t.equal(reader2.isActive, true, 'reader2 state is active before releasing reader1');
 
   reader1.releaseLock();
@@ -470,16 +470,16 @@ test('Cannot use an already-released reader to unlock a stream again', t => {
 
 test('stream\'s ready returns the same instance as long as there\'s no state transition visible on stream even ' +
     'if the reader became readable while the stream was locked', t => {
-  var enqueue;
-  var rs = new ReadableStream({
+  let enqueue;
+  const rs = new ReadableStream({
     start(enqueue_) {
       enqueue = enqueue_
     }
   });
 
-  var ready = rs.ready;
+  const ready = rs.ready;
 
-  var reader = rs.getReader();
+  const reader = rs.getReader();
 
   enqueue('a');
   t.equal(reader.state, 'readable', 'reader should be readable after enqueuing');
@@ -493,11 +493,11 @@ test('stream\'s ready returns the same instance as long as there\'s no state tra
 
 test('reader\'s ready and close returns the same instance as long as there\'s no state transition',
     t => {
-  var rs = new ReadableStream();
-  var reader = rs.getReader();
+  const rs = new ReadableStream();
+  const reader = rs.getReader();
 
-  var ready = reader.ready;
-  var closed = reader.closed;
+  const ready = reader.ready;
+  const closed = reader.closed;
 
   reader.releaseLock();
 
@@ -508,17 +508,17 @@ test('reader\'s ready and close returns the same instance as long as there\'s no
 
 test('reader\'s ready and close returns the same instance as long as there\'s no state transition to waiting',
     t => {
-  var enqueue;
-  var rs = new ReadableStream({
+  let enqueue;
+  const rs = new ReadableStream({
     start(enqueue_) {
       enqueue = enqueue_
     }
   });
 
-  var reader = rs.getReader();
+  const reader = rs.getReader();
 
-  var ready = reader.ready;
-  var closed = reader.closed;
+  const ready = reader.ready;
+  const closed = reader.closed;
 
   enqueue('a');
   t.equal(reader.state, 'readable', 'reader should be readable after enqueuing');

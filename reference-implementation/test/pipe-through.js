@@ -1,4 +1,4 @@
-var test = require('tape');
+const test = require('tape');
 
 import sequentialReadableStream from './utils/sequential-rs';
 import duckTypedPassThroughTransform from './utils/duck-typed-pass-through-transform';
@@ -7,7 +7,7 @@ import readableStreamToArray from './utils/readable-stream-to-array';
 test('Piping through a duck-typed pass-through transform stream works', t => {
   t.plan(1);
 
-  var readableEnd = sequentialReadableStream(5).pipeThrough(duckTypedPassThroughTransform());
+  const readableEnd = sequentialReadableStream(5).pipeThrough(duckTypedPassThroughTransform());
 
   readableStreamToArray(readableEnd).then(chunks => t.deepEqual(chunks, [1, 2, 3, 4, 5]));
 });
@@ -15,7 +15,7 @@ test('Piping through a duck-typed pass-through transform stream works', t => {
 test('Piping through an identity transform stream will close the destination when the source closes', t => {
   t.plan(2);
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       enqueue('b');
@@ -24,14 +24,14 @@ test('Piping through an identity transform stream will close the destination whe
     }
   });
 
-  var ts = new TransformStream({
+  const ts = new TransformStream({
     transform(chunk, enqueue, done) {
       enqueue(chunk);
       done();
     }
   });
 
-  var ws = new WritableStream();
+  const ws = new WritableStream();
 
   rs.pipeThrough(ts).pipeTo(ws).then(() => {
     t.equal(rs.state, 'closed', 'the readable stream was closed');
@@ -46,8 +46,8 @@ test.skip('Piping through a default transform stream causes backpressure to be e
   t.plan(2);
 
   // Producer: every 20 ms
-  var enqueueReturnValues = [];
-  var rs = new ReadableStream({
+  const enqueueReturnValues = [];
+  const rs = new ReadableStream({
     start(enqueue, close) {
       setTimeout(() => enqueueReturnValues.push(enqueue('a')), 10);
       setTimeout(() => enqueueReturnValues.push(enqueue('b')), 30);
@@ -61,7 +61,7 @@ test.skip('Piping through a default transform stream causes backpressure to be e
     }
   });
 
-  var ts = new TransformStream({
+  const ts = new TransformStream({
     transform(chunk, enqueue, done) {
       enqueue(chunk);
       done();
@@ -69,8 +69,8 @@ test.skip('Piping through a default transform stream causes backpressure to be e
   });
 
   // Consumer: every 90 ms
-  var writtenValues = [];
-  var ws = new WritableStream({
+  const writtenValues = [];
+  const ws = new WritableStream({
     write(chunk) {
       return new Promise(resolve => {
         setTimeout(() => {

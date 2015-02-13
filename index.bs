@@ -2115,7 +2115,7 @@ as whether an individual write succeeded or failed.
 We can then use this function to create a writable stream for a file, and write individual <a>chunks</a> of data to it:
 
 <pre><code class="lang-javascript">
-  var fileStream = makeWritableFileStream("/example/path/on/fs.txt");
+  const fileStream = makeWritableFileStream("/example/path/on/fs.txt");
 
   fileStream.write("To stream, or not to stream\n");
   fileStream.write("That is the question\n");

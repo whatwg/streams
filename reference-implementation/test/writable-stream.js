@@ -1,4 +1,4 @@
-var test = require('tape');
+const test = require('tape');
 
 function writeArrayToStream(array, writableStream) {
   array.forEach(chunk => writableStream.write(chunk));
@@ -6,15 +6,15 @@ function writeArrayToStream(array, writableStream) {
 }
 
 test('error argument is given to start method', t => {
-  var error;
-  var ws = new WritableStream({
+  let error;
+  const ws = new WritableStream({
     start(error_) {
       error = error_;
     }
   });
 
   // Now error the stream after its construction.
-  var passedError = new Error('horrible things');
+  const passedError = new Error('horrible things');
   error(passedError);
   t.equal(ws.state, 'errored');
   ws.closed.catch(r => {
@@ -24,10 +24,10 @@ test('error argument is given to start method', t => {
 });
 
 test('Underlying sink\'s write won\'t be called until start finishes', t => {
-  var expectWriteCall = false;
+  let expectWriteCall = false;
 
-  var resolveStartPromise;
-  var ws = new WritableStream({
+  let resolveStartPromise;
+  const ws = new WritableStream({
     start() {
       return new Promise(
           (resolve, reject) => { resolveStartPromise = resolve; });
@@ -57,10 +57,10 @@ test('Underlying sink\'s write won\'t be called until start finishes', t => {
 });
 
 test('Underlying sink\'s close won\'t be called until start finishes', t => {
-  var expectCloseCall = false;
+  let expectCloseCall = false;
 
-  var resolveStartPromise;
-  var ws = new WritableStream({
+  let resolveStartPromise;
+  const ws = new WritableStream({
     start() {
       return new Promise(
           (resolve, reject) => { resolveStartPromise = resolve; });
@@ -90,13 +90,13 @@ test('Underlying sink\'s close won\'t be called until start finishes', t => {
 
 test('Fulfillment value of ws.close() call must be undefined even if the underlying sink returns a non-undefined ' +
      'value', t => {
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     close() {
       return 'Hello';
     }
   });
 
-  var closePromise = ws.close('a');
+  const closePromise = ws.close('a');
   closePromise.then(value => {
     t.equal(value, undefined, 'fulfillment value must be undefined');
     t.end();
@@ -107,10 +107,10 @@ test('Fulfillment value of ws.close() call must be undefined even if the underly
 });
 
 test('Underlying sink\'s write or close are never invoked if start throws', t => {
-  var passedError = new Error('horrible things');
+  const passedError = new Error('horrible things');
 
   try {
-    var ws = new WritableStream({
+    const ws = new WritableStream({
       start() {
         throw passedError;
       },
@@ -133,7 +133,7 @@ test('Underlying sink\'s write or close are never invoked if start throws', t =>
 });
 
 test('Underlying sink\'s write or close are never invoked if the promise returned by start is rejected', t => {
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     start() {
       return Promise.reject();
     },
@@ -161,7 +161,7 @@ test('WritableStream can be constructed with no arguments', t => {
 test('WritableStream instances have the correct methods and properties', t => {
   t.plan(8);
 
-  var ws = new WritableStream();
+  const ws = new WritableStream();
 
   t.equal(typeof ws.write, 'function', 'has a write method');
   t.equal(typeof ws.abort, 'function', 'has an abort method');
@@ -178,8 +178,8 @@ test('WritableStream instances have the correct methods and properties', t => {
 test('WritableStream with simple input, processed asynchronously', t => {
   t.plan(1);
 
-  var storage;
-  var ws = new WritableStream({
+  let storage;
+  const ws = new WritableStream({
     start() {
       storage = [];
     },
@@ -198,7 +198,7 @@ test('WritableStream with simple input, processed asynchronously', t => {
     }
   });
 
-  var input = [1, 2, 3, 4, 5];
+  const input = [1, 2, 3, 4, 5];
   writeArrayToStream(input, ws).then(
     () => t.deepEqual(storage, input, 'correct data was relayed to underlying sink'),
     r => t.fail(r)
@@ -208,8 +208,8 @@ test('WritableStream with simple input, processed asynchronously', t => {
 test('WritableStream with simple input, processed synchronously', t => {
   t.plan(1);
 
-  var storage;
-  var ws = new WritableStream({
+  let storage;
+  const ws = new WritableStream({
     start() {
       storage = [];
     },
@@ -219,7 +219,7 @@ test('WritableStream with simple input, processed synchronously', t => {
     },
   });
 
-  var input = [1, 2, 3, 4, 5];
+  const input = [1, 2, 3, 4, 5];
   writeArrayToStream(input, ws).then(
     () => t.deepEqual(storage, input, 'correct data was relayed to underlying sink'),
     r => t.fail(r)
@@ -227,7 +227,7 @@ test('WritableStream with simple input, processed synchronously', t => {
 });
 
 test('WritableStream is writable and ready fulfills immediately if the strategy does not apply backpressure', t => {
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     strategy: { shouldApplyBackpressure() { return false; } }
   });
 
@@ -240,7 +240,7 @@ test('WritableStream is writable and ready fulfills immediately if the strategy 
 });
 
 test('WritableStream is waiting and ready does not fulfill immediately if the stream is applying backpressure', t => {
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     strategy: { shouldApplyBackpressure() { return true; } }
   });
 
@@ -259,13 +259,13 @@ test('WritableStream is waiting and ready does not fulfill immediately if the st
 
 test('Fulfillment value of ws.write() call must be undefined even if the underlying sink returns a non-undefined ' +
      'value', t => {
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     write() {
       return 'Hello';
     }
   });
 
-  var writePromise = ws.write('a');
+  const writePromise = ws.write('a');
   writePromise.then(value => {
     t.equal(value, undefined, 'fulfillment value must be undefined');
     t.end();
@@ -278,8 +278,8 @@ test('Fulfillment value of ws.write() call must be undefined even if the underly
 test('WritableStream transitions to waiting until write is acknowledged', t => {
   t.plan(3);
 
-  var resolveWritePromise;
-  var ws = new WritableStream({
+  let resolveWritePromise;
+  const ws = new WritableStream({
     write() {
       return new Promise(resolve => resolveWritePromise = resolve);
     }
@@ -287,7 +287,7 @@ test('WritableStream transitions to waiting until write is acknowledged', t => {
 
   setTimeout(() => {
     t.equal(ws.state, 'writable', 'state starts writable');
-    var writePromise = ws.write('a');
+    const writePromise = ws.write('a');
     t.equal(ws.state, 'waiting', 'state is waiting until the write finishes');
     resolveWritePromise();
     writePromise.then(() => {
@@ -299,24 +299,24 @@ test('WritableStream transitions to waiting until write is acknowledged', t => {
 test('WritableStream if write returns a rejected promise, queued write and close are cleared', t => {
   t.plan(6);
 
-  var rejectWritePromise;
-  var ws = new WritableStream({
+  let rejectWritePromise;
+  const ws = new WritableStream({
     write() {
       return new Promise((r, reject) => rejectWritePromise = reject);
     }
   });
 
   setTimeout(() => {
-    var writePromise = ws.write('a');
+    const writePromise = ws.write('a');
 
     t.notStrictEqual(rejectWritePromise, undefined, 'write is called so rejectWritePromise is set');
 
-    var writePromise2 = ws.write('b');
-    var closedPromise = ws.close();
+    const writePromise2 = ws.write('b');
+    const closedPromise = ws.close();
 
     t.equal(ws.state, 'closing', 'state is closing until the close finishes');
 
-    var passedError = new Error('horrible things');
+    const passedError = new Error('horrible things');
     rejectWritePromise(passedError);
 
     writePromise.then(
@@ -340,7 +340,7 @@ test('WritableStream if write returns a rejected promise, queued write and close
 });
 
 test('If close is called on a WritableStream in writable state, ready will return a fulfilled promise', t => {
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     write() {
       t.fail('Unexpected write call');
       t.end();
@@ -367,7 +367,7 @@ test('If close is called on a WritableStream in writable state, ready will retur
 });
 
 test('If close is called on a WritableStream in waiting state, ready will return a fulfilled promise', t => {
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     abort() {
       t.fail('Unexpected abort call');
       t.end();
@@ -393,8 +393,8 @@ test('If close is called on a WritableStream in waiting state, ready will return
 test('If close is called on a WritableStream in waiting state, ready will be fulfilled immediately even if close ' +
      'takes a long time', t => {
 
-  var readyFulfilledAlready = false;
-  var ws = new WritableStream({
+  let readyFulfilledAlready = false;
+  const ws = new WritableStream({
     abort() {
       t.fail('Unexpected abort call');
       t.end();
@@ -429,8 +429,8 @@ test('If close is called on a WritableStream in waiting state, ready will be ful
 test('If sink rejects on a WritableStream in writable state, ready will return a fulfilled promise', t => {
   t.plan(5);
 
-  var rejectWritePromise;
-  var ws = new WritableStream({
+  let rejectWritePromise;
+  const ws = new WritableStream({
     write() {
       return new Promise((r, reject) => rejectWritePromise = reject);
     }
@@ -438,10 +438,10 @@ test('If sink rejects on a WritableStream in writable state, ready will return a
 
   setTimeout(() => {
     t.equal(ws.state, 'writable', 'state is writable to begin');
-    var writePromise = ws.write('a');
+    const writePromise = ws.write('a');
     t.equal(ws.state, 'waiting', 'state is waiting after a write');
 
-    var passedError = new Error('pass me');
+    const passedError = new Error('pass me');
     rejectWritePromise(passedError);
 
     writePromise.then(
@@ -460,8 +460,8 @@ test('If sink rejects on a WritableStream in writable state, ready will return a
 });
 
 test('WritableStream if sink\'s close throws', t => {
-  var passedError = new Error('pass me');
-  var ws = new WritableStream({
+  const passedError = new Error('pass me');
+  const ws = new WritableStream({
     write() {
       t.fail('Unexpected write call');
       t.end();
@@ -477,7 +477,7 @@ test('WritableStream if sink\'s close throws', t => {
 
   // Wait for ws to start.
   setTimeout(() => {
-    var closedPromise = ws.close();
+    const closedPromise = ws.close();
     t.equal(ws.state, 'closing', 'state must become closing synchronously on close call');
 
     closedPromise.then(
@@ -499,8 +499,8 @@ test('WritableStream if sink\'s close throws', t => {
 });
 
 test('WritableStream if the promise returned by sink\'s close rejects', t => {
-  var passedError = new Error('pass me');
-  var ws = new WritableStream({
+  const passedError = new Error('pass me');
+  const ws = new WritableStream({
     write() {
       t.fail('write of sink called');
       t.end();
@@ -516,7 +516,7 @@ test('WritableStream if the promise returned by sink\'s close rejects', t => {
 
   // Wait for ws to start.
   setTimeout(() => {
-    var closedPromise = ws.close();
+    const closedPromise = ws.close();
     t.equal(ws.state, 'closing', 'state must become closing synchronously on close call');
 
     closedPromise.then(
@@ -540,8 +540,8 @@ test('WritableStream if the promise returned by sink\'s close rejects', t => {
 test('If sink rejects on a WritableStream in waiting state, ready will return a rejected promise', t => {
   t.plan(5);
 
-  var passedError = new Error('pass me');
-  var ws = new WritableStream({
+  const passedError = new Error('pass me');
+  const ws = new WritableStream({
     write(chunk) {
       if (chunk === 'first chunk succeeds') {
         return new Promise(resolve => setTimeout(resolve, 10));
@@ -554,7 +554,7 @@ test('If sink rejects on a WritableStream in waiting state, ready will return a 
     ws.write('first chunk succeeds');
     t.equal(ws.state, 'waiting', 'state is waiting after first write');
 
-    var secondWritePromise = ws.write('all other chunks fail');
+    const secondWritePromise = ws.write('all other chunks fail');
     t.equal(ws.state, 'waiting', 'state is waiting after a second write');
 
     secondWritePromise.then(
@@ -575,8 +575,8 @@ test('If sink rejects on a WritableStream in waiting state, ready will return a 
 test('WritableStream if sink throws an error inside write, the stream becomes errored and the promise rejects', t => {
   t.plan(3);
 
-  var thrownError = new Error('throw me');
-  var ws = new WritableStream({
+  const thrownError = new Error('throw me');
+  const ws = new WritableStream({
     write() {
       throw thrownError;
     }
@@ -599,9 +599,9 @@ test('WritableStream if sink throws an error inside write, the stream becomes er
 test('WritableStream exception in shouldApplyBackpressure during write moves the stream into errored state', t => {
   t.plan(3);
 
-  var aboutToWrite = false;
-  var thrownError = new Error('throw me');
-  var ws = new WritableStream({
+  let aboutToWrite = false;
+  const thrownError = new Error('throw me');
+  const ws = new WritableStream({
     strategy: {
       size() {
         return 1;
@@ -628,8 +628,8 @@ test('WritableStream exception in shouldApplyBackpressure during write moves the
 test('WritableStream exception in size during write moves the stream into errored state', t => {
   t.plan(3);
 
-  var thrownError = new Error('throw me');
-  var ws = new WritableStream({
+  const thrownError = new Error('throw me');
+  const ws = new WritableStream({
     strategy: {
       size() {
         throw thrownError;
@@ -651,7 +651,7 @@ test('WritableStream exception in size during write moves the stream into errore
 test('WritableStream NaN size during write moves the stream into errored state', t => {
   t.plan(3);
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     strategy: {
       size() {
         return NaN;
@@ -673,7 +673,7 @@ test('WritableStream NaN size during write moves the stream into errored state',
 test('WritableStream +Infinity size during write moves the stream into errored state', t => {
   t.plan(3);
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     strategy: {
       size() {
         return +Infinity;
@@ -695,7 +695,7 @@ test('WritableStream +Infinity size during write moves the stream into errored s
 test('WritableStream -Infinity size during write moves the stream into errored state', t => {
   t.plan(3);
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     strategy: {
       size() {
         return -Infinity;
@@ -718,10 +718,10 @@ test('WritableStream exception in shouldApplyBackpressure moves the stream into 
      'finish', t => {
   t.plan(4);
 
-  var thrownError;
+  let thrownError;
 
-  var resolveWritePromise;
-  var ws = new WritableStream({
+  let resolveWritePromise;
+  const ws = new WritableStream({
     write(chunk) {
       return new Promise(resolve => resolveWritePromise = resolve);
     },
@@ -758,8 +758,8 @@ test('WritableStream exception in shouldApplyBackpressure moves the stream into 
 test('WritableStream if sink throws an error while closing, the stream becomes errored', t => {
   t.plan(3);
 
-  var thrownError = new Error('throw me');
-  var ws = new WritableStream({
+  const thrownError = new Error('throw me');
+  const ws = new WritableStream({
     close() {
       throw thrownError;
     }
@@ -781,9 +781,9 @@ test('WritableStream if sink throws an error while closing, the stream becomes e
 test('WritableStream if sink calls error while asynchronously closing, the stream becomes errored', t => {
   t.plan(3);
 
-  var passedError = new Error('error me');
-  var error;
-  var ws = new WritableStream({
+  const passedError = new Error('error me');
+  let error;
+  const ws = new WritableStream({
     start(error_) {
       error = error_;
     },
@@ -812,9 +812,9 @@ test('WritableStream if sink calls error while asynchronously closing, the strea
 test('WritableStream if sink calls error while closing with no asynchrony, the stream becomes errored', t => {
   t.plan(3);
 
-  var passedError = new Error('error me');
-  var error;
-  var ws = new WritableStream({
+  const passedError = new Error('error me');
+  let error;
+  const ws = new WritableStream({
     start(error_) {
       error = error_;
     },
@@ -839,11 +839,11 @@ test('WritableStream if sink calls error while closing with no asynchrony, the s
 test('WritableStream queue lots of data and have all of them processed at once', t => {
   t.plan(4);
 
-  var numberOfWrites = 10000;
+  const numberOfWrites = 10000;
 
-  var resolveFirstWritePromise;
-  var writeCount = 0;
-  var ws = new WritableStream({
+  let resolveFirstWritePromise;
+  let writeCount = 0;
+  const ws = new WritableStream({
     write(chunk) {
       ++writeCount;
       if (!resolveFirstWritePromise) {
@@ -853,8 +853,8 @@ test('WritableStream queue lots of data and have all of them processed at once',
   });
 
   setTimeout(() => {
-    var writePromise;
-    for (var i = 0; i < numberOfWrites; ++i) {
+    let writePromise;
+    for (let i = 0; i < numberOfWrites; ++i) {
       writePromise = ws.write('a');
     }
 
@@ -900,13 +900,13 @@ test('WritableStream should call underlying sink methods as methods', t => {
     }
   }
 
-  var theSink = new Sink();
+  const theSink = new Sink();
   theSink.debugName = "the sink object passed to the constructor";
-  var ws = new WritableStream(theSink);
+  const ws = new WritableStream(theSink);
 
   ws.write('a');
   ws.close();
 
-  var ws2 = new WritableStream(theSink);
+  const ws2 = new WritableStream(theSink);
   ws.abort();
 });

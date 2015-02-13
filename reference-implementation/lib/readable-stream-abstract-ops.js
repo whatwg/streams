@@ -1,4 +1,4 @@
-var assert = require('assert');
+const assert = require('assert');
 import ExclusiveStreamReader from './exclusive-stream-reader';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
 import { PromiseInvokeOrNoop, typeIsObject } from './helpers';
@@ -30,7 +30,7 @@ export function CallReadableStreamPull(stream) {
     return undefined;
   }
 
-  var shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
+  const shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
   if (shouldApplyBackpressure === true) {
     return undefined;
   }
@@ -52,7 +52,7 @@ export function CancelReadableStream(stream, reason) {
   stream._queue = [];
   CloseReadableStream(stream);
 
-  var sourceCancelPromise = PromiseInvokeOrNoop(stream._underlyingSource, 'cancel', [reason]);
+  const sourceCancelPromise = PromiseInvokeOrNoop(stream._underlyingSource, 'cancel', [reason]);
   return sourceCancelPromise.then(() => undefined);
 }
 
@@ -108,9 +108,9 @@ export function CreateReadableStreamEnqueueFunction(stream) {
       throw new TypeError('stream is draining');
     }
 
-    var chunkSize = 1;
+    let chunkSize = 1;
 
-    var strategy;
+    let strategy;
     try {
       strategy = stream._underlyingSource.strategy;
     } catch (strategyE) {
@@ -135,7 +135,7 @@ export function CreateReadableStreamEnqueueFunction(stream) {
     }
 
 
-    var shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
+    const shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
 
     if (stream._state === 'waiting') {
       MarkReadableStreamReadable(stream);
@@ -259,7 +259,7 @@ export function ReadFromReadableStream(stream) {
   assert(stream._state === 'readable', `stream state ${stream._state} is invalid`);
   assert(stream._queue.length > 0, 'there must be chunks available to read');
 
-  var chunk = DequeueValue(stream._queue);
+  const chunk = DequeueValue(stream._queue);
 
   if (stream._queue.length === 0) {
     if (stream._draining === true) {
@@ -275,10 +275,10 @@ export function ReadFromReadableStream(stream) {
 }
 
 export function ShouldReadableStreamApplyBackpressure(stream) {
-  var queueSize = GetTotalQueueSize(stream._queue);
-  var shouldApplyBackpressure = queueSize > 1;
+  const queueSize = GetTotalQueueSize(stream._queue);
+  let shouldApplyBackpressure = queueSize > 1;
 
-  var strategy;
+  let strategy;
   try {
     strategy = stream._underlyingSource.strategy;
   } catch (strategyE) {

@@ -1,4 +1,4 @@
-var assert = require('assert');
+const assert = require('assert');
 import * as helpers from '../helpers';
 import ReadableStream from '../readable-stream';
 import ExclusiveByteStreamReader from './exclusive-byte-stream-reader';
@@ -81,7 +81,7 @@ export default class ReadableByteStream {
 
     CloseReadableByteStream(this);
 
-    var sourceCancelPromise = helpers.PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
+    const sourceCancelPromise = helpers.PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
     return sourceCancelPromise.then(() => undefined);
   }
 

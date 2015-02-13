@@ -1,4 +1,4 @@
-var assert = require('assert');
+const assert = require('assert');
 import * as helpers from '../helpers';
 
 export function CloseReadableByteStream(stream) {
@@ -113,20 +113,20 @@ export function IsReadableByteStreamLocked(stream) {
 }
 
 export function ReadFromReadableByteStream(stream) {
-  var readBufferSizeGetter = stream._underlyingByteSource['readBufferSize'];
+  const readBufferSizeGetter = stream._underlyingByteSource['readBufferSize'];
   if (readBufferSizeGetter === undefined) {
     throw new TypeError('readBufferSize getter is not defined on the underlying byte source');
   }
-  var readBufferSize = helpers.toInteger(readBufferSizeGetter.call(stream._underlyingByteSource));
+  const readBufferSize = helpers.toInteger(readBufferSizeGetter.call(stream._underlyingByteSource));
   if (readBufferSize < 0) {
     throw new RangeError('readBufferSize must be non-negative');
   }
 
-  var arrayBuffer = new ArrayBuffer(readBufferSize);
-  var bytesRead = ReadIntoFromReadableByteStream(stream, arrayBuffer, 0, readBufferSize);
+  const arrayBuffer = new ArrayBuffer(readBufferSize);
+  const bytesRead = ReadIntoFromReadableByteStream(stream, arrayBuffer, 0, readBufferSize);
   // This code should be updated to use ArrayBuffer.prototype.transfer when
   // it's ready.
-  var resizedArrayBuffer = arrayBuffer.slice(0, bytesRead);
+  const resizedArrayBuffer = arrayBuffer.slice(0, bytesRead);
   return resizedArrayBuffer;
 }
 
@@ -166,9 +166,9 @@ export function ReadIntoFromReadableByteStream(stream, arrayBuffer, offset, size
     throw new RangeError('the specified range is out of bounds for arrayBuffer');
   }
 
-  var bytesRead;
+  let bytesRead;
   try {
-    var readInto = stream._underlyingByteSource['readInto'];
+    const readInto = stream._underlyingByteSource['readInto'];
     if (readInto === undefined) {
       throw new TypeError('readInto is not defiend on the underlying byte source');
     }
@@ -181,7 +181,7 @@ export function ReadIntoFromReadableByteStream(stream, arrayBuffer, offset, size
   bytesRead = Number(bytesRead);
 
   if (isNaN(bytesRead) || bytesRead < -2 || bytesRead > size) {
-    var error = new RangeError('readInto of underlying source returned invalid value');
+    const error = new RangeError('readInto of underlying source returned invalid value');
     ErrorReadableByteStream(stream, error);
     throw error;
   }

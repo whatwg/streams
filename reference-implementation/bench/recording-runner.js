@@ -1,22 +1,22 @@
-var fs = require('fs');
-var mkdirpSync = require('mkdirp').sync;
-var path = require('path');
+const fs = require('fs');
+const mkdirpSync = require('mkdirp').sync;
+const path = require('path');
 
 import Runner from './runner-base.js';
 
-var directory = path.resolve(__dirname, 'results');
+const directory = path.resolve(__dirname, 'results');
 mkdirpSync(directory);
 
-var results = {};
+const results = {};
 
-var runner = new Runner((time, data, values) => {
+const runner = new Runner((time, data, values) => {
   results[JSON.stringify(values)] = { time: time, data: data };
 });
 
 runner.run()
   .then(() => {
-    var sanitizedDate = (new Date()).toISOString().replace(/[-:.]/g, '');
-    var filename = path.resolve(directory, sanitizedDate + '.json');
+    const sanitizedDate = (new Date()).toISOString().replace(/[-:.]/g, '');
+    const filename = path.resolve(directory, sanitizedDate + '.json');
     fs.writeFileSync(filename, JSON.stringify(results, undefined, 2));
   })
   .catch(console.error);

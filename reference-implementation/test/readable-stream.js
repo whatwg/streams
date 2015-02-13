@@ -1,4 +1,4 @@
-var test = require('tape');
+const test = require('tape');
 
 import RandomPushSource from './utils/random-push-source';
 import readableStreamToArray from './utils/readable-stream-to-array';
@@ -12,7 +12,7 @@ test('ReadableStream can be constructed with no arguments', t => {
 test('ReadableStream instances have the correct methods and properties', t => {
   t.plan(9);
 
-  var rs = new ReadableStream();
+  const rs = new ReadableStream();
 
   t.equal(typeof rs.read, 'function', 'has a read method');
   t.equal(typeof rs.cancel, 'function', 'has an cancel method');
@@ -31,7 +31,7 @@ test('ReadableStream closing puts the stream in a closed state, fulfilling the r
     'undefined', t => {
   t.plan(3);
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       close();
     }
@@ -53,7 +53,7 @@ test('ReadableStream closing puts the stream in a closed state, fulfilling the r
 test('ReadableStream reading a waiting stream throws a TypeError', t => {
   t.plan(2);
 
-  var rs = new ReadableStream();
+  const rs = new ReadableStream();
 
   t.equal(rs.state, 'waiting');
   t.throws(() => rs.read(), /TypeError/);
@@ -62,7 +62,7 @@ test('ReadableStream reading a waiting stream throws a TypeError', t => {
 test('ReadableStream reading a closed stream throws a TypeError', t => {
   t.plan(2);
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       close();
     }
@@ -75,9 +75,9 @@ test('ReadableStream reading a closed stream throws a TypeError', t => {
 test('ReadableStream reading an errored stream throws the stored error', t => {
   t.plan(2);
 
-  var passedError = new Error('aaaugh!!');
+  const passedError = new Error('aaaugh!!');
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       error(passedError);
     }
@@ -96,7 +96,7 @@ test('ReadableStream reading a stream makes ready and closed return a promise fu
     'stream is fully drained', t => {
   t.plan(6);
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('test');
       close();
@@ -121,8 +121,8 @@ test('ReadableStream reading a stream makes ready and closed return a promise fu
 });
 
 test('ReadableStream avoid redundant pull call', t => {
-  var pullCount = 0;
-  var rs = new ReadableStream({
+  let pullCount = 0;
+  const rs = new ReadableStream({
     pull() {
       pullCount++;
     },
@@ -146,7 +146,7 @@ test('ReadableStream avoid redundant pull call', t => {
 test('ReadableStream start throws an error', t => {
   t.plan(1);
 
-  var error = new Error('aaaugh!!');
+  const error = new Error('aaaugh!!');
 
   try {
     new ReadableStream({ start() { throw error; } });
@@ -159,8 +159,8 @@ test('ReadableStream start throws an error', t => {
 test('ReadableStream pull throws an error', t => {
   t.plan(4);
 
-  var error = new Error('aaaugh!!');
-  var rs = new ReadableStream({ pull() { throw error; } });
+  const error = new Error('aaaugh!!');
+  const rs = new ReadableStream({ pull() { throw error; } });
 
   rs.closed.then(() => {
     t.fail('the stream should not close successfully');
@@ -179,10 +179,10 @@ test('ReadableStream pull throws an error', t => {
 });
 
 test('ReadableStream adapting a push source', t => {
-  var pullChecked = false;
-  var randomSource = new RandomPushSource(8);
+  let pullChecked = false;
+  const randomSource = new RandomPushSource(8);
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       t.equal(typeof enqueue,  'function', 'enqueue is a function in start');
       t.equal(typeof close, 'function', 'close is a function in start');
@@ -212,7 +212,7 @@ test('ReadableStream adapting a push source', t => {
   readableStreamToArray(rs).then(chunks => {
     t.equal(rs.state, 'closed', 'should be closed');
     t.equal(chunks.length, 8, 'got the expected 8 chunks');
-    for (var i = 0; i < chunks.length; i++) {
+    for (let i = 0; i < chunks.length; i++) {
       t.equal(chunks[i].length, 128, 'each chunk has 128 bytes');
     }
 
@@ -221,7 +221,7 @@ test('ReadableStream adapting a push source', t => {
 });
 
 test('ReadableStream adapting a sync pull source', t => {
-  var rs = sequentialReadableStream(10);
+  const rs = sequentialReadableStream(10);
 
   readableStreamToArray(rs).then(chunks => {
     t.equal(rs.state, 'closed', 'stream should be closed');
@@ -233,7 +233,7 @@ test('ReadableStream adapting a sync pull source', t => {
 });
 
 test('ReadableStream adapting an async pull source', t => {
-  var rs = sequentialReadableStream(10, { async: true });
+  const rs = sequentialReadableStream(10, { async: true });
 
   readableStreamToArray(rs).then(chunks => {
     t.equal(rs.state, 'closed', 'stream should be closed');
@@ -245,8 +245,8 @@ test('ReadableStream adapting an async pull source', t => {
 });
 
 test('ReadableStream is able to enqueue lots of data in a single pull, making it available synchronously', t => {
-  var i = 0;
-  var rs = new ReadableStream({
+  let i = 0;
+  const rs = new ReadableStream({
     pull(enqueue, close) {
       while (++i <= 10) {
         enqueue(i);
@@ -257,7 +257,7 @@ test('ReadableStream is able to enqueue lots of data in a single pull, making it
   });
 
   rs.ready.then(() => {
-    var data = [];
+    const data = [];
     while (rs.state === 'readable') {
       data.push(rs.read());
     }
@@ -268,10 +268,10 @@ test('ReadableStream is able to enqueue lots of data in a single pull, making it
 });
 
 test('ReadableStream does not call pull until previous pull\'s promise fulfills', t => {
-  var resolve;
-  var returnedPromise;
-  var timesCalled = 0;
-  var rs = new ReadableStream({
+  let resolve;
+  let returnedPromise;
+  let timesCalled = 0;
+  const rs = new ReadableStream({
     pull(enqueue) {
       ++timesCalled;
       enqueue(timesCalled);
@@ -302,9 +302,9 @@ test('ReadableStream does not call pull until previous pull\'s promise fulfills'
 });
 
 test('ReadableStream does not call pull multiple times after previous pull finishes', t => {
-  var timesCalled = 0;
+  let timesCalled = 0;
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue) {
       enqueue('a');
       enqueue('b');
@@ -342,8 +342,8 @@ test('ReadableStream does not call pull multiple times after previous pull finis
 test('ReadableStream pull rejection makes stream errored', t => {
   t.plan(2);
 
-  var theError = new Error('pull failure');
-  var rs = new ReadableStream({
+  const theError = new Error('pull failure');
+  const rs = new ReadableStream({
     pull() {
       return Promise.reject(theError);
     }
@@ -362,8 +362,8 @@ test('ReadableStream ready does not error when no more data is available', t => 
 
   t.plan(1);
 
-  var rs = sequentialReadableStream(5, { async: true });
-  var result = [];
+  const rs = sequentialReadableStream(5, { async: true });
+  const result = [];
 
   pump();
 
@@ -385,10 +385,10 @@ test('ReadableStream should be able to get data sequentially from an asynchronou
 
   t.plan(4);
 
-  var rs = sequentialReadableStream(3, { async: true });
+  const rs = sequentialReadableStream(3, { async: true });
 
-  var result = [];
-  var EOF = Object.create(null);
+  const result = [];
+  const EOF = Object.create(null);
 
   getNext().then(v => {
     t.equal(v, 1, 'first chunk should be 1');
@@ -436,7 +436,7 @@ test('Default ReadableStream returns `false` for all but the first `enqueue` cal
 test('ReadableStream continues returning `true` from `enqueue` if the data is read out of it in time', t => {
   t.plan(12);
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue) {
       // Delay a bit so that the stream is successfully constructed and thus the `rs` variable references something.
       setTimeout(() => {
@@ -461,7 +461,7 @@ test('ReadableStream continues returning `true` from `enqueue` if the data is re
 });
 
 test('ReadableStream enqueue fails when the stream is draining', t => {
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       t.equal(enqueue('a'), true);
       close();
@@ -482,7 +482,7 @@ test('ReadableStream enqueue fails when the stream is draining', t => {
 });
 
 test('ReadableStream enqueue fails when the stream is closed', t => {
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       close();
 
@@ -499,8 +499,8 @@ test('ReadableStream enqueue fails when the stream is closed', t => {
 });
 
 test('ReadableStream enqueue fails with the correct error when the stream is errored', t => {
-  var expectedError = new Error('i am sad');
-  var rs = new ReadableStream({
+  const expectedError = new Error('i am sad');
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       error(expectedError);
 
@@ -517,9 +517,9 @@ test('ReadableStream enqueue fails with the correct error when the stream is err
 });
 
 test('ReadableStream if shouldApplyBackpressure throws, the stream is errored', t => {
-  var error = new Error('aaaugh!!');
+  const error = new Error('aaaugh!!');
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue) {
       try {
         enqueue('hi');
@@ -547,9 +547,9 @@ test('ReadableStream if shouldApplyBackpressure throws, the stream is errored', 
 });
 
 test('ReadableStream if size throws, the stream is errored', t => {
-  var error = new Error('aaaugh!!');
+  const error = new Error('aaaugh!!');
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue) {
       try {
         enqueue('hi');
@@ -579,7 +579,7 @@ test('ReadableStream if size throws, the stream is errored', t => {
 test('ReadableStream if size is NaN, the stream is errored', t => {
   t.plan(2);
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue) {
       try {
         enqueue('hi');
@@ -605,7 +605,7 @@ test('ReadableStream if size is NaN, the stream is errored', t => {
 test('ReadableStream if size is -Infinity, the stream is errored', t => {
   t.plan(2);
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue) {
       try {
         enqueue('hi');
@@ -631,7 +631,7 @@ test('ReadableStream if size is -Infinity, the stream is errored', t => {
 test('ReadableStream if size is +Infinity, the stream is errored', t => {
   t.plan(2);
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue) {
       try {
         enqueue('hi');
@@ -657,9 +657,9 @@ test('ReadableStream if size is +Infinity, the stream is errored', t => {
 test('ReadableStream errors in shouldApplyBackpressure cause ready to fulfill and closed to rejected', t => {
   t.plan(3);
 
-  var thrownError = new Error('size failure');
-  var callsToShouldApplyBackpressure = 0;
-  var rs = new ReadableStream({
+  const thrownError = new Error('size failure');
+  let callsToShouldApplyBackpressure = 0;
+  const rs = new ReadableStream({
     start(enqueue) {
       setTimeout(() => {
         try {
@@ -696,7 +696,7 @@ test('ReadableStream errors in shouldApplyBackpressure cause ready to fulfill an
 });
 
 test('ReadableStream cancel() and closed on a closed stream should return the same promise', t => {
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       close();
     }
@@ -707,13 +707,13 @@ test('ReadableStream cancel() and closed on a closed stream should return the sa
 });
 
 test('ReadableStream ready returns the same value when called on a new, empty stream', t => {
-  var rs = new ReadableStream();
+  const rs = new ReadableStream();
   t.equal(rs.ready, rs.ready, 'rs.ready should not change between gets');
   t.end();
 });
 
 test('ReadableStream ready returns the same value when called on a readable stream', t => {
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue) {
       enqueue('a');
     }
@@ -724,7 +724,7 @@ test('ReadableStream ready returns the same value when called on a readable stre
 });
 
 test('ReadableStream cancel() and closed on an errored stream should return the same promise', t => {
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       error(new Error('boo!'));
     }
@@ -758,9 +758,9 @@ test('ReadableStream should call underlying source methods as methods', t => {
     }
   }
 
-  var theSource = new Source();
+  const theSource = new Source();
   theSource.debugName = "the source object passed to the constructor";
-  var rs = new ReadableStream(theSource);
+  const rs = new ReadableStream(theSource);
 
   rs.ready.then(() => rs.cancel());
 });

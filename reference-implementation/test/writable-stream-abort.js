@@ -1,8 +1,8 @@
-var test = require('tape');
+const test = require('tape');
 
 test('Aborting a WritableStream immediately prevents future writes', t => {
-  var chunks = [];
-  var ws = new WritableStream({
+  const chunks = [];
+  const ws = new WritableStream({
     write(chunk) {
       chunks.push(chunk);
     }
@@ -18,8 +18,8 @@ test('Aborting a WritableStream immediately prevents future writes', t => {
 });
 
 test('Aborting a WritableStream prevents further writes after any that are in progress', t => {
-  var chunks = [];
-  var ws = new WritableStream({
+  const chunks = [];
+  const ws = new WritableStream({
     write(chunk) {
       chunks.push(chunk);
       return new Promise(resolve => setTimeout(resolve, 50));
@@ -43,13 +43,13 @@ test('Aborting a WritableStream prevents further writes after any that are in pr
 
 test('Fulfillment value of ws.abort() call must be undefined even if the underlying sink returns a non-undefined value',
      t => {
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     abort() {
       return 'Hello';
     }
   });
 
-  var abortPromise = ws.abort('a');
+  const abortPromise = ws.abort('a');
   abortPromise.then(value => {
     t.equal(value, undefined, 'fulfillment value must be undefined');
     t.end();
@@ -60,14 +60,14 @@ test('Fulfillment value of ws.abort() call must be undefined even if the underly
 });
 
 test('WritableStream if sink\'s abort throws, the promise returned by ws.abort() rejects', t => {
-  var errorInSinkAbort = new Error('Sorry, it just wasn\'t meant to be.');
-  var ws = new WritableStream({
+  const errorInSinkAbort = new Error('Sorry, it just wasn\'t meant to be.');
+  const ws = new WritableStream({
     abort() {
       throw errorInSinkAbort;
     }
   });
 
-  var abortPromise = ws.abort(undefined);
+  const abortPromise = ws.abort(undefined);
   abortPromise.then(
     () => {
       t.fail('abortPromise is fulfilled unexpectedly');
@@ -81,14 +81,14 @@ test('WritableStream if sink\'s abort throws, the promise returned by ws.abort()
 });
 
 test('Aborting a WritableStream passes through the given reason', t => {
-  var recordedReason;
-  var ws = new WritableStream({
+  let recordedReason;
+  const ws = new WritableStream({
     abort(reason) {
       recordedReason = reason;
     }
   });
 
-  var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+  const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   ws.abort(passedReason);
 
   t.equal(recordedReason, passedReason);
@@ -98,10 +98,10 @@ test('Aborting a WritableStream passes through the given reason', t => {
 test('Aborting a WritableStream puts it in an errored state, with stored error equal to the abort reason', t => {
   t.plan(5);
 
-  var recordedReason;
-  var ws = new WritableStream();
+  let recordedReason;
+  const ws = new WritableStream();
 
-  var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+  const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   ws.abort(passedReason);
 
   t.equal(ws.state, 'errored', 'state should be errored');
@@ -130,8 +130,8 @@ test('Aborting a WritableStream puts it in an errored state, with stored error e
 test('Aborting a WritableStream causes any outstanding ready promises to be fulfilled immediately', t => {
   t.plan(2);
 
-  var recordedReason;
-  var ws = new WritableStream({
+  let recordedReason;
+  const ws = new WritableStream({
     write(chunk) {
       return new Promise(() => {}); // forever-pending, so normally .ready would not fulfill.
     }
@@ -143,32 +143,32 @@ test('Aborting a WritableStream causes any outstanding ready promises to be fulf
     t.equal(ws.state, 'errored', 'state should now be errored');
   });
 
-  var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+  const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   ws.abort(passedReason);
 });
 
 test('Aborting a WritableStream causes any outstanding write() promises to be rejected with the abort reason', t => {
   t.plan(1);
 
-  var ws = new WritableStream();
+  const ws = new WritableStream();
 
   ws.write('a').then(
     () => t.fail('writing should not succeed'),
     r => t.equal(r, passedReason, 'writing should reject with the given reason')
   );
 
-  var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+  const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   ws.abort(passedReason);
 });
 
 test('Closing but then immediately aborting a WritableStream causes the stream to error', t => {
   t.plan(2);
 
-  var ws = new WritableStream();
+  const ws = new WritableStream();
 
   ws.close();
 
-  var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+  const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   ws.abort(passedReason);
 
   t.equal(ws.state, 'errored');
@@ -182,7 +182,7 @@ test('Closing but then immediately aborting a WritableStream causes the stream t
 test('Closing a WritableStream and aborting it while it closes causes the stream to error', t => {
   t.plan(3);
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     close() {
       return new Promise(() => {}); // forever-pending
     }
@@ -190,7 +190,7 @@ test('Closing a WritableStream and aborting it while it closes causes the stream
 
   ws.close();
 
-  var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+  const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
 
   setTimeout(() => {
     t.equal(ws.state, 'closing');
@@ -209,7 +209,7 @@ test('Closing a WritableStream and aborting it while it closes causes the stream
 test('Aborting a WritableStream after it is closed is a no-op', t => {
   t.plan(3);
 
-  var ws = new WritableStream();
+  const ws = new WritableStream();
 
   ws.close();
 
@@ -228,7 +228,7 @@ test('Aborting a WritableStream after it is closed is a no-op', t => {
 test('WritableStream should call underlying sink\'s close if no abort is supplied', t => {
   t.plan(1);
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     close() {
       t.equal(arguments.length, 0, 'close() was called (with no arguments)');
     }

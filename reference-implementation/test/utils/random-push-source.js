@@ -24,7 +24,7 @@ export default class RandomPushSource {
       this.paused = false;
     }
 
-    var stream = this;
+    const stream = this;
     function writeChunk() {
       if (stream.paused) {
         return;
@@ -63,10 +63,10 @@ export default class RandomPushSource {
 
 // http://stackoverflow.com/questions/1349404/generate-a-string-of-5-random-characters-in-javascript
 function randomChunk(size) {
-  var text = '';
-  var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
-  for (var i = 0; i < size; i++) {
+  for (let i = 0; i < size; i++) {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
 

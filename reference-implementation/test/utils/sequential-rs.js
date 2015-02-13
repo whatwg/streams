@@ -2,9 +2,9 @@ import ReadableStream from '../../lib/readable-stream';
 import SequentialPullSource from './sequential-pull-source';
 
 export default function sequentialReadableStream(limit, options) {
-  var sequentialSource = new SequentialPullSource(limit, options);
+  const sequentialSource = new SequentialPullSource(limit, options);
 
-  var stream = new ReadableStream({
+  const stream = new ReadableStream({
     start() {
       return new Promise((resolve, reject) => {
         sequentialSource.open(err => {

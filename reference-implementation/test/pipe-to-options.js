@@ -1,10 +1,10 @@
-var test = require('tape');
+const test = require('tape');
 
 import sequentialReadableStream from './utils/sequential-rs';
 
 test('Piping with no options and no errors', t => {
-  var rs = sequentialReadableStream(5, { async: true });
-  var ws = new WritableStream({
+  const rs = sequentialReadableStream(5, { async: true });
+  const ws = new WritableStream({
     abort() {
       t.fail('unexpected abort call');
     }
@@ -21,8 +21,8 @@ test('Piping with no options and no errors', t => {
 });
 
 test('Piping with { preventClose: false } and no errors', t => {
-  var rs = sequentialReadableStream(5, { async: true });
-  var ws = new WritableStream({
+  const rs = sequentialReadableStream(5, { async: true });
+  const ws = new WritableStream({
     abort() {
       t.fail('unexpected abort call');
     }
@@ -39,8 +39,8 @@ test('Piping with { preventClose: false } and no errors', t => {
 });
 
 test('Piping with { preventClose: true } and no errors', t => {
-  var rs = sequentialReadableStream(5, { async: true });
-  var ws = new WritableStream({
+  const rs = sequentialReadableStream(5, { async: true });
+  const ws = new WritableStream({
     close() {
       t.fail('unexpected close call');
       t.end();
@@ -50,7 +50,7 @@ test('Piping with { preventClose: true } and no errors', t => {
     }
   });
 
-  var pipeToPromise = rs.pipeTo(ws, { preventClose: true });
+  const pipeToPromise = rs.pipeTo(ws, { preventClose: true });
 
   rs.closed.then(() => {
     setTimeout(() => {
@@ -71,13 +71,13 @@ test('Piping with { preventClose: true } and no errors', t => {
 });
 
 test('Piping with no options and a source error', t => {
-  var theError = new Error('source error');
-  var rs = new ReadableStream({
+  const theError = new Error('source error');
+  const rs = new ReadableStream({
     start() {
       return Promise.reject(theError);
     }
   });
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     abort(r) {
       t.equal(r, theError, 'reason passed to abort equals the source error');
       t.end();
@@ -88,13 +88,13 @@ test('Piping with no options and a source error', t => {
 });
 
 test('Piping with { preventAbort: false } and a source error', t => {
-  var theError = new Error('source error');
-  var rs = new ReadableStream({
+  const theError = new Error('source error');
+  const rs = new ReadableStream({
     start() {
       return Promise.reject(theError);
     }
   });
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     abort(r) {
       t.equal(r, theError, 'reason passed to abort equals the source error');
       t.end();
@@ -105,20 +105,20 @@ test('Piping with { preventAbort: false } and a source error', t => {
 });
 
 test('Piping with { preventAbort: true } and a source error', t => {
-  var theError = new Error('source error');
-  var rs = new ReadableStream({
+  const theError = new Error('source error');
+  const rs = new ReadableStream({
     start() {
       return Promise.reject(theError);
     }
   });
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     abort(r) {
       t.fail('unexpected call to abort');
       t.end();
     }
   });
 
-  var pipeToPromise = rs.pipeTo(ws, { preventAbort: true });
+  const pipeToPromise = rs.pipeTo(ws, { preventAbort: true });
 
   rs.closed.catch(() => {
     setTimeout(() => {
@@ -141,8 +141,8 @@ test('Piping with { preventAbort: true } and a source error', t => {
 test('Piping with no options and a destination error', t => {
   t.plan(2);
 
-  var theError = new Error('destination error');
-  var rs = new ReadableStream({
+  const theError = new Error('destination error');
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       setTimeout(() => enqueue('b'), 10);
@@ -155,7 +155,7 @@ test('Piping with no options and a destination error', t => {
     }
   });
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     write(chunk) {
       if (chunk === 'b') {
         throw theError;
@@ -169,8 +169,8 @@ test('Piping with no options and a destination error', t => {
 test('Piping with { preventCancel: false } and a destination error', t => {
   t.plan(2);
 
-  var theError = new Error('destination error');
-  var rs = new ReadableStream({
+  const theError = new Error('destination error');
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       setTimeout(() => enqueue('b'), 10);
@@ -183,7 +183,7 @@ test('Piping with { preventCancel: false } and a destination error', t => {
     }
   });
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     write(chunk) {
       if (chunk === 'b') {
         throw theError;
@@ -195,8 +195,8 @@ test('Piping with { preventCancel: false } and a destination error', t => {
 });
 
 test('Piping with { preventCancel: true } and a destination error', t => {
-  var theError = new Error('destination error');
-  var rs = new ReadableStream({
+  const theError = new Error('destination error');
+  const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
       setTimeout(() => enqueue('b'), 10);
@@ -208,7 +208,7 @@ test('Piping with { preventCancel: true } and a destination error', t => {
     }
   });
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     write(chunk) {
       if (chunk === 'b') {
         throw theError;
@@ -216,7 +216,7 @@ test('Piping with { preventCancel: true } and a destination error', t => {
     }
   });
 
-  var pipeToPromise = rs.pipeTo(ws, { preventCancel: true });
+  const pipeToPromise = rs.pipeTo(ws, { preventCancel: true });
 
   ws.closed.catch(() => {
     setTimeout(() => {

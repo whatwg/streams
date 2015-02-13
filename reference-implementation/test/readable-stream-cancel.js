@@ -1,14 +1,14 @@
-var test = require('tape');
+const test = require('tape');
 
 import RandomPushSource from './utils/random-push-source';
 import readableStreamToArray from './utils/readable-stream-to-array';
 import sequentialReadableStream from './utils/sequential-rs';
 
 test('ReadableStream canceling an infinite stream', t => {
-  var randomSource = new RandomPushSource();
+  const randomSource = new RandomPushSource();
 
-  var cancelationFinished = false;
-  var rs = new ReadableStream({
+  let cancelationFinished = false;
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       randomSource.ondata = enqueue;
       randomSource.onend = close;
@@ -35,7 +35,7 @@ test('ReadableStream canceling an infinite stream', t => {
       t.equal(rs.state, 'closed', 'stream should be closed');
       t.equal(cancelationFinished, false, 'it did not wait for the cancellation process to finish before closing');
       t.ok(storage.length > 0, 'should have gotten some data written through the pipe');
-      for (var i = 0; i < storage.length; i++) {
+      for (let i = 0; i < storage.length; i++) {
         t.equal(storage[i].length, 128, 'each chunk has 128 bytes');
       }
     },
@@ -54,7 +54,7 @@ test('ReadableStream canceling an infinite stream', t => {
 });
 
 test('ReadableStream cancellation puts the stream in a closed state (no chunks pulled yet)', t => {
-  var rs = sequentialReadableStream(5);
+  const rs = sequentialReadableStream(5);
 
   t.plan(5);
 
@@ -83,7 +83,7 @@ test('ReadableStream cancellation puts the stream in a closed state (no chunks p
 });
 
 test('ReadableStream cancellation puts the stream in a closed state (after waiting for chunks)', t => {
-  var rs = sequentialReadableStream(5);
+  const rs = sequentialReadableStream(5);
 
   t.plan(5);
 
@@ -117,14 +117,14 @@ test('ReadableStream cancellation puts the stream in a closed state (after waiti
 });
 
 test('ReadableStream explicit cancellation passes through the given reason', t => {
-  var recordedReason;
-  var rs = new ReadableStream({
+  let recordedReason;
+  const rs = new ReadableStream({
     cancel(reason) {
       recordedReason = reason;
     }
   });
 
-  var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+  const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   rs.cancel(passedReason);
 
   t.equal(recordedReason, passedReason);
@@ -132,14 +132,14 @@ test('ReadableStream explicit cancellation passes through the given reason', t =
 });
 
 test('ReadableStream rs.cancel() on a closed stream returns a promise resolved with undefined', t => {
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close) {
       close();
     }
   });
 
   t.equal(rs.state, 'closed');
-  var cancelPromise = rs.cancel(undefined);
+  const cancelPromise = rs.cancel(undefined);
   cancelPromise.then(value => {
     t.equal(value, undefined, 'fulfillment value of cancelPromise must be undefined');
     t.end();
@@ -150,16 +150,16 @@ test('ReadableStream rs.cancel() on a closed stream returns a promise resolved w
 });
 
 test('ReadableStream rs.cancel() on an errored stream returns a promise rejected with the error', t => {
-  var passedError = new Error('aaaugh!!');
+  const passedError = new Error('aaaugh!!');
 
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     start(enqueue, close, error) {
       error(passedError);
     }
   });
 
   t.equal(rs.state, 'errored');
-  var cancelPromise = rs.cancel(undefined);
+  const cancelPromise = rs.cancel(undefined);
   cancelPromise.then(() => {
     t.fail('cancelPromise is fulfilled');
     t.end();
@@ -170,13 +170,13 @@ test('ReadableStream rs.cancel() on an errored stream returns a promise rejected
 });
 
 test('ReadableStream the fulfillment value of the promise rs.cancel() returns must be undefined', t => {
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     cancel(reason) {
       return "Hello";
     }
   });
 
-  var cancelPromise = rs.cancel(undefined);
+  const cancelPromise = rs.cancel(undefined);
   cancelPromise.then(value => {
     t.equal(value, undefined, 'fulfillment value of cancelPromise must be undefined');
     t.end();
@@ -187,14 +187,14 @@ test('ReadableStream the fulfillment value of the promise rs.cancel() returns mu
 });
 
 test('ReadableStream if source\'s cancel throws, the promise returned by rs.cancel() rejects', t => {
-  var errorInCancel = new Error('Sorry, it just wasn\'t meant to be.');
-  var rs = new ReadableStream({
+  const errorInCancel = new Error('Sorry, it just wasn\'t meant to be.');
+  const rs = new ReadableStream({
     cancel(reason) {
       throw errorInCancel;
     }
   });
 
-  var cancelPromise = rs.cancel(undefined);
+  const cancelPromise = rs.cancel(undefined);
   cancelPromise.then(
     () => {
       t.fail('cancelPromise is fulfilled unexpectedly');
@@ -208,8 +208,8 @@ test('ReadableStream if source\'s cancel throws, the promise returned by rs.canc
 });
 
 test('ReadableStream onCancel returns a promise that will be resolved asynchronously', t => {
-  var resolveSourceCancelPromise;
-  var rs = new ReadableStream({
+  let resolveSourceCancelPromise;
+  const rs = new ReadableStream({
     cancel() {
       return new Promise((resolve, reject) => {
         resolveSourceCancelPromise = resolve;
@@ -217,9 +217,9 @@ test('ReadableStream onCancel returns a promise that will be resolved asynchrono
     }
   });
 
-  var hasResolvedSourceCancelPromise = false;
+  let hasResolvedSourceCancelPromise = false;
 
-  var cancelPromise = rs.cancel();
+  const cancelPromise = rs.cancel();
   cancelPromise.then(
     value => {
       t.equal(hasResolvedSourceCancelPromise, true,
@@ -241,8 +241,8 @@ test('ReadableStream onCancel returns a promise that will be resolved asynchrono
 });
 
 test('ReadableStream onCancel returns a promise that will be rejected asynchronously', t => {
-  var rejectSourceCancelPromise;
-  var rs = new ReadableStream({
+  let rejectSourceCancelPromise;
+  const rs = new ReadableStream({
     cancel() {
       return new Promise((resolve, reject) => {
         rejectSourceCancelPromise = reject;
@@ -250,10 +250,10 @@ test('ReadableStream onCancel returns a promise that will be rejected asynchrono
     }
   });
 
-  var hasRejectedSourceCancelPromise = false;
-  var errorInCancel = new Error('Sorry, it just wasn\'t meant to be.');
+  let hasRejectedSourceCancelPromise = false;
+  const errorInCancel = new Error('Sorry, it just wasn\'t meant to be.');
 
-  var cancelPromise = rs.cancel();
+  const cancelPromise = rs.cancel();
   cancelPromise.then(
     value => {
       t.fail('cancelPromise is fulfilled');
@@ -274,7 +274,7 @@ test('ReadableStream onCancel returns a promise that will be rejected asynchrono
 });
 
 test('ReadableStream cancelation before start finishes prevents pull() from being called', t => {
-  var rs = new ReadableStream({
+  const rs = new ReadableStream({
     pull() {
       t.fail('unexpected pull call');
       t.end();

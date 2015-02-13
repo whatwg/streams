@@ -1,4 +1,4 @@
-var assert = require('assert');
+const assert = require('assert');
 import { CancelReadableByteStream, CloseReadableByteStreamReader, IsReadableByteStreamLocked,
   IsExclusiveByteStreamReader, ReadFromReadableByteStream, ReadIntoFromReadableByteStream
   } from './readable-byte-stream-abstract-ops';

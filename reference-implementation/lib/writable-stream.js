@@ -1,4 +1,4 @@
-var assert = require('assert');
+const assert = require('assert');
 import { InvokeOrNoop, PromiseInvokeOrNoop, PromiseInvokeOrFallbackOrNoop, typeIsObject } from './helpers';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } from './queue-with-sizes';
 import CountQueuingStrategy from './count-queuing-strategy';
@@ -24,7 +24,7 @@ export default class WritableStream {
 
     SyncWritableStreamStateWithQueue(this);
 
-    var startResult = InvokeOrNoop(underlyingSink, 'start', [this._error]);
+    const startResult = InvokeOrNoop(underlyingSink, 'start', [this._error]);
     this._startedPromise = Promise.resolve(startResult);
     this._startedPromise.then(() => {
       this._started = true;
@@ -62,7 +62,7 @@ export default class WritableStream {
     }
 
     this._error(reason);
-    var sinkAbortPromise = PromiseInvokeOrFallbackOrNoop(this._underlyingSink, 'abort', [reason], 'close', []);
+    const sinkAbortPromise = PromiseInvokeOrFallbackOrNoop(this._underlyingSink, 'abort', [reason], 'close', []);
     return sinkAbortPromise.then(() => undefined);
   }
 
@@ -116,9 +116,9 @@ export default class WritableStream {
 
     assert(this._state === 'waiting' || this._state === 'writable');
 
-    var chunkSize = 1;
+    let chunkSize = 1;
 
-    var strategy;
+    let strategy;
     try {
       strategy = this._underlyingSink.strategy;
     } catch (strategyE) {
@@ -135,13 +135,13 @@ export default class WritableStream {
       }
     }
 
-    var resolver, rejecter;
-    var promise = new Promise((resolve, reject) => {
+    let resolver, rejecter;
+    const promise = new Promise((resolve, reject) => {
       resolver = resolve;
       rejecter = reject;
     });
 
-    var writeRecord = { promise: promise, chunk: chunk, _resolve: resolver, _reject: rejecter };
+    const writeRecord = { promise: promise, chunk: chunk, _resolve: resolver, _reject: rejecter };
     try {
       EnqueueValueWithSize(this._queue, writeRecord, chunkSize);
     } catch (enqueueResultE) {
@@ -177,7 +177,7 @@ function CallOrScheduleWritableStreamAdvanceQueue(stream) {
 function CloseWritableStream(stream) {
   assert(stream._state === 'closing', 'stream must be in closing state while calling CloseWritableStream');
 
-  var sinkClosePromise = PromiseInvokeOrNoop(stream._underlyingSink, 'close');
+  const sinkClosePromise = PromiseInvokeOrNoop(stream._underlyingSink, 'close');
   sinkClosePromise.then(
     () => {
       if (stream._state === 'errored') {
@@ -202,7 +202,7 @@ function CreateWritableStreamErrorFunction(stream) {
     }
 
     while (stream._queue.length > 0) {
-      var writeRecord = DequeueValue(stream._queue);
+      const writeRecord = DequeueValue(stream._queue);
       if (writeRecord !== 'close') {
         writeRecord._reject(e);
       }
@@ -238,10 +238,10 @@ function SyncWritableStreamStateWithQueue(stream) {
   assert(stream._state === 'writable' || stream._state === 'waiting',
     'stream must be in a writable or waiting state while calling SyncWritableStreamStateWithQueue');
 
-  var queueSize = GetTotalQueueSize(stream._queue);
-  var shouldApplyBackpressure = queueSize > 0;
+  const queueSize = GetTotalQueueSize(stream._queue);
+  let shouldApplyBackpressure = queueSize > 0;
 
-  var strategy = stream._underlyingSink.strategy;
+  const strategy = stream._underlyingSink.strategy;
   if (strategy !== undefined) {
     shouldApplyBackpressure = Boolean(strategy.shouldApplyBackpressure(queueSize));
   }
@@ -266,7 +266,7 @@ function WritableStreamAdvanceQueue(stream) {
     return undefined;
   }
 
-  var writeRecord = PeekQueueValue(stream._queue);
+  const writeRecord = PeekQueueValue(stream._queue);
 
   if (writeRecord === 'close') {
     assert(stream._state === 'closing', 'can\'t process final write record unless already closing');

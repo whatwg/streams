@@ -1,4 +1,4 @@
-var assert = require('assert');
+const assert = require('assert');
 import * as helpers from './helpers';
 import { AcquireExclusiveStreamReader, CallReadableStreamPull, CancelReadableStream, CreateReadableStreamCloseFunction,
   CreateReadableStreamEnqueueFunction, CreateReadableStreamErrorFunction, IsReadableStream, IsReadableStreamLocked,
@@ -21,7 +21,7 @@ export default class ReadableStream {
     this._close = CreateReadableStreamCloseFunction(this);
     this._error = CreateReadableStreamErrorFunction(this);
 
-    var startResult = helpers.InvokeOrNoop(underlyingSource, 'start', [this._enqueue, this._close, this._error]);
+    const startResult = helpers.InvokeOrNoop(underlyingSource, 'start', [this._enqueue, this._close, this._error]);
     Promise.resolve(startResult).then(
       () => {
         this._started = true;
@@ -90,9 +90,9 @@ export default class ReadableStream {
     preventAbort = Boolean(preventAbort);
     preventCancel = Boolean(preventCancel);
 
-    var source;
-    var resolvePipeToPromise;
-    var rejectPipeToPromise;
+    let source;
+    let resolvePipeToPromise;
+    let rejectPipeToPromise;
 
     return new Promise((resolve, reject) => {
       resolvePipeToPromise = resolve;
@@ -104,7 +104,7 @@ export default class ReadableStream {
 
     function doPipe() {
       for (;;) {
-        var ds = dest.state;
+        const ds = dest.state;
         if (ds === 'writable') {
           if (source.state === 'readable') {
             dest.write(source.read());

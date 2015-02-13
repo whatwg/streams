@@ -1,4 +1,4 @@
-var test = require('tape');
+const test = require('tape');
 
 let ExclusiveStreamReader;
 
@@ -85,7 +85,7 @@ function realCountQueuingStrategy() {
 }
 
 function getterRejects(t, obj, getterName, target) {
-  var getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
+  const getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
 
   getter.call(target).then(
     () => t.fail(getterName + ' should not fulfill'),
@@ -94,7 +94,7 @@ function getterRejects(t, obj, getterName, target) {
 }
 
 function methodRejects(t, obj, methodName, target) {
-  var method = obj[methodName];
+  const method = obj[methodName];
 
   method.call(target).then(
     () => t.fail(methodName + ' should not fulfill'),
@@ -103,13 +103,13 @@ function methodRejects(t, obj, methodName, target) {
 }
 
 function getterThrows(t, obj, getterName, target) {
-  var getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
+  const getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
 
   t.throws(() => getter.call(target), /TypeError/, getterName + ' should throw a TypeError');
 }
 
 function methodThrows(t, obj, methodName, target) {
-  var method = obj[methodName];
+  const method = obj[methodName];
 
   t.throws(() => method.call(target), /TypeError/, methodName + ' should throw a TypeError');
 }
@@ -147,16 +147,16 @@ test('ReadableStream.prototype.getReader enforces a brand check', t => {
 test('ReadableStream.prototype.pipeThrough works generically on its this and its arguments', t => {
   t.plan(2);
 
-  var pipeToArguments;
-  var thisValue = {
+  let pipeToArguments;
+  const thisValue = {
     pipeTo(...args) {
       pipeToArguments = args;
     }
   };
 
-  var input = { readable: {}, writable: {} };
-  var options = {};
-  var result = ReadableStream.prototype.pipeThrough.call(thisValue, input, options);
+  const input = { readable: {}, writable: {} };
+  const options = {};
+  const result = ReadableStream.prototype.pipeThrough.call(thisValue, input, options);
 
   t.deepEqual(pipeToArguments, [input.writable, options], 'correct arguments should be passed to thisValue.pipeTo');
   t.equal(result, input.readable, 'return value should be the passed readable property');
@@ -264,9 +264,9 @@ test('ByteLengthQueuingStrategy.prototype.shouldApplyBackpressure enforces a bra
 
 test('ByteLengthQueuingStrategy.prototype.size should work generically on its this and its arguments', t => {
   t.plan(1);
-  var thisValue = null;
-  var returnValue = { 'returned from': 'byteLength getter' };
-  var chunk = {
+  const thisValue = null;
+  const returnValue = { 'returned from': 'byteLength getter' };
+  const chunk = {
     get byteLength() {
       return returnValue;
     }
@@ -283,8 +283,8 @@ test('CountQueuingStrategy.prototype.shouldApplyBackpressure enforces a brand ch
 
 test('CountQueuingStrategy.prototype.size should work generically on its this and its arguments', t => {
   t.plan(1);
-  var thisValue = null;
-  var chunk = {
+  const thisValue = null;
+  const chunk = {
     get byteLength() {
       throw new TypeError('shouldn\'t be called');
     }

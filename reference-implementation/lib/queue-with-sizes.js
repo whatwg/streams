@@ -1,8 +1,8 @@
-var assert = require('assert');
+const assert = require('assert');
 
 export function DequeueValue(queue) {
   assert(queue.length > 0, 'Spec-level failure: should never dequeue from an empty queue.');
-  var pair = queue.shift();
+  const pair = queue.shift();
   return pair.value;
 }
 
@@ -16,7 +16,7 @@ export function EnqueueValueWithSize(queue, value, size) {
 }
 
 export function GetTotalQueueSize(queue) {
-  var totalSize = 0;
+  let totalSize = 0;
 
   queue.forEach(pair => {
     assert(typeof pair.size === 'number' && !Number.isNaN(pair.size) &&
@@ -30,6 +30,6 @@ export function GetTotalQueueSize(queue) {
 
 export function PeekQueueValue(queue) {
   assert(queue.length > 0, 'Spec-level failure: should never peek at an empty queue.');
-  var pair = queue[0];
+  const pair = queue[0];
   return pair.value;
 }

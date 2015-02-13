@@ -4,12 +4,12 @@ import TransformStream from '../lib/transform-stream';
 import ByteLengthQueuingStrategy from '../lib/byte-length-queuing-strategy';
 
 export default params => {
-  var chunksSoFar = 0;
-  var paused = false;
-  var pauses = 0;
+  let chunksSoFar = 0;
+  let paused = false;
+  let pauses = 0;
 
-  var generateData;
-  var rs = new ReadableStream({
+  let generateData;
+  const rs = new ReadableStream({
     start(enqueue, close) {
       generateData = () => {
         if (paused) {
@@ -21,7 +21,7 @@ export default params => {
           return;
         }
 
-        var chunk = new ArrayBuffer(params.underlyingSourceChunkSize);
+        const chunk = new ArrayBuffer(params.underlyingSourceChunkSize);
         if (!enqueue(chunk)) {
           paused = true;
           ++pauses;
@@ -41,9 +41,9 @@ export default params => {
     strategy: new ByteLengthQueuingStrategy({ highWaterMark: params.readableStreamHWM })
   });
 
-  var ts = new TransformStream({
+  const ts = new TransformStream({
     transform(chunk, enqueue, done) {
-      var newChunk = new ArrayBuffer(params.underlyingSourceChunkSize * params.transformSizeMultiplier);
+      const newChunk = new ArrayBuffer(params.underlyingSourceChunkSize * params.transformSizeMultiplier);
       const halfRate = params.transformRate === 'sync' ? params.transformRate : params.transformRate / 2;
       potentiallySyncSetTimeout(() => enqueue(newChunk), halfRate);
       potentiallySyncSetTimeout(done, params.transformRate);
@@ -52,7 +52,7 @@ export default params => {
     readableStrategy: new ByteLengthQueuingStrategy({ highWaterMark: params.transformReadableHWM })
   });
 
-  var ws = new WritableStream({
+  const ws = new WritableStream({
     write(chunk) {
       return new Promise(resolve => potentiallySyncSetTimeout(resolve, params.underlyingSinkAckLatency));
     },

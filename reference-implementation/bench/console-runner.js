@@ -1,9 +1,9 @@
-var util = require('util');
-var ms = require('ms');
+const util = require('util');
+const ms = require('ms');
 
 import Runner from './runner-base.js';
 
-var runner = new Runner((time, data, values, number) => {
+const runner = new Runner((time, data, values, number) => {
   time = time/1e6;
   values = JSON.stringify(values);
   data = util.format(data);
@@ -12,7 +12,7 @@ var runner = new Runner((time, data, values, number) => {
 
 console.log(`About to run ${runner.totalCases} cases`);
 
-var start = Date.now();
+const start = Date.now();
 runner.run()
   .then(() => console.log(`Total time elapsed: ${ms(Date.now() - start, { long: true })}`))
   .catch(console.error);
