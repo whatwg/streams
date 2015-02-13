@@ -44,7 +44,8 @@ export default params => {
   var ts = new TransformStream({
     transform(chunk, enqueue, done) {
       var newChunk = new ArrayBuffer(params.underlyingSourceChunkSize * params.transformSizeMultiplier);
-      potentiallySyncSetTimeout(() => enqueue(newChunk), params.transformRate / 2);
+      const halfRate = params.transformRate === 'sync' ? params.transformRate : params.transformRate / 2;
+      potentiallySyncSetTimeout(() => enqueue(newChunk), halfRate);
       potentiallySyncSetTimeout(done, params.transformRate);
     },
     writableStrategy: new ByteLengthQueuingStrategy({ highWaterMark: params.transformWritableHWM }),
@@ -59,7 +60,7 @@ export default params => {
     strategy: new ByteLengthQueuingStrategy({ highWaterMark: params.writableStreamHWM })
   });
 
-  return rs.pipeThrough(ts).pipeTo(ws).closed.then(() => ({ pauses }));
+  return rs.pipeThrough(ts).pipeTo(ws).then(() => ({ pauses }));
 };
 
 function potentiallySyncSetTimeout(fn, ms) {
