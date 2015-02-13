@@ -1,4 +1,4 @@
-const test = require('tape');
+const test = require('tape-catch');
 
 test('Throwing underlying source start getter', t => {
   const theError = new Error('a unique string');

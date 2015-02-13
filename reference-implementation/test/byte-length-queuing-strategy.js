@@ -1,4 +1,4 @@
-const test = require('tape');
+const test = require('tape-catch');
 
 test('Can construct a ByteLengthQueuingStrategy with a valid high water mark', t => {
   const strategy = new ByteLengthQueuingStrategy({ highWaterMark: 4 });

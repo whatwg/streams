@@ -27,6 +27,7 @@
     "sandwich": "^0.1.1",
     "tap-spec": "^2.2.1",
     "tape": "^3.5.0",
+    "tape-catch": "^1.0.4",
     "text-table": "^0.2.0",
     "traceur": "0.0.84",
     "traceur-runner": "^1.0.2"

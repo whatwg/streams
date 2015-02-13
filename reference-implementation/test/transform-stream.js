@@ -1,4 +1,4 @@
-const test = require('tape');
+const test = require('tape-catch');
 
 test('TransformStream can be constructed with a transform function', t => {
   t.plan(1);

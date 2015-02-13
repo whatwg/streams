@@ -1,4 +1,4 @@
-const test = require('tape');
+const test = require('tape-catch');
 
 test('Can construct a CountQueuingStrategy with a valid high water mark', t => {
   const strategy = new CountQueuingStrategy({ highWaterMark: 4 });

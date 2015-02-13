@@ -1,4 +1,4 @@
-const test = require('tape');
+const test = require('tape-catch');
 
 import RandomPushSource from './utils/random-push-source';
 import readableStreamToArray from './utils/readable-stream-to-array';

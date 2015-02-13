@@ -1,4 +1,4 @@
-const test = require('tape');
+const test = require('tape-catch');
 
 function writeArrayToStream(array, writableStream) {
   array.forEach(chunk => writableStream.write(chunk));

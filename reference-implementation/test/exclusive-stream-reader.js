@@ -1,4 +1,4 @@
-const test = require('tape');
+const test = require('tape-catch');
 
 test('Using the reader directly on a mundane stream', t => {
   t.plan(22);

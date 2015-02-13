@@ -1,4 +1,4 @@
-const test = require('tape');
+const test = require('tape-catch');
 
 import sequentialReadableStream from './utils/sequential-rs';
 import duckTypedPassThroughTransform from './utils/duck-typed-pass-through-transform';

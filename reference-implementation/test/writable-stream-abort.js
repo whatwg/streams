@@ -1,4 +1,4 @@
-const test = require('tape');
+const test = require('tape-catch');
 
 test('Aborting a WritableStream immediately prevents future writes', t => {
   const chunks = [];

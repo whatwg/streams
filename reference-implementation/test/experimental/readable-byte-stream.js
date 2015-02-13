@@ -1,4 +1,4 @@
-const test = require('tape');
+const test = require('tape-catch');
 
 test('ReadableByteStream can be constructed with no arguments', t => {
   t.doesNotThrow(() => new ReadableByteStream());
