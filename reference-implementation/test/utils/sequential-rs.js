@@ -1,4 +1,3 @@
-import ReadableStream from '../../lib/readable-stream';
 import SequentialPullSource from './sequential-pull-source';
 
 export default function sequentialReadableStream(limit, options) {
