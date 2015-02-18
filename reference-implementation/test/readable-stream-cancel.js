@@ -4,10 +4,10 @@ import RandomPushSource from './utils/random-push-source';
 import readableStreamToArray from './utils/readable-stream-to-array';
 import sequentialReadableStream from './utils/sequential-rs';
 
-test('ReadableStream canceling an infinite stream', t => {
+test('ReadableStream cancellation: integration test on an infinite stream derived from a random push source', t => {
   const randomSource = new RandomPushSource();
 
-  let cancelationFinished = false;
+  let cancellationFinished = false;
   const rs = new ReadableStream({
     start(enqueue, close, error) {
       randomSource.ondata = enqueue;
@@ -24,99 +24,92 @@ test('ReadableStream canceling an infinite stream', t => {
       randomSource.onend();
 
       return new Promise(resolve => setTimeout(() => {
-        cancelationFinished = true;
+        cancellationFinished = true;
         resolve();
       }, 50));
     }
   });
 
   readableStreamToArray(rs).then(
-    storage => {
+    chunks => {
       t.equal(rs.state, 'closed', 'stream should be closed');
-      t.equal(cancelationFinished, false, 'it did not wait for the cancellation process to finish before closing');
-      t.ok(storage.length > 0, 'should have gotten some data written through the pipe');
-      for (let i = 0; i < storage.length; i++) {
-        t.equal(storage[i].length, 128, 'each chunk has 128 bytes');
+      t.equal(cancellationFinished, false, 'it did not wait for the cancellation process to finish before closing');
+      t.ok(chunks.length > 0, 'at least one chunk should be read');
+      for (let i = 0; i < chunks.length; i++) {
+        t.equal(chunks[i].length, 128, `chunk ${i + 1} should have 128 bytes`);
       }
     },
-    () => {
-      t.fail('the stream should be successfully read to the end');
-      t.end();
-    }
+    e => t.error(e)
   );
 
   setTimeout(() => {
     rs.cancel().then(() => {
-      t.equal(cancelationFinished, true, 'it returns a promise that is fulfilled when the cancellation finishes');
+      t.equal(cancellationFinished, true, 'it returns a promise that is fulfilled when the cancellation finishes');
       t.end();
     });
   }, 150);
 });
 
-test('ReadableStream cancellation puts the stream in a closed state (no chunks pulled yet)', t => {
+test('ReadableStream cancellation: cancelling immediately should put the stream in a closed state', t => {
   const rs = sequentialReadableStream(5);
 
-  t.plan(5);
+  t.plan(4);
 
   rs.closed.then(
-    () => t.assert(true, 'closed promise vended before the cancellation should fulfill'),
-    () => t.fail('closed promise vended before the cancellation should not be rejected')
-  );
-
-  rs.ready.then(
-    () => t.assert(true, 'ready promise vended before the cancellation should fulfill'),
-    () => t.fail('ready promise vended before the cancellation should not be rejected')
+    () => t.pass('closed promise vended before the cancellation should fulfill'),
+    () => t.fail('closed promise vended before the cancellation should not reject')
   );
 
   rs.cancel();
 
-  t.equal(rs.state, 'closed', 'state should be closed');
+  t.equal(rs.state, 'closed', 'state should be closed immediately after cancel() call');
 
   rs.closed.then(
-    () => t.assert(true, 'closed promise vended after the cancellation should fulfill'),
+    () => t.pass('closed promise vended after the cancellation should fulfill'),
     () => t.fail('closed promise vended after the cancellation should not be rejected')
   );
-  rs.ready.then(
-    () => t.assert(true, 'ready promise vended after the cancellation should fulfill'),
-    () => t.fail('ready promise vended after the cancellation should not be rejected')
+
+  rs.read().then(
+    chunk => t.equal(chunk, ReadableStream.EOS, 'read() promise vended after the cancellation should fulfill with EOS'),
+    () => t.fail('read() promise vended after the cancellation should not be rejected')
   );
 });
 
-test('ReadableStream cancellation puts the stream in a closed state (after waiting for chunks)', t => {
+
+test('ReadableStream cancellation: cancelling after reading should put the stream in a closed state', t => {
   const rs = sequentialReadableStream(5);
 
   t.plan(5);
 
-  rs.ready.then(
-    () => {
-      rs.closed.then(
-        () => t.assert(true, 'closed promise vended before the cancellation should fulfill'),
-        () => t.fail('closed promise vended before the cancellation should not be rejected')
-      );
+  rs.closed.then(
+    () => t.pass('closed promise vended before the cancellation should fulfill'),
+    () => t.fail('closed promise vended before the cancellation should not reject')
+  );
 
-      rs.ready.then(
-        () => t.assert(true, 'ready promise vended before the cancellation should fulfill'),
-        () => t.fail('ready promise vended before the cancellation should not be rejected')
-      );
+  rs.read().then(
+    chunk => {
+      t.equal(chunk, 1, 'read() promise vended before the cancellation should fulfill with the first chunk');
 
       rs.cancel();
 
-      t.equal(rs.state, 'closed', 'state should be closed');
+      t.equal(rs.state, 'closed', 'state should be closed immediately after cancel() call');
 
       rs.closed.then(
-        () => t.assert(true, 'closed promise vended after the cancellation should fulfill'),
+        () => t.pass('closed promise vended after the cancellation should fulfill'),
         () => t.fail('closed promise vended after the cancellation should not be rejected')
       );
-      rs.ready.then(
-        () => t.assert(true, 'ready promise vended after the cancellation should fulfill'),
-        () => t.fail('ready promise vended after the cancellation should not be rejected')
+
+      rs.read().then(
+        chunk => t.equal(chunk, ReadableStream.EOS,
+          'read() promise vended after the cancellation should fulfill with EOS'),
+        () => t.fail('read() promise vended after the cancellation should not be rejected')
       );
     },
-    r => t.ifError(r)
+    () => t.fail('read() promise vended after the cancellation should not be rejected')
   );
 });
 
-test('ReadableStream explicit cancellation passes through the given reason', t => {
+test('ReadableStream cancellation: cancel(reason) should pass through the given reason to the underlying source', t => {
   let recordedReason;
   const rs = new ReadableStream({
     cancel(reason) {
@@ -127,29 +120,32 @@ test('ReadableStream explicit cancellation passes through the given reason', t =
   const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
   rs.cancel(passedReason);
 
-  t.equal(recordedReason, passedReason);
+  t.equal(recordedReason, passedReason,
+    'the error passed to the underlying source\'s cancel method should equal the one passed to the stream\'s cancel');
   t.end();
 });
 
-test('ReadableStream rs.cancel() on a closed stream returns a promise resolved with undefined', t => {
+test('ReadableStream cancellation: cancel() on a closed stream should return a promise resolved with undefined', t => {
+  t.plan(2);
+
   const rs = new ReadableStream({
     start(enqueue, close) {
       close();
     }
   });
 
-  t.equal(rs.state, 'closed');
-  const cancelPromise = rs.cancel(undefined);
-  cancelPromise.then(value => {
-    t.equal(value, undefined, 'fulfillment value of cancelPromise must be undefined');
-    t.end();
-  }).catch(r => {
-    t.fail('cancelPromise is rejected');
-    t.end();
-  });
+  t.equal(rs.state, 'closed', 'state should be closed already');
+
+  rs.cancel().then(
+    v => t.equal(v, undefined, 'cancel() return value should be fulfilled with undefined'),
+    () => t.fail('cancel() return value should not be rejected')
+  );
 });
 
-test('ReadableStream rs.cancel() on an errored stream returns a promise rejected with the error', t => {
+test('ReadableStream cancellation: cancel() on an errored stream should return a promise rejected with the error',
+     t => {
+  t.plan(2);
+
   const passedError = new Error('aaaugh!!');
 
   const rs = new ReadableStream({
@@ -158,133 +154,112 @@ test('ReadableStream rs.cancel() on an errored stream returns a promise rejected
     }
   });
 
-  t.equal(rs.state, 'errored');
-  const cancelPromise = rs.cancel(undefined);
-  cancelPromise.then(() => {
-    t.fail('cancelPromise is fulfilled');
-    t.end();
-  }).catch(r => {
-    t.equal(r, passedError, 'cancelPromise must be rejected with passedError');
-    t.end();
-  });
-});
+  t.equal(rs.state, 'errored', 'state should be errored already');
 
-test('ReadableStream the fulfillment value of the promise rs.cancel() returns must be undefined', t => {
-  const rs = new ReadableStream({
-    cancel(reason) {
-      return "Hello";
-    }
-  });
-
-  const cancelPromise = rs.cancel(undefined);
-  cancelPromise.then(value => {
-    t.equal(value, undefined, 'fulfillment value of cancelPromise must be undefined');
-    t.end();
-  }).catch(r => {
-    t.fail('cancelPromise is rejected');
-    t.end();
-  });
-});
-
-test('ReadableStream if source\'s cancel throws, the promise returned by rs.cancel() rejects', t => {
-  const errorInCancel = new Error('Sorry, it just wasn\'t meant to be.');
-  const rs = new ReadableStream({
-    cancel(reason) {
-      throw errorInCancel;
-    }
-  });
-
-  const cancelPromise = rs.cancel(undefined);
-  cancelPromise.then(
-    () => {
-      t.fail('cancelPromise is fulfilled unexpectedly');
-      t.end();
-    },
-    r => {
-      t.equal(r, errorInCancel, 'rejection reason of cancelPromise must be errorInCancel');
-      t.end();
-    }
+  rs.cancel().then(
+    () => t.fail('cancel() return value should not be fulfilled'),
+    r => t.equal(r, passedError, 'cancel() return value should be rejected with passedError')
   );
 });
 
-test('ReadableStream onCancel returns a promise that will be resolved asynchronously', t => {
+test('ReadableStream cancellation: returning a value from the underlying source\'s cancel should not affect the ' +
+     'fulfillment value of the promise returned by the stream\'s cancel', t => {
+  t.plan(1);
+
+  const rs = new ReadableStream({
+    cancel(reason) {
+      return 'Hello';
+    }
+  });
+
+  rs.cancel().then(
+    v => t.equal(v, undefined, 'cancel() return value should be fulfilled with undefined'),
+    () => t.fail('cancel() return value should not be rejected')
+  );
+});
+
+test('ReadableStream cancellation: if the underlying source\'s cancel method returns a promise, the promise returned ' +
+     'by the stream\'s cancel should fulfill when that one does', t => {
+
   let resolveSourceCancelPromise;
+  let sourceCancelPromiseHasFulfilled = false;
   const rs = new ReadableStream({
     cancel() {
-      return new Promise((resolve, reject) => {
+      const sourceCancelPromise = new Promise((resolve, reject) => {
         resolveSourceCancelPromise = resolve;
       });
-    }
-  });
 
-  let hasResolvedSourceCancelPromise = false;
-
-  const cancelPromise = rs.cancel();
-  cancelPromise.then(
-    value => {
-      t.equal(hasResolvedSourceCancelPromise, true,
-              'cancelPromise must not be resolved before the promise returned by onCancel is resolved');
-      t.equal(value, undefined, 'cancelPromise must be fulfilled with undefined');
-      t.end();
-    }
-  ).catch(
-    r => {
-      t.fail('cancelPromise is rejected');
-      t.end();
-    }
-  );
-
-  setTimeout(() => {
-    hasResolvedSourceCancelPromise = true;
-    resolveSourceCancelPromise('Hello');
-  }, 0);
-});
-
-test('ReadableStream onCancel returns a promise that will be rejected asynchronously', t => {
-  let rejectSourceCancelPromise;
-  const rs = new ReadableStream({
-    cancel() {
-      return new Promise((resolve, reject) => {
-        rejectSourceCancelPromise = reject;
+      sourceCancelPromise.then(() => {
+        sourceCancelPromiseHasFulfilled = true;
       });
+
+      return sourceCancelPromise;
     }
   });
 
-  let hasRejectedSourceCancelPromise = false;
-  const errorInCancel = new Error('Sorry, it just wasn\'t meant to be.');
 
-  const cancelPromise = rs.cancel();
-  cancelPromise.then(
+  rs.cancel().then(
     value => {
-      t.fail('cancelPromise is fulfilled');
+      t.equal(sourceCancelPromiseHasFulfilled, true,
+        'cancel() return value should be fulfilled only after the promise returned by the underlying source\'s cancel');
+      t.equal(value, undefined, 'cancel() return value should be fulfilled with undefined');
       t.end();
     },
+    () => t.fail('cancel() return value should not be rejected')
+  );
+
+  setTimeout(() => {
+    resolveSourceCancelPromise('Hello');
+  }, 30);
+});
+
+test('ReadableStream cancellation: if the underlying source\'s cancel method returns a promise, the promise returned ' +
+     'by the stream\'s cancel should reject when that one does', t => {
+  let rejectSourceCancelPromise;
+  let sourceCancelPromiseHasRejected = false;
+  const rs = new ReadableStream({
+    cancel() {
+      const sourceCancelPromise = new Promise((resolve, reject) => {
+        rejectSourceCancelPromise = reject;
+      });
+
+      sourceCancelPromise.catch(() => {
+        sourceCancelPromiseHasRejected = true;
+      });
+
+      return sourceCancelPromise;
+    }
+  });
+
+  const errorInCancel = new Error('Sorry, it just wasn\'t meant to be.');
+
+  rs.cancel().then(
+    () => t.fail('cancel() return value should not be rejected'),
     r => {
-      t.equal(hasRejectedSourceCancelPromise, true,
-              'cancelPromise must not be resolved before the promise returned by onCancel is resolved');
-      t.equal(r, errorInCancel, 'cancelPromise must be rejected with errorInCancel');
+      t.equal(sourceCancelPromiseHasRejected, true,
+        'cancel() return value should be rejected only after the promise returned by the underlying source\'s cancel');
+      t.equal(r, errorInCancel,
+        'cancel() return value should be rejected with the underlying source\'s rejection reason');
       t.end();
     }
   );
 
   setTimeout(() => {
-    hasRejectedSourceCancelPromise = true;
     rejectSourceCancelPromise(errorInCancel);
-  }, 0);
+  }, 30);
 });
 
-test('ReadableStream cancelation before start finishes prevents pull() from being called', t => {
+test('ReadableStream cancellation: cancelling before start finishes should prevent pull() from being called', t => {
   const rs = new ReadableStream({
     pull() {
-      t.fail('unexpected pull call');
+      t.fail('pull should not have been called');
       t.end();
     }
   });
 
-  rs.cancel();
-
-  setTimeout(() => {
-    t.pass('pull was never called');
+  Promise.all([rs.cancel(), rs.closed]).then(() => {
+    t.pass('pull should never have been called');
     t.end();
-  }, 0);
+  })
+  .catch(e => t.error(e));
 });

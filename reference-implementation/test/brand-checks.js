@@ -1,25 +1,16 @@
 const test = require('tape-catch');
 
-let ExclusiveStreamReader;
-
-test('Can get the ExclusiveStreamReader constructor indirectly', t => {
-  t.doesNotThrow(() => {
-    // It's not exposed globally, but we test a few of its properties here.
-    ExclusiveStreamReader = (new ReadableStream()).getReader().constructor;
-  });
-  t.end();
-});
-
 function fakeReadableStream() {
   return {
     get closed() { return Promise.resolve(); },
-    get ready() { return Promise.resolve(); },
     get state() { return 'closed' },
     cancel(reason) { return Promise.resolve(); },
-    getReader() { return new ExclusiveStreamReader(new ReadableStream()); },
     pipeThrough({ writable, readable }, options) { return readable; },
     pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) { return Promise.resolve(); },
-    read() { return ''; }
+    read() { return Promise.resolve(ReadableStream.EOS); },
+    constructor: {
+      EOS: ReadableStream.EOS
+    }
   };
 }
 
@@ -40,18 +31,6 @@ function fakeWritableStream() {
 
 function realWritableStream() {
   return new WritableStream();
-}
-
-function fakeExclusiveStreamReader() {
-  return {
-    get closed() { return Promise.resolve(); },
-    get isActive() { return false; },
-    get ready() { return Promise.resolve(); },
-    get state() { return 'closed' },
-    cancel(reason) { return Promise.resolve(); },
-    read() { return ''; },
-    releaseLock() { return; }
-  };
 }
 
 function fakeByteLengthQueuingStrategy() {
@@ -120,12 +99,6 @@ test('ReadableStream.prototype.closed enforces a brand check', t => {
   getterRejects(t, ReadableStream.prototype, 'closed', realWritableStream());
 });
 
-test('ReadableStream.prototype.ready enforces a brand check', t => {
-  t.plan(2);
-  getterRejects(t, ReadableStream.prototype, 'ready', fakeReadableStream());
-  getterRejects(t, ReadableStream.prototype, 'ready', realWritableStream());
-});
-
 test('ReadableStream.prototype.state enforces a brand check', t => {
   t.plan(2);
   getterThrows(t, ReadableStream.prototype, 'state', fakeReadableStream());
@@ -136,12 +109,6 @@ test('ReadableStream.prototype.cancel enforces a brand check', t => {
   t.plan(2);
   methodRejects(t, ReadableStream.prototype, 'cancel', fakeReadableStream());
   methodRejects(t, ReadableStream.prototype, 'cancel', realWritableStream());
-});
-
-test('ReadableStream.prototype.getReader enforces a brand check', t => {
-  t.plan(2);
-  methodThrows(t, ReadableStream.prototype, 'getReader', fakeReadableStream());
-  methodThrows(t, ReadableStream.prototype, 'getReader', realWritableStream());
 });
 
 test('ReadableStream.prototype.pipeThrough works generically on its this and its arguments', t => {
@@ -172,50 +139,8 @@ test('ReadableStream.prototype.pipeTo works generically on its this and its argu
 
 test('ReadableStream.prototype.read enforces a brand check', t => {
   t.plan(2);
-  methodThrows(t, ReadableStream.prototype, 'read', fakeReadableStream());
-  methodThrows(t, ReadableStream.prototype, 'read', realWritableStream());
-});
-
-
-test('ExclusiveStreamReader enforces a brand check on its argument', t => {
-  t.plan(1);
-  t.throws(() => new ExclusiveStreamReader(fakeReadableStream()), /TypeError/, 'Contructing an ExclusiveStreamReader ' +
-    'should throw');
-});
-
-test('ExclusiveStreamReader.prototype.closed enforces a brand check', t => {
-  t.plan(1);
-  getterRejects(t, ExclusiveStreamReader.prototype, 'closed', fakeExclusiveStreamReader());
-});
-
-test('ExclusiveStreamReader.prototype.isActive enforces a brand check', t => {
-  t.plan(1);
-  getterThrows(t, ExclusiveStreamReader.prototype, 'isActive', fakeExclusiveStreamReader());
-});
-
-test('ExclusiveStreamReader.prototype.ready enforces a brand check', t => {
-  t.plan(1);
-  getterRejects(t, ExclusiveStreamReader.prototype, 'ready', fakeExclusiveStreamReader());
-});
-
-test('ExclusiveStreamReader.prototype.state enforces a brand check', t => {
-  t.plan(1);
-  getterThrows(t, ExclusiveStreamReader.prototype, 'state', fakeExclusiveStreamReader());
-});
-
-test('ExclusiveStreamReader.prototype.cancel enforces a brand check', t => {
-  t.plan(1);
-  methodRejects(t, ExclusiveStreamReader.prototype, 'cancel', fakeExclusiveStreamReader());
-});
-
-test('ExclusiveStreamReader.prototype.read enforces a brand check', t => {
-  t.plan(1);
-  methodThrows(t, ExclusiveStreamReader.prototype, 'read', fakeExclusiveStreamReader());
-});
-
-test('ExclusiveStreamReader.prototype.releaseLock enforces a brand check', t => {
-  t.plan(1);
-  methodThrows(t, ExclusiveStreamReader.prototype, 'releaseLock', fakeExclusiveStreamReader());
+  methodRejects(t, ReadableStream.prototype, 'read', fakeReadableStream());
+  methodRejects(t, ReadableStream.prototype, 'read', realWritableStream());
 });
 
 

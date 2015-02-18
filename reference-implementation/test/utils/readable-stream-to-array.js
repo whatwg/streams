@@ -1,18 +1,16 @@
 export default function readableStreamToArray(readable) {
   const chunks = [];
 
-  pump();
-  return readable.closed.then(() => chunks);
+  return pump();
 
   function pump() {
-    while (readable.state === "readable") {
-      chunks.push(readable.read());
-    }
+    return readable.read().then(chunk => {
+      if (chunk === ReadableStream.EOS) {
+        return chunks;
+      }
 
-    if (readable.state === "waiting") {
-      readable.ready.then(pump);
-    }
-
-    // Otherwise the stream is "closed" or "errored", which will be handled above.
+      chunks.push(chunk);
+      return pump();
+    });
   }
 }
