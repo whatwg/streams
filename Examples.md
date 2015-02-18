@@ -4,36 +4,6 @@ Many examples of using and creating streams are given in-line in the specificati
 
 ## Readable Streams
 
-### Getting the Next Piece of Available Data
-
-As another example, this helper function will return a promise for the next available piece of data from a given readable stream. This introduces an artificial delay if there is already data queued, but can provide a convenient interface for simple chunk-by-chunk consumption, as one might do e.g. when streaming database records. It uses an EOF sentinel to signal the end of the stream, and behaves poorly if called twice in parallel without waiting for the previously-returned promise to fulfill.
-
-```js
-const EOF = Symbol("ReadableStream getNext EOF");
-
-function getNext(stream) {
-  if (stream.state === "closed") {
-    return Promise.resolve(EOF);
-  }
-
-  return stream.ready.then(() => {
-    if (stream.state === "closed") {
-      return EOF;
-    }
-
-    // If stream is "errored", this will throw, causing the promise to be rejected.
-    return stream.read();
-  });
-}
-
-// Usage with proposed ES2016 async/await keywords:
-async function processStream(stream) {
-  while ((const chunk = await getNext(stream)) !== EOF) {
-    // do something with `chunk`.
-  }
-}
-```
-
 ### Buffering the Entire Stream Into Memory
 
 This function uses the reading APIs to buffer the entire stream in memory and give a promise for the results, defeating the purpose of streams but educating us while doing so:
@@ -42,19 +12,17 @@ This function uses the reading APIs to buffer the entire stream in memory and gi
 function readableStreamToArray(readable) {
   const chunks = [];
 
-  pump();
-  return readable.closed.then(() => chunks);
+  return pump();
 
   function pump() {
-    while (readable.state === "readable") {
-      chunks.push(readable.read());
-    }
+    return readable.read().then(({ value, done }) => {
+      if (done) {
+        return chunks;
+      }
 
-    if (readable.state === "waiting") {
-      readable.ready.then(pump);
-    }
-
-    // Otherwise the stream is "closed" or "errored", which will be handled above.
+      chunks.push(value);
+      return pump();
+    });
   }
 }
 
@@ -63,6 +31,21 @@ readableStreamToArray(myStream).then(chunks => {
   console.log("First chunk:", chunks[0]);
   console.log("Last chunk:", chunks[chunks.length - 1]);
 })
+```
+
+We can also write this using the [async function syntax](https://github.com/lukehoban/ecmascript-asyncawait/) proposed for ES2016:
+
+```js
+async function readableStreamToArray(readable) {
+  const chunks = [];
+
+  let result;
+  while (!(result = await readable.read()).done) {
+    chunks.push(result.value);
+  }
+
+  return chunks;
+}
 ```
 
 ## Writable Streams

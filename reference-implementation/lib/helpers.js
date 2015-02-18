@@ -1,3 +1,5 @@
+const assert = require('assert');
+
 export function promiseCall(func, ...args) {
   try {
     return Promise.resolve(func(...args));
@@ -21,6 +23,14 @@ export function toInteger(v) {
   }
 
   return Math.floor(Math.abs(v));
+}
+
+export function CreateIterResultObject(value, done) {
+  assert(typeof done === 'boolean');
+  const obj = {};
+  Object.defineProperty(obj, 'value', { value: value, enumerable: true, writable: true, configurable: true });
+  Object.defineProperty(obj, 'done', { value: done, enumerable: true, writable: true, configurable: true });
+  return obj;
 }
 
 export function InvokeOrNoop(O, P, args) {

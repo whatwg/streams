@@ -1,11 +1,11 @@
 const test = require('tape-catch');
 
-let ExclusiveStreamReader;
+let ReadableStreamReader;
 
-test('Can get the ExclusiveStreamReader constructor indirectly', t => {
+test('Can get the ReadableStreamReader constructor indirectly', t => {
   t.doesNotThrow(() => {
     // It's not exposed globally, but we test a few of its properties here.
-    ExclusiveStreamReader = (new ReadableStream()).getReader().constructor;
+    ReadableStreamReader = (new ReadableStream()).getReader().constructor;
   });
   t.end();
 });
@@ -13,13 +13,10 @@ test('Can get the ExclusiveStreamReader constructor indirectly', t => {
 function fakeReadableStream() {
   return {
     get closed() { return Promise.resolve(); },
-    get ready() { return Promise.resolve(); },
-    get state() { return 'closed' },
     cancel(reason) { return Promise.resolve(); },
-    getReader() { return new ExclusiveStreamReader(new ReadableStream()); },
     pipeThrough({ writable, readable }, options) { return readable; },
     pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) { return Promise.resolve(); },
-    read() { return ''; }
+    getReader() { return new ReadableStream(new ReadableStream()); }
   };
 }
 
@@ -42,14 +39,12 @@ function realWritableStream() {
   return new WritableStream();
 }
 
-function fakeExclusiveStreamReader() {
+function fakeReadableStreamReader() {
   return {
     get closed() { return Promise.resolve(); },
     get isActive() { return false; },
-    get ready() { return Promise.resolve(); },
-    get state() { return 'closed' },
     cancel(reason) { return Promise.resolve(); },
-    read() { return ''; },
+    read() { return Promise.resolve({ value: undefined, done: true }); },
     releaseLock() { return; }
   };
 }
@@ -120,18 +115,6 @@ test('ReadableStream.prototype.closed enforces a brand check', t => {
   getterRejects(t, ReadableStream.prototype, 'closed', realWritableStream());
 });
 
-test('ReadableStream.prototype.ready enforces a brand check', t => {
-  t.plan(2);
-  getterRejects(t, ReadableStream.prototype, 'ready', fakeReadableStream());
-  getterRejects(t, ReadableStream.prototype, 'ready', realWritableStream());
-});
-
-test('ReadableStream.prototype.state enforces a brand check', t => {
-  t.plan(2);
-  getterThrows(t, ReadableStream.prototype, 'state', fakeReadableStream());
-  getterThrows(t, ReadableStream.prototype, 'state', realWritableStream());
-});
-
 test('ReadableStream.prototype.cancel enforces a brand check', t => {
   t.plan(2);
   methodRejects(t, ReadableStream.prototype, 'cancel', fakeReadableStream());
@@ -170,52 +153,43 @@ test('ReadableStream.prototype.pipeTo works generically on its this and its argu
   t.doesNotThrow(() => ReadableStream.prototype.pipeTo.call(fakeReadableStream(), fakeWritableStream()));
 });
 
-test('ReadableStream.prototype.read enforces a brand check', t => {
-  t.plan(2);
-  methodThrows(t, ReadableStream.prototype, 'read', fakeReadableStream());
-  methodThrows(t, ReadableStream.prototype, 'read', realWritableStream());
-});
 
 
-test('ExclusiveStreamReader enforces a brand check on its argument', t => {
+
+test('ReadableStreamReader enforces a brand check on its argument', t => {
   t.plan(1);
-  t.throws(() => new ExclusiveStreamReader(fakeReadableStream()), /TypeError/, 'Contructing an ExclusiveStreamReader ' +
+  t.throws(() => new ReadableStreamReader(fakeReadableStream()), /TypeError/, 'Contructing a ReadableStreamReader ' +
     'should throw');
 });
 
-test('ExclusiveStreamReader.prototype.closed enforces a brand check', t => {
-  t.plan(1);
-  getterRejects(t, ExclusiveStreamReader.prototype, 'closed', fakeExclusiveStreamReader());
+test('ReadableStreamReader.prototype.closed enforces a brand check', t => {
+  t.plan(2);
+  getterRejects(t, ReadableStreamReader.prototype, 'closed', fakeReadableStreamReader());
+  getterRejects(t, ReadableStreamReader.prototype, 'closed', realReadableStream());
 });
 
-test('ExclusiveStreamReader.prototype.isActive enforces a brand check', t => {
-  t.plan(1);
-  getterThrows(t, ExclusiveStreamReader.prototype, 'isActive', fakeExclusiveStreamReader());
+test('ReadableStreamReader.prototype.isActive enforces a brand check', t => {
+  t.plan(2);
+  getterThrows(t, ReadableStreamReader.prototype, 'isActive', fakeReadableStreamReader());
+  getterThrows(t, ReadableStreamReader.prototype, 'isActive', realReadableStream());
 });
 
-test('ExclusiveStreamReader.prototype.ready enforces a brand check', t => {
-  t.plan(1);
-  getterRejects(t, ExclusiveStreamReader.prototype, 'ready', fakeExclusiveStreamReader());
+test('ReadableStreamReader.prototype.cancel enforces a brand check', t => {
+  t.plan(2);
+  methodRejects(t, ReadableStreamReader.prototype, 'cancel', fakeReadableStreamReader());
+  methodRejects(t, ReadableStreamReader.prototype, 'cancel', realReadableStream());
 });
 
-test('ExclusiveStreamReader.prototype.state enforces a brand check', t => {
-  t.plan(1);
-  getterThrows(t, ExclusiveStreamReader.prototype, 'state', fakeExclusiveStreamReader());
+test('ReadableStreamReader.prototype.read enforces a brand check', t => {
+  t.plan(2);
+  methodRejects(t, ReadableStreamReader.prototype, 'read', fakeReadableStreamReader());
+  methodRejects(t, ReadableStreamReader.prototype, 'read', realReadableStream());
 });
 
-test('ExclusiveStreamReader.prototype.cancel enforces a brand check', t => {
-  t.plan(1);
-  methodRejects(t, ExclusiveStreamReader.prototype, 'cancel', fakeExclusiveStreamReader());
-});
-
-test('ExclusiveStreamReader.prototype.read enforces a brand check', t => {
-  t.plan(1);
-  methodThrows(t, ExclusiveStreamReader.prototype, 'read', fakeExclusiveStreamReader());
-});
-
-test('ExclusiveStreamReader.prototype.releaseLock enforces a brand check', t => {
-  t.plan(1);
-  methodThrows(t, ExclusiveStreamReader.prototype, 'releaseLock', fakeExclusiveStreamReader());
+test('ReadableStreamReader.prototype.releaseLock enforces a brand check', t => {
+  t.plan(2);
+  methodThrows(t, ReadableStreamReader.prototype, 'releaseLock', fakeReadableStreamReader());
+  methodThrows(t, ReadableStreamReader.prototype, 'releaseLock', realReadableStream());
 });
 
 

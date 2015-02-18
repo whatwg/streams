@@ -1,6 +1,6 @@
 const test = require('tape-catch');
 
-test('Throwing underlying source start getter', t => {
+test('Underlying source start: throwing getter', t => {
   const theError = new Error('a unique string');
 
   t.throws(() => {
@@ -9,11 +9,11 @@ test('Throwing underlying source start getter', t => {
         throw theError;
       }
     });
-  }, /a unique string/);
+  }, /a unique string/, 'constructing the stream should re-throw the error');
   t.end();
 });
 
-test('Throwing underlying source start method', t => {
+test('Underlying source start: throwing method', t => {
   const theError = new Error('a unique string');
 
   t.throws(() => {
@@ -22,11 +22,11 @@ test('Throwing underlying source start method', t => {
         throw theError;
       }
     });
-  }, /a unique string/);
+  }, /a unique string/, 'constructing the stream should re-throw the error');
   t.end();
 });
 
-test('Throwing underlying source pull getter (initial pull)', t => {
+test('Underlying source: throwing pull getter (initial pull)', t => {
   t.plan(1);
 
   const theError = new Error('a unique string');
@@ -42,7 +42,7 @@ test('Throwing underlying source pull getter (initial pull)', t => {
   );
 });
 
-test('Throwing underlying source pull method (initial pull)', t => {
+test('Underlying source: throwing pull method (initial pull)', t => {
   t.plan(1);
 
   const theError = new Error('a unique string');
@@ -58,8 +58,8 @@ test('Throwing underlying source pull method (initial pull)', t => {
   );
 });
 
-test('Throwing underlying source pull getter (second pull)', t => {
-  t.plan(3);
+test('Underlying source: throwing pull getter (second pull)', t => {
+  t.plan(2);
 
   const theError = new Error('a unique string');
   let counter = 0;
@@ -74,10 +74,7 @@ test('Throwing underlying source pull getter (second pull)', t => {
     }
   });
 
-  rs.ready.then(() => {
-    t.equal(rs.state, 'readable', 'sanity check: the stream becomes readable without issue');
-    t.equal(rs.read(), 'a', 'the initially-enqueued chunk can be read from the stream');
-  });
+  rs.getReader().read().then(r => t.deepEqual(r, { value: 'a', done: false }, 'the chunk read should be correct'));
 
   rs.closed.then(
     () => t.fail('closed should not fulfill'),
@@ -85,8 +82,8 @@ test('Throwing underlying source pull getter (second pull)', t => {
   );
 });
 
-test('Throwing underlying source pull method (second pull)', t => {
-  t.plan(3);
+test('Underlying source: throwing pull method (second pull)', t => {
+  t.plan(2);
 
   const theError = new Error('a unique string');
   let counter = 0;
@@ -101,10 +98,7 @@ test('Throwing underlying source pull method (second pull)', t => {
     }
   });
 
-  rs.ready.then(() => {
-    t.equal(rs.state, 'readable', 'sanity check: the stream becomes readable without issue');
-    t.equal(rs.read(), 'a', 'the initially-enqueued chunk can be read from the stream');
-  });
+  rs.getReader().read().then(r => t.deepEqual(r, { value: 'a', done: false }, 'the chunk read should be correct'));
 
   rs.closed.then(
     () => t.fail('closed should not fulfill'),
@@ -112,7 +106,7 @@ test('Throwing underlying source pull method (second pull)', t => {
   );
 });
 
-test('Throwing underlying source cancel getter', t => {
+test('Underlying source: throwing cancel getter', t => {
   t.plan(1);
 
   const theError = new Error('a unique string');
@@ -128,7 +122,7 @@ test('Throwing underlying source cancel getter', t => {
   );
 });
 
-test('Throwing underlying source cancel method', t => {
+test('Underlying source: throwing cancel method', t => {
   t.plan(1);
 
   const theError = new Error('a unique string');
@@ -144,30 +138,30 @@ test('Throwing underlying source cancel method', t => {
   );
 });
 
-test('Throwing underlying source strategy getter', t => {
+test('Underlying source: throwing strategy getter', t => {
   t.plan(2);
 
   const theError = new Error('a unique string');
 
   const rs = new ReadableStream({
     start(enqueue) {
-      t.throws(() => enqueue('a'), /a unique string/);
+      t.throws(() => enqueue('a'), /a unique string/, 'enqueue should throw the error');
     },
     get strategy() {
       throw theError;
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
-test('Throwing underlying source strategy.size getter', t => {
+test('Underlying source: throwing strategy.size getter', t => {
   t.plan(2);
 
   const theError = new Error('a unique string');
   const rs = new ReadableStream({
     start(enqueue) {
-      t.throws(() => enqueue('a'), /a unique string/);
+      t.throws(() => enqueue('a'), /a unique string/, 'enqueue should throw the error');
     },
     strategy: {
       get size() {
@@ -179,16 +173,16 @@ test('Throwing underlying source strategy.size getter', t => {
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
-test('Throwing underlying source strategy.size method', t => {
+test('Underlying source: throwing strategy.size method', t => {
   t.plan(2);
 
   const theError = new Error('a unique string');
   const rs = new ReadableStream({
     start(enqueue) {
-      t.throws(() => enqueue('a'), /a unique string/);
+      t.throws(() => enqueue('a'), /a unique string/, 'enqueue should throw the error');
     },
     strategy: {
       size() {
@@ -200,16 +194,16 @@ test('Throwing underlying source strategy.size method', t => {
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
-test('Throwing underlying source strategy.shouldApplyBackpressure getter', t => {
+test('Underlying source: throwing strategy.shouldApplyBackpressure getter', t => {
   t.plan(2);
 
   const theError = new Error('a unique string');
   const rs = new ReadableStream({
     start(enqueue) {
-      t.throws(() => enqueue('a'), /a unique string/);
+      t.throws(() => enqueue('a'), /a unique string/, 'enqueue should throw the error');
     },
     strategy: {
       size() {
@@ -221,16 +215,16 @@ test('Throwing underlying source strategy.shouldApplyBackpressure getter', t => 
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
-test('Throwing underlying source strategy.shouldApplyBackpressure method', t => {
+test('Underlying source: throwing strategy.shouldApplyBackpressure method', t => {
   t.plan(2);
 
   const theError = new Error('a unique string');
   const rs = new ReadableStream({
     start(enqueue) {
-      t.throws(() => enqueue('a'), /a unique string/);
+      t.throws(() => enqueue('a'), /a unique string/, 'enqueue should throw the error');
     },
     strategy: {
       size() {
@@ -242,5 +236,86 @@ test('Throwing underlying source strategy.shouldApplyBackpressure method', t => 
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+});
+
+test('Underlying source: strategy.size returning NaN', t => {
+  t.plan(2);
+
+  let theError;
+  const rs = new ReadableStream({
+    start(enqueue) {
+      try {
+        enqueue('hi');
+        t.fail('enqueue didn\'t throw');
+      } catch (error) {
+        t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
+        theError = error;
+      }
+    },
+    strategy: {
+      size() {
+        return NaN;
+      },
+      shouldApplyBackpressure() {
+        return true;
+      }
+    }
+  });
+
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+});
+
+test('Underlying source: strategy.size returning -Infinity', t => {
+  t.plan(2);
+
+  let theError;
+  const rs = new ReadableStream({
+    start(enqueue) {
+      try {
+        enqueue('hi');
+        t.fail('enqueue didn\'t throw');
+      } catch (error) {
+        t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
+        theError = error;
+      }
+    },
+    strategy: {
+      size() {
+        return -Infinity;
+      },
+      shouldApplyBackpressure() {
+        return true;
+      }
+    }
+  });
+
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+});
+
+test('Underlying source: strategy.size returning +Infinity', t => {
+  t.plan(2);
+
+  let theError;
+  const rs = new ReadableStream({
+    start(enqueue) {
+      try {
+        enqueue('hi');
+        t.fail('enqueue didn\'t throw');
+      } catch (error) {
+        t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
+        theError = error;
+      }
+    },
+    strategy: {
+      size() {
+        return +Infinity;
+      },
+      shouldApplyBackpressure() {
+        return true;
+      }
+    }
+  });
+
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });

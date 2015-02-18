@@ -19,9 +19,7 @@ export default class TransformStream {
         chunkWrittenButNotYetTransformed = true;
 
         const p = new Promise(resolve => writeDone = resolve);
-        if (readable.state === 'waiting') {
-          maybeDoTransform();
-        }
+        maybeDoTransform();
         return p;
       },
       close() {

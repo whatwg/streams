@@ -1,142 +1,6 @@
 const test = require('tape-catch');
 
-import sequentialReadableStream from './utils/sequential-rs';
-
-test('Piping with no options and no errors', t => {
-  const rs = sequentialReadableStream(5, { async: true });
-  const ws = new WritableStream({
-    abort() {
-      t.fail('unexpected abort call');
-    }
-  });
-
-  rs.pipeTo(ws);
-
-  rs.closed.then(() => {
-    setTimeout(() => {
-      t.equal(ws.state, 'closed', 'destination should be closed');
-      t.end();
-    }, 0);
-  });
-});
-
-test('Piping with { preventClose: false } and no errors', t => {
-  const rs = sequentialReadableStream(5, { async: true });
-  const ws = new WritableStream({
-    abort() {
-      t.fail('unexpected abort call');
-    }
-  });
-
-  rs.pipeTo(ws, { preventClose: false });
-
-  rs.closed.then(() => {
-    setTimeout(() => {
-      t.equal(ws.state, 'closed', 'destination should be closed');
-      t.end();
-    }, 0);
-  });
-});
-
-test('Piping with { preventClose: true } and no errors', t => {
-  const rs = sequentialReadableStream(5, { async: true });
-  const ws = new WritableStream({
-    close() {
-      t.fail('unexpected close call');
-      t.end();
-    },
-    abort() {
-      t.fail('unexpected abort call');
-    }
-  });
-
-  const pipeToPromise = rs.pipeTo(ws, { preventClose: true });
-
-  rs.closed.then(() => {
-    setTimeout(() => {
-      t.equal(ws.state, 'writable', 'destination should be writable');
-
-      pipeToPromise.then(
-        v => {
-          t.equal(v, undefined);
-          t.end();
-        },
-        r => {
-          t.fail('pipeToPromise is rejected');
-          t.end();
-        }
-      );
-    }, 0);
-  });
-});
-
-test('Piping with no options and a source error', t => {
-  const theError = new Error('source error');
-  const rs = new ReadableStream({
-    start() {
-      return Promise.reject(theError);
-    }
-  });
-  const ws = new WritableStream({
-    abort(r) {
-      t.equal(r, theError, 'reason passed to abort equals the source error');
-      t.end();
-    }
-  });
-
-  rs.pipeTo(ws);
-});
-
-test('Piping with { preventAbort: false } and a source error', t => {
-  const theError = new Error('source error');
-  const rs = new ReadableStream({
-    start() {
-      return Promise.reject(theError);
-    }
-  });
-  const ws = new WritableStream({
-    abort(r) {
-      t.equal(r, theError, 'reason passed to abort equals the source error');
-      t.end();
-    }
-  });
-
-  rs.pipeTo(ws, { preventAbort: false });
-});
-
-test('Piping with { preventAbort: true } and a source error', t => {
-  const theError = new Error('source error');
-  const rs = new ReadableStream({
-    start() {
-      return Promise.reject(theError);
-    }
-  });
-  const ws = new WritableStream({
-    abort(r) {
-      t.fail('unexpected call to abort');
-      t.end();
-    }
-  });
-
-  const pipeToPromise = rs.pipeTo(ws, { preventAbort: true });
-
-  rs.closed.catch(() => {
-    setTimeout(() => {
-      t.equal(ws.state, 'writable', 'destination should remain writable');
-
-      pipeToPromise.then(
-        () => {
-          t.fail('pipeToPromise is fulfilled');
-          t.end();
-        },
-        r => {
-          t.equal(r, theError, 'rejection reason of pipeToPromise is the source error');
-          t.end();
-        }
-      );
-    }, 0);
-  })
-});
+// Many other pipeTo-with-options tests have been templated.
 
 test('Piping with no options and a destination error', t => {
   t.plan(2);
@@ -197,14 +61,14 @@ test('Piping with { preventCancel: false } and a destination error', t => {
 test('Piping with { preventCancel: true } and a destination error', t => {
   const theError = new Error('destination error');
   const rs = new ReadableStream({
-    start(enqueue, close) {
+    start(enqueue) {
       enqueue('a');
       setTimeout(() => enqueue('b'), 10);
       setTimeout(() => enqueue('c'), 20);
+      setTimeout(() => enqueue('d'), 30);
     },
     cancel(r) {
       t.fail('unexpected call to cancel');
-      t.end();
     }
   });
 
@@ -216,22 +80,18 @@ test('Piping with { preventCancel: true } and a destination error', t => {
     }
   });
 
-  const pipeToPromise = rs.pipeTo(ws, { preventCancel: true });
+  rs.pipeTo(ws, { preventCancel: true }).catch(e => {
+    t.equal(e, theError, 'rejection reason of pipeTo promise is the sink error');
 
-  ws.closed.catch(() => {
-    setTimeout(() => {
-      t.equal(rs.state, 'readable', 'source should remain readable');
+    let reader;
+    t.doesNotThrow(() => { reader = rs.getReader(); }, 'should be able to get a stream reader after pipeTo completes');
 
-      pipeToPromise.then(
-        () => {
-          t.fail('pipeToPromise is fulfilled');
-          t.end();
-        },
-        r => {
-          t.equal(r, theError, 'rejection reason of pipeToPromise is the sink error');
-          t.end();
-        }
-      );
-    }, 30);
-  });
+    // { value: 'c', done: false } gets consumed before we know that ws has errored, and so is lost.
+
+    return reader.read().then(result => {
+      t.deepEqual(result, { value: 'd', done: false }, 'should be able to read the remaining chunk from the reader');
+      t.end();
+    });
+  })
+  .catch(e => t.error(e));
 });

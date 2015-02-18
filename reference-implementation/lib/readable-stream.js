@@ -1,27 +1,25 @@
 const assert = require('assert');
-import * as helpers from './helpers';
-import { AcquireExclusiveStreamReader, CallReadableStreamPull, CancelReadableStream, CreateReadableStreamCloseFunction,
-  CreateReadableStreamEnqueueFunction, CreateReadableStreamErrorFunction, IsReadableStream, IsReadableStreamLocked,
-  ReadFromReadableStream, ShouldReadableStreamApplyBackpressure } from './readable-stream-abstract-ops';
+import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject } from './helpers';
+import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
 
 export default class ReadableStream {
   constructor(underlyingSource = {}) {
     this._underlyingSource = underlyingSource;
-    this._initReadyPromise();
     this._initClosedPromise();
     this._queue = [];
-    this._state = 'waiting';
+    this._state = 'readable';
     this._started = false;
     this._draining = false;
     this._pullScheduled = false;
+    this._reader = undefined;
     this._pullingPromise = undefined;
-    this._readableStreamReader = undefined;
+    this._storedError = undefined;
 
     this._enqueue = CreateReadableStreamEnqueueFunction(this);
     this._close = CreateReadableStreamCloseFunction(this);
     this._error = CreateReadableStreamErrorFunction(this);
 
-    const startResult = helpers.InvokeOrNoop(underlyingSource, 'start', [this._enqueue, this._close, this._error]);
+    const startResult = InvokeOrNoop(underlyingSource, 'start', [this._enqueue, this._close, this._error]);
     Promise.resolve(startResult).then(
       () => {
         this._started = true;
@@ -32,55 +30,30 @@ export default class ReadableStream {
   }
 
   get closed() {
-    if (!IsReadableStream(this)) {
+    if (IsReadableStream(this) === false) {
       return Promise.reject(new TypeError('ReadableStream.prototype.closed can only be used on a ReadableStream'));
     }
 
     return this._closedPromise;
   }
 
-  get state() {
-    if (!IsReadableStream(this)) {
-      throw new TypeError('ReadableStream.prototype.state can only be used on a ReadableStream');
-    }
-
-    if (IsReadableStreamLocked(this)) {
-      return 'waiting';
-    }
-
-    return this._state;
-  }
-
   cancel(reason) {
-    if (!IsReadableStream(this)) {
+    if (IsReadableStream(this) === false) {
       return Promise.reject(new TypeError('ReadableStream.prototype.cancel can only be used on a ReadableStream'));
-    }
-
-    if (IsReadableStreamLocked(this)) {
-      return Promise.reject(
-        new TypeError('This stream is locked to a single exclusive reader and cannot be cancelled directly'));
     }
 
     return CancelReadableStream(this, reason);
   }
 
   getReader() {
-    if (!IsReadableStream(this)) {
+    if (IsReadableStream(this) === false) {
       throw new TypeError('ReadableStream.prototype.getReader can only be used on a ReadableStream');
     }
 
-    return AcquireExclusiveStreamReader(this);
+    return AcquireReadableStreamReader(this);
   }
 
   pipeThrough({ writable, readable }, options) {
-    if (!helpers.typeIsObject(writable)) {
-      throw new TypeError('A transform stream must have an writable property that is an object.');
-    }
-
-    if (!helpers.typeIsObject(readable)) {
-      throw new TypeError('A transform stream must have a readable property that is an object.');
-    }
-
     this.pipeTo(writable, options);
     return readable;
   }
@@ -90,7 +63,11 @@ export default class ReadableStream {
     preventAbort = Boolean(preventAbort);
     preventCancel = Boolean(preventCancel);
 
-    let source;
+    const source = this;
+
+    let reader;
+    let lastRead;
+    let closedPurposefully = false;
     let resolvePipeToPromise;
     let rejectPipeToPromise;
 
@@ -98,57 +75,60 @@ export default class ReadableStream {
       resolvePipeToPromise = resolve;
       rejectPipeToPromise = reject;
 
-      source = this.getReader();
+      reader = source.getReader();
+
+      source.closed.catch(abortDest);
+      dest.closed.then(
+        () => {
+          if (!closedPurposefully) {
+            cancelSource(new TypeError('destination is closing or closed and cannot be piped to anymore'));
+          }
+        },
+        cancelSource
+      );
+
       doPipe();
     });
 
     function doPipe() {
-      for (;;) {
-        const ds = dest.state;
-        if (ds === 'writable') {
-          if (source.state === 'readable') {
-            dest.write(source.read());
-            continue;
-          } else if (source.state === 'waiting') {
-            Promise.race([source.ready, dest.closed]).then(doPipe, doPipe);
-          } else if (source.state === 'errored') {
-            source.closed.catch(abortDest);
-          } else if (source.state === 'closed') {
-            closeDest();
-          }
-        } else if (ds === 'waiting') {
-          if (source.state === 'readable') {
-            Promise.race([source.closed, dest.ready]).then(doPipe, doPipe);
-          } else if (source.state === 'waiting') {
-            Promise.race([source.ready, dest.ready]).then(doPipe);
-          } else if (source.state === 'errored') {
-            source.closed.catch(abortDest);
-          } else if (source.state === 'closed') {
-            closeDest();
-          }
-        } else if (ds === 'errored' && (source.state === 'readable' || source.state === 'waiting')) {
-          dest.closed.catch(cancelSource);
-        } else if ((ds === 'closing' || ds === 'closed') &&
-            (source.state === 'readable' || source.state === 'waiting')) {
-          cancelSource(new TypeError('destination is closing or closed and cannot be piped to anymore'));
+      lastRead = reader.read();
+      Promise.all([lastRead, dest.ready]).then(([{ value, done }]) => {
+        if (Boolean(done) === true) {
+          closeDest();
+        } else if (dest.state === 'writable') {
+          dest.write(value);
+          doPipe();
         }
-        return;
-      }
+      });
+
+      // Any failures will be handled by listening to source.closed and dest.closed above.
+      // TODO: handle malicious dest.write/dest.close?
     }
 
     function cancelSource(reason) {
       if (preventCancel === false) {
-        // implicitly releases the lock
+        // cancelling automatically releases the lock (and that doesn't fail, since source is then closed)
         source.cancel(reason);
+        rejectPipeToPromise(reason);
       } else {
-        source.releaseLock();
+        // If we don't cancel, we need to wait for lastRead to finish before we're allowed to release.
+        // We don't need to handle lastRead failing because that will trigger abortDest which takes care of
+        // both of these.
+        lastRead.then(() => {
+          reader.releaseLock();
+          rejectPipeToPromise(reason);
+        });
       }
-      rejectPipeToPromise(reason);
     }
 
     function closeDest() {
-      source.releaseLock();
-      if (preventClose === false) {
+      // Does not need to wait for lastRead since it occurs only on source closed.
+
+      reader.releaseLock();
+
+      const destState = dest.state;
+      if (preventClose === false && (destState === 'waiting' || destState === 'writable')) {
+        closedPurposefully = true;
         dest.close().then(resolvePipeToPromise, rejectPipeToPromise);
       } else {
         resolvePipeToPromise();
@@ -156,7 +136,10 @@ export default class ReadableStream {
     }
 
     function abortDest(reason) {
-      source.releaseLock();
+      // Does not need to wait for lastRead since it only occurs on source errored.
+
+      reader.releaseLock();
+
       if (preventAbort === false) {
         dest.abort(reason);
       }
@@ -164,48 +147,16 @@ export default class ReadableStream {
     }
   }
 
-  read() {
-    if (!IsReadableStream(this)) {
-      throw new TypeError('ReadableStream.prototype.read can only be used on a ReadableStream');
-    }
 
-    if (IsReadableStreamLocked(this)) {
-      throw new TypeError('This stream is locked to a single exclusive reader and cannot be read from directly');
-    }
-
-    return ReadFromReadableStream(this);
-  }
-
-  get ready() {
-    if (!IsReadableStream(this)) {
-      return Promise.reject(new TypeError('ReadableStream.prototype.ready can only be used on a ReadableStream'));
-    }
-
-    return this._readyPromise;
-  }
-
-  _initReadyPromise() {
-    this._readyPromise = new Promise((resolve, reject) => {
-      this._readyPromise_resolve = resolve;
-    });
-  }
+  // Note: The resolve function and reject function are cleared when the corresponding promise is resolved or rejected.
+  // This is for debugging. This makes extra resolve/reject calls for the same promise fail so that we can detect
+  // unexpected extra resolve/reject calls that may be caused by bugs in the algorithm.
 
   _initClosedPromise() {
     this._closedPromise = new Promise((resolve, reject) => {
       this._closedPromise_resolve = resolve;
       this._closedPromise_reject = reject;
     });
-  }
-
-  // Note: The resolve function and reject function are cleared when the
-  // corresponding promise is resolved or rejected. This is for debugging. This
-  // makes extra resolve/reject calls for the same promise fail so that we can
-  // detect unexpected extra resolve/reject calls that may be caused by bugs in
-  // the algorithm.
-
-  _resolveReadyPromise(value) {
-    this._readyPromise_resolve(value);
-    this._readyPromise_resolve = null;
   }
 
   _resolveClosedPromise(value) {
@@ -219,4 +170,337 @@ export default class ReadableStream {
     this._closedPromise_resolve = null;
     this._closedPromise_reject = null;
   }
+};
+
+class ReadableStreamReader {
+  constructor(stream) {
+    if (IsReadableStream(stream) === false) {
+      throw new TypeError('ReadableStreamReader can only be constructed with a ReadableStream instance');
+    }
+    if (stream._state === 'closed') {
+      throw new TypeError('The stream has already been closed, so a reader cannot be acquired');
+    }
+    if (stream._state === 'errored') {
+      throw stream._storedError;
+    }
+    if (IsReadableStreamLocked(stream) === true) {
+      throw new TypeError('This stream has already been locked for exclusive reading by another reader');
+    }
+
+    stream._reader = this;
+    this._ownerReadableStream = stream;
+
+    this._readRequests = [];
+
+    this._closedPromise = new Promise((resolve, reject) => {
+      this._closedPromise_resolve = resolve;
+      this._closedPromise_reject = reject;
+    });
+  }
+
+  get closed() {
+    if (IsReadableStreamReader(this) === false) {
+      return Promise.reject(
+        new TypeError('ReadableStreamReader.prototype.closed can only be used on a ReadableStreamReader'));
+    }
+
+    return this._closedPromise;
+  }
+
+  get isActive() {
+    if (IsReadableStreamReader(this) === false) {
+      throw new TypeError('ReadableStreamReader.prototype.isActive can only be used on a ReadableStreamReader');
+    }
+
+    return this._ownerReadableStream !== undefined;
+  }
+
+  cancel(reason) {
+    if (IsReadableStreamReader(this) === false) {
+      return Promise.reject(
+        new TypeError('ReadableStreamReader.prototype.cancel can only be used on a ReadableStreamReader'));
+    }
+
+    if (this._ownerReadableStream === undefined) {
+      return Promise.resolve(undefined);
+    }
+
+    return CancelReadableStream(this._ownerReadableStream, reason);
+  }
+
+  read() {
+    if (IsReadableStreamReader(this) === false) {
+      return Promise.reject(
+        new TypeError('ReadableStreamReader.prototype.read can only be used on a ReadableStreamReader'));
+    }
+
+    if (this._ownerReadableStream === undefined || this._ownerReadableStream._state === 'closed') {
+      return Promise.resolve(CreateIterResultObject(undefined, true));
+    }
+
+    if (this._ownerReadableStream._state === 'errored') {
+      return Promise.reject(this._ownerReadableStream._storedError);
+    }
+
+    if (this._ownerReadableStream._queue.length > 0) {
+      const chunk = DequeueValue(this._ownerReadableStream._queue);
+
+      if (this._ownerReadableStream._draining === true && this._ownerReadableStream._queue.length === 0) {
+        CloseReadableStream(this._ownerReadableStream);
+      } else {
+        CallReadableStreamPull(this._ownerReadableStream);
+      }
+
+      return Promise.resolve(CreateIterResultObject(chunk, false));
+    } else {
+      const readRequest = {};
+      readRequest.promise = new Promise((resolve, reject) => {
+        readRequest._resolve = resolve;
+        readRequest._reject = reject;
+      });
+
+      this._readRequests.push(readRequest);
+      return readRequest.promise;
+    }
+  }
+
+  releaseLock() {
+    if (IsReadableStreamReader(this) === false) {
+      throw new TypeError('ReadableStreamReader.prototype.releaseLock can only be used on a ReadableStreamReader');
+    }
+
+    if (this._ownerReadableStream === undefined) {
+      return undefined;
+    }
+
+    if (this._readRequests.length > 0) {
+      throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
+    }
+
+    ReleaseReadableStreamReader(this);
+  }
+}
+
+function AcquireReadableStreamReader(stream) {
+  return new ReadableStreamReader(stream);
+}
+
+function CallReadableStreamPull(stream) {
+  if (stream._draining === true || stream._started === false ||
+      stream._state === 'closed' || stream._state === 'errored' ||
+      stream._pullScheduled === true) {
+    return undefined;
+  }
+
+  if (stream._pullingPromise !== undefined) {
+    stream._pullScheduled = true;
+    stream._pullingPromise.then(() => {
+      stream._pullScheduled = false;
+      CallReadableStreamPull(stream);
+    });
+    return undefined;
+  }
+
+  const shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
+  if (shouldApplyBackpressure === true) {
+    return undefined;
+  }
+
+  stream._pullingPromise = PromiseInvokeOrNoop(stream._underlyingSource, 'pull', [stream._enqueue, stream._close]);
+  stream._pullingPromise.then(
+    () => { stream._pullingPromise = undefined; },
+    e => { stream._error(e); }
+  );
+
+  return undefined;
+}
+
+function CancelReadableStream(stream, reason) {
+  if (stream._state === 'closed') {
+    return Promise.resolve(undefined);
+  }
+  if (stream._state === 'errored') {
+    return Promise.reject(stream._storedError);
+  }
+
+  stream._queue = [];
+  CloseReadableStream(stream);
+
+  const sourceCancelPromise = PromiseInvokeOrNoop(stream._underlyingSource, 'cancel', [reason]);
+  return sourceCancelPromise.then(() => undefined);
+}
+
+function CloseReadableStream(stream) {
+  assert(stream._state === 'readable');
+
+  stream._resolveClosedPromise(undefined);
+  stream._state = 'closed';
+
+  if (IsReadableStreamLocked(stream) === true) {
+    return ReleaseReadableStreamReader(stream._reader);
+  }
+
+  return undefined;
+}
+
+function CreateReadableStreamCloseFunction(stream) {
+  return () => {
+    if (stream._state !== 'readable') {
+      return undefined;
+    }
+
+    if (stream._queue.length === 0) {
+      return CloseReadableStream(stream);
+    }
+
+    stream._draining = true;
+  };
+}
+
+function CreateReadableStreamEnqueueFunction(stream) {
+  return chunk => {
+    if (stream._state === 'errored') {
+      throw stream._storedError;
+    }
+
+    if (stream._state === 'closed') {
+      throw new TypeError('stream is closed');
+    }
+
+    if (stream._draining === true) {
+      throw new TypeError('stream is draining');
+    }
+
+    if (IsReadableStreamLocked(stream) === true && stream._reader._readRequests.length > 0) {
+      const readRequest = stream._reader._readRequests.shift();
+      readRequest._resolve(CreateIterResultObject(chunk, false));
+    } else {
+      let chunkSize = 1;
+
+      let strategy;
+      try {
+        strategy = stream._underlyingSource.strategy;
+      } catch (strategyE) {
+        stream._error(strategyE);
+        throw strategyE;
+      }
+
+      if (strategy !== undefined) {
+        try {
+          chunkSize = strategy.size(chunk);
+        } catch (chunkSizeE) {
+          stream._error(chunkSizeE);
+          throw chunkSizeE;
+        }
+      }
+
+      try {
+        EnqueueValueWithSize(stream._queue, chunk, chunkSize);
+      } catch (enqueueE) {
+        stream._error(enqueueE);
+        throw enqueueE;
+      }
+    }
+
+    CallReadableStreamPull(stream);
+
+    const shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
+    if (shouldApplyBackpressure === true) {
+      return false;
+    }
+    return true;
+  };
+}
+
+function CreateReadableStreamErrorFunction(stream) {
+  return e => {
+    if (stream._state !== 'readable') {
+      return;
+    }
+
+    stream._queue = [];
+    stream._rejectClosedPromise(e);
+    stream._storedError = e;
+    stream._state = 'errored';
+
+    if (IsReadableStreamLocked(stream) === true) {
+      stream._reader._closedPromise_reject(e);
+
+      for (const { _reject } of stream._reader._readRequests) {
+        _reject(e);
+      }
+      stream._reader._readRequests = [];
+    }
+  };
+}
+
+function IsReadableStream(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_underlyingSource')) {
+    return false;
+  }
+
+  return true;
+}
+
+function IsReadableStreamLocked(stream) {
+  assert(IsReadableStream(stream) === true, 'IsReadableStreamLocked should only be used on known readable streams');
+
+  if (stream._reader === undefined) {
+    return false;
+  }
+
+  return true;
+}
+
+function IsReadableStreamReader(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_ownerReadableStream')) {
+    return false;
+  }
+
+  return true;
+}
+
+function ReleaseReadableStreamReader(reader) {
+  assert(reader._ownerReadableStream !== undefined);
+
+  for (const { _resolve } of reader._readRequests) {
+    _resolve(CreateIterResultObject(undefined, true));
+  }
+  reader._readRequests = [];
+
+  reader._ownerReadableStream._reader = undefined;
+  reader._ownerReadableStream = undefined;
+  reader._closedPromise_resolve(undefined);
+}
+
+function ShouldReadableStreamApplyBackpressure(stream) {
+  const queueSize = GetTotalQueueSize(stream._queue);
+  let shouldApplyBackpressure = queueSize > 1;
+
+  let strategy;
+  try {
+    strategy = stream._underlyingSource.strategy;
+  } catch (strategyE) {
+    stream._error(strategyE);
+    throw strategyE;
+  }
+
+  if (strategy !== undefined) {
+    try {
+      shouldApplyBackpressure = Boolean(strategy.shouldApplyBackpressure(queueSize));
+    } catch (shouldApplyBackpressureE) {
+      stream._error(shouldApplyBackpressureE);
+      throw shouldApplyBackpressureE;
+    }
+  }
+
+  return shouldApplyBackpressure;
 }

@@ -43,11 +43,11 @@
   <ellipse cx="160" cy="40" rx="7" ry="7" fill="black" />
   <path d="M160,40 L230,40 Q240,40 240,50 L240,100" marker-end="url(#arrow)" />
 
-  <!-- BOX: Waiting ([[started]] = false) -->
+  <!-- BOX: Readable, empty ([[started]] = false) -->
   <g transform="translate(180, 100)">
     <rect x="0" y="0" width="120" height="60" rx="7" />
     <text y="27">
-      <tspan x="60">Waiting</tspan>
+      <tspan x="60">Readable, empty</tspan>
       <tspan x="60" dy="14">([[started]] = false)</tspan>
     </text>
   </g>
@@ -90,11 +90,11 @@
   <!-- UNLABELED ARROW: enqueue(chunk) -->
   <path d="M300,148 L330,148 Q340,148 340,158 L340,365 Q340,375 330,375 L300,375" marker-end="url(#arrow)" />
 
-  <!-- BOX: Waiting ([[started]] = true) -->
+  <!-- BOX: Readable, empty ([[started]] = true) -->
   <g transform="translate(180, 230)">
     <rect x="0" y="0" width="120" height="60" rx="7" />
     <text y="27">
-      <tspan x="60">Waiting</tspan>
+      <tspan x="60">Readable, empty</tspan>
       <tspan x="60" dy="14">([[started]] = true)</tspan>
     </text>
   </g>
@@ -123,11 +123,11 @@
     </text>
   </g>
 
-  <!-- BOX: Readable ([[draining]] = false) -->
+  <!-- BOX: Readable, nonempty ([[draining]] = false) -->
   <g transform="translate(180, 360)">
     <rect x="0" y="0" width="120" height="60" rx="7" />
     <text y="27">
-      <tspan x="60">Readable</tspan>
+      <tspan x="60">Readable, nonempty</tspan>
       <tspan x="60" dy="14">([[draining]] = false)</tspan>
     </text>
   </g>
@@ -166,11 +166,11 @@
   <!-- UNLABELED ARROW: .cancel(reason) -->
   <path d="M180,405 L70,405 Q60,405 60,415 L60,640 Q60,650 70,650 L180,650" marker-end="url(#arrow)" />
 
-  <!-- BOX: Readable ([[draining]] = true) -->
+  <!-- BOX: Readable, nonempty ([[draining]] = true) -->
   <g transform="translate(180, 490)">
     <rect x="0" y="0" width="120" height="60" rx="7" />
     <text y="27">
-      <tspan x="60">Readable</tspan>
+      <tspan x="60">Readable, nonempty</tspan>
       <tspan x="60" dy="14">([[draining]] = true)</tspan>
     </text>
   </g>
