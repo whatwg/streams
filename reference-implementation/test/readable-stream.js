@@ -15,7 +15,7 @@ test('ReadableStream instances have the correct methods and properties', t => {
   const rs = new ReadableStream();
 
   t.equal(typeof rs.read, 'function', 'has a read method');
-  t.equal(typeof rs.cancel, 'function', 'has an cancel method');
+  t.equal(typeof rs.cancel, 'function', 'has a cancel method');
   t.equal(typeof rs.pipeTo, 'function', 'has a pipeTo method');
   t.equal(typeof rs.pipeThrough, 'function', 'has a pipeThrough method');
 
