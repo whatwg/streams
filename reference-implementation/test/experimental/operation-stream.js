@@ -158,7 +158,7 @@ test('Asynchronous write, read and completion of the operation', t => {
   t.end();
 });
 
-test.only('Sample implementation of network API with a buffer pool', t => {
+test('Sample implementation of network API with a buffer pool', t => {
   const pair = createOperationStream(new AdjustableStrategy());
   const wos = pair.writable;
   const ros = pair.readable;
