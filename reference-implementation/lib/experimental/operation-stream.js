@@ -173,7 +173,7 @@ class OperationStream {
   }
 
   close() {
-    const checkResult = this._checkWritePrecondition();
+    const checkResult = this._checkWritableState();
     if (checkResult !== undefined) {
       return checkResult;
     }
@@ -185,11 +185,10 @@ class OperationStream {
 
     this._writableState = 'closed';
 
-    if (this._readableStream === 'waiting') {
+    if (this._readableState === 'waiting') {
       this._readableState = 'readable';
       this._resolveReadableReadyPromise();
     }
-
 
     return status;
   }
@@ -280,7 +279,10 @@ class OperationStream {
     const entry = this._queue.shift();
     this._queueSize -= entry.size;
 
-    this._updateWritableState();
+    if (this._writableState === 'writable' ||
+        this._writableState === 'waiting') {
+      this._updateWritableState();
+    }
 
     if (this._queue.length === 0) {
       if (entry.type === 'close') {

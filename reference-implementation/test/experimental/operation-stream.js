@@ -36,6 +36,7 @@ test('Synchronous write, read and completion of the operation', t => {
   t.equals(status.state, 'waiting');
 
   const op = ros.read();
+  t.equals(op.argument, 'hello');
 
   t.equals(ros.state, 'waiting');
   t.equals(wos.state, 'writable');
@@ -70,6 +71,7 @@ test('Asynchronous write, read and completion of the operation', t => {
     t.equals(ros.state, 'readable');
 
     const op = ros.read();
+    t.equals(op.argument, 'hello');
 
     t.equals(ros.state, 'waiting');
 
@@ -100,26 +102,26 @@ test('Asynchronous write, read and completion of the operation', t => {
   })
 });
 
-test.only('Asynchronous write, read and completion of the operation', t => {
-  class AdjustableStrategy {
-    constructor() {
-      this._window = 0;
-    }
-
-    size(ab) {
-      return ab.byteLength;
-    }
-    shouldApplyBackpressure(queueSize) {
-      return queueSize >= this._window;
-    }
-    space(queueSize) {
-      return Math.max(0, this._window - queueSize);
-    }
-    onWindowUpdate(window) {
-      this._window = window;
-    }
+class AdjustableStrategy {
+  constructor() {
+    this._window = 0;
   }
 
+  size(ab) {
+    return ab.byteLength;
+  }
+  shouldApplyBackpressure(queueSize) {
+    return queueSize >= this._window;
+  }
+  space(queueSize) {
+    return Math.max(0, this._window - queueSize);
+  }
+  onWindowUpdate(window) {
+    this._window = window;
+  }
+}
+
+test('Asynchronous write, read and completion of the operation', t => {
   const pair = createOperationStream(new AdjustableStrategy());
   const wos = pair.writable;
   const ros = pair.readable;
@@ -154,4 +156,148 @@ test.only('Asynchronous write, read and completion of the operation', t => {
   t.equals(wos.space, 20);
 
   t.end();
+});
+
+test.only('Sample implementation of network API with a buffer pool', t => {
+  const pair = createOperationStream(new AdjustableStrategy());
+  const wos = pair.writable;
+  const ros = pair.readable;
+
+  var bytesRead = 0;
+  var readableClosed = false;
+  function pump() {
+    for (;;) {
+      if (ros.state === 'readable') {
+        const op = ros.read();
+        if (op.type === 'data') {
+          const view = op.argument;
+          for (var i = 0; i < view.byteLength; ++i) {
+            if (view[i] === 1) {
+              ++bytesRead;
+            }
+          }
+        } else {
+          readableClosed = true;
+        }
+        op.complete();
+      } else if (ros.state === 'waiting') {
+        ros.ready.then(pump);
+        return;
+      }
+    }
+  }
+  pump();
+
+  ros.window = 64;
+
+  new Promise((resolve, reject) => {
+    const bufferPool = [];
+    for (var i = 0; i < 10; ++i) {
+      bufferPool.push(new ArrayBuffer(10));
+    }
+
+    var networkReadPromise = undefined;
+
+    const buffersInUse = [];
+
+    var bytesToWrite = 1024;
+
+    function fakeReadFromNetworkLoop() {
+      for (;;) {
+        if (wos.state === 'cancelled') {
+          reject();
+          return;
+        }
+
+        var hasProgress = false;
+
+        if (buffersInUse.length > 0) {
+          const entry = buffersInUse[0];
+          const status = entry.status;
+          if (status.state === 'completed') {
+            buffersInUse.shift();
+
+            if (entry.buffer === undefined) {
+              resolve();
+              return;
+            }
+
+            bufferPool.push(entry.buffer);
+
+            hasProgress = true;
+          } else if (status.state === 'errored') {
+            reject();
+            return;
+          }
+        }
+
+        if (networkReadPromise === undefined && bufferPool.length > 0 && wos.state === 'writable') {
+          const buffer = bufferPool.shift();
+          const view = new Uint8Array(buffer);
+          for (var i = 0; i < view.byteLength; ++i) {
+            view[0] = 0;
+          }
+
+          // Fake async network read operation.
+          networkReadPromise = new Promise((resolve, reject) => {
+            setTimeout(() => {
+              const bytesToWriteThisTime = Math.min(bytesToWrite, buffer.byteLength);
+              const view = new Uint8Array(buffer, 0, bytesToWriteThisTime);
+              for (var i = 0; i < view.byteLength; ++i) {
+                view[i] = 1;
+              }
+              bytesToWrite -= bytesToWriteThisTime;
+              if (bytesToWrite === 0) {
+                resolve({close: true, view});
+              } else {
+                resolve({close: false, view});
+              }
+            }, 0);
+          }).then(result => {
+            networkReadPromise = undefined;
+            if (result.close) {
+              buffersInUse.push({buffer, status: wos.write(result.view)});
+              buffersInUse.push({buffer: undefined, status: wos.close()});
+            } else {
+              buffersInUse.push({buffer, status: wos.write(result.view)});
+            }
+          });
+
+          hasProgress = true;
+        }
+
+        if (hasProgress) {
+          continue;
+        }
+
+        const promisesToRace = [];
+
+        if (wos.state === 'writable') {
+          promisesToRace.push(wos.cancelled);
+        } else if (wos.state === 'waiting') {
+          promisesToRace.push(wos.ready);
+        }
+
+        if (networkReadPromise !== undefined) {
+          promisesToRace.push(networkReadPromise);
+        }
+
+        if (buffersInUse.length > 0) {
+          promisesToRace.push(buffersInUse[0].status.ready);
+        }
+
+        Promise.race(promisesToRace).then(fakeReadFromNetworkLoop);
+        return;
+      }
+    }
+    fakeReadFromNetworkLoop();
+  }).then(
+      () => {
+        t.equals(bytesRead, 1024);
+        t.equals(readableClosed, true);
+        t.end()
+      }, e => {
+        t.fail(e);
+        t.end();
+      });
 });
