@@ -1,9 +1,61 @@
-export default function createOperationStream(strategy) {
+export function createOperationStream(strategy) {
   var stream = new OperationStream(strategy);
   return {
     writable: new WritableOperationStream(stream),
     readable: new ReadableOperationStream(stream)
   };
+}
+
+function jointOps(op, status) {
+  function forward() {
+    if (status.state === 'waiting') {
+      status.ready.then(forward);
+    } else if (status.state === 'errored') {
+      op.error(status.result);
+    } else {
+      op.complete(status.result);
+    }
+  }
+  forward();
+}
+
+export function pipeOperationStreams(readable, writable) {
+  return new Promise((resolve, reject) => {
+    function loop() {
+      for (;;) {
+        if (readable.state === 'aborted' || writable.state === 'cancelled') {
+          reject();
+          return;
+        }
+
+        if (readable.state === 'readable' && writable.state === 'writable') {
+          const op = readable.read();
+          const status = writable.write(op.argument);
+          jointOps(op, status);
+
+          continue;
+        }
+
+        const promisesToRace = [];
+
+        if (readable.state === 'readable') {
+          promisesToRace.push(readable.aborted);
+        } else {
+          promisesToRace.push(readable.ready);
+        }
+
+        if (writable.state === 'writable') {
+          promisesToRace.push(writable.cancelled);
+        } else {
+          promisesToRace.push(writable.ready);
+        }
+
+        Promise.race(promisesToRace).then(loop);
+        return;
+      }
+    }
+    loop();
+  });
 }
 
 class OperationStatus {

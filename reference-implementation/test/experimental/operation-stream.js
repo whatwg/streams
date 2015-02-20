@@ -121,6 +121,25 @@ class AdjustableStrategy {
   }
 }
 
+class AdjustableStringStrategy {
+  constructor() {
+    this._window = 0;
+  }
+
+  size(s) {
+    return s.length;
+  }
+  shouldApplyBackpressure(queueSize) {
+    return queueSize >= this._window;
+  }
+  space(queueSize) {
+    return Math.max(0, this._window - queueSize);
+  }
+  onWindowUpdate(window) {
+    this._window = window;
+  }
+}
+
 test('Asynchronous write, read and completion of the operation', t => {
   const pair = createOperationStream(new AdjustableStrategy());
   const wos = pair.writable;
@@ -156,6 +175,42 @@ test('Asynchronous write, read and completion of the operation', t => {
   t.equals(wos.space, 20);
 
   t.end();
+});
+
+test.only('Pipe', t => {
+  const pair0 = createOperationStream(new AdjustableStringStrategy());
+  const wos0 = pair0.writable;
+  const ros0 = pair0.readable;
+
+  const pair1 = createOperationStream(new AdjustableStringStrategy());
+  const wos1 = pair1.writable;
+  const ros1 = pair1.readable;
+
+  wos0.write('hello');
+  wos0.write('world');
+
+  pipeOperationStreams(ros0, wos1);
+
+  t.equals(ros1.state, 'waiting');
+
+  ros1.window = 10;
+
+  t.equals(ros1.state, 'waiting');
+
+  ros1.ready.then(() => {
+    t.equals(ros1.state, 'readable');
+    const op1 = ros1.read();
+    t.equals(op1.argument, 'hello');
+
+    t.equals(ros1.state, 'readable');
+    const op2 = ros1.read();
+    t.equals(op2.argument, 'world');
+
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
 });
 
 test('Sample implementation of network API with a buffer pool', t => {
