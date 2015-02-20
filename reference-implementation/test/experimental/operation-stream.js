@@ -13,15 +13,55 @@ test('Operation stream pair is constructed', t => {
   t.end();
 });
 
+class NoBackpressureStrategy {
+}
+
+class ApplyBackpressureWhenNonEmptyStrategy {
+  shouldApplyBackpressure(queueSize) {
+    return queueSize > 0;
+  }
+}
+
+class AdjustableArrayBufferStrategy {
+  constructor() {
+    this._window = 0;
+  }
+
+  size(ab) {
+    return ab.byteLength;
+  }
+  shouldApplyBackpressure(queueSize) {
+    return queueSize >= this._window;
+  }
+  space(queueSize) {
+    return Math.max(0, this._window - queueSize);
+  }
+  onWindowUpdate(window) {
+    this._window = window;
+  }
+}
+
+class AdjustableStringStrategy {
+  constructor() {
+    this._window = 0;
+  }
+
+  size(s) {
+    return s.length;
+  }
+  shouldApplyBackpressure(queueSize) {
+    return queueSize >= this._window;
+  }
+  space(queueSize) {
+    return Math.max(0, this._window - queueSize);
+  }
+  onWindowUpdate(window) {
+    this._window = window;
+  }
+}
+
 test('Synchronous write, read and completion of the operation', t => {
-  const pair = createOperationStream({
-    size() {
-      return 1;
-    },
-    shouldApplyBackpressure(queueSize) {
-      return queueSize > 0;
-    }
-  });
+  const pair = createOperationStream(new ApplyBackpressureWhenNonEmptyStrategy());
   const wos = pair.writable;
   const ros = pair.readable;
 
@@ -52,14 +92,7 @@ test('Synchronous write, read and completion of the operation', t => {
 });
 
 test('Asynchronous write, read and completion of the operation', t => {
-  const pair = createOperationStream({
-    size() {
-      return 1;
-    },
-    shouldApplyBackpressure(queueSize) {
-      return queueSize > 0;
-    }
-  });
+  const pair = createOperationStream(new ApplyBackpressureWhenNonEmptyStrategy());
   const wos = pair.writable;
   const ros = pair.readable;
 
@@ -102,46 +135,8 @@ test('Asynchronous write, read and completion of the operation', t => {
   })
 });
 
-class AdjustableStrategy {
-  constructor() {
-    this._window = 0;
-  }
-
-  size(ab) {
-    return ab.byteLength;
-  }
-  shouldApplyBackpressure(queueSize) {
-    return queueSize >= this._window;
-  }
-  space(queueSize) {
-    return Math.max(0, this._window - queueSize);
-  }
-  onWindowUpdate(window) {
-    this._window = window;
-  }
-}
-
-class AdjustableStringStrategy {
-  constructor() {
-    this._window = 0;
-  }
-
-  size(s) {
-    return s.length;
-  }
-  shouldApplyBackpressure(queueSize) {
-    return queueSize >= this._window;
-  }
-  space(queueSize) {
-    return Math.max(0, this._window - queueSize);
-  }
-  onWindowUpdate(window) {
-    this._window = window;
-  }
-}
-
 test('Asynchronous write, read and completion of the operation', t => {
-  const pair = createOperationStream(new AdjustableStrategy());
+  const pair = createOperationStream(new AdjustableArrayBufferStrategy());
   const wos = pair.writable;
   const ros = pair.readable;
 
@@ -229,7 +224,7 @@ test('Pipe', t => {
 
 class FakeByteSource {
   constructor() {
-    this._streams = createOperationStream(new AdjustableStrategy());
+    this._streams = createOperationStream(new AdjustableArrayBufferStrategy());
 
     this._bytesToWrite = 1024;
 
@@ -340,7 +335,7 @@ class FakeByteSource {
   }
 }
 
-test.only('Sample implementation of network API with a buffer pool', t => {
+test('Sample implementation of network API with a buffer pool', t => {
   const bs = new FakeByteSource();
   const ros = bs.stream;
   ros.window = 64;

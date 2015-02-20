@@ -179,7 +179,11 @@ class OperationStream {
       return undefined;
     }
 
-    return this._strategy.space(this._queueSize);
+    if ('space' in this._strategy) {
+      return this._strategy.space(this._queueSize);
+    }
+
+    return undefined;
   }
 
   _checkWritableState() {
@@ -196,7 +200,10 @@ class OperationStream {
   }
 
   _updateWritableState() {
-    const shouldApplyBackpressure = this._strategy.shouldApplyBackpressure(this._queueSize);
+    var shouldApplyBackpressure = false;
+    if ('shouldApplyBackpressure' in this._strategy) {
+      shouldApplyBackpressure = this._strategy.shouldApplyBackpressure(this._queueSize);
+    }
     if (shouldApplyBackpressure && this._writableState === 'writable') {
       this._writableState = 'waiting';
       this._initWritableReadyPromise();
@@ -212,7 +219,10 @@ class OperationStream {
       return checkResult;
     }
 
-    const size = this._strategy.size(argument);
+    var size = 1;
+    if ('size' in this._strategy) {
+      size = this._strategy.size(argument);
+    }
 
     const status = new OperationStatus();
     this._queue.push({value: new Operation('data', argument, status), size});
@@ -309,7 +319,9 @@ class OperationStream {
       return;
     }
 
-    this._strategy.onWindowUpdate(v);
+    if ('onWindowUpdate' in this._strategy) {
+      this._strategy.onWindowUpdate(v);
+    }
     this._updateWritableState();
   }
 
