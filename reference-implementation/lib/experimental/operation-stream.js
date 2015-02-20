@@ -30,8 +30,12 @@ export function pipeOperationStreams(readable, writable) {
 
         if (readable.state === 'readable' && writable.state === 'writable') {
           const op = readable.read();
-          const status = writable.write(op.argument);
-          jointOps(op, status);
+          if (op.type === 'data') {
+            jointOps(op, writable.write(op.argument));
+          } else {
+            jointOps(op, writable.close(op.argument));
+            return;
+          }
 
           continue;
         }

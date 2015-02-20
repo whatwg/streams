@@ -188,25 +188,32 @@ test.only('Pipe', t => {
 
   const helloStatus = wos0.write('hello');
   wos0.write('world');
+  wos0.close();
 
   pipeOperationStreams(ros0, wos1);
 
   t.equals(ros1.state, 'waiting');
 
-  ros1.window = 10;
+  ros1.window = 20;
 
   t.equals(ros1.state, 'waiting');
 
   ros1.ready.then(() => {
     t.equals(ros1.state, 'readable');
-    const op1 = ros1.read();
-    t.equals(op1.argument, 'hello');
+    const op0 = ros1.read();
+    t.equals(op0.type, 'data');
+    t.equals(op0.argument, 'hello');
 
-    op1.complete('hi');
+    op0.complete('hi');
+
+    t.equals(ros1.state, 'readable');
+    const op1 = ros1.read();
+    t.equals(op1.type, 'data');
+    t.equals(op1.argument, 'world');
 
     t.equals(ros1.state, 'readable');
     const op2 = ros1.read();
-    t.equals(op2.argument, 'world');
+    t.equals(op2.type, 'close');
 
     t.equals(helloStatus.state, 'waiting');
     helloStatus.ready.then(() => {
