@@ -222,26 +222,65 @@ test('Pipe', t => {
   });
 });
 
-class FakeByteSource {
+class FakeFile {
+  constructor() {
+    this._bytesToWrite = 1024;
+  }
+
+  readInto(buffer) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        try {
+          const bytesToWriteThisTime = Math.min(this._bytesToWrite, buffer.byteLength);
+
+          const view = new Uint8Array(buffer, 0, bytesToWriteThisTime);
+          for (var i = 0; i < view.byteLength; ++i) {
+            view[i] = 1;
+          }
+
+          this._bytesToWrite -= bytesToWriteThisTime;
+
+          if (this._bytesToWrite === 0) {
+            resolve({closed: true, view});
+          } else {
+            resolve({closed: false, view});
+          }
+        } catch (e) {
+          reject(e);
+        }
+      }, 0);
+    });
+  }
+}
+
+class FakeByteSourceWithBufferPool {
   constructor() {
     this._streams = createOperationStream(new AdjustableArrayBufferStrategy());
 
-    this._bytesToWrite = 1024;
+    this._file = new FakeFile();
+    this._fileReadPromise = undefined;
 
-    this._bufferPool = [];
+    this._buffersAvailable = [];
     for (var i = 0; i < 10; ++i) {
-      this._bufferPool.push(new ArrayBuffer(10));
+      this._buffersAvailable.push(new ArrayBuffer(10));
     }
 
-    this._buffersInUse = [];
-
-    this._networkReadPromise = undefined;
+    this._buffersPassedToUser = [];
 
     this._loop();
   }
 
   get stream() {
     return this._streams.readable;
+  }
+
+  _handleFileReadResult(buffer, result) {
+    this._fileReadPromise = undefined;
+    const status = this._streams.writable.write(result.view);
+    this._buffersPassedToUser.push({buffer, status});
+    if (result.closed) {
+      this._streams.writable.close();
+    }
   }
 
   _loop() {
@@ -254,57 +293,35 @@ class FakeByteSource {
 
       var hasProgress = false;
 
-      if (this._buffersInUse.length > 0) {
-        const entry = this._buffersInUse[0];
+      if (this._buffersPassedToUser.length > 0) {
+        const entry = this._buffersPassedToUser[0];
         const status = entry.status;
         if (status.state === 'completed') {
-          this._buffersInUse.shift();
+          this._buffersPassedToUser.shift();
 
-          if (entry.buffer === undefined) {
-            return;
-          }
-
-          this._bufferPool.push(entry.buffer);
+          this._buffersAvailable.push(entry.buffer);
 
           hasProgress = true;
+          // Keep going.
         } else if (status.state === 'errored') {
+          wos.abort(status.result);
           return;
         }
       }
 
-      if (this._networkReadPromise === undefined &&
-          this._bufferPool.length > 0 &&
+      if (this._fileReadPromise === undefined &&
+          this._buffersAvailable.length > 0 &&
           wos.state === 'writable') {
-        const buffer = this._bufferPool.shift();
+        const buffer = this._buffersAvailable.shift();
+
+        // Clear the acquired buffer for testing.
         const view = new Uint8Array(buffer);
         for (var i = 0; i < view.byteLength; ++i) {
           view[0] = 0;
         }
 
-        // Fake async network read operation.
-        this._networkReadPromise = new Promise((resolve, reject) => {
-          setTimeout(() => {
-            const bytesToWriteThisTime = Math.min(this._bytesToWrite, buffer.byteLength);
-            const view = new Uint8Array(buffer, 0, bytesToWriteThisTime);
-            for (var i = 0; i < view.byteLength; ++i) {
-              view[i] = 1;
-            }
-            this._bytesToWrite -= bytesToWriteThisTime;
-            if (this._bytesToWrite === 0) {
-              resolve({close: true, view});
-            } else {
-              resolve({close: false, view});
-            }
-          }, 0);
-        }).then(result => {
-          this._networkReadPromise = undefined;
-          if (result.close) {
-            this._buffersInUse.push({buffer, status: wos.write(result.view)});
-            this._buffersInUse.push({buffer: undefined, status: wos.close()});
-          } else {
-            this._buffersInUse.push({buffer, status: wos.write(result.view)});
-          }
-        });
+        this._fileReadPromise = this._file.readInto(buffer).then(
+            this._handleFileReadResult.bind(this, buffer)).catch(e => wos.abort(e));
 
         hasProgress = true;
       }
@@ -321,12 +338,12 @@ class FakeByteSource {
         promisesToRace.push(wos.ready);
       }
 
-      if (this._networkReadPromise !== undefined) {
-        promisesToRace.push(this._networkReadPromise);
+      if (this._fileReadPromise !== undefined) {
+        promisesToRace.push(this._fileReadPromise);
       }
 
-      if (this._buffersInUse.length > 0) {
-        promisesToRace.push(this._buffersInUse[0].status.ready);
+      if (this._buffersPassedToUser.length > 0) {
+        promisesToRace.push(this._buffersPassedToUser[0].status.ready);
       }
 
       Promise.race(promisesToRace).then(this._loop.bind(this));
@@ -335,8 +352,8 @@ class FakeByteSource {
   }
 }
 
-test('Sample implementation of network API with a buffer pool', t => {
-  const bs = new FakeByteSource();
+test('Sample implementation of file API with a buffer pool', t => {
+  const bs = new FakeByteSourceWithBufferPool();
   const ros = bs.stream;
   ros.window = 64;
 
@@ -361,6 +378,9 @@ test('Sample implementation of network API with a buffer pool', t => {
       } else if (ros.state === 'waiting') {
         ros.ready.then(pump);
         return;
+      } else if (ros.state === 'cancelled') {
+        t.fail(ros.cancelOperation.argument);
+        t.end();
       }
     }
   }
