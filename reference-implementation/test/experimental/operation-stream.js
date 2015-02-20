@@ -364,22 +364,32 @@ test('Sample implementation of file API with a buffer pool', t => {
         const op = ros.read();
         if (op.type === 'data') {
           const view = op.argument;
+
+          // Verify contents of the buffer.
           for (var i = 0; i < view.byteLength; ++i) {
             if (view[i] === 1) {
               ++bytesRead;
             }
           }
-        } else {
+
+          // Release the buffer.
+          op.complete();
+        } else if (op.type === 'close') {
           t.equals(bytesRead, 1024);
 
           t.end()
+        } else {
+          t.fail('Invalid type: ' + op.type);
+          t.end();
         }
-        op.complete();
       } else if (ros.state === 'waiting') {
         ros.ready.then(pump);
         return;
       } else if (ros.state === 'cancelled') {
         t.fail(ros.cancelOperation.argument);
+        t.end();
+      } else {
+        t.fail('Unexpected state: ' + ros.state);
         t.end();
       }
     }
