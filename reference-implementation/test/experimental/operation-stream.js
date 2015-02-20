@@ -186,7 +186,7 @@ test.only('Pipe', t => {
   const wos1 = pair1.writable;
   const ros1 = pair1.readable;
 
-  wos0.write('hello');
+  const helloStatus = wos0.write('hello');
   wos0.write('world');
 
   pipeOperationStreams(ros0, wos1);
@@ -202,11 +202,18 @@ test.only('Pipe', t => {
     const op1 = ros1.read();
     t.equals(op1.argument, 'hello');
 
+    op1.complete('hi');
+
     t.equals(ros1.state, 'readable');
     const op2 = ros1.read();
     t.equals(op2.argument, 'world');
 
-    t.end();
+    t.equals(helloStatus.state, 'waiting');
+    helloStatus.ready.then(() => {
+      t.equals(helloStatus.state, 'completed');
+      t.equals(helloStatus.result, 'hi');
+      t.end();
+    });
   }).catch(e => {
     t.fail(e);
     t.end();
