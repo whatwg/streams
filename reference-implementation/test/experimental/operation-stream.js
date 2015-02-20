@@ -254,16 +254,13 @@ class FakeFile {
 }
 
 class FakeByteSourceWithBufferPool {
-  constructor() {
+  constructor(buffers) {
     this._streams = createOperationStream(new AdjustableArrayBufferStrategy());
 
     this._file = new FakeFile();
     this._fileReadPromise = undefined;
 
-    this._buffersAvailable = [];
-    for (var i = 0; i < 10; ++i) {
-      this._buffersAvailable.push(new ArrayBuffer(10));
-    }
+    this._buffersAvailable = buffers;
 
     this._buffersPassedToUser = [];
 
@@ -352,47 +349,59 @@ class FakeByteSourceWithBufferPool {
   }
 }
 
+function readAndVerify(ros) {
+  return new Promise((resolve, reject) => {
+    var bytesRead = 0;
+
+    function pump() {
+      for (;;) {
+        if (ros.state === 'readable') {
+          const op = ros.read();
+          if (op.type === 'data') {
+            const view = op.argument;
+
+            // Verify contents of the buffer.
+            for (var i = 0; i < view.byteLength; ++i) {
+              if (view[i] === 1) {
+                ++bytesRead;
+              }
+            }
+
+            // Release the buffer.
+            op.complete();
+
+            continue;
+          } else if (op.type === 'close') {
+            resolve(bytesRead);
+          } else {
+            reject(op.type);
+          }
+        } else if (ros.state === 'waiting') {
+          ros.ready.then(pump);
+        } else if (ros.state === 'cancelled') {
+          reject(ros.cancelOperation.argument);
+        } else {
+          reject(ros.state);
+        }
+        return;
+      }
+    }
+    pump();
+  });
+}
+
 test('Sample implementation of file API with a buffer pool', t => {
-  const bs = new FakeByteSourceWithBufferPool();
+  const pool = [];
+  for (var i = 0; i < 10; ++i) {
+    pool.push(new ArrayBuffer(10));
+  }
+
+  const bs = new FakeByteSourceWithBufferPool(pool);
   const ros = bs.stream;
   ros.window = 64;
 
-  var bytesRead = 0;
-  function pump() {
-    for (;;) {
-      if (ros.state === 'readable') {
-        const op = ros.read();
-        if (op.type === 'data') {
-          const view = op.argument;
-
-          // Verify contents of the buffer.
-          for (var i = 0; i < view.byteLength; ++i) {
-            if (view[i] === 1) {
-              ++bytesRead;
-            }
-          }
-
-          // Release the buffer.
-          op.complete();
-        } else if (op.type === 'close') {
-          t.equals(bytesRead, 1024);
-
-          t.end()
-        } else {
-          t.fail('Invalid type: ' + op.type);
-          t.end();
-        }
-      } else if (ros.state === 'waiting') {
-        ros.ready.then(pump);
-        return;
-      } else if (ros.state === 'cancelled') {
-        t.fail(ros.cancelOperation.argument);
-        t.end();
-      } else {
-        t.fail('Unexpected state: ' + ros.state);
-        t.end();
-      }
-    }
-  }
-  pump();
+  readAndVerify(ros).then(bytesRead => {
+    t.equals(bytesRead, 1024);
+    t.end();
+  });
 });
