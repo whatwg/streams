@@ -188,15 +188,14 @@ class OperationStream {
 
   _checkWritableState() {
     if (this._writableState === 'closed') {
-      return Promise.reject(new TypeError('already closed'));
+      throw new TypeError('already closed');
     }
     if (this._writableState === 'aborted') {
-      return Promise.reject(new TypeError('already aborted'));
+      throw new TypeError('already aborted');
     }
     if (this._writableState === 'cancelled') {
-      return Promise.reject(new TypeError('already cancelled'));
+      throw new TypeError('already cancelled');
     }
-    return undefined;
   }
 
   _updateWritableState() {
@@ -214,10 +213,7 @@ class OperationStream {
   }
 
   write(argument) {
-    const checkResult = this._checkWritableState();
-    if (checkResult !== undefined) {
-      return checkResult;
-    }
+    this._checkWritableState();
 
     var size = 1;
     if ('size' in this._strategy) {
@@ -239,10 +235,7 @@ class OperationStream {
   }
 
   close() {
-    const checkResult = this._checkWritableState();
-    if (checkResult !== undefined) {
-      return checkResult;
-    }
+    this._checkWritableState();
 
     this._strategy = undefined;
 
