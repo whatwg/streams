@@ -337,7 +337,7 @@ test('Piping from an empty ReadableStream which becomes non-empty after pipeTo c
   const ws = new WritableStream({
     write(chunk) {
       t.equal(chunk, 'Hello');
-      t.equal(pullCount, 2);
+      t.equal(pullCount, 1);
       t.end();
     },
     close() {
@@ -412,7 +412,7 @@ test('Piping from an empty ReadableStream to a WritableStream in the writable st
     },
     cancel(reason) {
       t.equal(reason, theError, 'underlying source cancellation reason should be the writable stream error');
-      t.equal(pullCount, 1, 'pull should have been called once by cancel-time');
+      t.equal(pullCount, 2, 'pull should have been called once by cancel-time');
     }
   });
 
@@ -673,7 +673,7 @@ test('Piping from a non-empty ReadableStream to a WritableStream in the waiting 
     // Check that nothing happens before calling done(), and then call done()
     // to check that pipeTo is woken up.
     setTimeout(() => {
-      t.equal(pullCount, 2);
+      t.equal(pullCount, 3);
 
       checkSecondWrite = true;
 
@@ -721,11 +721,11 @@ test('Piping from an empty ReadableStream to a WritableStream in the waiting sta
     rs.pipeTo(ws);
     t.equal(rs.state, 'readable');
     t.equal(ws.state, 'waiting');
+    t.equal(pullCount, 1);
 
     resolveWritePromise();
-    // Check that nothing happens.
     setTimeout(() => {
-      t.equal(pullCount, 1);
+      t.equal(pullCount, 2);
 
       t.end();
     }, 100);
@@ -825,7 +825,7 @@ test('Piping from an empty ReadableStream which becomes errored after a pipeTo c
     abort(reason) {
       t.equal(reason, passedError);
       t.assert(writeCalled);
-      t.equal(pullCount, 1);
+      t.equal(pullCount, 2);
     }
   });
   ws.write('Hello');

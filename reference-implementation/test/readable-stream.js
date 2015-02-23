@@ -188,7 +188,7 @@ test('ReadableStream: reading a nonempty stream to the end works fine', t => {
         t.equal(v, 'b', 'second read() should fulfill with the second chunk');
         return rs.read();
       },
-      e => t.fail('second read() should not reject')
+      e => t.fail('second read() should not reject') || t.error(e)
     )
     .then(
       v => t.equal(v, ReadableStream.EOS, 'third read() should fulfill with EOS'),
@@ -345,18 +345,18 @@ test('ReadableStream: should call underlying source pull() in reaction to read()
 
   startPromise.then(() => {
     t.equal(pullCount, 1, 'pull should be called once start finishes');
-  });
 
-  rs.read()
-    .then(v => {
-      t.equal(v, 1, 'first read() should return first chunk');
-      t.equal(pullCount, 2, 'pull should be called in reaction to reading');
-      return rs.read();
-    })
-    .then(v => {
-      t.equal(v, 2, 'second read() should return second chunk');
-      t.equal(pullCount, 3, 'pull should be called in reaction to reading, again');
-    });
+    return rs.read();
+  })
+  .then(v => {
+    t.equal(v, 1, 'first read() should return first chunk');
+    t.equal(pullCount, 2, 'pull should be called in reaction to reading');
+    return rs.read();
+  })
+  .then(v => {
+    t.equal(v, 2, 'second read() should return second chunk');
+    t.equal(pullCount, 3, 'pull should be called in reaction to reading, again');
+  });
 
   setTimeout(() => t.equal(pullCount, 3, 'pull should be called exactly thrice'), 50);
 });

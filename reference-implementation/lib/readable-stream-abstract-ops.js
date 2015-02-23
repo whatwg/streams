@@ -47,7 +47,11 @@ export function CancelReadableStream(stream, reason) {
 }
 
 function CloseReadableStream(stream) {
-  stream._readyPromise_resolve(undefined);
+  if (stream._readPromisePending === true) {
+    stream._resolveReadPromise(ReadableStreamEOS);
+    stream._readPromisePending = false;
+  }
+
   stream._resolveClosedPromise(undefined);
 
   stream._state = 'closed';
@@ -82,40 +86,9 @@ export function CreateReadableStreamEnqueueFunction(stream) {
       throw new TypeError('stream is draining');
     }
 
-    let chunkSize = 1;
-
-    let strategy;
-    try {
-      strategy = stream._underlyingSource.strategy;
-    } catch (strategyE) {
-      stream._error(strategyE);
-      throw strategyE;
-    }
-
-    if (strategy !== undefined) {
-      try {
-        chunkSize = strategy.size(chunk);
-      } catch (chunkSizeE) {
-        stream._error(chunkSizeE);
-        throw chunkSizeE;
-      }
-    }
-
-    const queueWasEmpty = stream._queue.length === 0;
-    try {
-      EnqueueValueWithSize(stream._queue, chunk, chunkSize);
-    } catch (enqueueE) {
-      stream._error(enqueueE);
-      throw enqueueE;
-    }
-
+    EnqueueIntoReadableStream(stream, chunk);
 
     const shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
-
-    if (queueWasEmpty) {
-      stream._readyPromise_resolve(undefined);
-    }
-
     if (shouldApplyBackpressure === true) {
       return false;
     }
@@ -132,7 +105,11 @@ export function CreateReadableStreamErrorFunction(stream) {
     assert(stream._state === 'readable', `stream state ${stream._state} is invalid`);
 
     stream._queue = [];
-    stream._readyPromise_resolve(undefined);
+
+    if (stream._readPromisePending === true) {
+      stream._rejectReadPromise(e);
+    }
+
     stream._rejectClosedPromise(e);
 
     stream._storedError = e;
@@ -140,6 +117,46 @@ export function CreateReadableStreamErrorFunction(stream) {
 
     return undefined;
   };
+}
+
+function EnqueueIntoReadableStream(stream, chunk) {
+  if (stream._readPromisePending === true) {
+    // read() was called and not yet fulfilled; we can skip the queue and put the chunk there
+    assert(stream._readPromise !== undefined);
+
+    stream._resolveReadPromise(chunk);
+    stream._readPromisePending = false;
+
+    // Don't forget to (possibly) call pull, even though the queue size doesn't change
+    stream._readPromise.then(() => CallReadableStreamPull(stream));
+    return undefined;
+  }
+
+  let chunkSize = 1;
+
+  let strategy;
+  try {
+    strategy = stream._underlyingSource.strategy;
+  } catch (strategyE) {
+    stream._error(strategyE);
+    throw strategyE;
+  }
+
+  if (strategy !== undefined) {
+    try {
+      chunkSize = strategy.size(chunk);
+    } catch (chunkSizeE) {
+      stream._error(chunkSizeE);
+      throw chunkSizeE;
+    }
+  }
+
+  try {
+    EnqueueValueWithSize(stream._queue, chunk, chunkSize);
+  } catch (enqueueE) {
+    stream._error(enqueueE);
+    throw enqueueE;
+  }
 }
 
 export function IsReadableStream(x) {
@@ -165,30 +182,30 @@ export function ReadFromReadableStream(stream) {
 
   assert(stream._state === 'readable', `stream state ${stream._state} is invalid`);
 
-  stream._reading = true;
+  if (stream._readPromise !== undefined) {
+    return Promise.reject(new TypeError('A concurrent read is already in progress for this stream'));
+  }
+
+  stream._initReadPromise();
+  stream._readPromisePending = true;
 
   if (stream._queue.length > 0) {
     const chunk = DequeueValue(stream._queue);
+    stream._resolveReadPromise(chunk);
+    stream._readPromisePending = false;
 
-    if (stream._queue.length === 0) {
-      if (stream._draining === true) {
-        CloseReadableStream(stream);
-      } else {
-        stream._initReadyPromise();
-      }
+    if (stream._queue.length === 0 && stream._draining === true) {
+      CloseReadableStream(stream);
     }
-
-    CallReadableStreamPull(stream);
-    const chunkPromise = Promise.resolve(chunk);
-    chunkPromise.then(() => {
-      stream._reading = false;
-    });
-    return chunkPromise;
   }
 
-  // assert: stream._readyPromise is not fulfilled
+  CallReadableStreamPull(stream);
 
-  return stream._readyPromise.then(() => ReadFromReadableStream(stream));
+  stream._readPromise.then(() => {
+    stream._readPromise = undefined;
+  });
+
+  return stream._readPromise;
 }
 
 export function ShouldReadableStreamApplyBackpressure(stream) {

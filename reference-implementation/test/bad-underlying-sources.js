@@ -77,7 +77,7 @@ test('Underlying source: throwing pull getter (second pull)', t => {
   t.equal(rs.state, 'readable', 'the stream should start readable');
 
   rs.read().then(v => {
-    t.equal(rs.state, 'errored', 'the stream should be errored after the first read');
+    t.equal(rs.state, 'readable', 'the stream should not be errored on the first read');
     t.equal(v, 'a', 'the chunk read should be correct');
   });
 
@@ -106,7 +106,7 @@ test('Underlying source: throwing pull method (second pull)', t => {
   t.equal(rs.state, 'readable', 'the stream should start readable');
 
   rs.read().then(v => {
-    t.equal(rs.state, 'errored', 'the stream should be errored after the first read');
+    t.equal(rs.state, 'readable', 'the stream should not be errored on the first read');
     t.equal(v, 'a', 'the chunk read should be correct');
   });
 

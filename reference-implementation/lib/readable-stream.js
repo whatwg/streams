@@ -7,16 +7,25 @@ import { AcquireExclusiveStreamReader, CallReadableStreamPull, CancelReadableStr
 export default class ReadableStream {
   constructor(underlyingSource = {}) {
     this._underlyingSource = underlyingSource;
-    this._initReadyPromise();
+    this._readPromise = undefined;
     this._initClosedPromise();
     this._queue = [];
     this._state = 'readable';
     this._started = false;
     this._draining = false;
-    this._reading = false;
+    this._readPromisePending = false;
     this._pullScheduled = false;
     this._pullingPromise = undefined;
     this._readableStreamReader = undefined;
+
+    // readPromise: created and returned by read() if read() is called in a readable state.
+    // resets to undefined in a .then() after it fulfills.
+
+    // _readPromisePending: when enqueueing, we can do one of two things:
+    // - if _readPromisePending is true, resolve readPromise with the chunk, skipping the queue
+    // - if _readPromisePending is false, go to the queue
+    // it gets set *synchronously* upon resolving or rejecting readPromise, whereas readPromise itself gets cleared
+    // *asynchronously* (after a .then())
 
     this._enqueue = CreateReadableStreamEnqueueFunction(this);
     this._close = CreateReadableStreamCloseFunction(this);
@@ -142,17 +151,14 @@ export default class ReadableStream {
       return Promise.reject(new TypeError('ReadableStream.prototype.read can only be used on a ReadableStream'));
     }
 
-    if (this._reading) {
-      return Promise.reject(new TypeError('A concurrent read is already in progress for this stream'));
-    }
-
     return ReadFromReadableStream(this);
   }
 
 
-  _initReadyPromise() {
-    this._readyPromise = new Promise((resolve) => {
-      this._readyPromise_resolve = resolve;
+  _initReadPromise() {
+    this._readPromise = new Promise((resolve, reject) => {
+      this._readPromise_resolve = resolve;
+      this._readPromise_reject = reject;
     });
   }
 
@@ -168,6 +174,18 @@ export default class ReadableStream {
   // makes extra resolve/reject calls for the same promise fail so that we can
   // detect unexpected extra resolve/reject calls that may be caused by bugs in
   // the algorithm.
+
+  _resolveReadPromise(value) {
+    this._readPromise_resolve(value);
+    this._readPromise_resolve = null;
+    this._readPromise_reject = null;
+  }
+
+  _rejectReadPromise(reason) {
+    this._readPromise_reject(reason);
+    this._readPromise_resolve = null;
+    this._readPromise_reject = null;
+  }
 
   _resolveClosedPromise(value) {
     this._closedPromise_resolve(value);
