@@ -349,48 +349,75 @@ class FakeByteSourceWithBufferPool {
   }
 }
 
-function readAndVerify(ros) {
-  return new Promise((resolve, reject) => {
-    var bytesRead = 0;
+class FakeBufferTakingByteSink {
+  constructor(readableStream) {
+    this._resultPromise = new Promise((resolve, reject) => {
+      this._resolveResultPromise = resolve;
+      this._rejectResultPromise = reject;
+    });
 
-    function pump() {
-      for (;;) {
-        if (ros.state === 'readable') {
-          const op = ros.read();
-          if (op.type === 'data') {
-            const view = op.argument;
+    this._bytesRead = 0;
 
-            // Verify contents of the buffer.
-            for (var i = 0; i < view.byteLength; ++i) {
-              if (view[i] === 1) {
-                ++bytesRead;
-              }
-            }
-
-            // Release the buffer.
-            op.complete();
-
-            continue;
-          } else if (op.type === 'close') {
-            resolve(bytesRead);
-          } else {
-            reject(op.type);
-          }
-        } else if (ros.state === 'waiting') {
-          ros.ready.then(pump);
-        } else if (ros.state === 'cancelled') {
-          reject(ros.cancelOperation.argument);
-        } else {
-          reject(ros.state);
-        }
-        return;
-      }
+    if (readableStream === undefined) {
+      this._streams = createOperationStream(new AdjustableArrayBufferStrategy());
+      this._streams.readable.window = 64;
+    } else {
+      this._streams = {};
+      this._streams.readable = readableStream;
     }
-    pump();
-  });
+
+    this._loop();
+  }
+
+  get result() {
+    return this._resultPromise;
+  }
+
+  get stream() {
+    return this._streams.writable;
+  }
+
+  _loop() {
+    const ros = this._streams.readable;
+
+    for (;;) {
+      if (ros.state === 'readable') {
+        const op = ros.read();
+        if (op.type === 'data') {
+          const view = op.argument;
+
+          // Verify contents of the buffer.
+          for (var i = 0; i < view.byteLength; ++i) {
+            if (view[i] === 1) {
+              ++this._bytesRead;
+            }
+          }
+
+          // Release the buffer.
+          op.complete();
+
+          continue;
+        } else if (op.type === 'close') {
+          op.complete();
+
+          this._resolveResultPromise(this._bytesRead);
+        } else {
+          this._rejectResultPromise(op.type);
+        }
+      } else if (ros.state === 'waiting') {
+        ros.ready.then(this._loop.bind(this)).catch(this._rejectResultPromise.bind(this));
+      } else if (ros.state === 'cancelled') {
+        this._rejectResultPromise(ros.cancelOperation.argument);
+      } else {
+        this._rejectResultPromise(ros.state);
+      }
+      return;
+    }
+    this._loop();
+  }
 }
 
-test('Sample implementation of file API with a buffer pool', t => {
+test('Sample implementation of file API with a buffer pool (pipe)', t => {
   const pool = [];
   for (var i = 0; i < 10; ++i) {
     pool.push(new ArrayBuffer(10));
@@ -400,8 +427,44 @@ test('Sample implementation of file API with a buffer pool', t => {
   const ros = bs.stream;
   ros.window = 64;
 
-  readAndVerify(ros).then(bytesRead => {
+  const sink = new FakeBufferTakingByteSink();
+  const wos = sink.stream;
+
+  pipeOperationStreams(ros, wos);
+
+  sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
+
+    // Check that the buffers are returned to the pool
+    // TODO
+
+    t.end();
+  }).catch(e => {
+    t.fail(e);
     t.end();
   });
 });
+
+test('Sample implementation of file API with a buffer pool (direct writing)', t => {
+  const pool = [];
+  for (var i = 0; i < 10; ++i) {
+    pool.push(new ArrayBuffer(10));
+  }
+
+  const bs = new FakeByteSourceWithBufferPool(pool);
+  const ros = bs.stream;
+  ros.window = 64;
+
+  const sink = new FakeBufferTakingByteSink(ros);
+
+  sink.result.then(bytesRead => {
+    t.equals(bytesRead, 1024);
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+//test('Sample implementation of zero-copy I/O vector passing', t => {
+//});

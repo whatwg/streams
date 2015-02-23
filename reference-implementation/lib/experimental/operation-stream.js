@@ -179,7 +179,7 @@ class OperationStream {
       return undefined;
     }
 
-    if ('space' in this._strategy) {
+    if (this._strategy.space !== undefined) {
       return this._strategy.space(this._queueSize);
     }
 
@@ -200,7 +200,7 @@ class OperationStream {
 
   _updateWritableState() {
     var shouldApplyBackpressure = false;
-    if ('shouldApplyBackpressure' in this._strategy) {
+    if (this._strategy.shouldApplyBackpressure !== undefined) {
       shouldApplyBackpressure = this._strategy.shouldApplyBackpressure(this._queueSize);
     }
     if (shouldApplyBackpressure && this._writableState === 'writable') {
@@ -216,7 +216,7 @@ class OperationStream {
     this._checkWritableState();
 
     var size = 1;
-    if ('size' in this._strategy) {
+    if (this._strategy.size !== undefined) {
       size = this._strategy.size(argument);
     }
 
@@ -312,7 +312,7 @@ class OperationStream {
       return;
     }
 
-    if ('onWindowUpdate' in this._strategy) {
+    if (this._strategy.onWindowUpdate !== undefined) {
       this._strategy.onWindowUpdate(v);
     }
     this._updateWritableState();
