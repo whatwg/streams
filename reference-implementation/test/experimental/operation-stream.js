@@ -254,7 +254,9 @@ class FakeFile {
 
 class FakeByteSourceWithBufferPool {
   constructor(buffers) {
-    this._streams = createOperationStream(new AdjustableArrayBufferStrategy());
+    const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+    this._readableStream = pair.readable;
+    this._writableStream = pair.writable;
 
     this._file = new FakeFile();
     this._fileReadPromise = undefined;
@@ -266,24 +268,24 @@ class FakeByteSourceWithBufferPool {
     this._loop();
   }
 
-  get stream() {
-    return this._streams.readable;
+  get readableStream() {
+    return this._readableStream;
   }
 
   _handleFileReadResult(buffer, result) {
     this._fileReadPromise = undefined;
-    const status = this._streams.writable.write(result.view);
+    const status = this._writableStream.write(result.view);
     this._buffersPassedToUser.push({buffer, status});
     if (result.closed) {
-      this._streams.writable.close();
+      this._writableStream.close();
     }
   }
 
   _loop() {
-    const wos = this._streams.writable;
+    const ws = this._writableStream;
 
     for (;;) {
-      if (wos.state === 'cancelled') {
+      if (ws.state === 'cancelled') {
         return;
       }
 
@@ -300,14 +302,14 @@ class FakeByteSourceWithBufferPool {
           hasProgress = true;
           // Keep going.
         } else if (status.state === 'errored') {
-          wos.abort(status.result);
+          ws.abort(status.result);
           return;
         }
       }
 
       if (this._fileReadPromise === undefined &&
           this._buffersAvailable.length > 0 &&
-          wos.state === 'writable') {
+          ws.state === 'writable') {
         const buffer = this._buffersAvailable.shift();
 
         // Clear the acquired buffer for testing.
@@ -316,8 +318,9 @@ class FakeByteSourceWithBufferPool {
           view[0] = 0;
         }
 
-        this._fileReadPromise = this._file.readInto(view).then(
-            this._handleFileReadResult.bind(this, buffer)).catch(e => wos.abort(e));
+        this._fileReadPromise = this._file.readInto(view)
+            .then(this._handleFileReadResult.bind(this, buffer))
+            .catch(e => ws.abort(e));
 
         hasProgress = true;
       }
@@ -328,10 +331,10 @@ class FakeByteSourceWithBufferPool {
 
       const promisesToRace = [];
 
-      if (wos.state === 'writable') {
-        promisesToRace.push(wos.cancelled);
-      } else if (wos.state === 'waiting') {
-        promisesToRace.push(wos.ready);
+      if (ws.state === 'writable') {
+        promisesToRace.push(ws.cancelled);
+      } else if (ws.state === 'waiting') {
+        promisesToRace.push(ws.ready);
       }
 
       if (this._fileReadPromise !== undefined) {
@@ -342,7 +345,9 @@ class FakeByteSourceWithBufferPool {
         promisesToRace.push(this._buffersPassedToUser[0].status.ready);
       }
 
-      Promise.race(promisesToRace).then(this._loop.bind(this));
+      Promise.race(promisesToRace)
+          .then(this._loop.bind(this))
+          .catch(e => ws.abort.bind(ws, e));
       return;
     }
   }
@@ -350,38 +355,40 @@ class FakeByteSourceWithBufferPool {
 
 class FakeBufferTakingByteSink {
   constructor(readableStream) {
+    if (readableStream === undefined) {
+      const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+      this._readableStream = pair.readable;
+      this._writableStream = pair.writable;
+    } else {
+      this._readableStream = readableStream;
+      this._writableStream = undefined;
+    }
+
     this._resultPromise = new Promise((resolve, reject) => {
       this._resolveResultPromise = resolve;
       this._rejectResultPromise = reject;
     });
-
     this._bytesRead = 0;
 
-    if (readableStream === undefined) {
-      this._streams = createOperationStream(new AdjustableArrayBufferStrategy());
-      this._streams.readable.window = 64;
-    } else {
-      this._streams = {};
-      this._streams.readable = readableStream;
-    }
+    this._readableStream.window = 64;
 
     this._loop();
+  }
+
+  get writableStream() {
+    return this._writableStream;
   }
 
   get result() {
     return this._resultPromise;
   }
 
-  get stream() {
-    return this._streams.writable;
-  }
-
   _loop() {
-    const ros = this._streams.readable;
+    const rs = this._readableStream;
 
     for (;;) {
-      if (ros.state === 'readable') {
-        const op = ros.read();
+      if (rs.state === 'readable') {
+        const op = rs.read();
         if (op.type === 'data') {
           const view = op.argument;
 
@@ -397,39 +404,41 @@ class FakeBufferTakingByteSink {
 
           continue;
         } else if (op.type === 'close') {
+          // Acknowledge the closure.
           op.complete();
 
           this._resolveResultPromise(this._bytesRead);
         } else {
           this._rejectResultPromise(op.type);
         }
-      } else if (ros.state === 'waiting') {
-        ros.ready.then(this._loop.bind(this)).catch(this._rejectResultPromise.bind(this));
-      } else if (ros.state === 'cancelled') {
-        this._rejectResultPromise(ros.cancelOperation.argument);
+      } else if (rs.state === 'waiting') {
+        rs.ready
+            .then(this._loop.bind(this))
+            .catch(this._rejectResultPromise.bind(this));
+      } else if (rs.state === 'aborted') {
+        this._rejectResultPromise(rs.abortOperation.argument);
       } else {
-        this._rejectResultPromise(ros.state);
+        this._rejectResultPromise(rs.state);
       }
       return;
     }
-    this._loop();
   }
 }
 
-test('Sample implementation of file API with a buffer pool (pipe)', t => {
+test('Piping from a source with a buffer pool to a buffer taking sink', t => {
   const pool = [];
   for (var i = 0; i < 10; ++i) {
     pool.push(new ArrayBuffer(10));
   }
 
-  const bs = new FakeByteSourceWithBufferPool(pool);
-  const ros = bs.stream;
-  ros.window = 64;
+  const source = new FakeByteSourceWithBufferPool(pool);
+  const rs = source.readableStream;
+  rs.window = 64;
 
   const sink = new FakeBufferTakingByteSink();
-  const wos = sink.stream;
+  const ws = sink.writableStream;
 
-  pipeOperationStreams(ros, wos);
+  pipeOperationStreams(rs, ws);
 
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
@@ -444,18 +453,17 @@ test('Sample implementation of file API with a buffer pool (pipe)', t => {
   });
 });
 
-test('Sample implementation of file API with a buffer pool (direct writing)', t => {
+test('Consuming bytes from a source with a buffer pool via the ReadableStream interface', t => {
   const pool = [];
   for (var i = 0; i < 10; ++i) {
     pool.push(new ArrayBuffer(10));
   }
 
-  const bs = new FakeByteSourceWithBufferPool(pool);
-  const ros = bs.stream;
-  ros.window = 64;
+  const source = new FakeByteSourceWithBufferPool(pool);
+  const rs = source.readableStream;
+  rs.window = 64;
 
-  const sink = new FakeBufferTakingByteSink(ros);
-
+  const sink = new FakeBufferTakingByteSink(rs);
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
     t.end();
