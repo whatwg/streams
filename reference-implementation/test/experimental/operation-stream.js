@@ -442,6 +442,22 @@ class FakeFileBackedByteSource {
     return puller.readableStream;
   }
 
+  // Returns a WritableOperationStream.
+  //
+  // Example semantics:
+  //
+  // POSIX socket:
+  // - The stream becomes writable when epoll(7) returns, and stays to be writable until read(2) returns EAGAIN.
+  // - The status returned on write() call on the stream will set to the number of bytes written into the buffer passed
+  //   on write() call.
+  //
+  // Blocking or async I/O interfaces which takes a buffer on reading function call:
+  // - The stream is always writable.
+  // - Same as POSIX socket.
+  //
+  // I/O that tells us how much data can be read:
+  // - Hide window setter/getter to the user but adjust based on the info (how much data can be read), so that the user
+  //   can know the info via space getter.
   createBufferFillingStream() {
     class Filler {
       constructor(file) {
