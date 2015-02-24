@@ -432,13 +432,11 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
   }
 
   const source = new FakeByteSourceWithBufferPool(pool);
-  const rs = source.readableStream;
-  rs.window = 64;
+  source.readableStream.window = 64;
 
   const sink = new FakeBufferTakingByteSink();
-  const ws = sink.writableStream;
 
-  pipeOperationStreams(rs, ws);
+  pipeOperationStreams(source.readableStream, sink.writableStream);
 
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
@@ -460,10 +458,9 @@ test('Consuming bytes from a source with a buffer pool via the ReadableStream in
   }
 
   const source = new FakeByteSourceWithBufferPool(pool);
-  const rs = source.readableStream;
-  rs.window = 64;
+  source.readableStream.window = 64;
 
-  const sink = new FakeBufferTakingByteSink(rs);
+  const sink = new FakeBufferTakingByteSink(source.readableStream);
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
     t.end();
@@ -668,13 +665,11 @@ test('Piping from a buffer taking source to a sink with buffer', t => {
   }
 
   const source = new FakeBufferTakingByteSource();
-  const ws = source.writableStream;
 
   const sink = new FakeByteSinkWithBuffer();
-  const rs = sink.readableStream;
-  rs.window = 16;
+  sink.readableStream.window = 16;
 
-  pipeOperationStreams(rs, ws);
+  pipeOperationStreams(sink.readableStream, source.writableStream);
 
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
