@@ -33,6 +33,7 @@ export function pipeOperationStreams(readable, writable) {
           if (op.type === 'data') {
             jointOps(op, writable.write(op.argument));
           } else {
+            // Assert: op.type === 'close'.
             jointOps(op, writable.close(op.argument));
             return;
           }
@@ -45,16 +46,20 @@ export function pipeOperationStreams(readable, writable) {
         if (readable.state === 'readable') {
           promisesToRace.push(readable.aborted);
         } else {
+          // Assert: readable.state === 'readable'.
           promisesToRace.push(readable.ready);
         }
 
         if (writable.state === 'writable') {
           promisesToRace.push(writable.cancelled);
         } else {
+          // Assert: writable.state === 'writable'.
           promisesToRace.push(writable.ready);
         }
 
-        Promise.race(promisesToRace).then(loop);
+        Promise.race(promisesToRace)
+            .then(loop)
+            .catch(reject);
         return;
       }
     }

@@ -185,7 +185,11 @@ test('Pipe', t => {
   wos0.write('world');
   wos0.close();
 
-  pipeOperationStreams(ros0, wos1);
+  pipeOperationStreams(ros0, wos1)
+      .catch(e => {
+        t.fail(e);
+        t.end();
+      });
 
   t.equals(ros1.state, 'waiting');
 
@@ -441,7 +445,11 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
 
   const sink = new FakeBufferTakingByteSink();
 
-  pipeOperationStreams(source.readableStream, sink.writableStream);
+  pipeOperationStreams(source.readableStream, sink.writableStream)
+      .catch(e => {
+        t.fail(e);
+        t.end();
+      });
 
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
@@ -698,7 +706,11 @@ test('Piping from a buffer taking source to a sink with buffer', t => {
   const sink = new FakeByteSinkWithBuffer();
   sink.readableStream.window = 16;
 
-  pipeOperationStreams(sink.readableStream, source.writableStream);
+  pipeOperationStreams(sink.readableStream, source.writableStream)
+      .catch(e => {
+        t.fail(e);
+        t.end();
+      });
 
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
