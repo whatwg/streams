@@ -222,6 +222,15 @@ test('Pipe', t => {
   });
 });
 
+function fillArrayBufferView(view, c, size) {
+  if (size === undefined) {
+    size = view.byteLength;
+  }
+  for (var i = 0; i < size; ++i) {
+    view[i] = c;
+  }
+}
+
 class FakeFile {
   constructor() {
     this._bytesToWrite = 1024;
@@ -233,9 +242,7 @@ class FakeFile {
         try {
           const bytesToWriteThisTime = Math.min(this._bytesToWrite, view.byteLength);
 
-          for (var i = 0; i < bytesToWriteThisTime; ++i) {
-            view[i] = 1;
-          }
+          fillArrayBufferView(view, 1, bytesToWriteThisTime);
 
           this._bytesToWrite -= bytesToWriteThisTime;
 
@@ -314,9 +321,7 @@ class FakeByteSourceWithBufferPool {
 
         // Clear the acquired buffer for testing.
         const view = new Uint8Array(buffer);
-        for (var i = 0; i < view.byteLength; ++i) {
-          view[0] = 0;
-        }
+        fillArrayBufferView(view, 0);
 
         this._fileReadPromise = this._file.readInto(view)
             .then(this._handleFileReadResult.bind(this, buffer))
