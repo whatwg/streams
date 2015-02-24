@@ -460,10 +460,13 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
 
-    // Check that the buffers are returned to the pool
-    // TODO
-
-    pipePromise.then(() => t.end());
+    pipePromise.then(() => {
+      Promise.resolve().then(() => {
+        // Check that the buffers have been returned to the pool.
+        t.equals(pool.length, 10);
+        t.end();
+      });
+    });
   }).catch(e => {
     t.fail(e);
     t.end();
@@ -482,7 +485,14 @@ test('Consuming bytes from a source with a buffer pool via the ReadableStream in
   const sink = new FakeBufferTakingByteSink(source.readableStream);
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
-    t.end();
+
+    Promise.resolve().then(() => {
+      Promise.resolve().then(() => {
+        // Check that the buffers have been returned to the pool.
+        t.equals(pool.length, 10);
+        t.end();
+      });
+    });
   }).catch(e => {
     t.fail(e);
     t.end();
