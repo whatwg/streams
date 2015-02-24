@@ -856,11 +856,6 @@ test('Consuming bytes from a source with a buffer pool via the ReadableStream in
 });
 
 test('Piping from a buffer taking source to a sink with buffer', t => {
-  const pool = [];
-  for (var i = 0; i < 10; ++i) {
-    pool.push(new ArrayBuffer(10));
-  }
-
   const file = new FakeFileBackedByteSource();
   const bufferFillingStream = file.createBufferFillingStream();
   bufferFillingStream.window = 16;
