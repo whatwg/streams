@@ -21,6 +21,28 @@ function jointOps(op, status) {
 
 export function pipeOperationStreams(readable, writable) {
   return new Promise((resolve, reject) => {
+    function select() {
+      const promisesToRace = [];
+
+      if (readable.state === 'readable') {
+        promisesToRace.push(readable.aborted);
+      } else {
+        // Assert: readable.state === 'readable'.
+        promisesToRace.push(readable.ready);
+      }
+
+      if (writable.state === 'writable') {
+        promisesToRace.push(writable.cancelled);
+      } else {
+        // Assert: writable.state === 'writable'.
+        promisesToRace.push(writable.ready);
+      }
+
+      Promise.race(promisesToRace)
+          .then(loop)
+          .catch(reject);
+    }
+
     function loop() {
       for (;;) {
         if (readable.state === 'aborted' || writable.state === 'cancelled') {
@@ -42,25 +64,7 @@ export function pipeOperationStreams(readable, writable) {
           continue;
         }
 
-        const promisesToRace = [];
-
-        if (readable.state === 'readable') {
-          promisesToRace.push(readable.aborted);
-        } else {
-          // Assert: readable.state === 'readable'.
-          promisesToRace.push(readable.ready);
-        }
-
-        if (writable.state === 'writable') {
-          promisesToRace.push(writable.cancelled);
-        } else {
-          // Assert: writable.state === 'writable'.
-          promisesToRace.push(writable.ready);
-        }
-
-        Promise.race(promisesToRace)
-            .then(loop)
-            .catch(reject);
+        select();
         return;
       }
     }
