@@ -6,23 +6,23 @@ export function createOperationStream(strategy) {
   };
 }
 
-function jointOps(op, status) {
-  function forward() {
-    if (status.state === 'waiting') {
-      status.ready.then(forward);
-    } else if (status.state === 'errored') {
-      op.error(status.result);
-    } else {
-      op.complete(status.result);
-    }
-  }
-  forward();
-}
-
 export function pipeOperationStreams(readable, writable) {
   const oldWindow = readable.window;
 
   return new Promise((resolve, reject) => {
+    function jointOps(op, status) {
+      function forward() {
+        if (status.state === 'waiting') {
+          status.ready.then(forward);
+        } else if (status.state === 'errored') {
+          op.error(status.result);
+        } else {
+          op.complete(status.result);
+        }
+      }
+      forward();
+    }
+
     function select() {
       const promisesToRace = [];
 
