@@ -28,9 +28,9 @@ export function selectOperationStreams(readable, writable) {
 }
 
 export function pipeOperationStreams(readable, writable) {
-  const oldWindow = readable.window;
-
   return new Promise((resolve, reject) => {
+    const oldWindow = readable.window;
+
     function jointOps(op, status) {
       function forward() {
         if (status.state === 'waiting') {

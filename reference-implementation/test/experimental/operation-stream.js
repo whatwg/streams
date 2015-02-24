@@ -247,9 +247,11 @@ test('Byte counting transform stream', t => {
   wos0.close();
 
   function byteCountingPipe(readable, writable) {
-    let count = 0;
-
     return new Promise((resolve, reject) => {
+      const oldWindow = readable.window;
+
+      let count = 0;
+
       function loop() {
         for (;;) {
           if (readable.state === 'aborted' || writable.state === 'cancelled') {
