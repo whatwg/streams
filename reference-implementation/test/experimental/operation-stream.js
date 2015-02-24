@@ -292,6 +292,30 @@ class FakeByteSourceWithBufferPool {
     }
   }
 
+  _select() {
+    const promisesToRace = [];
+
+    const ws = this._writableStream;
+
+    if (ws.state === 'writable') {
+      promisesToRace.push(ws.cancelled);
+    } else if (ws.state === 'waiting') {
+      promisesToRace.push(ws.ready);
+    }
+
+    if (this._fileReadPromise !== undefined) {
+      promisesToRace.push(this._fileReadPromise);
+    }
+
+    if (this._buffersPassedToUser.length > 0) {
+      promisesToRace.push(this._buffersPassedToUser[0].status.ready);
+    }
+
+    Promise.race(promisesToRace)
+        .then(this._loop.bind(this))
+        .catch(ws.abort.bind(ws));
+  }
+
   _loop() {
     const ws = this._writableStream;
 
@@ -329,7 +353,7 @@ class FakeByteSourceWithBufferPool {
 
         this._fileReadPromise = this._file.readInto(view)
             .then(this._handleFileReadResult.bind(this, buffer))
-            .catch(e => ws.abort(e));
+            .catch(ws.abort);
 
         hasProgress = true;
       }
@@ -338,25 +362,7 @@ class FakeByteSourceWithBufferPool {
         continue;
       }
 
-      const promisesToRace = [];
-
-      if (ws.state === 'writable') {
-        promisesToRace.push(ws.cancelled);
-      } else if (ws.state === 'waiting') {
-        promisesToRace.push(ws.ready);
-      }
-
-      if (this._fileReadPromise !== undefined) {
-        promisesToRace.push(this._fileReadPromise);
-      }
-
-      if (this._buffersPassedToUser.length > 0) {
-        promisesToRace.push(this._buffersPassedToUser[0].status.ready);
-      }
-
-      Promise.race(promisesToRace)
-          .then(this._loop.bind(this))
-          .catch(e => ws.abort.bind(ws, e));
+      this._select();
       return;
     }
   }
