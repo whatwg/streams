@@ -551,6 +551,26 @@ class FakeBufferTakingByteSource {
     this._fileReadStatus = status;
   }
 
+  _select() {
+    const promisesToRace = [];
+
+    const rs = this._readableStream;
+
+    if (rs.state === 'readable') {
+      promisesToRace.push(rs.aborted);
+    } else if (rs.state === 'waiting') {
+      promisesToRace.push(rs.ready);
+    }
+
+    if (this._fileReadStatus !== undefined && this._fileReadStatus.state === 'waiting') {
+      promisesToRace.push(this._fileReadStatus.ready);
+    }
+
+    Promise.race(promisesToRace)
+        .then(this._loop.bind(this))
+        .catch(rs.cancel.bind(rs));
+  }
+
   _loop() {
     const rs = this._readableStream;
 
@@ -577,21 +597,7 @@ class FakeBufferTakingByteSource {
         continue;
       }
 
-      const promisesToRace = [];
-
-      if (rs.state === 'readable') {
-        promisesToRace.push(rs.aborted);
-      } else if (rs.state === 'waiting') {
-        promisesToRace.push(rs.ready);
-      }
-
-      if (this._fileReadStatus !== undefined && this._fileReadStatus.state === 'waiting') {
-        promisesToRace.push(this._fileReadStatus.ready);
-      }
-
-      Promise.race(promisesToRace)
-          .then(this._loop.bind(this))
-          .catch(rs.cancel.bind(rs));
+      this._select();
       return;
     }
   }
@@ -641,6 +647,26 @@ class FakeByteSinkWithBuffer {
     return closed;
   }
 
+  _select() {
+    const promisesToRace = [];
+
+    const ws = this._writableStream;
+
+    if (ws.state === 'writable') {
+      promisesToRace.push(ws.cancelled);
+    } else if (ws.state === 'waiting') {
+      promisesToRace.push(ws.ready);
+    }
+
+    if (this._currentReadStatus !== undefined && this._currentReadStatus.state === 'waiting') {
+      promisesToRace.push(this._currentReadStatus.ready);
+    }
+
+    Promise.race(promisesToRace)
+        .then(this._loop.bind(this))
+        .catch(this._rejectResultPromise.bind(this));
+  }
+
   _loop() {
     const ws = this._writableStream;
 
@@ -683,21 +709,7 @@ class FakeByteSinkWithBuffer {
         continue;
       }
 
-      const promisesToRace = [];
-
-      if (ws.state === 'writable') {
-        promisesToRace.push(ws.cancelled);
-      } else if (ws.state === 'waiting') {
-        promisesToRace.push(ws.ready);
-      }
-
-      if (this._currentReadStatus !== undefined && this._currentReadStatus.state === 'waiting') {
-        promisesToRace.push(this._currentReadStatus.ready);
-      }
-
-      Promise.race(promisesToRace)
-          .then(this._loop.bind(this))
-          .catch(this._rejectResultPromise.bind(this));
+      this._select();
       return;
     }
   }
