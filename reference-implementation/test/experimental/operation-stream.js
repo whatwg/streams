@@ -606,12 +606,6 @@ class BytesSetToOneExpectingByteSinkInternalWriter {
   constructor(sink, readableStream) {
     this._readableStream = readableStream;
 
-    this._resultPromise = new Promise((resolve, reject) => {
-      this._resolveResultPromise = resolve;
-      this._rejectResultPromise = reject;
-    });
-    this._bytesRead = 0;
-
     this._sink = sink;
 
     this._loop();
