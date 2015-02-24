@@ -334,10 +334,8 @@ class FakeFileBackedByteSource {
 
   createBufferProducingStreamWithPool(buffers) {
     class Puller {
-      constructor(file, buffers) {
-        const pair = createOperationStream(new AdjustableArrayBufferStrategy());
-        this._readableStream = pair.readable;
-        this._writableStream = pair.writable;
+      constructor(file, buffers, writableStream) {
+        this._writableStream = writableStream;
 
         this._file = file;
         this._fileReadPromise = undefined;
@@ -347,10 +345,6 @@ class FakeFileBackedByteSource {
         this._buffersPassedToUser = [];
 
         this._loop();
-      }
-
-      get readableStream() {
-        return this._readableStream;
       }
 
       _handleFileReadResult(buffer, result) {
@@ -438,8 +432,9 @@ class FakeFileBackedByteSource {
       }
     }
 
-    const puller = new Puller(this, buffers);
-    return puller.readableStream;
+    const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+    new Puller(this, buffers, pair.writable);
+    return pair.readable;
   }
 
   // Returns a WritableOperationStream.
@@ -462,14 +457,13 @@ class FakeFileBackedByteSource {
     class Filler {
       constructor(file, readableStream) {
         this._readableStream = readableStream;
+        this._readableStream.window = 1;
 
         this._currentRequest = undefined;
 
         this._file = file;
 
         this._fileReadStatus = undefined;
-
-        this._readableStream.window = 1;
 
         this._loop();
       }
@@ -779,15 +773,12 @@ class BytesSetToOneExpectingByteSink {
     }
 
     const pair = createOperationStream(new AdjustableArrayBufferStrategy());
-    const writer = new BufferProvidingWriter(this, pair.writable);
+    new BufferProvidingWriter(this, pair.writable);
     return pair.readable;
   }
 
   createBufferConsumingStream() {
     const pair = createOperationStream(new AdjustableArrayBufferStrategy());
-    this._readableStream = pair.readable;
-    this._writableStream = pair.writable;
-
     new BytesSetToOneExpectingByteSinkInternalWriter(this, pair.readable);
     return pair.writable;
   }
