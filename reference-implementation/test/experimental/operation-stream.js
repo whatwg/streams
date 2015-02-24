@@ -332,7 +332,242 @@ class FakeFile {
     this._bytesToWrite = 1024;
   }
 
-  readInto(view) {
+  createStreamForPassiveReading(buffers) {
+    class Puller {
+      constructor(file, buffers) {
+        const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+        this._readableStream = pair.readable;
+        this._writableStream = pair.writable;
+
+        this._file = file;
+        this._fileReadPromise = undefined;
+
+        this._buffersAvailable = buffers;
+
+        this._buffersPassedToUser = [];
+
+        this._loop();
+      }
+
+      get readableStream() {
+        return this._readableStream;
+      }
+
+      _handleFileReadResult(buffer, result) {
+        this._fileReadPromise = undefined;
+        const status = this._writableStream.write(result.view);
+        this._buffersPassedToUser.push({buffer, status});
+        if (result.closed) {
+          this._writableStream.close();
+        }
+      }
+
+      _select() {
+        const promisesToRace = [];
+
+        const ws = this._writableStream;
+
+        if (ws.state === 'writable') {
+          promisesToRace.push(ws.cancelled);
+        } else if (ws.state === 'waiting') {
+          promisesToRace.push(ws.ready);
+        }
+
+        if (this._fileReadPromise !== undefined) {
+          promisesToRace.push(this._fileReadPromise);
+        }
+
+        if (this._buffersPassedToUser.length > 0) {
+          promisesToRace.push(this._buffersPassedToUser[0].status.ready);
+        }
+
+        Promise.race(promisesToRace)
+            .then(this._loop.bind(this))
+            .catch(ws.abort.bind(ws));
+      }
+
+      _loop() {
+        const ws = this._writableStream;
+
+        for (;;) {
+          if (ws.state === 'cancelled') {
+            return;
+          }
+
+          var hasProgress = false;
+
+          if (this._buffersPassedToUser.length > 0) {
+            const entry = this._buffersPassedToUser[0];
+            const status = entry.status;
+            if (status.state === 'completed') {
+              this._buffersPassedToUser.shift();
+
+              this._buffersAvailable.push(entry.buffer);
+
+              hasProgress = true;
+              // Keep going.
+            } else if (status.state === 'errored') {
+              ws.abort(status.result);
+              return;
+            }
+          }
+
+          if (this._fileReadPromise === undefined &&
+              this._buffersAvailable.length > 0 &&
+              ws.state === 'writable') {
+            const buffer = this._buffersAvailable.shift();
+
+            // Clear the acquired buffer for testing.
+            const view = new Uint8Array(buffer);
+            fillArrayBufferView(view, 0);
+
+            this._fileReadPromise = this._file._readInto(view)
+                .then(this._handleFileReadResult.bind(this, buffer))
+                .catch(ws.abort);
+
+            hasProgress = true;
+          }
+
+          if (hasProgress) {
+            continue;
+          }
+
+          this._select();
+          return;
+        }
+      }
+    }
+
+    const puller = new Puller(this, buffers);
+    return puller.readableStream;
+  }
+
+  createStreamForReadingWithBuffer() {
+    class Filler {
+      constructor(file) {
+        const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+        this._readableStream = pair.readable;
+        this._writableStream = pair.writable;
+
+        this._currentRequest = undefined;
+
+        this._file = file;
+
+        this._fileReadStatus = undefined;
+
+        this._readableStream.window = 1;
+
+        this._loop();
+      }
+
+      get writableStream() {
+        return this._writableStream;
+      }
+
+      _handleFileReadCompletion() {
+        this._currentRequest.complete(this._fileReadStatus.result);
+        this._currentRequest = undefined;
+
+        this._fileReadStatus = undefined
+      }
+
+      _handleFileReadError() {
+        const error = this._fileReadStatus.result;
+
+        this._currentRequest.error(error);
+        this._currentRequest = undefined;
+
+        this._readableStream.cancel(error);
+
+        this._fileReadStatus = undefined;
+      }
+
+      _transformReadFromFileFulfillment(result) {
+        this._fileReadStatus.state = 'completed';
+        this._fileReadStatus.result = {closed: result.closed, bytesWritten: result.view.byteLength};
+      }
+
+      _transformReadFromFileRejection(e) {
+        this._fileReadStatus.state = 'errored';
+        this._fileReadStatus.result = e;
+      }
+
+      _readFromFile() {
+        const op = this._readableStream.read();
+
+        if (op.type === 'close') {
+          return;
+        }
+        // Assert: op.type === 'data'.
+
+        this._currentRequest = op;
+
+        const status = {};
+        status.state = 'waiting';
+        status.ready = this._file._readInto(op.argument)
+            .then(this._transformReadFromFileFulfillment.bind(this))
+            .catch(this._transformReadFromFileRejection.bind(this));
+
+        this._fileReadStatus = status;
+      }
+
+      _select() {
+        const promisesToRace = [];
+
+        const rs = this._readableStream;
+
+        if (rs.state === 'readable') {
+          promisesToRace.push(rs.aborted);
+        } else if (rs.state === 'waiting') {
+          promisesToRace.push(rs.ready);
+        }
+
+        if (this._fileReadStatus !== undefined && this._fileReadStatus.state === 'waiting') {
+          promisesToRace.push(this._fileReadStatus.ready);
+        }
+
+        Promise.race(promisesToRace)
+            .then(this._loop.bind(this))
+            .catch(rs.cancel.bind(rs));
+      }
+
+      _loop() {
+        const rs = this._readableStream;
+
+        for (;;) {
+          if (rs.state === 'aborted') {
+            if (this._currentRequest !== undefined) {
+              this._currentRequest.error(rs.abortOperation.argument);
+            }
+
+            return;
+          }
+
+          if (this._currentRequest !== undefined) {
+            if (this._fileReadStatus.state === 'errored') {
+              this._handleFileReadError();
+              return;
+            } else if (this._fileReadStatus.state === 'completed') {
+              this._handleFileReadCompletion();
+            }
+          }
+
+          if (rs.state === 'readable' && this._currentRequest === undefined) {
+            this._readFromFile();
+            continue;
+          }
+
+          this._select();
+          return;
+        }
+      }
+    }
+
+    const filler = new Filler(this);
+    return filler.writableStream;
+  }
+
+  _readInto(view) {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         try {
@@ -352,111 +587,6 @@ class FakeFile {
         }
       }, 0);
     });
-  }
-}
-
-class FakeByteSourceWithBufferPool {
-  constructor(buffers) {
-    const pair = createOperationStream(new AdjustableArrayBufferStrategy());
-    this._readableStream = pair.readable;
-    this._writableStream = pair.writable;
-
-    this._file = new FakeFile();
-    this._fileReadPromise = undefined;
-
-    this._buffersAvailable = buffers;
-
-    this._buffersPassedToUser = [];
-
-    this._loop();
-  }
-
-  get readableStream() {
-    return this._readableStream;
-  }
-
-  _handleFileReadResult(buffer, result) {
-    this._fileReadPromise = undefined;
-    const status = this._writableStream.write(result.view);
-    this._buffersPassedToUser.push({buffer, status});
-    if (result.closed) {
-      this._writableStream.close();
-    }
-  }
-
-  _select() {
-    const promisesToRace = [];
-
-    const ws = this._writableStream;
-
-    if (ws.state === 'writable') {
-      promisesToRace.push(ws.cancelled);
-    } else if (ws.state === 'waiting') {
-      promisesToRace.push(ws.ready);
-    }
-
-    if (this._fileReadPromise !== undefined) {
-      promisesToRace.push(this._fileReadPromise);
-    }
-
-    if (this._buffersPassedToUser.length > 0) {
-      promisesToRace.push(this._buffersPassedToUser[0].status.ready);
-    }
-
-    Promise.race(promisesToRace)
-        .then(this._loop.bind(this))
-        .catch(ws.abort.bind(ws));
-  }
-
-  _loop() {
-    const ws = this._writableStream;
-
-    for (;;) {
-      if (ws.state === 'cancelled') {
-        return;
-      }
-
-      var hasProgress = false;
-
-      if (this._buffersPassedToUser.length > 0) {
-        const entry = this._buffersPassedToUser[0];
-        const status = entry.status;
-        if (status.state === 'completed') {
-          this._buffersPassedToUser.shift();
-
-          this._buffersAvailable.push(entry.buffer);
-
-          hasProgress = true;
-          // Keep going.
-        } else if (status.state === 'errored') {
-          ws.abort(status.result);
-          return;
-        }
-      }
-
-      if (this._fileReadPromise === undefined &&
-          this._buffersAvailable.length > 0 &&
-          ws.state === 'writable') {
-        const buffer = this._buffersAvailable.shift();
-
-        // Clear the acquired buffer for testing.
-        const view = new Uint8Array(buffer);
-        fillArrayBufferView(view, 0);
-
-        this._fileReadPromise = this._file.readInto(view)
-            .then(this._handleFileReadResult.bind(this, buffer))
-            .catch(ws.abort);
-
-        hasProgress = true;
-      }
-
-      if (hasProgress) {
-        continue;
-      }
-
-      this._select();
-      return;
-    }
   }
 }
 
@@ -536,13 +666,14 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
     pool.push(new ArrayBuffer(10));
   }
 
-  const source = new FakeByteSourceWithBufferPool(pool);
+  const file = new FakeFile();
 
   const sink = new FakeBufferTakingByteSink();
   sink.writableStream.window = 64;
 
-  // pipeOperationStreams automatically adjusts source.window.
-  const pipePromise = pipeOperationStreams(source.readableStream, sink.writableStream)
+  // pipeOperationStreams automatically adjusts window of the readable side.
+  const pipePromise = pipeOperationStreams(
+      file.createStreamForPassiveReading(pool), sink.writableStream)
   pipePromise.catch(e => {
     t.fail(e);
     t.end();
@@ -570,10 +701,11 @@ test('Consuming bytes from a source with a buffer pool via the ReadableStream in
     pool.push(new ArrayBuffer(10));
   }
 
-  const source = new FakeByteSourceWithBufferPool(pool);
-  source.readableStream.window = 64;
+  const file = new FakeFile();
+  const rs = file.createStreamForPassiveReading(pool);
+  rs.window = 64;
 
-  const sink = new FakeBufferTakingByteSink(source.readableStream);
+  const sink = new FakeBufferTakingByteSink(rs);
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
 
@@ -589,126 +721,6 @@ test('Consuming bytes from a source with a buffer pool via the ReadableStream in
     t.end();
   });
 });
-
-class FakeBufferTakingByteSource {
-  constructor() {
-    const pair = createOperationStream(new AdjustableArrayBufferStrategy());
-    this._readableStream = pair.readable;
-    this._writableStream = pair.writable;
-
-    this._currentRequest = undefined;
-
-    this._file = new FakeFile();
-
-    this._fileReadStatus = undefined;
-
-    this._readableStream.window = 1;
-
-    this._loop();
-  }
-
-  get writableStream() {
-    return this._writableStream;
-  }
-
-  _handleFileReadCompletion() {
-    this._currentRequest.complete(this._fileReadStatus.result);
-    this._currentRequest = undefined;
-
-    this._fileReadStatus = undefined
-  }
-
-  _handleFileReadError() {
-    const error = this._fileReadStatus.result;
-
-    this._currentRequest.error(error);
-    this._currentRequest = undefined;
-
-    this._readableStream.cancel(error);
-
-    this._fileReadStatus = undefined;
-  }
-
-  _transformReadFromFileFulfillment(result) {
-    this._fileReadStatus.state = 'completed';
-    this._fileReadStatus.result = {closed: result.closed, bytesWritten: result.view.byteLength};
-  }
-
-  _transformReadFromFileRejection(e) {
-    this._fileReadStatus.state = 'errored';
-    this._fileReadStatus.result = e;
-  }
-
-  _readFromFile() {
-    const op = this._readableStream.read();
-
-    if (op.type === 'close') {
-      return;
-    }
-    // Assert: op.type === 'data'.
-
-    this._currentRequest = op;
-
-    const status = {};
-    status.state = 'waiting';
-    status.ready = this._file.readInto(op.argument)
-        .then(this._transformReadFromFileFulfillment.bind(this))
-        .catch(this._transformReadFromFileRejection.bind(this));
-
-    this._fileReadStatus = status;
-  }
-
-  _select() {
-    const promisesToRace = [];
-
-    const rs = this._readableStream;
-
-    if (rs.state === 'readable') {
-      promisesToRace.push(rs.aborted);
-    } else if (rs.state === 'waiting') {
-      promisesToRace.push(rs.ready);
-    }
-
-    if (this._fileReadStatus !== undefined && this._fileReadStatus.state === 'waiting') {
-      promisesToRace.push(this._fileReadStatus.ready);
-    }
-
-    Promise.race(promisesToRace)
-        .then(this._loop.bind(this))
-        .catch(rs.cancel.bind(rs));
-  }
-
-  _loop() {
-    const rs = this._readableStream;
-
-    for (;;) {
-      if (rs.state === 'aborted') {
-        if (this._currentRequest !== undefined) {
-          this._currentRequest.error(rs.abortOperation.argument);
-        }
-
-        return;
-      }
-
-      if (this._currentRequest !== undefined) {
-        if (this._fileReadStatus.state === 'errored') {
-          this._handleFileReadError();
-          return;
-        } else if (this._fileReadStatus.state === 'completed') {
-          this._handleFileReadCompletion();
-        }
-      }
-
-      if (rs.state === 'readable' && this._currentRequest === undefined) {
-        this._readFromFile();
-        continue;
-      }
-
-      this._select();
-      return;
-    }
-  }
-}
 
 class FakeByteSinkWithBuffer {
   constructor() {
@@ -828,14 +840,15 @@ test('Piping from a buffer taking source to a sink with buffer', t => {
     pool.push(new ArrayBuffer(10));
   }
 
-  const source = new FakeBufferTakingByteSource();
-  source.writableStream.window = 16;
+  const file = new FakeFile();
+  const writableStream = file.createStreamForReadingWithBuffer();
+  writableStream.window = 16;
 
   const sink = new FakeByteSinkWithBuffer();
   // This also works.
   // sink.readableStream.window = 16;
 
-  const pipePromise = pipeOperationStreams(sink.readableStream, source.writableStream);
+  const pipePromise = pipeOperationStreams(sink.readableStream, writableStream);
   pipePromise.catch(e => {
     t.fail(e);
     t.end();
