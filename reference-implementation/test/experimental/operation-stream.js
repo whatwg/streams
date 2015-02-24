@@ -181,9 +181,15 @@ test('Pipe', t => {
   const wos1 = pair1.writable;
   const ros1 = pair1.readable;
 
-  const helloStatus = wos0.write('hello');
-  wos0.write('world');
-  wos0.close();
+  var helloStatus;
+  t.equals(wos0.state, 'waiting');
+  wos0.ready.then(() => {
+    t.equals(wos0.state, 'writable');
+
+    helloStatus = wos0.write('hello');
+    wos0.write('world');
+    wos0.close();
+  });
 
   pipeOperationStreams(ros0, wos1)
       .catch(e => {
@@ -385,8 +391,6 @@ class FakeBufferTakingByteSink {
     });
     this._bytesRead = 0;
 
-    this._readableStream.window = 64;
-
     this._loop();
   }
 
@@ -447,10 +451,11 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
   }
 
   const source = new FakeByteSourceWithBufferPool(pool);
-  source.readableStream.window = 64;
 
   const sink = new FakeBufferTakingByteSink();
+  sink.writableStream.window = 64;
 
+  // pipeOperationStreams automatically adjusts source.window.
   const pipePromise = pipeOperationStreams(source.readableStream, sink.writableStream)
   pipePromise.catch(e => {
     t.fail(e);
@@ -738,9 +743,11 @@ test('Piping from a buffer taking source to a sink with buffer', t => {
   }
 
   const source = new FakeBufferTakingByteSource();
+  source.writableStream.window = 16;
 
   const sink = new FakeByteSinkWithBuffer();
-  sink.readableStream.window = 16;
+  // This also works.
+  // sink.readableStream.window = 16;
 
   const pipePromise = pipeOperationStreams(sink.readableStream, source.writableStream);
   pipePromise.catch(e => {

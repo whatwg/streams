@@ -20,6 +20,8 @@ function jointOps(op, status) {
 }
 
 export function pipeOperationStreams(readable, writable) {
+  const oldWindow = readable.window;
+
   return new Promise((resolve, reject) => {
     function select() {
       const promisesToRace = [];
@@ -36,32 +38,45 @@ export function pipeOperationStreams(readable, writable) {
       } else {
         // Assert: writable.state === 'writable'.
         promisesToRace.push(writable.ready);
+        promisesToRace.push(writable.waitSpaceChange());
       }
 
       Promise.race(promisesToRace)
           .then(loop)
-          .catch(reject);
+          .catch(e => {
+            readable.window = oldWindow;
+            reject();
+          });
     }
 
     function loop() {
       for (;;) {
         if (readable.state === 'aborted' || writable.state === 'cancelled') {
+          readable.window = oldWindow;
           reject();
+
           return;
         }
 
-        if (readable.state === 'readable' && writable.state === 'writable') {
-          const op = readable.read();
-          if (op.type === 'data') {
-            jointOps(op, writable.write(op.argument));
-          } else {
-            // Assert: op.type === 'close'.
-            jointOps(op, writable.close(op.argument));
-            resolve();
-            return;
-          }
+        if (writable.state === 'writable') {
+          if (readable.state === 'readable') {
+            const op = readable.read();
+            if (op.type === 'data') {
+              jointOps(op, writable.write(op.argument));
+            } else {
+              // Assert: op.type === 'close'.
+              jointOps(op, writable.close(op.argument));
 
-          continue;
+              readable.window = oldWindow;
+              resolve();
+
+              return;
+            }
+
+            continue;
+          } else {
+            readable.window = writable.space;
+          }
         }
 
         select();
@@ -133,6 +148,10 @@ class OperationStream {
     this._queueSize = 0;
 
     this._strategy = strategy;
+
+    this._lastSpace = undefined;
+    this._spaceChangePromise = undefined;
+
     this._window = 0;
 
     this._writableState = 'waiting';
@@ -195,6 +214,18 @@ class OperationStream {
 
     return undefined;
   }
+  waitSpaceChange() {
+    if (this._spaceChangePromise !== undefined) {
+      return this._spaceChangePromise;
+    }
+
+    this._spaceChangePromise = new Promise((resolve, reject) => {
+      this._resolveSpaceChangePromise = resolve;
+    });
+    this._lastSpace = this.space;
+
+    return this._spaceChangePromise;
+  }
 
   _checkWritableState() {
     if (this._writableState === 'closed') {
@@ -209,7 +240,7 @@ class OperationStream {
   }
 
   _updateWritableState() {
-    var shouldApplyBackpressure = false;
+    let shouldApplyBackpressure = false;
     if (this._strategy.shouldApplyBackpressure !== undefined) {
       shouldApplyBackpressure = this._strategy.shouldApplyBackpressure(this._queueSize);
     }
@@ -219,6 +250,14 @@ class OperationStream {
     } else if (!shouldApplyBackpressure && this._writableState === 'waiting') {
       this._writableState = 'writable';
       this._resolveWritableReadyPromise();
+    }
+
+    if (this._spaceChangePromise !== undefined && this._lastSpace !== this.space) {
+      this._resolveSpaceChangePromise();
+
+      this._lastSpace = undefined;
+      this._spaceChangePromise = undefined;
+      this._resolveSpaceChangePromise = undefined;
     }
   }
 
@@ -416,8 +455,18 @@ class WritableOperationStream {
     return this._stream.cancelled;
   }
 
+  get window() {
+    return this._stream.window;
+  }
+  set window(v) {
+    this._stream.window = v;
+  }
+
   get space() {
     return this._stream.space;
+  }
+  waitSpaceChange() {
+    return this._stream.waitSpaceChange();
   }
 
   write(value) {
