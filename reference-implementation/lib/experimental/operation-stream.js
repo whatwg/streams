@@ -6,6 +6,27 @@ export function createOperationStream(strategy) {
   };
 }
 
+export function selectOperationStreams(readable, writable) {
+  const promisesToRace = [];
+
+  if (readable.state === 'readable') {
+    promisesToRace.push(readable.aborted);
+  } else {
+    // Assert: readable.state === 'readable'.
+    promisesToRace.push(readable.ready);
+  }
+
+  if (writable.state === 'writable') {
+    promisesToRace.push(writable.cancelled);
+  } else {
+    // Assert: writable.state === 'writable'.
+    promisesToRace.push(writable.ready);
+    promisesToRace.push(writable.waitSpaceChange());
+  }
+
+  return Promise.race(promisesToRace);
+}
+
 export function pipeOperationStreams(readable, writable) {
   const oldWindow = readable.window;
 
@@ -21,32 +42,6 @@ export function pipeOperationStreams(readable, writable) {
         }
       }
       forward();
-    }
-
-    function select() {
-      const promisesToRace = [];
-
-      if (readable.state === 'readable') {
-        promisesToRace.push(readable.aborted);
-      } else {
-        // Assert: readable.state === 'readable'.
-        promisesToRace.push(readable.ready);
-      }
-
-      if (writable.state === 'writable') {
-        promisesToRace.push(writable.cancelled);
-      } else {
-        // Assert: writable.state === 'writable'.
-        promisesToRace.push(writable.ready);
-        promisesToRace.push(writable.waitSpaceChange());
-      }
-
-      Promise.race(promisesToRace)
-          .then(loop)
-          .catch(e => {
-            readable.window = oldWindow;
-            reject();
-          });
     }
 
     function loop() {
@@ -65,7 +60,7 @@ export function pipeOperationStreams(readable, writable) {
               jointOps(op, writable.write(op.argument));
             } else {
               // Assert: op.type === 'close'.
-              jointOps(op, writable.close(op.argument));
+              jointOps(op, writable.close());
 
               readable.window = oldWindow;
               resolve();
@@ -79,7 +74,12 @@ export function pipeOperationStreams(readable, writable) {
           }
         }
 
-        select();
+        selectOperationStreams(readable, writable)
+            .then(loop)
+            .catch(e => {
+              readable.window = oldWindow;
+              reject();
+            });
         return;
       }
     }

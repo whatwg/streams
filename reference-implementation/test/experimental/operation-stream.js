@@ -232,6 +232,90 @@ test('Pipe', t => {
   });
 });
 
+test('Byte counting transform stream', t => {
+  const pair0 = createOperationStream(new AdjustableStringStrategy());
+  const wos0 = pair0.writable;
+  const ros0 = pair0.readable;
+
+  const pair1 = createOperationStream(new AdjustableStringStrategy());
+  const wos1 = pair1.writable;
+  const ros1 = pair1.readable;
+
+  wos0.write('hello');
+  wos0.write('world');
+  wos0.write('goodbye');
+  wos0.close();
+
+  function byteCountingPipe(readable, writable) {
+    let count = 0;
+
+    return new Promise((resolve, reject) => {
+      function loop() {
+        for (;;) {
+          if (readable.state === 'aborted' || writable.state === 'cancelled') {
+            readable.window = oldWindow;
+            reject();
+
+            return;
+          }
+
+          if (writable.state === 'writable') {
+            if (readable.state === 'readable') {
+              const op = readable.read();
+              if (op.type === 'data') {
+                count += op.argument.length;
+                op.complete();
+              } else {
+                writable.write(count);
+                writable.close();
+                op.complete();
+
+                readable.window = oldWindow;
+                resolve();
+
+                return;
+              }
+
+              continue;
+            } else {
+              if (writable.space > 0) {
+                readable.window = 1;
+              }
+            }
+          }
+
+          selectOperationStreams(readable, writable)
+            .then(loop)
+            .catch(e => {
+              readable.window = oldWindow;
+              reject();
+            });
+          return;
+        }
+      }
+      loop();
+    });
+  }
+
+  byteCountingPipe(ros0, wos1)
+      .catch(e => {
+        t.fail(e);
+        t.end();
+      });
+
+  ros1.window = 1;
+
+  ros1.ready.then(() => {
+    const op = ros1.read();
+    t.equals(op.type, 'data');
+    t.equals(op.argument, 17);
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
 function fillArrayBufferView(view, c, size) {
   if (size === undefined) {
     size = view.byteLength;
