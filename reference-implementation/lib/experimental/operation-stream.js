@@ -35,6 +35,7 @@ export function pipeOperationStreams(readable, writable) {
           } else {
             // Assert: op.type === 'close'.
             jointOps(op, writable.close(op.argument));
+            resolve();
             return;
           }
 

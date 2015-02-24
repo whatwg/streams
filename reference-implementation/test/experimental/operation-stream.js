@@ -445,11 +445,11 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
 
   const sink = new FakeBufferTakingByteSink();
 
-  pipeOperationStreams(source.readableStream, sink.writableStream)
-      .catch(e => {
-        t.fail(e);
-        t.end();
-      });
+  const pipePromise = pipeOperationStreams(source.readableStream, sink.writableStream)
+  pipePromise.catch(e => {
+    t.fail(e);
+    t.end();
+  });
 
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
@@ -457,7 +457,7 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
     // Check that the buffers are returned to the pool
     // TODO
 
-    t.end();
+    pipePromise.then(() => t.end());
   }).catch(e => {
     t.fail(e);
     t.end();
@@ -533,11 +533,18 @@ class FakeBufferTakingByteSource {
   }
 
   _readFromFile() {
-    this._currentRequest = this._readableStream.read();
+    const op = this._readableStream.read();
+
+    if (op.type === 'close') {
+      return;
+    }
+    // Assert: op.type === 'data'.
+
+    this._currentRequest = op;
 
     const status = {};
     status.state = 'waiting';
-    status.ready = this._file.readInto(this._currentRequest.argument)
+    status.ready = this._file.readInto(op.argument)
         .then(this._transformReadFromFileFulfillment.bind(this))
         .catch(this._transformReadFromFileRejection.bind(this));
 
@@ -658,6 +665,7 @@ class FakeByteSinkWithBuffer {
       if (this._currentReadStatus !== undefined && this._currentReadStatus.state === 'completed') {
         const closed = this._handleReadCompletion();
         if (closed) {
+          ws.close();
           this._resolveResultPromise(this._bytesRead);
           return;
         }
@@ -706,15 +714,15 @@ test('Piping from a buffer taking source to a sink with buffer', t => {
   const sink = new FakeByteSinkWithBuffer();
   sink.readableStream.window = 16;
 
-  pipeOperationStreams(sink.readableStream, source.writableStream)
-      .catch(e => {
-        t.fail(e);
-        t.end();
-      });
+  const pipePromise = pipeOperationStreams(sink.readableStream, source.writableStream);
+  pipePromise.catch(e => {
+    t.fail(e);
+    t.end();
+  });
 
   sink.result.then(bytesRead => {
     t.equals(bytesRead, 1024);
-    t.end();
+    pipePromise.then(() => t.end());
   }).catch(e => {
     t.fail(e);
     t.end();
