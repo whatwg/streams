@@ -574,7 +574,7 @@ class FakeFileBackedByteSource {
     }
 
     const pair = createOperationStream(new AdjustableArrayBufferStrategy());
-    const filler = new Filler(this, pair.readable);
+    new Filler(this, pair.readable);
     return pair.writable;
   }
 
@@ -588,10 +588,11 @@ class FakeFileBackedByteSource {
 
           this._bytesToWrite -= bytesToWriteThisTime;
 
+          const writtenRegion = new Uint8Array(view.buffer, view.byteOffset, bytesToWriteThisTime);
           if (this._bytesToWrite === 0) {
-            resolve({closed: true, view: new Uint8Array(view.buffer, view.byteOffset, bytesToWriteThisTime)});
+            resolve({closed: true, view: writtenRegion});
           } else {
-            resolve({closed: false, view: new Uint8Array(view.buffer, view.byteOffset, bytesToWriteThisTime)});
+            resolve({closed: false, view: writtenRegion});
           }
         } catch (e) {
           reject(e);
