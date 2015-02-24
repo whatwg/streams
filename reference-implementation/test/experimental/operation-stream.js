@@ -590,72 +590,6 @@ class FakeFileBackedByteSource {
   }
 }
 
-test('Piping from a source with a buffer pool to a buffer taking sink', t => {
-  const pool = [];
-  for (var i = 0; i < 10; ++i) {
-    pool.push(new ArrayBuffer(10));
-  }
-
-  const file = new FakeFileBackedByteSource();
-
-  const sink = new BytesSetToOneExpectingByteSink();
-  const bufferConsumingStream = sink.createBufferConsumingStream();
-  bufferConsumingStream.window = 64;
-
-  // pipeOperationStreams automatically adjusts window of the readable side.
-  const pipePromise = pipeOperationStreams(
-      file.createBufferProducingStreamWithPool(pool), bufferConsumingStream)
-  pipePromise.catch(e => {
-    t.fail(e);
-    t.end();
-  });
-
-  sink.result.then(bytesRead => {
-    t.equals(bytesRead, 1024);
-
-    pipePromise.then(() => {
-      Promise.resolve().then(() => {
-        // Check that the buffers have been returned to the pool.
-        t.equals(pool.length, 10);
-        t.end();
-      });
-    });
-  }).catch(e => {
-    t.fail(e);
-    t.end();
-  });
-});
-
-test('Consuming bytes from a source with a buffer pool via the ReadableStream interface', t => {
-  const pool = [];
-  for (var i = 0; i < 10; ++i) {
-    pool.push(new ArrayBuffer(10));
-  }
-
-  const file = new FakeFileBackedByteSource();
-  const bufferProducingStream = file.createBufferProducingStreamWithPool(pool);
-  bufferProducingStream.window = 64;
-
-  const sink = new BytesSetToOneExpectingByteSink();
-
-  sink.writeFrom(bufferProducingStream);
-
-  sink.result.then(bytesRead => {
-    t.equals(bytesRead, 1024);
-
-    Promise.resolve().then(() => {
-      Promise.resolve().then(() => {
-        // Check that the buffers have been returned to the pool.
-        t.equals(pool.length, 10);
-        t.end();
-      });
-    });
-  }).catch(e => {
-    t.fail(e);
-    t.end();
-  });
-});
-
 class BytesSetToOneExpectingByteSinkInternalWriter {
   constructor(sink, readableStream) {
     this._readableStream = readableStream;
@@ -862,6 +796,72 @@ class BytesSetToOneExpectingByteSink {
   }
 
 }
+
+test('Piping from a source with a buffer pool to a buffer taking sink', t => {
+  const pool = [];
+  for (var i = 0; i < 10; ++i) {
+    pool.push(new ArrayBuffer(10));
+  }
+
+  const file = new FakeFileBackedByteSource();
+
+  const sink = new BytesSetToOneExpectingByteSink();
+  const bufferConsumingStream = sink.createBufferConsumingStream();
+  bufferConsumingStream.window = 64;
+
+  // pipeOperationStreams automatically adjusts window of the readable side.
+  const pipePromise = pipeOperationStreams(
+      file.createBufferProducingStreamWithPool(pool), bufferConsumingStream)
+  pipePromise.catch(e => {
+    t.fail(e);
+    t.end();
+  });
+
+  sink.result.then(bytesRead => {
+    t.equals(bytesRead, 1024);
+
+    pipePromise.then(() => {
+      Promise.resolve().then(() => {
+        // Check that the buffers have been returned to the pool.
+        t.equals(pool.length, 10);
+        t.end();
+      });
+    });
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('Consuming bytes from a source with a buffer pool via the ReadableStream interface', t => {
+  const pool = [];
+  for (var i = 0; i < 10; ++i) {
+    pool.push(new ArrayBuffer(10));
+  }
+
+  const file = new FakeFileBackedByteSource();
+  const bufferProducingStream = file.createBufferProducingStreamWithPool(pool);
+  bufferProducingStream.window = 64;
+
+  const sink = new BytesSetToOneExpectingByteSink();
+
+  sink.writeFrom(bufferProducingStream);
+
+  sink.result.then(bytesRead => {
+    t.equals(bytesRead, 1024);
+
+    Promise.resolve().then(() => {
+      Promise.resolve().then(() => {
+        // Check that the buffers have been returned to the pool.
+        t.equals(pool.length, 10);
+        t.end();
+      });
+    });
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
 
 test('Piping from a buffer taking source to a sink with buffer', t => {
   const pool = [];
