@@ -496,6 +496,46 @@ class FakeBufferTakingByteSource {
     return this._writableStream;
   }
 
+  _handleFileReadCompletion() {
+    this._currentRequest.complete(this._fileReadStatus.result);
+    this._currentRequest = undefined;
+
+    this._fileReadStatus = undefined
+  }
+
+  _handleFileReadError() {
+    const error = this._fileReadStatus.result;
+
+    this._currentRequest.error(error);
+    this._currentRequest = undefined;
+
+    this._readableStream.cancel(error);
+
+    this._fileReadStatus = undefined;
+  }
+
+  _transformReadFromFileFulfillment(result) {
+    this._fileReadStatus.state = 'completed';
+    this._fileReadStatus.result = {closed: result.closed, bytesWritten: result.view.byteLength};
+  }
+
+  _transformReadFromFileRejection(e) {
+    this._fileReadStatus.state = 'errored';
+    this._fileReadStatus.result = e;
+  }
+
+  _readFromFile() {
+    this._currentRequest = this._readableStream.read();
+
+    const status = {};
+    status.state = 'waiting';
+    status.ready = this._file.readInto(this._currentRequest.argument)
+        .then(this._transformReadFromFileFulfillment.bind(this))
+        .catch(this._transformReadFromFileRejection.bind(this));
+
+    this._fileReadStatus = status;
+  }
+
   _loop() {
     const rs = this._readableStream;
 
@@ -508,39 +548,17 @@ class FakeBufferTakingByteSource {
         return;
       }
 
-      if (this._currentRequest !== undefined && this._fileReadStatus.state !== 'waiting') {
+      if (this._currentRequest !== undefined) {
         if (this._fileReadStatus.state === 'errored') {
-          const error = this._fileReadStatus.result;
-          this._fileReadStatus = undefined
-
-          this._currentRequest.error(error);
-          this._currentRequest = undefined;
-
-          rs.cancel(error);
-
+          this._handleFileReadError();
           return;
+        } else if (this._fileReadStatus.state === 'completed') {
+          this._handleFileReadCompletion();
         }
-
-        this._currentRequest.complete(this._fileReadStatus.result);
-        this._currentRequest = undefined;
-
-        this._fileReadStatus = undefined
       }
 
-      if (this._currentRequest === undefined && rs.state === 'readable') {
-        this._currentRequest = rs.read();
-
-        this._fileReadStatus = {};
-        this._fileReadStatus.state = 'waiting';
-        this._fileReadStatus.ready = this._file.readInto(this._currentRequest.argument)
-            .then(result => {
-              this._fileReadStatus.state = 'completed';
-              this._fileReadStatus.result = {closed: result.closed, bytesWritten: result.view.byteLength};
-            }).catch(e => {
-              this._fileReadStatus.state = 'errored';
-              this._fileReadStatus.result = e;
-            });
-
+      if (rs.state === 'readable' && this._currentRequest === undefined) {
+        this._readFromFile();
         continue;
       }
 
@@ -552,13 +570,13 @@ class FakeBufferTakingByteSource {
         promisesToRace.push(rs.ready);
       }
 
-      if (this._currentRequest !== undefined && this._fileReadStatus.state === 'waiting') {
+      if (this._fileReadStatus !== undefined && this._fileReadStatus.state === 'waiting') {
         promisesToRace.push(this._fileReadStatus.ready);
       }
 
       Promise.race(promisesToRace)
           .then(this._loop.bind(this))
-          .catch(e => rs.cancel.bind(rs, e));
+          .catch(rs.cancel.bind(rs));
       return;
     }
   }
@@ -591,6 +609,23 @@ class FakeByteSinkWithBuffer {
     return this._resultPromise;
   }
 
+  _handleReadCompletion() {
+    const bytesWritten = this._currentReadStatus.result.bytesWritten;
+    const closed = this._currentReadStatus.result.closed;
+
+    // Verify contents of the buffer.
+    const view = new Uint8Array(this._buffer, 0, bytesWritten);
+    for (var i = 0; i < bytesWritten; ++i) {
+      if (view[i] === 1) {
+        ++this._bytesRead;
+      }
+    }
+
+    this._currentReadStatus = undefined;
+
+    return closed;
+  }
+
   _loop() {
     const ws = this._writableStream;
 
@@ -613,18 +648,7 @@ class FakeByteSinkWithBuffer {
       let hasProgress = false;
 
       if (this._currentReadStatus !== undefined && this._currentReadStatus.state === 'completed') {
-        const bytesWritten = this._currentReadStatus.result.bytesWritten;
-        const closed = this._currentReadStatus.result.closed;
-        this._currentReadStatus = undefined;
-
-        // Verify contents of the buffer.
-        const view = new Uint8Array(this._buffer, 0, bytesWritten);
-        for (var i = 0; i < bytesWritten; ++i) {
-          if (view[i] === 1) {
-            ++this._bytesRead;
-          }
-        }
-
+        const closed = this._handleReadCompletion();
         if (closed) {
           this._resolveResultPromise(this._bytesRead);
           return;
@@ -633,7 +657,7 @@ class FakeByteSinkWithBuffer {
         hasProgress = true;
       }
 
-      if (this._currentReadStatus === undefined && ws.state === 'writable') {
+      if (ws.state === 'writable' && this._currentReadStatus === undefined) {
         this._currentReadStatus = ws.write(new Uint8Array(this._buffer));
 
         hasProgress = true;
@@ -657,7 +681,7 @@ class FakeByteSinkWithBuffer {
 
       Promise.race(promisesToRace)
           .then(this._loop.bind(this))
-          .catch(e => this._rejectResultPromise.bind(this, e));
+          .catch(this._rejectResultPromise.bind(this));
       return;
     }
   }
