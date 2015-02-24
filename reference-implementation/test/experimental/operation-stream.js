@@ -460,10 +460,8 @@ class FakeFileBackedByteSource {
   //   can know the info via space getter.
   createBufferFillingStream() {
     class Filler {
-      constructor(file) {
-        const pair = createOperationStream(new AdjustableArrayBufferStrategy());
-        this._readableStream = pair.readable;
-        this._writableStream = pair.writable;
+      constructor(file, readableStream) {
+        this._readableStream = readableStream;
 
         this._currentRequest = undefined;
 
@@ -474,10 +472,6 @@ class FakeFileBackedByteSource {
         this._readableStream.window = 1;
 
         this._loop();
-      }
-
-      get writableStream() {
-        return this._writableStream;
       }
 
       _handleFileReadCompletion() {
@@ -579,8 +573,9 @@ class FakeFileBackedByteSource {
       }
     }
 
-    const filler = new Filler(this);
-    return filler.writableStream;
+    const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+    const filler = new Filler(this, pair.readable);
+    return pair.writable;
   }
 
   _readInto(view) {
@@ -691,10 +686,8 @@ class BytesSetToOneExpectingByteSink {
 
   createBufferProducingStream() {
     class BufferProvidingWriter {
-      constructor(sink) {
-        const pair = createOperationStream(new AdjustableArrayBufferStrategy());
-        this._readableStream = pair.readable;
-        this._writableStream = pair.writable;
+      constructor(sink, writableStream) {
+        this._writableStream = writableStream;
 
         this._currentReadStatus = undefined;
 
@@ -703,10 +696,6 @@ class BytesSetToOneExpectingByteSink {
         this._sink = sink;
 
         this._loop();
-      }
-
-      get readableStream() {
-        return this._readableStream;
       }
 
       _handleReadCompletion() {
@@ -794,8 +783,9 @@ class BytesSetToOneExpectingByteSink {
       }
     }
 
-    const writer = new BufferProvidingWriter(this);
-    return writer.readableStream;
+    const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+    const writer = new BufferProvidingWriter(this, pair.writable);
+    return pair.readable;
   }
 
   createBufferConsumingStream() {
