@@ -173,7 +173,7 @@ test('Asynchronous write, read and completion of the operation', t => {
 });
 
 test('abort()', t => {
-  t.plan(8);
+  t.plan(9);
 
   const pair = createOperationStream(new AdjustableStringStrategy());
   const wos = pair.writable;
@@ -186,6 +186,7 @@ test('abort()', t => {
   const testCompletion = 'good';
 
   const status = wos.abort(testError);
+  t.equals(wos.state, 'aborted', 'wos.state');
   status.ready.then(() => {
     t.equals(status.state, 'completed', 'status.state');
     t.equals(status.result, testCompletion, 'status.result');
@@ -208,7 +209,7 @@ test('abort()', t => {
 });
 
 test('cancel()', t => {
-  t.plan(8);
+  t.plan(9);
 
   const pair = createOperationStream(new AdjustableStringStrategy());
   const wos = pair.writable;
@@ -221,6 +222,7 @@ test('cancel()', t => {
   const testCompletion = 'good';
 
   const status = ros.cancel(testError);
+  t.equals(ros.state, 'cancelled', 'ros.state');
   status.ready.then(() => {
     t.equals(status.state, 'completed', 'status.state');
     t.equals(status.result, testCompletion, 'status.result');
