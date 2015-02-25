@@ -303,10 +303,10 @@ class OperationStream {
 
   abort(reason) {
     if (this._writableState === 'aborted') {
-      return Promise.reject(new TypeError('already aborted'));
+      throw new TypeError('already aborted');
     }
     if (this._writableState === 'cancelled') {
-      return Promise.reject(new TypeError('already cancelled'))
+      throw new TypeError('already cancelled');
     }
 
     for (var i = this._queue.length - 1; i >= 0; --i) {
