@@ -27,72 +27,6 @@ export function selectOperationStreams(readable, writable) {
   return Promise.race(promises);
 }
 
-export function pipeOperationStreams(readable, writable) {
-  return new Promise((resolve, reject) => {
-    const oldWindow = readable.window;
-
-    function restoreWindowAndReject(e) {
-      readable.window = oldWindow;
-      reject(e);
-    }
-
-    function jointOps(op, status) {
-      function forward() {
-        if (status.state === 'waiting') {
-          status.ready.then(forward);
-        } else if (status.state === 'errored') {
-          op.error(status.result);
-        } else {
-          op.complete(status.result);
-        }
-      }
-      forward();
-    }
-
-    function loop() {
-      for (;;) {
-        if (readable.state === 'aborted') {
-          restoreWindowAndReject(new TypeError('readable is aborted'));
-          return;
-        }
-        if (writable.state === 'cancelled') {
-          restoreWindowAndReject(new TypeError('writable is cancelled'));
-          return;
-        }
-
-        if (writable.state === 'writable') {
-          if (readable.state === 'readable') {
-            const op = readable.read();
-            if (op.type === 'data') {
-              jointOps(op, writable.write(op.argument));
-            } else if (op.type === 'close') {
-              jointOps(op, writable.close());
-
-              readable.window = oldWindow;
-              resolve();
-
-              return;
-            } else {
-              restoreWindowAndReject(new TypeError('unexpected operation type: ' + op.type));
-              return;
-            }
-
-            continue;
-          } else {
-            readable.window = writable.space;
-          }
-        }
-
-        selectOperationStreams(readable, writable)
-            .then(loop)
-            .catch(restoreWindowAndReject);
-        return;
-      }
-    }
-    loop();
-  });
-}
-
 class OperationStatus {
   constructor() {
     this._state = 'waiting';
@@ -514,6 +448,73 @@ class ReadableOperationStream {
 
   read() {
     return this._stream.read();
+  }
+  pipeTo(dest) {
+    return new Promise((resolve, reject) => {
+      const source = this;
+
+      const oldWindow = source.window;
+
+      function restoreWindowAndReject(e) {
+        source.window = oldWindow;
+        reject(e);
+      }
+
+      function jointOps(op, status) {
+        function forward() {
+          if (status.state === 'waiting') {
+            status.ready.then(forward);
+          } else if (status.state === 'errored') {
+            op.error(status.result);
+          } else {
+            op.complete(status.result);
+          }
+        }
+        forward();
+      }
+
+      function loop() {
+        for (;;) {
+          if (source.state === 'aborted') {
+            restoreWindowAndReject(new TypeError('aborted'));
+            return;
+          }
+          if (dest.state === 'cancelled') {
+            restoreWindowAndReject(new TypeError('dest is cancelled'));
+            return;
+          }
+
+          if (dest.state === 'writable') {
+            if (source.state === 'readable') {
+              const op = source.read();
+              if (op.type === 'data') {
+                jointOps(op, dest.write(op.argument));
+              } else if (op.type === 'close') {
+                jointOps(op, dest.close());
+
+                source.window = oldWindow;
+                resolve();
+
+                return;
+              } else {
+                restoreWindowAndReject(new TypeError('unexpected operation type: ' + op.type));
+                return;
+              }
+
+              continue;
+            } else {
+              source.window = dest.space;
+            }
+          }
+
+          selectOperationStreams(source, dest)
+              .then(loop)
+              .catch(restoreWindowAndReject);
+          return;
+        }
+      }
+      loop();
+    });
   }
   cancel(reason) {
     return this._stream.cancel(reason);

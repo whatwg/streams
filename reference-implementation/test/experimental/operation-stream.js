@@ -191,7 +191,7 @@ test('Pipe', t => {
     wos0.close();
   });
 
-  pipeOperationStreams(ros0, wos1)
+  ros0.pipeTo(wos1)
       .catch(e => {
         t.fail(e);
         t.end();
@@ -802,8 +802,7 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
   bufferConsumingStream.window = 64;
 
   // pipeOperationStreams automatically adjusts window of the readable side.
-  const pipePromise = pipeOperationStreams(
-      file.createBufferProducingStreamWithPool(pool), bufferConsumingStream)
+  const pipePromise = file.createBufferProducingStreamWithPool(pool).pipeTo(bufferConsumingStream);
   pipePromise.catch(e => {
     t.fail(e);
     t.end();
@@ -865,7 +864,7 @@ test('Piping from a buffer taking source to a sink with buffer', t => {
   const sink = new BytesSetToOneExpectingByteSink();
   const writableBufferProducingStream = sink.createBufferProducingStream();
 
-  const pipePromise = pipeOperationStreams(writableBufferProducingStream, bufferFillingStream);
+  const pipePromise = writableBufferProducingStream.pipeTo(bufferFillingStream);
   pipePromise.catch(e => {
     t.fail(e);
     t.end();
