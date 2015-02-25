@@ -152,15 +152,15 @@ test('Asynchronous write, read and completion of the operation', t => {
   t.equals(wos.state, 'waiting');
   t.equals(wos.space, 0);
 
-  ros.window = 10
+  ros.window = 10;
   t.equals(wos.state, 'waiting');
   t.equals(wos.space, 0);
 
-  ros.window = 15
+  ros.window = 15;
   t.equals(wos.state, 'writable');
   t.equals(wos.space, 5);
 
-  ros.window = 20
+  ros.window = 20;
   t.equals(wos.state, 'writable');
   t.equals(wos.space, 10);
 
@@ -801,7 +801,7 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
   const bufferConsumingStream = sink.createBufferConsumingStream();
   bufferConsumingStream.window = 64;
 
-  // pipeOperationStreams automatically adjusts window of the readable side.
+  // pipeTo automatically adjusts window of the readable side.
   const pipePromise = file.createBufferProducingStreamWithPool(pool).pipeTo(bufferConsumingStream);
   pipePromise.catch(e => {
     t.fail(e);
