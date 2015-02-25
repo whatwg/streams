@@ -65,14 +65,14 @@ export function pipeOperationStreams(source, dest) {
       for (;;) {
         if (source.state === 'aborted') {
           if (dest.state !== 'cancelled') {
-            jointOps(source.abortOperation, dest.cancel(source.abortOperation.argument));
+            jointOps(source.abortOperation, dest.abort(source.abortOperation.argument));
           }
           restoreWindowAndReject(new TypeError('aborted'));
           return;
         }
         if (dest.state === 'cancelled') {
           if (source.state !== 'aborted') {
-            jointOps(dest.cancelOperation, source.abort(dest.cancelOperation.argument));
+            jointOps(dest.cancelOperation, source.cancel(dest.cancelOperation.argument));
           }
           restoreWindowAndReject(new TypeError('dest is cancelled'));
           return;
@@ -436,7 +436,7 @@ class OperationStream {
 
     for (var i = 0; i < this._queue.length; ++i) {
       const op = this._queue[i].value;
-      op.error(new TypeError('cancelled'));
+      op.error(reason);
     }
     this._queue = [];
     this._strategy = undefined;

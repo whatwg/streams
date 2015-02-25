@@ -172,7 +172,77 @@ test('Asynchronous write, read and completion of the operation', t => {
   t.end();
 });
 
-test('pipeOperationStreams', t => {
+test('abort()', t => {
+  t.plan(8);
+
+  const pair = createOperationStream(new AdjustableStringStrategy());
+  const wos = pair.writable;
+  const ros = pair.readable;
+
+  const helloStatus = wos.write('hello');
+  const worldStatus = wos.write('world');
+
+  const testError = new TypeError('foo');
+  const testCompletion = 'good';
+
+  const status = wos.abort(testError);
+  status.ready.then(() => {
+    t.equals(status.state, 'completed', 'status.state');
+    t.equals(status.result, testCompletion, 'status.result');
+  });
+
+  helloStatus.ready.then(() => {
+    t.equals(helloStatus.state, 'errored', 'helloStatus.state');
+    t.equals(helloStatus.result.message, 'aborted', 'helloStatus.result');
+  });
+  worldStatus.ready.then(() => {
+    t.equals(worldStatus.state, 'errored', 'worldStatus.state');
+    t.equals(worldStatus.result.message, 'aborted', 'worldStatus.result');
+  });
+  ros.aborted.then(() => {
+    t.equals(ros.state, 'aborted', 'ros.state');
+    t.equals(ros.abortOperation.argument, testError, 'ros.abortOperation.argument');
+
+    ros.abortOperation.complete(testCompletion);
+  });
+});
+
+test('cancel()', t => {
+  t.plan(8);
+
+  const pair = createOperationStream(new AdjustableStringStrategy());
+  const wos = pair.writable;
+  const ros = pair.readable;
+
+  const helloStatus = wos.write('hello');
+  const worldStatus = wos.write('world');
+
+  const testError = new TypeError('foo');
+  const testCompletion = 'good';
+
+  const status = ros.cancel(testError);
+  status.ready.then(() => {
+    t.equals(status.state, 'completed', 'status.state');
+    t.equals(status.result, testCompletion, 'status.result');
+  });
+
+  helloStatus.ready.then(() => {
+    t.equals(helloStatus.state, 'errored', 'helloStatus.state');
+    t.equals(helloStatus.result, testError, 'helloStatus.result');
+  });
+  worldStatus.ready.then(() => {
+    t.equals(worldStatus.state, 'errored', 'worldStatus.state');
+    t.equals(worldStatus.result, testError, 'worldStatus.result');
+  });
+  wos.cancelled.then(() => {
+    t.equals(wos.state, 'cancelled', 'wos.state');
+    t.equals(wos.cancelOperation.argument, testError, 'wos.cancelOperation.argument');
+
+    wos.cancelOperation.complete(testCompletion);
+  });
+});
+
+test('pipeOperationStreams()', t => {
   const pair0 = createOperationStream(new AdjustableStringStrategy());
   const wos0 = pair0.writable;
   const ros0 = pair0.readable;
@@ -183,10 +253,13 @@ test('pipeOperationStreams', t => {
 
   var helloStatus;
   t.equals(wos0.state, 'waiting');
+  // Check that wos0 becomes writable.
   wos0.ready.then(() => {
     t.equals(wos0.state, 'writable');
 
     helloStatus = wos0.write('hello');
+
+    // Just write without state check.
     wos0.write('world');
     wos0.close();
   });
@@ -229,6 +302,96 @@ test('pipeOperationStreams', t => {
   }).catch(e => {
     t.fail(e);
     t.end();
+  });
+});
+
+test('pipeOperationStreams(): abort() propagation', t => {
+  t.plan(9);
+
+  const pair0 = createOperationStream(new AdjustableStringStrategy());
+  const wos0 = pair0.writable;
+  const ros0 = pair0.readable;
+
+  const pair1 = createOperationStream(new AdjustableStringStrategy());
+  const wos1 = pair1.writable;
+  const ros1 = pair1.readable;
+
+  const helloStatus = wos0.write('hello');
+  const worldStatus = wos0.write('world');
+
+  const testError = new TypeError('foo');
+  const testCompletion = 'good';
+
+  const pipePromise = pipeOperationStreams(ros0, wos1);
+  pipePromise
+      .then(
+          v => t.fail('pipePromise is fulfilled with ' + v),
+          e => t.equals(e.message, 'aborted', 'rejection reason of pipePromise'));
+
+  const status = wos0.abort(testError);
+  status.ready.then(() => {
+    t.equals(status.state, 'completed', 'status.state');
+    t.equals(status.result, testCompletion, 'status.result');
+  });
+
+  helloStatus.ready.then(() => {
+    t.equals(helloStatus.state, 'errored', 'helloStatus.state');
+    t.equals(helloStatus.result.message, 'aborted', 'helloStatus.result');
+  });
+  worldStatus.ready.then(() => {
+    t.equals(worldStatus.state, 'errored', 'worldStatus.state');
+    t.equals(worldStatus.result.message, 'aborted', 'worldStatus.result');
+  });
+  ros1.aborted.then(() => {
+    t.equals(ros1.state, 'aborted', 'ros.state');
+    t.equals(ros1.abortOperation.argument, testError, 'ros1.abortOperation.argument');
+
+    ros1.abortOperation.complete(testCompletion);
+  });
+});
+
+test('pipeOperationStreams(): cancel() propagation', t => {
+  t.plan(9);
+
+  const pair0 = createOperationStream(new AdjustableStringStrategy());
+  const wos0 = pair0.writable;
+  const ros0 = pair0.readable;
+
+  const pair1 = createOperationStream(new AdjustableStringStrategy());
+  const wos1 = pair1.writable;
+  const ros1 = pair1.readable;
+
+  const helloStatus = wos0.write('hello');
+  const worldStatus = wos0.write('world');
+
+  const testError = new TypeError('foo');
+  const testCompletion = 'good';
+
+  const pipePromise = pipeOperationStreams(ros0, wos1);
+  pipePromise
+      .then(
+          v => t.fail('pipePromise is fulfilled with ' + v),
+          e => t.equals(e.message, 'dest is cancelled', 'rejection reason of pipePromise'));
+
+  const status = ros1.cancel(testError);
+  status.ready.then(() => {
+    t.equals(status.state, 'completed', 'status.state');
+    t.equals(status.result, testCompletion, 'status.result');
+  });
+
+  helloStatus.ready.then(() => {
+    t.equals(helloStatus.state, 'errored', 'helloStatus.state');
+    t.equals(helloStatus.result, testError, 'helloStatus.result');
+  });
+  worldStatus.ready.then(() => {
+    t.equals(worldStatus.state, 'errored', 'worldStatus.state');
+    t.equals(worldStatus.result, testError, 'worldStatus.result');
+  });
+  wos0.cancelled.then(() => {
+    t.equals(wos0.state, 'cancelled', 'wos0.state');
+    t.equals(wos0.cancelOperation.argument, testError, 'wos0.cancelOperation.argument');
+
+    wos0.cancelOperation.complete(testCompletion);
   });
 });
 
