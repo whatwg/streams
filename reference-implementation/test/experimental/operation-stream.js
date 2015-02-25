@@ -132,7 +132,7 @@ test('Asynchronous write, read and completion of the operation', t => {
   }, e => {
     t.fail(e);
     t.end();
-  })
+  });
 });
 
 test('Asynchronous write, read and completion of the operation', t => {
@@ -172,7 +172,7 @@ test('Asynchronous write, read and completion of the operation', t => {
   t.end();
 });
 
-test('Pipe', t => {
+test('pipeOperationStreams', t => {
   const pair0 = createOperationStream(new AdjustableStringStrategy());
   const wos0 = pair0.writable;
   const ros0 = pair0.readable;
@@ -191,7 +191,7 @@ test('Pipe', t => {
     wos0.close();
   });
 
-  ros0.pipeTo(wos1)
+  pipeOperationStreams(ros0, wos1)
       .catch(e => {
         t.fail(e);
         t.end();
@@ -232,7 +232,70 @@ test('Pipe', t => {
   });
 });
 
-test('Byte counting transform stream', t => {
+test('Transformation example: Byte counting', t => {
+  function byteCountingTransform(source, dest) {
+    return new Promise((resolve, reject) => {
+      let count = 0;
+
+      function disposeStreams(error) {
+        if (dest.state !== 'cancelled') {
+          dest.cancel(error);
+        }
+        if (source.state !== 'aborted') {
+          source.abort(error);
+        }
+      }
+
+      function loop() {
+        for (;;) {
+          if (source.state === 'aborted') {
+            if (dest.state !== 'cancelled') {
+              jointOps(source.abortOperation, dest.cancel(source.abortOperation.argument));
+            }
+            return;
+          }
+          if (dest.state === 'cancelled') {
+            if (source.state !== 'aborted') {
+              jointOps(dest.cancelOperation, source.abort(dest.cancelOperation.argument));
+            }
+            return;
+          }
+
+          if (dest.state === 'writable') {
+            if (source.state === 'readable') {
+              const op = source.read();
+              if (op.type === 'data') {
+                count += op.argument.length;
+                op.complete();
+              } else if (op.type === 'close') {
+                dest.write(count);
+                dest.close();
+                op.complete();
+
+                return;
+              } else {
+                disposeStreams(new TypeError('unexpected operation type: ' + op.type));
+                return;
+              }
+
+              continue;
+            } else {
+              if (dest.space > 0) {
+                source.window = 1;
+              }
+            }
+          }
+
+          selectOperationStreams(source, dest)
+              .then(loop)
+              .catch(disposeStreams);
+          return;
+        }
+      }
+      loop();
+    });
+  }
+
   const pair0 = createOperationStream(new AdjustableStringStrategy());
   const wos0 = pair0.writable;
   const ros0 = pair0.readable;
@@ -241,69 +304,16 @@ test('Byte counting transform stream', t => {
   const wos1 = pair1.writable;
   const ros1 = pair1.readable;
 
-  wos0.write('hello');
-  wos0.write('world');
-  wos0.write('goodbye');
-  wos0.close();
-
-  function byteCountingPipe(readable, writable) {
-    return new Promise((resolve, reject) => {
-      const oldWindow = readable.window;
-
-      let count = 0;
-
-      function loop() {
-        for (;;) {
-          if (readable.state === 'aborted' || writable.state === 'cancelled') {
-            readable.window = oldWindow;
-            reject();
-
-            return;
-          }
-
-          if (writable.state === 'writable') {
-            if (readable.state === 'readable') {
-              const op = readable.read();
-              if (op.type === 'data') {
-                count += op.argument.length;
-                op.complete();
-              } else {
-                writable.write(count);
-                writable.close();
-                op.complete();
-
-                readable.window = oldWindow;
-                resolve();
-
-                return;
-              }
-
-              continue;
-            } else {
-              if (writable.space > 0) {
-                readable.window = 1;
-              }
-            }
-          }
-
-          selectOperationStreams(readable, writable)
-            .then(loop)
-            .catch(e => {
-              readable.window = oldWindow;
-              reject();
-            });
-          return;
-        }
-      }
-      loop();
-    });
-  }
-
-  byteCountingPipe(ros0, wos1)
+  byteCountingTransform(ros0, wos1)
       .catch(e => {
         t.fail(e);
         t.end();
       });
+
+  wos0.write('hello');
+  wos0.write('world');
+  wos0.write('goodbye');
+  wos0.close();
 
   ros1.window = 1;
 
@@ -801,8 +811,8 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
   const bufferConsumingStream = sink.createBufferConsumingStream();
   bufferConsumingStream.window = 64;
 
-  // pipeTo automatically adjusts window of the readable side.
-  const pipePromise = file.createBufferProducingStreamWithPool(pool).pipeTo(bufferConsumingStream);
+  // pipeOperationStreams automatically adjusts window of the readable side.
+  const pipePromise = pipeOperationStreams(file.createBufferProducingStreamWithPool(pool), bufferConsumingStream);
   pipePromise.catch(e => {
     t.fail(e);
     t.end();
@@ -864,7 +874,7 @@ test('Piping from a buffer taking source to a sink with buffer', t => {
   const sink = new BytesSetToOneExpectingByteSink();
   const writableBufferProducingStream = sink.createBufferProducingStream();
 
-  const pipePromise = writableBufferProducingStream.pipeTo(bufferFillingStream);
+  const pipePromise = pipeOperationStreams(writableBufferProducingStream, bufferFillingStream);
   pipePromise.catch(e => {
     t.fail(e);
     t.end();
