@@ -12,7 +12,7 @@ export function jointOps(op, status) {
       status.ready.then(forward);
     } else if (status.state === 'errored') {
       op.error(status.result);
-    } else {
+    } else if (status.state === 'completed') {
       op.complete(status.result);
     }
   }
