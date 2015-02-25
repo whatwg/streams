@@ -357,25 +357,25 @@ class FakeFileBackedByteSource {
       }
 
       _select() {
-        const promisesToRace = [];
+        const promises = [];
 
         const ws = this._writableStream;
 
         if (ws.state === 'writable') {
-          promisesToRace.push(ws.cancelled);
+          promises.push(ws.cancelled);
         } else if (ws.state === 'waiting') {
-          promisesToRace.push(ws.ready);
+          promises.push(ws.ready);
         }
 
         if (this._fileReadPromise !== undefined) {
-          promisesToRace.push(this._fileReadPromise);
+          promises.push(this._fileReadPromise);
         }
 
         if (this._buffersPassedToUser.length > 0) {
-          promisesToRace.push(this._buffersPassedToUser[0].status.ready);
+          promises.push(this._buffersPassedToUser[0].status.ready);
         }
 
-        Promise.race(promisesToRace)
+        Promise.race(promises)
             .then(this._loop.bind(this))
             .catch(ws.abort.bind(ws));
       }
@@ -516,21 +516,21 @@ class FakeFileBackedByteSource {
       }
 
       _select() {
-        const promisesToRace = [];
+        const promises = [];
 
         const rs = this._readableStream;
 
         if (rs.state === 'readable') {
-          promisesToRace.push(rs.aborted);
+          promises.push(rs.aborted);
         } else if (rs.state === 'waiting') {
-          promisesToRace.push(rs.ready);
+          promises.push(rs.ready);
         }
 
         if (this._fileReadStatus !== undefined && this._fileReadStatus.state === 'waiting') {
-          promisesToRace.push(this._fileReadStatus.ready);
+          promises.push(this._fileReadStatus.ready);
         }
 
-        Promise.race(promisesToRace)
+        Promise.race(promises)
             .then(this._loop.bind(this))
             .catch(rs.cancel.bind(rs));
       }
@@ -705,21 +705,21 @@ class BytesSetToOneExpectingByteSink {
       }
 
       _select() {
-        const promisesToRace = [];
+        const promises = [];
 
         const ws = this._writableStream;
 
         if (ws.state === 'writable') {
-          promisesToRace.push(ws.cancelled);
+          promises.push(ws.cancelled);
         } else if (ws.state === 'waiting') {
-          promisesToRace.push(ws.ready);
+          promises.push(ws.ready);
         }
 
         if (this._currentReadStatus !== undefined && this._currentReadStatus.state === 'waiting') {
-          promisesToRace.push(this._currentReadStatus.ready);
+          promises.push(this._currentReadStatus.ready);
         }
 
-        Promise.race(promisesToRace)
+        Promise.race(promises)
             .then(this._loop.bind(this))
             .catch(this._sink._error.bind(this._sink));
       }

@@ -1,5 +1,5 @@
 export function createOperationStream(strategy) {
-  var stream = new OperationStream(strategy);
+  const stream = new OperationStream(strategy);
   return {
     writable: new WritableOperationStream(stream),
     readable: new ReadableOperationStream(stream)
@@ -7,24 +7,24 @@ export function createOperationStream(strategy) {
 }
 
 export function selectOperationStreams(readable, writable) {
-  const promisesToRace = [];
+  const promises = [];
 
   if (readable.state === 'readable') {
-    promisesToRace.push(readable.aborted);
+    promises.push(readable.aborted);
   } else {
     // Assert: readable.state === 'readable'.
-    promisesToRace.push(readable.ready);
+    promises.push(readable.ready);
   }
 
   if (writable.state === 'writable') {
-    promisesToRace.push(writable.cancelled);
+    promises.push(writable.cancelled);
   } else {
     // Assert: writable.state === 'writable'.
-    promisesToRace.push(writable.ready);
-    promisesToRace.push(writable.waitSpaceChange());
+    promises.push(writable.ready);
+    promises.push(writable.waitSpaceChange());
   }
 
-  return Promise.race(promisesToRace);
+  return Promise.race(promises);
 }
 
 export function pipeOperationStreams(readable, writable) {
