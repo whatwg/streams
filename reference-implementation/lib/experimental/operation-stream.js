@@ -19,20 +19,19 @@ export function jointOps(op, status) {
   forward();
 }
 
+// Exported as a helper for building transformation.
 export function selectOperationStreams(readable, writable) {
   const promises = [];
 
   if (readable.state === 'readable') {
     promises.push(readable.aborted);
   } else {
-    // Assert: readable.state === 'readable'.
     promises.push(readable.ready);
   }
 
   if (writable.state === 'writable') {
     promises.push(writable.cancelled);
   } else {
-    // Assert: writable.state === 'writable'.
     promises.push(writable.ready);
     promises.push(writable.waitSpaceChange());
   }
