@@ -999,7 +999,7 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
   });
 });
 
-test('Consuming bytes from a source with a buffer pool via the ReadableStream interface', t => {
+test('Consuming bytes from a source with a buffer pool via the ReadableOperationStream interface', t => {
   const pool = [];
   for (var i = 0; i < 10; ++i) {
     pool.push(new ArrayBuffer(10));

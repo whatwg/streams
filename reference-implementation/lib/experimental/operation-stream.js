@@ -1,8 +1,8 @@
 export function createOperationQueue(strategy) {
-  const stream = new OperationQueue(strategy);
+  const queue = new OperationQueue(strategy);
   return {
-    writable: new WritableOperationStream(stream),
-    readable: new ReadableOperationStream(stream)
+    writable: new OperationQueueWritableSide(queue),
+    readable: new OperationQueueReadableSide(queue)
   };
 }
 
@@ -458,9 +458,8 @@ class OperationQueue {
   }
 }
 
-// Wrappers to hide the interfaces of the other side.
-
-class WritableOperationStream {
+// A wrapper to expose only the interfaces of writable side implementing the WritableOperationStream interface.
+class OperationQueueWritableSide {
   constructor(stream) {
     this._stream = stream;
   }
@@ -504,7 +503,8 @@ class WritableOperationStream {
   }
 }
 
-class ReadableOperationStream {
+// A wrapper to expose only the interfaces of readable side implementing the ReadableOperationStream interface.
+class OperationQueueReadableSide {
   constructor(stream) {
     this._stream = stream;
   }
