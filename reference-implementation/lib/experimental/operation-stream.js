@@ -1,3 +1,5 @@
+// Creates a pair of WritableOperationStream implementation and ReadableOperationStream implementation that are
+// connected with a queue. This can be used for creating queue-backed operation streams.
 export function createOperationQueue(strategy) {
   const queue = new OperationQueue(strategy);
   return {
