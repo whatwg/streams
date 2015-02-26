@@ -1,5 +1,5 @@
-export function createOperationStream(strategy) {
-  const stream = new OperationStream(strategy);
+export function createOperationQueue(strategy) {
+  const stream = new OperationQueue(strategy);
   return {
     writable: new WritableOperationStream(stream),
     readable: new ReadableOperationStream(stream)
@@ -166,7 +166,7 @@ class Operation {
   }
 }
 
-class OperationStream {
+class OperationQueue {
   constructor(strategy) {
     this._queue = [];
     this._queueSize = 0;

@@ -1,7 +1,7 @@
 const test = require('tape-catch');
 
 test('Operation stream pair is constructed', t => {
-  const pair = createOperationStream({
+  const pair = createOperationQueue({
     size() {
       return 1;
     },
@@ -61,7 +61,7 @@ class AdjustableStringStrategy {
 }
 
 test('Synchronous write, read and completion of the operation', t => {
-  const pair = createOperationStream(new ApplyBackpressureWhenNonEmptyStrategy());
+  const pair = createOperationQueue(new ApplyBackpressureWhenNonEmptyStrategy());
   const wos = pair.writable;
   const ros = pair.readable;
 
@@ -92,7 +92,7 @@ test('Synchronous write, read and completion of the operation', t => {
 });
 
 test('Asynchronous write, read and completion of the operation', t => {
-  const pair = createOperationStream(new ApplyBackpressureWhenNonEmptyStrategy());
+  const pair = createOperationQueue(new ApplyBackpressureWhenNonEmptyStrategy());
   const wos = pair.writable;
   const ros = pair.readable;
 
@@ -136,7 +136,7 @@ test('Asynchronous write, read and completion of the operation', t => {
 });
 
 test('Asynchronous write, read and completion of the operation', t => {
-  const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+  const pair = createOperationQueue(new AdjustableArrayBufferStrategy());
   const wos = pair.writable;
   const ros = pair.readable;
 
@@ -175,7 +175,7 @@ test('Asynchronous write, read and completion of the operation', t => {
 test('abort()', t => {
   t.plan(9);
 
-  const pair = createOperationStream(new AdjustableStringStrategy());
+  const pair = createOperationQueue(new AdjustableStringStrategy());
   const wos = pair.writable;
   const ros = pair.readable;
 
@@ -211,7 +211,7 @@ test('abort()', t => {
 test('cancel()', t => {
   t.plan(9);
 
-  const pair = createOperationStream(new AdjustableStringStrategy());
+  const pair = createOperationQueue(new AdjustableStringStrategy());
   const wos = pair.writable;
   const ros = pair.readable;
 
@@ -245,11 +245,11 @@ test('cancel()', t => {
 });
 
 test('pipeOperationStreams()', t => {
-  const pair0 = createOperationStream(new AdjustableStringStrategy());
+  const pair0 = createOperationQueue(new AdjustableStringStrategy());
   const wos0 = pair0.writable;
   const ros0 = pair0.readable;
 
-  const pair1 = createOperationStream(new AdjustableStringStrategy());
+  const pair1 = createOperationQueue(new AdjustableStringStrategy());
   const wos1 = pair1.writable;
   const ros1 = pair1.readable;
 
@@ -310,11 +310,11 @@ test('pipeOperationStreams()', t => {
 test('pipeOperationStreams(): abort() propagation', t => {
   t.plan(9);
 
-  const pair0 = createOperationStream(new AdjustableStringStrategy());
+  const pair0 = createOperationQueue(new AdjustableStringStrategy());
   const wos0 = pair0.writable;
   const ros0 = pair0.readable;
 
-  const pair1 = createOperationStream(new AdjustableStringStrategy());
+  const pair1 = createOperationQueue(new AdjustableStringStrategy());
   const wos1 = pair1.writable;
   const ros1 = pair1.readable;
 
@@ -355,11 +355,11 @@ test('pipeOperationStreams(): abort() propagation', t => {
 test('pipeOperationStreams(): cancel() propagation', t => {
   t.plan(9);
 
-  const pair0 = createOperationStream(new AdjustableStringStrategy());
+  const pair0 = createOperationQueue(new AdjustableStringStrategy());
   const wos0 = pair0.writable;
   const ros0 = pair0.readable;
 
-  const pair1 = createOperationStream(new AdjustableStringStrategy());
+  const pair1 = createOperationQueue(new AdjustableStringStrategy());
   const wos1 = pair1.writable;
   const ros1 = pair1.readable;
 
@@ -461,11 +461,11 @@ test('Transformation example: Byte counting', t => {
     });
   }
 
-  const pair0 = createOperationStream(new AdjustableStringStrategy());
+  const pair0 = createOperationQueue(new AdjustableStringStrategy());
   const wos0 = pair0.writable;
   const ros0 = pair0.readable;
 
-  const pair1 = createOperationStream(new AdjustableStringStrategy());
+  const pair1 = createOperationQueue(new AdjustableStringStrategy());
   const wos1 = pair1.writable;
   const ros1 = pair1.readable;
 
@@ -607,7 +607,7 @@ class FakeFileBackedByteSource {
       }
     }
 
-    const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+    const pair = createOperationQueue(new AdjustableArrayBufferStrategy());
     new Puller(this, buffers, pair.writable);
     return pair.readable;
   }
@@ -742,7 +742,7 @@ class FakeFileBackedByteSource {
       }
     }
 
-    const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+    const pair = createOperationQueue(new AdjustableArrayBufferStrategy());
     new Filler(this, pair.readable);
     return pair.writable;
   }
@@ -947,13 +947,13 @@ class BytesSetToOneExpectingByteSink {
       }
     }
 
-    const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+    const pair = createOperationQueue(new AdjustableArrayBufferStrategy());
     new BufferProvidingWriter(this, pair.writable);
     return pair.readable;
   }
 
   createBufferConsumingStream() {
-    const pair = createOperationStream(new AdjustableArrayBufferStrategy());
+    const pair = createOperationQueue(new AdjustableArrayBufferStrategy());
     new BytesSetToOneExpectingByteSinkInternalWriter(this, pair.readable);
     return pair.writable;
   }

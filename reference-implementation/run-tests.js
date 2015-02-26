@@ -4,7 +4,7 @@ const path = require('path');
 import ReadableStream from './lib/readable-stream';
 import WritableStream from './lib/writable-stream';
 import ReadableByteStream from './lib/experimental/readable-byte-stream';
-import { createOperationStream, jointOps, pipeOperationStreams, selectOperationStreams
+import { createOperationQueue, jointOps, pipeOperationStreams, selectOperationStreams
   } from './lib/experimental/operation-stream';
 import ByteLengthQueuingStrategy from './lib/byte-length-queuing-strategy';
 import CountQueuingStrategy from './lib/count-queuing-strategy';
@@ -12,7 +12,7 @@ import TransformStream from './lib/transform-stream';
 
 global.ReadableStream = ReadableStream;
 global.WritableStream = WritableStream;
-global.createOperationStream = createOperationStream;
+global.createOperationQueue = createOperationQueue;
 global.jointOps = jointOps;
 global.pipeOperationStreams = pipeOperationStreams;
 global.selectOperationStreams = selectOperationStreams;
