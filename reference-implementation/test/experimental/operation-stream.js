@@ -100,7 +100,7 @@ test('Asynchronous write, read and completion of the operation', t => {
 
   var calledComplete = false;
 
-  ros.ready.then(() => {
+  ros.readable.then(() => {
     t.equals(ros.state, 'readable');
 
     const op = ros.readOperation();
@@ -256,7 +256,7 @@ test('pipeOperationStreams()', t => {
   var helloStatus;
   t.equals(wos0.state, 'waiting');
   // Check that wos0 becomes writable.
-  wos0.ready.then(() => {
+  wos0.writable.then(() => {
     t.equals(wos0.state, 'writable');
 
     helloStatus = wos0.write('hello');
@@ -278,7 +278,7 @@ test('pipeOperationStreams()', t => {
 
   t.equals(ros1.state, 'waiting');
 
-  ros1.ready.then(() => {
+  ros1.readable.then(() => {
     t.equals(ros1.state, 'readable');
     const op0 = ros1.readOperation();
     t.equals(op0.type, 'data');
@@ -482,7 +482,7 @@ test('Transformation example: Byte counting', t => {
 
   ros1.window = 1;
 
-  ros1.ready.then(() => {
+  ros1.readable.then(() => {
     const v = ros1.read();
     t.equals(v, 17);
     t.end();
@@ -538,7 +538,7 @@ class FakeFileBackedByteSource {
         if (ws.state === 'writable') {
           promises.push(ws.errored);
         } else if (ws.state === 'waiting') {
-          promises.push(ws.ready);
+          promises.push(ws.writable);
         }
 
         if (this._fileReadPromise !== undefined) {
@@ -697,7 +697,7 @@ class FakeFileBackedByteSource {
         if (rs.state === 'readable') {
           promises.push(rs.errored);
         } else if (rs.state === 'waiting') {
-          promises.push(rs.ready);
+          promises.push(rs.readable);
         }
 
         if (this._fileReadStatus !== undefined && this._fileReadStatus.state === 'waiting') {
@@ -808,7 +808,7 @@ class BytesSetToOneExpectingByteSinkInternalWriter {
           this._sink._error(op.type);
         }
       } else if (rs.state === 'waiting') {
-        rs.ready
+        rs.readable
             .then(this._loop.bind(this))
             .catch(this._sink._error.bind(this._sink));
       } else if (rs.state === 'aborted') {
@@ -886,7 +886,7 @@ class BytesSetToOneExpectingByteSink {
         if (ws.state === 'writable') {
           promises.push(ws.errored);
         } else if (ws.state === 'waiting') {
-          promises.push(ws.ready);
+          promises.push(ws.writable);
         }
 
         if (this._currentReadStatus !== undefined && this._currentReadStatus.state === 'waiting') {

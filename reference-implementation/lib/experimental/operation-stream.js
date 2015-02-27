@@ -28,13 +28,13 @@ export function selectOperationStreams(readable, writable) {
   if (readable.state === 'readable') {
     promises.push(readable.errored);
   } else {
-    promises.push(readable.ready);
+    promises.push(readable.readable);
   }
 
   if (writable.state === 'writable') {
     promises.push(writable.errored);
   } else {
-    promises.push(writable.ready);
+    promises.push(writable.writable);
     promises.push(writable.waitSpaceChange());
   }
 
@@ -181,7 +181,7 @@ class OperationQueue {
     this._window = 0;
 
     this._writableState = 'waiting';
-    this._initWritableReadyPromise();
+    this._initWritablePromise();
 
     this._erroredPromise = new Promise((resolve, reject) => {
       this._resolveErroredPromise = resolve;
@@ -194,19 +194,19 @@ class OperationQueue {
     this._abortOperation = undefined;
 
     this._readableState = 'waiting';
-    this._initReadableReadyPromise();
+    this._initReadablePromise();
 
   }
 
-  _initWritableReadyPromise() {
-    this._writableReadyPromise = new Promise((resolve, reject) => {
-      this._resolveWritableReadyPromise = resolve;
+  _initWritablePromise() {
+    this._writablePromise = new Promise((resolve, reject) => {
+      this._resolveWritablePromise = resolve;
     });
   }
 
-  _initReadableReadyPromise() {
-    this._readableReadyPromise = new Promise((resolve, reject) => {
-      this._resolveReadableReadyPromise = resolve;
+  _initReadablePromise() {
+    this._readablePromise = new Promise((resolve, reject) => {
+      this._resolveReadablePromise = resolve;
     });
   }
 
@@ -221,8 +221,8 @@ class OperationQueue {
   get writableState() {
     return this._writableState;
   }
-  get writableReady() {
-    return this._writableReadyPromise;
+  get writable() {
+    return this._writablePromise;
   }
 
   get cancelOperation() {
@@ -274,10 +274,10 @@ class OperationQueue {
     }
     if (shouldApplyBackpressure && this._writableState === 'writable') {
       this._writableState = 'waiting';
-      this._initWritableReadyPromise();
+      this._initWritablePromise();
     } else if (!shouldApplyBackpressure && this._writableState === 'waiting') {
       this._writableState = 'writable';
-      this._resolveWritableReadyPromise();
+      this._resolveWritablePromise();
     }
 
     if (this._spaceChangePromise !== undefined && this._lastSpace !== this.space) {
@@ -305,7 +305,7 @@ class OperationQueue {
 
     if (this._readableState === 'waiting') {
       this._readableState = 'readable';
-      this._resolveReadableReadyPromise();
+      this._resolveReadablePromise();
     }
 
     return status;
@@ -323,7 +323,7 @@ class OperationQueue {
 
     if (this._readableState === 'waiting') {
       this._readableState = 'readable';
-      this._resolveReadableReadyPromise();
+      this._resolveReadablePromise();
     }
 
     return status;
@@ -347,7 +347,7 @@ class OperationQueue {
     this._resolveErroredPromise();
 
     if (this._writableState === 'waiting') {
-      this._resolveWritableReadyPromise();
+      this._resolveWritablePromise();
     }
     this._writableState = 'aborted';
 
@@ -355,7 +355,7 @@ class OperationQueue {
     this._abortOperation = new Operation('abort', reason, status);
 
     if (this._readableState === 'waiting') {
-      this._resolveReadableReadyPromise();
+      this._resolveReadablePromise();
     }
     this._readableState = 'aborted';
 
@@ -367,8 +367,8 @@ class OperationQueue {
   get readableState() {
     return this._readableState;
   }
-  get readableReady() {
-    return this._readableReadyPromise;
+  get readable() {
+    return this._readablePromise;
   }
 
   get abortOperation() {
@@ -425,7 +425,7 @@ class OperationQueue {
         this._readableState = 'drained';
       } else {
         this._readableState = 'waiting';
-        this._initReadableReadyPromise();
+        this._initReadablePromise();
       }
     }
 
@@ -448,12 +448,12 @@ class OperationQueue {
     this._cancelOperation = new Operation('cancel', reason, status);
 
     if (this._writableState === 'waiting') {
-      this._resolveWritableReadyPromise();
+      this._resolveWritablePromise();
     }
     this._writableState = 'cancelled';
 
     if (this._readableState === 'waiting') {
-      this._resolveReadableReadyPromise();
+      this._resolveReadablePromise();
     }
     this._readableState = 'cancelled';
 
@@ -470,8 +470,8 @@ class OperationQueueWritableSide {
   get state() {
     return this._stream.writableState;
   }
-  get ready() {
-    return this._stream.writableReady;
+  get writable() {
+    return this._stream.writable;
   }
 
   get cancelOperation() {
@@ -515,8 +515,8 @@ class OperationQueueReadableSide {
   get state() {
     return this._stream.readableState;
   }
-  get ready() {
-    return this._stream.readableReady;
+  get readable() {
+    return this._stream.readable;
   }
 
   get abortOperation() {
