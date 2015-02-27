@@ -1,7 +1,7 @@
-import { Operation, OperationStatus, writableAcceptsWriteAndClose, writableAcceptsAbort } from './operation-stream.js';
-import { ExclusiveOperationStreamWriter } from './exclusive-operation-stream-writer.js';
+import { Operation, OperationStatus, writableAcceptsWriteAndClose, writableAcceptsAbort } from './operation-stream';
+import { ExclusiveOperationStreamWriter } from './exclusive-operation-stream-writer';
 
-class WritableOperationStream {
+export class WritableOperationStream {
   _initWritablePromise() {
     this._writablePromise = new Promise((resolve, reject) => {
       this._resolveWritablePromise = resolve;

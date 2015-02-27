@@ -1,3 +1,6 @@
+import { WritableOperationStream } from './writable-operation-stream';
+import { ReadableOperationStream } from './readable-operation-stream';
+
 // Creates a pair of WritableOperationStream implementation and ReadableOperationStream implementation that are
 // connected with a queue. This can be used for creating queue-backed operation streams.
 export function createOperationQueue(strategy) {

@@ -30,15 +30,15 @@ export function selectOperationStreams(readable, writable) {
   return Promise.race(promises);
 }
 
-function writableAcceptsWriteAndClose(state) {
+export function writableAcceptsWriteAndClose(state) {
   return state === 'waiting' || state === 'writable';
 }
 
-function writableAcceptsAbort(state) {
+export function writableAcceptsAbort(state) {
   return state === 'waiting' || state === 'writable' || state === 'closed';
 }
 
-function readableAcceptsReadAndCancel(state) {
+export function readableAcceptsReadAndCancel(state) {
   return state === 'waiting' || state === 'readable';
 }
 
@@ -147,7 +147,7 @@ export function pipeOperationStreams(source, dest) {
   });
 }
 
-class OperationStatus {
+export class OperationStatus {
   constructor() {
     this._state = 'waiting';
     this._result = undefined;
@@ -180,7 +180,7 @@ class OperationStatus {
   }
 }
 
-class Operation {
+export class Operation {
   constructor(type, argument, status) {
     this._type = type;
     this._argument = argument;

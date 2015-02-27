@@ -1,4 +1,4 @@
-import { Operation, OperationStatus, readableAcceptsReadAndCancel } from './operation-stream.js';
+import { Operation, OperationStatus, readableAcceptsReadAndCancel } from './operation-stream';
 
 export class ReadableOperationStream {
   _initReadablePromise() {
