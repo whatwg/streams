@@ -1,6 +1,8 @@
 import { Operation, OperationStatus, readableAcceptsReadAndCancel } from './operation-stream';
 
 export class ReadableOperationStream {
+  // Public members and internal methods.
+
   _initReadablePromise() {
     this._readablePromise = new Promise((resolve, reject) => {
       this._resolveReadablePromise = resolve;
@@ -21,46 +23,6 @@ export class ReadableOperationStream {
     this._window = 0;
 
     this._reader = undefined;
-  }
-
-  _markDrained() {
-    this._state = 'drained';
-  }
-
-  _markWaiting() {
-    if (this._reader === undefined) {
-      this._initReadablePromise();
-    } else {
-      this._reader._initReadablePromise();
-    }
-
-    this._state = 'waiting';
-  }
-
-  _markReadable() {
-    if (this._state !== 'waiting') {
-      return;
-    }
-
-    if (this._reader === undefined) {
-      this._resolveReadablePromise();
-    } else {
-      this._reader._resolveReadablePromise();
-    }
-
-    this._state = 'readable';
-  }
-
-  _markAborted(operation) {
-    if (this._reader === undefined) {
-      this._resolveErroredPromise();
-    } else {
-      this._writer._resolveErroredPromise();
-    }
-
-    this._state = 'aborted';
-
-    this._abortOperation = operation;
   }
 
   _throwIfLocked() {
@@ -165,6 +127,48 @@ export class ReadableOperationStream {
     this._throwIfLocked();
     this._reader = new ExclusiveOperationStreamWriter(this);
     return this._reader;
+  }
+
+  // Methods exposed only to the underlying source.
+
+  _markWaiting() {
+    if (this._reader === undefined) {
+      this._initReadablePromise();
+    } else {
+      this._reader._initReadablePromise();
+    }
+
+    this._state = 'waiting';
+  }
+
+  _markReadable() {
+    if (this._state !== 'waiting') {
+      return;
+    }
+
+    if (this._reader === undefined) {
+      this._resolveReadablePromise();
+    } else {
+      this._reader._resolveReadablePromise();
+    }
+
+    this._state = 'readable';
+  }
+
+  _markDrained() {
+    this._state = 'drained';
+  }
+
+  _markAborted(operation) {
+    if (this._reader === undefined) {
+      this._resolveErroredPromise();
+    } else {
+      this._writer._resolveErroredPromise();
+    }
+
+    this._state = 'aborted';
+
+    this._abortOperation = operation;
   }
 }
 

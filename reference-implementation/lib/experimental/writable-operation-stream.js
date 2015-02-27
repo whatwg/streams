@@ -2,6 +2,8 @@ import { Operation, OperationStatus, writableAcceptsWriteAndClose, writableAccep
 import { ExclusiveOperationStreamWriter } from './exclusive-operation-stream-writer';
 
 export class WritableOperationStream {
+  // Public members and internal methods.
+
   _initWritablePromise() {
     this._writablePromise = new Promise((resolve, reject) => {
       this._resolveWritablePromise = resolve;
@@ -28,58 +30,6 @@ export class WritableOperationStream {
   _throwIfLocked() {
     if (this._writer !== undefined) {
       throw new TypeError('locked');
-    }
-  }
-
-  _markWaiting() {
-    if (this._state !== 'writable') {
-      return;
-    }
-
-    if (this._writer === undefined) {
-      this._initWritablePromise();
-    } else {
-      this._writer._initWritablePromise();
-    }
-
-    this._state = 'waiting';
-  }
-
-  _onSpaceChange() {
-    if (this._writer === undefined) {
-      if (this._spaceChangePromise !== undefined && this._lastSpace !== this.space) {
-        this._resolveSpaceChangePromise();
-
-        this._lastSpace = undefined;
-        this._spaceChangePromise = undefined;
-        this._resolveSpaceChangePromise = undefined;
-      }
-    } else {
-      this._writer._onSpaceChange();
-    }
-  }
-
-  _markCancelled(operation) {
-    this._state = 'cancelled';
-
-    if (this._writer === undefined) {
-      this._resolveErroredPromise();
-    } else {
-      this._writer._resolveErroredPromise();
-    }
-
-    this._cancelOperation = operation;
-  }
-
-  _markWritable() {
-    if (this._state === 'waiting') {
-      if (this._writer === undefined) {
-        this._resolveWritablePromise();
-      } else {
-        this._writer._resolveWritablePromise();
-      }
-
-      this._state = 'writable';
     }
   }
 
@@ -196,5 +146,59 @@ export class WritableOperationStream {
     this._throwIfLocked();
     this._writer = new ExclusiveOperationStreamWriter(this);
     return this._writer;
+  }
+
+  // Methods exposed only to the underlying sink.
+
+  _markWaiting() {
+    if (this._state !== 'writable') {
+      return;
+    }
+
+    if (this._writer === undefined) {
+      this._initWritablePromise();
+    } else {
+      this._writer._initWritablePromise();
+    }
+
+    this._state = 'waiting';
+  }
+
+  _markWritable() {
+    if (this._state === 'waiting') {
+      if (this._writer === undefined) {
+        this._resolveWritablePromise();
+      } else {
+        this._writer._resolveWritablePromise();
+      }
+
+      this._state = 'writable';
+    }
+  }
+
+  _markCancelled(operation) {
+    this._state = 'cancelled';
+
+    if (this._writer === undefined) {
+      this._resolveErroredPromise();
+    } else {
+      this._writer._resolveErroredPromise();
+    }
+
+    this._cancelOperation = operation;
+  }
+
+  _onSpaceChange() {
+    if (this._writer === undefined) {
+      if (this._spaceChangePromise !== undefined && this._lastSpace !== this.space) {
+        this._resolveSpaceChangePromise();
+
+        this._lastSpace = undefined;
+        this._spaceChangePromise = undefined;
+        this._resolveSpaceChangePromise = undefined;
+      }
+    } else {
+      this._writer._onSpaceChange();
+    }
   }
 }
