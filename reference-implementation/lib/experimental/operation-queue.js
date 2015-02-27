@@ -9,7 +9,7 @@ export function createOperationQueue(strategy) {
 }
 
 class OperationQueue {
-  _updateWritableSide() {
+  _updateWritableStream() {
     if (this._strategy === undefined) {
       return;
     }
@@ -19,12 +19,12 @@ class OperationQueue {
       shouldApplyBackpressure = this._strategy.shouldApplyBackpressure(this._queueSize);
     }
     if (shouldApplyBackpressure) {
-      this._writableSide._markWaiting();
+      this._writableStream._markWaiting();
     } else {
-      this._writableSide._markWritable();
+      this._writableStream._markWritable();
     }
 
-    this._writableSide._onSpaceChange();
+    this._writableStream._onSpaceChange();
   }
 
   constructor(strategy) {
@@ -33,18 +33,18 @@ class OperationQueue {
 
     this._strategy = strategy;
 
-    this._writableSide = new WritableOperationStream(this);
-    this._readableSide = new ReadableOperationStream(this);
+    this._writableStream = new WritableOperationStream(this);
+    this._readableStream = new ReadableOperationStream(this);
 
-    this._updateWritableSide();
+    this._updateWritableStream();
   }
 
   get writable() {
-    return this._writableSide;
+    return this._writableStream;
   }
 
   get readable() {
-    return this._readableSide;
+    return this._readableStream;
   }
 
   // Underlying sink implementation.
@@ -66,9 +66,9 @@ class OperationQueue {
     this._queue.push({value: operation, size});
     this._queueSize += size;
 
-    this._updateWritableSide();
+    this._updateWritableStream();
 
-    this._readableSide._markReadable();
+    this._readableStream._markReadable();
   }
 
   close(operation) {
@@ -77,7 +77,7 @@ class OperationQueue {
     // No longer necessary.
     this._strategy = undefined;
 
-    this._readableSide._markReadable();
+    this._readableStream._markReadable();
   }
 
   abort(operation) {
@@ -89,13 +89,13 @@ class OperationQueue {
 
     this._strategy = undefined;
 
-    this._readableSide._markAborted(operation);
+    this._readableStream._markAborted(operation);
   }
 
   // Underlying source implementation.
 
   onWindowUpdate(v) {
-    if (this._writableSide._state === 'closed') {
+    if (this._writableStream._state === 'closed') {
       return;
     }
 
@@ -103,7 +103,7 @@ class OperationQueue {
       this._strategy.onWindowUpdate(v);
     }
 
-    this._updateWritableSide();
+    this._updateWritableStream();
   }
 
   readOperation() {
@@ -116,13 +116,13 @@ class OperationQueue {
 
     if (this._queue.length === 0) {
       if (entry.value.type === 'close') {
-        this._readableSide._markDrained();
+        this._readableStream._markDrained();
       } else {
-        this._readableSide._markWaiting();
+        this._readableStream._markWaiting();
       }
     }
 
-    this._updateWritableSide();
+    this._updateWritableStream();
 
     return entry.value;
   }
@@ -136,6 +136,6 @@ class OperationQueue {
 
     this._strategy = undefined;
 
-    this._writableSide._markCancelled(operation);
+    this._writableStream._markCancelled(operation);
   }
 }
