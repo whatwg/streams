@@ -144,6 +144,28 @@ export class WritableOperationStream {
     return this._abortIgnoringLock(reason);
   }
 
+  _syncStateAndPromises() {
+    if (this._state === 'waiting') {
+      if (this._resolveWritablePromise === undefined) {
+        this._initWritablePromise();
+      }
+    } else if (this._state === 'writable') {
+      if (this._resolveWritablePromise !== undefined) {
+        this._resolveWritablePromise();
+        this._resolveWritablePromise = undefined;
+      }
+    } else if (this._state === 'cancelled' || this._state === 'errored') {
+      this._resolveErroredPromise();
+    }
+  }
+
+  _releaseWriter() {
+    this._writer = undefined;
+
+    this._syncStateAndPromises();
+    this._onSpaceChange();
+  }
+
   getWriter() {
     this._throwIfLocked();
     this._writer = new ExclusiveOperationStreamWriter(this);
@@ -153,28 +175,22 @@ export class WritableOperationStream {
   // Methods exposed only to the underlying sink.
 
   _markWaiting() {
-    if (this._state !== 'writable') {
-      return;
-    }
+    this._state = 'waiting';
 
     if (this._writer === undefined) {
-      this._initWritablePromise();
+      this._syncStateAndPromises();
     } else {
-      this._writer._initWritablePromise();
+      this._writer._syncStateAndPromises();
     }
-
-    this._state = 'waiting';
   }
 
   _markWritable() {
-    if (this._state === 'waiting') {
-      if (this._writer === undefined) {
-        this._resolveWritablePromise();
-      } else {
-        this._writer._resolveWritablePromise();
-      }
+    this._state = 'writable';
 
-      this._state = 'writable';
+    if (this._writer === undefined) {
+      this._syncStateAndPromises();
+    } else {
+      this._writer._syncStateAndPromises();
     }
   }
 
@@ -182,9 +198,9 @@ export class WritableOperationStream {
     this._state = 'cancelled';
 
     if (this._writer === undefined) {
-      this._resolveErroredPromise();
+      this._syncStateAndPromises();
     } else {
-      this._writer._resolveErroredPromise();
+      this._writer._syncStateAndPromises();
     }
 
     this._cancelOperation = operation;

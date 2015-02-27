@@ -1,4 +1,4 @@
-class ExclusiveOperationStreamWriter {
+export class ExclusiveOperationStreamWriter {
   _initWritablePromise() {
     this._writablePromise = new Promise((resolve, reject) => {
       this._resolveWritablePromise = resolve;
@@ -52,6 +52,22 @@ class ExclusiveOperationStreamWriter {
     return this._parent._cancelOperationIgnoringLock;
   }
 
+  _syncStateAndPromises() {
+    const state = this._parent._state;
+    if (state === 'waiting') {
+      if (this._resolveWritablePromise === undefined) {
+        this._initWritablePromise();
+      }
+    } else if (state === 'writable') {
+      if (this._resolveWritablePromise !== undefined) {
+        this._resolveWritablePromise();
+        this._resolveWritablePromise = undefined;
+      }
+    } else if (state === 'cancelled' || state === 'errored') {
+      this._resolveErroredPromise();
+    }
+  }
+
   _onSpaceChange() {
     if (this._spaceChangePromise !== undefined && this._lastSpace !== this.space) {
       this._resolveSpaceChangePromise();
@@ -95,7 +111,7 @@ class ExclusiveOperationStreamWriter {
   }
 
   release() {
-    this._parent._onWriterRelease();
+    this._parent._releaseWriter();
 
     this._parent = undefined;
 

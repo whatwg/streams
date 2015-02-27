@@ -1069,3 +1069,110 @@ test('Piping from a buffer taking source to a sink with buffer', t => {
     t.end();
   });
 });
+
+test('getWriter()', t => {
+  const pair = createOperationQueue(new AdjustableArrayBufferStrategy());
+  const wos = pair.writable;
+  const ros = pair.readable;
+
+  const writer = wos.getWriter();
+
+  t.throws(() => wos.state, /TypeError/);
+  t.throws(() => wos.writable, /TypeError/);
+  t.throws(() => wos.errored, /TypeError/);
+  t.throws(() => wos.cancelOperation, /TypeError/);
+  t.throws(() => wos.space, /TypeError/);
+  t.throws(() => wos.waitSpaceChange(), /TypeError/);
+  t.throws(() => wos.write(new ArrayBuffer(10)), /TypeError/);
+  t.throws(() => wos.close(), /TypeError/);
+  t.throws(() => wos.abort(), /TypeError/);
+  t.throws(() => wos.getWriter(), /TypeError/);
+
+  t.equals(writer.state, 'waiting');
+
+  ros.window = 1;
+
+  t.equals(writer.state, 'writable');
+  t.ok(writer.writable);
+  t.ok(writer.errored);
+  t.ok(writer.space);
+  t.ok(writer.waitSpaceChange());
+  const writeStatus = writer.write(new ArrayBuffer(10));
+  t.equals(writer.state, 'waiting');
+  const closeStatus = writer.close();
+  t.equals(writer.state, 'closed');
+  const abortStatus = writer.abort();
+  t.equals(writer.state, 'aborted');
+
+  writer.release();
+
+  t.equals(wos.state, 'aborted');
+  t.ok(wos.writable);
+  t.ok(wos.errored);
+
+  t.end();
+});
+
+test('writable and waitSpaceChange() on the stream obtained before getWriter() call', t => {
+  t.plan(2);
+
+  const pair = createOperationQueue(new AdjustableArrayBufferStrategy());
+  const wos = pair.writable;
+  const ros = pair.readable;
+
+  let released = false;
+
+  wos.writable.then(r => {
+    if (released) {
+      t.pass();
+    } else {
+      t.fail(r);
+    }
+  });
+
+  wos.waitSpaceChange().then(r => {
+    if (released) {
+      t.pass();
+    } else {
+      t.fail(r);
+    }
+  });
+
+  const writer = wos.getWriter();
+
+  ros.window = 1;
+
+  setTimeout(() => {
+    writer.release();
+
+    released = true;
+  }, 10);
+});
+
+test('errored on the stream obtained before getWriter() call', t => {
+  t.plan(1);
+
+  const pair = createOperationQueue(new AdjustableArrayBufferStrategy());
+  const wos = pair.writable;
+  const ros = pair.readable;
+
+  let released = false;
+
+  wos.errored.then(r => {
+    if (released) {
+      t.pass();
+    } else {
+      t.fail(r);
+    }
+  });
+
+  const writer = wos.getWriter();
+
+  ros.cancel();
+
+  setTimeout(() => {
+    writer.release();
+
+    released = true;
+  }, 10);
+});
