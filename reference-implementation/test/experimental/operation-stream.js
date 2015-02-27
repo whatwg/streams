@@ -236,7 +236,7 @@ test('cancel()', t => {
     t.equals(worldStatus.state, 'errored', 'worldStatus.state');
     t.equals(worldStatus.result, testError, 'worldStatus.result');
   });
-  wos.cancelled.then(() => {
+  wos.errored.then(() => {
     t.equals(wos.state, 'cancelled', 'wos.state');
     t.equals(wos.cancelOperation.argument, testError, 'wos.cancelOperation.argument');
 
@@ -389,7 +389,7 @@ test('pipeOperationStreams(): cancel() propagation', t => {
     t.equals(worldStatus.state, 'errored', 'worldStatus.state');
     t.equals(worldStatus.result, testError, 'worldStatus.result');
   });
-  wos0.cancelled.then(() => {
+  wos0.errored.then(() => {
     t.equals(wos0.state, 'cancelled', 'wos0.state');
     t.equals(wos0.cancelOperation.argument, testError, 'wos0.cancelOperation.argument');
 
@@ -536,7 +536,7 @@ class FakeFileBackedByteSource {
         const ws = this._writableStream;
 
         if (ws.state === 'writable') {
-          promises.push(ws.cancelled);
+          promises.push(ws.errored);
         } else if (ws.state === 'waiting') {
           promises.push(ws.ready);
         }
@@ -884,7 +884,7 @@ class BytesSetToOneExpectingByteSink {
         const ws = this._writableStream;
 
         if (ws.state === 'writable') {
-          promises.push(ws.cancelled);
+          promises.push(ws.errored);
         } else if (ws.state === 'waiting') {
           promises.push(ws.ready);
         }

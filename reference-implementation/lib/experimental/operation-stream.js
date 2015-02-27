@@ -32,7 +32,7 @@ export function selectOperationStreams(readable, writable) {
   }
 
   if (writable.state === 'writable') {
-    promises.push(writable.cancelled);
+    promises.push(writable.errored);
   } else {
     promises.push(writable.ready);
     promises.push(writable.waitSpaceChange());
@@ -186,8 +186,8 @@ class OperationQueue {
     this._updateWritableState();
 
     this._cancelOperation = undefined;
-    this._cancelledPromise = new Promise((resolve, reject) => {
-      this._resolveCancelledPromise = resolve;
+    this._erroredPromise = new Promise((resolve, reject) => {
+      this._resolveErroredPromise = resolve;
     });
 
     this._readableState = 'waiting';
@@ -223,8 +223,8 @@ class OperationQueue {
   get cancelOperation() {
     return this._cancelOperation;
   }
-  get cancelled() {
-    return this._cancelledPromise;
+  get errored() {
+    return this._erroredPromise;
   }
 
   get space() {
@@ -444,7 +444,7 @@ class OperationQueue {
 
     const status = new OperationStatus();
     this._cancelOperation = new Operation('cancel', reason, status);
-    this._resolveCancelledPromise();
+    this._resolveErroredPromise();
 
     if (this._writableState === 'waiting') {
       this._resolveWritableReadyPromise();
@@ -476,8 +476,8 @@ class OperationQueueWritableSide {
   get cancelOperation() {
     return this._stream.cancelOperation;
   }
-  get cancelled() {
-    return this._stream.cancelled;
+  get errored() {
+    return this._stream.errored;
   }
 
   get window() {
@@ -546,6 +546,9 @@ class OperationQueueReadableSide {
   cancel(reason) {
     return this._stream.cancel(reason);
   }
+}
+
+class ReadableOperationStream {
 }
 
 ReadableOperationStream.EOS = {};
