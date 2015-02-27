@@ -773,6 +773,7 @@ class FakeFileBackedByteSource {
 class BytesSetToOneExpectingByteSinkInternalWriter {
   constructor(sink, readableStream) {
     this._readableStream = readableStream;
+    this._readableStream.window = 64;
 
     this._sink = sink;
 
@@ -973,7 +974,6 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
 
   const sink = new BytesSetToOneExpectingByteSink();
   const bufferConsumingStream = sink.createBufferConsumingStream();
-  bufferConsumingStream.window = 64;
 
   // pipeOperationStreams automatically adjusts window of the readable side.
   const pipePromise = pipeOperationStreams(file.createBufferProducingStreamWithPool(pool), bufferConsumingStream);
