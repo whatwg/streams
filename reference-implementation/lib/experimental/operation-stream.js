@@ -33,9 +33,9 @@ export function selectOperationStreams(readable, writable) {
 
   if (writable.state === 'writable') {
     promises.push(writable.errored);
+    promises.push(writable.waitSpaceChange());
   } else {
     promises.push(writable.writable);
-    promises.push(writable.waitSpaceChange());
   }
 
   return Promise.race(promises);
@@ -48,7 +48,9 @@ export function pipeOperationStreams(source, dest) {
     const oldWindow = source.window;
 
     function restoreWindowAndReject(e) {
+      console.log('ssssv');
       source.window = oldWindow;
+      console.log('ssssvz');
       reject(e);
     }
 
@@ -59,23 +61,69 @@ export function pipeOperationStreams(source, dest) {
       if (source.state !== 'aborted') {
         source.abort(error);
       }
-      restoreWindowAndReject(error);
+      reject(error);
+    }
+
+    function writableAcceptsAbort(state) {
+      return state === 'waiting' || state === 'writable' || state === 'closed';
+    }
+
+    function readableAcceptsCancel(state) {
+      return state === 'waiting' || state === 'readable';
     }
 
     function loop() {
       for (;;) {
-        if (source.state === 'aborted') {
-          if (dest.state !== 'cancelled') {
-            jointOps(source.abortOperation, dest.abort(source.abortOperation.argument));
-          }
-          restoreWindowAndReject(new TypeError('aborted'));
+        // Handle interrupt.
+        if (source.state === 'drained') {
+          reject(new TypeError('source is drained'));
           return;
         }
+        if (source.state === 'cancelled') {
+          reject(new TypeError('source is cancelled'));
+          return;
+        }
+
+        if (dest.state === 'closed') {
+          reject(new TypeError('dest is closed'));
+          return;
+        }
+        if (dest.state === 'aborted') {
+          reject(new TypeError('dest is aborted'));
+          return;
+        }
+
+        // Propagate errors.
+
+        if (source.state === 'aborted') {
+          if (writableAcceptsAbort(dest.state)) {
+            jointOps(source.abortOperation, dest.abort(source.abortOperation.argument));
+          }
+          reject(new TypeError('aborted'));
+          return;
+        }
+        if (source.state === 'errored') {
+          const error = new TypeError('source is errored');
+          if (writableAcceptsAbort(dest.state)) {
+            dest.abort(error);
+          }
+          reject(error);
+          return;
+        }
+
         if (dest.state === 'cancelled') {
-          if (source.state !== 'aborted') {
+          if (readableAcceptsCancel(source.state)) {
             jointOps(dest.cancelOperation, source.cancel(dest.cancelOperation.argument));
           }
-          restoreWindowAndReject(new TypeError('dest is cancelled'));
+          reject(new TypeError('dest is cancelled'));
+          return;
+        }
+        if (source.state === 'errored') {
+          const error = new TypeError('dest is errored');
+          if (readableAcceptsCancel(source.state)) {
+            source.cancel(error);
+          }
+          reject(error);
           return;
         }
 
@@ -231,19 +279,34 @@ class OperationQueue {
     return this._erroredPromise;
   }
 
-  get cancelOperation() {
-    this._throwIfWritableLocked();
+  get _cancelOperationInternal() {
+    if (this._writableState !== 'cancelled') {
+      throw new TypeError('not cancelled');
+    }
     return this._cancelOperation;
   }
-
-  get space() {
+  get cancelOperation() {
     this._throwIfWritableLocked();
+    return this._cancelOperationInternal;
+  }
 
-    if (this._writableState === 'closed' ||
-        this._writableState === 'aborted' ||
-        this._writableState === 'cancelled') {
-      return undefined;
+  _checkWritableState() {
+    if (this._writableState === 'closed') {
+      throw new TypeError('already closed');
     }
+    if (this._writableState === 'aborted') {
+      throw new TypeError('already aborted');
+    }
+    if (this._writableState === 'cancelled') {
+      throw new TypeError('already cancelled');
+    }
+    if (this._writableState === 'errored') {
+      throw new TypeError('already errored');
+    }
+  }
+
+  get _spaceInternal() {
+    this._checkWritableState();
 
     if (this._strategy.space !== undefined) {
       return this._strategy.space(this._queueSize);
@@ -251,7 +314,13 @@ class OperationQueue {
 
     return undefined;
   }
+  get space() {
+    this._throwIfWritableLocked();
+    return this._spaceInternal;
+  }
   _waitSpaceChangeInternal() {
+    this._checkWritableState();
+
     if (this._spaceChangePromise !== undefined) {
       return this._spaceChangePromise;
     }
@@ -266,18 +335,6 @@ class OperationQueue {
   waitSpaceChange() {
     this._throwIfWritableLocked();
     return this._waitSpaceChangeInternal();
-  }
-
-  _checkWritableState() {
-    if (this._writableState === 'closed') {
-      throw new TypeError('already closed');
-    }
-    if (this._writableState === 'aborted') {
-      throw new TypeError('already aborted');
-    }
-    if (this._writableState === 'cancelled') {
-      throw new TypeError('already cancelled');
-    }
   }
 
   _updateWritableState() {
@@ -357,6 +414,9 @@ class OperationQueue {
     if (this._writableState === 'cancelled') {
       throw new TypeError('already cancelled');
     }
+    if (this._writableState === 'errored') {
+      throw new TypeError('already errored');
+    }
 
     for (var i = this._queue.length - 1; i >= 0; --i) {
       const op = this._queue[i].value;
@@ -414,35 +474,15 @@ class OperationQueue {
     return this._erroredPromise;
   }
 
-  get abortOperation() {
-    this._throwIfReadableLocked();
+  get _abortOperationInternal() {
+    if (this._writableState !== 'aborted') {
+      throw new TypeError('not aborted');
+    }
     return this._abortOperation;
   }
-
-  get _windowInternal() {
-    return this._window;
-  }
-  get window() {
+  get abortOperation() {
     this._throwIfReadableLocked();
-    return this._windowInternal;
-  }
-  set _windowInternal(v) {
-    this._window = v;
-
-    if (this._writableState === 'closed' ||
-        this._writableState === 'aborted' ||
-        this._writableState === 'cancelled') {
-      return;
-    }
-
-    if (this._strategy.onWindowUpdate !== undefined) {
-      this._strategy.onWindowUpdate(v);
-    }
-    this._updateWritableState();
-  }
-  set window(v) {
-    this._throwIfReadableLocked();
-    this._windowInternal = v;
+    return this._abortOperationInternal;
   }
 
   _checkReadableState() {
@@ -455,6 +495,35 @@ class OperationQueue {
     if (this._readableState === 'aborted') {
       throw new TypeError('already aborted');
     }
+    if (this._readableState === 'errored') {
+      throw new TypeError('already errored');
+    }
+  }
+
+  get _windowInternal() {
+    return this._window;
+  }
+  get window() {
+    this._throwIfReadableLocked();
+    return this._windowInternal;
+  }
+  set _windowInternal(v) {
+    this._checkReadableState();
+
+    this._window = v;
+
+    if (this._writableState === 'closed') {
+      return;
+    }
+
+    if (this._strategy.onWindowUpdate !== undefined) {
+      this._strategy.onWindowUpdate(v);
+    }
+    this._updateWritableState();
+  }
+  set window(v) {
+    this._throwIfReadableLocked();
+    this._windowInternal = v;
   }
 
   _readInternal() {
