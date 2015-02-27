@@ -210,26 +210,35 @@ class OperationQueue {
     });
   }
 
-  // Common interfaces.
-
-  get errored() {
-    return this._erroredPromise;
-  }
-
   // Writable side interfaces
 
+  _throwIfWritableLocked() {
+    if (this._writer !== undefined) {
+      throw new TypeError('locked');
+    }
+  }
+
   get writableState() {
+    this._throwIfWritableLocked();
     return this._writableState;
   }
   get writable() {
+    this._throwIfWritableLocked();
     return this._writablePromise;
+  }
+  get writableErrored() {
+    this._throwIfWritableLocked();
+    return this._erroredPromise;
   }
 
   get cancelOperation() {
+    this._throwIfWritableLocked();
     return this._cancelOperation;
   }
 
   get space() {
+    this._throwIfWritableLocked();
+
     if (this._writableState === 'closed' ||
         this._writableState === 'aborted' ||
         this._writableState === 'cancelled') {
@@ -242,7 +251,7 @@ class OperationQueue {
 
     return undefined;
   }
-  waitSpaceChange() {
+  _waitSpaceChangeInternal() {
     if (this._spaceChangePromise !== undefined) {
       return this._spaceChangePromise;
     }
@@ -253,6 +262,10 @@ class OperationQueue {
     this._lastSpace = this.space;
 
     return this._spaceChangePromise;
+  }
+  waitSpaceChange() {
+    this._throwIfWritableLocked();
+    return this._waitSpaceChangeInternal();
   }
 
   _checkWritableState() {
@@ -289,7 +302,7 @@ class OperationQueue {
     }
   }
 
-  write(argument) {
+  _writeInternal(argument) {
     this._checkWritableState();
 
     var size = 1;
@@ -310,8 +323,12 @@ class OperationQueue {
 
     return status;
   }
+  write(argument) {
+    this._throwIfWritableLocked();
+    return this._writeInternal(argument);
+  }
 
-  close() {
+  _closeInternal() {
     this._checkWritableState();
 
     this._strategy = undefined;
@@ -328,8 +345,12 @@ class OperationQueue {
 
     return status;
   }
+  close() {
+    this._throwIfWritableLocked();
+    return this._closeInternal();
+  }
 
-  abort(reason) {
+  _abortInternal(reason) {
     if (this._writableState === 'aborted') {
       throw new TypeError('already aborted');
     }
@@ -361,24 +382,51 @@ class OperationQueue {
 
     return status;
   }
+  abort(reason) {
+    this._throwIfWritableLocked();
+    return this._abortInternal(reason);
+  }
+
+  getWriter() {
+    this._throwIfWritableLocked();
+    this._writer = new ExclusiveOperationQueueWriter(this);
+    return this._writer;
+  }
 
   // Readable side interfaces.
 
+  _throwIfReadableLocked() {
+    if (this._reader !== undefined) {
+      throw new TypeError('locked');
+    }
+  }
+
   get readableState() {
+    this._throwIfReadableLocked();
     return this._readableState;
   }
   get readable() {
+    this._throwIfReadableLocked();
     return this._readablePromise;
+  }
+  get readableErrored() {
+    this._throwIfReadableLocked();
+    return this._erroredPromise;
   }
 
   get abortOperation() {
+    this._throwIfReadableLocked();
     return this._abortOperation;
   }
 
-  get window() {
+  get _windowInternal() {
     return this._window;
   }
-  set window(v) {
+  get window() {
+    this._throwIfReadableLocked();
+    return this._windowInternal;
+  }
+  set _windowInternal(v) {
     this._window = v;
 
     if (this._writableState === 'closed' ||
@@ -391,6 +439,10 @@ class OperationQueue {
       this._strategy.onWindowUpdate(v);
     }
     this._updateWritableState();
+  }
+  set window(v) {
+    this._throwIfReadableLocked();
+    this._windowInternal = v;
   }
 
   _checkReadableState() {
@@ -405,7 +457,7 @@ class OperationQueue {
     }
   }
 
-  read() {
+  _readInternal() {
     this._checkReadableState();
 
     if (this._queue.length === 0) {
@@ -431,8 +483,12 @@ class OperationQueue {
 
     return entry.value;
   }
+  read() {
+    this._throwIfReadableLocked();
+    return this._readInternal();
+  }
 
-  cancel(reason) {
+  _cancelInternal(reason) {
     this._checkReadableState();
 
     for (var i = 0; i < this._queue.length; ++i) {
@@ -459,6 +515,16 @@ class OperationQueue {
 
     return status;
   }
+  cancel(reason) {
+    this._throwIfReadableLocked();
+    return this._cancelInternal(reason);
+  }
+
+  getReader() {
+    this._throwIfReadableLocked();
+    this._reader = new ExclusiveOperationQueueWriter(this);
+    return this._reader;
+  }
 }
 
 // A wrapper to expose only the interfaces of writable side implementing the WritableOperationStream interface.
@@ -473,12 +539,12 @@ class OperationQueueWritableSide {
   get writable() {
     return this._stream.writable;
   }
+  get errored() {
+    return this._stream.writableErrored;
+  }
 
   get cancelOperation() {
     return this._stream.cancelOperation;
-  }
-  get errored() {
-    return this._stream.errored;
   }
 
   get window() {
@@ -518,12 +584,12 @@ class OperationQueueReadableSide {
   get readable() {
     return this._stream.readable;
   }
+  get errored() {
+    return this._stream.readableErrored;
+  }
 
   get abortOperation() {
     return this._stream.abortOperation;
-  }
-  get errored() {
-    return this._stream.errored;
   }
 
   get window() {
