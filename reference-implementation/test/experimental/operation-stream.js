@@ -200,7 +200,7 @@ test('abort()', t => {
     t.equals(worldStatus.state, 'errored', 'worldStatus.state');
     t.equals(worldStatus.result.message, 'aborted', 'worldStatus.result');
   });
-  ros.aborted.then(() => {
+  ros.errored.then(() => {
     t.equals(ros.state, 'aborted', 'ros.state');
     t.equals(ros.abortOperation.argument, testError, 'ros.abortOperation.argument');
 
@@ -344,7 +344,7 @@ test('pipeOperationStreams(): abort() propagation', t => {
     t.equals(worldStatus.state, 'errored', 'worldStatus.state');
     t.equals(worldStatus.result.message, 'aborted', 'worldStatus.result');
   });
-  ros1.aborted.then(() => {
+  ros1.errored.then(() => {
     t.equals(ros1.state, 'aborted', 'ros.state');
     t.equals(ros1.abortOperation.argument, testError, 'ros1.abortOperation.argument');
 
@@ -695,7 +695,7 @@ class FakeFileBackedByteSource {
         const rs = this._readableStream;
 
         if (rs.state === 'readable') {
-          promises.push(rs.aborted);
+          promises.push(rs.errored);
         } else if (rs.state === 'waiting') {
           promises.push(rs.ready);
         }

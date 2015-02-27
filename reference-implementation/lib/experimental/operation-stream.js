@@ -26,7 +26,7 @@ export function selectOperationStreams(readable, writable) {
   const promises = [];
 
   if (readable.state === 'readable') {
-    promises.push(readable.aborted);
+    promises.push(readable.errored);
   } else {
     promises.push(readable.ready);
   }
@@ -183,20 +183,19 @@ class OperationQueue {
     this._writableState = 'waiting';
     this._initWritableReadyPromise();
 
-    this._updateWritableState();
-
-    this._cancelOperation = undefined;
     this._erroredPromise = new Promise((resolve, reject) => {
       this._resolveErroredPromise = resolve;
     });
 
+    this._updateWritableState();
+
+    this._cancelOperation = undefined;
+
+    this._abortOperation = undefined;
+
     this._readableState = 'waiting';
     this._initReadableReadyPromise();
 
-    this._abortOperation = undefined;
-    this._abortedPromise = new Promise((resolve, reject) => {
-      this._resolveAbortedPromise = resolve;
-    });
   }
 
   _initWritableReadyPromise() {
@@ -211,6 +210,12 @@ class OperationQueue {
     });
   }
 
+  // Common interfaces.
+
+  get errored() {
+    return this._erroredPromise;
+  }
+
   // Writable side interfaces
 
   get writableState() {
@@ -222,9 +227,6 @@ class OperationQueue {
 
   get cancelOperation() {
     return this._cancelOperation;
-  }
-  get errored() {
-    return this._erroredPromise;
   }
 
   get space() {
@@ -342,6 +344,8 @@ class OperationQueue {
     this._queue = [];
     this._strategy = undefined;
 
+    this._resolveErroredPromise();
+
     if (this._writableState === 'waiting') {
       this._resolveWritableReadyPromise();
     }
@@ -349,7 +353,6 @@ class OperationQueue {
 
     const status = new OperationStatus();
     this._abortOperation = new Operation('abort', reason, status);
-    this._resolveAbortedPromise();
 
     if (this._readableState === 'waiting') {
       this._resolveReadableReadyPromise();
@@ -370,9 +373,6 @@ class OperationQueue {
 
   get abortOperation() {
     return this._abortOperation;
-  }
-  get aborted() {
-    return this._abortedPromise;
   }
 
   get window() {
@@ -442,9 +442,10 @@ class OperationQueue {
     this._queue = [];
     this._strategy = undefined;
 
+    this._resolveErroredPromise();
+
     const status = new OperationStatus();
     this._cancelOperation = new Operation('cancel', reason, status);
-    this._resolveErroredPromise();
 
     if (this._writableState === 'waiting') {
       this._resolveWritableReadyPromise();
@@ -521,8 +522,8 @@ class OperationQueueReadableSide {
   get abortOperation() {
     return this._stream.abortOperation;
   }
-  get aborted() {
-    return this._stream.aborted;
+  get errored() {
+    return this._stream.errored;
   }
 
   get window() {
