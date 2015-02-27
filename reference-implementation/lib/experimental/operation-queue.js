@@ -111,7 +111,7 @@ class OperationQueue {
     this._queueSize -= entry.size;
 
     if (this._queue.length === 0) {
-      if (entry.type === 'close') {
+      if (entry.value.type === 'close') {
         this._readableSide._markDrained();
       } else {
         this._readableSide._markWaiting();

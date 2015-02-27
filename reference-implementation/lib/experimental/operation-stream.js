@@ -49,10 +49,10 @@ export function pipeOperationStreams(source, dest) {
     const oldWindow = source.window;
 
     function disposeStreams(error) {
-      if (dest.state !== 'cancelled') {
-        dest.cancel(error);
+      if (writableAcceptsAbort(dest.state)) {
+        dest.abort(error);
       }
-      if (source.state !== 'aborted') {
+      if (readableAcceptsReadAndCancel(source.state)) {
         source.abort(error);
       }
       reject(error);
@@ -121,7 +121,6 @@ export function pipeOperationStreams(source, dest) {
             } else if (op.type === 'close') {
               jointOps(op, dest.close());
 
-              source.window = oldWindow;
               resolve();
 
               return;

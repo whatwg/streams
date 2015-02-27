@@ -172,6 +172,25 @@ test('Asynchronous write, read and completion of the operation', t => {
   t.end();
 });
 
+test('close()', t => {
+  const pair = createOperationQueue(new AdjustableArrayBufferStrategy());
+  const wos = pair.writable;
+  const ros = pair.readable;
+
+  wos.write(new ArrayBuffer(10));
+  wos.close();
+  t.equals(wos.state, 'closed');
+
+  t.equals(ros.state, 'readable');
+  const v0 = ros.read();
+  t.equals(ros.state, 'readable');
+  const v1 = ros.read();
+  t.equals(v1, ros.constructor.EOS);
+  t.equals(ros.state, 'drained');
+
+  t.end();
+});
+
 test('abort()', t => {
   t.plan(9);
 
@@ -535,9 +554,8 @@ class FakeFileBackedByteSource {
 
         const ws = this._writableStream;
 
-        if (ws.state === 'writable') {
-          promises.push(ws.errored);
-        } else if (ws.state === 'waiting') {
+        promises.push(ws.errored);
+        if (ws.state === 'waiting') {
           promises.push(ws.writable);
         }
 
@@ -670,14 +688,7 @@ class FakeFileBackedByteSource {
         this._fileReadStatus.result = e;
       }
 
-      _readFromFile() {
-        const op = this._readableStream.readOperation();
-
-        if (op.type === 'close') {
-          return;
-        }
-        // Assert: op.type === 'data'.
-
+      _readFromFile(op) {
         this._currentRequest = op;
 
         const status = {};
@@ -694,9 +705,8 @@ class FakeFileBackedByteSource {
 
         const rs = this._readableStream;
 
-        if (rs.state === 'readable') {
-          promises.push(rs.errored);
-        } else if (rs.state === 'waiting') {
+        promises.push(rs.errored);
+        if (rs.state === 'waiting') {
           promises.push(rs.readable);
         }
 
@@ -731,8 +741,16 @@ class FakeFileBackedByteSource {
           }
 
           if (rs.state === 'readable' && this._currentRequest === undefined) {
-            this._readFromFile();
-            continue;
+            const op = this._readableStream.readOperation();
+
+            if (op.type === 'close') {
+              return;
+            } else if (op.type === 'data') {
+              this._readFromFile(op);
+              continue;
+            } else {
+              // error
+            }
           }
 
           this._select();
@@ -884,9 +902,8 @@ class BytesSetToOneExpectingByteSink {
 
         const ws = this._writableStream;
 
-        if (ws.state === 'writable') {
-          promises.push(ws.errored);
-        } else if (ws.state === 'waiting') {
+        promises.push(ws.errored);
+        if (ws.state === 'waiting') {
           promises.push(ws.writable);
         }
 
