@@ -95,7 +95,7 @@ class OperationQueue {
   // Underlying source implementation.
 
   onWindowUpdate(v) {
-    if (this._writableStream._state === 'closed') {
+    if (this._strategy === undefined) {
       return;
     }
 
