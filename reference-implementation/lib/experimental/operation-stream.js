@@ -81,7 +81,7 @@ export function pipeOperationStreams(source, dest) {
 
         if (dest.state === 'writable') {
           if (source.state === 'readable') {
-            const op = source.read();
+            const op = source.readOperation();
             if (op.type === 'data') {
               jointOps(op, dest.write(op.argument));
             } else if (op.type === 'close') {
@@ -533,9 +533,19 @@ class OperationQueueReadableSide {
   }
 
   read() {
+    const op = this._stream.read();
+    if (op.type === 'data') {
+      return op.argument;
+    } else if (op.type === 'close') {
+      return ReadableOperationStream.EOS;
+    }
+  }
+  readOperation() {
     return this._stream.read();
   }
   cancel(reason) {
     return this._stream.cancel(reason);
   }
 }
+
+ReadableOperationStream.EOS = {};

@@ -75,7 +75,7 @@ test('Synchronous write, read and completion of the operation', t => {
 
   t.equals(status.state, 'waiting');
 
-  const op = ros.read();
+  const op = ros.readOperation();
   t.equals(op.argument, 'hello');
 
   t.equals(ros.state, 'waiting');
@@ -103,7 +103,7 @@ test('Asynchronous write, read and completion of the operation', t => {
   ros.ready.then(() => {
     t.equals(ros.state, 'readable');
 
-    const op = ros.read();
+    const op = ros.readOperation();
     t.equals(op.argument, 'hello');
 
     t.equals(ros.state, 'waiting');
@@ -280,19 +280,19 @@ test('pipeOperationStreams()', t => {
 
   ros1.ready.then(() => {
     t.equals(ros1.state, 'readable');
-    const op0 = ros1.read();
+    const op0 = ros1.readOperation();
     t.equals(op0.type, 'data');
     t.equals(op0.argument, 'hello');
 
     op0.complete('hi');
 
     t.equals(ros1.state, 'readable');
-    const op1 = ros1.read();
+    const op1 = ros1.readOperation();
     t.equals(op1.type, 'data');
     t.equals(op1.argument, 'world');
 
     t.equals(ros1.state, 'readable');
-    const op2 = ros1.read();
+    const op2 = ros1.readOperation();
     t.equals(op2.type, 'close');
 
     t.equals(helloStatus.state, 'waiting');
@@ -428,7 +428,7 @@ test('Transformation example: Byte counting', t => {
 
           if (dest.state === 'writable') {
             if (source.state === 'readable') {
-              const op = source.read();
+              const op = source.readOperation();
               if (op.type === 'data') {
                 count += op.argument.length;
                 op.complete();
@@ -483,9 +483,8 @@ test('Transformation example: Byte counting', t => {
   ros1.window = 1;
 
   ros1.ready.then(() => {
-    const op = ros1.read();
-    t.equals(op.type, 'data');
-    t.equals(op.argument, 17);
+    const v = ros1.read();
+    t.equals(v, 17);
     t.end();
   }).catch(e => {
     t.fail(e);
@@ -647,7 +646,7 @@ class FakeFileBackedByteSource {
         this._currentRequest.complete(this._fileReadStatus.result);
         this._currentRequest = undefined;
 
-        this._fileReadStatus = undefined
+        this._fileReadStatus = undefined;
       }
 
       _handleFileReadError() {
@@ -672,7 +671,7 @@ class FakeFileBackedByteSource {
       }
 
       _readFromFile() {
-        const op = this._readableStream.read();
+        const op = this._readableStream.readOperation();
 
         if (op.type === 'close') {
           return;
@@ -785,7 +784,7 @@ class BytesSetToOneExpectingByteSinkInternalWriter {
 
     for (;;) {
       if (rs.state === 'readable') {
-        const op = rs.read();
+        const op = rs.readOperation();
         if (op.type === 'data') {
           const view = op.argument;
 
