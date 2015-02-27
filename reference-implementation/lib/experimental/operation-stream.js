@@ -47,13 +47,6 @@ export function pipeOperationStreams(source, dest) {
   return new Promise((resolve, reject) => {
     const oldWindow = source.window;
 
-    function restoreWindowAndReject(e) {
-      console.log('ssssv');
-      source.window = oldWindow;
-      console.log('ssssvz');
-      reject(e);
-    }
-
     function disposeStreams(error) {
       if (dest.state !== 'cancelled') {
         dest.cancel(error);
