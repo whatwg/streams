@@ -9,7 +9,9 @@ export class ReadableOperationStream {
     });
   }
 
-  constructor() {
+  constructor(source) {
+    this._source = source;
+
     this._state = 'waiting';
 
     this._initReadablePromise();
@@ -74,7 +76,7 @@ export class ReadableOperationStream {
 
     this._window = v;
 
-    this._onWindowUpdate(v);
+    this._source.onWindowUpdate(v);
   }
   set window(v) {
     this._throwIfLocked();
@@ -83,7 +85,7 @@ export class ReadableOperationStream {
 
   _readOperationIgnoringLock() {
     this._checkState();
-    return this._readOperationInternal();
+    return this._source.readOperation();
   }
   readOperation() {
     this._throwIfLocked();
@@ -106,7 +108,7 @@ export class ReadableOperationStream {
     const operationStatus = new OperationStatus();
     const operation = new Operation('cancel', reason, operationStatus);
 
-    this._cancelInternal(operation);
+    this._source.cancel(operation);
 
     if (this._reader !== undefined) {
       this._reader._resolveErroredPromise();

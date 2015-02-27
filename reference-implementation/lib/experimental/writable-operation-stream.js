@@ -10,7 +10,9 @@ export class WritableOperationStream {
     });
   }
 
-  constructor() {
+  constructor(sink) {
+    this._sink = sink;
+
     this._state = 'waiting';
 
     this._initWritablePromise();
@@ -65,7 +67,7 @@ export class WritableOperationStream {
 
   get _spaceIgnoringLock() {
     this._checkState();
-    return this._spaceInternal();
+    return this._sink.space;
   }
   get space() {
     this._throwIfLocked();
@@ -97,7 +99,7 @@ export class WritableOperationStream {
     const operationStatus = new OperationStatus();
     const operation = new Operation('data', argument, operationStatus);
 
-    this._writeInternal(operation);
+    this._sink.write(operation);
 
     return operationStatus;
   }
@@ -112,7 +114,7 @@ export class WritableOperationStream {
     const operationStatus = new OperationStatus();
     const operation = new Operation('close', undefined, operationStatus);
 
-    this._closeInternal(operation);
+    this._sink.close(operation);
 
     this._state = 'closed';
 
@@ -131,7 +133,7 @@ export class WritableOperationStream {
     const operationStatus = new OperationStatus();
     const operation = new Operation('abort', reason, operationStatus);
 
-    this._abortInternal(operation);
+    this._sink.abort(operation);
 
     this._state = 'aborted';
 

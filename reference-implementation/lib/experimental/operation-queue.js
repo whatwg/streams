@@ -32,8 +32,8 @@ class OperationQueue {
 
     this._strategy = strategy;
 
-    this._writableSide = new OperationQueueWritableSide(this);
-    this._readableSide = new OperationQueueReadableSide(this);
+    this._writableSide = new WritableOperationStream(this);
+    this._readableSide = new ReadableOperationStream(this);
 
     this._updateWritableSide();
   }
@@ -132,49 +132,5 @@ class OperationQueue {
     this._strategy = undefined;
 
     this._writableSide._markCancelled(operation);
-  }
-}
-
-export class OperationQueueWritableSide extends WritableOperationStream {
-  constructor(queue) {
-    super();
-
-    this._queue = queue;
-  }
-
-  _spaceInternal() {
-    return this._queue.space;
-  }
-
-  _writeInternal(operation) {
-    this._queue.write(operation);
-  }
-
-  _closeInternal(operation) {
-    this._queue.close(operation);
-  }
-
-  _abortInternal(operation) {
-    this._queue.abort(operation);
-  }
-}
-
-export class OperationQueueReadableSide extends ReadableOperationStream {
-  constructor(queue) {
-    super();
-
-    this._queue = queue;
-  }
-
-  _onWindowUpdate(v) {
-    this._queue.onWindowUpdate(v);
-  }
-
-  _readOperationInternal() {
-    return this._queue.readOperation();
-  }
-
-  _cancelInternal(operation) {
-    this._queue.cancel(operation);
   }
 }
