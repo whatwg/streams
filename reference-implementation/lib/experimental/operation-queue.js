@@ -47,6 +47,8 @@ class OperationQueue {
     return this._readableSide;
   }
 
+  // Underlying sink implementation.
+
   get space() {
     if (this._strategy.space !== undefined) {
       return this._strategy.space(this._queueSize);
@@ -89,6 +91,8 @@ class OperationQueue {
 
     this._readableSide._markAborted(operation);
   }
+
+  // Underlying source implementation.
 
   onWindowUpdate(v) {
     if (this._writableSide._state === 'closed') {
