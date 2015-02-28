@@ -10,7 +10,7 @@ export class WritableOperationStream {
     });
   }
 
-  constructor(sink) {
+  constructor(sink, f) {
     this._sink = sink;
 
     this._state = 'waiting';
@@ -27,6 +27,15 @@ export class WritableOperationStream {
     this._cancelOperation = undefined;
 
     this._writer = undefined;
+
+    const delegate = {
+      markWaiting: this._markWaiting.bind(this),
+      markWritable: this._markWritable.bind(this),
+      markCancelled: this._markCancelled.bind(this),
+      onSpaceChange: this._onSpaceChange.bind(this)
+    };
+
+    f(delegate);
   }
 
   _throwIfLocked() {

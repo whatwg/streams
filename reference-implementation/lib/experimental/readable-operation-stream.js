@@ -9,7 +9,7 @@ export class ReadableOperationStream {
     });
   }
 
-  constructor(source) {
+  constructor(source, f) {
     this._source = source;
 
     this._state = 'waiting';
@@ -25,6 +25,15 @@ export class ReadableOperationStream {
     this._window = 0;
 
     this._reader = undefined;
+
+    const delegate = {
+      markWaiting: this._markWaiting.bind(this),
+      markReadable: this._markReadable.bind(this),
+      markDrained: this._markDrained.bind(this),
+      markAborted: this._markAborted.bind(this)
+    };
+
+    f(delegate);
   }
 
   _throwIfLocked() {

@@ -19,12 +19,12 @@ class OperationQueue {
       shouldApplyBackpressure = this._strategy.shouldApplyBackpressure(this._queueSize);
     }
     if (shouldApplyBackpressure) {
-      this._writableStream._markWaiting();
+      this._writableStreamDelegate.markWaiting();
     } else {
-      this._writableStream._markWritable();
+      this._writableStreamDelegate.markWritable();
     }
 
-    this._writableStream._onSpaceChange();
+    this._writableStreamDelegate.onSpaceChange();
   }
 
   constructor(strategy) {
@@ -33,8 +33,8 @@ class OperationQueue {
 
     this._strategy = strategy;
 
-    this._writableStream = new WritableOperationStream(this);
-    this._readableStream = new ReadableOperationStream(this);
+    this._writableStream = new WritableOperationStream(this, delegate => this._writableStreamDelegate = delegate);
+    this._readableStream = new ReadableOperationStream(this, delegate => this._readableStreamDelegate = delegate);
 
     this._updateWritableStream();
   }
@@ -68,7 +68,7 @@ class OperationQueue {
 
     this._updateWritableStream();
 
-    this._readableStream._markReadable();
+    this._readableStreamDelegate.markReadable();
   }
 
   close(operation) {
@@ -77,7 +77,7 @@ class OperationQueue {
     // No longer necessary.
     this._strategy = undefined;
 
-    this._readableStream._markReadable();
+    this._readableStreamDelegate.markReadable();
   }
 
   abort(operation) {
@@ -89,7 +89,7 @@ class OperationQueue {
 
     this._strategy = undefined;
 
-    this._readableStream._markAborted(operation);
+    this._readableStreamDelegate.markAborted(operation);
   }
 
   // Underlying source implementation.
@@ -116,9 +116,9 @@ class OperationQueue {
 
     if (this._queue.length === 0) {
       if (entry.value.type === 'close') {
-        this._readableStream._markDrained();
+        this._readableStreamDelegate.markDrained();
       } else {
-        this._readableStream._markWaiting();
+        this._readableStreamDelegate.markWaiting();
       }
     }
 
@@ -136,6 +136,6 @@ class OperationQueue {
 
     this._strategy = undefined;
 
-    this._writableStream._markCancelled(operation);
+    this._writableStreamDelegate.markCancelled(operation);
   }
 }
