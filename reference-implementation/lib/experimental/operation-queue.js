@@ -23,6 +23,10 @@ class OperationQueueUnderlyingSource {
     this._delegate = delegate;
   }
 
+  markReadable() {
+    this._delegate.markReadable();
+  }
+
   abort(reason) {
     this._delegate.markAborted(reason);
   }
@@ -31,25 +35,19 @@ class OperationQueueUnderlyingSource {
     this._sink.onWindowUpdate(v);
   }
 
+  markWaiting() {
+    this._delegate.markWaiting();
+  }
+  markDrained() {
+    this._delegate.markDrained();
+  }
+
   read() {
     return this._sink.read();
   }
 
   cancel(reason) {
     return this._sink.cancel(reason);
-  }
-
-  markWaiting() {
-    this._delegate.markWaiting();
-  }
-  markReadable() {
-    this._delegate.markReadable();
-  }
-  markDrained() {
-    this._delegate.markDrained();
-  }
-  markAborted(reason) {
-    this._delegate.markAborted(reason);
   }
 }
 
@@ -79,14 +77,6 @@ class OperationQueue {
     this._strategy = strategy;
   }
 
-  get space() {
-    if (this._strategy.space !== undefined) {
-      return this._strategy.space(this._queueSize);
-    }
-
-    return undefined;
-  }
-
   setSource(source) {
     this._source = source;
   }
@@ -95,6 +85,14 @@ class OperationQueue {
     this._delegate = delegate;
 
     this._updateWritableStream();
+  }
+
+  get space() {
+    if (this._strategy.space !== undefined) {
+      return this._strategy.space(this._queueSize);
+    }
+
+    return undefined;
   }
 
   write(value) {
