@@ -1,5 +1,8 @@
 const test = require('tape-catch');
 
+import { Operation, OperationStatus } from '../../lib/experimental/operation-stream';
+import { ReadableOperationStream } from '../../lib/experimental/readable-operation-stream';
+
 test('Operation stream pair is constructed', t => {
   const pair = createOperationQueue({
     size() {
@@ -1176,3 +1179,141 @@ test('errored on the stream obtained before getWriter() call', t => {
     released = true;
   }, 10);
 });
+
+class FakeUnstoppablePushSource {
+  constructor(count) {
+    this._count = count;
+
+    setTimeout(this._push.bind(this), 0);
+  }
+
+  _push() {
+    if (this._count == 0) {
+      this.onend();
+      return;
+    }
+
+    this.ondata('foo');
+    --this._count;
+
+    setTimeout(this._push.bind(this), 0);
+  }
+}
+
+test.only('Adapting unstoppable push source', t => {
+  class Source {
+    constructor() {
+      this._pushSource = new FakeUnstoppablePushSource(10);
+
+      this._queue = [];
+
+      this._readableStream = new ReadableOperationStream(this, delegate => {
+        t.equal(typeof delegate.markWaiting,  'function', 'markWaiting is a function');
+        t.equal(typeof delegate.markReadable, 'function', 'markReadable is a function');
+        t.equal(typeof delegate.markDrained, 'function', 'markDrained is a function');
+        t.equal(typeof delegate.markAborted, 'function', 'markAborted is a function');
+
+        this._readableStreamDelegate = delegate;
+
+        this._pushSource.ondata = chunk => {
+          const status = new OperationStatus();
+          this._queue.push(new Operation('data', chunk, status));
+          delegate.markReadable();
+        };
+
+        this._pushSource.onend = () => {
+          const status = new OperationStatus();
+          this._queue.push(new Operation('close', undefined, status));
+          delegate.markReadable();
+        };
+
+        this._pushSource.onerror = () => {
+          this._queue = [];
+          delegate.markAborted();
+        };
+      });
+    }
+
+    get readableStream() {
+      return this._readableStream;
+    }
+
+    onWindowUpdate(v) {
+    }
+
+    readOperation() {
+      if (this._queue.length === 0) {
+        throw new TypeError('not readable');
+      }
+
+      const entry = this._queue.shift();
+
+      if (this._queue.length === 0) {
+        if (entry.type === 'close') {
+          this._readableStreamDelegate.markDrained();
+        } else {
+          this._readableStreamDelegate.markWaiting();
+        }
+      }
+
+      return entry;
+    }
+
+    cancel() {
+      this._queue = [];
+
+      this._pushSource.close();
+    }
+  }
+
+  const source = new Source();
+  const readableStream = source.readableStream;
+
+  let count = 0;
+  function pump() {
+    for (;;) {
+      if (readableStream.state === 'waiting') {
+        Promise.race([readableStream.readable, readableStream.errored])
+          .then(pump)
+          .catch(e => {
+            t.fail(e);
+            t.end();
+          });
+        return;
+      } else if (readableStream.state === 'readable') {
+        const data = readableStream.read();
+        if (count === 10) {
+          t.equals(data, ReadableOperationStream.EOS);
+          t.end();
+          return;
+        } else {
+          t.equals(data, 'foo');
+          console.log(data);
+          ++count;
+        }
+      } else if (readableStream.state === 'drained') {
+        t.fail();
+        t.end();
+        return;
+      } else if (readableStream.state === 'aborted') {
+        t.fail();
+        t.end();
+        return;
+      } else if (readableStream.state === 'cancelled') {
+        t.fail();
+        t.end();
+        return;
+      } else if (readableStream.state === 'errored') {
+        t.fail();
+        t.end();
+        return;
+      } else {
+        t.fail(readableStream.state);
+        t.end();
+        return;
+      }
+    }
+  }
+  pump();
+});
+
