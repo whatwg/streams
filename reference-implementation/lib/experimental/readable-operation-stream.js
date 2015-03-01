@@ -92,32 +92,20 @@ export class ReadableOperationStream {
     this._windowIgnoringLock = v;
   }
 
-  _readOperationIgnoringLock() {
+  _readIgnoringLock() {
     this._checkState();
-    return this._source.readOperation();
-  }
-  readOperation() {
-    this._throwIfLocked();
-    return this._readOperationIgnoringLock();
+
+    return this._source.read();
   }
   read() {
-    const op = this.readOperation();
-    if (op.type === 'data') {
-      return op.argument;
-    } else if (op.type === 'close') {
-      return ReadableOperationStream.EOS;
-    } else {
-      // error
-    }
+    this._throwIfLocked();
+    return this._readIgnoringLock();
   }
 
   _cancelIgnoringLock(reason) {
     this._checkState();
 
-    const operationStatus = new OperationStatus();
-    const operation = new Operation('cancel', reason, operationStatus);
-
-    this._source.cancel(operation);
+    const result = this._source.cancel(reason);
 
     if (this._reader !== undefined) {
       this._reader._resolveErroredPromise();
@@ -127,7 +115,7 @@ export class ReadableOperationStream {
 
     this._state = 'cancelled';
 
-    return operationStatus;
+    return result;
   }
   cancel(reason) {
     this._throwIfLocked();

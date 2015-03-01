@@ -1,6 +1,5 @@
 const test = require('tape-catch');
 
-import { Operation, OperationStatus } from '../../lib/experimental/operation-stream';
 import { ReadableOperationStream } from '../../lib/experimental/readable-operation-stream';
 
 test('Operation stream pair is constructed', t => {
@@ -78,7 +77,7 @@ test('Synchronous write, read and completion of the operation', t => {
 
   t.equals(status.state, 'waiting');
 
-  const op = ros.readOperation();
+  const op = ros.read();
   t.equals(op.argument, 'hello');
 
   t.equals(ros.state, 'waiting');
@@ -106,7 +105,7 @@ test('Asynchronous write, read and completion of the operation', t => {
   ros.readable.then(() => {
     t.equals(ros.state, 'readable');
 
-    const op = ros.readOperation();
+    const op = ros.read();
     t.equals(op.argument, 'hello');
 
     t.equals(ros.state, 'waiting');
@@ -185,9 +184,9 @@ test('close()', t => {
   t.equals(wos.state, 'closed');
 
   t.equals(ros.state, 'readable');
-  const v0 = ros.read();
+  const v0 = ros.read().argument;
   t.equals(ros.state, 'readable');
-  const v1 = ros.read();
+  const v1 = ros.read().argument;
   t.equals(v1, ros.constructor.EOS);
   t.equals(ros.state, 'drained');
 
@@ -302,19 +301,19 @@ test('pipeOperationStreams()', t => {
 
   ros1.readable.then(() => {
     t.equals(ros1.state, 'readable');
-    const op0 = ros1.readOperation();
+    const op0 = ros1.read();
     t.equals(op0.type, 'data');
     t.equals(op0.argument, 'hello');
 
     op0.complete('hi');
 
     t.equals(ros1.state, 'readable');
-    const op1 = ros1.readOperation();
+    const op1 = ros1.read();
     t.equals(op1.type, 'data');
     t.equals(op1.argument, 'world');
 
     t.equals(ros1.state, 'readable');
-    const op2 = ros1.readOperation();
+    const op2 = ros1.read();
     t.equals(op2.type, 'close');
 
     t.equals(helloStatus.state, 'waiting');
@@ -450,7 +449,7 @@ test('Transformation example: Byte counting', t => {
 
           if (dest.state === 'writable') {
             if (source.state === 'readable') {
-              const op = source.readOperation();
+              const op = source.read();
               if (op.type === 'data') {
                 count += op.argument.length;
                 op.complete();
@@ -505,7 +504,7 @@ test('Transformation example: Byte counting', t => {
   ros1.window = 1;
 
   ros1.readable.then(() => {
-    const v = ros1.read();
+    const v = ros1.read().argument;
     t.equals(v, 17);
     t.end();
   }).catch(e => {
@@ -744,7 +743,7 @@ class FakeFileBackedByteSource {
           }
 
           if (rs.state === 'readable' && this._currentRequest === undefined) {
-            const op = this._readableStream.readOperation();
+            const op = this._readableStream.read();
 
             if (op.type === 'close') {
               return;
@@ -806,7 +805,7 @@ class BytesSetToOneExpectingByteSinkInternalWriter {
 
     for (;;) {
       if (rs.state === 'readable') {
-        const op = rs.readOperation();
+        const op = rs.read();
         if (op.type === 'data') {
           const view = op.argument;
 
@@ -1200,7 +1199,7 @@ class FakeUnstoppablePushSource {
   }
 }
 
-test.only('Adapting unstoppable push source', t => {
+test('Adapting unstoppable push source', t => {
   class Source {
     constructor() {
       this._pushSource = new FakeUnstoppablePushSource(10);
@@ -1216,14 +1215,12 @@ test.only('Adapting unstoppable push source', t => {
         this._readableStreamDelegate = delegate;
 
         this._pushSource.ondata = chunk => {
-          const status = new OperationStatus();
-          this._queue.push(new Operation('data', chunk, status));
+          this._queue.push({type: 'data', data: chunk});
           delegate.markReadable();
         };
 
         this._pushSource.onend = () => {
-          const status = new OperationStatus();
-          this._queue.push(new Operation('close', undefined, status));
+          this._queue.push({type: 'close'});
           delegate.markReadable();
         };
 
@@ -1241,7 +1238,7 @@ test.only('Adapting unstoppable push source', t => {
     onWindowUpdate(v) {
     }
 
-    readOperation() {
+    read() {
       if (this._queue.length === 0) {
         throw new TypeError('not readable');
       }
@@ -1251,8 +1248,10 @@ test.only('Adapting unstoppable push source', t => {
       if (this._queue.length === 0) {
         if (entry.type === 'close') {
           this._readableStreamDelegate.markDrained();
+          return ReadableOperationStream.EOS;
         } else {
           this._readableStreamDelegate.markWaiting();
+          return entry.data;
         }
       }
 
@@ -1288,7 +1287,6 @@ test.only('Adapting unstoppable push source', t => {
           return;
         } else {
           t.equals(data, 'foo');
-          console.log(data);
           ++count;
         }
       } else if (readableStream.state === 'drained') {

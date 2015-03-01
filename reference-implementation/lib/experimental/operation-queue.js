@@ -1,3 +1,4 @@
+import { Operation, OperationStatus } from './operation-stream';
 import { WritableOperationStream } from './writable-operation-stream';
 import { ReadableOperationStream } from './readable-operation-stream';
 
@@ -57,7 +58,10 @@ class OperationQueue {
     return undefined;
   }
 
-  write(operation) {
+  write(value) {
+    const operationStatus = new OperationStatus();
+    const operation = new Operation('data', value, operationStatus);
+
     var size = 1;
     if (this._strategy.size !== undefined) {
       size = this._strategy.size(operation.argument);
@@ -69,18 +73,28 @@ class OperationQueue {
     this._updateWritableStream();
 
     this._readableStreamDelegate.markReadable();
+
+    return operationStatus;
   }
 
-  close(operation) {
+  close() {
+    const operationStatus = new OperationStatus();
+    const operation = new Operation('close', ReadableOperationStream.EOS, operationStatus);
+
     this._queue.push({value: operation, size: 0});
 
     // No longer necessary.
     this._strategy = undefined;
 
     this._readableStreamDelegate.markReadable();
+
+    return operationStatus;
   }
 
-  abort(operation) {
+  abort(reason) {
+    const operationStatus = new OperationStatus();
+    const operation = new Operation('abort', reason, operationStatus);
+
     for (var i = this._queue.length - 1; i >= 0; --i) {
       const op = this._queue[i].value;
       op.error(new TypeError('aborted'));
@@ -90,6 +104,8 @@ class OperationQueue {
     this._strategy = undefined;
 
     this._readableStreamDelegate.markAborted(operation);
+
+    return operationStatus;
   }
 
   // Underlying source implementation.
@@ -106,7 +122,7 @@ class OperationQueue {
     this._updateWritableStream();
   }
 
-  readOperation() {
+  read() {
     if (this._queue.length === 0) {
       throw new TypeError('not readable');
     }
@@ -127,7 +143,10 @@ class OperationQueue {
     return entry.value;
   }
 
-  cancel(operation) {
+  cancel(reason) {
+    const operationStatus = new OperationStatus();
+    const operation = new Operation('cancel', reason, operationStatus);
+
     for (var i = 0; i < this._queue.length; ++i) {
       const op = this._queue[i].value;
       op.error(operation.argument);
@@ -137,5 +156,7 @@ class OperationQueue {
     this._strategy = undefined;
 
     this._writableStreamDelegate.markCancelled(operation);
+
+    return operationStatus;
   }
 }

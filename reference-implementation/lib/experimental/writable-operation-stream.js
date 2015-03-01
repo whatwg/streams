@@ -102,32 +102,24 @@ export class WritableOperationStream {
     return this._waitSpaceChangeIgnoringLock();
   }
 
-  _writeIgnoringLock(argument) {
+  _writeIgnoringLock(value) {
     this._checkState();
 
-    const operationStatus = new OperationStatus();
-    const operation = new Operation('data', argument, operationStatus);
-
-    this._sink.write(operation);
-
-    return operationStatus;
+    return this._sink.write(value);
   }
-  write(argument) {
+  write(value) {
     this._throwIfLocked();
-    return this._writeIgnoringLock(argument);
+    return this._writeIgnoringLock(value);
   }
 
   _closeIgnoringLock() {
     this._checkState();
 
-    const operationStatus = new OperationStatus();
-    const operation = new Operation('close', undefined, operationStatus);
-
-    this._sink.close(operation);
+    const result = this._sink.close();
 
     this._state = 'closed';
 
-    return operationStatus;
+    return result;
   }
   close() {
     this._throwIfLocked();
@@ -139,14 +131,11 @@ export class WritableOperationStream {
       throw new TypeError('already ' + this._state);
     }
 
-    const operationStatus = new OperationStatus();
-    const operation = new Operation('abort', reason, operationStatus);
-
-    this._sink.abort(operation);
+    const result = this._sink.abort(reason);
 
     this._state = 'aborted';
 
-    return operationStatus;
+    return result;
   }
   abort(reason) {
     this._throwIfLocked();

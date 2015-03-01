@@ -115,7 +115,7 @@ export function pipeOperationStreams(source, dest) {
 
         if (dest.state === 'writable') {
           if (source.state === 'readable') {
-            const op = source.readOperation();
+            const op = source.read();
             if (op.type === 'data') {
               jointOps(op, dest.write(op.argument));
             } else if (op.type === 'close') {
