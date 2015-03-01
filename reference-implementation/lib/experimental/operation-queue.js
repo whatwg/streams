@@ -5,61 +5,23 @@ import { ReadableOperationStream } from './readable-operation-stream';
 // Creates a pair of WritableOperationStream implementation and ReadableOperationStream implementation that are
 // connected with a queue. This can be used for creating queue-backed operation streams.
 export function createOperationQueue(strategy) {
-  const source = new OperationQueueUnderlyingSource();
-  const sink = new OperationQueue(strategy);
-
-  source.setSink(sink);
+  const queue = new OperationQueue(strategy);
+  const source = new OperationQueueUnderlyingSource(queue);
+  const sink = new OperationQueueUnderlyingSink(queue);
   sink.setSource(source);
-
+  source.setSink(sink);
   return { writable: new WritableOperationStream(sink), readable: new ReadableOperationStream(source) };
 }
 
-class OperationQueueUnderlyingSource {
-  setSink(sink) {
-    this._sink = sink;
-  }
-
-  init(delegate) {
-    this._delegate = delegate;
-  }
-
-  markReadable() {
-    this._delegate.markReadable();
-  }
-
-  abort(reason) {
-    this._delegate.markAborted(reason);
-  }
-
-  onWindowUpdate(v) {
-    this._sink.onWindowUpdate(v);
-  }
-
-  markWaiting() {
-    this._delegate.markWaiting();
-  }
-  markDrained() {
-    this._delegate.markDrained();
-  }
-
-  read() {
-    return this._sink.read();
-  }
-
-  cancel(reason) {
-    return this._sink.cancel(reason);
-  }
-}
-
-class OperationQueue {
+class OperationQueueUnderlyingSink {
   _updateWritableStream() {
-    if (this._strategy === undefined) {
+    if (this._queue._strategy === undefined) {
       return;
     }
 
     let shouldApplyBackpressure = false;
-    if (this._strategy.shouldApplyBackpressure !== undefined) {
-      shouldApplyBackpressure = this._strategy.shouldApplyBackpressure(this._queueSize);
+    if (this._queue._strategy.shouldApplyBackpressure !== undefined) {
+      shouldApplyBackpressure = this._queue._strategy.shouldApplyBackpressure(this._queue._queueSize);
     }
     if (shouldApplyBackpressure) {
       this._delegate.markWaiting();
@@ -70,11 +32,8 @@ class OperationQueue {
     this._delegate.onSpaceChange();
   }
 
-  constructor(strategy) {
-    this._queue = [];
-    this._queueSize = 0;
-
-    this._strategy = strategy;
+  constructor(queue) {
+    this._queue = queue;
   }
 
   setSource(source) {
@@ -88,8 +47,8 @@ class OperationQueue {
   }
 
   get space() {
-    if (this._strategy.space !== undefined) {
-      return this._strategy.space(this._queueSize);
+    if (this._queue._strategy.space !== undefined) {
+      return this._queue._strategy.space(this._queue._queueSize);
     }
 
     return undefined;
@@ -100,16 +59,16 @@ class OperationQueue {
     const operation = new Operation('data', value, operationStatus);
 
     var size = 1;
-    if (this._strategy.size !== undefined) {
-      size = this._strategy.size(operation.argument);
+    if (this._queue._strategy.size !== undefined) {
+      size = this._queue._strategy.size(operation.argument);
     }
 
-    this._queue.push({value: operation, size});
-    this._queueSize += size;
+    this._queue._queue.push({value: operation, size});
+    this._queue._queueSize += size;
 
     this._updateWritableStream();
 
-    this._source.markReadable();
+    this._source.onQueueFill();
 
     return operationStatus;
   }
@@ -118,12 +77,12 @@ class OperationQueue {
     const operationStatus = new OperationStatus();
     const operation = new Operation('close', ReadableOperationStream.EOS, operationStatus);
 
-    this._queue.push({value: operation, size: 0});
+    this._queue._queue.push({value: operation, size: 0});
 
     // No longer necessary.
-    this._strategy = undefined;
+    this._queue._strategy = undefined;
 
-    this._source.markReadable();
+    this._source.onQueueFill();
 
     return operationStatus;
   }
@@ -132,48 +91,82 @@ class OperationQueue {
     const operationStatus = new OperationStatus();
     const operation = new Operation('abort', reason, operationStatus);
 
-    for (var i = this._queue.length - 1; i >= 0; --i) {
-      const op = this._queue[i].value;
+    for (var i = this._queue._queue.length - 1; i >= 0; --i) {
+      const op = this._queue._queue[i].value;
       op.error(new TypeError('aborted'));
     }
-    this._queue = [];
+    this._queue._queue = [];
 
-    this._strategy = undefined;
+    this._queue._strategy = undefined;
 
     this._source.abort(operation);
 
     return operationStatus;
   }
 
-  onWindowUpdate(v) {
-    if (this._strategy === undefined) {
-      return;
-    }
-
-    if (this._strategy.onWindowUpdate !== undefined) {
-      this._strategy.onWindowUpdate(v);
-    }
-
+  onWindowUpdate() {
     this._updateWritableStream();
   }
 
+  onQueueConsume() {
+    this._updateWritableStream();
+  }
+
+  onCancel(reason) {
+    this._delegate.markCancelled(reason);
+  }
+}
+
+class OperationQueueUnderlyingSource {
+  constructor(queue) {
+    this._queue = queue;
+  }
+
+  setSink(sink) {
+    this._sink = sink;
+  }
+
+  init(delegate) {
+    this._delegate = delegate;
+  }
+
+  onQueueFill() {
+    this._delegate.markReadable();
+  }
+
+  abort(reason) {
+    this._delegate.markAborted(reason);
+  }
+
+  onWindowUpdate(v) {
+    if (this._queue._strategy === undefined) {
+      return;
+    }
+
+    if (this._queue._strategy.onWindowUpdate !== undefined) {
+      this._queue._strategy.onWindowUpdate(v);
+    }
+
+    this._sink.onWindowUpdate();
+  }
+
   read() {
-    if (this._queue.length === 0) {
+    if (this._queue._queue.length === 0) {
       throw new TypeError('not readable');
     }
 
-    const entry = this._queue.shift();
-    this._queueSize -= entry.size;
+    const entry = this._queue._queue.shift();
+    this._queue._queueSize -= entry.size;
 
-    if (this._queue.length === 0) {
+    if (this._queue._queue.length === 0) {
       if (entry.value.type === 'close') {
-        this._source.markDrained();
+        this._delegate.markDrained();
       } else {
-        this._source.markWaiting();
+        this._delegate.markWaiting();
       }
     }
 
-    this._updateWritableStream();
+    this._sink.onQueueConsume();
 
     return entry.value;
   }
@@ -182,16 +175,25 @@ class OperationQueue {
     const operationStatus = new OperationStatus();
     const operation = new Operation('cancel', reason, operationStatus);
 
-    for (var i = 0; i < this._queue.length; ++i) {
-      const op = this._queue[i].value;
+    for (var i = 0; i < this._queue._queue.length; ++i) {
+      const op = this._queue._queue[i].value;
       op.error(operation.argument);
     }
-    this._queue = [];
+    this._queue._queue = [];
 
-    this._strategy = undefined;
+    this._queue._strategy = undefined;
 
-    this._delegate.markCancelled(operation);
+    this._sink.onCancel(operation);
 
     return operationStatus;
+  }
+}
+
+class OperationQueue {
+  constructor(strategy) {
+    this._queue = [];
+    this._queueSize = 0;
+
+    this._strategy = strategy;
   }
 }
