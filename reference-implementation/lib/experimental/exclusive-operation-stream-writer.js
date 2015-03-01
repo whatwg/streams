@@ -5,45 +5,6 @@ export class ExclusiveOperationStreamWriter {
     });
   }
 
-  constructor(parent) {
-    this._parent = parent;
-
-    this._initWritablePromise();
-    this._erroredPromise = new Promise((resolve, reject) => {
-      this._resolveErroredPromise = resolve;
-    });
-
-    this._lastSpace = undefined;
-    this._spaceChangePromise = undefined;
-
-    this._syncStateAndWritablePromise();
-    this._syncStateAndErroredPromise();
-  }
-
-  _throwIfReleased() {
-    if (this._parent === undefined) {
-      throw new TypeError('already released');
-    }
-  }
-
-  get state() {
-    this._throwIfReleased();
-    return this._parent._state;
-  }
-  get writable() {
-    this._throwIfReleased();
-    return this._writablePromise;
-  }
-  get errored() {
-    this._throwIfReleased();
-    return this._erroredPromise;
-  }
-
-  get cancelOperation() {
-    this._throwIfReleased();
-    return this._parent._cancelOperationIgnoringLock;
-  }
-
   _syncStateAndWritablePromise() {
     if (this._parent._state === 'writable') {
       if (this._resolveWritablePromise !== undefined) {
@@ -74,6 +35,60 @@ export class ExclusiveOperationStreamWriter {
     }
   }
 
+  constructor(parent) {
+    this._parent = parent;
+
+    this._erroredPromise = new Promise((resolve, reject) => {
+      this._resolveErroredPromise = resolve;
+    });
+
+    this._initWritablePromise();
+    this._lastSpace = undefined;
+    this._spaceChangePromise = undefined;
+
+    this._syncStateAndWritablePromise();
+    this._syncStateAndErroredPromise();
+  }
+
+  get state() {
+    this._throwIfReleased();
+    return this._parent._state;
+  }
+
+  // Main interfaces.
+
+  write(argument) {
+    this._throwIfReleased();
+    return this._parent._writeIgnoringLock(argument);
+  }
+  close() {
+    this._throwIfReleased();
+    return this._parent._closeIgnoringLock();
+  }
+  abort(reason) {
+    this._throwIfReleased();
+    return this._parent._abortIgnoringLock(reason);
+  }
+
+  // Error receiving interfaces.
+
+  get errored() {
+    this._throwIfReleased();
+    return this._erroredPromise;
+  }
+
+  get cancelOperation() {
+    this._throwIfReleased();
+    return this._parent._cancelOperationIgnoringLock;
+  }
+
+  // Flow control interfaces.
+
+  get writable() {
+    this._throwIfReleased();
+    return this._writablePromise;
+  }
+
   get space() {
     this._throwIfReleased();
     return this._parent._spaceIgnoringLock;
@@ -93,17 +108,12 @@ export class ExclusiveOperationStreamWriter {
     return this._spaceChangePromise;
   }
 
-  write(argument) {
-    this._throwIfReleased();
-    return this._parent._writeIgnoringLock(argument);
-  }
-  close() {
-    this._throwIfReleased();
-    return this._parent._closeIgnoringLock();
-  }
-  abort(reason) {
-    this._throwIfReleased();
-    return this._parent._abortIgnoringLock(reason);
+  // Locking interfaces.
+
+  _throwIfReleased() {
+    if (this._parent === undefined) {
+      throw new TypeError('already released');
+    }
   }
 
   release() {
@@ -111,8 +121,11 @@ export class ExclusiveOperationStreamWriter {
 
     this._parent = undefined;
 
-    this._writablePromise = undefined;
+    // Make promises collectable.
+
     this._erroredPromise = undefined;
+
+    this._writablePromise = undefined;
     this._spaceChangePromise = undefined;
   }
 }

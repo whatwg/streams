@@ -1,30 +1,61 @@
-import { Operation, OperationStatus, writableAcceptsWriteAndClose, writableAcceptsAbort } from './operation-stream';
+import { writableAcceptsWriteAndClose, writableAcceptsAbort } from './operation-stream';
 import { ExclusiveOperationStreamWriter } from './exclusive-operation-stream-writer';
 
 export class WritableOperationStream {
-  // Public members and internal methods.
-
   _initWritablePromise() {
     this._writablePromise = new Promise((resolve, reject) => {
       this._resolveWritablePromise = resolve;
     });
   }
 
+  _syncStateAndWritablePromise() {
+    if (this._state === 'writable') {
+      if (this._resolveWritablePromise !== undefined) {
+        this._resolveWritablePromise();
+        this._resolveWritablePromise = undefined;
+      }
+    } else {
+      if (this._resolveWritablePromise === undefined) {
+        this._initWritablePromise();
+      }
+    }
+  }
+
+  _syncStateAndErroredPromise() {
+    if (this._state === 'cancelled' || this._state === 'errored') {
+      // erroredPromise may be already fulfilled if this method is called on release of a writer.
+      if (this._resolveErroredPromise !== undefined) {
+        this._resolveErroredPromise();
+        this._resolveErroredPromise = undefined;
+      }
+    }
+  }
+
+  _syncSpaceAndSpaceChangePromise() {
+    if (this._spaceChangePromise !== undefined && this._lastSpace !== this.space) {
+      this._resolveSpaceChangePromise();
+      this._resolveSpaceChangePromise = undefined;
+
+      this._lastSpace = undefined;
+      this._spaceChangePromise = undefined;
+    }
+  }
+
+  // Public members and internal methods.
+
   constructor(sink, f) {
     this._sink = sink;
 
     this._state = 'waiting';
 
-    this._initWritablePromise();
-
     this._erroredPromise = new Promise((resolve, reject) => {
       this._resolveErroredPromise = resolve;
     });
+    this._cancelOperation = undefined;
 
+    this._initWritablePromise();
     this._lastSpace = undefined;
     this._spaceChangePromise = undefined;
-
-    this._cancelOperation = undefined;
 
     this._writer = undefined;
 
@@ -38,47 +69,12 @@ export class WritableOperationStream {
     f(delegate);
   }
 
-  _throwIfLocked() {
-    if (this._writer !== undefined) {
-      throw new TypeError('locked');
-    }
-  }
-
   get state() {
     this._throwIfLocked();
     return this._state;
   }
-  get writable() {
-    this._throwIfLocked();
-    return this._writablePromise;
-  }
-  get errored() {
-    this._throwIfLocked();
-    return this._erroredPromise;
-  }
 
-  get _cancelOperationIgnoringLock() {
-    if (this._state !== 'cancelled') {
-      throw new TypeError('not cancelled');
-    }
-    return this._cancelOperation;
-  }
-  get cancelOperation() {
-    this._throwIfLocked();
-    return this._cancelOperationIgnoringLock;
-  }
-
-  get _spaceIgnoringLock() {
-    if (!writableAcceptsWriteAndClose(this._state)) {
-      throw new TypeError('already ' + this._state);
-    }
-
-    return this._sink.space;
-  }
-  get space() {
-    this._throwIfLocked();
-    return this._spaceIgnoringLock;
-  }
+  // Main interfaces.
 
   _waitSpaceChangeIgnoringLock() {
     if (!writableAcceptsWriteAndClose(this._state)) {
@@ -145,33 +141,48 @@ export class WritableOperationStream {
     return this._abortIgnoringLock(reason);
   }
 
-  _syncStateAndWritablePromise() {
-    if (this._state === 'writable') {
-      if (this._resolveWritablePromise !== undefined) {
-        this._resolveWritablePromise();
-        this._resolveWritablePromise = undefined;
-      }
-    } else {
-      if (this._resolveWritablePromise === undefined) {
-        this._initWritablePromise();
-      }
-    }
+  // Error receiving interfaces.
+
+  get errored() {
+    this._throwIfLocked();
+    return this._erroredPromise;
   }
 
-  _syncStateAndErroredPromise() {
-    if (this._resolveErroredPromise !== undefined) {
-      this._resolveErroredPromise();
-      this._resolveErroredPromise = undefined;
+  get _cancelOperationIgnoringLock() {
+    if (this._state !== 'cancelled') {
+      throw new TypeError('not cancelled');
     }
+    return this._cancelOperation;
+  }
+  get cancelOperation() {
+    this._throwIfLocked();
+    return this._cancelOperationIgnoringLock;
   }
 
-  _syncSpaceAndSpaceChangePromise() {
-    if (this._spaceChangePromise !== undefined && this._lastSpace !== this.space) {
-      this._resolveSpaceChangePromise();
-      this._resolveSpaceChangePromise = undefined;
+  // Flow control interfaces.
 
-      this._lastSpace = undefined;
-      this._spaceChangePromise = undefined;
+  get writable() {
+    this._throwIfLocked();
+    return this._writablePromise;
+  }
+
+  get _spaceIgnoringLock() {
+    if (!writableAcceptsWriteAndClose(this._state)) {
+      throw new TypeError('already ' + this._state);
+    }
+
+    return this._sink.space;
+  }
+  get space() {
+    this._throwIfLocked();
+    return this._spaceIgnoringLock;
+  }
+
+  // Locking interfaces.
+
+  _throwIfLocked() {
+    if (this._writer !== undefined) {
+      throw new TypeError('locked');
     }
   }
 
