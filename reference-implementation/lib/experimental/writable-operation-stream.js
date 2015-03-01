@@ -22,7 +22,7 @@ export class WritableOperationStream {
   }
 
   _syncStateAndErroredPromise() {
-    if (this._state === 'cancelled' || this._state === 'errored') {
+    if (this._state === 'errored') {
       // erroredPromise may be already fulfilled if this method is called on release of a writer.
       if (this._resolveErroredPromise !== undefined) {
         this._resolveErroredPromise();
@@ -49,7 +49,7 @@ export class WritableOperationStream {
     this._erroredPromise = new Promise((resolve, reject) => {
       this._resolveErroredPromise = resolve;
     });
-    this._cancelOperation = undefined;
+    this._error = undefined;
 
     this._initWritablePromise();
     this._lastSpace = undefined;
@@ -60,7 +60,7 @@ export class WritableOperationStream {
     const delegate = {
       markWaiting: this._markWaiting.bind(this),
       markWritable: this._markWritable.bind(this),
-      markCancelled: this._markCancelled.bind(this),
+      markErrored: this._markErrored.bind(this),
       onSpaceChange: this._onSpaceChange.bind(this)
     };
 
@@ -146,15 +146,15 @@ export class WritableOperationStream {
     return this._erroredPromise;
   }
 
-  get _cancelOperationIgnoringLock() {
-    if (this._state !== 'cancelled') {
-      throw new TypeError('not cancelled');
+  get _errorIgnoringLock() {
+    if (this._state !== 'errored') {
+      throw new TypeError('not errored');
     }
-    return this._cancelOperation;
+    return this._error;
   }
-  get cancelOperation() {
+  get error() {
     this._throwIfLocked();
-    return this._cancelOperationIgnoringLock;
+    return this._errorIgnoringLock;
   }
 
   // Flow control interfaces.
@@ -220,8 +220,8 @@ export class WritableOperationStream {
     }
   }
 
-  _markCancelled(operation) {
-    this._state = 'cancelled';
+  _markErrored(error) {
+    this._state = 'errored';
 
     if (this._writer === undefined) {
       this._syncStateAndWritablePromise();
@@ -231,7 +231,7 @@ export class WritableOperationStream {
       this._writer._syncStateAndErroredPromise();
     }
 
-    this._cancelOperation = operation;
+    this._error = error;
   }
 
   _onSpaceChange() {

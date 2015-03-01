@@ -81,35 +81,27 @@ export function pipeOperationStreams(source, dest) {
 
         // Propagate errors.
 
-        if (source.state === 'aborted') {
-          if (writableAcceptsAbort(dest.state)) {
-            jointOps(source.abortOperation, dest.abort(source.abortOperation.argument));
-          }
-          reject(new TypeError('aborted'));
-          return;
-        }
         if (source.state === 'errored') {
-          const error = new TypeError('source is errored');
           if (writableAcceptsAbort(dest.state)) {
-            dest.abort(error);
+            if (source.error.constructor === Operation) {
+              jointOps(source.error, dest.abort(source.error.argument));
+            } else {
+              dest.abort(source.error);
+            }
           }
-          reject(error);
+          reject(new TypeError('source is errored'));
           return;
         }
 
-        if (dest.state === 'cancelled') {
+        if (dest.state === 'errored') {
           if (readableAcceptsReadAndCancel(source.state)) {
-            jointOps(dest.cancelOperation, source.cancel(dest.cancelOperation.argument));
+            if (dest.error.constructor === Operation) {
+              jointOps(dest.error, source.cancel(dest.error.argument));
+            } else {
+              source.cancel(dest.error);
+            }
           }
-          reject(new TypeError('dest is cancelled'));
-          return;
-        }
-        if (source.state === 'errored') {
-          const error = new TypeError('dest is errored');
-          if (readableAcceptsReadAndCancel(source.state)) {
-            source.cancel(error);
-          }
-          reject(error);
+          reject(new TypeError('dest is errored'));
           return;
         }
 

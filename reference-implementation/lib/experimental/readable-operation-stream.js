@@ -28,7 +28,7 @@ export class ReadableOperationStream {
       markWaiting: this._markWaiting.bind(this),
       markReadable: this._markReadable.bind(this),
       markDrained: this._markDrained.bind(this),
-      markAborted: this._markAborted.bind(this)
+      markErrored: this._markErrored.bind(this)
     };
 
     this._source.init(delegate);
@@ -87,15 +87,15 @@ export class ReadableOperationStream {
     return this._erroredPromise;
   }
 
-  get _abortOperationIgnoringLock() {
-    if (this._state !== 'aborted') {
-      throw new TypeError('not aborted');
+  get _errorIgnoringLock() {
+    if (this._state !== 'errored') {
+      throw new TypeError('not errored');
     }
-    return this._abortOperation;
+    return this._error;
   }
-  get abortOperation() {
+  get error() {
     this._throwIfLocked();
-    return this._abortOperationIgnoringLock;
+    return this._errorIgnoringLock;
   }
 
   // Flow control interfaces.
@@ -166,16 +166,16 @@ export class ReadableOperationStream {
     this._state = 'drained';
   }
 
-  _markAborted(operation) {
+  _markErrored(error) {
     if (this._reader === undefined) {
       this._resolveErroredPromise();
     } else {
       this._writer._resolveErroredPromise();
     }
 
-    this._state = 'aborted';
+    this._state = 'errored';
 
-    this._abortOperation = operation;
+    this._error = error;
   }
 }
 

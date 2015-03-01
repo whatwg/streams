@@ -222,10 +222,10 @@ test('abort()', t => {
     t.equals(worldStatus.result.message, 'aborted', 'worldStatus.result');
   });
   ros.errored.then(() => {
-    t.equals(ros.state, 'aborted', 'ros.state');
-    t.equals(ros.abortOperation.argument, testError, 'ros.abortOperation.argument');
+    t.equals(ros.state, 'errored', 'ros.state');
+    t.equals(ros.error.argument, testError, 'ros.error.argument');
 
-    ros.abortOperation.complete(testCompletion);
+    ros.error.complete(testCompletion);
   });
 });
 
@@ -258,10 +258,10 @@ test('cancel()', t => {
     t.equals(worldStatus.result, testError, 'worldStatus.result');
   });
   wos.errored.then(() => {
-    t.equals(wos.state, 'cancelled', 'wos.state');
-    t.equals(wos.cancelOperation.argument, testError, 'wos.cancelOperation.argument');
+    t.equals(wos.state, 'errored', 'wos.state');
+    t.equals(wos.error.argument, testError, 'wos.error.argument');
 
-    wos.cancelOperation.complete(testCompletion);
+    wos.error.complete(testCompletion);
   });
 });
 
@@ -349,7 +349,7 @@ test('pipeOperationStreams(): abort() propagation', t => {
   pipePromise
       .then(
           v => t.fail('pipePromise is fulfilled with ' + v),
-          e => t.equals(e.message, 'aborted', 'rejection reason of pipePromise'));
+          e => t.equals(e.message, 'source is errored', 'rejection reason of pipePromise'));
 
   const status = wos0.abort(testError);
   status.ready.then(() => {
@@ -366,10 +366,10 @@ test('pipeOperationStreams(): abort() propagation', t => {
     t.equals(worldStatus.result.message, 'aborted', 'worldStatus.result');
   });
   ros1.errored.then(() => {
-    t.equals(ros1.state, 'aborted', 'ros.state');
-    t.equals(ros1.abortOperation.argument, testError, 'ros1.abortOperation.argument');
+    t.equals(ros1.state, 'errored', 'ros.state');
+    t.equals(ros1.error.argument, testError, 'ros1.error.argument');
 
-    ros1.abortOperation.complete(testCompletion);
+    ros1.error.complete(testCompletion);
   });
 });
 
@@ -394,7 +394,7 @@ test('pipeOperationStreams(): cancel() propagation', t => {
   pipePromise
       .then(
           v => t.fail('pipePromise is fulfilled with ' + v),
-          e => t.equals(e.message, 'dest is cancelled', 'rejection reason of pipePromise'));
+          e => t.equals(e.message, 'dest is errored', 'rejection reason of pipePromise'));
 
   const status = ros1.cancel(testError);
   status.ready.then(() => {
@@ -411,10 +411,10 @@ test('pipeOperationStreams(): cancel() propagation', t => {
     t.equals(worldStatus.result, testError, 'worldStatus.result');
   });
   wos0.errored.then(() => {
-    t.equals(wos0.state, 'cancelled', 'wos0.state');
-    t.equals(wos0.cancelOperation.argument, testError, 'wos0.cancelOperation.argument');
+    t.equals(wos0.state, 'errored', 'wos0.state');
+    t.equals(wos0.error.argument, testError, 'wos0.error.argument');
 
-    wos0.cancelOperation.complete(testCompletion);
+    wos0.error.complete(testCompletion);
   });
 });
 
@@ -434,15 +434,15 @@ test('Transformation example: Byte counting', t => {
 
       function loop() {
         for (;;) {
-          if (source.state === 'aborted') {
+          if (source.state === 'errored') {
             if (dest.state !== 'cancelled') {
-              jointOps(source.abortOperation, dest.cancel(source.abortOperation.argument));
+              jointOps(source.error, dest.cancel(source.error.argument));
             }
             return;
           }
-          if (dest.state === 'cancelled') {
+          if (dest.state === 'errored') {
             if (source.state !== 'aborted') {
-              jointOps(dest.cancelOperation, source.abort(dest.cancelOperation.argument));
+              jointOps(dest.error, source.abort(dest.error.argument));
             }
             return;
           }
@@ -578,7 +578,7 @@ class FakeFileBackedByteSource {
         const ws = this._writableStream;
 
         for (;;) {
-          if (ws.state === 'cancelled') {
+          if (ws.state === 'errored') {
             return;
           }
 
@@ -725,9 +725,9 @@ class FakeFileBackedByteSource {
         const rs = this._readableStream;
 
         for (;;) {
-          if (rs.state === 'aborted') {
+          if (rs.state === 'errored') {
             if (this._currentRequest !== undefined) {
-              this._currentRequest.error(rs.abortOperation.argument);
+              this._currentRequest.error(rs.error.argument);
             }
 
             return;
@@ -832,8 +832,8 @@ class BytesSetToOneExpectingByteSinkInternalWriter {
         rs.readable
             .then(this._loop.bind(this))
             .catch(this._sink._error.bind(this._sink));
-      } else if (rs.state === 'aborted') {
-        this._sink._error(rs.abortOperation.argument);
+      } else if (rs.state === 'errored') {
+        this._sink._error(rs.error.argument);
       } else {
         this._sink._error(rs.state);
       }
@@ -932,8 +932,8 @@ class BytesSetToOneExpectingByteSink {
             return;
           }
 
-          if (ws.state === 'cancelled') {
-            this._sink._error(ws.cancelOperation.argument);
+          if (ws.state === 'errored') {
+            this._sink._error(ws.error.argument);
             return;
           }
 
@@ -1082,7 +1082,7 @@ test('getWriter()', t => {
   t.throws(() => wos.state, /TypeError/);
   t.throws(() => wos.writable, /TypeError/);
   t.throws(() => wos.errored, /TypeError/);
-  t.throws(() => wos.cancelOperation, /TypeError/);
+  t.throws(() => wos.error, /TypeError/);
   t.throws(() => wos.space, /TypeError/);
   t.throws(() => wos.waitSpaceChange(), /TypeError/);
   t.throws(() => wos.write(new ArrayBuffer(10)), /TypeError/);
@@ -1211,7 +1211,7 @@ test('Adapting unstoppable push source', t => {
       t.equal(typeof delegate.markWaiting,  'function', 'markWaiting is a function');
       t.equal(typeof delegate.markReadable, 'function', 'markReadable is a function');
       t.equal(typeof delegate.markDrained, 'function', 'markDrained is a function');
-      t.equal(typeof delegate.markAborted, 'function', 'markAborted is a function');
+      t.equal(typeof delegate.markErrored, 'function', 'markErrored is a function');
 
       this._readableStreamDelegate = delegate;
 
@@ -1227,7 +1227,7 @@ test('Adapting unstoppable push source', t => {
 
       this._pushSource.onerror = () => {
         this._queue = [];
-        delegate.markAborted();
+        delegate.markErrored();
       };
     }
 
@@ -1286,10 +1286,6 @@ test('Adapting unstoppable push source', t => {
           ++count;
         }
       } else if (readableStream.state === 'drained') {
-        t.fail();
-        t.end();
-        return;
-      } else if (readableStream.state === 'aborted') {
         t.fail();
         t.end();
         return;

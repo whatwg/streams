@@ -113,7 +113,7 @@ class OperationQueueUnderlyingSink {
   }
 
   onCancel(reason) {
-    this._delegate.markCancelled(reason);
+    this._delegate.markErrored(reason);
   }
 }
 
@@ -135,7 +135,7 @@ class OperationQueueUnderlyingSource {
   }
 
   abort(reason) {
-    this._delegate.markAborted(reason);
+    this._delegate.markErrored(reason);
   }
 
   onWindowUpdate(v) {
