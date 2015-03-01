@@ -41,8 +41,6 @@ export class WritableOperationStream {
     }
   }
 
-  // Public members and internal methods.
-
   constructor(sink, f) {
     this._sink = sink;
 

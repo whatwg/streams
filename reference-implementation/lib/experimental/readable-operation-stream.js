@@ -1,8 +1,6 @@
 import { Operation, OperationStatus, readableAcceptsReadAndCancel } from './operation-stream';
 
 export class ReadableOperationStream {
-  // Public members and internal methods.
-
   _initReadablePromise() {
     this._readablePromise = new Promise((resolve, reject) => {
       this._resolveReadablePromise = resolve;
@@ -36,64 +34,22 @@ export class ReadableOperationStream {
     f(delegate);
   }
 
-  _throwIfLocked() {
-    if (this._reader !== undefined) {
-      throw new TypeError('locked');
-    }
-  }
-
   get state() {
     this._throwIfLocked();
     return this._state;
   }
+
+  // Main interfaces.
+
   get readable() {
     this._throwIfLocked();
     return this._readablePromise;
   }
-  get errored() {
-    this._throwIfLocked();
-    return this._erroredPromise;
-  }
 
-  get _abortOperationIgnoringLock() {
-    if (this._state !== 'aborted') {
-      throw new TypeError('not aborted');
-    }
-    return this._abortOperation;
-  }
-  get abortOperation() {
-    this._throwIfLocked();
-    return this._abortOperationIgnoringLock;
-  }
-
-  _checkState() {
+  _readIgnoringLock() {
     if (!readableAcceptsReadAndCancel(this._state)) {
       throw new TypeError('already ' + this._state);
     }
-  }
-
-  get _windowIgnoringLock() {
-    return this._window;
-  }
-  get window() {
-    this._throwIfLocked();
-    return this._windowIgnoringLock;
-  }
-
-  set _windowIgnoringLock(v) {
-    this._checkState();
-
-    this._window = v;
-
-    this._source.onWindowUpdate(v);
-  }
-  set window(v) {
-    this._throwIfLocked();
-    this._windowIgnoringLock = v;
-  }
-
-  _readIgnoringLock() {
-    this._checkState();
 
     return this._source.read();
   }
@@ -103,7 +59,9 @@ export class ReadableOperationStream {
   }
 
   _cancelIgnoringLock(reason) {
-    this._checkState();
+    if (!readableAcceptsReadAndCancel(this._state)) {
+      throw new TypeError('already ' + this._state);
+    }
 
     const result = this._source.cancel(reason);
 
@@ -120,6 +78,56 @@ export class ReadableOperationStream {
   cancel(reason) {
     this._throwIfLocked();
     return this._cancelIgnoringLock(reason);
+  }
+
+  // Error receiving interfaces.
+
+  get errored() {
+    this._throwIfLocked();
+    return this._erroredPromise;
+  }
+
+  get _abortOperationIgnoringLock() {
+    if (this._state !== 'aborted') {
+      throw new TypeError('not aborted');
+    }
+    return this._abortOperation;
+  }
+  get abortOperation() {
+    this._throwIfLocked();
+    return this._abortOperationIgnoringLock;
+  }
+
+  // Flow control interfaces.
+
+  get _windowIgnoringLock() {
+    return this._window;
+  }
+  get window() {
+    this._throwIfLocked();
+    return this._windowIgnoringLock;
+  }
+
+  set _windowIgnoringLock(v) {
+    if (!readableAcceptsReadAndCancel(this._state)) {
+      throw new TypeError('already ' + this._state);
+    }
+
+    this._window = v;
+
+    this._source.onWindowUpdate(v);
+  }
+  set window(v) {
+    this._throwIfLocked();
+    this._windowIgnoringLock = v;
+  }
+
+  // Locking interfaces.
+
+  _throwIfLocked() {
+    if (this._reader !== undefined) {
+      throw new TypeError('locked');
+    }
   }
 
   getReader() {
