@@ -6,7 +6,7 @@ export function writableAcceptsAbort(state) {
   return state === 'waiting' || state === 'writable' || state === 'closed';
 }
 
-export function readableAcceptsReadAndCancel(state) {
+export function readableAcceptsCancel(state) {
   return state === 'waiting' || state === 'readable';
 }
 

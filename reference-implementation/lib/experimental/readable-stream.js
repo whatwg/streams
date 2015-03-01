@@ -1,4 +1,4 @@
-import { readableAcceptsReadAndCancel } from './stream-base';
+import { readableAcceptsCancel } from './stream-base';
 
 export class ReadableStream {
   _initReadablePromise() {
@@ -47,8 +47,8 @@ export class ReadableStream {
   }
 
   _readIgnoringLock() {
-    if (!readableAcceptsReadAndCancel(this._state)) {
-      throw new TypeError('already ' + this._state);
+    if (this._state !== 'readable') {
+      throw new TypeError('not readable');
     }
 
     return this._source.read();
@@ -59,7 +59,7 @@ export class ReadableStream {
   }
 
   _cancelIgnoringLock(reason) {
-    if (!readableAcceptsReadAndCancel(this._state)) {
+    if (!readableAcceptsCancel(this._state)) {
       throw new TypeError('already ' + this._state);
     }
 
@@ -109,7 +109,7 @@ export class ReadableStream {
   }
 
   set _windowIgnoringLock(v) {
-    if (!readableAcceptsReadAndCancel(this._state)) {
+    if (!readableAcceptsCancel(this._state)) {
       throw new TypeError('already ' + this._state);
     }
 

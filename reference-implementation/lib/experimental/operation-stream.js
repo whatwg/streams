@@ -1,4 +1,4 @@
-import { selectStreams, writableAcceptsWriteAndClose, writableAcceptsAbort, readableAcceptsReadAndCancel
+import { selectStreams, writableAcceptsWriteAndClose, writableAcceptsAbort, readableAcceptsCancel
   } from './stream-base';
 
 export function jointOps(op, status) {
@@ -24,7 +24,7 @@ export function pipeOperationStreams(source, dest) {
       if (writableAcceptsAbort(dest.state)) {
         dest.abort(error);
       }
-      if (readableAcceptsReadAndCancel(source.state)) {
+      if (readableAcceptsCancel(source.state)) {
         source.abort(error);
       }
       reject(error);
@@ -66,7 +66,7 @@ export function pipeOperationStreams(source, dest) {
         }
 
         if (dest.state === 'errored') {
-          if (readableAcceptsReadAndCancel(source.state)) {
+          if (readableAcceptsCancel(source.state)) {
             if (dest.error.constructor === Operation) {
               jointOps(dest.error, source.cancel(dest.error.argument));
             } else {
