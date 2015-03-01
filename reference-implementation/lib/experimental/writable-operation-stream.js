@@ -68,14 +68,11 @@ export class WritableOperationStream {
     return this._cancelOperationIgnoringLock;
   }
 
-  _checkState() {
+  get _spaceIgnoringLock() {
     if (!writableAcceptsWriteAndClose(this._state)) {
       throw new TypeError('already ' + this._state);
     }
-  }
 
-  get _spaceIgnoringLock() {
-    this._checkState();
     return this._sink.space;
   }
   get space() {
@@ -84,7 +81,9 @@ export class WritableOperationStream {
   }
 
   _waitSpaceChangeIgnoringLock() {
-    this._checkState();
+    if (!writableAcceptsWriteAndClose(this._state)) {
+      throw new TypeError('already ' + this._state);
+    }
 
     if (this._spaceChangePromise !== undefined) {
       return this._spaceChangePromise;
@@ -103,7 +102,9 @@ export class WritableOperationStream {
   }
 
   _writeIgnoringLock(value) {
-    this._checkState();
+    if (!writableAcceptsWriteAndClose(this._state)) {
+      throw new TypeError('already ' + this._state);
+    }
 
     return this._sink.write(value);
   }
@@ -113,7 +114,9 @@ export class WritableOperationStream {
   }
 
   _closeIgnoringLock() {
-    this._checkState();
+    if (!writableAcceptsWriteAndClose(this._state)) {
+      throw new TypeError('already ' + this._state);
+    }
 
     const result = this._sink.close();
 
