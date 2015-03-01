@@ -8,24 +8,16 @@ export class ExclusiveOperationStreamWriter {
   constructor(parent) {
     this._parent = parent;
 
-    const state = this._parent._state;
-
-    if (state === 'writable') {
-      this._writablePromise = Promise.resolve();
-    } else {
-      this._initWritablePromise();
-    }
-
-    if (state === 'errored' || state === 'cancelled') {
-      this._erroredPromise = Promise.resolve();
-    } else {
-      this._erroredPromise = new Promise((resolve, reject) => {
-        this._resolveErroredPromise = resolve;
-      });
-    }
+    this._initWritablePromise();
+    this._erroredPromise = new Promise((resolve, reject) => {
+      this._resolveErroredPromise = resolve;
+    });
 
     this._lastSpace = undefined;
     this._spaceChangePromise = undefined;
+
+    this._syncStateAndWritablePromise();
+    this._syncStateAndErroredPromise();
   }
 
   _throwIfReleased() {
@@ -52,29 +44,33 @@ export class ExclusiveOperationStreamWriter {
     return this._parent._cancelOperationIgnoringLock;
   }
 
-  _syncStateAndPromises() {
-    const state = this._parent._state;
-    if (state === 'waiting') {
-      if (this._resolveWritablePromise === undefined) {
-        this._initWritablePromise();
-      }
-    } else if (state === 'writable') {
+  _syncStateAndWritablePromise() {
+    if (this._parent._state === 'writable') {
       if (this._resolveWritablePromise !== undefined) {
         this._resolveWritablePromise();
         this._resolveWritablePromise = undefined;
       }
-    } else if (state === 'cancelled' || state === 'errored') {
-      this._resolveErroredPromise();
+    } else {
+      if (this._resolveWritablePromise === undefined) {
+        this._initWritablePromise();
+      }
     }
   }
 
-  _onSpaceChange() {
+  _syncStateAndErroredPromise() {
+    if (this._parent._state === 'cancelled' || this._parent._state === 'errored') {
+      this._resolveErroredPromise();
+      this._resolveErroredPromise = undefined;
+    }
+  }
+
+  _syncSpaceAndSpaceChangePromise() {
     if (this._spaceChangePromise !== undefined && this._lastSpace !== this.space) {
       this._resolveSpaceChangePromise();
+      this._resolveSpaceChangePromise = undefined;
 
       this._lastSpace = undefined;
       this._spaceChangePromise = undefined;
-      this._resolveSpaceChangePromise = undefined;
     }
   }
 

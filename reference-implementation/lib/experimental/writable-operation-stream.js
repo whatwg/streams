@@ -145,26 +145,42 @@ export class WritableOperationStream {
     return this._abortIgnoringLock(reason);
   }
 
-  _syncStateAndPromises() {
-    if (this._state === 'waiting') {
-      if (this._resolveWritablePromise === undefined) {
-        this._initWritablePromise();
-      }
-    } else if (this._state === 'writable') {
+  _syncStateAndWritablePromise() {
+    if (this._state === 'writable') {
       if (this._resolveWritablePromise !== undefined) {
         this._resolveWritablePromise();
         this._resolveWritablePromise = undefined;
       }
-    } else if (this._state === 'cancelled' || this._state === 'errored') {
+    } else {
+      if (this._resolveWritablePromise === undefined) {
+        this._initWritablePromise();
+      }
+    }
+  }
+
+  _syncStateAndErroredPromise() {
+    if (this._resolveErroredPromise !== undefined) {
       this._resolveErroredPromise();
+      this._resolveErroredPromise = undefined;
+    }
+  }
+
+  _syncSpaceAndSpaceChangePromise() {
+    if (this._spaceChangePromise !== undefined && this._lastSpace !== this.space) {
+      this._resolveSpaceChangePromise();
+      this._resolveSpaceChangePromise = undefined;
+
+      this._lastSpace = undefined;
+      this._spaceChangePromise = undefined;
     }
   }
 
   _releaseWriter() {
     this._writer = undefined;
 
-    this._syncStateAndPromises();
-    this._onSpaceChange();
+    this._syncStateAndWritablePromise();
+    this._syncStateAndErroredPromise();
+    this._syncSpaceAndSpaceChangePromise();
   }
 
   getWriter() {
@@ -179,9 +195,9 @@ export class WritableOperationStream {
     this._state = 'waiting';
 
     if (this._writer === undefined) {
-      this._syncStateAndPromises();
+      this._syncStateAndWritablePromise();
     } else {
-      this._writer._syncStateAndPromises();
+      this._writer._syncStateAndWritablePromise();
     }
   }
 
@@ -189,9 +205,9 @@ export class WritableOperationStream {
     this._state = 'writable';
 
     if (this._writer === undefined) {
-      this._syncStateAndPromises();
+      this._syncStateAndWritablePromise();
     } else {
-      this._writer._syncStateAndPromises();
+      this._writer._syncStateAndWritablePromise();
     }
   }
 
@@ -199,9 +215,11 @@ export class WritableOperationStream {
     this._state = 'cancelled';
 
     if (this._writer === undefined) {
-      this._syncStateAndPromises();
+      this._syncStateAndWritablePromise();
+      this._syncStateAndErroredPromise();
     } else {
-      this._writer._syncStateAndPromises();
+      this._writer._syncStateAndWritablePromise();
+      this._writer._syncStateAndErroredPromise();
     }
 
     this._cancelOperation = operation;
@@ -209,15 +227,9 @@ export class WritableOperationStream {
 
   _onSpaceChange() {
     if (this._writer === undefined) {
-      if (this._spaceChangePromise !== undefined && this._lastSpace !== this.space) {
-        this._resolveSpaceChangePromise();
-
-        this._lastSpace = undefined;
-        this._spaceChangePromise = undefined;
-        this._resolveSpaceChangePromise = undefined;
-      }
+      this._syncSpaceAndSpaceChangePromise();
     } else {
-      this._writer._onSpaceChange();
+      this._writer._syncSpaceAndSpaceChangePromise();
     }
   }
 }
