@@ -41,7 +41,7 @@ export class WritableOperationStream {
     }
   }
 
-  constructor(sink, f) {
+  constructor(sink) {
     this._sink = sink;
 
     this._state = 'waiting';
@@ -64,7 +64,7 @@ export class WritableOperationStream {
       onSpaceChange: this._onSpaceChange.bind(this)
     };
 
-    f(delegate);
+    this._sink.init(delegate);
   }
 
   get state() {

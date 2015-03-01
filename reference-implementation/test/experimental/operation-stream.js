@@ -1202,37 +1202,33 @@ class FakeUnstoppablePushSource {
 test('Adapting unstoppable push source', t => {
   class Source {
     constructor() {
-      this._pushSource = new FakeUnstoppablePushSource(10);
-
       this._queue = [];
-
-      this._readableStream = new ReadableOperationStream(this, delegate => {
-        t.equal(typeof delegate.markWaiting,  'function', 'markWaiting is a function');
-        t.equal(typeof delegate.markReadable, 'function', 'markReadable is a function');
-        t.equal(typeof delegate.markDrained, 'function', 'markDrained is a function');
-        t.equal(typeof delegate.markAborted, 'function', 'markAborted is a function');
-
-        this._readableStreamDelegate = delegate;
-
-        this._pushSource.ondata = chunk => {
-          this._queue.push({type: 'data', data: chunk});
-          delegate.markReadable();
-        };
-
-        this._pushSource.onend = () => {
-          this._queue.push({type: 'close'});
-          delegate.markReadable();
-        };
-
-        this._pushSource.onerror = () => {
-          this._queue = [];
-          delegate.markAborted();
-        };
-      });
     }
 
-    get readableStream() {
-      return this._readableStream;
+    init(delegate) {
+      this._pushSource = new FakeUnstoppablePushSource(10);
+
+      t.equal(typeof delegate.markWaiting,  'function', 'markWaiting is a function');
+      t.equal(typeof delegate.markReadable, 'function', 'markReadable is a function');
+      t.equal(typeof delegate.markDrained, 'function', 'markDrained is a function');
+      t.equal(typeof delegate.markAborted, 'function', 'markAborted is a function');
+
+      this._readableStreamDelegate = delegate;
+
+      this._pushSource.ondata = chunk => {
+        this._queue.push({type: 'data', data: chunk});
+        delegate.markReadable();
+      };
+
+      this._pushSource.onend = () => {
+        this._queue.push({type: 'close'});
+        delegate.markReadable();
+      };
+
+      this._pushSource.onerror = () => {
+        this._queue = [];
+        delegate.markAborted();
+      };
     }
 
     onWindowUpdate(v) {
@@ -1266,7 +1262,7 @@ test('Adapting unstoppable push source', t => {
   }
 
   const source = new Source();
-  const readableStream = source.readableStream;
+  const readableStream = new ReadableOperationStream(source);
 
   let count = 0;
   function pump() {

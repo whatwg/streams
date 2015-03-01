@@ -7,7 +7,7 @@ export class ReadableOperationStream {
     });
   }
 
-  constructor(source, f) {
+  constructor(source) {
     this._source = source;
 
     this._state = 'waiting';
@@ -31,7 +31,7 @@ export class ReadableOperationStream {
       markAborted: this._markAborted.bind(this)
     };
 
-    f(delegate);
+    this._source.init(delegate);
   }
 
   get state() {

@@ -5,8 +5,52 @@ import { ReadableOperationStream } from './readable-operation-stream';
 // Creates a pair of WritableOperationStream implementation and ReadableOperationStream implementation that are
 // connected with a queue. This can be used for creating queue-backed operation streams.
 export function createOperationQueue(strategy) {
-  const queue = new OperationQueue(strategy);
-  return { writable: queue.writable, readable: queue.readable };
+  const source = new OperationQueueUnderlyingSource();
+  const sink = new OperationQueue(strategy);
+
+  source.setSink(sink);
+  sink.setSource(source);
+
+  return { writable: new WritableOperationStream(sink), readable: new ReadableOperationStream(source) };
+}
+
+class OperationQueueUnderlyingSource {
+  setSink(sink) {
+    this._sink = sink;
+  }
+
+  init(delegate) {
+    this._delegate = delegate;
+  }
+
+  abort(reason) {
+    this._delegate.markAborted(reason);
+  }
+
+  onWindowUpdate(v) {
+    this._sink.onWindowUpdate(v);
+  }
+
+  read() {
+    return this._sink.read();
+  }
+
+  cancel(reason) {
+    return this._sink.cancel(reason);
+  }
+
+  markWaiting() {
+    this._delegate.markWaiting();
+  }
+  markReadable() {
+    this._delegate.markReadable();
+  }
+  markDrained() {
+    this._delegate.markDrained();
+  }
+  markAborted(reason) {
+    this._delegate.markAborted(reason);
+  }
 }
 
 class OperationQueue {
@@ -20,12 +64,12 @@ class OperationQueue {
       shouldApplyBackpressure = this._strategy.shouldApplyBackpressure(this._queueSize);
     }
     if (shouldApplyBackpressure) {
-      this._writableStreamDelegate.markWaiting();
+      this._delegate.markWaiting();
     } else {
-      this._writableStreamDelegate.markWritable();
+      this._delegate.markWritable();
     }
 
-    this._writableStreamDelegate.onSpaceChange();
+    this._delegate.onSpaceChange();
   }
 
   constructor(strategy) {
@@ -33,22 +77,7 @@ class OperationQueue {
     this._queueSize = 0;
 
     this._strategy = strategy;
-
-    this._writableStream = new WritableOperationStream(this, delegate => this._writableStreamDelegate = delegate);
-    this._readableStream = new ReadableOperationStream(this, delegate => this._readableStreamDelegate = delegate);
-
-    this._updateWritableStream();
   }
-
-  get writable() {
-    return this._writableStream;
-  }
-
-  get readable() {
-    return this._readableStream;
-  }
-
-  // Underlying sink implementation.
 
   get space() {
     if (this._strategy.space !== undefined) {
@@ -56,6 +85,16 @@ class OperationQueue {
     }
 
     return undefined;
+  }
+
+  setSource(source) {
+    this._source = source;
+  }
+
+  init(delegate) {
+    this._delegate = delegate;
+
+    this._updateWritableStream();
   }
 
   write(value) {
@@ -72,7 +111,7 @@ class OperationQueue {
 
     this._updateWritableStream();
 
-    this._readableStreamDelegate.markReadable();
+    this._source.markReadable();
 
     return operationStatus;
   }
@@ -86,7 +125,7 @@ class OperationQueue {
     // No longer necessary.
     this._strategy = undefined;
 
-    this._readableStreamDelegate.markReadable();
+    this._source.markReadable();
 
     return operationStatus;
   }
@@ -103,12 +142,10 @@ class OperationQueue {
 
     this._strategy = undefined;
 
-    this._readableStreamDelegate.markAborted(operation);
+    this._source.abort(operation);
 
     return operationStatus;
   }
-
-  // Underlying source implementation.
 
   onWindowUpdate(v) {
     if (this._strategy === undefined) {
@@ -132,9 +169,9 @@ class OperationQueue {
 
     if (this._queue.length === 0) {
       if (entry.value.type === 'close') {
-        this._readableStreamDelegate.markDrained();
+        this._source.markDrained();
       } else {
-        this._readableStreamDelegate.markWaiting();
+        this._source.markWaiting();
       }
     }
 
@@ -155,7 +192,7 @@ class OperationQueue {
 
     this._strategy = undefined;
 
-    this._writableStreamDelegate.markCancelled(operation);
+    this._delegate.markCancelled(operation);
 
     return operationStatus;
   }
