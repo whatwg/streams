@@ -11,6 +11,8 @@ class UnderlyingSink {
   // delegate function to update the stream.
   write(value)
   // May return something.
+  close()
+  // May return something.
   abort()
 
   get space()
