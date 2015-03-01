@@ -1,7 +1,7 @@
-import { writableAcceptsWriteAndClose, writableAcceptsAbort } from './operation-stream';
-import { ExclusiveOperationStreamWriter } from './exclusive-operation-stream-writer';
+import { writableAcceptsWriteAndClose, writableAcceptsAbort } from './stream-base';
+import { ExclusiveStreamWriter } from './exclusive-stream-writer';
 
-export class WritableOperationStream {
+export class WritableStream {
   _initWritablePromise() {
     this._writablePromise = new Promise((resolve, reject) => {
       this._resolveWritablePromise = resolve;
@@ -194,7 +194,7 @@ export class WritableOperationStream {
 
   getWriter() {
     this._throwIfLocked();
-    this._writer = new ExclusiveOperationStreamWriter(this);
+    this._writer = new ExclusiveStreamWriter(this);
     return this._writer;
   }
 

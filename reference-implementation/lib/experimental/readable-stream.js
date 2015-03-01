@@ -1,6 +1,6 @@
-import { Operation, OperationStatus, readableAcceptsReadAndCancel } from './operation-stream';
+import { readableAcceptsReadAndCancel } from './stream-base';
 
-export class ReadableOperationStream {
+export class ReadableStream {
   _initReadablePromise() {
     this._readablePromise = new Promise((resolve, reject) => {
       this._resolveReadablePromise = resolve;
@@ -18,7 +18,7 @@ export class ReadableOperationStream {
       this._resolveErroredPromise = resolve;
     });
 
-    this._abortOperation = undefined;
+    this._error = undefined;
 
     this._window = 0;
 
@@ -132,7 +132,7 @@ export class ReadableOperationStream {
 
   getReader() {
     this._throwIfLocked();
-    this._reader = new ExclusiveOperationStreamWriter(this);
+    this._reader = new ExclusiveStreamWriter(this);
     return this._reader;
   }
 
@@ -179,4 +179,4 @@ export class ReadableOperationStream {
   }
 }
 
-ReadableOperationStream.EOS = {};
+ReadableStream.EOS = {};

@@ -1,4 +1,4 @@
-export class ExclusiveOperationStreamWriter {
+export class ExclusiveStreamWriter {
   _initWritablePromise() {
     this._writablePromise = new Promise((resolve, reject) => {
       this._resolveWritablePromise = resolve;

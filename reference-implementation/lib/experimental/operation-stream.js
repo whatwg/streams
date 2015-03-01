@@ -1,3 +1,6 @@
+import { selectStreams, writableAcceptsWriteAndClose, writableAcceptsAbort, readableAcceptsReadAndCancel
+  } from './stream-base';
+
 export function jointOps(op, status) {
   function forward() {
     if (status.state === 'waiting') {
@@ -9,37 +12,6 @@ export function jointOps(op, status) {
     }
   }
   forward();
-}
-
-// Exported as a helper for building transformation.
-export function selectOperationStreams(readable, writable) {
-  const promises = [];
-
-  promises.push(readable.errored);
-  if (readable.state === 'waiting') {
-    promises.push(readable.readable);
-  }
-
-  promises.push(writable.errored);
-  if (writable.state === 'writable') {
-    promises.push(writable.waitSpaceChange());
-  } else if (writable.state === 'waiting') {
-    promises.push(writable.writable);
-  }
-
-  return Promise.race(promises);
-}
-
-export function writableAcceptsWriteAndClose(state) {
-  return state === 'waiting' || state === 'writable';
-}
-
-export function writableAcceptsAbort(state) {
-  return state === 'waiting' || state === 'writable' || state === 'closed';
-}
-
-export function readableAcceptsReadAndCancel(state) {
-  return state === 'waiting' || state === 'readable';
 }
 
 // Pipes data from source to dest with no transformation. Abort signal, cancel signal and space are also propagated
@@ -128,7 +100,7 @@ export function pipeOperationStreams(source, dest) {
           }
         }
 
-        selectOperationStreams(source, dest)
+        selectStreams(source, dest)
             .then(loop)
             .catch(disposeStreams);
         return;

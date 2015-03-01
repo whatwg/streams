@@ -1,6 +1,9 @@
 const test = require('tape-catch');
 
-import { ReadableOperationStream } from '../../lib/experimental/readable-operation-stream';
+import { ReadableStream } from '../../lib/experimental/readable-stream';
+import { selectStreams } from '../../lib/experimental/stream-base';
+import { jointOps, pipeOperationStreams } from '../../lib/experimental/operation-stream';
+import { createOperationQueue } from '../../lib/experimental/operation-queue';
 
 test('Operation stream pair is constructed', t => {
   const pair = createOperationQueue({
@@ -472,7 +475,7 @@ test('Transformation example: Byte counting', t => {
             }
           }
 
-          selectOperationStreams(source, dest)
+          selectStreams(source, dest)
               .then(loop)
               .catch(disposeStreams);
           return;
@@ -1244,7 +1247,7 @@ test('Adapting unstoppable push source', t => {
       if (this._queue.length === 0) {
         if (entry.type === 'close') {
           this._readableStreamDelegate.markDrained();
-          return ReadableOperationStream.EOS;
+          return ReadableStream.EOS;
         } else {
           this._readableStreamDelegate.markWaiting();
           return entry.data;
@@ -1262,7 +1265,7 @@ test('Adapting unstoppable push source', t => {
   }
 
   const source = new Source();
-  const readableStream = new ReadableOperationStream(source);
+  const readableStream = new ReadableStream(source);
 
   let count = 0;
   function pump() {
@@ -1278,7 +1281,7 @@ test('Adapting unstoppable push source', t => {
       } else if (readableStream.state === 'readable') {
         const data = readableStream.read();
         if (count === 10) {
-          t.equals(data, ReadableOperationStream.EOS);
+          t.equals(data, ReadableStream.EOS);
           t.end();
           return;
         } else {

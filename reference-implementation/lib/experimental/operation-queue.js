@@ -1,8 +1,8 @@
 import { Operation, OperationStatus } from './operation-stream';
-import { WritableOperationStream } from './writable-operation-stream';
-import { ReadableOperationStream } from './readable-operation-stream';
+import { WritableStream } from './writable-stream';
+import { ReadableStream } from './readable-stream';
 
-// Creates a pair of WritableOperationStream implementation and ReadableOperationStream implementation that are
+// Creates a pair of WritableStream implementation and ReadableStream implementation that are
 // connected with a queue. This can be used for creating queue-backed operation streams.
 export function createOperationQueue(strategy) {
   const queue = new OperationQueue(strategy);
@@ -10,7 +10,7 @@ export function createOperationQueue(strategy) {
   const sink = new OperationQueueUnderlyingSink(queue);
   sink.setSource(source);
   source.setSink(sink);
-  return { writable: new WritableOperationStream(sink), readable: new ReadableOperationStream(source) };
+  return { writable: new WritableStream(sink), readable: new ReadableStream(source) };
 }
 
 class OperationQueueUnderlyingSink {
@@ -75,7 +75,7 @@ class OperationQueueUnderlyingSink {
 
   close() {
     const operationStatus = new OperationStatus();
-    const operation = new Operation('close', ReadableOperationStream.EOS, operationStatus);
+    const operation = new Operation('close', ReadableStream.EOS, operationStatus);
 
     this._queue._queue.push({value: operation, size: 0});
 
