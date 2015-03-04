@@ -1,27 +1,29 @@
 ```es6
 class UnderlyingSink {
   // delegate contains:
-  // - markWaiting(): Tells the stream that backpressure is applied.
-  // - markWritable(): Tells the stream that backpressure is not applied.
-  // - markErrored(error): Tells the stream that the sink is errored.
-  // - onSpaceChange(): Tells the stream that get space() may return something new.
-  init(delegate)
+  // - Back pressure signaling
+  //   - markWaiting(): Tells the stream that backpressure is applied.
+  //   - markWritable(): Tells the stream that backpressure is not applied.
+  //   - onSpaceChange(): Tells the stream that get space() may return something new.
+  // - Error signaling
+  //   - markErrored(error): Tells the stream that the sink is errored.
+  start(delegate)
 
-  // May return something. If backpressure state is changed, should call appropriate
-  // delegate function to update the stream.
+  // Takes value and do some processing. May return something. If backpressure state is changed,
+  // should call appropriate delegate function to update the stream.
   write(value)
-  // May return something.
+  // Do something to finalize the sink. No more write() or close() comes. May return something.
   close()
-  // May return something.
-  abort()
+  // Takes reason and do something to abort the sink. May return something.
+  abort(reason)
 
+  // Should returns a number indicating how much data can be written without causing backpressure.
+  // Maye return undefined if it's unknown.
   get space()
 }
 
-// Once a writer is created, promises obtained from this stream are not fulfilled until the
-// writer is released.
-class WritableStream {
-  // At the end of construction, calls init() on underlyingSink with delegate functions for this
+class ThinWritableStream {
+  // At the end of construction, calls start() on underlyingSink with delegate functions for this
   // stream.
   constructor(underlyingSink)
 
@@ -30,14 +32,12 @@ class WritableStream {
   // X is state name or a name of a group of states.
   // A, B, C, ... are the states X may transit to.
   //
-  // - "locked" -> available
-  // - available -> "locked"
-  //   - (write()/close() are allowed) -> "closed", "aborted", "errored"
-  //     - "waiting" (backpressure not applied) -> "writable"
-  //     - "writable" (backpressure applied) -> "waiting"
-  //   - "closed" -> "aborted", "errored"
-  //   - "aborted"
-  //   - "errored"
+  // - (write()/close() are allowed) -> "closed", "aborted", "errored"
+  //   - "waiting" (backpressure not applied) -> "writable"
+  //   - "writable" (backpressure applied) -> "waiting"
+  // - "closed" -> "aborted", "errored"
+  // - "aborted"
+  // - "errored"
   //
   // Distinction between "waiting" and "writable" is a part of the flow control interfaces.
   get state()
@@ -69,7 +69,7 @@ class WritableStream {
   // Flow control interfaces.
 
   // Returns a promise which gets fulfilled when this instance enters "writable" state.
-  get writable()
+  get ready()
   // Returns the space available for write.
   //
   // Available in "waiting" and "writable" state.
@@ -79,74 +79,42 @@ class WritableStream {
   //
   // Available in "waiting" and "writable" state.
   waitSpaceChange()
-
-  // Locking interfaces.
-
-  // Creates and returns an ExclusiveStreamWriter instance. Once a writer is created, all methods
-  // and accessors on this stream throws until the writer is released.
-  //
-  // Available in all states if there is no existing active writer.
-  getWriter()
-}
-
-// Once release() is called, all methods and accessors on this writer throw.
-class ExclusiveStreamWriter {
-  // - "locked" -> available
-  // - available -> "locked"
-  //   - (write()/close() are allowed) -> "closed", "aborted", "errored"
-  //     - "waiting" (backpressure not applied) -> "writable"
-  //     - "writable" (backpressure applied) -> "waiting"
-  //   - "closed -> "aborted", "errored"
-  //   - "aborted"
-  //   - "errored"
-  get state()
-
-  get writable()
-  get space()
-  waitSpaceChange()
-
-  get errored()
-  get error()
-
-  write(argument)
-  close()
-  abort(reason)
-
-  release()
 }
 
 class UnderlyingSource {
   // delegate contains:
-  // - markWaiting(): Tells the stream that nothing is ready for synchronous reading.
-  // - markReadable(): Tells the stream that something is ready for synchronous reading.
-  // - markDrained(): Tells the stream that no more data will become available for read.
-  // - markErrored(error): Tells the stream that the source is errored.
-  init(delegate)
+  // - Readability signaling
+  //   - markWaiting(): Tells the stream that nothing is ready for synchronous reading.
+  //   - markReadable(): Tells the stream that something is ready for synchronous reading.
+  //   - markClosed(): Tells the stream that no more data will become available for read.
+  // - Error signaling
+  //   - markErrored(error): Tells the stream that the source is errored.
+  start(delegate)
 
-  // Returns something. If data availability is changed, should call appropriate
+  // Returns something generated. If data availability is changed, should call appropriate
   // delegate function to update the stream.
   read()
-  // May return something.
+  // Do something to cancel the source. May return something.
   cancel(reason)
 
+  // Should interpret the given number v to update how much data to generate / pull and buffer
+  // in the source.
   get onWindowUpdate(v)
 }
 
-class ReadableStream {
+class ThinReadableStream {
   constructor(underlyingSource)
 
-  // - "locked" -> available
-  // - available -> "locked"
-  //   - normal -> "cancelled", "errored"
-  //     - "waiting" -> "readable"
-  //     - "readable" -> "waiting", "drained"
-  //   - "drained"
-  //   - "cancelled"
-  //   - "errored"
+  // - normal -> "cancelled", "errored", "closed"
+  //   - "waiting" -> "readable"
+  //   - "readable" -> "waiting"
+  // - "closed"
+  // - "cancelled"
+  // - "errored"
   get state()
 
-  // Returns a promise which gets fulfilled when this instance enters "readable" state.
-  get readable()
+  // Returns a promise which gets fulfilled when this instance enters "readable" or "closed" state.
+  get ready()
   // Returns something returned by the underlying source.
   //
   // Available in "readable" state.
@@ -167,9 +135,5 @@ class ReadableStream {
   //
   // Available in "waiting" and "readable" state.
   set window(v)
-
-  // Locking interfaces.
-
-  getReader()
 }
 ```
