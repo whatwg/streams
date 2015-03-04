@@ -1,17 +1,19 @@
-import { Operation, OperationStatus } from './operation-stream';
-import { WritableStream } from './writable-stream';
-import { ReadableStream } from './readable-stream';
+import { NewWritableStream } from './new-writable-stream';
+import { NewReadableStream } from './new-readable-stream';
 
-class OperationQueueShared {
+class StreamQueueShared {
   constructor(strategy) {
-    this._shared = [];
-    this._sharedSize = 0;
+    this._queue = [];
+    // Cached total size for optimization.
+    this._queueSize = 0;
+
+    this._draining = false;
 
     this._strategy = strategy;
   }
 }
 
-class OperationQueueUnderlyingSink {
+class StreamQueueUnderlyingSink {
   _updateWritableStream() {
     if (this._shared._strategy === undefined) {
       return;
@@ -30,15 +32,15 @@ class OperationQueueUnderlyingSink {
     this._delegate.onSpaceChange();
   }
 
-  constructor(queue) {
-    this._shared = queue;
+  constructor(shared) {
+    this._shared = shared;
   }
 
   setSource(source) {
     this._source = source;
   }
 
-  init(delegate) {
+  start(delegate) {
     this._delegate = delegate;
 
     this._updateWritableStream();
@@ -53,60 +55,43 @@ class OperationQueueUnderlyingSink {
   }
 
   write(value) {
-    const operationStatus = new OperationStatus();
-    const operation = new Operation('data', value, operationStatus);
-
+    console.log('fjdiojfdosi');
     var size = 1;
     if (this._shared._strategy.size !== undefined) {
-      size = this._shared._strategy.size(operation.argument);
+      size = this._shared._strategy.size(value);
     }
 
-    this._shared._queue.push({value: operation, size});
+    this._shared._queue.push({value, size});
     this._shared._queueSize += size;
 
     this._updateWritableStream();
 
     this._source.onQueueFill();
-
-    return operationStatus;
   }
 
   close() {
-    const operationStatus = new OperationStatus();
-    const operation = new Operation('close', ReadableStream.EOS, operationStatus);
-
-    this._shared._queue.push({value: operation, size: 0});
+    this._shared._draining = true;
 
     // No longer necessary.
     this._shared._strategy = undefined;
 
-    this._source.onQueueFill();
-
-    return operationStatus;
+    this._source.onStartDraining();
   }
 
   abort(reason) {
-    const operationStatus = new OperationStatus();
-    const operation = new Operation('abort', reason, operationStatus);
-
-    for (var i = this._shared._queue.length - 1; i >= 0; --i) {
-      const op = this._shared._queue[i].value;
-      op.error(new TypeError('aborted'));
-    }
     this._shared._queue = [];
-
     this._shared._strategy = undefined;
 
-    this._source.abort(operation);
-
-    return operationStatus;
+    this._source.abort(reason);
   }
 
   onWindowUpdate() {
+    // Reflect up-to-date strategy to the WritableStream.
     this._updateWritableStream();
   }
 
   onQueueConsume() {
+    // Reflect up-to-date status of the queue to the WritableStream.
     this._updateWritableStream();
   }
 
@@ -115,7 +100,7 @@ class OperationQueueUnderlyingSink {
   }
 }
 
-class OperationQueueUnderlyingSource {
+class StreamQueueUnderlyingSource {
   constructor(shared) {
     this._shared = shared;
   }
@@ -124,12 +109,20 @@ class OperationQueueUnderlyingSource {
     this._sink = sink;
   }
 
-  init(delegate) {
+  start(delegate) {
     this._delegate = delegate;
   }
 
   onQueueFill() {
+    console.log('fjfljlkfj');
+
     this._delegate.markReadable();
+  }
+
+  onStartDraining() {
+    if (this._shared._queue.length === 0) {
+      this._delegate.markClosed();
+    }
   }
 
   abort(reason) {
@@ -149,20 +142,17 @@ class OperationQueueUnderlyingSource {
   }
 
   read() {
-    if (this._shared._queue.length === 0) {
-      throw new TypeError('not readable');
-    }
-
     const entry = this._shared._queue.shift();
-    this._shared._queueSize -= entry.size;
 
     if (this._shared._queue.length === 0) {
-      if (entry.value.type === 'close') {
-        this._delegate.markDrained();
+      if (this._shared._draining) {
+        this._delegate.markClosed();
       } else {
         this._delegate.markWaiting();
       }
     }
+
+    this._shared._queueSize -= entry.size;
 
     this._sink.onQueueConsume();
 
@@ -170,31 +160,20 @@ class OperationQueueUnderlyingSource {
   }
 
   cancel(reason) {
-    const operationStatus = new OperationStatus();
-    const operation = new Operation('cancel', reason, operationStatus);
-
-    for (var i = 0; i < this._shared._queue.length; ++i) {
-      const op = this._shared._queue[i].value;
-      op.error(operation.argument);
-    }
     this._shared._queue = [];
-
     this._shared._strategy = undefined;
 
-    this._sink.onCancel(operation);
-
-    return operationStatus;
+    this._sink.onCancel(reason);
   }
 }
 
-
 // Creates a pair of WritableStream implementation and ReadableStream implementation that are
 // connected with a queue. This can be used for creating queue-backed operation streams.
-export function createOperationQueue(strategy) {
-  const queue = new OperationQueueShared(strategy);
-  const source = new OperationQueueUnderlyingSource(queue);
-  const sink = new OperationQueueUnderlyingSink(queue);
+export function createStreamQueue(strategy) {
+  const shared = new StreamQueueShared(strategy);
+  const source = new StreamQueueUnderlyingSource(shared);
+  const sink = new StreamQueueUnderlyingSink(shared);
   sink.setSource(source);
   source.setSink(sink);
-  return { writable: new WritableStream(sink), readable: new ReadableStream(source) };
+  return { writable: new NewWritableStream(sink), readable: new NewReadableStream(source) };
 }
