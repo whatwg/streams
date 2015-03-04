@@ -1,7 +1,7 @@
 const test = require('tape-catch');
 
-import { NewReadableStream } from '../../lib/experimental/new-readable-stream';
-import { selectStreams, pipeStreams } from '../../lib/experimental/new-stream-base';
+import { ThinReadableStream } from '../../lib/experimental/thin-readable-stream';
+import { selectStreams, pipeStreams } from '../../lib/experimental/thin-stream-base';
 import { createStreamQueue } from '../../lib/experimental/stream-queue';
 import { FakeFile } from '../../lib/experimental/fake-file-backed-byte-source';
 import { MockFile } from '../../lib/experimental/mock-byte-sink';
@@ -223,8 +223,6 @@ test('pipeStreams()', t => {
   t.equal(ws0.state, 'waiting');
   // Check that ws0 becomes writable.
   ws0.ready.then(() => {
-
-    console.log('ZZ');
     t.equals(ws0.state, 'writable');
 
     ws0.write('hello');
@@ -324,7 +322,7 @@ test('pipeStreams(): cancel() propagation', t => {
   rs1.cancel(testError);
 });
 
-test('Piping from a source with a buffer pool to a buffer taking sink', t => {
+test('Reading from a file backed byte source using manual pull readable stream', t => {
   const file = new FakeFile(1024);
   const rs = file.createManualPullStream();
 
@@ -362,7 +360,7 @@ test('Piping from a source with a buffer pool to a buffer taking sink', t => {
   pump();
 });
 
-test('Consuming bytes from a source with a buffer pool via the ReadableOperationStream interface', t => {
+test('Reading from a file backed byte source using auto pull readable stream', t => {
   const file = new FakeFile(1024);
   const rs = file.createStream(new AdjustableArrayBufferStrategy());
   rs.window = 64;
@@ -371,30 +369,30 @@ test('Consuming bytes from a source with a buffer pool via the ReadableOperation
   function pump() {
     for (;;) {
       if (rs.state === 'errored') {
-        console.log('ss' + rs.error);
-
+        t.fail('rs is errored');
+        t.end();
+        return;
       } else if (rs.state === 'closed') {
-        console.log('cl');
         t.equal(count, 1024);
         t.end();
         return;
       } else if (rs.state === 'readable') {
         const readView = rs.read();
-        console.log('rd' + readView.byteLength);
         count += readView.byteLength;
       } else if (rs.state === 'waiting') {
-        console.log('wt');
         Promise.race([rs.ready, rs.errored]).then(pump);
         return;
       } else {
-        console.log('sss');
+        t.fail('rs.state is invalid: ' + rs.state);
+        t.end();
+        return;
       }
     }
   }
   pump();
 });
 
-test('Piping from a buffer taking source to a sink with buffer', t => {
+test('Writing to a mock byte sink using auto disposing writable stream', t => {
   const file = new MockFile();
 
   const ws = file.createStream();

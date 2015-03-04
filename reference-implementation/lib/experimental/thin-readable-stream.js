@@ -1,6 +1,6 @@
-import { readableAcceptsCancel } from './new-stream-base';
+import { readableAcceptsCancel } from './thin-stream-base';
 
-export class NewReadableStream {
+export class ThinReadableStream {
   _initReadyPromise() {
     this._readyPromise = new Promise((resolve, reject) => {
       this._resolveReadyPromise = resolve;
@@ -93,6 +93,10 @@ export class NewReadableStream {
   // Methods exposed only to the underlying source.
 
   _markWaiting() {
+    if (this._state === 'waiting') {
+      return;
+    }
+
     this._initReadyPromise();
     this._state = 'waiting';
   }

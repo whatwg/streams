@@ -1,6 +1,6 @@
-import { readableAcceptsCancel } from './stream-base';
+import { readableAcceptsCancel } from './thin-stream-base';
 
-export class NewReadableByteStream {
+export class ThinReadableByteStream {
   _initReadyPromise() {
     this._readyPromise = new Promise((resolve, reject) => {
       this._resolveReadyPromise = resolve;
@@ -61,7 +61,7 @@ export class NewReadableByteStream {
       throw new TypeError('not pullable');
     }
 
-    return this._source.pull(view);
+    this._source.pull(view);
   }
 
   // Reading interfaces.
@@ -124,6 +124,10 @@ export class NewReadableByteStream {
   }
 
   _markWaiting() {
+    if (this._state === 'waiting') {
+      return;
+    }
+
     this._initReadyPromise();
     this._state = 'waiting';
   }
@@ -134,15 +138,21 @@ export class NewReadableByteStream {
     }
 
     this._resolveReadyPromise();
+    this._resolveReadyPromise = undefined;
     this._state = 'readable';
   }
 
   _markClosed() {
+    if (this._state !== 'readable') {
+      this._resolveReadyPromise();
+      this._resolveReadyPromise = undefined;
+    }
     this._state = 'closed';
   }
 
   _markErrored(error) {
     this._resolveErroredPromise();
+    this._resolveErroredPromise = undefined;
     this._state = 'errored';
     this._error = error;
   }

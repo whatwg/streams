@@ -1,6 +1,6 @@
-import { writableAcceptsWriteAndClose, writableAcceptsAbort } from './new-stream-base';
+import { writableAcceptsWriteAndClose, writableAcceptsAbort } from './thin-stream-base';
 
-export class NewWritableStream {
+export class ThinWritableStream {
   _initReadyPromise() {
     this._readyPromise = new Promise((resolve, reject) => {
       this._resolveReadyPromise = resolve;
@@ -24,8 +24,9 @@ export class NewWritableStream {
     const delegate = {
       markWaiting: this._markWaiting.bind(this),
       markWritable: this._markWritable.bind(this),
-      markErrored: this._markErrored.bind(this),
-      onSpaceChange: this._onSpaceChange.bind(this)
+      onSpaceChange: this._onSpaceChange.bind(this),
+
+      markErrored: this._markErrored.bind(this)
     };
 
     this._sink.start(delegate);

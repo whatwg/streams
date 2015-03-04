@@ -1,5 +1,5 @@
-import { NewWritableStream } from './new-writable-stream';
-import { NewWritableByteStream } from './new-writable-byte-stream';
+import { ThinWritableStream } from './thin-writable-stream';
+import { ThinWritableByteStream } from './thin-writable-byte-stream';
 
 class MockFileUnderlyingSink {
   constructor(file) {
@@ -8,10 +8,12 @@ class MockFileUnderlyingSink {
 
   start(delegate) {
     this._delegate = delegate;
+
+    this._delegate.markWritable();
   }
 
   write(value) {
-    this._file._count(value.byteLength);
+    this._file._write(value);
   }
 
   close() {
@@ -27,18 +29,11 @@ class MockFileUnderlyingSink {
   }
 }
 
-class MockFileUnderlyingSinkWithDisposal {
+class MockFileUnderlyingSinkWithGarbage {
   constructor(file) {
     this._file = file;
 
-    this._bytesRead = 0;
-
-    this._resultPromise = new Promise((resolve, reject) => {
-      this._resolveResultPromise = resolve;
-      this._rejectResultPromise = reject;
-    });
-
-    this._disposedViews = [];
+    this._garbages = [];
   }
 
   start(delegate) {
@@ -48,9 +43,10 @@ class MockFileUnderlyingSinkWithDisposal {
   }
 
   write(view) {
-    this._file._count(view.byteLength);
-    this._disposedViews.push(view);
-    this._delegate.markHasDisposedView();
+    this._file._write(view);
+
+    this._garbages.push(view);
+    this._delegate.markHasGarbage();
   }
 
   close() {
@@ -65,10 +61,10 @@ class MockFileUnderlyingSinkWithDisposal {
     return 16;
   }
 
-  readDisposedView() {
-    const view = this._disposedViews.shift();
-    if (this._disposedViews.length === 0) {
-      this._delegate.markNoDisposedView();
+  readGarbage() {
+    const view = this._garbages.shift();
+    if (this._garbages.length === 0) {
+      this._delegate.markNoGarbage();
     }
   }
 }
@@ -87,23 +83,27 @@ export class MockFile {
     return this._resultPromise;
   }
 
-  _count(size) {
-    this._bytesRead += size;
+  _write(view) {
+    this._bytesRead += view.byteLength;
   }
 
   _close() {
     this._resolveResultPromise(this._bytesRead);
+    this._resolveResultPromise = undefined;
+    this._rejectResultPromise = undefined;
   }
 
   _abort(reason) {
     this._rejectResultPromise(reason);
+    this._resolveResultPromise = undefined;
+    this._rejectResultPromise = undefined;
   }
 
   createStream() {
-    return new NewWritableStream(new MockFileUnderlyingSink(this));
+    return new ThinWritableStream(new MockFileUnderlyingSink(this));
   }
 
-  createStreamWithDisposal() {
-    return new NewWritableByteStream(new MockFileUnderlyingSinkWithDisposal(this));
+  createStreamWithGarbage() {
+    return new ThinWritableByteStream(new MockFileUnderlyingSinkWithGarbage(this));
   }
 }

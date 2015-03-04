@@ -19,4 +19,4 @@ global.TransformStream = TransformStream;
 //const tests = glob.sync(path.resolve(__dirname, 'test/*.js'));
 //const experimentalTests = glob.sync(path.resolve(__dirname, 'test/experimental/*.js'));
 //tests.concat(experimentalTests).forEach(require);
-glob.sync(path.resolve(__dirname, 'test/experimental/new-stream.js')).forEach(require);
+glob.sync(path.resolve(__dirname, 'test/experimental/thin-stream.js')).forEach(require);

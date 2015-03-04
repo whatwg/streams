@@ -1,5 +1,5 @@
-import { NewWritableStream } from './new-writable-stream';
-import { NewReadableStream } from './new-readable-stream';
+import { ThinWritableStream } from './thin-writable-stream';
+import { ThinReadableStream } from './thin-readable-stream';
 
 class StreamQueueShared {
   constructor(strategy) {
@@ -55,7 +55,6 @@ class StreamQueueUnderlyingSink {
   }
 
   write(value) {
-    console.log('fjdiojfdosi');
     var size = 1;
     if (this._shared._strategy.size !== undefined) {
       size = this._shared._strategy.size(value);
@@ -114,8 +113,6 @@ class StreamQueueUnderlyingSource {
   }
 
   onQueueFill() {
-    console.log('fjfljlkfj');
-
     this._delegate.markReadable();
   }
 
@@ -175,5 +172,5 @@ export function createStreamQueue(strategy) {
   const sink = new StreamQueueUnderlyingSink(shared);
   sink.setSource(source);
   source.setSink(sink);
-  return { writable: new NewWritableStream(sink), readable: new NewReadableStream(source) };
+  return { writable: new ThinWritableStream(sink), readable: new ThinReadableStream(source) };
 }

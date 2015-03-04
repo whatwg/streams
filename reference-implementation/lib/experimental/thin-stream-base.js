@@ -69,11 +69,8 @@ export function pipeStreams(source, dest) {
           return;
         }
 
-        console.log('sjsjsjs' + source.state + dest.state);
-
         if (source.state === 'readable') {
           if (dest.state === 'writable') {
-            console.log('sjsjsjs');
             dest.write(source.read());
             continue;
           }

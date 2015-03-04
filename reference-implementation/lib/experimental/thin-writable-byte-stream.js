@@ -1,15 +1,15 @@
-import { writableAcceptsWriteAndClose, writableAcceptsAbort } from './new-stream-base';
+import { writableAcceptsWriteAndClose, writableAcceptsAbort } from './thin-stream-base';
 
-export class NewWritableByteStream {
+export class ThinWritableByteStream {
   _initReadyPromise() {
     this._readyPromise = new Promise((resolve, reject) => {
       this._resolveReadyPromise = resolve;
     });
   }
 
-  _initDisposedViewReadyPromise() {
-    this._disposedViewReadyPromise = new Promise((resolve, reject) => {
-      this._resolveDisposedViewReadyPromise = resolve;
+  _initGarbageReadyPromise() {
+    this._garbageReadyPromise = new Promise((resolve, reject) => {
+      this._resolveGarbageReadyPromise = resolve;
     });
   }
 
@@ -27,17 +27,18 @@ export class NewWritableByteStream {
     this._lastSpace = undefined;
     this._spaceChangePromise = undefined;
 
-    this._initDisposedViewReadyPromise();
-    this._hasDisposedView = false;
+    this._hasGarbage = false;
+    this._initGarbageReadyPromise();
 
     const delegate = {
       markWaiting: this._markWaiting.bind(this),
       markWritable: this._markWritable.bind(this),
-      markErrored: this._markErrored.bind(this),
       onSpaceChange: this._onSpaceChange.bind(this),
 
-      markHasDisposedView: this._markHasDisposedView.bind(this),
-      markNoDisposedView: this._markNoDisposedView.bind(this),
+      markErrored: this._markErrored.bind(this),
+
+      markHasGarbage: this._markHasGarbage.bind(this),
+      markNoGarbage: this._markNoGarbage.bind(this)
     };
 
     this._sink.start(delegate);
@@ -124,20 +125,20 @@ export class NewWritableByteStream {
 
   // Disposed buffer reading interfaces.
 
-  get hasDisposedView() {
-    return this._hasDisposedView;
+  get hasGarbage() {
+    return this._hasGarbage;
   }
 
-  get disposedViewReady() {
-    return this._disposedViewReady;
+  get garbageReady() {
+    return this._garbageReadyPromise;
   }
 
-  get readDisposedView() {
-    if (this._disposedViews.length === 0) {
-      throw new TypeError('no disposed view');
+  get readGarbage() {
+    if (!this._hasGarbage) {
+      throw new TypeError('no garbage');
     }
 
-    return this._sink.readDisposedView();
+    return this._sink.readGarbage();
   }
 
   // Methods exposed only to the underlying sink.
@@ -180,22 +181,22 @@ export class NewWritableByteStream {
     this._spaceChangePromise = undefined;
   }
 
-  _markNoDisposedView() {
-    if (!this._hasDisposedView) {
+  _markNoGarbage() {
+    if (!this._hasGarbage) {
       return;
     }
 
-    this._initDisposedViewReadyPromise();
-    this._hasDisposedView = false;
+    this._initGarbageReadyPromise();
+    this._hasGarbage = false;
   }
 
-  _markHasDisposedView() {
-    if (this._hasDisposedView) {
+  _markHasGarbage() {
+    if (this._hasGarbage) {
       return;
     }
 
-    this._resolveDisposedViewReadyPromise();
-    this._resolveDisposedViewReadyPromise = undefined;
-    this._hasDisposedView = true;
+    this._resolveGarbageReadyPromise();
+    this._resolveGarbageReadyPromise = undefined;
+    this._hasGarbage = true;
   }
 }

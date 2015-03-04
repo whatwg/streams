@@ -1,7 +1,7 @@
-import { NewReadableStream } from './new-readable-stream';
-import { NewReadableByteStream } from './new-readable-byte-stream';
+import { ThinReadableStream } from './thin-readable-stream';
+import { ThinReadableByteStream } from './thin-readable-byte-stream';
 
-import { fillArrayBufferView } from './new-stream-utils';
+import { fillArrayBufferView } from './thin-stream-utils';
 
 class FileBackedUnderlyingSource {
   constructor(readFileInto, strategy) {
@@ -29,8 +29,6 @@ class FileBackedUnderlyingSource {
     this._queue.push(result.writtenRegion);
     this._queueSize += result.writtenRegion.byteLength;
 
-    console.log('queue' + this._queueSize);
-
     this._delegate.markReadable();
 
     if (result.closed) {
@@ -43,20 +41,14 @@ class FileBackedUnderlyingSource {
   }
 
   _pull() {
-    console.log('222');
-
     if (this._cancelled) {
       return;
     }
-
-    console.log('223');
 
     if (this._strategy.shouldApplyBackpressure === undefined ||
         this._strategy.shouldApplyBackpressure(this._queueSize)) {
       return;
     }
-
-    console.log('224');
 
     if (this._fileReadPromise !== undefined) {
       return;
@@ -67,10 +59,8 @@ class FileBackedUnderlyingSource {
       size = this._strategy.space(this._queueSize);
     }
     if (size === 0) {
-      console.log('full');
       return;
     }
-    console.log('ssss' + size);
 
     const view = new Uint8Array(size);
     this._fileReadPromise = this._readFileInto(view)
@@ -198,7 +188,6 @@ export class FakeFile {
           this._bytesRemaining -= bytesToWrite;
 
           const writtenRegion = view.subarray(0, bytesToWrite);
-          console.log('zzzz ' + writtenRegion.byteLength);
           if (this._bytesRemaining === 0) {
             resolve({closed: true, writtenRegion});
           } else {
@@ -212,7 +201,8 @@ export class FakeFile {
   }
 
   createStream(strategy) {
-    return new NewReadableStream(new FileBackedUnderlyingSource(this._readFileInto.bind(this), strategy));
+    const source = new FileBackedUnderlyingSource(this._readFileInto.bind(this), strategy);
+    return new ThinReadableStream(source);
   }
 
   // Returns a manual pull readable stream.
@@ -225,6 +215,7 @@ export class FakeFile {
   // Blocking or async I/O interfaces which takes a buffer on reading function call:
   // - The stream is always pullable.
   createManualPullStream() {
-      return new NewReadableByteStream(new FileBackedManualPullUnderlyingSource(this._readFileInto.bind(this)));
+    const source = new FileBackedManualPullUnderlyingSource(this._readFileInto.bind(this));
+    return new ThinReadableByteStream(source);
   }
 }
