@@ -17,11 +17,11 @@ global.TransformStream = TransformStream;
 
 
 if (process.argv.length === 3) {
-    const tests = glob.sync(path.resolve(__dirname, 'test/*.js'));
+  const tests = glob.sync(path.resolve(__dirname, 'test/*.js'));
 
-    // disable experimental tests while we figure out impact of async read on ReadableByteStream
-    const experimentalTests = []; // glob.sync(path.resolve(__dirname, 'test/experimental/*.js'));
-    tests.concat(experimentalTests).forEach(require);
+  // disable experimental tests while we figure out impact of async read on ReadableByteStream
+  const experimentalTests = []; // glob.sync(path.resolve(__dirname, 'test/experimental/*.js'));
+  tests.concat(experimentalTests).forEach(require);
 } else {
     glob.sync(path.resolve(process.argv[3])).forEach(require);
 }

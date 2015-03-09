@@ -1,16 +1,22 @@
 const test = require('tape-catch');
 
+let ReadableStreamReader;
+
+test('Can get the ReadableStreamReader constructor indirectly', t => {
+  t.doesNotThrow(() => {
+    // It's not exposed globally, but we test a few of its properties here.
+    ReadableStreamReader = (new ReadableStream()).getReader().constructor;
+  });
+  t.end();
+});
+
 function fakeReadableStream() {
   return {
     get closed() { return Promise.resolve(); },
-    get state() { return 'closed' },
     cancel(reason) { return Promise.resolve(); },
     pipeThrough({ writable, readable }, options) { return readable; },
     pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) { return Promise.resolve(); },
-    read() { return Promise.resolve(ReadableStream.EOS); },
-    constructor: {
-      EOS: ReadableStream.EOS
-    }
+    getReader() { return new ReadableStream(new ReadableStream()); }
   };
 }
 
@@ -31,6 +37,16 @@ function fakeWritableStream() {
 
 function realWritableStream() {
   return new WritableStream();
+}
+
+function fakeReadableStreamReader() {
+  return {
+    get closed() { return Promise.resolve(); },
+    get isActive() { return false; },
+    cancel(reason) { return Promise.resolve(); },
+    read() { return Promise.resolve({ value: undefined, done: true }); },
+    releaseLock() { return; }
+  };
 }
 
 function fakeByteLengthQueuingStrategy() {
@@ -99,16 +115,16 @@ test('ReadableStream.prototype.closed enforces a brand check', t => {
   getterRejects(t, ReadableStream.prototype, 'closed', realWritableStream());
 });
 
-test('ReadableStream.prototype.state enforces a brand check', t => {
-  t.plan(2);
-  getterThrows(t, ReadableStream.prototype, 'state', fakeReadableStream());
-  getterThrows(t, ReadableStream.prototype, 'state', realWritableStream());
-});
-
 test('ReadableStream.prototype.cancel enforces a brand check', t => {
   t.plan(2);
   methodRejects(t, ReadableStream.prototype, 'cancel', fakeReadableStream());
   methodRejects(t, ReadableStream.prototype, 'cancel', realWritableStream());
+});
+
+test('ReadableStream.prototype.getReader enforces a brand check', t => {
+  t.plan(2);
+  methodThrows(t, ReadableStream.prototype, 'getReader', fakeReadableStream());
+  methodThrows(t, ReadableStream.prototype, 'getReader', realWritableStream());
 });
 
 test('ReadableStream.prototype.pipeThrough works generically on its this and its arguments', t => {
@@ -137,10 +153,43 @@ test('ReadableStream.prototype.pipeTo works generically on its this and its argu
   t.doesNotThrow(() => ReadableStream.prototype.pipeTo.call(fakeReadableStream(), fakeWritableStream()));
 });
 
-test('ReadableStream.prototype.read enforces a brand check', t => {
+
+
+
+test('ReadableStreamReader enforces a brand check on its argument', t => {
+  t.plan(1);
+  t.throws(() => new ReadableStreamReader(fakeReadableStream()), /TypeError/, 'Contructing a ReadableStreamReader ' +
+    'should throw');
+});
+
+test('ReadableStreamReader.prototype.closed enforces a brand check', t => {
   t.plan(2);
-  methodRejects(t, ReadableStream.prototype, 'read', fakeReadableStream());
-  methodRejects(t, ReadableStream.prototype, 'read', realWritableStream());
+  getterRejects(t, ReadableStreamReader.prototype, 'closed', fakeReadableStreamReader());
+  getterRejects(t, ReadableStreamReader.prototype, 'closed', realReadableStream());
+});
+
+test('ReadableStreamReader.prototype.isActive enforces a brand check', t => {
+  t.plan(2);
+  getterThrows(t, ReadableStreamReader.prototype, 'isActive', fakeReadableStreamReader());
+  getterThrows(t, ReadableStreamReader.prototype, 'isActive', realReadableStream());
+});
+
+test('ReadableStreamReader.prototype.cancel enforces a brand check', t => {
+  t.plan(2);
+  methodRejects(t, ReadableStreamReader.prototype, 'cancel', fakeReadableStreamReader());
+  methodRejects(t, ReadableStreamReader.prototype, 'cancel', realReadableStream());
+});
+
+test('ReadableStreamReader.prototype.read enforces a brand check', t => {
+  t.plan(2);
+  methodRejects(t, ReadableStreamReader.prototype, 'read', fakeReadableStreamReader());
+  methodRejects(t, ReadableStreamReader.prototype, 'read', realReadableStream());
+});
+
+test('ReadableStreamReader.prototype.releaseLock enforces a brand check', t => {
+  t.plan(2);
+  methodThrows(t, ReadableStreamReader.prototype, 'releaseLock', fakeReadableStreamReader());
+  methodThrows(t, ReadableStreamReader.prototype, 'releaseLock', realReadableStream());
 });
 
 

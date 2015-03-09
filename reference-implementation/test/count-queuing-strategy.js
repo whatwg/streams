@@ -30,31 +30,37 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
     start(enqueue_) { enqueue = enqueue_; },
     strategy: new CountQueuingStrategy({ highWaterMark: 0 })
   });
+  const reader = rs.getReader();
 
   t.equal(enqueue('a'), false, 'After 0 reads, 1st enqueue should return false (queue now contains 1 chunk)');
   t.equal(enqueue('b'), false, 'After 0 reads, 2nd enqueue should return false (queue now contains 2 chunks)');
   t.equal(enqueue('c'), false, 'After 0 reads, 3rd enqueue should return false (queue now contains 3 chunks)');
   t.equal(enqueue('d'), false, 'After 0 reads, 4th enqueue should return false (queue now contains 4 chunks)');
 
-  rs.read().then(chunk => {
-    t.equal(chunk, 'a', '1st read gives back the 1st chunk enqueued (queue now contains 3 chunks)');
-    return rs.read();
+  reader.read().then(result => {
+    t.deepEqual(result, { value: 'a', done: false },
+      '1st read gives back the 1st chunk enqueued (queue now contains 3 chunks)');
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'b', '2nd read gives back the 2nd chunk enqueued (queue now contains 2 chunks)');
-    return rs.read();
+  .then(result => {
+    t.deepEqual(result, { value: 'b', done: false },
+      '2nd read gives back the 2nd chunk enqueued (queue now contains 2 chunks)');
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'c', '3rd read gives back the 2nd chunk enqueued (queue now contains 1 chunk)');
+  .then(result => {
+    t.deepEqual(result, { value: 'c', done: false },
+      '3rd read gives back the 3rd chunk enqueued (queue now contains 1 chunk)');
     t.equal(enqueue('e'), false, 'After 3 reads, 5th enqueue should return false (queue now contains 2 chunks)');
-    return rs.read();
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'd', '4th read gives back the 3rd chunk enqueued (queue now contains 1 chunks)');
-    return rs.read();
+  .then(result => {
+    t.deepEqual(result, { value: 'd', done: false },
+      '4th read gives back the 4th chunk enqueued (queue now contains 1 chunks)');
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'e', '5th read gives back the 4th chunk enqueued (queue now contains 0 chunks)');
+  .then(result => {
+    t.deepEqual(result, { value: 'e', done: false },
+      '5th read gives back the 5th chunk enqueued (queue now contains 0 chunks)');
     t.equal(enqueue('f'), false, 'After 5 reads, 6th enqueue should return false (queue now contains 1 chunk)');
     t.equal(enqueue('g'), false, 'After 5 reads, 7th enqueue should return false (queue now contains 2 chunks)');
     t.end();
@@ -68,31 +74,37 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
     start(enqueue_) { enqueue = enqueue_; },
     strategy: new CountQueuingStrategy({ highWaterMark: 1 })
   });
+  const reader = rs.getReader();
 
   t.equal(enqueue('a'), true, 'After 0 reads, 1st enqueue should return true (queue now contains 1 chunk)');
   t.equal(enqueue('b'), false, 'After 0 reads, 2nd enqueue should return false (queue now contains 2 chunks)');
   t.equal(enqueue('c'), false, 'After 0 reads, 3rd enqueue should return false (queue now contains 3 chunks)');
   t.equal(enqueue('d'), false, 'After 0 reads, 4th enqueue should return false (queue now contains 4 chunks)');
 
-  rs.read().then(chunk => {
-    t.equal(chunk, 'a', '1st read gives back the 1st chunk enqueued (queue now contains 3 chunks)');
-    return rs.read();
+  reader.read().then(result => {
+    t.deepEqual(result, { value: 'a', done: false },
+      '1st read gives back the 1st chunk enqueued (queue now contains 3 chunks)');
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'b', '2nd read gives back the 2nd chunk enqueued (queue now contains 2 chunks)');
-    return rs.read();
+  .then(result => {
+    t.deepEqual(result, { value: 'b', done: false },
+      '2nd read gives back the 2nd chunk enqueued (queue now contains 2 chunks)');
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'c', '3rd read gives back the 2nd chunk enqueued (queue now contains 1 chunk)');
+  .then(result => {
+    t.deepEqual(result, { value: 'c', done: false },
+      '3rd read gives back the 3rd chunk enqueued (queue now contains 1 chunk)');
     t.equal(enqueue('e'), false, 'After 3 reads, 5th enqueue should return false (queue now contains 2 chunks)');
-    return rs.read();
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'd', '4th read gives back the 3rd chunk enqueued (queue now contains 1 chunks)');
-    return rs.read();
+  .then(result => {
+    t.deepEqual(result, { value: 'd', done: false },
+      '4th read gives back the 4th chunk enqueued (queue now contains 1 chunks)');
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'e', '5th read gives back the 4th chunk enqueued (queue now contains 0 chunks)');
+  .then(result => {
+    t.deepEqual(result, { value: 'e', done: false },
+      '5th read gives back the 5th chunk enqueued (queue now contains 0 chunks)');
     t.equal(enqueue('f'), true, 'After 5 reads, 6th enqueue should return true (queue now contains 1 chunk)');
     t.equal(enqueue('g'), false, 'After 5 reads, 7th enqueue should return false (queue now contains 2 chunks)');
     t.end();
@@ -106,6 +118,7 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
     start(enqueue_) { enqueue = enqueue_; },
     strategy: new CountQueuingStrategy({ highWaterMark: 4 })
   });
+  const reader = rs.getReader();
 
   t.equal(enqueue('a'), true, 'After 0 reads, 1st enqueue should return true (queue now contains 1 chunk)');
   t.equal(enqueue('b'), true, 'After 0 reads, 2nd enqueue should return true (queue now contains 2 chunks)');
@@ -114,29 +127,35 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
   t.equal(enqueue('e'), false, 'After 0 reads, 5th enqueue should return false (queue now contains 5 chunks)');
   t.equal(enqueue('f'), false, 'After 0 reads, 6th enqueue should return false (queue now contains 6 chunks)');
 
-  rs.read().then(chunk => {
-    t.equal(chunk, 'a', '1st read gives back the 1st chunk enqueued (queue now contains 5 chunks)');
-    return rs.read();
+  reader.read().then(result => {
+    t.deepEqual(result, { value: 'a', done: false },
+      '1st read gives back the 1st chunk enqueued (queue now contains 5 chunks)');
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'b', '2nd read gives back the 2nd chunk enqueued (queue now contains 4 chunks)');
+  .then(result => {
+    t.deepEqual(result, { value: 'b', done: false },
+      '2nd read gives back the 2nd chunk enqueued (queue now contains 4 chunks)');
     t.equal(enqueue('g'), false, 'After 2 reads, 7th enqueue should return false (queue now contains 5 chunks)');
-    return rs.read();
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'c', '3rd read gives back the 3rd chunk enqueued (queue now contains 4 chunks)');
-    return rs.read();
+  .then(result => {
+    t.deepEqual(result, { value: 'c', done: false },
+      '3rd read gives back the 3rd chunk enqueued (queue now contains 4 chunks)');
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'd', '4th read gives back the 4th chunk enqueued (queue now contains 3 chunks)');
-    return rs.read();
+  .then(result => {
+    t.deepEqual(result, { value: 'd', done: false },
+      '4th read gives back the 4th chunk enqueued (queue now contains 3 chunks)');
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'e', '5th read gives back the 5th chunk enqueued (queue now contains 2 chunks)');
-    return rs.read();
+  .then(result => {
+    t.deepEqual(result, { value: 'e', done: false },
+      '5th read gives back the 5th chunk enqueued (queue now contains 2 chunks)');
+    return reader.read();
   })
-  .then(chunk => {
-    t.equal(chunk, 'f', '6th read gives back the 6th chunk enqueued (queue now contains 1 chunk)');
+  .then(result => {
+    t.deepEqual(result, { value: 'f', done: false },
+      '6th read gives back the 6th chunk enqueued (queue now contains 1 chunk)');
     t.equal(enqueue('h'), true, 'After 6 reads, 8th enqueue should return true (queue now contains 2 chunks)');
     t.equal(enqueue('i'), true, 'After 6 reads, 9th enqueue should return true (queue now contains 3 chunks)');
     t.equal(enqueue('j'), true, 'After 6 reads, 10th enqueue should return true (queue now contains 4 chunks)');

@@ -59,7 +59,7 @@ test('Underlying source: throwing pull method (initial pull)', t => {
 });
 
 test('Underlying source: throwing pull getter (second pull)', t => {
-  t.plan(4);
+  t.plan(2);
 
   const theError = new Error('a unique string');
   let counter = 0;
@@ -74,12 +74,7 @@ test('Underlying source: throwing pull getter (second pull)', t => {
     }
   });
 
-  t.equal(rs.state, 'readable', 'the stream should start readable');
-
-  rs.read().then(v => {
-    t.equal(rs.state, 'readable', 'the stream should not be errored on the first read');
-    t.equal(v, 'a', 'the chunk read should be correct');
-  });
+  rs.getReader().read().then(r => t.deepEqual(r, { value: 'a', done: false }, 'the chunk read should be correct'));
 
   rs.closed.then(
     () => t.fail('closed should not fulfill'),
@@ -88,7 +83,7 @@ test('Underlying source: throwing pull getter (second pull)', t => {
 });
 
 test('Underlying source: throwing pull method (second pull)', t => {
-  t.plan(4);
+  t.plan(2);
 
   const theError = new Error('a unique string');
   let counter = 0;
@@ -103,12 +98,7 @@ test('Underlying source: throwing pull method (second pull)', t => {
     }
   });
 
-  t.equal(rs.state, 'readable', 'the stream should start readable');
-
-  rs.read().then(v => {
-    t.equal(rs.state, 'readable', 'the stream should not be errored on the first read');
-    t.equal(v, 'a', 'the chunk read should be correct');
-  });
+  rs.getReader().read().then(r => t.deepEqual(r, { value: 'a', done: false }, 'the chunk read should be correct'));
 
   rs.closed.then(
     () => t.fail('closed should not fulfill'),
@@ -162,7 +152,7 @@ test('Underlying source: throwing strategy getter', t => {
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: throwing strategy.size getter', t => {
@@ -183,7 +173,7 @@ test('Underlying source: throwing strategy.size getter', t => {
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: throwing strategy.size method', t => {
@@ -204,7 +194,7 @@ test('Underlying source: throwing strategy.size method', t => {
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: throwing strategy.shouldApplyBackpressure getter', t => {
@@ -225,7 +215,7 @@ test('Underlying source: throwing strategy.shouldApplyBackpressure getter', t =>
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: throwing strategy.shouldApplyBackpressure method', t => {
@@ -246,12 +236,13 @@ test('Underlying source: throwing strategy.shouldApplyBackpressure method', t =>
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: strategy.size returning NaN', t => {
   t.plan(2);
 
+  let theError;
   const rs = new ReadableStream({
     start(enqueue) {
       try {
@@ -259,6 +250,7 @@ test('Underlying source: strategy.size returning NaN', t => {
         t.fail('enqueue didn\'t throw');
       } catch (error) {
         t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
+        theError = error;
       }
     },
     strategy: {
@@ -271,12 +263,13 @@ test('Underlying source: strategy.size returning NaN', t => {
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: strategy.size returning -Infinity', t => {
   t.plan(2);
 
+  let theError;
   const rs = new ReadableStream({
     start(enqueue) {
       try {
@@ -284,6 +277,7 @@ test('Underlying source: strategy.size returning -Infinity', t => {
         t.fail('enqueue didn\'t throw');
       } catch (error) {
         t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
+        theError = error;
       }
     },
     strategy: {
@@ -296,12 +290,13 @@ test('Underlying source: strategy.size returning -Infinity', t => {
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: strategy.size returning +Infinity', t => {
   t.plan(2);
 
+  let theError;
   const rs = new ReadableStream({
     start(enqueue) {
       try {
@@ -309,6 +304,7 @@ test('Underlying source: strategy.size returning +Infinity', t => {
         t.fail('enqueue didn\'t throw');
       } catch (error) {
         t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
+        theError = error;
       }
     },
     strategy: {
@@ -321,5 +317,5 @@ test('Underlying source: strategy.size returning +Infinity', t => {
     }
   });
 
-  t.equal(rs.state, 'errored', 'state should be errored');
+  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });

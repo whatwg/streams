@@ -32,7 +32,6 @@ test('ReadableStream cancellation: integration test on an infinite stream derive
 
   readableStreamToArray(rs).then(
     chunks => {
-      t.equal(rs.state, 'closed', 'stream should be closed');
       t.equal(cancellationFinished, false, 'it did not wait for the cancellation process to finish before closing');
       t.ok(chunks.length > 0, 'at least one chunk should be read');
       for (let i = 0; i < chunks.length; i++) {
@@ -46,67 +45,9 @@ test('ReadableStream cancellation: integration test on an infinite stream derive
     rs.cancel().then(() => {
       t.equal(cancellationFinished, true, 'it returns a promise that is fulfilled when the cancellation finishes');
       t.end();
-    });
+    })
+    .catch(e => t.error(e));
   }, 150);
-});
-
-test('ReadableStream cancellation: cancelling immediately should put the stream in a closed state', t => {
-  const rs = sequentialReadableStream(5);
-
-  t.plan(4);
-
-  rs.closed.then(
-    () => t.pass('closed promise vended before the cancellation should fulfill'),
-    () => t.fail('closed promise vended before the cancellation should not reject')
-  );
-
-  rs.cancel();
-
-  t.equal(rs.state, 'closed', 'state should be closed immediately after cancel() call');
-
-  rs.closed.then(
-    () => t.pass('closed promise vended after the cancellation should fulfill'),
-    () => t.fail('closed promise vended after the cancellation should not be rejected')
-  );
-
-  rs.read().then(
-    chunk => t.equal(chunk, ReadableStream.EOS, 'read() promise vended after the cancellation should fulfill with EOS'),
-    () => t.fail('read() promise vended after the cancellation should not be rejected')
-  );
-});
-
-
-test('ReadableStream cancellation: cancelling after reading should put the stream in a closed state', t => {
-  const rs = sequentialReadableStream(5);
-
-  t.plan(5);
-
-  rs.closed.then(
-    () => t.pass('closed promise vended before the cancellation should fulfill'),
-    () => t.fail('closed promise vended before the cancellation should not reject')
-  );
-
-  rs.read().then(
-    chunk => {
-      t.equal(chunk, 1, 'read() promise vended before the cancellation should fulfill with the first chunk');
-
-      rs.cancel();
-
-      t.equal(rs.state, 'closed', 'state should be closed immediately after cancel() call');
-
-      rs.closed.then(
-        () => t.pass('closed promise vended after the cancellation should fulfill'),
-        () => t.fail('closed promise vended after the cancellation should not be rejected')
-      );
-
-      rs.read().then(
-        chunk => t.equal(chunk, ReadableStream.EOS,
-          'read() promise vended after the cancellation should fulfill with EOS'),
-        () => t.fail('read() promise vended after the cancellation should not be rejected')
-      );
-    },
-    () => t.fail('read() promise vended after the cancellation should not be rejected')
-  );
 });
 
 test('ReadableStream cancellation: cancel(reason) should pass through the given reason to the underlying source', t => {
@@ -123,43 +64,6 @@ test('ReadableStream cancellation: cancel(reason) should pass through the given 
   t.equal(recordedReason, passedReason,
     'the error passed to the underlying source\'s cancel method should equal the one passed to the stream\'s cancel');
   t.end();
-});
-
-test('ReadableStream cancellation: cancel() on a closed stream should return a promise resolved with undefined', t => {
-  t.plan(2);
-
-  const rs = new ReadableStream({
-    start(enqueue, close) {
-      close();
-    }
-  });
-
-  t.equal(rs.state, 'closed', 'state should be closed already');
-
-  rs.cancel().then(
-    v => t.equal(v, undefined, 'cancel() return value should be fulfilled with undefined'),
-    () => t.fail('cancel() return value should not be rejected')
-  );
-});
-
-test('ReadableStream cancellation: cancel() on an errored stream should return a promise rejected with the error',
-     t => {
-  t.plan(2);
-
-  const passedError = new Error('aaaugh!!');
-
-  const rs = new ReadableStream({
-    start(enqueue, close, error) {
-      error(passedError);
-    }
-  });
-
-  t.equal(rs.state, 'errored', 'state should be errored already');
-
-  rs.cancel().then(
-    () => t.fail('cancel() return value should not be fulfilled'),
-    r => t.equal(r, passedError, 'cancel() return value should be rejected with passedError')
-  );
 });
 
 test('ReadableStream cancellation: returning a value from the underlying source\'s cancel should not affect the ' +

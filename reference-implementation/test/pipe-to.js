@@ -5,7 +5,7 @@ import sequentialReadableStream from './utils/sequential-rs';
 // TODO: many asserts in this file are unlabeled; we should label them.
 
 test('Piping from a ReadableStream from which lots of data are readable synchronously', t => {
-  t.plan(5);
+  t.plan(4);
 
   const rs = new ReadableStream({
     start(enqueue, close) {
@@ -16,8 +16,6 @@ test('Piping from a ReadableStream from which lots of data are readable synchron
     }
   });
 
-  t.equal(rs.state, 'readable', 'readable stream state should start out readable');
-
   const ws = new WritableStream({
     strategy: new CountQueuingStrategy({
       highWaterMark: 1000
@@ -26,11 +24,16 @@ test('Piping from a ReadableStream from which lots of data are readable synchron
 
   t.equal(ws.state, 'writable', 'writable stream state should start out writable');
 
+  let rsClosed = false;
+  rs.closed.then(() => {
+    rsClosed = true;
+  });
+
   let pipeFinished = false;
   rs.pipeTo(ws).then(
     () => {
       pipeFinished = true;
-      t.equal(rs.state, 'closed', 'readable stream state should be closed after pipe finishes');
+      t.equal(rsClosed, true, 'readable stream should be closed after pipe finishes');
       t.equal(ws.state, 'closed', 'writable stream state should be closed after pipe finishes');
     },
     e => t.error(e)
@@ -42,7 +45,7 @@ test('Piping from a ReadableStream from which lots of data are readable synchron
 });
 
 test('Piping from a ReadableStream in readable state to a WritableStream in closing state', t => {
-  t.plan(5);
+  t.plan(4);
 
   let cancelReason;
   const rs = new ReadableStream({
@@ -54,7 +57,6 @@ test('Piping from a ReadableStream in readable state to a WritableStream in clos
       cancelReason = reason;
     }
   });
-  t.equal(rs.state, 'readable', 'readable stream should start in the readable state');
 
   const ws = new WritableStream({
     write() {
@@ -68,12 +70,17 @@ test('Piping from a ReadableStream in readable state to a WritableStream in clos
   ws.close();
   t.equal(ws.state, 'closing', 'writable stream should be closing immediately after closing it');
 
+  let rsClosed = false;
+  rs.closed.then(() => {
+    rsClosed = true;
+  });
+
   rs.pipeTo(ws).then(
     () => t.fail('promise returned by pipeTo should not fulfill'),
     r => {
       t.equal(r, cancelReason,
         'the pipeTo promise should reject with the same error as the underlying source cancel was called with');
-      t.equal(rs.state, 'closed', 'the readable stream should be closed when the pipe finishes');
+      t.equal(rsClosed, true, 'readable stream should be closed after pipe finishes');
     }
   );
 });
@@ -96,10 +103,13 @@ test('Piping from a ReadableStream in readable state to a WritableStream in erro
       t.equal(reason, passedError);
     }
   });
-  t.equal(rs.state, 'readable');
 
   let writeCalled = false;
+  const startPromise = Promise.resolve();
   const ws = new WritableStream({
+    start() {
+      return startPromise;
+    },
     write(chunk) {
       t.assert(!writeCalled, 'write must not be called more than once');
       writeCalled = true;
@@ -118,28 +128,24 @@ test('Piping from a ReadableStream in readable state to a WritableStream in erro
     }
   });
 
-  // Wait for ws to start.
-  setTimeout(() => {
+  startPromise.then(() => {
     ws.write('Hello');
     t.assert(writeCalled, 'write must be called');
 
     ws.ready.then(() => {
       t.equal(ws.state, 'errored', 'as a result of rejected promise, ws must be in errored state');
 
-      rs.pipeTo(ws);
-
-      // Need to delay because pipeTo retrieves error from dest using ready.
-      setTimeout(() => {
-        t.assert(cancelCalled);
-        t.equal(rs.state, 'closed');
+      rs.pipeTo(ws).catch(e => {
+        t.equal(e, passedError, 'pipeTo promise should be rejected with the error');
+        t.assert(cancelCalled, 'cancel should have been called');
         t.end();
-      }, 0);
+      });
     });
-  }, 0);
+  });
 });
 
 test('Piping from a ReadableStream in the closed state to a WritableStream in the writable state', t => {
-  t.plan(4);
+  t.plan(3);
 
   const rs = new ReadableStream({
     start(enqueue, close) {
@@ -152,47 +158,6 @@ test('Piping from a ReadableStream in the closed state to a WritableStream in th
       t.fail('Unexpected cancel call');
     }
   });
-  t.equal(rs.state, 'closed');
-
-  const startPromise = Promise.resolve();
-  const ws = new WritableStream({
-    start() {
-      return startPromise;
-    },
-    write() {
-      t.fail('Unexpected write call');
-    },
-    close() {
-      t.pass('underlying sink close should be called');
-    },
-    abort() {
-      t.fail('Unexpected abort call');
-    }
-  });
-
-  startPromise.then(() => {
-    t.equal(ws.state, 'writable');
-
-    rs.pipeTo(ws).then(v => t.equal(v, undefined, 'pipeTo promise should be fulfilled with undefined'));
-  });
-});
-
-test('Piping from a ReadableStream in the errored state to a WritableStream in the writable state', t => {
-  t.plan(4);
-
-  const theError = new Error('piping is too hard today');
-  const rs = new ReadableStream({
-    start(enqueue, close, error) {
-      error(theError);
-    },
-    pull() {
-      t.fail('Unexpected pull call');
-    },
-    cancel(reason) {
-      t.fail('Unexpected cancel call');
-    }
-  });
-  t.equal(rs.state, 'errored');
 
   const startPromise = Promise.resolve();
   const ws = new WritableStream({
@@ -206,7 +171,52 @@ test('Piping from a ReadableStream in the errored state to a WritableStream in t
       t.fail('Unexpected close call');
     },
     abort() {
-      t.pass('underlying sink abort should be called');
+      t.fail('Unexpected abort call');
+    }
+  });
+
+  startPromise.then(() => {
+    t.equal(ws.state, 'writable', 'writable stream should start in writable state');
+
+    rs.pipeTo(ws).then(
+      () => t.fail('pipeTo promise should not fulfill'),
+      e => {
+        t.equal(e.constructor, TypeError, 'pipeTo promise should be rejected with a TypeError');
+        t.equal(ws.state, 'writable', 'writable stream should still be writable');
+      }
+    );
+  });
+});
+
+test('Piping from a ReadableStream in the errored state to a WritableStream in the writable state', t => {
+  t.plan(3);
+
+  const theError = new Error('piping is too hard today');
+  const rs = new ReadableStream({
+    start(enqueue, close, error) {
+      error(theError);
+    },
+    pull() {
+      t.fail('Unexpected pull call');
+    },
+    cancel(reason) {
+      t.fail('Unexpected cancel call');
+    }
+  });
+
+  const startPromise = Promise.resolve();
+  const ws = new WritableStream({
+    start() {
+      return startPromise;
+    },
+    write() {
+      t.fail('Unexpected write call');
+    },
+    close() {
+      t.fail('Unexpected close call');
+    },
+    abort() {
+      t.fail('Unexpected abort call');
     }
   });
 
@@ -215,7 +225,10 @@ test('Piping from a ReadableStream in the errored state to a WritableStream in t
 
     rs.pipeTo(ws).then(
       () => t.fail('pipeTo promise should not be fulfilled'),
-      e => t.equal(e, theError, 'pipeTo promise should be rejected with the passed error')
+      e => {
+        t.equal(e, theError, 'pipeTo promise should be rejected with the passed error');
+        t.equal(ws.state, 'writable', 'writable stream should still be writable');
+      }
     );
   });
 });
@@ -238,7 +251,6 @@ test('Piping from a ReadableStream in the readable state which becomes closed af
       t.fail('Unexpected cancel call');
     }
   });
-  t.equal(rs.state, 'readable', 'readable stream should start in the readable state');
 
   let writeCalled = false;
   const startPromise = Promise.resolve();
@@ -264,7 +276,10 @@ test('Piping from a ReadableStream in the readable state which becomes closed af
   });
 
   startPromise.then(() => {
-    rs.pipeTo(ws);
+    rs.pipeTo(ws).then(() => {
+      t.equal(ws.state, 'closed', 'writable stream should be closed after pipeTo completes');
+    });
+
     t.equal(ws.state, 'writable', 'writable stream should still be writable immediately after pipeTo');
 
     closeReadableStream();
@@ -273,7 +288,7 @@ test('Piping from a ReadableStream in the readable state which becomes closed af
 
 test('Piping from a ReadableStream in the readable state which becomes errored after pipeTo call to a WritableStream ' +
      'in the writable state', t => {
-  t.plan(4);
+  t.plan(5);
 
   let errorReadableStream;
   let pullCount = 0;
@@ -289,7 +304,6 @@ test('Piping from a ReadableStream in the readable state which becomes errored a
       t.fail('Unexpected cancel call');
     }
   });
-  t.equal(rs.state, 'readable', 'readable stream should start in the readable state');
 
   let passedError = new Error('horrible things');
   const startPromise = Promise.resolve();
@@ -310,7 +324,11 @@ test('Piping from a ReadableStream in the readable state which becomes errored a
   });
 
   startPromise.then(() => {
-    rs.pipeTo(ws);
+    rs.pipeTo(ws).catch(e => {
+      t.equal(e, passedError, 'pipeTo should be rejected with the passed error');
+      t.equal(ws.state, 'errored', 'writable stream should be errored after pipeTo completes');
+    });
+
     t.equal(ws.state, 'writable', 'writable stream should still be writable immediately after pipeTo');
 
     errorReadableStream(passedError);
@@ -319,6 +337,7 @@ test('Piping from a ReadableStream in the readable state which becomes errored a
 
 test('Piping from an empty ReadableStream which becomes non-empty after pipeTo call to a WritableStream in the ' +
      'writable state', t => {
+  t.plan(3);
   let enqueue;
   let pullCount = 0;
   const rs = new ReadableStream({
@@ -330,36 +349,31 @@ test('Piping from an empty ReadableStream which becomes non-empty after pipeTo c
     },
     cancel() {
       t.fail('Unexpected cancel call');
-      t.end();
     }
   });
 
   const ws = new WritableStream({
     write(chunk) {
-      t.equal(chunk, 'Hello');
-      t.equal(pullCount, 1);
-      t.end();
+      t.equal(chunk, 'Hello', 'underlying sink write should be called with the single chunk');
+      t.equal(pullCount, 1, 'pull should have been called once');
     },
     close() {
       t.fail('Unexpected close call');
-      t.end();
     },
     abort(reason) {
       t.fail('Unexpected abort call');
-      t.end();
     }
   });
 
-  rs.pipeTo(ws);
-  t.equal(rs.state, 'readable');
-  t.equal(ws.state, 'writable');
+  rs.pipeTo(ws).then(() => t.fail('pipeTo promise should not fulfill'));
+  t.equal(ws.state, 'writable', 'writable stream should start in writable state');
 
   enqueue('Hello');
 });
 
 test('Piping from an empty ReadableStream which becomes errored after pipeTo call to a WritableStream in the ' +
     'writable state', t => {
-  t.plan(4);
+  t.plan(3);
 
   let errorReadableStream;
   const rs = new ReadableStream({
@@ -368,11 +382,9 @@ test('Piping from an empty ReadableStream which becomes errored after pipeTo cal
     },
     pull() {
       t.fail('Unexpected pull call');
-      t.end();
     },
     cancel() {
       t.fail('Unexpected cancel call');
-      t.end();
     }
   });
 
@@ -380,23 +392,18 @@ test('Piping from an empty ReadableStream which becomes errored after pipeTo cal
   const ws = new WritableStream({
     write() {
       t.fail('Unexpected write call');
-      t.end();
     },
     close() {
       t.fail('Unexpected close call');
-      t.end();
     },
     abort(reason) {
       t.equal(reason, passedError, 'underlying sink abort should receive the error from the readable stream');
     }
   });
 
-  rs.pipeTo(ws);
-  t.equal(rs.state, 'readable', 'readable stream should start out readable');
+  rs.pipeTo(ws).catch(e => t.equal(e, passedError, 'pipeTo should reject with the passed error'));
   t.equal(ws.state, 'writable', 'writable stream should start out writable');
-
   errorReadableStream(passedError);
-  t.equal(rs.state, 'errored', 'readable stream should become errored');
 });
 
 test('Piping from an empty ReadableStream to a WritableStream in the writable state which becomes errored after a ' +
@@ -412,7 +419,7 @@ test('Piping from an empty ReadableStream to a WritableStream in the writable st
     },
     cancel(reason) {
       t.equal(reason, theError, 'underlying source cancellation reason should be the writable stream error');
-      t.equal(pullCount, 2, 'pull should have been called once by cancel-time');
+      t.equal(pullCount, 1, 'pull should have been called once by cancel-time');
     }
   });
 
@@ -437,8 +444,7 @@ test('Piping from an empty ReadableStream to a WritableStream in the writable st
   startPromise.then(() => {
     t.equal(ws.state, 'writable', 'ws should start writable');
 
-    rs.pipeTo(ws);
-    t.equal(rs.state, 'readable', 'rs should be readable after pipe');
+    rs.pipeTo(ws).catch(e => t.equal(e, theError, 'pipeTo should reject with the passed error'));
     t.equal(ws.state, 'writable', 'ws should be writable after pipe');
 
     errorWritableStream(theError);
@@ -461,7 +467,6 @@ test('Piping from a non-empty ReadableStream to a WritableStream in the waiting 
       t.fail('Unexpected cancel call');
     }
   });
-  t.equal(rs.state, 'readable');
 
   let resolveWritePromise;
   const startPromise = Promise.resolve();
@@ -492,7 +497,6 @@ test('Piping from a non-empty ReadableStream to a WritableStream in the waiting 
     t.equal(ws.state, 'waiting');
 
     rs.pipeTo(ws);
-    t.equal(rs.state, 'readable', 'readable stream must say it is readable while piping');
     t.equal(ws.state, 'waiting');
 
     resolveWritePromise();
@@ -522,7 +526,6 @@ test('Piping from a non-empty ReadableStream to a WritableStream in waiting stat
       t.end();
     }
   });
-  t.equal(rs.state, 'readable');
 
   let errorWritableStream;
   const startPromise = Promise.resolve();
@@ -539,11 +542,9 @@ test('Piping from a non-empty ReadableStream to a WritableStream in waiting stat
     },
     close() {
       t.fail('Unexpected close call');
-      t.end();
     },
     abort() {
       t.fail('Unexpected abort call');
-      t.end();
     }
   });
   ws.write('Hello');
@@ -551,9 +552,7 @@ test('Piping from a non-empty ReadableStream to a WritableStream in waiting stat
   startPromise.then(() => {
     t.equal(ws.state, 'waiting');
 
-    t.equal(rs.state, 'readable', 'readable stream should be readable before piping starts');
     rs.pipeTo(ws);
-    t.equal(rs.state, 'readable', 'readable stream must say it is readable while piping');
     t.equal(ws.state, 'waiting');
 
     errorWritableStream();
@@ -563,7 +562,7 @@ test('Piping from a non-empty ReadableStream to a WritableStream in waiting stat
 
 test('Piping from a non-empty ReadableStream which becomes errored after pipeTo call to a WritableStream in the ' +
      'waiting state', t => {
-  t.plan(10);
+  t.plan(6);
 
   let errorReadableStream;
   let pullCount = 0;
@@ -580,7 +579,6 @@ test('Piping from a non-empty ReadableStream which becomes errored after pipeTo 
       t.end();
     }
   });
-  t.equal(rs.state, 'readable');
 
   let writeCalled = false;
   const startPromise = Promise.resolve();
@@ -609,13 +607,10 @@ test('Piping from a non-empty ReadableStream which becomes errored after pipeTo 
     t.equal(ws.state, 'waiting');
     t.equal(pullCount, 1);
 
-    t.equal(rs.state, 'readable', 'readable stream should be readable before piping starts');
     rs.pipeTo(ws);
-    t.equal(rs.state, 'readable', 'readable stream must say it is readable while piping');
     t.equal(ws.state, 'waiting');
 
     errorReadableStream();
-    t.equal(rs.state, 'errored');
   });
 });
 
@@ -673,7 +668,7 @@ test('Piping from a non-empty ReadableStream to a WritableStream in the waiting 
     // Check that nothing happens before calling done(), and then call done()
     // to check that pipeTo is woken up.
     setTimeout(() => {
-      t.equal(pullCount, 3);
+      t.equal(pullCount, 2);
 
       checkSecondWrite = true;
 
@@ -719,13 +714,12 @@ test('Piping from an empty ReadableStream to a WritableStream in the waiting sta
     t.equal(ws.state, 'waiting');
 
     rs.pipeTo(ws);
-    t.equal(rs.state, 'readable');
     t.equal(ws.state, 'waiting');
     t.equal(pullCount, 1);
 
     resolveWritePromise();
     setTimeout(() => {
-      t.equal(pullCount, 2);
+      t.equal(pullCount, 1);
 
       t.end();
     }, 100);
@@ -734,7 +728,7 @@ test('Piping from an empty ReadableStream to a WritableStream in the waiting sta
 
 test('Piping from an empty ReadableStream which becomes closed after a pipeTo call to a WritableStream in the ' +
      'waiting state whose writes never complete', t => {
-  t.plan(5);
+  t.plan(4);
 
   let closeReadableStream;
   let pullCount = 0;
@@ -780,8 +774,6 @@ test('Piping from an empty ReadableStream which becomes closed after a pipeTo ca
 
     rs.pipeTo(ws);
 
-    t.equal(rs.state, 'closed', 'the readable stream should be closed after closing it');
-
     setTimeout(() => {
       t.equal(ws.state, 'waiting', 'the writable stream should still be waiting since the write never completed');
       t.equal(pullCount, 1, 'pull should have been called only once');
@@ -791,7 +783,7 @@ test('Piping from an empty ReadableStream which becomes closed after a pipeTo ca
 
 test('Piping from an empty ReadableStream which becomes errored after a pipeTo call to a WritableStream in the ' +
      'waiting state', t => {
-  t.plan(6);
+  t.plan(5);
 
   let errorReadableStream;
   let pullCount = 0;
@@ -809,7 +801,11 @@ test('Piping from an empty ReadableStream which becomes errored after a pipeTo c
 
   let writeCalled = false;
   const passedError = new Error('horrible things');
+  const startPromise = Promise.resolve();
   const ws = new WritableStream({
+    start() {
+      return startPromise;
+    },
     write(chunk) {
       if (!writeCalled) {
         t.equal(chunk, 'Hello');
@@ -825,20 +821,17 @@ test('Piping from an empty ReadableStream which becomes errored after a pipeTo c
     abort(reason) {
       t.equal(reason, passedError);
       t.assert(writeCalled);
-      t.equal(pullCount, 2);
+      t.equal(pullCount, 1);
     }
   });
   ws.write('Hello');
 
-  // Wait for ws to start.
-  setTimeout(() => {
+  startPromise.then(() => {
     t.equal(ws.state, 'waiting');
 
     rs.pipeTo(ws);
 
     errorReadableStream(passedError);
-
-    t.equal(rs.state, 'errored');
   });
 });
 
@@ -884,12 +877,11 @@ test('Piping to a stream that has been aborted passes through the error as the c
   const passedReason = new Error('I don\'t like you.');
   ws.abort(passedReason);
 
-  rs.pipeTo(ws);
-
-  setTimeout(() => {
+  rs.pipeTo(ws).catch(e => {
+    t.equal(e, passedReason, 'pipeTo rejection reason should be the cancellation reason');
     t.equal(recordedReason, passedReason, 'the recorded cancellation reason must be the passed abort reason');
     t.end();
-  }, 10);
+  });
 });
 
 test('Piping to a stream and then aborting it passes through the error as the cancellation reason', t => {
@@ -903,13 +895,14 @@ test('Piping to a stream and then aborting it passes through the error as the ca
   const ws = new WritableStream();
   const passedReason = new Error('I don\'t like you.');
 
-  rs.pipeTo(ws);
+  const pipeToPromise = rs.pipeTo(ws);
   ws.abort(passedReason);
 
-  setTimeout(() => {
+  pipeToPromise.catch(e => {
+    t.equal(e, passedReason, 'pipeTo rejection reason should be the abortion reason');
     t.equal(recordedReason, passedReason, 'the recorded cancellation reason must be the passed abort reason');
     t.end();
-  }, 10);
+  });
 });
 
 test('Piping to a stream that has been closed propagates a TypeError cancellation reason backward', t => {
@@ -923,12 +916,11 @@ test('Piping to a stream that has been closed propagates a TypeError cancellatio
   const ws = new WritableStream();
   ws.close();
 
-  rs.pipeTo(ws);
-
-  setTimeout(() => {
-    t.equal(recordedReason.constructor, TypeError, 'the recorded cancellation reason must be a TypeError');
+  rs.pipeTo(ws).catch(e => {
+    t.equal(e.constructor, TypeError, 'the rejection reason for the pipeTo promise should be a TypeError');
+    t.equal(recordedReason.constructor, TypeError, 'the recorded cancellation reason should be a TypeError');
     t.end();
-  }, 10);
+  });
 });
 
 test('Piping to a stream and then closing it propagates a TypeError cancellation reason backward', t => {
@@ -941,13 +933,14 @@ test('Piping to a stream and then closing it propagates a TypeError cancellation
 
   const ws = new WritableStream();
 
-  rs.pipeTo(ws);
+  const pipeToPromise = rs.pipeTo(ws);
   ws.close();
 
-  setTimeout(() => {
-    t.equal(recordedReason.constructor, TypeError, 'the recorded cancellation reason must be a TypeError');
+  pipeToPromise.catch(e => {
+    t.equal(e.constructor, TypeError, 'the rejection reason for the pipeTo promise should be a TypeError');
+    t.equal(recordedReason.constructor, TypeError, 'the recorded cancellation reason should be a TypeError');
     t.end();
-  }, 10);
+  });
 });
 
 test('Piping to a stream that errors on write should pass through the error as the cancellation reason', t => {
