@@ -14,29 +14,24 @@ export class ThinStreamReader {
 
     this._initReadyPromise();
 
-    this._erroredPromise = new Promise((resolve, reject) => {
-      this._resolveErroredPromise = resolve;
+    this._closedPromise = new Promise((resolve, reject) => {
+      this._resolveClosedPromise = resolve;
+      this._rejectClosedPromise = reject;
     });
-    this._error = undefined;
 
     this._window = 0;
 
-    const delegate = {
-      markWaiting: this._markWaiting.bind(this),
-      markReadable: this._markReadable.bind(this),
-      markClosed: this._markClosed.bind(this),
+    this._waitingID = {};
 
-      markErrored: this._markErrored.bind(this)
-    };
-
-    this._source.start(delegate);
+    this._source.start(
+        this._markReadable.bind(this, this._waitingID),
+        this._markClosed.bind(this, this._waitingID),
+        this._markErrored.bind(this));
   }
 
   get state() {
     return this._state;
   }
-
-  // Auto pull interfaces.
 
   get window() {
     return this._window;
@@ -52,8 +47,6 @@ export class ThinStreamReader {
     this._source.onWindowUpdate(v);
   }
 
-  // Reading interfaces.
-
   get ready() {
     return this._readyPromise;
   }
@@ -63,66 +56,102 @@ export class ThinStreamReader {
       throw new TypeError('not readable');
     }
 
-    return this._source.read();
+    this._waitingID = {};
+
+    try {
+      const result = this._source.read(
+          this._markReadable.bind(this, this._waitingID),
+          this._markClosed.bind(this, this._waitingID));
+
+      if (this._waitingID !== undefined) {
+        this._initReadyPromise();
+        this._state = 'waiting';
+      }
+
+      return result;
+    } catch (e) {
+      const error = new TypeError('underlying source is broken: ' + e);
+      this._markErrored(error);
+      throw error;
+    }
   }
 
   cancel(reason) {
     if (!readableAcceptsCancel(this._state)) {
-      throw new TypeError('already ' + this._state);
+      return Promise.reject(new TypeError('already ' + this._state));
     }
 
-    this._source.cancel(reason);
+    if (this._waitingID !== undefined) {
+      this._waitingID = undefined;
 
-    this._state = 'cancelled';
-  }
-
-  // Error receiving interfaces.
-
-  get errored() {
-    return this._erroredPromise;
-  }
-
-  get error() {
-    if (this._state !== 'errored') {
-      throw new TypeError('not errored');
-    }
-
-    return this._error;
-  }
-
-  // Methods exposed only to the underlying source.
-
-  _markWaiting() {
-    if (this._state === 'waiting') {
-      return;
-    }
-
-    this._initReadyPromise();
-    this._state = 'waiting';
-  }
-
-  _markReadable() {
-    if (this._state === 'readable') {
-      return;
-    }
-
-    this._resolveReadyPromise();
-    this._resolveReadyPromise = undefined;
-    this._state = 'readable';
-  }
-
-  _markClosed() {
-    if (this._state !== 'readable') {
       this._resolveReadyPromise();
       this._resolveReadyPromise = undefined;
     }
+
+    this._resolveClosedPromise();
+    this._resolveClosedPromise = undefined;
+    this._rejectClosedPromise = undefined;
+
+    this._state = 'closed';
+
+    return this._source.cancel(reason);
+  }
+
+  get closed() {
+    return this._closedPromise;
+  }
+
+  _markReadable(waitingID) {
+    if (this._waitingID !== waitingID) {
+      throw new TypeError('this callback is already expired');
+    }
+    this._waitingID = undefined;
+
+    if (this._state === 'waiting') {
+      this._resolveReadyPromise();
+      this._resolveReadyPromise = undefined;
+    }
+
+    this._state = 'readable';
+  }
+
+  _markClosed(waitingID) {
+    if (this._waitingID !== waitingID) {
+      throw new TypeError('this callback is already expired');
+    }
+    this._waitingID = undefined;
+
+    if (this._state === 'waiting') {
+      this._resolveReadyPromise();
+      this._resolveReadyPromise = undefined;
+    }
+
+    this._resolveClosedPromise();
+    this._resolveClosedPromise = undefined;
+    this._rejectClosedPromise = undefined;
+
     this._state = 'closed';
   }
 
   _markErrored(error) {
-    this._resolveErroredPromise();
-    this._resolveErroredPromise = undefined;
+    if (this._state === 'closed') {
+      throw new TypeError('already closed');
+    }
+    if (this._state === 'errored') {
+      throw new TypeError('already errored');
+    }
+
+    if (this._waitingID !== undefined) {
+      this._waitingID = undefined;
+
+      this._resolveReadyPromise();
+      this._resolveReadyPromise = undefined;
+    }
+
+    this._rejectClosedPromise(error);
+    this._resolveClosedPromise = undefined;
+    this._rejectClosedPromise = undefined;
+
     this._state = 'errored';
-    this._error = error;
   }
 }

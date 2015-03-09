@@ -14,7 +14,7 @@ export function readableAcceptsCancel(state) {
 export function selectStreams(readable, writable) {
   const promises = [];
 
-  promises.push(readable.errored);
+  promises.push(readable.closed);
   if (readable.state === 'waiting') {
     promises.push(readable.ready);
   }
@@ -40,7 +40,7 @@ export function pipeStreams(source, dest) {
         dest.abort(error);
       }
       if (readableAcceptsCancel(source.state)) {
-        source.abort(error);
+        source.cancel(error);
       }
       reject(error);
     }
@@ -49,7 +49,7 @@ export function pipeStreams(source, dest) {
       for (;;) {
         if (source.state === 'errored') {
           if (writableAcceptsAbort(dest.state)) {
-            dest.abort(source.error);
+            source.closed.catch(dest.abort.bind(dest));
           }
           reject(new TypeError('source is errored'));
           return;
@@ -79,7 +79,7 @@ export function pipeStreams(source, dest) {
         }
 
         selectStreams(source, dest)
-            .then(loop)
+            .then(loop, loop)
             .catch(disposeStreams);
         return;
       }

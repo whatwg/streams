@@ -108,22 +108,39 @@ class StreamQueueUnderlyingSource {
     this._sink = sink;
   }
 
-  start(delegate) {
-    this._delegate = delegate;
+  start(markReadable, markClosed, markErrored) {
+    this._markReadable = markReadable;
+    this._markClosed = markClosed;
+    this._markErrored = markErrored;
   }
 
   onQueueFill() {
-    this._delegate.markReadable();
+    if (this._markReadable === undefined) {
+      return;
+    }
+
+    this._markReadable();
+    this._markReadable = undefined;
+    this._markClosed = undefined;
   }
 
   onStartDraining() {
-    if (this._shared._queue.length === 0) {
-      this._delegate.markClosed();
+    if (this._shared._queue.length !== 0 || this._markClosed === undefined) {
+      return;
     }
+
+    this._markClosed();
+    this._markReadable = undefined;
+    this._markClosed = undefined;
   }
 
   abort(reason) {
-    this._delegate.markErrored(reason);
+    if (this._markErrored === undefined) {
+      return;
+    }
+
+    this._markErrored(reason);
+    this._markErrored = undefined;
   }
 
   onWindowUpdate(v) {
@@ -138,15 +155,15 @@ class StreamQueueUnderlyingSource {
     this._sink.onWindowUpdate();
   }
 
-  read() {
+  read(markReadable, markClosed) {
     const entry = this._shared._queue.shift();
 
     if (this._shared._queue.length === 0) {
       if (this._shared._draining) {
-        this._delegate.markClosed();
-      } else {
-        this._delegate.markWaiting();
+        markClosed();
       }
+    } else {
+      markReadable();
     }
 
     this._shared._queueSize -= entry.size;

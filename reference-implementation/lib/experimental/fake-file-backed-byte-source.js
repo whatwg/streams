@@ -29,7 +29,10 @@ class FileBackedUnderlyingSource {
     this._queue.push(result.writtenRegion);
     this._queueSize += result.writtenRegion.byteLength;
 
-    this._delegate.markReadable();
+    if (this._markReadable !== undefined) {
+      this._markReadable();
+      this._markReadable = undefined;
+    }
 
     if (result.closed) {
       this._strategy = undefined;
@@ -65,11 +68,18 @@ class FileBackedUnderlyingSource {
     const view = new Uint8Array(size);
     this._fileReadPromise = this._readFileInto(view)
         .then(this._handleFileReadResult.bind(this))
-        .catch(this._delegate.markErrored.bind(this._delegate));
+        .catch(e => {
+          if (this._markErrored !== undefined) {
+            this._markErrored(e);
+            this._markErrored = undefined;
+          }
+        });
   }
 
-  start(delegate) {
-    this._delegate = delegate;
+  start(markReadable, markClosed, markErrored) {
+    this._markReadable = markReadable;
+    this._markClosed = markClosed;
+    this._markErrored = markErrored;
 
     this._pull();
   }
@@ -86,16 +96,19 @@ class FileBackedUnderlyingSource {
     this._pull();
   }
 
-  read() {
+  read(markReadable, markClosed) {
     const view = this._queue.shift();
     this._queueSize -= view.byteLength;
 
     if (this._queue.length === 0) {
       if (this._draining) {
-        this._delegate.markClosed();
+        markClosed();
       } else {
-        this._delegate.markWaiting();
+        this._markReadable = markReadable;
+        this._markClosed = markClosed;
       }
+    } else {
+      markReadable();
     }
 
     if (!this._draining) {

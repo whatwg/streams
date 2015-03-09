@@ -178,9 +178,9 @@ test('abort()', t => {
 
   const testError = new TypeError('foo');
 
-  rs.errored.then(() => {
+  rs.closed.catch(e => {
     t.equal(rs.state, 'errored', 'rs.state');
-    t.equal(rs.error, testError, 'rs.error');
+    t.equal(e, testError, 'rs.closed');
 
     t.end();
   });
@@ -200,7 +200,7 @@ test('cancel()', t => {
   const testError = new TypeError('foo');
 
   rs.cancel(testError);
-  t.equal(rs.state, 'cancelled', 'rs.state');
+  t.equal(rs.state, 'closed', 'rs.state');
 
   ws.errored.then(() => {
     t.equal(ws.state, 'errored', 'ws.state');
@@ -283,9 +283,9 @@ test('pipeStreams(): abort() propagation', t => {
           v => t.fail('pipePromise is fulfilled with ' + v),
           e => t.equal(e.message, 'source is errored', 'rejection reason of pipePromise'));
 
-  rs1.errored.then(() => {
+  rs1.closed.catch(e => {
     t.equal(rs1.state, 'errored', 'rs.state');
-    t.equal(rs1.error, testError, 'rs1.error');
+    t.equal(e, testError, 'rs1.closed');
   });
 
   ws0.abort(testError);
@@ -379,7 +379,7 @@ test('Reading from a file backed byte source using auto pull readable stream', t
         const readView = rs.read();
         count += readView.byteLength;
       } else if (rs.state === 'waiting') {
-        Promise.race([rs.ready, rs.errored]).then(pump);
+        Promise.race([rs.ready, rs.closed]).then(pump, pump);
         return;
       } else {
         t.fail('rs.state is invalid: ' + rs.state);
