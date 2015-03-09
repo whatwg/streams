@@ -1,9 +1,15 @@
 import { readableAcceptsCancel } from './thin-stream-base';
 
-export class ThinReadableStream {
+export class ThinByteStreamReader {
   _initReadyPromise() {
     this._readyPromise = new Promise((resolve, reject) => {
       this._resolveReadyPromise = resolve;
+    });
+  }
+
+  _initPullReadyPromise() {
+    this._pullReadyPromise = new Promise((resolve, reject) => {
+      this._resolvePullReadyPromise = resolve;
     });
   }
 
@@ -19,9 +25,13 @@ export class ThinReadableStream {
     });
     this._error = undefined;
 
-    this._window = 0;
+    this._pullable = false;
+    this._initPullReadyPromise();
 
     const delegate = {
+      markPullable: this._markPullable.bind(this),
+      markNotPullable: this._markNotPullable.bind(this),
+
       markWaiting: this._markWaiting.bind(this),
       markReadable: this._markReadable.bind(this),
       markClosed: this._markClosed.bind(this),
@@ -36,20 +46,22 @@ export class ThinReadableStream {
     return this._state;
   }
 
-  // Auto pull interfaces.
+  // Manual pull interfaces.
 
-  get window() {
-    return this._window;
+  get pullable() {
+    return this._pullable;
   }
 
-  set window(v) {
-    if (!readableAcceptsCancel(this._state)) {
-      throw new TypeError('already ' + this._state);
+  get pullReady() {
+    return this._pullReadyPromise;
+  }
+
+  pull(view) {
+    if (!this._pullable) {
+      throw new TypeError('not pullable');
     }
 
-    this._window = v;
-
-    this._source.onWindowUpdate(v);
+    this._source.pull(view);
   }
 
   // Reading interfaces.
@@ -91,6 +103,25 @@ export class ThinReadableStream {
   }
 
   // Methods exposed only to the underlying source.
+
+  _markNotPullable() {
+    if (!this._pullable) {
+      return;
+    }
+
+    this._initPullReadyPromise();
+    this._pullable = false;
+  }
+
+  _markPullable() {
+    if (this._pullable) {
+      return;
+    }
+
+    this._resolvePullReadyPromise();
+    this._resolvePullReadyPromise = undefined;
+    this._pullable = true;
+  }
 
   _markWaiting() {
     if (this._state === 'waiting') {

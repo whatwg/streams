@@ -1,5 +1,5 @@
-import { ThinReadableStream } from './thin-readable-stream';
-import { ThinReadableByteStream } from './thin-readable-byte-stream';
+import { ThinStreamReader } from './thin-stream-reader';
+import { ThinByteStreamReader } from './thin-byte-stream-reader';
 
 import { fillArrayBufferView } from './thin-stream-utils';
 
@@ -202,7 +202,7 @@ export class FakeFile {
 
   createStream(strategy) {
     const source = new FileBackedUnderlyingSource(this._readFileInto.bind(this), strategy);
-    return new ThinReadableStream(source);
+    return new ThinStreamReader(source);
   }
 
   // Returns a manual pull readable stream.
@@ -216,6 +216,6 @@ export class FakeFile {
   // - The stream is always pullable.
   createManualPullStream() {
     const source = new FileBackedManualPullUnderlyingSource(this._readFileInto.bind(this));
-    return new ThinReadableByteStream(source);
+    return new ThinByteStreamReader(source);
   }
 }

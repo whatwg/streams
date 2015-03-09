@@ -1,4 +1,4 @@
-export class ThinAsyncReadableByteStream {
+export class ThinByobByteStreamReader {
   constructor(source) {
     this._source = source;
 

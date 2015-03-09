@@ -83,7 +83,7 @@ test('Adapting unstoppable push source', t => {
   }
 
   const source = new Source();
-  const readableStream = new ReadableStream(source);
+  const readableStream = new ThinStreamReader(source);
 
   let count = 0;
   function pump() {

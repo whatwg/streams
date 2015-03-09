@@ -1,5 +1,5 @@
-import { ThinWritableStream } from './thin-writable-stream';
-import { ThinReadableStream } from './thin-readable-stream';
+import { ThinStreamWriter } from './thin-stream-writer';
+import { ThinStreamReader } from './thin-stream-reader';
 
 class StreamQueueShared {
   constructor(strategy) {
@@ -172,5 +172,5 @@ export function createStreamQueue(strategy) {
   const sink = new StreamQueueUnderlyingSink(shared);
   sink.setSource(source);
   source.setSink(sink);
-  return { writable: new ThinWritableStream(sink), readable: new ThinReadableStream(source) };
+  return { writable: new ThinStreamWriter(sink), readable: new ThinStreamReader(source) };
 }

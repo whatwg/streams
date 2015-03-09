@@ -1,5 +1,5 @@
-import { ThinWritableStream } from './thin-writable-stream';
-import { ThinWritableByteStream } from './thin-writable-byte-stream';
+import { ThinStreamWriter } from './thin-stream-writer';
+import { ThinByteStreamWriter } from './thin-byte-stream-writer';
 
 class MockFileUnderlyingSink {
   constructor(file) {
@@ -100,10 +100,10 @@ export class MockFile {
   }
 
   createStream() {
-    return new ThinWritableStream(new MockFileUnderlyingSink(this));
+    return new ThinStreamWriter(new MockFileUnderlyingSink(this));
   }
 
   createStreamWithGarbage() {
-    return new ThinWritableByteStream(new MockFileUnderlyingSinkWithGarbage(this));
+    return new ThinByteStreamWriter(new MockFileUnderlyingSinkWithGarbage(this));
   }
 }

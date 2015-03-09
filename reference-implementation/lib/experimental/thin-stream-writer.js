@@ -1,15 +1,9 @@
 import { writableAcceptsWriteAndClose, writableAcceptsAbort } from './thin-stream-base';
 
-export class ThinWritableByteStream {
+export class ThinStreamWriter {
   _initReadyPromise() {
     this._readyPromise = new Promise((resolve, reject) => {
       this._resolveReadyPromise = resolve;
-    });
-  }
-
-  _initGarbageReadyPromise() {
-    this._garbageReadyPromise = new Promise((resolve, reject) => {
-      this._resolveGarbageReadyPromise = resolve;
     });
   }
 
@@ -27,18 +21,12 @@ export class ThinWritableByteStream {
     this._lastSpace = undefined;
     this._spaceChangePromise = undefined;
 
-    this._hasGarbage = false;
-    this._initGarbageReadyPromise();
-
     const delegate = {
       markWaiting: this._markWaiting.bind(this),
       markWritable: this._markWritable.bind(this),
       onSpaceChange: this._onSpaceChange.bind(this),
 
-      markErrored: this._markErrored.bind(this),
-
-      markHasGarbage: this._markHasGarbage.bind(this),
-      markNoGarbage: this._markNoGarbage.bind(this)
+      markErrored: this._markErrored.bind(this)
     };
 
     this._sink.start(delegate);
@@ -67,12 +55,12 @@ export class ThinWritableByteStream {
     return this._spaceChangePromise;
   }
 
-  write(view) {
+  write(value) {
     if (!writableAcceptsWriteAndClose(this._state)) {
       throw new TypeError('already ' + this._state);
     }
 
-    this._sink.write(view);
+    this._sink.write(value);
   }
 
   close() {
@@ -123,24 +111,6 @@ export class ThinWritableByteStream {
     return this._sink.space;
   }
 
-  // Disposed buffer reading interfaces.
-
-  get hasGarbage() {
-    return this._hasGarbage;
-  }
-
-  get garbageReady() {
-    return this._garbageReadyPromise;
-  }
-
-  get readGarbage() {
-    if (!this._hasGarbage) {
-      throw new TypeError('no garbage');
-    }
-
-    return this._sink.readGarbage();
-  }
-
   // Methods exposed only to the underlying sink.
 
   _markWaiting() {
@@ -179,24 +149,5 @@ export class ThinWritableByteStream {
 
     this._lastSpace = undefined;
     this._spaceChangePromise = undefined;
-  }
-
-  _markNoGarbage() {
-    if (!this._hasGarbage) {
-      return;
-    }
-
-    this._initGarbageReadyPromise();
-    this._hasGarbage = false;
-  }
-
-  _markHasGarbage() {
-    if (this._hasGarbage) {
-      return;
-    }
-
-    this._resolveGarbageReadyPromise();
-    this._resolveGarbageReadyPromise = undefined;
-    this._hasGarbage = true;
   }
 }

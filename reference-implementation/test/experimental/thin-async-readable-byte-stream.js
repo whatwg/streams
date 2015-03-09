@@ -1,9 +1,9 @@
 const test = require('tape-catch');
 
 import { fillArrayBufferView } from '../../lib/experimental/thin-stream-utils';
-import { ThinAsyncReadableByteStream } from '../../lib/experimental/thin-async-readable-byte-stream';
+import { ThinByobByteStreamReader } from '../../lib/experimental/thin-byob-byte-stream-reader';
 
-test('Construct a ThinAsyncReadableByteStream', t => {
+test('Construct a ThinByobByteStreamReader', t => {
   class Source {
     constructor(size) {
       this._bytesRemaining = size;
@@ -35,7 +35,7 @@ test('Construct a ThinAsyncReadableByteStream', t => {
 
   const buffer = new Uint8Array(16);
 
-  const rs = new ThinAsyncReadableByteStream(new Source(1024));
+  const rs = new ThinByobByteStreamReader(new Source(1024));
   function pump() {
     fillArrayBufferView(buffer, 0);
     rs.read(buffer).then(result => {
@@ -82,7 +82,7 @@ test('read() on a closed stream', t => {
     }
   }
 
-  const rs = new ThinAsyncReadableByteStream(new Source());
+  const rs = new ThinByobByteStreamReader(new Source());
 
   rs.read(new Uint8Array(16)).then(result => {
     t.equal(result.done, true);
@@ -116,7 +116,7 @@ test('Close a stream with pending read()s', t => {
     }
   }
 
-  const rs = new ThinAsyncReadableByteStream(new Source());
+  const rs = new ThinByobByteStreamReader(new Source());
 
   let firstReadFulfilled = false;
   rs.read(new Uint8Array(16)).then(result => {
@@ -154,7 +154,7 @@ test('read() on a errored stream', t => {
     }
   }
 
-  const rs = new ThinAsyncReadableByteStream(new Source());
+  const rs = new ThinByobByteStreamReader(new Source());
 
   rs.read(new Uint8Array(16)).catch(e => {
     t.equal(e.value, testError);
@@ -190,7 +190,7 @@ test('Error a stream with pending read()s', t => {
 
   const testError = new TypeError('test');
 
-  const rs = new ThinAsyncReadableByteStream(new Source());
+  const rs = new ThinByobByteStreamReader(new Source());
 
   let firstReadRejected = false;
   rs.read(new Uint8Array(16)).catch(e => {

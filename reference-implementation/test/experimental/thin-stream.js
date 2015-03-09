@@ -1,6 +1,5 @@
 const test = require('tape-catch');
 
-import { ThinReadableStream } from '../../lib/experimental/thin-readable-stream';
 import { selectStreams, pipeStreams } from '../../lib/experimental/thin-stream-base';
 import { createStreamQueue } from '../../lib/experimental/stream-queue';
 import { FakeFile } from '../../lib/experimental/fake-file-backed-byte-source';
