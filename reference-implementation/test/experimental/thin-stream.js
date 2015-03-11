@@ -323,45 +323,36 @@ test('pipeStreams(): cancel() propagation', t => {
 
 test('Reading from a file backed byte source using manual pull readable stream', t => {
   const file = new FakeFile(1024);
-  const rs = file.createManualPullStream();
+  const rs = file.createByobReader();
 
   let view = new Uint8Array(10);
 
   let count = 0;
   function pump() {
-    for (;;) {
-      if (rs.state === 'errored') {
-
-      } else if (rs.state === 'closed') {
+    rs.read(view).then(({value, done}) => {
+      if (done) {
         t.equal(count, 1024);
         t.end();
         return;
-      } else if (rs.state === 'readable') {
-        const readView = rs.read();
-        count += readView.byteLength;
-        view = new Uint8Array(readView.buffer);
-      } else if (rs.state === 'waiting') {
-        if (view !== undefined && rs.pullable) {
-          rs.pull(view);
-          view = undefined;
-          continue;
-        }
-
-        const promises = [rs.ready, rs.errored];
-        if (!rs.pullable) {
-          promises.push(rs.pullReady);
-        }
-        Promise.race(promises).then(pump);
-        return;
       }
-    }
+
+      count += value.byteLength;
+      view = new Uint8Array(value.buffer);
+      pump();
+    }, ({reason, view}) => {
+      t.fail(reason);
+      t.end();
+    }).catch(e => {
+      t.fail(e);
+      t.end();
+    });
   }
   pump();
 });
 
 test('Reading from a file backed byte source using auto pull readable stream', t => {
   const file = new FakeFile(1024);
-  const rs = file.createStream(new AdjustableArrayBufferStrategy());
+  const rs = file.createReader(new AdjustableArrayBufferStrategy());
   rs.window = 64;
 
   let count = 0;

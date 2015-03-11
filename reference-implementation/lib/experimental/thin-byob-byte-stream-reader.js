@@ -2,112 +2,102 @@ export class ThinByobByteStreamReader {
   constructor(source) {
     this._source = source;
 
-    this._pendingReadRequests = [];
-    this._cancelled = false;
+    this._pendingReads = [];
+    this._pendingSourceReads = [];
+
+    this._closed = false;
 
     this._errored = false;
     this._errorReason = undefined;
-    this._closed = false;
+
+    this._fatalErrored = false;
 
     this._closedPromise = new Promise((resolve, reject) => {
       this._resolveClosedPromise = resolve;
       this._rejectClosedPromise = reject;
     });
 
-    const delegate = {
-      fulfill: this._fulfill.bind(this),
-      close: this._close.bind(this),
-      error: this._error.bind(this)
-    };
-
-    this._source.start(delegate);
+    if (this._source.start !== undefined) {
+      this._source.start(this._close.bind(this), this._error.bind(this), this._fatalError.bind(this));
+    }
   }
 
   get closed() {
     return this._closedPromise;
   }
 
-  read(container) {
-    // TODO: Detach container
-
-    if (this._cancelled) {
-      return Promise.reject({value: new TypeError('already cancelled'), container});
+  _processPendingReads() {
+    while (this._pendingReads.length > 0) {
+      const entry = this._pendingReads.shift();
+      if (this._fatalErrored) {
+        entry.reject({reason: this._errorReason, view: undefined});
+      } else if (this._errored) {
+        entry.reject({reason: this._errorReason, view: entry.view.subarray(0, 0)});
+      } else if (this._closed) {
+        entry.resolve({view: entry.view, done: true});
+      } else if (this._source === undefined) {
+        entry.reject({reason: new TypeError('already released'), view: entry.view.subarray(0, 0)});
+      } else {
+        // Not reached
+      }
     }
-
-    if (this._errored) {
-      return Promise.reject({value: this._errorReason, container});
-    }
-    if (this._closed) {
-      return Promise.resolve({done: true, container});
-    }
-
-    return new Promise((resolve, reject) => {
-      this._pendingReadRequests.push({resolve, reject, container});
-      this._source.read(container);
-    });
   }
 
-  cancel(reason) {
-    if (this._cancelled) {
-      return Promise.reject(new TypeError('already cancelled'));
+  _handleFatalError(reason) {
+    this._fatalErrored = true;
+    this._errorReason = reason;
+
+    while (this._pendingSourceReads.length > 0) {
+      const entry = this._pendingSourceReads.shift();
+      entry.reject({reason, view: undefined});
     }
 
-    if (this._errored) {
-      return Promise.reject(this._errorReason);
-    }
-    if (this._closed) {
-      return Promise.reject(new TypeError('already closed'));
-    }
-
-    this._cancelled = true;
-
-    while (this._pendingReadRequests.length !== 0) {
-      const request = this._pendingReadRequests.shift();
-      request.reject({value: new TypeError('cancelled'), container: request.container});
-    }
-
-    this._resolveClosedPromise();
-    this._resolveClosedPromise = undefined;
-    this._rejectClosedPromise = undefined;
-
-    return Promise.resolve(this._source.cancel(reason));
+    this._processPendingReads();
   }
 
-  release() {
-    if (this._pendingReadRequests.length !== 0) {
-      throw new TypeError('there are pending reads');
+  // Tell the stream that the underlying source has done or aborted writing to the oldest pending view.
+  _done(bytesWritten) {
+    if (this._fatalErrored) {
+      throw new TypeError('already fatal-errored');
     }
 
-    this._source = undefined;
-  }
-
-  _fulfill(value) {
-    // TODO: Detach value
-
-    if (this._source === undefined) {
-      throw new TypeError('already released');
+    if (this._pendingSourceReads.length === 0) {
+      throw new TypeError('no pending read');
     }
+    const entry = this._pendingSourceReads.shift();
+
+    // TODO: Detach entry.view
 
     if (this._errored) {
-      throw new TypeError('already errored');
+      entry.reject({reason: this._errorReason, view: entry.view.subarray(0, 0)});
+      if (this._pendingSourceReads.length === 0) {
+        this._processPendingReads();
+      }
+      return;
     }
     if (this._closed) {
-      throw new TypeError('already closed');
+      entry.resolve({value: entry.view, done: true});
+      if (this._pendingSourceReads.length === 0) {
+        this._processPendingReads();
+      }
+      return;
     }
 
-    if (this._pendingReadRequests.length === 0) {
-      throw new TypeError('no pending read request');
+    if (bytesWritten === undefined) {
+      throw new TypeError('bytesWritten is undefined');
     }
 
-    const request = this._pendingReadRequests.shift();
-    request.resolve({done: false, value});
+    if (entry.view.byteLength < bytesWritten) {
+      throw new RangeError('bytesWritten is bigger than the given view');
+    }
+
+    entry.resolve({value: entry.view.subarray(0, bytesWritten), done: false});
   }
 
   _close() {
-    if (this._source === undefined) {
-      throw new TypeError('already released');
+    if (this._fatalErrored) {
+      throw new TypeError('already fatal-errored');
     }
-
     if (this._errored) {
       throw new TypeError('already errored');
     }
@@ -117,21 +107,24 @@ export class ThinByobByteStreamReader {
 
     this._closed = true;
 
-    while (this._pendingReadRequests.length !== 0) {
-      const request = this._pendingReadRequests.shift();
-      request.resolve({done: true, container: request.container});
-    }
-
     this._resolveClosedPromise();
     this._resolveClosedPromise = undefined;
     this._rejectClosedPromise = undefined;
   }
 
-  _error(reason) {
-    if (this._source === undefined) {
-      throw new TypeError('already released');
-    }
+  _errorInternal(reason) {
+    this._errored = true;
+    this._errorReason = reason;
 
+    this._rejectClosedPromise(reason);
+    this._resolveClosedPromise = undefined;
+    this._rejectClosedPromise = undefined;
+  }
+
+  _error(reason) {
+    if (this._fatalErrored) {
+      throw new TypeError('already fatal-errored');
+    }
     if (this._errored) {
       throw new TypeError('already errored');
     }
@@ -139,16 +132,86 @@ export class ThinByobByteStreamReader {
       throw new TypeError('already closed');
     }
 
-    this._errored = true;
-    this._errorReason = reason;
+    this._errorInternal(reason);
+  }
 
-    while (this._pendingReadRequests.length !== 0) {
-      const request = this._pendingReadRequests.shift();
-      request.reject({value: reason, container: request.container});
+  _fatalError(reason) {
+    if (this._fatalErrored) {
+      throw new TypeError('already fatal-errored');
     }
 
-    this._rejectClosedPromise(reason);
+    this._handleFatalError(reason);
+  }
+
+  read(view) {
+    if (this._fatalErrored) {
+      return Promise.reject({reason: this._errorReason, view: undefined});
+    }
+
+    return new Promise((resolve, reject) => {
+      if (this._errored || this._closed || this._source === undefined) {
+        if (this._pendingSourceReads.length > 0) {
+          this._pendingReads.push({view, resolve, reject});
+        } else {
+          if (this._errored) {
+            reject({reason: this._errorReason, view: view.subarray(0, 0)});
+          } else if (this._closed) {
+            resolve({value: view, done: true});
+          } else {
+            reject({reason: new TypeError('already released'), view: view.subarray(0, 0)});
+          }
+        }
+        return;
+      }
+
+      // TODO: Detach view
+
+      this._pendingSourceReads.push({view, resolve, reject});
+
+      try {
+        this._source.read(
+            view,
+            this._done.bind(this),
+            this._close.bind(this),
+            this._error.bind(this),
+            this._fatalError.bind(this));
+      } catch (e) {
+        if (!(this._fatalErrored || this._errored || this._closed)) {
+          this._errorInternal(e);
+        }
+      }
+    });
+  }
+
+  cancel(reason) {
+    if (this._source === undefined) {
+      return Promise.reject(new TypeError('already released'));
+    }
+
+    if (this._fatalErrored || this._errored) {
+      return Promise.reject(this._errorReason);
+    }
+
+    if (this._closed) {
+      return Promise.reject(new TypeError('already closed'));
+    }
+
+    this._closed = true;
+
+    this._resolveClosedPromise();
     this._resolveClosedPromise = undefined;
     this._rejectClosedPromise = undefined;
+
+    return new Promise((resolve, reject) => {
+      resolve(this._source.cancel(reason));
+    }).then(r => undefined);
+  }
+
+  releaseLock() {
+    if (this._source === undefined) {
+      throw new TypeError('already released');
+    }
+
+    this._source = undefined;
   }
 }

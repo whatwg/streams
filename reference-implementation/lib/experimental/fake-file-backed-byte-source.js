@@ -1,5 +1,5 @@
 import { ThinStreamReader } from './thin-stream-reader';
-import { ThinByteStreamReader } from './thin-byte-stream-reader';
+import { ThinByobByteStreamReader } from './thin-byob-byte-stream-reader';
 
 import { fillArrayBufferView } from './thin-stream-utils';
 
@@ -125,62 +125,76 @@ class FileBackedUnderlyingSource {
   }
 }
 
-class FileBackedManualPullUnderlyingSource {
+class FileBackedByobUnderlyingSource {
   constructor(readFileInto) {
     this._readFileInto = readFileInto;
-
-    this._currentResult = undefined;
-
-    this._draining = false;
 
     this._cancelled = false;
 
     this._fileReadPromise = undefined;
+
+    this._pendingRequests = [];
   }
 
-  _handleFileReadResult(result) {
+  _clearPendingRequests() {
+    while (this._pendingRequests.length > 0) {
+      const entry = this._pendingRequests.shift();
+      entry.done();
+    }
+  }
+
+  _callReadFileInto(view, done) {
+    this._fileReadPromise = this._readFileInto(view)
+        .then(this._handleFileReadFulfillment.bind(this, done))
+        .catch(this._handleFileReadRejection.bind(this, done));
+  }
+
+  _handleFileReadFulfillment(done, result) {
+    this._fileReadPromise = undefined;
+
     if (this._cancelled) {
+      this._clearPendingRequests();
       return;
     }
 
-    this._fileReadPromise = undefined;
-    this._delegate.markPullable();
-
-    this._currentResult = result.writtenRegion;
-    this._delegate.markReadable();
+    done(result.writtenRegion.byteLength);
 
     if (result.closed) {
-      this._draining = true;
-    }
-  }
-
-  start(delegate) {
-    this._delegate = delegate;
-
-    this._delegate.markPullable();
-  }
-
-  pull(view) {
-    this._fileReadPromise = this._readFileInto(view)
-        .then(this._handleFileReadResult.bind(this))
-        .catch(this._delegate.markErrored.bind(this._delegate));
-
-    this._delegate.markNotPullable();
-  }
-
-  read() {
-    if (this._draining) {
-      this._delegate.markClosed();
+      this._close();
+      this._clearPendingRequests();
     } else {
-      this._delegate.markWaiting();
+      if (this._pendingRequests.length > 0) {
+        const entry = this._pendingRequests.shift();
+        this._callReadFileInto(entry.view, entry.done);
+      }
     }
-
-    const result = this._currentResult;
-    this._currentResult = undefined;
-    return result;
   }
 
-  cancel() {
+  _handleFileReadRejection(done, reason) {
+    if (this._cancelled) {
+      this._clearPendingRequests();
+      return;
+    }
+
+    this._error(reason);
+    this._clearPendingRequests();
+  }
+
+  start(close, error) {
+    this._close = close;
+    this._error = error;
+  }
+
+  read(view, done) {
+    if (this._fileReadPromise !== undefined) {
+      this._pendingRequests.push({view, done});
+      return;
+    }
+
+    this._callReadFileInto(view, done);
+  }
+
+  cancel(reason) {
     this._cancelled = true;
   }
 }
@@ -213,22 +227,13 @@ export class FakeFile {
     });
   }
 
-  createStream(strategy) {
+  createReader(strategy) {
     const source = new FileBackedUnderlyingSource(this._readFileInto.bind(this), strategy);
     return new ThinStreamReader(source);
   }
 
-  // Returns a manual pull readable stream.
-  //
-  // Example semantics:
-  //
-  // POSIX socket:
-  // - The stream becomes pullable when epoll(7) returns, and stays to be pullable until read(2) returns EAGAIN.
-  //
-  // Blocking or async I/O interfaces which takes a buffer on reading function call:
-  // - The stream is always pullable.
-  createManualPullStream() {
-    const source = new FileBackedManualPullUnderlyingSource(this._readFileInto.bind(this));
-    return new ThinByteStreamReader(source);
+  createByobReader() {
+    const source = new FileBackedByobUnderlyingSource(this._readFileInto.bind(this));
+    return new ThinByobByteStreamReader(source);
   }
 }

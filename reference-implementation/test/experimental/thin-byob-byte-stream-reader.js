@@ -9,20 +9,18 @@ test('Construct a ThinByobByteStreamReader', t => {
       this._bytesRemaining = size;
     }
 
-    start(delegate) {
-      this._delegate = delegate;
-    }
-
-    read(container) {
+    read(view, done, close) {
       if (this._bytesRemaining === 0) {
-        this._delegate.close();
+        close();
+        // Call done() only to return the buffer.
+        done();
         return;
       }
 
-      const bytesToFill = Math.min(this._bytesRemaining, container.byteLength);
-      fillArrayBufferView(container, 1, bytesToFill);
+      const bytesToFill = Math.min(this._bytesRemaining, view.byteLength);
+      fillArrayBufferView(view, 1, bytesToFill);
       this._bytesRemaining -= bytesToFill;
-      this._delegate.fulfill(container.subarray(0, bytesToFill));
+      done(bytesToFill);
     }
 
     cancel(reason) {
@@ -38,24 +36,24 @@ test('Construct a ThinByobByteStreamReader', t => {
   const rs = new ThinByobByteStreamReader(new Source(1024));
   function pump() {
     fillArrayBufferView(buffer, 0);
-    rs.read(buffer).then(result => {
-      if (result.done) {
+    rs.read(buffer).then(({value, done}) => {
+      if (done) {
         t.equal(bytesRead, 1024);
         t.end();
+        return;
       } else {
-        const view = result.value;
-        for (let i = 0; i < view.byteLength; ++i) {
-          if (view[i] !== 1) {
-            t.fail('view[' + i + '] is ' + view[i]);
+        for (let i = 0; i < value.byteLength; ++i) {
+          if (value[i] !== 1) {
+            t.fail('value[' + i + '] is ' + value[i]);
             t.end();
             return;
           }
         }
-        bytesRead += view.byteLength;
+        bytesRead += value.byteLength;
         pump();
       }
-    }, reason => {
-      t.fail(reason);
+    }, e => {
+      t.fail(e);
       t.end();
     }).catch(e => {
       t.fail(e);
@@ -67,8 +65,8 @@ test('Construct a ThinByobByteStreamReader', t => {
 
 test('read() on a closed stream', t => {
   class Source {
-    start(delegate) {
-      delegate.close();
+    start(close) {
+      close();
     }
 
     read() {
@@ -84,13 +82,13 @@ test('read() on a closed stream', t => {
 
   const rs = new ThinByobByteStreamReader(new Source());
 
-  rs.read(new Uint8Array(16)).then(result => {
-    t.equal(result.done, true);
-    t.equal(result.container.byteLength, 16);
+  rs.read(new Uint8Array(16)).then(({value, done}) => {
+    t.equal(done, true);
+    t.equal(value.byteLength, 16);
 
-    rs.read(new Uint8Array(16)).then(result => {
-      t.equal(result.done, true);
-      t.equal(result.container.byteLength, 16);
+    rs.read(new Uint8Array(16)).then(({value, done}) => {
+      t.equal(done, true);
+      t.equal(value.byteLength, 16);
       t.end();
     });
   });
@@ -99,15 +97,18 @@ test('read() on a closed stream', t => {
 test('Close a stream with pending read()s', t => {
   let readCount = 0;
 
-  let delegate = undefined;
+  let close = undefined;
+  let done = undefined;
   class Source {
-    start(delegate_) {
-      delegate = delegate_;
+    start(close_) {
+      close = close_;
     }
 
-    read(container) {
-      t.equal(container.byteLength, 16);
+    read(view, done_) {
+      t.equal(view.byteLength, 16);
       ++readCount;
+
+      done = done_;
     }
 
     cancel(reason) {
@@ -119,28 +120,37 @@ test('Close a stream with pending read()s', t => {
   const rs = new ThinByobByteStreamReader(new Source());
 
   let firstReadFulfilled = false;
-  rs.read(new Uint8Array(16)).then(result => {
-    t.equal(result.done, true);
-    t.equal(result.container.byteLength, 16);
+  rs.read(new Uint8Array(16)).then(({value, done}) => {
+    t.equal(done, true);
+    t.equal(value.byteLength, 16);
     firstReadFulfilled = true;
+  }).catch(e => {
+    t.fail(e);
+    t.end();
   });
-  rs.read(new Uint8Array(16)).then(result => {
-    t.equal(result.done, true);
-    t.equal(result.container.byteLength, 16);
+  rs.read(new Uint8Array(16)).then(({value, done}) => {
+    t.equal(done, true);
+    t.equal(value.byteLength, 16);
     t.equal(firstReadFulfilled, true);
     t.equal(readCount, 2);
     t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
   });
 
-  delegate.close();
+  close();
+  // Return the buffers.
+  done();
+  done();
 });
 
 test('read() on a errored stream', t => {
   const testError = new TypeError('test');
 
   class Source {
-    start(delegate) {
-      delegate.error(testError);
+    start(close, error) {
+      error(testError);
     }
 
     read() {
@@ -156,30 +166,41 @@ test('read() on a errored stream', t => {
 
   const rs = new ThinByobByteStreamReader(new Source());
 
-  rs.read(new Uint8Array(16)).catch(e => {
-    t.equal(e.value, testError);
-    t.equal(e.container.byteLength, 16);
+  rs.read(new Uint8Array(16)).catch(({reason, view}) => {
+    t.equal(reason, testError);
+    t.equal(view.byteLength, 0);
+    t.equal(view.buffer.byteLength, 16);
 
-    rs.read(new Uint8Array(16)).catch(e => {
-      t.equal(e.value, testError);
-      t.equal(e.container.byteLength, 16);
+    rs.read(new Uint8Array(16)).catch(({reason, view}) => {
+      t.equal(reason, testError);
+      t.equal(view.byteLength, 0);
+      t.equal(view.buffer.byteLength, 16);
+      t.end();
+    }).catch(e => {
+      t.fail(e);
       t.end();
     });
+  }).catch(e => {
+    t.fail(e);
+    t.end();
   });
 });
 
 test('Error a stream with pending read()s', t => {
   let readCount = 0;
 
-  let delegate = undefined;
+  let error = undefined;
+  let done = undefined;
   class Source {
-    start(delegate_) {
-      delegate = delegate_;
+    start(close, error_) {
+      error = error_;
     }
 
-    read(container) {
-      t.equal(container.byteLength, 16);
+    read(view, done_) {
+      t.equal(view.byteLength, 16);
       ++readCount;
+
+      done = done_;
     }
 
     cancel(reason) {
@@ -193,18 +214,23 @@ test('Error a stream with pending read()s', t => {
   const rs = new ThinByobByteStreamReader(new Source());
 
   let firstReadRejected = false;
-  rs.read(new Uint8Array(16)).catch(e => {
-    t.equal(e.value, testError);
-    t.equal(e.container.byteLength, 16);
+  rs.read(new Uint8Array(16)).catch(({reason, view}) => {
+    t.equal(reason, testError);
+    t.equal(view.byteLength, 0);
+    t.equal(view.buffer.byteLength, 16);
     firstReadRejected = true;
   });
-  rs.read(new Uint8Array(16)).catch(e => {
-    t.equal(e.value, testError);
-    t.equal(e.container.byteLength, 16);
+  rs.read(new Uint8Array(16)).catch(({reason, view}) => {
+    t.equal(reason, testError);
+    t.equal(view.byteLength, 0);
+    t.equal(view.buffer.byteLength, 16);
     t.equal(firstReadRejected, true);
     t.equal(readCount, 2);
     t.end();
   });
 
-  delegate.error(testError);
+  error(testError);
+  // Return the buffers.
+  done();
+  done();
 });
