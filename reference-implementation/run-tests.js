@@ -16,6 +16,7 @@ global.CountQueuingStrategy = CountQueuingStrategy;
 global.TransformStream = TransformStream;
 
 
-const tests = glob.sync(path.resolve(__dirname, 'test/*.js'));
-const experimentalTests = glob.sync(path.resolve(__dirname, 'test/experimental/*.js'));
-tests.concat(experimentalTests).forEach(require);
+//const tests = glob.sync(path.resolve(__dirname, 'test/*.js'));
+//const experimentalTests = glob.sync(path.resolve(__dirname, 'test/experimental/*.js'));
+//tests.concat(experimentalTests).forEach(require);
+glob.sync(path.resolve(__dirname, 'test/experimental/thin-*.js')).forEach(require);
