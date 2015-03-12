@@ -1,7 +1,9 @@
 import templatedRSEmpty from './templated/readable-stream-empty';
 import templatedRSClosed from './templated/readable-stream-closed';
 import templatedRSErrored from './templated/readable-stream-errored';
+import templatedRSErroredAsyncOnly from './templated/readable-stream-errored-async-only';
 import templatedRSErroredSyncOnly from './templated/readable-stream-errored-sync-only';
+import templatedRSTwoChunksClosed from './templated/readable-stream-two-chunks-closed';
 import templatedRSEmptyReader from './templated/readable-stream-empty-reader';
 import templatedRSClosedReader from './templated/readable-stream-closed-reader';
 import templatedRSErroredReader from './templated/readable-stream-errored-reader';
@@ -55,13 +57,6 @@ templatedRSClosedReader('ReadableStream (closed via cancel) reader',
 
 const theError = new Error('boo!');
 
-templatedRSErroredSyncOnly('ReadableStream (errored via call in start)',
-  () => new ReadableStream({
-    start(enqueue, close, error) { error(theError); }
-  }),
-  theError
-);
-
 templatedRSErrored('ReadableStream (errored via call in start)',
   () => new ReadableStream({
     start(enqueue, close, error) { error(theError); }
@@ -69,7 +64,21 @@ templatedRSErrored('ReadableStream (errored via call in start)',
   theError
 );
 
+templatedRSErroredSyncOnly('ReadableStream (errored via call in start)',
+  () => new ReadableStream({
+    start(enqueue, close, error) { error(theError); }
+  }),
+  theError
+);
+
 templatedRSErrored('ReadableStream (errored via returning a rejected promise in start)',
+  () => new ReadableStream({
+    start(enqueue, close, error) { return Promise.reject(theError); }
+  }),
+  theError
+);
+
+templatedRSErroredAsyncOnly('ReadableStream (errored via returning a rejected promise in start) reader',
   () => new ReadableStream({
     start(enqueue, close, error) { return Promise.reject(theError); }
   }),
@@ -92,6 +101,45 @@ templatedRSTwoChunksOpenReader('ReadableStream (two chunks enqueued, still open)
       enqueue(chunks[1]);
     }
   })),
+  chunks
+);
+
+templatedRSTwoChunksClosed('ReadableStream (two chunks enqueued, then closed)',
+  () => new ReadableStream({
+    start(enqueue, close) {
+      enqueue(chunks[0]);
+      enqueue(chunks[1]);
+      close();
+    }
+  }),
+  chunks
+);
+
+templatedRSTwoChunksClosed('ReadableStream (two chunks enqueued async, then closed)',
+  () => new ReadableStream({
+    start(enqueue, close) {
+      setTimeout(() => enqueue(chunks[0]), 10);
+      setTimeout(() => enqueue(chunks[1]), 20);
+      setTimeout(() => close(), 30);
+    }
+  }),
+  chunks
+);
+
+templatedRSTwoChunksClosed('ReadableStream (two chunks enqueued via pull, then closed)',
+  () => {
+    let pullCall = 0;
+
+    return new ReadableStream({
+      pull(enqueue, close) {
+        if (pullCall >= chunks.length) {
+          close();
+        } else {
+          enqueue(chunks[pullCall++]);
+        }
+      }
+    });
+  },
   chunks
 );
 

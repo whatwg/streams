@@ -1,107 +1,6 @@
 const test = require('tape-catch');
 
-import sequentialReadableStream from './utils/sequential-rs';
-
-test('Piping with no options and no errors', t => {
-  const rs = sequentialReadableStream(5, { async: true });
-  const ws = new WritableStream({
-    abort() {
-      t.fail('unexpected abort call');
-    }
-  });
-
-  rs.pipeTo(ws).then(() => {
-    t.equal(ws.state, 'closed', 'destination should be closed');
-    t.end();
-  });
-});
-
-test('Piping with { preventClose: false } and no errors', t => {
-  const rs = sequentialReadableStream(5, { async: true });
-  const ws = new WritableStream({
-    abort() {
-      t.fail('unexpected abort call');
-    }
-  });
-
-  rs.pipeTo(ws, { preventClose: false }).then(() => {
-    t.equal(ws.state, 'closed', 'destination should be closed');
-    t.end();
-  });
-});
-
-test('Piping with { preventClose: true } and no errors', t => {
-  const rs = sequentialReadableStream(5, { async: true });
-  const ws = new WritableStream({
-    close() {
-      t.fail('unexpected close call');
-      t.end();
-    },
-    abort() {
-      t.fail('unexpected abort call');
-    }
-  });
-
-  rs.pipeTo(ws, { preventClose: true }).then(() => {
-    t.equal(ws.state, 'writable', 'destination should be writable');
-    t.end();
-  });
-});
-
-test('Piping with no options and a source error', t => {
-  const theError = new Error('source error');
-  const rs = new ReadableStream({
-    start() {
-      return Promise.reject(theError);
-    }
-  });
-  const ws = new WritableStream({
-    abort(r) {
-      t.equal(r, theError, 'reason passed to abort equals the source error');
-      t.end();
-    }
-  });
-
-  rs.pipeTo(ws);
-});
-
-test('Piping with { preventAbort: false } and a source error', t => {
-  const theError = new Error('source error');
-  const rs = new ReadableStream({
-    start() {
-      return Promise.reject(theError);
-    }
-  });
-  const ws = new WritableStream({
-    abort(r) {
-      t.equal(r, theError, 'reason passed to abort equals the source error');
-      t.end();
-    }
-  });
-
-  rs.pipeTo(ws, { preventAbort: false });
-});
-
-test('Piping with { preventAbort: true } and a source error', t => {
-  const theError = new Error('source error');
-  const rs = new ReadableStream({
-    start() {
-      return Promise.reject(theError);
-    }
-  });
-  const ws = new WritableStream({
-    abort(r) {
-      t.fail('unexpected call to abort');
-      t.end();
-    }
-  });
-
-  rs.pipeTo(ws, { preventAbort: true }).catch(e => {
-    t.equal(ws.state, 'writable', 'destination should remain writable');
-    t.equal(e, theError, 'rejection reason of pipeToPromise is the source error');
-    t.end();
-  });
-});
+// Many other pipeTo-with-options tests have been templated.
 
 test('Piping with no options and a destination error', t => {
   t.plan(2);
@@ -170,7 +69,6 @@ test('Piping with { preventCancel: true } and a destination error', t => {
     },
     cancel(r) {
       t.fail('unexpected call to cancel');
-      t.end();
     }
   });
 

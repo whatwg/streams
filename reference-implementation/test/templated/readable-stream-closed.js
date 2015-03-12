@@ -36,4 +36,37 @@ export default (label, factory) => {
 
     t.throws(() => rs.getReader(), /TypeError/, 'getReader() should fail');
   });
+
+  test('piping to a WritableStream in the writable state should fail', t => {
+    t.plan(3);
+    const rs = factory();
+
+    const startPromise = Promise.resolve();
+    const ws = new WritableStream({
+      start() {
+        return startPromise;
+      },
+      write() {
+        t.fail('Unexpected write call');
+      },
+      close() {
+        t.fail('Unexpected close call');
+      },
+      abort() {
+        t.fail('Unexpected abort call');
+      }
+    });
+
+    startPromise.then(() => {
+      t.equal(ws.state, 'writable', 'writable stream should start in writable state');
+
+      rs.pipeTo(ws).then(
+        () => t.fail('pipeTo promise should not fulfill'),
+        e => {
+          t.equal(e.constructor, TypeError, 'pipeTo promise should be rejected with a TypeError');
+          t.equal(ws.state, 'writable', 'writable stream should still be writable');
+        }
+      );
+    });
+  });
 };
