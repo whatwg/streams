@@ -189,23 +189,18 @@ associated reader will automatically release its lock.
 </div>
 
 <div class="example">
-  Although readable streams will usually be used by piping them to a writable stream, you can also "pump" them
-  directly, alternating between using the <code>read()</code> method and the <code>ready</code> getter according to the
-  current value of the <code>state</code> property. For example, this function writes the contents of a readable stream
-  to the console as fast as they are available.
+  Although readable streams will usually be used by piping them to a writable stream, you can also read them directly,
+  using their <code>read()</code> method to get successive chunks. For example, this function writes the contents of a
+  readable stream to the console as fast as they are available.
 
   <pre><code class="lang-javascript">
     function logChunks(readableStream) {
-      while (readableStream.state === "readable") {
-        console.log(readableStream.read());
+      return readable.read().then(chunk => {
+        if (chunk !=== ReadableStream.EOS) {
+          console.log(chunk);
+          return logChunks(readableStream);
+        }
       }
-
-      if (readableStream.state === "waiting") {
-        console.log("--- waiting for more data to be available...");
-        readableStream.ready.then(() => logChunks(readableStream));
-      }
-
-      return readableStream.closed;
     }
 
     logChunks(readableStream)
@@ -228,7 +223,6 @@ would look like
     constructor(underlyingSource = {})
 
     get closed()
-    get ready()
     get state()
 
     cancel(reason)
@@ -477,18 +471,17 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
       const reader = readableStream.getReader();
       const chunks = [];
 
-      pump();
-
-      return reader.closed.then(() => chunks);
+      return pump();
 
       function pump() {
-        while (reader.state === "readable") {
-          chunks.push(reader.read());
-        }
+        return readable.read().then(chunk => {
+          if (chunk === ReadableStream.EOS) {
+            return chunks;
+          }
 
-        if (reader.state === "waiting") {
-          reader.ready.then(pump);
-        }
+          chunks.push(chunk);
+          return pump();
+        });
       }
     }
   </code></pre>
@@ -2206,8 +2199,8 @@ APIs:
   streamyWS.writable.write("Hello");
   streamyWS.writable.write("web socket!");
 
-  streamyWS.readable.ready.then(() => {
-    console.log("The web socket says: ", streamyWS.readable.read());
+  streamyWS.readable.read().then(chunk => {
+    console.log("The web socket says: ", chunk);
   });
 </code></pre>
 

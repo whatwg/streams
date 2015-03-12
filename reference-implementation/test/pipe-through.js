@@ -13,7 +13,7 @@ test('Piping through a duck-typed pass-through transform stream works', t => {
 });
 
 test('Piping through an identity transform stream will close the destination when the source closes', t => {
-  t.plan(2);
+  t.plan(1);
 
   const rs = new ReadableStream({
     start(enqueue, close) {
@@ -34,9 +34,9 @@ test('Piping through an identity transform stream will close the destination whe
   const ws = new WritableStream();
 
   rs.pipeThrough(ts).pipeTo(ws).then(() => {
-    t.equal(rs.state, 'closed', 'the readable stream was closed');
     t.equal(ws.state, 'closed', 'the writable stream was closed');
-  });
+  })
+  .catch(e => t.error(e));
 });
 
 // FIXME: expected results here will probably change as we fix https://github.com/whatwg/streams/issues/190
