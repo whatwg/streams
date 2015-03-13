@@ -173,14 +173,14 @@ A queuing strategy is generally associated with a specific type of <a>underlying
 A <dfn>readable stream reader</dfn> or simply reader is an object that allows direct reading of <a>chunks</a> from
 a <a>readable stream</a>. Without a reader, a <a>consumer</a> can only perform high-level operations on the readable
 stream: waiting for the stream to become closed or errored, <a lt="cancel a readable stream">canceling</a> the stream,
-or <a>piping</a> the readable stream to a writable stream.
+or <a>piping</a> the readable stream to a writable stream. Many of those high-level operations actually use a reader
+themselves.
 
 A given readable stream only has at most one reader at a time. We say in this case the stream is
 <dfn lt="locked to a reader">locked to the reader</dfn>, and that the reader is <dfn lt="active reader">active</dfn>.
 
 A reader also has the capability to <dfn lt="release a read lock">release its read lock</dfn>, which makes it no
-longer active. At this point another reader can be acquired at will. If the stream becomes closed or errored as a
-result of the behavior of its <a>underlying source</a>, its reader (if one exists) will automatically release its lock.
+longer active. At this point another reader can be acquired at will.
 
 <h2 id="rs">Readable Streams</h2>
 
@@ -399,6 +399,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 
 <ol>
   <li> If IsReadableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
+  <li> If IsReadableStreamLocked(<b>this</b>) is <b>true</b>, return a promise rejected with a <b>TypeError</b> exception.
   <li> Return CancelReadableStream(<b>this</b>, <var>reason</var>).
 </ol>
 
@@ -407,13 +408,12 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 <div class="note">
   The <code>getReader</code> method creates an <a>readable stream reader</a> and
   <a lt="locked to a reader">locks</a> the stream to the the new reader. While the stream is locked, no other reader
-  can be acquired until this one is <a lt="release a read lock">released</a>.
+  can be acquired until this one is <a lt="release a read lock">released</a>. The returned reader provides the ability
+  to directly read individual <a>chunks</a> from the stream via the reader's <code>read</code> method.
 
-  The returned reader provides the ability to directly read individual <a>chunks</a> from the stream via the reader's
-  <code>read</code> method. This design ensures that if you control the reader, nobody else can interleave reads with
-  yours, interfering with your code or observing its side-effects.
-
-  Note that when a stream is closed or errors, any reader it is locked to is automatically released.
+  This functionality is especially useful for creating abstractions that desire the ability to consume a stream in its
+  entirety. By getting a reader for the stream, you can ensure nobody else can interleave reads with yours or cancel
+  the stream, which would interfere with your abstraction.
 </div>
 
 <ol>
@@ -445,7 +445,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     }
   </code></pre>
 
-  Note how the first thing it does is obtain a reader, and from then on it uses the reader exclusively.
+  Note how the first thing it does is obtain a reader, and from then on it uses the reader exclusively. This ensures
+  that no other consumer can interfere with the stream, either by reading chunks (causing )
 </div>
 
 <h5 id="rs-pipe-through">pipeThrough({ writable, readable }, options)</h5>
@@ -563,13 +564,15 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <ol>
   <li> If IsReadableStream(<var>stream</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code>, throw a <b>TypeError</b> exception.
-  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, throw <var>stream</bar>@\[[storedError]].
   <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>, throw a <b>TypeError</b> exception.
   <li> Set <var>stream</var>@\[[reader]] to <b>this</b>.
   <li> Set <b>this</b>@\[[ownerReadableStream]] to <var>stream</var>.
   <li> Set <b>this</b>@\[[readRequests]] to a new empty List.
   <li> Set <b>this</b>@\[[closedPromise]] to a new promise.
+  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code>, resolve <b>this</b>@\[[closedPromise]] with
+    <b>undefined</b>.
+  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, reject <b>this</b>@\[[closedPromise]] with
+    <var>stream</bar>@\[[storedError]].
 </ol>
 
 <h4 id="reader-prototype">Properties of the <code>ReadableStreamReader</code> Prototype</h4>
@@ -604,7 +607,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <div class="note">
   If the reader is <a lt="active reader">active</a>, the <code>cancel</code> method behaves the same as that for the
-  associated stream. When done, it automatically <a lt="release a read lock">releases the lock</a>.
+  associated stream.
 </div>
 
 <ol>
@@ -674,7 +677,9 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   <li> If IsReadableStreamReader(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
   <li> If <b>this</b>@\[[ownerReadableStream]] is <b>undefined</b>, return <b>undefined</b>.
   <li> If <b>this</b>@\[[readRequests]] is not empty, throw a <b>TypeError</b> exception.
-  <li> Return ReleaseReadableStreamReader(<b>this</b>).
+  <li> Call-with-rethrow CloseReadableStreamReader(<b>this</b>).
+  <li> Set <b>this</b>@\[[ownerReadableStream]]@\[[reader]] to <b>undefined</b>.
+  <li> Set <b>this</b>@\[[ownerReadableStream]] to <b>undefined</b>.
 </ol>
 
 <h3 id="rs-abstract-ops">Readable Stream Abstract Operations</h3>
@@ -739,7 +744,19 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   <li> Resolve <var>stream</var>@\[[closedPromise]] with <b>undefined</b>.
   <li> Set <var>stream</var>@\[[state]] to <code>"closed"</code>.
   <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>, return
-    ReleaseReadableStreamReader(<var>stream</var>).
+    CloseReadableStreamReader(<var>stream</var>).
+  <li> Return <b>undefined</b>.
+</ol>
+
+<h4 id="close-readable-stream-reader">CloseReadableStreamReader ( reader )</h4>
+
+<ol>
+  <li> Repeat for each <var>readRequestPromise</var> that is an element of <var>reader</var>@\[[readRequests]],
+    <ol>
+      <li> Resolve <var>readRequestPromise</var> with CreateIterResultObject(<b>undefined</b>, <b>true</b>).
+    </ol>
+  <li> Set <var>reader</var>@\[[readRequests]] to a new empty List.
+  <li> Resolve <var>reader</var>@\[[closedPromise]] with <b>undefined</b>.
   <li> Return <b>undefined</b>.
 </ol>
 
@@ -870,20 +887,6 @@ a variable <var>stream</var>, that performs the following steps:
   <li> If Type(<var>x</var>) is not Object, return <b>false</b>.
   <li> If <var>x</var> does not have a \[[ownerReadableStream]] internal slot, return <b>false</b>.
   <li> Return <b>true</b>.
-</ol>
-
-<h4 id="release-readable-stream-reader">ReleaseReadableStreamReader ( reader )</h4>
-
-<ol>
-  <li> Assert: <var>reader</var>@\[[ownerReadableStream]] is not <b>undefined</b>.
-  <li> Repeat for each <var>readRequestPromise</var> that is an element of <var>reader</var>@\[[readRequests]],
-    <ol>
-      <li> Resolve <var>readRequestPromise</var> with CreateIterResultObject(<b>undefined</b>, <b>true</b>).
-    </ol>
-  <li> Set <var>reader</var>@\[[readRequests]] to a new empty List.
-  <li> Set <var>reader</var>@\[[ownerReadableStream]]@\[[reader]] to <b>undefined</b>.
-  <li> Set <var>reader</var>@\[[ownerReadableStream]] to <b>undefined</b>.
-  <li> Resolve <var>reader</var>@\[[closedPromise]] with <b>undefined</b>.
 </ol>
 
 <h4 id="should-readable-stream-apply-backpressure">ShouldReadableStreamApplyBackpressure ( stream )</h4>

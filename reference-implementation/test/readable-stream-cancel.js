@@ -29,8 +29,9 @@ test('ReadableStream cancellation: integration test on an infinite stream derive
       }, 50));
     }
   });
+  const reader = rs.getReader();
 
-  readableStreamToArray(rs).then(
+  readableStreamToArray(rs, reader).then(
     chunks => {
       t.equal(cancellationFinished, false, 'it did not wait for the cancellation process to finish before closing');
       t.ok(chunks.length > 0, 'at least one chunk should be read');
@@ -42,7 +43,7 @@ test('ReadableStream cancellation: integration test on an infinite stream derive
   );
 
   setTimeout(() => {
-    rs.cancel().then(() => {
+    reader.cancel().then(() => {
       t.equal(cancellationFinished, true, 'it returns a promise that is fulfilled when the cancellation finishes');
       t.end();
     })
@@ -64,6 +65,30 @@ test('ReadableStream cancellation: cancel(reason) should pass through the given 
   t.equal(recordedReason, passedReason,
     'the error passed to the underlying source\'s cancel method should equal the one passed to the stream\'s cancel');
   t.end();
+});
+
+test('ReadableStream cancellation: cancel() on a locked stream should fail and not call the underlying source cancel',
+     t => {
+  t.plan(3);
+  const rs = new ReadableStream({
+    start(enqueue, close) {
+      enqueue('a');
+      close();
+    },
+    cancel() {
+      t.fail('underlying source cancel() should not have been called');
+    }
+  });
+
+  const reader = rs.getReader();
+
+  rs.cancel().catch(e => t.equal(e.constructor, TypeError, 'cancel() should be rejected with a TypeError'));
+
+  reader.read().then(
+    result => t.deepEqual(result, { value: 'a', done: false }, 'read() should still work after the attempted cancel')
+  );
+
+  rs.closed.then(() => t.pass('closed should fulfill without underlying source cancel ever being called'));
 });
 
 test('ReadableStream cancellation: returning a value from the underlying source\'s cancel should not affect the ' +

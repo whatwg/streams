@@ -1,6 +1,5 @@
-export default function readableStreamToArray(readable) {
+export default function readableStreamToArray(readable, reader = readable.getReader()) {
   const chunks = [];
-  const reader = readable.getReader();
 
   return pump();
 

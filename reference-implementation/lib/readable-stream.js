@@ -42,6 +42,10 @@ export default class ReadableStream {
       return Promise.reject(new TypeError('ReadableStream.prototype.cancel can only be used on a ReadableStream'));
     }
 
+    if (IsReadableStreamLocked(this) === true) {
+      return Promise.reject(new TypeError('Cannot cancel a stream that already has a reader'));
+    }
+
     return CancelReadableStream(this, reason);
   }
 
@@ -107,8 +111,8 @@ export default class ReadableStream {
 
     function cancelSource(reason) {
       if (preventCancel === false) {
-        // cancelling automatically releases the lock (and that doesn't fail, since source is then closed)
-        source.cancel(reason);
+        reader.cancel(reason);
+        reader.releaseLock();
         rejectPipeToPromise(reason);
       } else {
         // If we don't cancel, we need to wait for lastRead to finish before we're allowed to release.
@@ -177,12 +181,6 @@ class ReadableStreamReader {
     if (IsReadableStream(stream) === false) {
       throw new TypeError('ReadableStreamReader can only be constructed with a ReadableStream instance');
     }
-    if (stream._state === 'closed') {
-      throw new TypeError('The stream has already been closed, so a reader cannot be acquired');
-    }
-    if (stream._state === 'errored') {
-      throw stream._storedError;
-    }
     if (IsReadableStreamLocked(stream) === true) {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
@@ -196,6 +194,14 @@ class ReadableStreamReader {
       this._closedPromise_resolve = resolve;
       this._closedPromise_reject = reject;
     });
+
+    if (stream._state === 'closed') {
+      this._closedPromise_resolve(undefined);
+    }
+
+    if (stream._state === 'errored') {
+      this._closedPromise_reject(stream._storedError);
+    }
   }
 
   get closed() {
@@ -277,7 +283,10 @@ class ReadableStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    ReleaseReadableStreamReader(this);
+    CloseReadableStreamReader(this);
+
+    this._ownerReadableStream._reader = undefined;
+    this._ownerReadableStream = undefined;
   }
 }
 
@@ -337,10 +346,19 @@ function CloseReadableStream(stream) {
   stream._state = 'closed';
 
   if (IsReadableStreamLocked(stream) === true) {
-    return ReleaseReadableStreamReader(stream._reader);
+    return CloseReadableStreamReader(stream._reader);
   }
 
   return undefined;
+}
+
+function CloseReadableStreamReader(reader) {
+  for (const { _resolve } of reader._readRequests) {
+    _resolve(CreateIterResultObject(undefined, true));
+  }
+  reader._readRequests = [];
+
+  reader._closedPromise_resolve(undefined);
 }
 
 function CreateReadableStreamCloseFunction(stream) {
@@ -466,19 +484,6 @@ function IsReadableStreamReader(x) {
   }
 
   return true;
-}
-
-function ReleaseReadableStreamReader(reader) {
-  assert(reader._ownerReadableStream !== undefined);
-
-  for (const { _resolve } of reader._readRequests) {
-    _resolve(CreateIterResultObject(undefined, true));
-  }
-  reader._readRequests = [];
-
-  reader._ownerReadableStream._reader = undefined;
-  reader._ownerReadableStream = undefined;
-  reader._closedPromise_resolve(undefined);
 }
 
 function ShouldReadableStreamApplyBackpressure(stream) {

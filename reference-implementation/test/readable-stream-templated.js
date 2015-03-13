@@ -50,7 +50,7 @@ templatedRSClosedReader('ReadableStream (closed via cancel) reader',
   () => {
     const stream = new ReadableStream();
     const result = streamAndDefaultReader(stream);
-    stream.cancel();
+    result.reader.cancel();
     return result;
   }
 );

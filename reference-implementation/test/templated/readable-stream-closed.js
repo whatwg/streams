@@ -30,15 +30,15 @@ export default (label, factory) => {
     t.notEqual(cancelPromise2, closedPromise, 'cancel() promise 2 should be distinct from closed');
   });
 
-  test('getReader() should throw a TypeError', t => {
+  test('getReader() should be OK', t => {
     t.plan(1);
     const rs = factory();
 
-    t.throws(() => rs.getReader(), /TypeError/, 'getReader() should fail');
+    t.doesNotThrow(() => rs.getReader(), 'getReader() should not throw');
   });
 
-  test('piping to a WritableStream in the writable state should fail', t => {
-    t.plan(3);
+  test('piping to a WritableStream in the writable state should close the writable stream', t => {
+    t.plan(4);
     const rs = factory();
 
     const startPromise = Promise.resolve();
@@ -50,7 +50,7 @@ export default (label, factory) => {
         t.fail('Unexpected write call');
       },
       close() {
-        t.fail('Unexpected close call');
+        t.pass('underlying source close should be called');
       },
       abort() {
         t.fail('Unexpected abort call');
@@ -60,13 +60,10 @@ export default (label, factory) => {
     startPromise.then(() => {
       t.equal(ws.state, 'writable', 'writable stream should start in writable state');
 
-      rs.pipeTo(ws).then(
-        () => t.fail('pipeTo promise should not fulfill'),
-        e => {
-          t.equal(e.constructor, TypeError, 'pipeTo promise should be rejected with a TypeError');
-          t.equal(ws.state, 'writable', 'writable stream should still be writable');
-        }
-      );
+      rs.pipeTo(ws).then(() => {
+        t.pass('pipeTo promise should be fulfilled');
+        t.equal(ws.state, 'closed', 'writable stream should become closed');
+      });
     });
   });
 };

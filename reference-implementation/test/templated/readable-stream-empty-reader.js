@@ -110,25 +110,23 @@ export default (label, factory) => {
     stream.closed.then(() => t.fail('stream.closed got after release should not fulfill'));
   });
 
-  test('canceling via the reader should cause the reader to become inactive', t => {
+  test('canceling via the reader should leave the reader active', t => {
     t.plan(3);
     const { reader } = factory();
 
     t.equal(reader.isActive, true, 'the reader should be active before releasing it');
     reader.cancel();
-    t.equal(reader.isActive, false, 'the reader should no longer be active');
+    t.equal(reader.isActive, true, 'the reader should still be active');
     reader.read().then(r => t.deepEqual(r, { value: undefined, done: true },
       'read()ing from the reader should give a done result'))
   });
 
-  test('canceling via the stream should cause the reader to become inactive', t => {
+  test('canceling via the stream should fail', t => {
     t.plan(3);
     const { stream, reader } = factory();
 
     t.equal(reader.isActive, true, 'the reader should be active before releasing it');
-    stream.cancel();
-    t.equal(reader.isActive, false, 'the reader should no longer be active');
-    reader.read().then(r => t.deepEqual(r, { value: undefined, done: true },
-      'read()ing from the reader should give a done result'))
+    stream.cancel().catch(e => t.equal(e.constructor, TypeError, 'cancel() should reject with a TypeError'));
+    t.equal(reader.isActive, true, 'the reader should still be active');
   });
 };

@@ -19,15 +19,4 @@ export default (label, factory, error) => {
     t.notEqual(cancelPromise1, closedPromise, 'cancel() promise 1 should be distinct from closed');
     t.notEqual(cancelPromise2, closedPromise, 'cancel() promise 2 should be distinct from closed');
   });
-
-  test('getReader() should throw the error', t => {
-    t.plan(1);
-    const rs = factory();
-
-    try {
-      rs.getReader();
-    } catch (e) {
-      t.equal(e, error, 'getReader() should throw the error');
-    }
-  });
 };

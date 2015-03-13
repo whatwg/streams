@@ -15,8 +15,8 @@ export default (label, factory, error) => {
     );
   });
 
-  test('piping to a WritableStream in the writable state should fail', t => {
-    t.plan(3);
+  test('piping to a WritableStream in the writable state should abort the writable stream', t => {
+    t.plan(4);
 
     const rs = factory();
 
@@ -31,8 +31,8 @@ export default (label, factory, error) => {
       close() {
         t.fail('Unexpected close call');
       },
-      abort() {
-        t.fail('Unexpected abort call');
+      abort(reason) {
+        t.equal(reason, error);
       }
     });
 
@@ -43,9 +43,19 @@ export default (label, factory, error) => {
         () => t.fail('pipeTo promise should not be fulfilled'),
         e => {
           t.equal(e, error, 'pipeTo promise should be rejected with the passed error');
-          t.equal(ws.state, 'writable', 'writable stream should still be writable');
+          t.equal(ws.state, 'errored', 'writable stream should become errored');
         }
       );
     });
+  });
+
+  test('getReader() should return a reader that acts errored', t => {
+    t.plan(2);
+    const rs = factory();
+
+    const reader = rs.getReader();
+
+    reader.closed.catch(e => t.equal(e, error, 'reader.closed should reject with the error'));
+    reader.read().catch(e => t.equal(e, error, 'reader.read() should reject with the error'));
   });
 };

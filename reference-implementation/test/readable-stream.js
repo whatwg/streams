@@ -496,7 +496,12 @@ test('ReadableStream: should call underlying source methods as methods', t => {
   theSource.debugName = 'the source object passed to the constructor'; // makes test failures easier to diagnose
   const rs = new ReadableStream(theSource);
 
-  rs.getReader().read().then(() => rs.cancel());
+  const reader = rs.getReader();
+  reader.read().then(() => {
+    reader.releaseLock();
+    rs.cancel();
+  })
+  .catch(e => t.error(e));
 });
 
 test('ReadableStream strategies: the default strategy should return false for all but the first enqueue call', t => {
