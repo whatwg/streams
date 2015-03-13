@@ -72,12 +72,13 @@ export default class ReadableStream {
     let reader;
     let lastRead;
     let closedPurposefully = false;
-    let resolvePipeToPromise;
-    let rejectPipeToPromise;
+    let unpiped = false;
+    let resolveFinishedPromise;
+    let rejectFinishedPromise;
 
-    return new Promise((resolve, reject) => {
-      resolvePipeToPromise = resolve;
-      rejectPipeToPromise = reject;
+    const finishedPromise = new Promise((resolve, reject) => {
+      resolveFinishedPromise = resolve;
+      rejectFinishedPromise = reject;
 
       reader = source.getReader();
 
@@ -94,9 +95,25 @@ export default class ReadableStream {
       doPipe();
     });
 
+    return { finished: finishedPromise, unpipe };
+
+    function unpipe() {
+      unpiped = true;
+      return lastRead.then(finishUnpipe, finishUnpipe);
+
+      function finishUnpipe() {
+        reader.releaseLock();
+        resolveFinishedPromise(undefined);
+      }
+    }
+
     function doPipe() {
       lastRead = reader.read();
       Promise.all([lastRead, dest.ready]).then(([{ value, done }]) => {
+        if (unpiped === true) {
+          return;
+        }
+
         if (Boolean(done) === true) {
           closeDest();
         } else if (dest.state === 'writable') {
@@ -110,22 +127,30 @@ export default class ReadableStream {
     }
 
     function cancelSource(reason) {
+      if (unpiped === true) {
+        return;
+      }
+
       if (preventCancel === false) {
         reader.cancel(reason);
         reader.releaseLock();
-        rejectPipeToPromise(reason);
+        rejectFinishedPromise(reason);
       } else {
         // If we don't cancel, we need to wait for lastRead to finish before we're allowed to release.
         // We don't need to handle lastRead failing because that will trigger abortDest which takes care of
         // both of these.
         lastRead.then(() => {
           reader.releaseLock();
-          rejectPipeToPromise(reason);
+          rejectFinishedPromise(reason);
         });
       }
     }
 
     function closeDest() {
+      if (unpiped === true) {
+        return;
+      }
+
       // Does not need to wait for lastRead since it occurs only on source closed.
 
       reader.releaseLock();
@@ -133,13 +158,17 @@ export default class ReadableStream {
       const destState = dest.state;
       if (preventClose === false && (destState === 'waiting' || destState === 'writable')) {
         closedPurposefully = true;
-        dest.close().then(resolvePipeToPromise, rejectPipeToPromise);
+        dest.close().then(resolveFinishedPromise, rejectFinishedPromise);
       } else {
-        resolvePipeToPromise();
+        resolveFinishedPromise();
       }
     }
 
     function abortDest(reason) {
+      if (unpiped === true) {
+        return;
+      }
+
       // Does not need to wait for lastRead since it only occurs on source errored.
 
       reader.releaseLock();
@@ -147,7 +176,7 @@ export default class ReadableStream {
       if (preventAbort === false) {
         dest.abort(reason);
       }
-      rejectPipeToPromise(reason);
+      rejectFinishedPromise(reason);
     }
   }
 

@@ -15,7 +15,9 @@ function fakeReadableStream() {
     get closed() { return Promise.resolve(); },
     cancel(reason) { return Promise.resolve(); },
     pipeThrough({ writable, readable }, options) { return readable; },
-    pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) { return Promise.resolve(); },
+    pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) {
+      return { finished: Promise.resolve(), unpipe() { } };
+    },
     getReader() { return new ReadableStream(new ReadableStream()); }
   };
 }

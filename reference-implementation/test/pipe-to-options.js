@@ -80,11 +80,11 @@ test('Piping with { preventCancel: true } and a destination error', t => {
     }
   });
 
-  rs.pipeTo(ws, { preventCancel: true }).catch(e => {
-    t.equal(e, theError, 'rejection reason of pipeTo promise is the sink error');
+  rs.pipeTo(ws, { preventCancel: true }).finished.catch(e => {
+    t.equal(e, theError, 'pipeTo finished promise should reject with the sink error');
 
     let reader;
-    t.doesNotThrow(() => { reader = rs.getReader(); }, 'should be able to get a stream reader after pipeTo completes');
+    t.doesNotThrow(() => { reader = rs.getReader(); }, 'should be able to get a stream reader after pipeTo finishes');
 
     // { value: 'c', done: false } gets consumed before we know that ws has errored, and so is lost.
 
