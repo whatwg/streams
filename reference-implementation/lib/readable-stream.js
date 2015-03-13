@@ -132,8 +132,8 @@ export default class ReadableStream {
       }
 
       if (preventCancel === false) {
+        // cancelling automatically releases the lock (and that doesn't fail, since source is then closed)
         reader.cancel(reason);
-        reader.releaseLock();
         rejectFinishedPromise(reason);
       } else {
         // If we don't cancel, we need to wait for lastRead to finish before we're allowed to release.
@@ -312,10 +312,7 @@ class ReadableStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    CloseReadableStreamReader(this);
-
-    this._ownerReadableStream._reader = undefined;
-    this._ownerReadableStream = undefined;
+    ReleaseReadableStreamReader(this);
   }
 }
 
@@ -375,19 +372,10 @@ function CloseReadableStream(stream) {
   stream._state = 'closed';
 
   if (IsReadableStreamLocked(stream) === true) {
-    return CloseReadableStreamReader(stream._reader);
+    return ReleaseReadableStreamReader(stream._reader);
   }
 
   return undefined;
-}
-
-function CloseReadableStreamReader(reader) {
-  for (const { _resolve } of reader._readRequests) {
-    _resolve(CreateIterResultObject(undefined, true));
-  }
-  reader._readRequests = [];
-
-  reader._closedPromise_resolve(undefined);
 }
 
 function CreateReadableStreamCloseFunction(stream) {
@@ -513,6 +501,17 @@ function IsReadableStreamReader(x) {
   }
 
   return true;
+}
+
+function ReleaseReadableStreamReader(reader) {
+  for (const { _resolve } of reader._readRequests) {
+    _resolve(CreateIterResultObject(undefined, true));
+  }
+  reader._readRequests = [];
+
+  reader._ownerReadableStream._reader = undefined;
+  reader._ownerReadableStream = undefined;
+  reader._closedPromise_resolve(undefined);
 }
 
 function ShouldReadableStreamApplyBackpressure(stream) {
