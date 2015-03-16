@@ -5,16 +5,6 @@ export default (label, factory, error) => {
     tapeTest(`${label}: ${description}`, testFn);
   }
 
-  test('closed should reject with the error', t => {
-    t.plan(1);
-    const rs = factory();
-
-    rs.closed.then(
-      () => t.fail('closed should not fulfill'),
-      r => t.equal(r, error, 'closed should reject with the error')
-    );
-  });
-
   test('piping to a WritableStream in the writable state should abort the writable stream', t => {
     t.plan(4);
 

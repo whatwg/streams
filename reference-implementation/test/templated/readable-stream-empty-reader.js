@@ -98,16 +98,14 @@ export default (label, factory) => {
 
   test('releasing the lock should cause closed to fulfill', t => {
     t.plan(3);
-    const { stream, reader } = factory();
+    const { reader } = factory();
 
     reader.closed.then(v => t.equal(v, undefined, 'reader.closed got before release should fulfill with undefined'));
-    stream.closed.then(() => t.fail('stream.closed got before release should not fulfill'));
 
     reader.releaseLock();
     t.equal(reader.isActive, false, 'the reader should no longer be active');
 
     reader.closed.then(v => t.equal(v, undefined, 'reader.closed got after release should fulfill with undefined'));
-    stream.closed.then(() => t.fail('stream.closed got after release should not fulfill'));
   });
 
   test('canceling via the reader should cause the reader to become inactive', t => {

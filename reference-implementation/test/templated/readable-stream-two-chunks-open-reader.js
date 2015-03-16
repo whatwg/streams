@@ -35,10 +35,9 @@ export default (label, factory, chunks) => {
   });
 
   test('cancel() after a read() should still give that single read result', t => {
-    t.plan(4);
-    const { stream, reader } = factory();
+    t.plan(3);
+    const { reader } = factory();
 
-    stream.closed.then(v => t.equal(v, undefined, 'stream closed should fulfill with undefined'));
     reader.closed.then(v => t.equal(v, undefined, 'reader closed should fulfill with undefined'));
 
     reader.read().then(r => t.deepEqual(r, { value: chunks[0], done: false },

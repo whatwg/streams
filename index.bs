@@ -238,8 +238,6 @@ would look like
   class ReadableStream {
     constructor(underlyingSource = {})
 
-    get closed()
-
     cancel(reason)
     getReader()
     pipeThrough({ writable, readable }, options)
@@ -353,7 +351,6 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 
 <ol>
   <li> Set <b>this</b>@\[[underlyingSource]] to <var>underlyingSource</var>.
-  <li> Set <b>this</b>@\[[closedPromise]] to a new promise.
   <li> Set <b>this</b>@\[[queue]] to a new empty List.
   <li> Set <b>this</b>@\[[state]] to <code>"readable"</code>.
   <li> Set <b>this</b>@\[[started]], <b>this</b>@\[[draining]], and <b>this</b>@\[[pullScheduled]] to <b>false</b>.
@@ -378,18 +375,6 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </ol>
 
 <h4 id="rs-prototype">Properties of the <code>ReadableStream</code> Prototype</h4>
-
-<h5 id="rs-closed">get closed</h5>
-
-<div class="note">
-  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected
-  if it ever errors.
-</div>
-
-<ol>
-  <li> If IsReadableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
-  <li> Return <b>this</b>@\[[closedPromise]].
-</ol>
 
 <h5 id="rs-cancel">cancel(reason)</h5>
 
@@ -585,8 +570,8 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 <h5 id="reader-closed">get closed</h5>
 
 <div class="note">
-  While the reader is <a lt="active reader">active</a>, the promise returned by the <code>closed</code> getter for a
-  stream reader will behave the same as that for the original stream, for convenience.
+  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed or the
+  reader's lock is <a lt="release a read lock">released</a>, or rejected if the stream ever errors.
 </div>
 
 <ol>
@@ -744,7 +729,6 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <ol>
   <li> Assert: <var>stream</var>@\[[state]] is <code>"readable"</code>.
-  <li> Resolve <var>stream</var>@\[[closedPromise]] with <b>undefined</b>.
   <li> Set <var>stream</var>@\[[state]] to <code>"closed"</code>.
   <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>, return
     ReleaseReadableStreamReader(<var>stream</var>).
@@ -848,7 +832,6 @@ a variable <var>stream</var>, that performs the following steps:
 <ol>
   <li> If <var>stream</var>@\[[state]] is not <code>"readable"</code> return <b>undefined</b>.
   <li> Let <var>stream</var>@\[[queue]] be a new empty List.
-  <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
   <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
   <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
   <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>,

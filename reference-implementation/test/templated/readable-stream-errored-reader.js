@@ -6,13 +6,8 @@ export default (label, factory, error) => {
   }
 
   test('closed should reject with the error', t => {
-    t.plan(2);
-    const { stream, reader } = factory();
-
-    stream.closed.then(
-      () => t.fail('stream closed should not fulfill'),
-      r => t.equal(r, error, 'stream closed should reject with the error')
-    );
+    t.plan(1);
+    const { reader } = factory();
 
     reader.closed.then(
       () => t.fail('stream closed should not fulfill'),

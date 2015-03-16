@@ -36,7 +36,7 @@ test('Underlying source: throwing pull getter (initial pull)', t => {
     }
   });
 
-  rs.closed.then(
+  rs.getReader().closed.then(
     () => t.fail('closed should not fulfill'),
     r => t.equal(r, theError, 'closed should reject with the thrown error')
   );
@@ -52,7 +52,7 @@ test('Underlying source: throwing pull method (initial pull)', t => {
     }
   });
 
-  rs.closed.then(
+  rs.getReader().closed.then(
     () => t.fail('closed should not fulfill'),
     r => t.equal(r, theError, 'closed should reject with the thrown error')
   );
@@ -73,10 +73,11 @@ test('Underlying source: throwing pull getter (second pull)', t => {
       throw theError;
     }
   });
+  const reader = rs.getReader();
 
-  rs.getReader().read().then(r => t.deepEqual(r, { value: 'a', done: false }, 'the chunk read should be correct'));
+  reader.read().then(r => t.deepEqual(r, { value: 'a', done: false }, 'the chunk read should be correct'));
 
-  rs.closed.then(
+  reader.closed.then(
     () => t.fail('closed should not fulfill'),
     r => t.equal(r, theError, 'closed should reject with the thrown error')
   );
@@ -97,10 +98,11 @@ test('Underlying source: throwing pull method (second pull)', t => {
       }
     }
   });
+  const reader = rs.getReader();
 
-  rs.getReader().read().then(r => t.deepEqual(r, { value: 'a', done: false }, 'the chunk read should be correct'));
+  reader.read().then(r => t.deepEqual(r, { value: 'a', done: false }, 'the chunk read should be correct'));
 
-  rs.closed.then(
+  reader.closed.then(
     () => t.fail('closed should not fulfill'),
     r => t.equal(r, theError, 'closed should reject with the thrown error')
   );
@@ -152,7 +154,7 @@ test('Underlying source: throwing strategy getter', t => {
     }
   });
 
-  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: throwing strategy.size getter', t => {
@@ -173,7 +175,7 @@ test('Underlying source: throwing strategy.size getter', t => {
     }
   });
 
-  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: throwing strategy.size method', t => {
@@ -194,7 +196,7 @@ test('Underlying source: throwing strategy.size method', t => {
     }
   });
 
-  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: throwing strategy.shouldApplyBackpressure getter', t => {
@@ -215,7 +217,7 @@ test('Underlying source: throwing strategy.shouldApplyBackpressure getter', t =>
     }
   });
 
-  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: throwing strategy.shouldApplyBackpressure method', t => {
@@ -236,7 +238,7 @@ test('Underlying source: throwing strategy.shouldApplyBackpressure method', t =>
     }
   });
 
-  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: strategy.size returning NaN', t => {
@@ -263,7 +265,7 @@ test('Underlying source: strategy.size returning NaN', t => {
     }
   });
 
-  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: strategy.size returning -Infinity', t => {
@@ -290,7 +292,7 @@ test('Underlying source: strategy.size returning -Infinity', t => {
     }
   });
 
-  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
 test('Underlying source: strategy.size returning +Infinity', t => {
@@ -317,5 +319,5 @@ test('Underlying source: strategy.size returning +Infinity', t => {
     }
   });
 
-  rs.closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });

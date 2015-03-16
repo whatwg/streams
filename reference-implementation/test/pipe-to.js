@@ -24,20 +24,17 @@ test('Piping from a ReadableStream from which lots of data are readable synchron
 
   t.equal(ws.state, 'writable', 'writable stream state should start out writable');
 
-  let rsClosed = false;
-  rs.closed.then(() => {
-    rsClosed = true;
-  });
-
   let pipeFinished = false;
   rs.pipeTo(ws).then(
     () => {
       pipeFinished = true;
-      t.equal(rsClosed, true, 'readable stream should be closed after pipe finishes');
+      rs.getReader().closed.then(() => {
+        t.pass('readable stream should be closed after pipe finishes');
+      });
       t.equal(ws.state, 'closed', 'writable stream state should be closed after pipe finishes');
-    },
-    e => t.error(e)
-  );
+    }
+  )
+  .catch(e => t.error(e));
 
   setTimeout(() => {
     t.equal(pipeFinished, true, 'pipe should have finished before a setTimeout(,0) since it should only be microtasks');
@@ -70,19 +67,17 @@ test('Piping from a ReadableStream in readable state to a WritableStream in clos
   ws.close();
   t.equal(ws.state, 'closing', 'writable stream should be closing immediately after closing it');
 
-  let rsClosed = false;
-  rs.closed.then(() => {
-    rsClosed = true;
-  });
-
   rs.pipeTo(ws).then(
     () => t.fail('promise returned by pipeTo should not fulfill'),
     r => {
       t.equal(r, cancelReason,
         'the pipeTo promise should reject with the same error as the underlying source cancel was called with');
-      t.equal(rsClosed, true, 'readable stream should be closed after pipe finishes');
+      rs.getReader().closed.then(() => {
+        t.pass('readable stream should be closed after pipe finishes');
+      });
     }
-  );
+  )
+  .catch(e => t.error(e));
 });
 
 test('Piping from a ReadableStream in readable state to a WritableStream in errored state', t => {

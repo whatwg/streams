@@ -178,7 +178,7 @@ test('TransformStream: by default, closing the writable closes the readable (whe
   ts.writable.close();
   t.equal(ts.writable.state, 'closing', 'writable is closing');
 
-  Promise.all([ts.writable.closed, ts.readable.closed]).then(() => {
+  Promise.all([ts.writable.closed, ts.readable.getReader().closed]).then(() => {
     t.pass('both writable and readable closed promises fulfill');
     t.equal(ts.writable.state, 'closed', 'writable state becomes closed eventually');
   })
@@ -199,7 +199,7 @@ test('TransformStream: by default, closing the writable waits for transforms to 
   t.equal(ts.writable.state, 'closing', 'writable is closing');
 
   let rsClosed = false;
-  ts.readable.closed.then(() => {
+  ts.readable.getReader().closed.then(() => {
     rsClosed = true;
   });
 
@@ -298,7 +298,7 @@ test('TransformStream flush is called after all queued writes finish, once the w
   t.notOk(flushCalled, 'closing the writable does not immediately call flush if writes are not finished');
 
   let rsClosed = false;
-  ts.readable.closed.then(() => {
+  ts.readable.getReader().closed.then(() => {
     rsClosed = true;
   });
 
@@ -362,8 +362,8 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
   })
   .catch(e => t.error(e));
 
-  ts.readable.closed.then(() => {
-    t.pass('readable becomes closed');
+  reader.closed.then(() => {
+    t.pass('readable reader becomes closed');
   })
   .catch(e => t.error(e));
 });

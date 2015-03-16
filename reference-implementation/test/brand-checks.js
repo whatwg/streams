@@ -12,7 +12,6 @@ test('Can get the ReadableStreamReader constructor indirectly', t => {
 
 function fakeReadableStream() {
   return {
-    get closed() { return Promise.resolve(); },
     cancel(reason) { return Promise.resolve(); },
     pipeThrough({ writable, readable }, options) { return readable; },
     pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) { return Promise.resolve(); },
@@ -108,12 +107,6 @@ function methodThrows(t, obj, methodName, target) {
 
   t.throws(() => method.call(target), /TypeError/, methodName + ' should throw a TypeError');
 }
-
-test('ReadableStream.prototype.closed enforces a brand check', t => {
-  t.plan(2);
-  getterRejects(t, ReadableStream.prototype, 'closed', fakeReadableStream());
-  getterRejects(t, ReadableStream.prototype, 'closed', realWritableStream());
-});
 
 test('ReadableStream.prototype.cancel enforces a brand check', t => {
   t.plan(2);

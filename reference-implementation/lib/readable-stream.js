@@ -5,7 +5,6 @@ import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-w
 export default class ReadableStream {
   constructor(underlyingSource = {}) {
     this._underlyingSource = underlyingSource;
-    this._initClosedPromise();
     this._queue = [];
     this._state = 'readable';
     this._started = false;
@@ -27,14 +26,6 @@ export default class ReadableStream {
       },
       r => this._error(r)
     );
-  }
-
-  get closed() {
-    if (IsReadableStream(this) === false) {
-      return Promise.reject(new TypeError('ReadableStream.prototype.closed can only be used on a ReadableStream'));
-    }
-
-    return this._closedPromise;
   }
 
   cancel(reason) {
@@ -81,7 +72,7 @@ export default class ReadableStream {
 
       reader = source.getReader();
 
-      source.closed.catch(abortDest);
+      reader.closed.catch(abortDest);
       dest.closed.then(
         () => {
           if (!closedPurposefully) {
@@ -105,7 +96,7 @@ export default class ReadableStream {
         }
       });
 
-      // Any failures will be handled by listening to source.closed and dest.closed above.
+      // Any failures will be handled by listening to reader.closed and dest.closed above.
       // TODO: handle malicious dest.write/dest.close?
     }
 
@@ -150,31 +141,7 @@ export default class ReadableStream {
       rejectPipeToPromise(reason);
     }
   }
-
-
-  // Note: The resolve function and reject function are cleared when the corresponding promise is resolved or rejected.
-  // This is for debugging. This makes extra resolve/reject calls for the same promise fail so that we can detect
-  // unexpected extra resolve/reject calls that may be caused by bugs in the algorithm.
-
-  _initClosedPromise() {
-    this._closedPromise = new Promise((resolve, reject) => {
-      this._closedPromise_resolve = resolve;
-      this._closedPromise_reject = reject;
-    });
-  }
-
-  _resolveClosedPromise(value) {
-    this._closedPromise_resolve(value);
-    this._closedPromise_resolve = null;
-    this._closedPromise_reject = null;
-  }
-
-  _rejectClosedPromise(reason) {
-    this._closedPromise_reject(reason);
-    this._closedPromise_resolve = null;
-    this._closedPromise_reject = null;
-  }
-};
+}
 
 class ReadableStreamReader {
   constructor(stream) {
@@ -339,7 +306,6 @@ function CancelReadableStream(stream, reason) {
 function CloseReadableStream(stream) {
   assert(stream._state === 'readable');
 
-  stream._resolveClosedPromise(undefined);
   stream._state = 'closed';
 
   if (IsReadableStreamLocked(stream) === true) {
@@ -425,7 +391,6 @@ function CreateReadableStreamErrorFunction(stream) {
     }
 
     stream._queue = [];
-    stream._rejectClosedPromise(e);
     stream._storedError = e;
     stream._state = 'errored';
 

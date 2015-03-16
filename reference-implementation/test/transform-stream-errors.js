@@ -12,12 +12,14 @@ test('TransformStream errors thrown in transform put the writable and readable i
 
   t.equal(ts.writable.state, 'writable', 'writable starts in writable');
 
-  ts.readable.getReader().read().then(
+  const reader = ts.readable.getReader();
+
+  reader.read().then(
     () => t.fail('readable\'s read() should reject'),
     r => t.equal(r, thrownError, 'readable\'s read should reject with the thrown error')
   );
 
-  ts.readable.closed.then(
+  reader.closed.then(
     () => t.fail('readable\'s closed should not be fulfilled'),
     e => t.equal(e, thrownError, 'readable\'s closed should be rejected with the thrown error')
   );
@@ -44,12 +46,14 @@ test('TransformStream errors thrown in flush put the writable and readable in an
     }
   });
 
-  ts.readable.getReader().read().then(
+  const reader = ts.readable.getReader();
+
+  reader.read().then(
     () => t.fail('readable\'s read() should reject'),
     r => t.equal(r, thrownError, 'readable\'s read should reject with the thrown error')
   );
 
-  ts.readable.closed.then(
+  reader.closed.then(
     () => t.fail('readable\'s closed should not be fulfilled'),
     e => t.equal(e, thrownError, 'readable\'s closed should be rejected with the thrown error')
   );

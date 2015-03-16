@@ -88,7 +88,7 @@ test('ReadableStream cancellation: cancel() on a locked stream should fail and n
     result => t.deepEqual(result, { value: 'a', done: false }, 'read() should still work after the attempted cancel')
   );
 
-  rs.closed.then(() => t.pass('closed should fulfill without underlying source cancel ever being called'));
+  reader.closed.then(() => t.pass('closed should fulfill without underlying source cancel ever being called'));
 });
 
 test('ReadableStream cancellation: returning a value from the underlying source\'s cancel should not affect the ' +
@@ -186,7 +186,7 @@ test('ReadableStream cancellation: cancelling before start finishes should preve
     }
   });
 
-  Promise.all([rs.cancel(), rs.closed]).then(() => {
+  Promise.all([rs.cancel(), rs.getReader().closed]).then(() => {
     t.pass('pull should never have been called');
     t.end();
   })

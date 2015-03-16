@@ -97,8 +97,8 @@ test('cancel() on a reader releases the reader before calling through', t => {
   );
 });
 
-test('closed should be fulfilled after stream is closed (stream .closed access before acquiring)', t => {
-  t.plan(2);
+test('closed should be fulfilled after stream is closed (.closed access before acquiring)', t => {
+  t.plan(1);
 
   let doClose;
   const rs = new ReadableStream({
@@ -107,20 +107,16 @@ test('closed should be fulfilled after stream is closed (stream .closed access b
     }
   });
 
-  rs.closed.then(() => {
-    t.equal(reader.isActive, false, 'reader is no longer active when stream closed is fulfilled');
-  });
-
   const reader = rs.getReader();
-  doClose();
-
   reader.closed.then(() => {
     t.equal(reader.isActive, false, 'reader is no longer active when reader closed is fulfilled');
   });
+
+  doClose();
 });
 
 test('closed should be fulfilled after reader releases its lock (multiple stream locks)', t => {
-  t.plan(6);
+  t.plan(4);
 
   let doClose;
   const rs = new ReadableStream({
@@ -130,11 +126,6 @@ test('closed should be fulfilled after reader releases its lock (multiple stream
   });
 
   const reader1 = rs.getReader();
-
-  rs.closed.then(() => {
-    t.equal(reader1.isActive, false, 'reader1 is no longer active when stream closed is fulfilled');
-    t.equal(reader2.isActive, false, 'reader2 is no longer active when stream closed is fulfilled');
-  });
 
   reader1.releaseLock();
 

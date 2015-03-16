@@ -27,11 +27,13 @@ test('ReadableStream: if pull rejects, it should error the stream', t => {
     }
   });
 
-  rs.closed.catch(e => {
+  const reader = rs.getReader();
+
+  reader.closed.catch(e => {
     t.equal(e, error, 'closed should reject with the thrown error');
   });
 
-  rs.getReader().read().catch(e => {
+  reader.read().catch(e => {
     t.equal(e, error, 'read() should reject with the thrown error');
   });
 });
@@ -45,7 +47,7 @@ test('ReadableStream: calling close twice should be a no-op', t => {
       t.doesNotThrow(close);
     }
   })
-  .closed.then(() => t.pass('closed should fulfill'));
+  .getReader().closed.then(() => t.pass('closed should fulfill'));
 });
 
 test('ReadableStream: calling error twice should be a no-op', t => {
@@ -59,7 +61,7 @@ test('ReadableStream: calling error twice should be a no-op', t => {
       t.doesNotThrow(() => error(error2));
     }
   })
-  .closed.catch(e => t.equal(e, theError, 'closed should reject with the first error'));
+  .getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the first error'));
 });
 
 test('ReadableStream: calling error after close should be a no-op', t => {
@@ -71,7 +73,7 @@ test('ReadableStream: calling error after close should be a no-op', t => {
       t.doesNotThrow(error);
     }
   })
-  .closed.then(() => t.pass('closed should fulfill'));
+  .getReader().closed.then(() => t.pass('closed should fulfill'));
 });
 
 test('ReadableStream: calling close after error should be a no-op', t => {
@@ -84,7 +86,7 @@ test('ReadableStream: calling close after error should be a no-op', t => {
       t.doesNotThrow(close);
     }
   })
-  .closed.catch(e => t.equal(e, theError, 'closed should reject with the first error'));
+  .getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the first error'));
 });
 
 test('ReadableStream: should only call pull once upon starting the stream', t => {
@@ -376,7 +378,7 @@ test('ReadableStream: should not call pull after start if the stream is now clos
     return reader.read().then(() => {
       t.equal(timesCalled, 0, 'reading should not have triggered a pull call');
 
-      return rs.closed.then(() => {
+      return reader.closed.then(() => {
         t.equal(timesCalled, 0, 'stream should have closed with still no calls to pull');
         t.end();
       });
