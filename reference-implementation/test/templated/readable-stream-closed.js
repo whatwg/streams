@@ -60,8 +60,8 @@ export default (label, factory) => {
     startPromise.then(() => {
       t.equal(ws.state, 'writable', 'writable stream should start in writable state');
 
-      rs.pipeTo(ws).finished.then(() => {
-        t.pass('pipeTo finished promise should be fulfilled');
+      rs.pipeTo(ws).then(() => {
+        t.pass('pipeTo promise should be fulfilled');
         t.equal(ws.state, 'closed', 'writable stream should become closed');
       });
     });

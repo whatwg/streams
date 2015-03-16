@@ -194,7 +194,7 @@ reader (if one exists) will automatically release its lock.
   the chain:
 
   <pre><code class="lang-javascript">
-    readableStream.pipeTo(writableStream).finished
+    readableStream.pipeTo(writableStream)
       .then(() => console.log("All data successfully written!"))
       .catch(e => console.error("Something went wrong!", e));
   </code></pre>
@@ -941,7 +941,7 @@ a variable <var>stream</var>, that performs the following steps:
   chance to slow down its data production.
 
   <pre><code class="lang-javascript">
-    readableStream.pipeTo(writableStream).finished
+    readableStream.pipeTo(writableStream)
       .then(() => console.log("All data successfully written!"))
       .catch(e => console.error("Something went wrong!", e));
   </code></pre>
@@ -1856,7 +1856,7 @@ writable stream:
 <pre><code class="lang-javascript">
   const webSocketStream = makeReadableWebSocketStream("wss://example.com", 443);
 
-  webSocketStream.pipeTo(writableStream).finished
+  webSocketStream.pipeTo(writableStream)
     .then(() => console.log("All data successfully written!"))
     .catch(e => console.error("Something went wrong!", e));
 </code></pre>
@@ -1989,7 +1989,7 @@ We can then use this function to create writable streams for a web socket, and p
 <pre><code class="lang-javascript">
   const webSocketStream = makeWritableWebSocketStream("wss://example.com", 443);
 
-  readableStream.pipeTo(webSocketStream).finished
+  readableStream.pipeTo(webSocketStream)
     .then(() => console.log("All data successfully written!"))
     .catch(e => console.error("Something went wrong!", e));
 </code></pre>

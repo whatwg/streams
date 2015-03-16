@@ -15,9 +15,9 @@ export default (label, factory, error) => {
       }
     });
 
-    rs.pipeTo(ws).finished.catch(e => {
+    rs.pipeTo(ws).catch(e => {
       t.equal(ws.state, 'errored', 'destination should be errored');
-      t.equal(e, error, 'pipeTo finished promise should reject with the source error');
+      t.equal(e, error, 'rejection reason of pipeToPromise should be the source error');
     });
 
     ws.closed.catch(e => t.equal(e, error), 'rejection reason of dest closed should be the source error');
@@ -33,9 +33,9 @@ export default (label, factory, error) => {
       }
     });
 
-    rs.pipeTo(ws, { preventAbort: false }).finished.catch(e => {
+    rs.pipeTo(ws, { preventAbort: false }).catch(e => {
       t.equal(ws.state, 'errored', 'destination should be errored');
-      t.equal(e, error, 'pipeTo finished promise should reject with the source error');
+      t.equal(e, error, 'rejection reason of pipeToPromise should be the source error');
     });
 
     ws.closed.catch(e => t.equal(e, error), 'rejection reason of dest closed should be the source error');
@@ -51,9 +51,9 @@ export default (label, factory, error) => {
       }
     });
 
-    rs.pipeTo(ws, { preventAbort: true }).finished.catch(e => {
+    rs.pipeTo(ws, { preventAbort: true }).catch(e => {
       t.equal(ws.state, 'writable', 'destination should remain writable');
-      t.equal(e, error, 'pipeTo finished promise should reject with the source error');
+      t.equal(e, error, 'rejection reason of pipeToPromise should be the source error');
     });
   });
 };

@@ -39,31 +39,14 @@ export default (label, factory, error) => {
     startPromise.then(() => {
       t.equal(ws.state, 'writable');
 
-      rs.pipeTo(ws).finished.then(
-        () => t.fail('pipeTo finished promise should not be fulfilled'),
+      rs.pipeTo(ws).then(
+        () => t.fail('pipeTo promise should not be fulfilled'),
         e => {
-          t.equal(e, error, 'pipeTo finished promise should be rejected with the passed error');
+          t.equal(e, error, 'pipeTo promise should be rejected with the passed error');
           t.equal(ws.state, 'errored', 'writable stream should become errored');
         }
       );
     });
-  });
-
-  test('unpiping should be a no-op after the pipe fails', t => {
-    t.plan(2);
-
-    const rs = factory();
-    const ws = new WritableStream();
-    const pipe = rs.pipeTo(ws);
-
-    pipe.finished.catch(e => {
-      t.equal(e, error, 'pipeTo finished promise should be rejected with the passed error');
-
-      return pipe.unpipe().then(v => {
-        t.equal(v, undefined, 'unpipe() should fulfill with undefined');
-      });
-    })
-    .catch(e => t.error(e));
   });
 
   test('getReader() should return a reader that acts errored', t => {
