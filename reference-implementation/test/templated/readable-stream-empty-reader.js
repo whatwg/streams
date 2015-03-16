@@ -78,17 +78,15 @@ export default (label, factory) => {
     );
 
     t.throws(() => reader.releaseLock(), /TypeError/, 'releaseLock should throw a TypeError');
-    t.equal(reader.isActive, true, 'the reader should still be active');
 
     setTimeout(() => t.end(), 50);
   });
 
   test('releasing the lock should cause further read() calls to resolve as if the stream is closed', t => {
-    t.plan(3);
+    t.plan(2);
     const { reader } = factory();
 
     reader.releaseLock();
-    t.equal(reader.isActive, false, 'the reader should no longer be active');
 
     reader.read().then(r =>
       t.deepEqual(r, { value: undefined, done: true }, 'first read() should return closed result'));
@@ -97,34 +95,29 @@ export default (label, factory) => {
   });
 
   test('releasing the lock should cause closed to fulfill', t => {
-    t.plan(3);
+    t.plan(2);
     const { reader } = factory();
 
     reader.closed.then(v => t.equal(v, undefined, 'reader.closed got before release should fulfill with undefined'));
 
     reader.releaseLock();
-    t.equal(reader.isActive, false, 'the reader should no longer be active');
 
     reader.closed.then(v => t.equal(v, undefined, 'reader.closed got after release should fulfill with undefined'));
   });
 
-  test('canceling via the reader should cause the reader to become inactive', t => {
-    t.plan(3);
+  test('canceling via the reader should cause the reader to act closed', t => {
+    t.plan(1);
     const { reader } = factory();
 
-    t.equal(reader.isActive, true, 'the reader should be active before releasing it');
     reader.cancel();
-    t.equal(reader.isActive, false, 'the reader should no longer be active');
     reader.read().then(r => t.deepEqual(r, { value: undefined, done: true },
       'read()ing from the reader should give a done result'))
   });
 
   test('canceling via the stream should fail', t => {
-    t.plan(3);
+    t.plan(1);
     const { stream, reader } = factory();
 
-    t.equal(reader.isActive, true, 'the reader should be active before releasing it');
     stream.cancel().catch(e => t.equal(e.constructor, TypeError, 'cancel() should reject with a TypeError'));
-    t.equal(reader.isActive, true, 'the reader should still be active');
   });
 };

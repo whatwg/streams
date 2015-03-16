@@ -509,7 +509,6 @@ it would look like
     constructor(stream)
 
     get closed()
-    get isActive()
 
     cancel(reason)
     read()
@@ -578,19 +577,6 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   <li> If IsReadableStreamReader(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b>
     exception.
   <li> Return <b>this</b>@\[[closedPromise]].
-</ol>
-
-<h5 id="reader-is-active">get isActive</h5>
-
-<div class="note">
-  The <code>isActive</code> getter returns whether or not the stream reader is currently
-  <a lt="active reader">active</a>.
-</div>
-
-<ol>
-  <li> If IsReadableStreamReader(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[ownerReadableStream]] is <b>undefined</b>, return <b>false</b>; otherwise, return
-    <b>true</b>.
 </ol>
 
 <h5 id="reader-cancel">cancel(reason)</h5>

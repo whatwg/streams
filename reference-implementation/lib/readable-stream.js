@@ -180,14 +180,6 @@ class ReadableStreamReader {
     return this._closedPromise;
   }
 
-  get isActive() {
-    if (IsReadableStreamReader(this) === false) {
-      throw new TypeError('ReadableStreamReader.prototype.isActive can only be used on a ReadableStreamReader');
-    }
-
-    return this._ownerReadableStream !== undefined;
-  }
-
   cancel(reason) {
     if (IsReadableStreamReader(this) === false) {
       return Promise.reject(

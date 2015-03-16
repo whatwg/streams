@@ -41,7 +41,6 @@ function realWritableStream() {
 function fakeReadableStreamReader() {
   return {
     get closed() { return Promise.resolve(); },
-    get isActive() { return false; },
     cancel(reason) { return Promise.resolve(); },
     read() { return Promise.resolve({ value: undefined, done: true }); },
     releaseLock() { return; }
@@ -159,12 +158,6 @@ test('ReadableStreamReader.prototype.closed enforces a brand check', t => {
   t.plan(2);
   getterRejects(t, ReadableStreamReader.prototype, 'closed', fakeReadableStreamReader());
   getterRejects(t, ReadableStreamReader.prototype, 'closed', realReadableStream());
-});
-
-test('ReadableStreamReader.prototype.isActive enforces a brand check', t => {
-  t.plan(2);
-  getterThrows(t, ReadableStreamReader.prototype, 'isActive', fakeReadableStreamReader());
-  getterThrows(t, ReadableStreamReader.prototype, 'isActive', realReadableStream());
 });
 
 test('ReadableStreamReader.prototype.cancel enforces a brand check', t => {

@@ -68,11 +68,8 @@ test('Reading from a reader for an empty stream will wait until a chunk is avail
   });
   const reader = rs.getReader();
 
-  t.equal(reader.isActive, true, 'reader is active to start with');
-
   reader.read().then(result => {
     t.deepEqual(result, { value: 'a', done: false }, 'read() should fulfill with the enqueued chunk');
-    t.equal(reader.isActive, true, 'reader is still active');
     t.end();
   });
 
@@ -85,7 +82,7 @@ test('cancel() on a reader releases the reader before calling through', t => {
   const passedReason = new Error('it wasn\'t the right time, sorry');
   const rs = new ReadableStream({
     cancel(reason) {
-      t.equal(reader.isActive, false, 'reader should be released by the time underlying source cancel is called');
+      t.doesNotThrow(() => rs.getReader(), 'should be able to get another reader without error');
       t.equal(reason, passedReason, 'the cancellation reason is passed through to the underlying source');
     }
   });
@@ -109,14 +106,14 @@ test('closed should be fulfilled after stream is closed (.closed access before a
 
   const reader = rs.getReader();
   reader.closed.then(() => {
-    t.equal(reader.isActive, false, 'reader is no longer active when reader closed is fulfilled');
+    t.pass('reader closed should be fulfilled');
   });
 
   doClose();
 });
 
 test('closed should be fulfilled after reader releases its lock (multiple stream locks)', t => {
-  t.plan(4);
+  t.plan(2);
 
   let doClose;
   const rs = new ReadableStream({
@@ -133,13 +130,11 @@ test('closed should be fulfilled after reader releases its lock (multiple stream
   doClose();
 
   reader1.closed.then(() => {
-    t.equal(reader1.isActive, false, 'reader1 is no longer active when reader1 closed is fulfilled');
-    t.equal(reader2.isActive, false, 'reader2 is no longer active when reader1 closed is fulfilled');
+    t.pass('reader1 closed should be fulfilled');
   });
 
   reader2.closed.then(() => {
-    t.equal(reader1.isActive, false, 'reader1 is no longer active when reader2 closed is fulfilled');
-    t.equal(reader2.isActive, false, 'reader2 is no longer active when reader2 closed is fulfilled');
+    t.pass('reader2 closed should be fulfilled');
   });
 });
 
@@ -164,18 +159,24 @@ test('Multiple readers can access the stream in sequence', t => {
 });
 
 test('Cannot use an already-released reader to unlock a stream again', t => {
-  t.plan(2);
+  t.plan(1);
 
-  const rs = new ReadableStream();
+  const rs = new ReadableStream({
+    start(enqueue) {
+      enqueue('a');
+    }
+  });
 
   const reader1 = rs.getReader();
   reader1.releaseLock();
 
   const reader2 = rs.getReader();
-  t.equal(reader2.isActive, true, 'reader2 state is active before releasing reader1');
 
   reader1.releaseLock();
-  t.equal(reader2.isActive, true, 'reader2 state is still active after releasing reader1 again');
+  reader2.read().then(result => {
+    t.deepEqual(result, { value: 'a', done: false },
+      'read() should still work on reader2 even after reader1 is released');
+  });
 });
 
 test('cancel() on a released reader is a no-op and does not pass through', t => {
