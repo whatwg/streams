@@ -539,7 +539,17 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   <tr>
     <td>\[[readRequests]]
     <td>A List of promises returned by calls to the reader's <code>read()</code> method that have not yet been resolved,
-      due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available.
+      due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available
+  </tr>
+  <tr>
+    <td>\[[state]]
+    <td>A string containing the reader's current state, used internally; one of <code>"readable"</code>,
+      <code>"closed"</code>, or <code>"errored"</code>
+  </tr>
+  <tr>
+    <td>\[[storedError]]
+    <td>A value indicating how the reader's stream failed, to be given as a failure reason or exception when trying to
+      operate on the reader; applicable only when \[[state]] is <code>"errored"</code>
   </tr>
 </table>
 
@@ -556,12 +566,12 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>, throw a <b>TypeError</b> exception.
   <li> Set <var>stream</var>@\[[reader]] to <b>this</b>.
   <li> Set <b>this</b>@\[[ownerReadableStream]] to <var>stream</var>.
+  <li> Set <b>this</b>@\[[state]] to <code>"readable"</code>.
+  <li> Set <b>this</b>@\[[storedError]] to <b>undefined</b>.
   <li> Set <b>this</b>@\[[readRequests]] to a new empty List.
   <li> Set <b>this</b>@\[[closedPromise]] to a new promise.
-  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code>, resolve <b>this</b>@\[[closedPromise]] with
-    <b>undefined</b>.
-  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, reject <b>this</b>@\[[closedPromise]] with
-    <var>stream</bar>@\[[storedError]].
+  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, call-with-rethrow
+    ReleaseReadableStreamReader(<b>this</b>).
 </ol>
 
 <h4 id="reader-prototype">Properties of the <code>ReadableStreamReader</code> Prototype</h4>
@@ -589,8 +599,11 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 <ol>
   <li> If IsReadableStreamReader(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b>
     exception.
-  <li> If <b>this</b>@\[[ownerReadableStream]] is <b>undefined</b>, return a new promise resolved with
-    <b>undefined</b>.
+  <li> If <b>this</b>@\[[state]] is <code>"closed"</code>, return a new promise resolved with <b>undefined</b>.
+  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with
+    <b>this</b>@\[[storedError]].
+  <li> Assert: <b>this</b>@\[[ownerReadableStream]] is not <b>undefined</b>.
+  <li> Assert: <b>this</b>@\[[ownerReadableStream]]@\[[state]] is <code>"readable"</code>.
   <li> Return CancelReadableStream(<b>this</b>@\[[ownerReadableStream]], <var>reason</var>).
 </ol>
 
@@ -614,11 +627,12 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <ol>
   <li> If IsReadableStreamReader(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[ownerReadableStream]] is <b>undefined</b> or
-    <b>this</b>@\[[ownerReadableStream]]@\[[state]] is <code>"closed"</code>, return a new promise resolved with
+  <li> If <b>this</b>@\[[state]] is <code>"closed"</code>, return a new promise resolved with
     CreateIterResultObject(<b>undefined</b>, <b>true</b>).
-  <li> If <b>this</b>@\[[ownerReadableStream]]@\[[state]] is <code>"errored"</code>, return a new promise
-    rejected with <b>this</b>@\[[ownerReadableStream]]@\[[storedError]].
+  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with
+    <b>this</b>@\[[storedError]].
+  <li> Assert: <b>this</b>@\[[ownerReadableStream]] is not <b>undefined</b>.
+  <li> Assert: <b>this</b>@\[[ownerReadableStream]]@\[[state]] is <code>"readable"</code>.
   <li> If <b>this</b>@\[[ownerReadableStream]]@\[[queue]] is not empty,
     <ol>
       <li> Let <var>chunk</var> be DequeueValue(<b>this</b>@\[[ownerReadableStream]]@\[[queue]]).
@@ -820,16 +834,8 @@ a variable <var>stream</var>, that performs the following steps:
   <li> Let <var>stream</var>@\[[queue]] be a new empty List.
   <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
   <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
-  <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>,
-    <ol>
-      <li> Reject <var>stream</var>@\[[reader]]@\[[closedPromise]] with <var>e</var>.
-      <li> Repeat for each <var>readRequestPromise</var> that is an element of
-        <var>stream</var>@\[[reader]]@\[[readRequests]],
-        <ol>
-          <li> Reject <var>readRequestPromise</var> with <var>e</var>.
-        </ol>
-      <li> Set <var>stream</var>@\[[reader]]@\[[readRequests]] to a new empty List.
-    </ol>
+  <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>, return
+    ReleaseReadableStreamReader(<var>stream</var>@\[[reader]]).
 </ol>
 
 <h4 id="is-readable-stream">IsReadableStream ( x )</h4>
@@ -865,14 +871,29 @@ a variable <var>stream</var>, that performs the following steps:
 
 <ol>
   <li> Assert: <var>reader</var>@\[[ownerReadableStream]] is not <b>undefined</b>.
-  <li> Repeat for each <var>readRequestPromise</var> that is an element of <var>reader</var>@\[[readRequests]],
+  <li> If <var>reader</var>@\[[ownerReadableStream]]@\[[state]] is <code>"errored"</code>,
     <ol>
-      <li> Resolve <var>readRequestPromise</var> with CreateIterResultObject(<b>undefined</b>, <b>true</b>).
+      <li> Set <var>reader</var>@\[[state]] to <code>"errored"</code>.
+      <li> Let <var>e</var> be <var>reader</var>@\[[ownerReadableStream]]@\[[storedError]].
+      <li> Set <var>reader</var>@\[[storedError]] to <var>e</var>.
+      <li> Reject <var>reader</var>@\[[closedPromise]] with <var>e</var>.
+      <li> Repeat for each <var>readRequestPromise</var> that is an element of <var>reader</var>@\[[readRequests]],
+        <ol>
+          <li> Reject <var>readRequestPromise</var> with <var>e</var>.
+        </ol>
+    </ol>
+  <li> Otherwise,
+    <ol>
+      <li> Set <var>reader</var>@\[[state]] to <code>"closed"</code>.
+      <li> Resolve <var>reader</var>@\[[closedPromise]] with <b>undefined</b>.
+      <li> Repeat for each <var>readRequestPromise</var> that is an element of <var>reader</var>@\[[readRequests]],
+        <ol>
+          <li> Resolve <var>readRequestPromise</var> with CreateIterResultObject(<b>undefined</b>, <b>true</b>).
+        </ol>
     </ol>
   <li> Set <var>reader</var>@\[[readRequests]] to a new empty List.
   <li> Set <var>reader</var>@\[[ownerReadableStream]]@\[[reader]] to <b>undefined</b>.
   <li> Set <var>reader</var>@\[[ownerReadableStream]] to <b>undefined</b>.
-  <li> Resolve <var>reader</var>@\[[closedPromise]] with <b>undefined</b>.
 </ol>
 
 <h4 id="should-readable-stream-apply-backpressure">ShouldReadableStreamApplyBackpressure ( stream )</h4>

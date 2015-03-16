@@ -198,3 +198,37 @@ test('cancel() on a released reader is a no-op and does not pass through', t => 
 
   setTimeout(() => t.end(), 50);
 });
+
+test('Getting a second reader after erroring the stream should succeed', t => {
+  t.plan(5);
+
+  let doError;
+  const theError = new Error('bad');
+  const rs = new ReadableStream({
+    start(enqueue, close, error) {
+      doError = error;
+    }
+  });
+
+  const reader1 = rs.getReader();
+
+  reader1.closed.catch(e => {
+    t.equal(e, theError, 'the first reader closed getter should be rejected with the error');
+  });
+
+  reader1.read().catch(e => {
+    t.equal(e, theError, 'the first reader read() should be rejected with the error');
+  });
+
+  t.throws(() => rs.getReader(), /TypeError/, 'trying to get another reader before erroring should throw');
+
+  doError(theError);
+
+  rs.getReader().closed.catch(e => {
+    t.equal(e, theError, 'the second reader closed getter should be rejected with the error');
+  });
+
+  rs.getReader().read().catch(e => {
+    t.equal(e, theError, 'the third reader read() should be rejected with the error');
+  });
+});

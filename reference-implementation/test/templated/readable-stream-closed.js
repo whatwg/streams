@@ -47,10 +47,21 @@ export default (label, factory) => {
     startPromise.then(() => {
       t.equal(ws.state, 'writable', 'writable stream should start in writable state');
 
-      rs.pipeTo(ws).then(() => {
+      return rs.pipeTo(ws).then(() => {
         t.pass('pipeTo promise should be fulfilled');
         t.equal(ws.state, 'closed', 'writable stream should become closed');
       });
-    });
+    })
+    .catch(e => t.error(e));
+  });
+
+  test('should be able to acquire multiple readers, since they are all auto-released', t => {
+    const rs = factory();
+
+    rs.getReader();
+
+    t.doesNotThrow(() => rs.getReader(), 'getting a second reader should not throw');
+    t.doesNotThrow(() => rs.getReader(), 'getting a third reader should not throw');
+    t.end();
   });
 };

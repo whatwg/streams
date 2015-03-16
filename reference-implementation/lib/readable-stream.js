@@ -154,6 +154,8 @@ class ReadableStreamReader {
 
     stream._reader = this;
     this._ownerReadableStream = stream;
+    this._state = 'readable';
+    this._storedError = undefined;
 
     this._readRequests = [];
 
@@ -162,12 +164,8 @@ class ReadableStreamReader {
       this._closedPromise_reject = reject;
     });
 
-    if (stream._state === 'closed') {
-      this._closedPromise_resolve(undefined);
-    }
-
-    if (stream._state === 'errored') {
-      this._closedPromise_reject(stream._storedError);
+    if (stream._state === 'closed' || stream._state === 'errored') {
+      ReleaseReadableStreamReader(this);
     }
   }
 
@@ -186,9 +184,16 @@ class ReadableStreamReader {
         new TypeError('ReadableStreamReader.prototype.cancel can only be used on a ReadableStreamReader'));
     }
 
-    if (this._ownerReadableStream === undefined) {
+    if (this._state === 'closed') {
       return Promise.resolve(undefined);
     }
+
+    if (this._state === 'errored') {
+      return Promise.reject(this._storedError);
+    }
+
+    assert(this._ownerReadableStream !== undefined);
+    assert(this._ownerReadableStream._state === 'readable');
 
     return CancelReadableStream(this._ownerReadableStream, reason);
   }
@@ -199,13 +204,16 @@ class ReadableStreamReader {
         new TypeError('ReadableStreamReader.prototype.read can only be used on a ReadableStreamReader'));
     }
 
-    if (this._ownerReadableStream === undefined || this._ownerReadableStream._state === 'closed') {
+    if (this._state === 'closed') {
       return Promise.resolve(CreateIterResultObject(undefined, true));
     }
 
-    if (this._ownerReadableStream._state === 'errored') {
-      return Promise.reject(this._ownerReadableStream._storedError);
+    if (this._state === 'errored') {
+      return Promise.reject(this._storedError);
     }
+
+    assert(this._ownerReadableStream !== undefined);
+    assert(this._ownerReadableStream._state === 'readable');
 
     if (this._ownerReadableStream._queue.length > 0) {
       const chunk = DequeueValue(this._ownerReadableStream._queue);
@@ -242,7 +250,7 @@ class ReadableStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    ReleaseReadableStreamReader(this);
+    return ReleaseReadableStreamReader(this);
   }
 }
 
@@ -387,12 +395,7 @@ function CreateReadableStreamErrorFunction(stream) {
     stream._state = 'errored';
 
     if (IsReadableStreamLocked(stream) === true) {
-      stream._reader._closedPromise_reject(e);
-
-      for (const { _reject } of stream._reader._readRequests) {
-        _reject(e);
-      }
-      stream._reader._readRequests = [];
+      return ReleaseReadableStreamReader(stream._reader);
     }
   };
 }
@@ -432,14 +435,30 @@ function IsReadableStreamReader(x) {
 }
 
 function ReleaseReadableStreamReader(reader) {
-  for (const { _resolve } of reader._readRequests) {
-    _resolve(CreateIterResultObject(undefined, true));
-  }
-  reader._readRequests = [];
+  assert(reader._ownerReadableStream !== undefined);
 
+  if (reader._ownerReadableStream._state === 'errored') {
+    reader._state = 'errored';
+
+    const e = reader._ownerReadableStream._storedError;
+    reader._storedError = e;
+    reader._closedPromise_reject(e);
+
+    for (const { _reject } of reader._readRequests) {
+      _reject(e);
+    }
+  } else {
+    reader._state = 'closed';
+    reader._closedPromise_resolve(undefined);
+
+    for (const { _resolve } of reader._readRequests) {
+      _resolve(CreateIterResultObject(undefined, true));
+    }
+  }
+
+  reader._readRequests = [];
   reader._ownerReadableStream._reader = undefined;
   reader._ownerReadableStream = undefined;
-  reader._closedPromise_resolve(undefined);
 }
 
 function ShouldReadableStreamApplyBackpressure(stream) {
