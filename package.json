@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "description": "Build process supporting stuff for WHATWG Streams Standard document",
+  "scripts": {
+    "ecmarkupify": "traceur-runner ./ecmarkupify.js",
+    "local-watch": "traceur-runner ./local-watch.js"
+  },
+  "devDependencies": {
+    "ecmarkup": "domenic/ecmarkup#jsdom-update",
+    "jsdom": "^4.0.2",
+    "promise-debounce": "^1.0.0",
+    "traceur": "0.0.87",
+    "traceur-runner": "^2.0.1"
+  }
+}

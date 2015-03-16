@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-if [ "$DEPLOY_USER" == "" ]; then
+if [ "$1" != "--local" -a "$DEPLOY_USER" == "" ]; then
     echo "No deploy credentials present; skipping deploy"
     exit 0
 fi
@@ -15,6 +15,11 @@ WEB_ROOT="streams.spec.whatwg.org"
 COMMITS_DIR="commit-snapshots"
 BRANCHES_DIR="branch-snapshots"
 TESTS_DIR="tests"
+
+if [ "$1" == "--local" ]; then
+    echo "Running a local deploy into $WEB_ROOT directory"
+    echo ""
+fi
 
 SHA="`git rev-parse HEAD`"
 BRANCH="`git rev-parse --abbrev-ref HEAD`"
@@ -36,6 +41,10 @@ echo ""
 
 rm -rf $WEB_ROOT || exit 0
 
+# Install build stuff
+npm install
+echo ""
+
 # Commit snapshot
 COMMIT_DIR=$WEB_ROOT/$COMMITS_DIR/$SHA
 mkdir -p $COMMIT_DIR
@@ -45,6 +54,7 @@ curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F md-status=LS-COMMIT \
      -F md-Text-Macro="SNAPSHOT-LINK $BACK_TO_LS_LINK" \
      > $COMMIT_DIR/index.html;
 cp *.svg $COMMIT_DIR
+npm run ecmarkupify $COMMIT_DIR/index.html $COMMIT_DIR/index.html
 echo "Commit snapshot output to $WEB_ROOT/$COMMITS_DIR/$SHA"
 
 if [ $BRANCH != "master" ] ; then
@@ -57,12 +67,14 @@ if [ $BRANCH != "master" ] ; then
          -F md-Text-Macro="SNAPSHOT-LINK $SNAPSHOT_LINK" \
          > $BRANCH_DIR/index.html;
     cp *.svg $BRANCH_DIR
+    npm run ecmarkupify $BRANCH_DIR/index.html $BRANCH_DIR/index.html
     echo "Branch snapshot output to $WEB_ROOT/$BRANCHES_DIR/$BRANCH"
 else
     # Living standard, if master
     curl https://api.csswg.org/bikeshed/ -F file=@index.bs \
          -F md-Text-Macro="SNAPSHOT-LINK $SNAPSHOT_LINK" \
          > $WEB_ROOT/index.html
+    npm run ecmarkupify $WEB_ROOT/index.html $WEB_ROOT/index.html
     cp *.svg $WEB_ROOT
     echo "Living standard output to $WEB_ROOT"
 
@@ -74,11 +86,13 @@ else
     cp reference-implementation/browser-tests/{index.html,bundle.js} "$WEB_ROOT/$TESTS_DIR"
 fi
 
-# scp the output directory up
-sudo apt-get install sshpass
-
 echo ""
 find $WEB_ROOT -print
 echo ""
 
-sshpass -p $DEPLOY_PASSWORD scp -r -o StrictHostKeyChecking=no $WEB_ROOT $DEPLOY_USER@$SERVER:
+if [ "$1" != "--local" ]; then
+    # scp the output directory up
+    sudo apt-get install sshpass
+
+    sshpass -p $DEPLOY_PASSWORD scp -r -o StrictHostKeyChecking=no $WEB_ROOT $DEPLOY_USER@$SERVER:
+fi

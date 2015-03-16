@@ -20,8 +20,13 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 </pre>
 
 <style>
-  ol > li { margin: 0; }
   .note + .example, .note + .note { margin-top: 1em; }
+
+  emu-val { font-weight: bold; }
+  emu-alg > ol, emu-alg > ol ol ol ol { list-style-type: decimal; }
+  emu-alg > ol ol, emu-alg > ol ol ol ol ol { list-style-type: lower-alpha; }
+  emu-alg > ol ol ol, emu-alg > ol ol ol ol ol ol { list-style-type: lower-roman; }
+  emu-alg li { margin: 0; }
 </style>
 <script src="https://resources.whatwg.org/file-issue.js" async></script>
 <script src="https://resources.whatwg.org/commit-snapshot-shortcut-key.js" async></script>
@@ -349,30 +354,23 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <code>enqueue</code>) when enqueuing into a non-empty queue.
 </div>
 
-<ol>
-  <li> Set <b>this</b>@\[[underlyingSource]] to <var>underlyingSource</var>.
-  <li> Set <b>this</b>@\[[queue]] to a new empty List.
-  <li> Set <b>this</b>@\[[state]] to <code>"readable"</code>.
-  <li> Set <b>this</b>@\[[started]], <b>this</b>@\[[draining]], and <b>this</b>@\[[pullScheduled]] to <b>false</b>.
-  <li> Set <b>this</b>@\[[reader]], <b>this</b>@\[[pullingPromise]], and <b>this</b>@\[[storedError]] to
-    <b>undefined</b>.
-  <li> Set <b>this</b>@\[[enqueue]] to CreateReadableStreamEnqueueFunction(<b>this</b>).
-  <li> Set <b>this</b>@\[[close]] to CreateReadableStreamCloseFunction(<b>this</b>).
-  <li> Set <b>this</b>@\[[error]] to CreateReadableStreamErrorFunction(<b>this</b>).
-  <li> Let <var>startResult</var> be InvokeOrNoop(<var>underlyingSource</var>, <code>"start"</code>,
-    «‍<b>this</b>@\[[enqueue]], <b>this</b>@\[[close]], <b>this</b>@\[[error]]»).
-  <li> ReturnIfAbrupt(<var>startResult</var>).
-  <li> Resolve <var>startResult</var> as a promise:
-    <ol>
-      <li> Upon fulfillment,
-        <ol>
-          <li> Set <b>this</b>@\[[started]] to <b>true</b>.
-          <li> Return CallReadableStreamPull(<b>this</b>).
-        </ol>
-      <li> Upon rejection with reason <var>r</var>, call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>,
-        «‍<var>r</var>»).
-    </ol>
-</ol>
+<pre is="emu-alg">
+  1. Set *this*@[[underlyingSource]] to _underlyingSource_.
+  1. Set *this*@[[queue]] to a new empty List.
+  1. Set *this*@[[state]] to "readable".
+  1. Set *this*@[[started]], *this*@[[draining]], and *this*@[[pullScheduled]] to *false*.
+  1. Set *this*@[[reader]], *this*@[[pullingPromise]], and *this*@[[storedError]] to *undefined*.
+  1. Set *this*@[[enqueue]] to CreateReadableStreamEnqueueFunction(*this*).
+  1. Set *this*@[[close]] to CreateReadableStreamCloseFunction(*this*).
+  1. Set *this*@[[error]] to CreateReadableStreamErrorFunction(*this*).
+  1. Let _startResult_ be InvokeOrNoop(_underlyingSource_, "start", «*this*@[[enqueue]], *this*@[[close]], *this*@[[error]]»).
+  1. ReturnIfAbrupt(startResult).
+  1. Resolve _startResult_ as a promise:
+    1. Upon fulfillment,
+      1. Set *this*@[[started]] to *true*.
+      1. Return CallReadableStreamPull(*this*).
+    1. Upon rejection with reason _r_, call-with-rethrow Call(*this*@[[error]], *undefined*, «‍_r_»).
+</pre>
 
 <h4 id="rs-prototype">Properties of the <code>ReadableStream</code> Prototype</h4>
 
@@ -384,11 +382,11 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   may or may not use it.
 </div>
 
-<ol>
-  <li> If IsReadableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
-  <li> If IsReadableStreamLocked(<b>this</b>) is <b>true</b>, return a promise rejected with a <b>TypeError</b> exception.
-  <li> Return CancelReadableStream(<b>this</b>, <var>reason</var>).
-</ol>
+<pre is="emu-alg">
+  1. If IsReadableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If IsReadableStreamLocked(*this*) is *true*, return a promise rejected with a *TypeError* exception.
+  1. Return CancelReadableStream(*this*, _reason_).
+</pre>
 
 <h5 id="rs-get-reader">getReader()</h5>
 
@@ -405,10 +403,10 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   Note that if a stream becomes closed or errored, any reader it is locked to is automatically released.
 </div>
 
-<ol>
-  <li> If IsReadableStream(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> Return AcquireReadableStreamReader(<b>this</b>).
-</ol>
+<pre is="emu-alg">
+  1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
+  1. Return AcquireReadableStreamReader(*this*).
+</pre>
 
 <div class="example">
   An example of an abstraction that might benefit from using a reader is a function like the following, which is
@@ -454,10 +452,10 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   or that its <code>readable</code> argument be a <code>ReadableStream</code> instance.
 </div>
 
-<ol>
-  <li> Call-with-rethrow Invoke(<b>this</b>, <code>"pipeTo"</code>, «‍<var>writable</var>, <var>options</var>»).
-  <li> Return <var>readable</var>.
-</ol>
+<pre is="emu-alg">
+  1. Call-with-rethrow Invoke(*this*, "pipeTo", «_writable_, _options_»).
+  1. Return _readable_.
+</pre>
 
 <div class="example">
   A typical example of constructing <a>pipe chain</a> using <code>pipeThrough</code> would look like
@@ -561,18 +559,17 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   classes of readers without the <a>consumer</a> needing to know which goes with which.
 </div>
 
-<ol>
-  <li> If IsReadableStream(<var>stream</var>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>, throw a <b>TypeError</b> exception.
-  <li> Set <var>stream</var>@\[[reader]] to <b>this</b>.
-  <li> Set <b>this</b>@\[[ownerReadableStream]] to <var>stream</var>.
-  <li> Set <b>this</b>@\[[state]] to <code>"readable"</code>.
-  <li> Set <b>this</b>@\[[storedError]] to <b>undefined</b>.
-  <li> Set <b>this</b>@\[[readRequests]] to a new empty List.
-  <li> Set <b>this</b>@\[[closedPromise]] to a new promise.
-  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, call-with-rethrow
-    ReleaseReadableStreamReader(<b>this</b>).
-</ol>
+<pre is="emu-alg">
+  1. If IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If IsReadableStreamLocked(_stream_) is *true*, throw a *TypeError* exception.
+  1. Set _stream_@[[reader]] to *this*.
+  1. Set *this*@[[ownerReadableStream]] to _stream_.
+  1. Set *this*@[[state]] to "readable".
+  1. Set *this*@[[storedError]] to *undefined*.
+  1. Set *this*@[[readRequests]] to a new empty List.
+  1. Set *this*@[[closedPromise]] to a new promise.
+  1. If _stream_@[[state]] is "closed" or "errored", call-with-rethrow ReleaseReadableStreamReader(*this*).
+</pre>
 
 <h4 id="reader-prototype">Properties of the <code>ReadableStreamReader</code> Prototype</h4>
 
@@ -583,11 +580,10 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   reader's lock is <a lt="release a read lock">released</a>, or rejected if the stream ever errors.
 </div>
 
-<ol>
-  <li> If IsReadableStreamReader(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b>
-    exception.
-  <li> Return <b>this</b>@\[[closedPromise]].
-</ol>
+<pre is="emu-alg">
+  1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Return *this*@[[closedPromise]].
+</pre>
 
 <h5 id="reader-cancel">cancel(reason)</h5>
 
@@ -596,16 +592,14 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   associated stream. When done, it automatically <a lt="release a read lock">releases the lock</a>.
 </div>
 
-<ol>
-  <li> If IsReadableStreamReader(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b>
-    exception.
-  <li> If <b>this</b>@\[[state]] is <code>"closed"</code>, return a new promise resolved with <b>undefined</b>.
-  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with
-    <b>this</b>@\[[storedError]].
-  <li> Assert: <b>this</b>@\[[ownerReadableStream]] is not <b>undefined</b>.
-  <li> Assert: <b>this</b>@\[[ownerReadableStream]]@\[[state]] is <code>"readable"</code>.
-  <li> Return CancelReadableStream(<b>this</b>@\[[ownerReadableStream]], <var>reason</var>).
-</ol>
+<pre is="emu-alg">
+  1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[state]] is "closed", return a new promise resolved with *undefined*.
+  1. If *this*@[[state]] is "errored", return a new promise rejected with *this*@[[storedError]].
+  1. Assert: *this*@[[ownerReadableStream]] is not *undefined*.
+  1. Assert: *this*@[[ownerReadableStream]]@[[state]] is "readable".
+  1. Return CancelReadableStream(*this*@[[ownerReadableStream]], _reason_).
+</pre>
 
 <h5 id="reader-read">read()</h5>
 
@@ -625,30 +619,22 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   If reading a chunk causes the queue to become empty, more data will be pulled from the <a>underlying source</a>.
 </div>
 
-<ol>
-  <li> If IsReadableStreamReader(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[state]] is <code>"closed"</code>, return a new promise resolved with
-    CreateIterResultObject(<b>undefined</b>, <b>true</b>).
-  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with
-    <b>this</b>@\[[storedError]].
-  <li> Assert: <b>this</b>@\[[ownerReadableStream]] is not <b>undefined</b>.
-  <li> Assert: <b>this</b>@\[[ownerReadableStream]]@\[[state]] is <code>"readable"</code>.
-  <li> If <b>this</b>@\[[ownerReadableStream]]@\[[queue]] is not empty,
-    <ol>
-      <li> Let <var>chunk</var> be DequeueValue(<b>this</b>@\[[ownerReadableStream]]@\[[queue]]).
-      <li> If <b>this</b>@\[[ownerReadableStream]]@\[[draining]] is <b>true</b> and
-        <b>this</b>@\[[ownerReadableStream]]@\[[queue]] is now empty, call-with-rethrow
-        CloseReadableStream(<b>this</b>@\[[ownerReadableStream]]).
-      <li> Otherwise, call-with-rethrow CallReadableStreamPull(<b>this</b>@\[[ownerReadableStream]]).
-      <li> Return a new promise resolved with CreateIterResultObject(<var>chunk</var>, <b>false</b>).
-    </ol>
-  <li> Otherwise,
-    <ol>
-      <li> Let <var>readRequestPromise</var> be a new promise.
-      <li> Append <var>readRequestPromise</var> as the last element of <b>this</b>@\[[readRequests]].
-      <li> Return <var>readRequestPromise</var>.
-    </ol>
-</ol>
+<pre is="emu-alg">
+  1. If IsReadableStreamReader(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
+  1. If *this*@[[state]] is "errored", return a new promise rejected with *this*@[[storedError]].
+  1. Assert: *this*@[[ownerReadableStream]] is not *undefined*.
+  1. Assert: *this*@[[ownerReadableStream]]@[[state]] is "readable".
+  1. If *this*@[[ownerReadableStream]]@[[queue]] is not empty,
+    1. Let _chunk_ be DequeueValue(*this*@[[ownerReadableStream]]@[[queue]]).
+    1. If *this*@[[ownerReadableStream]]@[[draining]] is *true* and *this*@[[ownerReadableStream]]@[[queue]] is now empty, call-with-rethrow CloseReadableStream(*this*@[[ownerReadableStream]]).
+    1. Otherwise, call-with-rethrow CallReadableStreamPull(*this*@[[ownerReadableStream]]).
+    1. Return a new promise resolved with CreateIterResultObject(_chunk_, *false*).
+  1. Otherwise,
+    1. Let _readRequestPromise_ be a new promise.
+    1. Append _readRequestPromise_ as the last element of *this*@[[readRequests]].
+    1. Return _readRequestPromise_.
+</pre>
 
 <h5 id="reader-release-lock">releaseLock()</h5>
 
@@ -663,16 +649,16 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   and leave the reader locked to the stream.
 </div>
 
-<ol>
-  <li> If IsReadableStreamReader(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[ownerReadableStream]] is <b>undefined</b>, return <b>undefined</b>.
-  <li> If <b>this</b>@\[[readRequests]] is not empty, throw a <b>TypeError</b> exception.
-  <li> Return ReleaseReadableStreamReader(<b>this</b>).
-</ol>
+<pre is="emu-alg">
+  1. If IsReadableStreamReader(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*@[[ownerReadableStream]] is *undefined*, return *undefined*.
+  1. If *this*@[[readRequests]] is not empty, throw a *TypeError* exception.
+  1. Return ReleaseReadableStreamReader(*this*).
+</pre>
 
 <h3 id="rs-abstract-ops">Readable Stream Abstract Operations</h3>
 
-<h4 id="acquire-readable-stream-reader">AcquireReadableStreamReader ( stream )</h4>
+<h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamReader">AcquireReadableStreamReader ( stream )</h4>
 
 <div class="note">
   This abstract operation is meant to be called from other specifications that may wish to acquire an
@@ -680,245 +666,198 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   of <a href="#rs-get-reader"><code>ReadableStream.prototype.getReader</code></a>.
 </div>
 
-<ol>
-  <li> Return Construct(<code>ReadableStreamReader</code>, «‍<var>stream</var>»).
-</ol>
+<pre is="emu-alg">
+  1. Return Construct(`ReadableStreamReader`, «‍_stream_»).
+</pre>
 
-<h4 id="call-readable-stream-pull">CallReadableStreamPull ( stream )</h4>
+<h4 id="call-readable-stream-pull" aoid="CallReadableStreamPull">CallReadableStreamPull ( stream )</h4>
 
-<ol>
-  <li> If <var>stream</var>@\[[draining]] is <b>true</b> or <var>stream</var>@\[[started]] is <b>false</b> or
-    <var>stream</var>@\[[state]] is <code>"closed"</code> or <var>stream</var>@\[[state]] is <code>"errored"</code> or
-    <var>stream</var>@\[[pullScheduled]] is <b>true</b>, return <b>undefined</b>.
-  <li> If <var>stream</var>@\[[pullingPromise]] is not <b>undefined</b>,
-    <ol>
-      <li> Set <var>stream</var>@\[[pullScheduled]] to <b>true</b>.
-      <li> Upon fulfillment of <var>stream</var>@\[[pullingPromise]],
-        <ol>
-          <li> Set <var>stream</var>@\[[pullScheduled]] to <b>false</b>.
-          <li> Call-with-rethrow CallReadableStreamPull(<var>stream</var>).
-        </ol>
-      <li> Return <b>undefined</b>.
-    </ol>
-  <li> Let <var>shouldApplyBackpressure</var> be ShouldReadableStreamApplyBackpressure(<var>stream</var>).
-  <li> If <var>shouldApplyBackpressure</var> is <b>true</b>, return <b>undefined</b>.
-  <li> Set <var>stream</var>@\[[pullingPromise]] to PromiseInvokeOrNoop(<var>stream</var>@\[[underlyingSource]],
-    <code>"pull"</code>, «‍<var>stream</var>@\[[enqueue]], <var>stream</var>@\[[close]]»).
-  <li> Upon fulfillment of <var>stream</var>@\[[pullingPromise]], set <var>stream</var>@\[[pullingPromise]] to
-    <b>undefined</b>.
-  <li> Upon rejection of <var>stream</var>@\[[pullingPromise]] with reason <var>e</var>, call-with-rethrow
-    <var>stream</var>@\[[error]](<var>e</var>).
-  <li> Return <b>undefined</b>.
-</ol>
+<pre is="emu-alg">
+  1. If _stream_@[[draining]] is *true* or _stream_@[[started]] is *false* or _stream_@[[state]] is "closed" or _stream_@[[state]] is "errored" or _stream_@[[pullScheduled]] is *true*, return *undefined*.
+  1. If _stream_@[[pullingPromise]] is not *undefined*,
+    1. Set _stream_@[[pullScheduled]] to *true*.
+    1. Upon fulfillment of _stream_@[[pullingPromise]],
+      1. Set _stream_@[[pullScheduled]] to *false*.
+      1. Call-with-rethrow CallReadableStreamPull(_stream_).
+    1. Return *undefined*.
+  1. Let _shouldApplyBackpressure_ be ShouldReadableStreamApplyBackpressure(_stream_).
+  1. If _shouldApplyBackpressure_ is *true*, return *undefined*.
+  1. Set _stream_@[[pullingPromise]] to PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "pull", «‍_stream_@[[enqueue]], _stream_@[[close]]»).
+  1. Upon fulfillment of _stream_@[[pullingPromise]], set _stream_@[[pullingPromise]] to *undefined*.
+  1. Upon rejection of _stream_@[[pullingPromise]] with reason _e_, call-with-rethrow _stream_@[[error]](_e_).
+  1. Return *undefined*.
+</pre>
 
-<h4 id="cancel-readable-stream">CancelReadableStream ( stream, reason )</h4>
+<h4 id="cancel-readable-stream" aoid="CancelReadableStream">CancelReadableStream ( stream, reason )</h4>
 
-<ol>
-  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code>, return a new promise resolved with <b>undefined</b>.
-  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, return a new promise rejected with
-    <var>stream</var>@\[[storedError]].
-  <li> Set <var>stream</var>@\[[queue]] to a new empty List.
-  <li> Call-with-rethrow CloseReadableStream(<var>stream</var>).
-  <li> Let <var>sourceCancelPromise</var> be PromiseInvokeOrNoop(<var>stream</var>@\[[underlyingSource]],
-    <code>"cancel"</code>, «‍<var>reason</var>»).
-  <li> Return the result of transforming <var>sourceCancelPromise</var> by a fulfillment handler that returns
-    <b>undefined</b>.
-</ol>
+<pre is="emu-alg">
+  1. If _stream_@[[state]] is "closed", return a new promise resolved with *undefined*.
+  1. If _stream_@[[state]] is "errored", return a new promise rejected with _stream_@[[storedError]].
+  1. Set _stream_@[[queue]] to a new empty List.
+  1. Call-with-rethrow CloseReadableStream(_stream_).
+  1. Let _sourceCancelPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "cancel", «‍_reason_»).
+  1. Return the result of transforming _sourceCancelPromise_ by a fulfillment handler that returns *undefined*.
+</pre>
 
-<h4 id="close-readable-stream">CloseReadableStream ( stream )</h4>
+<h4 id="close-readable-stream" aoid="CloseReadableStream">CloseReadableStream ( stream )</h4>
 
-<ol>
-  <li> Assert: <var>stream</var>@\[[state]] is <code>"readable"</code>.
-  <li> Set <var>stream</var>@\[[state]] to <code>"closed"</code>.
-  <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>, return
-    ReleaseReadableStreamReader(<var>stream</var>).
-  <li> Return <b>undefined</b>.
-</ol>
+<pre is="emu-alg">
+  1. Assert: _stream_@[[state]] is "readable".
+  1. Set _stream_@[[state]] to "closed".
+  1. If IsReadableStreamLocked(_stream_) is *true*, return ReleaseReadableStreamReader(_stream_).
+  1. Return *undefined*.
+</pre>
 
-<h4 id="close-readable-stream-reader">CloseReadableStreamReader ( reader )</h4>
+<h4 id="close-readable-stream-reader" aoid="CloseReadableStreamReader">CloseReadableStreamReader ( reader )</h4>
 
-<ol>
-  <li> Repeat for each <var>readRequestPromise</var> that is an element of <var>reader</var>@\[[readRequests]],
-    <ol>
-      <li> Resolve <var>readRequestPromise</var> with CreateIterResultObject(<b>undefined</b>, <b>true</b>).
-    </ol>
-  <li> Set <var>reader</var>@\[[readRequests]] to a new empty List.
-  <li> Resolve <var>reader</var>@\[[closedPromise]] with <b>undefined</b>.
-  <li> Return <b>undefined</b>.
-</ol>
+<pre is="emu-alg">
+  1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
+    1. Resolve _readRequestPromise_ with CreateIterResultObject(*undefined*, *true*).
+  1. Set _reader_@[[readRequests]] to a new empty List.
+  1. Resolve _reader_@[[closedPromise]] with *undefined*.
+  1. Return *undefined*.
+</pre>
 
-<h4 id="create-readable-stream-close-function">CreateReadableStreamCloseFunction ( stream )</h4>
+<h4 id="create-readable-stream-close-function" aoid="CreateReadableStreamCloseFunction">CreateReadableStreamCloseFunction ( stream )</h4>
 
-<ol>
-  <li> Return a new <a>Readable Stream Close Function</a> closing over <var>stream</var>.
-</ol>
+<pre is="emu-alg">
+  1. Return a new <a>Readable Stream Close Function</a> closing over _stream_.
+</pre>
 
 A <dfn>Readable Stream Close Function</dfn> is a built-in anonymous function of zero arguments, closing over a variable
 <var>stream</var>, that performs the following steps:
 
-<ol>
-  <li> If <var>stream</var>@\[[state]] is not <code>"readable"</code>, return <b>undefined</b>.
-  <li> If <var>stream</var>@\[[queue]] is empty, return CloseReadableStream(<var>stream</var>).
-  <li> Set <var>stream</var>@\[[draining]] to <b>true</b>.
-</ol>
+<pre is="emu-alg">
+  1. If _stream_@[[state]] is not "readable", return *undefined*.
+  1. If _stream_@[[queue]] is empty, return CloseReadableStream(_stream_).
+  1. Set _stream_@[[draining]] to *true*.
+</pre>
 
-<h4 id="create-readable-stream-enqueue-function">CreateReadableStreamEnqueueFunction ( stream )</h4>
+<h4 id="create-readable-stream-enqueue-function" aoid="CreateReadableStreamEnqueueFunction">CreateReadableStreamEnqueueFunction ( stream )</h4>
 
-<ol>
-  <li> Return a new <a>Readable Stream Enqueue Function</a> closing over <var>stream</var>.
-</ol>
+<pre is="emu-alg">
+  1. Return a new <a>Readable Stream Enqueue Function</a> closing over _stream_.
+</pre>
 
 A <dfn>Readable Stream Enqueue Function</dfn> is a built-in anonymous function of one argument <var>chunk</var>,
 closing over a variable <var>stream</var>, that performs the following steps:
 
-<ol>
-  <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, throw <var>stream</var>@\[[storedError]].
-  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code>, throw a <b>TypeError</b> exception.
-  <li> If <var>stream</var>@\[[draining]] is <b>true</b>, throw a <b>TypeError</b> exception.
-  <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b> and <var>stream</var>@\[[reader]]@\[[readRequests]]
-    is not empty,
-    <ol>
-      <li> Let <var>readRequestPromise</var> be the first element of <var>stream</var>@\[[reader]]@\[[readRequests]].
-      <li>Remove <var>readRequestPromise</var> from <var>stream</var>@\[[reader]]@\[[readRequests]], shifting all other
-        elements downward (so that the second becomes the first, and so on).
-      <li> Resolve <var>readRequestPromise</var> with CreateIterResultObject(<var>chunk</var>, <b>false</b>).
-    </ol>
-  <li> Otherwise,
-    <ol>
-      <li> Let <var>chunkSize</var> be <b>1</b>.
-      <li> Let <var>strategy</var> be Get(<var>stream</var>@\[[underlyingSource]], <code>"strategy"</code>).
-      <li> If <var>strategy</var> is an abrupt completion,
-        <ol>
-          <li> Call-with-rethrow Call(<var>stream</var>@\[[error]], <b>undefined</b>, «‍<var>strategy</var>.\[[value]]»).
-          <li> Return <var>strategy</var>.
-        </ol>
-      <li> Let <var>strategy</var> be <var>strategy</var>.\[[value]].
-      <li> If <var>strategy</var> is not <b>undefined</b>, then
-        <ol>
-          <li> Set <var>chunkSize</var> to Invoke(<var>strategy</var>, <code>"size"</code>, «‍<var>chunk</var>»).
-          <li> If <var>chunkSize</var> is an abrupt completion,
-            <ol>
-              <li> Call-with-rethrow Call(<var>stream</var>@\[[error]], <b>undefined</b>,
-                «‍<var>chunkSize</var>.\[[value]]»).
-              <li> Return <var>chunkSize</var>.
-            </ol>
-          <li> Let <var>chunkSize</var> be <var>chunkSize</var>.\[[value]].
-        </ol>
-      <li>Let <var>enqueueResult</var> be EnqueueValueWithSize(<var>stream</var>@\[[queue]], <var>chunk</var>,
-        <var>chunkSize</var>.\[[value]]).
-      <li> If <var>enqueueResult</var> is an abrupt completion,
-        <ol>
-          <li> Call-with-rethrow Call(<var>stream</var>@\[[error]], <b>undefined</b>,
-            «‍<var>enqueueResult</var>.\[[value]]»).
-          <li> Return <var>enqueueResult</var>.
-        </ol>
-    </ol>
-  <li> Call-with-rethrow CallReadableStreamPull(<var>stream</var>).
-  <li> Let <var>shouldApplyBackpressure</var> be ShouldReadableStreamApplyBackpressure(<var>stream</var>).
-  <li> ReturnIfAbrupt(<var>shouldApplyBackpressure</var>).
-  <li> If <var>shouldApplyBackpressure</var> is <b>true</b>, return <b>false</b>.
-  <li> Return <b>true</b>.
-</ol>
+<pre is="emu-alg">
+  1. If _stream_@[[state]] is "errored", throw _stream_@[[storedError]].
+  1. If _stream_@[[state]] is "closed", throw a *TypeError* exception.
+  1. If _stream_@[[draining]] is *true*, throw a *TypeError* exception.
+  1. If IsReadableStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty,
+    1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
+    1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
+    1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *false*).
+  1. Otherwise,
+    1. Let _chunkSize_ be *1*.
+    1. Let _strategy_ be Get(_stream_@[[underlyingSource]], "strategy").
+    1. If _strategy_ is an abrupt completion,
+      1. Call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_strategy_.[[value]]»).
+      1. Return _strategy_.
+    1. Let _strategy_ be _strategy_.[[value]].
+    1. If _strategy_ is not *undefined*, then
+      1. Set _chunkSize_ to Invoke(_strategy_, "size", «‍_chunk_»).
+      1. If _chunkSize_ is an abrupt completion,
+        1. Call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_chunkSize_.[[value]]»).
+        1. Return _chunkSize_.
+      1. Let _chunkSize_ be _chunkSize_.[[value]].
+    1. Let _enqueueResult_ be EnqueueValueWithSize(_stream_@[[queue]], _chunk_, _chunkSize_.[[value]]).
+    1. If _enqueueResult_ is an abrupt completion,
+      1. Call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_enqueueResult_.[[value]]»).
+      1. Return _enqueueResult_.
+  1. Call-with-rethrow CallReadableStreamPull(_stream_).
+  1. Let _shouldApplyBackpressure_ be ShouldReadableStreamApplyBackpressure(_stream_).
+  1. ReturnIfAbrupt(_shouldApplyBackpressure_).
+  1. If _shouldApplyBackpressure_ is *true*, return *false*.
+  1. Return *true*.
+</pre>
 
-<h4 id="create-readable-stream-error-function">CreateReadableStreamErrorFunction ( stream )</h4>
 
-<ol>
-  <li> Return a new <a>Readable Stream Error Function</a> closing over <var>stream</var>.
-</ol>
+<h4 id="create-readable-stream-error-function" aoid="CreateReadableStreamErrorFunction">CreateReadableStreamErrorFunction ( stream )</h4>
+
+<pre is="emu-alg">
+  1. Return a new <a>Readable Stream Error Function</a> closing over _stream_.
+</pre>
 
 A <dfn>Readable Stream Error Function</dfn> is a built-in anonymous function of one argument <var>e</var>, closing over
 a variable <var>stream</var>, that performs the following steps:
 
-<ol>
-  <li> If <var>stream</var>@\[[state]] is not <code>"readable"</code> return <b>undefined</b>.
-  <li> Let <var>stream</var>@\[[queue]] be a new empty List.
-  <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
-  <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
-  <li> If IsReadableStreamLocked(<var>stream</var>) is <b>true</b>, return
-    ReleaseReadableStreamReader(<var>stream</var>@\[[reader]]).
-</ol>
+<pre is="emu-alg">
+  1. If _stream_@[[state]] is not "readable" return *undefined*.
+  1. Let _stream_@[[queue]] be a new empty List.
+  1. Set _stream_@[[storedError]] to _e_.
+  1. Set _stream_@[[state]] to "errored".
+  1. If IsReadableStreamLocked(_stream_) is *true*, return ReleaseReadableStreamReader(_stream_@[[reader]]).
+</pre>
 
-<h4 id="is-readable-stream">IsReadableStream ( x )</h4>
+<h4 id="is-readable-stream" aoid="IsReadableStream">IsReadableStream ( x )</h4>
 
-<ol>
-  <li> If Type(<var>x</var>) is not Object, return <b>false</b>.
-  <li> If <var>x</var> does not have a \[[underlyingSource]] internal slot, return <b>false</b>.
-  <li> Return <b>true</b>.
-</ol>
+<pre is="emu-alg">
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[underlyingSource]] internal slot, return *false*.
+  1. Return *true*.
+</pre>
 
-<h4 id="is-readable-stream-locked">IsReadableStreamLocked ( stream )</h4>
+<h4 id="is-readable-stream-locked" aoid="IsReadableStreamLocked">IsReadableStreamLocked ( stream )</h4>
 
 <div class="note">
   This abstract operation is meant to be called from other specifications that may wish to query whether or not a
   readable stream is <a>locked to a reader</a>.
 </div>
 
-<ol>
-  <li> Assert: IsReadableStream(<var>stream</var>) is <b>true</b>.
-  <li> If <var>stream</var>@\[[reader]] is <b>undefined</b>, return <b>false</b>.
-  <li> Return <b>true</b>.
-</ol>
+<pre is="emu-alg">
+  1. Assert: IsReadableStream(_stream_) is *true*.
+  1. If _stream_@[[reader]] is *undefined*, return *false*.
+  1. Return *true*.
+</pre>
 
-<h4 id="is-readable-stream-reader">IsReadableStreamReader ( x )</h4>
+<h4 id="is-readable-stream-reader" aoid="IsReadableStreamReader">IsReadableStreamReader ( x )</h4>
 
-<ol>
-  <li> If Type(<var>x</var>) is not Object, return <b>false</b>.
-  <li> If <var>x</var> does not have a \[[ownerReadableStream]] internal slot, return <b>false</b>.
-  <li> Return <b>true</b>.
-</ol>
+<pre is="emu-alg">
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have an [[ownerReadableStream]] internal slot, return *false*.
+  1. Return *true*.
+</pre>
 
-<h4 id="release-readable-stream-reader">ReleaseReadableStreamReader ( reader )</h4>
+<h4 id="release-readable-stream-reader" aoid="ReleaseReadableStreamReader">ReleaseReadableStreamReader ( reader )</h4>
 
-<ol>
-  <li> Assert: <var>reader</var>@\[[ownerReadableStream]] is not <b>undefined</b>.
-  <li> If <var>reader</var>@\[[ownerReadableStream]]@\[[state]] is <code>"errored"</code>,
-    <ol>
-      <li> Set <var>reader</var>@\[[state]] to <code>"errored"</code>.
-      <li> Let <var>e</var> be <var>reader</var>@\[[ownerReadableStream]]@\[[storedError]].
-      <li> Set <var>reader</var>@\[[storedError]] to <var>e</var>.
-      <li> Reject <var>reader</var>@\[[closedPromise]] with <var>e</var>.
-      <li> Repeat for each <var>readRequestPromise</var> that is an element of <var>reader</var>@\[[readRequests]],
-        <ol>
-          <li> Reject <var>readRequestPromise</var> with <var>e</var>.
-        </ol>
-    </ol>
-  <li> Otherwise,
-    <ol>
-      <li> Set <var>reader</var>@\[[state]] to <code>"closed"</code>.
-      <li> Resolve <var>reader</var>@\[[closedPromise]] with <b>undefined</b>.
-      <li> Repeat for each <var>readRequestPromise</var> that is an element of <var>reader</var>@\[[readRequests]],
-        <ol>
-          <li> Resolve <var>readRequestPromise</var> with CreateIterResultObject(<b>undefined</b>, <b>true</b>).
-        </ol>
-    </ol>
-  <li> Set <var>reader</var>@\[[readRequests]] to a new empty List.
-  <li> Set <var>reader</var>@\[[ownerReadableStream]]@\[[reader]] to <b>undefined</b>.
-  <li> Set <var>reader</var>@\[[ownerReadableStream]] to <b>undefined</b>.
-</ol>
+<pre is="emu-alg">
+  1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
+  1. If _reader_@[[ownerReadableStream]]@[[state]] is "errored",
+    1. Set _reader_@[[state]] to "errored".
+    1. Let _e_ be _reader_@[[ownerReadableStream]]@[[storedError]].
+    1. Set _reader_@[[storedError]] to _e_.
+    1. Reject _reader_@[[closedPromise]] with _e_.
+    1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
+      1. Reject _readRequestPromise_ with _e_.
+  1. Otherwise,
+    1. Set _reader_@[[state]] to "closed".
+    1. Resolve _reader_@[[closedPromise]] with *undefined*.
+    1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
+      1. Resolve _readRequestPromise_ with CreateIterResultObject(*undefined*, *true*).
+  1. Set _reader_@[[readRequests]] to a new empty List.
+  1. Set _reader_@[[ownerReadableStream]]@[[reader]] to *undefined*.
+  1. Set _reader_@[[ownerReadableStream]] to *undefined*.
+</pre>
 
-<h4 id="should-readable-stream-apply-backpressure">ShouldReadableStreamApplyBackpressure ( stream )</h4>
+<h4 id="should-readable-stream-apply-backpressure" aoid="ShouldReadableStreamApplyBackpressure">ShouldReadableStreamApplyBackpressure ( stream )</h4>
 
-<ol>
-  <li> Let <var>queueSize</var> be GetTotalQueueSize(<var>stream</var>@\[[queue]]).
-  <li> ReturnIfAbrupt(<var>queueSize</var>).
-  <li> Let <var>shouldApplyBackpressure</var> be <b>true</b> if <var>queueSize</var> > <b>1</b>, and <b>false</b>
-    otherwise.
-  <li> Let <var>strategy</var> be Get(<var>stream</var>@\[[underlyingSource]], <code>"strategy"</code>).
-  <li> If <var>strategy</var> is an abrupt completion,
-    <ol>
-      <li> Call-with-rethrow Call(<var>stream</var>@\[[error]], <b>undefined</b>, «‍<var>strategy</var>.\[[value]]»).
-      <li> Return <var>strategy</var>.
-    </ol>
-  <li> Let <var>strategy</var> be <var>strategy</var>.\[[value]].
-  <li> If <var>strategy</var> is not <b>undefined</b>, then
-    <ol>
-      <li> Set <var>shouldApplyBackpressure</var> to ToBoolean(Invoke(<var>strategy</var>,
-        <code>"shouldApplyBackpressure"</code>, «‍<var>queueSize</var>»)).
-      <li> If <var>shouldApplyBackpressure</var> is an abrupt completion, call-with-rethrow
-        Call(<var>stream</var>@\[[error]], <b>undefined</b>, «‍<var>shouldApplyBackpressure</var>.\[[value]]»).
-    </ol>
-  <li> Return <var>shouldApplyBackpressure</var>.
-</ol>
+<pre is="emu-alg">
+  1. Let _queueSize_ be GetTotalQueueSize(_stream_@[[queue]]).
+  1. ReturnIfAbrupt(_queueSize_).
+  1. Let _shouldApplyBackpressure_ be *true* if _queueSize_ > *1*, and *false* otherwise.
+  1. Let _strategy_ be Get(_stream_@[[underlyingSource]], "strategy").
+  1. If _strategy_ is an abrupt completion,
+    1. Call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_strategy_.[[value]]»).
+    1. Return _strategy_.
+  1. Let _strategy_ be _strategy_.[[value]].
+  1. If _strategy_ is not *undefined*, then
+    1. Set _shouldApplyBackpressure_ to ToBoolean(Invoke(_strategy_, "shouldApplyBackpressure", «‍_queueSize_»)).
+    1. If _shouldApplyBackpressure_ is an abrupt completion, call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_shouldApplyBackpressure_.[[value]]»).
+  1. Return _shouldApplyBackpressure_.
+</pre>
 
 <h2 id="ws">Writable Streams</h2>
 
@@ -1100,29 +1039,23 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   this.
 </div>
 
-<ol>
-  <li> Set <b>this</b>@\[[underlyingSink]] to <var>underlyingSink</var>.
-  <li> Set <b>this</b>@\[[closedPromise]] to a new promise.
-  <li> Set <b>this</b>@\[[readyPromise]] to a new promise resolved with <b>undefined</b>.
-  <li> Set <b>this</b>@\[[queue]] to a new empty List.
-  <li> Set <b>this</b>@\[[state]] to <code>"writable"</code>.
-  <li> Set <b>this</b>@\[[started]] and <b>this</b>@\[[writing]] to <b>false</b>.
-  <li> Set <b>this</b>@\[[error]] to CreateWritableStreamErrorFunction(<b>this</b>).
-  <li> Call-with-rethrow SyncWritableStreamStateWithQueue(<b>this</b>).
-  <li> Let <var>startResult</var> be InvokeOrNoop(<var>underlyingSink</var>, <code>"start"</code>,
-    «‍<b>this</b>@\[[error]]»).
-  <li> ReturnIfAbrupt(<var>startResult</var>).
-  <li> Set <b>this</b>@\[[startedPromise]] to the result of resolving <var>startResult</var> as a promise.
-    <ol>
-      <li> Upon fulfillment,
-        <ol>
-          <li> Set <b>this</b>@\[[started]] to <b>true</b>.
-          <li> Set <b>this</b>@\[[startedPromise]] to <b>undefined</b>.
-        </ol>
-      <li> Upon rejection with reason <var>r</var>, call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>,
-        «‍<var>r</var>»).
-    </ol>
-</ol>
+<pre is="emu-alg">
+  1. Set *this*@[[underlyingSink]] to _underlyingSink_.
+  1. Set *this*@[[closedPromise]] to a new promise.
+  1. Set *this*@[[readyPromise]] to a new promise resolved with *undefined*.
+  1. Set *this*@[[queue]] to a new empty List.
+  1. Set *this*@[[state]] to "writable".
+  1. Set *this*@[[started]] and *this*@[[writing]] to *false*.
+  1. Set *this*@[[error]] to CreateWritableStreamErrorFunction(*this*).
+  1. Call-with-rethrow SyncWritableStreamStateWithQueue(*this*).
+  1. Let _startResult_ be InvokeOrNoop(_underlyingSink_, "start", «‍*this*@[[error]]»).
+  1. ReturnIfAbrupt(_startResult_).
+  1. Set *this*@[[startedPromise]] to the result of resolving _startResult_ as a promise.
+    1. Upon fulfillment,
+      1. Set *this*@[[started]] to *true*.
+      1. Set *this*@[[startedPromise]] to *undefined*.
+    1. Upon rejection with reason _r_, call-with-rethrow Call(*this*@[[error]], *undefined*, «‍_r_»).
+</pre>
 
 <h4 id="ws-prototype">Properties of the <code>WritableStream</code> Prototype</h4>
 
@@ -1133,10 +1066,10 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   if it ever errors.
 </div>
 
-<ol>
-  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
-  <li> Return <b>this</b>@\[[closedPromise]].
-</ol>
+<pre is="emu-alg">
+  1. If IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Return *this*@[[closedPromise]].
+</pre>
 
 <h5 id="ws-ready">get ready</h5>
 
@@ -1149,10 +1082,10 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   or errored).
 </div>
 
-<ol>
-  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
-  <li> Return <b>this</b>@\[[readyPromise]].
-</ol>
+<pre is="emu-alg">
+  1. If IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Return *this*@[[readyPromise]].
+</pre>
 
 <h5 id="ws-state">get state</h5>
 
@@ -1180,10 +1113,10 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </dl>
 </div>
 
-<ol>
-  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, throw a <b>TypeError</b> exception.
-  <li> Return <b>this</b>@\[[state]].
-</ol>
+<pre is="emu-alg">
+  1. If IsWritableStream(*this*) is *false*, throw a *TypeError* exception.
+  1. Return *this*@[[state]].
+</pre>
 
 <h5 id="ws-abort">abort(reason)</h5>
 
@@ -1193,16 +1126,14 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   any abort mechanism of the <a>underlying sink</a>.
 </div>
 
-<ol>
-  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[state]] is <code>"closed"</code>, return a new promise resolved with <b>undefined</b>.
-  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a new promise rejected with
-    <b>this</b>@\[[storedError]].
-  <li> Call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>, «‍reason»).
-  <li> Let <var>sinkAbortPromise</var> be PromiseInvokeOrFallbackOrNoop(<b>this</b>@\[[underlyingSink]],
-    <code>"abort"</code>, (<var>reason</var>), <code>"close"</code>, «‍»).
-  <li> Return the result of transforming <var>sinkAbortPromise</var> by a fulfillment handler that returns <b>undefined</b>.
-</ol>
+<pre is="emu-alg">
+  1. If IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[state]] is "closed", return a new promise resolved with *undefined*.
+  1. If *this*@[[state]] is "errored", return a new promise rejected with *this*@[[storedError]].
+  1. Call-with-rethrow Call(*this*@[[error]], *undefined*, «‍reason»).
+  1. Let _sinkAbortPromise_ be PromiseInvokeOrFallbackOrNoop(*this*@[[underlyingSink]], "abort", «_reason_», "close", «»).
+  1. Return the result of transforming _sinkAbortPromise_ by a fulfillment handler that returns *undefined*.
+</pre>
 
 <h5 id="ws-close">close()</h5>
 
@@ -1213,18 +1144,16 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   resources. In the meantime, the stream will be in a <code>"closing"</code> state.
 </div>
 
-<ol>
-  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[state]] is <code>"closing"</code> or <code>"closed"</code>, return a promise rejected with a
-    <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a promise rejected with
-    <b>this</b>@\[[storedError]].
-  <li> If <b>this</b>@\[[state]] is <code>"waiting"</code>, resolve <b>this</b>@\[[readyPromise]] with <b>undefined</b>.
-  <li> Set <b>this</b>@\[[state]] to <code>"closing"</code>
-  <li> Call-with-rethrow EnqueueValueWithSize(<b>this</b>@\[[queue]], <code>"close"</code>, <b>0</b>).
-  <li> Call-with-rethrow CallOrScheduleWritableStreamAdvanceQueue(<b>this</b>).
-  <li>Return <b>this</b>@\[[closedPromise]].
-</ol>
+<pre is="emu-alg">
+  1. If IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[state]] is "closing" or "closed", return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[state]] is "errored", return a promise rejected with *this*@[[storedError]].
+  1. If *this*@[[state]] is "waiting", resolve *this*@[[readyPromise]] with *undefined*.
+  1. Set *this*@[[state]] to "closing".
+  1. Call-with-rethrow EnqueueValueWithSize(*this*@[[queue]], "close", *0*).
+  1. Call-with-rethrow CallOrScheduleWritableStreamAdvanceQueue(*this*).
+  1. Return *this*@[[closedPromise]].
+</pre>
 
 <h5 id="ws-write">write(chunk)</h5>
 
@@ -1239,178 +1168,134 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   exert backpressure by changing its state to <code>"waiting"</code>.
 </div>
 
-<ol>
-  <li> If IsWritableStream(<b>this</b>) is <b>false</b>, return a promise rejected with a <b>TypeError</b> exception.
-  <li> If <b>this</b>@\[[state]] is <code>"closing"</code> or <code>"closed"</code>, return a promise rejected with a
-    <b>TypeError</b>.
-  <li> If <b>this</b>@\[[state]] is <code>"errored"</code>, return a promise rejected with
-    <b>this</b>@\[[storedError]].
-  <li> Assert: <b>this</b>@\[[state]] is either <code>"waiting"</code> or <code>"writable"</code>.
-  <li> Let <var>chunkSize</var> be <b>1</b>.
-  <li> Let <var>strategy</var> be Get(<b>this</b>@\[[underlyingSink]], <code>"strategy"</code>).
-  <li> If <var>strategy</var> is an abrupt completion,
-    <ol>
-      <li> Call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>, «‍<var>strategy</var>.\[[value]]»).
-      <li> Return a new promise rejected with <var>strategy</var>.\[[value]].
-    </ol>
-  <li> Set <var>strategy</var> to <var>strategy</var>.\[[value]].
-  <li> If <var>strategy</var> is not <b>undefined</b>, then
-    <li> Set <var>chunkSize</var> to Invoke(<var>strategy</var>, <code>"size"</code>, «‍<var>chunk</var>»).
-    <li> If <var>chunkSize</var> is an abrupt completion,
-      <ol>
-        <li> Call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>, «‍<var>chunkSize</var>.\[[value]]»).
-        <li> Return a new promise rejected with <var>chunkSize</var>.\[[value]].
-      </ol>
-    </li>
-    <li> Set <var>chunkSize</var> to <var>chunkSize</var>.\[[value]].
-  <li> Let <var>promise</var> be a new promise.
-  <li> Let <var>writeRecord</var> be Record{\[[promise]]: <var>promise</var>, \[[chunk]]: <var>chunk</var>}.
-  <li> Let <var>enqueueResult</var> be EnqueueValueWithSize(<b>this</b>@\[[queue]], <var>writeRecord</var>,
-    <var>chunkSize</var>).
-  <li> If <var>enqueueResult</var> is an abrupt completion,
-    <ol>
-      <li> Call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>, «‍<var>enqueueResult</var>.\[[value]]»).
-      <li> Return a new promise rejected with <var>enqueueResult</var>.\[[value]].
-    </ol>
-  </li>
-  <li> Let <var>syncResult</var> be SyncWritableStreamStateWithQueue(<b>this</b>).
-  <li> If <var>syncResult</var> is an abrupt completion,
-    <ol>
-      <li> Call-with-rethrow Call(<b>this</b>@\[[error]], <b>undefined</b>, «‍<var>syncResult</var>.\[[value]]»).
-      <li> Return <var>promise</var>.
-    </ol>
-  </li>
-  <li> Call-with-rethrow CallOrScheduleWritableStreamAdvanceQueue(<b>this</b>).
-  <li> Return <var>promise</var>.
-</ol>
+<pre is="emu-alg">
+  1. If IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[state]] is "closing" or "closed", return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[state]] is "errored", return a promise rejected with *this*@[[storedError]].
+  1. Assert: *this*@[[state]] is either "waiting" or "writable".
+  1. Let _chunkSize_ be *1*.
+  1. Let _strategy_ be Get(*this*@[[underlyingSink]], "strategy").
+  1. If _strategy_ is an abrupt completion,
+    1. Call-with-rethrow Call(*this*@[[error]], *undefined*, «‍_strategy_.[[value]]»).
+    1. Return a new promise rejected with _strategy_.[[value]].
+  1. Set _strategy_ to _strategy_.[[value]].
+  1. If _strategy_ is not *undefined*, then
+    1. Set _chunkSize_ to Invoke(_strategy_, "size", «‍_chunk_»).
+    1. If _chunkSize_ is an abrupt completion,
+      1. Call-with-rethrow Call(*this*@[[error]], *undefined*, «‍_chunkSize_.[[value]]»).
+      1. Return a new promise rejected with _chunkSize_.[[value]].
+    1. Set _chunkSize_ to _chunkSize_.[[value]].
+  1. Let _promise_ be a new promise.
+  1. Let _writeRecord_ be Record{[[promise]]: _promise_, [[chunk]]: _chunk_}.
+  1. Let _enqueueResult_ be EnqueueValueWithSize(*this*@[[queue]], _writeRecord_, _chunkSize_).
+  1. If _enqueueResult_ is an abrupt completion,
+    1. Call-with-rethrow Call(*this*@[[error]], *undefined*, «‍_enqueueResult_.[[value]]»).
+    1. Return a new promise rejected with _enqueueResult_.[[value]].
+  1. Let _syncResult_ be SyncWritableStreamStateWithQueue(*this*).
+  1. If _syncResult_ is an abrupt completion,
+    1. Call-with-rethrow Call(*this*@[[error]], *undefined*, «‍_syncResult_.[[value]]»).
+    1. Return _promise_.
+  1. Call-with-rethrow CallOrScheduleWritableStreamAdvanceQueue(*this*).
+  1. Return _promise_.
+</pre>
 
 <h3 id="ws-abstract-ops">Writable Stream Abstract Operations</h3>
 
-<h4 id="call-or-schedule-writable-stream-advance-queue">CallOrScheduleWritableStreamAdvanceQueue ( stream )</h4>
+<h4 id="call-or-schedule-writable-stream-advance-queue" aoid="CallOrScheduleWritableStreamAdvanceQueue">CallOrScheduleWritableStreamAdvanceQueue ( stream )</h4>
 
-<ol>
-  <li> If <var>stream</var>@\[[started]] is <b>false</b>, then
-    <ol>
-      <li> Upon fulfillment of <var>stream</var>@\[[startedPromise]], call-with-rethrow
-        WritableStreamAdvanceQueue(<var>stream</var>).
-      <li> Return <b>undefined</b>.
-    </ol>
-  <li> Otherwise, return WritableStreamAdvanceQueue(<var>stream</var>).
-</ol>
+<pre is="emu-alg">
+  1. If _stream_@[[started]] is *false*, then
+    1. Upon fulfillment of _stream_@[[startedPromise]], call-with-rethrow WritableStreamAdvanceQueue(_stream_).
+    1. Return *undefined*.
+  1. Otherwise, return WritableStreamAdvanceQueue(_stream_).
+</pre>
 
-<h4 id="close-writable-stream">CloseWritableStream ( stream )</h4>
+<h4 id="close-writable-stream" aoid="CloseWritableStream">CloseWritableStream ( stream )</h4>
 
-<ol>
-  <li> Assert: <var>stream</var>@\[[state]] is <code>"closing"</code>.
-  <li> Let <var>sinkClosePromise</var> be PromiseInvokeOrNoop(<var>stream</var>@\[[underlyingSink]],
-    <code>"close"</code>).
-    <ol>
-      <li> Upon fulfillment,
-        <ol>
-          <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, return.
-          <li> Assert: <var>stream</var>@\[[state]] is <code>"closing"</code>.
-          <li> Resolve <var>stream</var>@\[[closedPromise]] with <b>undefined</b>.
-          <li> Set <var>stream</var>@\[[state]] to <code>"closed"</code>.
-        </ol>
-      <li> Upon rejection with reason <var>r</var>, call-with-rethrow Call(<var>stream</var>@\[[error]],
-        <b>undefined</b>, «‍<var>r</var>»).
-    </ol>
-  <li> Return <b>undefined</b>.
-</ol>
+<pre is="emu-alg">
+  1. Assert: _stream_@[[state]] is "closing".
+  1. Let _sinkClosePromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingSink]], "close").
+    1. Upon fulfillment,
+      1. If _stream_@[[state]] is "errored", return.
+      1. Assert: _stream_@[[state]] is "closing".
+      1. Resolve _stream_@[[closedPromise]] with *undefined*.
+      1. Set _stream_@[[state]] to "closed".
+    1. Upon rejection with reason _r_, call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_r_»).
+  1. Return *undefined*.
+</pre>
 
-<h4 id="create-writable-stream-error-function">CreateWritableStreamErrorFunction ( stream )</h4>
+<h4 id="create-writable-stream-error-function" aoid="CreateWritableStreamErrorFunction">CreateWritableStreamErrorFunction ( stream )</h4>
 
-<ol>
-  <li> Return a new <a>Writable Stream Error Function</a> closing over <var>stream</var>.
-</ol>
+<pre is="emu-alg">
+  1. Return a new <a>Writable Stream Error Function</a> closing over _stream_.
+</pre>
 
 A <dfn>Writable Stream Error Function</dfn> is a built-in anonymous function of one argument <var>e</var>, closing over
 a variable <var>stream</var>, that performs the following steps:
 
-<ol>
-  <li> If <var>stream</var>@\[[state]] is <code>"closed"</code> or <code>"errored"</code>, return <b>undefined</b>.
-  <li> Repeat while <var>stream</var>@\[[queue]] is not empty:
-    <ol>
-      <li> Let <var>writeRecord</var> be DequeueValue(<var>stream</var>@\[[queue]]).
-      <li> If <var>writeRecord</var> is not <code>"close"</code>, reject <var>writeRecord</var>.\[[promise]] with
-        <var>e</var>.
-    </ol>
-  <li> Set <var>stream</var>@\[[storedError]] to <var>e</var>.
-  <li> If <var>stream</var>@\[[state]] is <code>"waiting"</code>, resolve <var>stream</var>@\[[readyPromise]] with
-    <b>undefined</b>.
-  <li> Reject <var>stream</var>@\[[closedPromise]] with <var>e</var>.
-  <li> Set <var>stream</var>@\[[state]] to <code>"errored"</code>.
-</ol>
+<pre is="emu-alg">
+  1. If _stream_@[[state]] is "closed" or "errored", return *undefined*.
+  1. Repeat while _stream_@[[queue]] is not empty:
+    1. Let _writeRecord_ be DequeueValue(_stream_@[[queue]]).
+    1. If _writeRecord_ is not "close", reject _writeRecord_.[[promise]] with _e_.
+  1. Set _stream_@[[storedError]] to _e_.
+  1. If _stream_@[[state]] is "waiting", resolve _stream_@[[readyPromise]] with *undefined*.
+  1. Reject _stream_@[[closedPromise]] with _e_.
+  1. Set _stream_@[[state]] to "errored".
+</pre>
 
-<h4 id="is-writable-stream">IsWritableStream ( x )</h4>
+<h4 id="is-writable-stream" aoid="IsWritableStream">IsWritableStream ( x )</h4>
 
-<ol>
-  <li> If Type(<var>x</var>) is not Object, return <b>false</b>.
-  <li> If <var>x</var> does not have a \[[underlyingSink]] internal slot, return <b>false</b>.
-  <li> Return <b>true</b>.
-</ol>
+<pre is="emu-alg">
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[underlyingSink]] internal slot, return *false*.
+  1. Return *true*.
+</pre>
 
-<h4 id="sync-writable-stream-state-with-queue">SyncWritableStreamStateWithQueue ( stream )</h4>
+<h4 id="sync-writable-stream-state-with-queue" aoid="SyncWritableStreamStateWithQueue">SyncWritableStreamStateWithQueue ( stream )</h4>
 
-<ol>
-  <li> If <var>stream</var>@\[[state]] is <code>"closing"</code>, return <b>undefined</b>.
-  <li> Assert: <var>stream</var>@\[[state]] is either <code>"writable"</code> or <code>"waiting"</code>.
-  <li> Let <var>queueSize</var> be GetTotalQueueSize(<var>stream</var>@\[[queue]]).
-  <li> ReturnIfAbrupt(<var>queueSize</var>).
-  <li> Let <var>shouldApplyBackpressure</var> be <b>true</b> if <var>queueSize</var> > 0, and <b>false</b> otherwise.
-  <li> Let <var>strategy</var> be Get(<var>stream</var>@\[[underlyingSink]], <code>"strategy"</code>).
-  <li> ReturnIfAbrupt(<var>strategy</var>).
-  <li> If <var>strategy</var> is not <b>undefined</b>, then
-    <ol>
-      <li> Set <var>shouldApplyBackpressure</var> to ToBoolean(Invoke(<var>strategy</var>,
-        <code>"shouldApplyBackpressure"</code>, «‍<var>queueSize</var>»)).
-      <li> ReturnIfAbrupt(<var>shouldApplyBackpressure</var>).
-    </ol>
-  <li> If <var>shouldApplyBackpressure</var> is <b>true</b> and <var>stream</var>@\[[state]] is
-    <code>"writable"</code>, then
-    <ol>
-      <li> Set <var>stream</var>@\[[state]] to <code>"waiting"</code>.
-      <li> Set <var>stream</var>@\[[readyPromise]] to a new promise.
-    </ol>
-  <li> If <var>shouldApplyBackpressure</var> is <b>false</b> and <var>stream</var>@\[[state]] is
-    <code>"waiting"</code>, then
-    <ol>
-      <li> Set <var>stream</var>@\[[state]] to <code>"writable"</code>.
-      <li> Resolve <var>stream</var>@\[[readyPromise]] with <b>undefined</b>.
-    </ol>
-  <li> Return <b>undefined</b>.
-</ol>
+<pre is="emu-alg">
+  1. If _stream_@[[state]] is "closing", return *undefined*.
+  1. Assert: _stream_@[[state]] is either "writable" or "waiting".
+  1. Let _queueSize_ be GetTotalQueueSize(_stream_@[[queue]]).
+  1. ReturnIfAbrupt(_queueSize_).
+  1. Let _shouldApplyBackpressure_ be *true* if _queueSize_ > 0, and *false* otherwise.
+  1. Let _strategy_ be Get(_stream_@[[underlyingSink]], "strategy").
+  1. ReturnIfAbrupt(_strategy_).
+  1. If _strategy_ is not *undefined*, then
+    1. Set _shouldApplyBackpressure_ to ToBoolean(Invoke(_strategy_, "shouldApplyBackpressure", «‍_queueSize_»)).
+    1. ReturnIfAbrupt(_shouldApplyBackpressure_).
+  1. If _shouldApplyBackpressure_ is *true* and _stream_@[[state]] is "writable", then
+    1. Set _stream_@[[state]] to "waiting".
+    1. Set _stream_@[[readyPromise]] to a new promise.
+  1. If _shouldApplyBackpressure_ is *false* and _stream_@[[state]] is "waiting", then
+    1. Set _stream_@[[state]] to "writable".
+    1. Resolve _stream_@[[readyPromise]] with *undefined*.
+  1. Return *undefined*.
+</pre>
 
-<h4 id="writable-stream-advance-queue">WritableStreamAdvanceQueue ( stream )</h4>
+<h4 id="writable-stream-advance-queue" aoid="WritableStreamAdvanceQueue">WritableStreamAdvanceQueue ( stream )</h4>
 
-<ol>
-  <li> If <var>stream</var>@\[[queue]] is empty, or <var>stream</var>@\[[writing]] is <b>true</b>, return
-    <b>undefined</b>.
-  <li> Let <var>writeRecord</var> be PeekQueueValue(<var>stream</var>@\[[queue]]).
-  <li> If <var>writeRecord</var> is <code>"close"</code>, then
-    <ol>
-      <li> Assert: <var>stream</var>@\[[state]] is <code>"closing"</code>.
-      <li> DequeueValue(<var>stream</var>@\[[queue]]).
-      <li> Assert: <var>stream</var>@\[[queue]] is now empty.
-      <li> Return CloseWritableStream(<var>stream</var>).
-    </ol>
-  <li> Set <var>stream</var>@\[[writing]] to <b>true</b>.
-  <li> Let <var>writeResult</var> be PromiseInvokeOrNoop(<var>stream</var>@\[[underlyingSink]], <code>"write"</code>,
-    «<var>writeRecord</var>.\[[chunk]]»).
-  <li> Upon fulfillment of <var>writeResult</var>,
-    <ol>
-      <li> If <var>stream</var>@\[[state]] is <code>"errored"</code>, return.
-      <li> Set <var>stream</var>@\[[writing]] to <b>false</b>.
-      <li> Resolve <var>writeRecord</var>.\[[promise]] with <b>undefined</b>.
-      <li> DequeueValue(<var>stream</var>@\[[queue]]).
-      <li> Let <var>syncResult</var> be SyncWritableStreamStateWithQueue(<var>stream</var>).
-      <li> If <var>syncResult</var> is an abrupt completion, then call-with-rethrow Call(<var>stream</var>@\[[error]],
-        <b>undefined</b>, «‍<var>syncResult</var>.\[[value]]»).
-      <li> Otherwise, return WritableStreamAdvanceQueue(<var>stream</var>).
-    </ol>
-  <li> Upon rejection of <var>writeResult</var> with reason <var>r</var>, call-with-rethrow
-    Call(<var>stream</var>@\[[error]], <b>undefined</b>, «‍<var>r</var>»).
-</ol>
+<pre is="emu-alg">
+  1. If _stream_@[[queue]] is empty, or _stream_@[[writing]] is *true*, return *undefined*.
+  1. Let _writeRecord_ be PeekQueueValue(_stream_@[[queue]]).
+  1. If _writeRecord_ is "close", then
+    1. Assert: _stream_@[[state]] is "closing".
+    1. DequeueValue(_stream_@[[queue]]).
+    1. Assert: _stream_@[[queue]] is now empty.
+    1. Return CloseWritableStream(_stream_).
+  1. Set _stream_@[[writing]] to *true*.
+  1. Let _writeResult_ be PromiseInvokeOrNoop(_stream_@[[underlyingSink]], "write", «_writeRecord_.[[chunk]]»).
+  1. Upon fulfillment of _writeResult_,
+    1. If _stream_@[[state]] is "errored", return.
+    1. Set _stream_@[[writing]] to *false*.
+    1. Resolve _writeRecord_.[[promise]] with *undefined*.
+    1. DequeueValue(_stream_@[[queue]]).
+    1. Let _syncResult_ be SyncWritableStreamStateWithQueue(_stream_).
+    1. If _syncResult_ is an abrupt completion, then call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_syncResult_.[[value]]»).
+    1. Otherwise, return WritableStreamAdvanceQueue(_stream_).
+  1. Upon rejection of _writeResult_ with reason _r_, call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_r_»).
+</pre>
 
 <h2 id="ts">Transform Streams</h2>
 
@@ -1492,12 +1377,12 @@ table:
   The constructor takes a nonnegative number for the high-water mark, and stores it for later use.
 </div>
 
-<ol>
-  <li> Let <var>highWaterMark</var> be ToNumber(<var>highWaterMark</var>).
-  <li> If <var>highWaterMark</var> is <b>NaN</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>highWaterMark</var> &lt; 0, throw a <b>RangeError</b> exception.
-  <li> Set <b>this</b>@\[[blqsHighWaterMark]] to <var>highWaterMark</var>.
-</ol>
+<pre is="emu-alg">
+  1. Let _highWaterMark_ be ToNumber(_highWaterMark_).
+  1. If _highWaterMark_ is *NaN*, throw a *TypeError* exception.
+  1. If _highWaterMark_ < 0, throw a *RangeError* exception.
+  1. Set *this*@[[blqsHighWaterMark]] to _highWaterMark_.
+</pre>
 
 <h4 id="blqs-prototype">Properties of the <code>ByteLengthQueuingStrategy</code> Prototype</h4>
 
@@ -1508,13 +1393,13 @@ table:
   queuing strategy's high-water mark.
 </div>
 
-<ol>
-  <li> If Type(<b>this</b>) is not Object, throw a <b>TypeError</b> exception.
-  <li> If <b>this</b> does not have a \[[blqsHighWaterMark]] internal slot, throw a <b>TypeError</b> exception.
-  <li> Let <var>queueSize</var> be ToNumber(<var>queueSize</var>).
-  <li> If <var>queueSize</var> is <b>NaN</b>, return <b>false</b>.
-  <li> Return <var>queueSize</var> > <b>this</b>@\[[blqsHighWaterMark]].
-</ol>
+<pre is="emu-alg">
+  1. If Type(*this*) is not Object, throw a *TypeError* exception.
+  1. If *this* does not have a [[blqsHighWaterMark]] internal slot, throw a *TypeError* exception.
+  1. Let _queueSize_ be ToNumber(_queueSize_).
+  1. If _queueSize_ is *NaN*, return *false*.
+  1. Return _queueSize_ > *this*@[[blqsHighWaterMark]].
+</pre>
 
 <h5 id="blqs-size">size(chunk)</h5>
 
@@ -1526,9 +1411,9 @@ table:
   <code>ByteLengthQueuingStrategy</code> object.
 </div>
 
-<ol>
-  <li> Return Get(<var>chunk</var>, <code>"byteLength"</code>).
-</ol>
+<pre is="emu-alg">
+  1. Return Get(_chunk_, "byteLength").
+</pre>
 
 <h3 id="cqs-class">Class <code>CountQueuingStrategy</code></h3>
 
@@ -1599,12 +1484,12 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
   The constructor takes a nonnegative number for the high-water mark, and stores it for later use.
 </div>
 
-<ol>
-  <li> Let <var>highWaterMark</var> be ToNumber(<var>highWaterMark</var>).
-  <li> If <var>highWaterMark</var> is <b>NaN</b>, throw a <b>TypeError</b> exception.
-  <li> If <var>highWaterMark</var> &lt; 0, throw a <b>RangeError</b> exception.
-  <li> Set <b>this</b>@\[[cqsHighWaterMark]] to <var>highWaterMark</var>.
-</ol>
+<pre is="emu-alg">
+  1. Let _highWaterMark_ be ToNumber(_highWaterMark_).
+  1. If _highWaterMark_ is *NaN*, throw a *TypeError* exception.
+  1. If _highWaterMark_ < 0, throw a *RangeError* exception.
+  1. Set *this*@[[cqsHighWaterMark]] to _highWaterMark_.
+</pre>
 
 <h4 id="cqs-prototype">Properties of the <code>CountQueuingStrategy</code> Prototype</h4>
 
@@ -1615,13 +1500,13 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
   queuing strategy's high-water mark.
 </div>
 
-<ol>
-  <li> If Type(<b>this</b>) is not Object, throw a <b>TypeError</b> exception.
-  <li> If <b>this</b> does not have a \[[cqsHighWaterMark]] internal slot, throw a <b>TypeError</b> exception.
-  <li> Let <var>queueSize</var> be ToNumber(<var>queueSize</var>).
-  <li> If <var>queueSize</var> is <b>NaN</b>, return <b>false</b>.
-  <li> Return <var>queueSize</var> > <b>this</b>@\[[cqsHighWaterMark]].
-</ol>
+<pre is="emu-alg">
+  1. If Type(*this*) is not Object, throw a *TypeError* exception.
+  1. If *this* does not have a [[cqsHighWaterMark]] internal slot, throw a *TypeError* exception.
+  1. Let _queueSize_ be ToNumber(_queueSize_).
+  1. If _queueSize_ is *NaN*, return *false*.
+  1. Return _queueSize_ > *this*@[[cqsHighWaterMark]].
+</pre>
 
 <h5 id="cqs-size">size()</h5>
 
@@ -1633,9 +1518,9 @@ Instances of <code>CountQueuingStrategy</code> are created with the internal slo
   <code>CountQueuingStrategy</code> object.
 </div>
 
-<ol>
-  <li> Return 1.
-</ol>
+<pre is="emu-alg">
+  1. Return *1*.
+</pre>
 
 <h3 id="queue-with-sizes">Queue-with-Sizes Operations</h3>
 
@@ -1646,50 +1531,47 @@ implementations it would of course be backed by a more efficient data structure)
 A number of abstract operations are specified here to make working with queues-with-sizes more pleasant, and used
 throughout the rest of this standard.
 
-<h4 id="dequeue-value">DequeueValue ( queue )</h4>
+<h4 id="dequeue-value" aoid="DequeueValue">DequeueValue ( queue )</h4>
 
-<ol>
-  <li> Assert: <var>queue</var> is not empty.
-  <li> Let <var>pair</var> be the first element of queue.
-  <li> Remove <var>pair</var> from <var>queue</var>, shifting all other elements downward (so that the second becomes
-    the first, and so on).
-  <li> Return <var>pair</var>.\[[value]].
-</ol>
+<pre is="emu-alg">
+  1. Assert: _queue_ is not empty.
+  1. Let _pair_ be the first element of queue.
+  1. Remove _pair_ from _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
+  1. Return _pair_.[[value]].
+</pre>
 
-<h4 id="enqueue-value-with-size">EnqueueValueWithSize ( queue, value, size )</h4>
+<h4 id="enqueue-value-with-size" aoid="EnqueueValueWithSize">EnqueueValueWithSize ( queue, value, size )</h4>
 
-<ol>
-  <li> Let <var>size</var> be ToNumber(<var>size</var>).
-  <li> ReturnIfAbrupt(<var>size</var>).
-  <li> If <var>size</var> is <b>NaN</b>, <b>+∞</b>, or <b>−∞</b>, throw a <b>RangeError</b> exception.
-  <li> Append Record{\[[value]]: <var>value</var>, \[[size]]: <var>size</var>} as the last element of <var>queue</var>.
-</ol>
+<pre is="emu-alg">
+  1. Let _size_ be ToNumber(_size_).
+  1. ReturnIfAbrupt(_size_).
+  1. If _size_ is *NaN*, *+∞*, or *−∞*, throw a *RangeError* exception.
+  1. Append Record{[[value]]: _value_, [[size]]: _size_} as the last element of _queue_.
+</pre>
 
-<h4 id="get-total-queue-size">GetTotalQueueSize ( queue )</h4>
+<h4 id="get-total-queue-size" aoid="GetTotalQueueSize">GetTotalQueueSize ( queue )</h4>
 
-<ol>
-  <li> Let <var>totalSize</var> be <b>0</b>.
-  <li> Repeat for each Record{\[[value]], \[[size]]} <var>pair</var> that is an element of <var>queue</var>,
-    <ol>
-      <li> Assert: <var>pair</var>.\[[size]] is a finite, non-<b>NaN</b> number.
-      <li> Add <var>pair</var>.\[[size]] to <var>totalSize</var>.
-    </ol>
-  <li> Return <var>totalSize</var>.
-</ol>
+<pre is="emu-alg">
+  1. Let _totalSize_ be *0*.
+  1. Repeat for each Record{[[value]], [[size]]} _pair_ that is an element of _queue_,
+    1. Assert: _pair_.[[size]] is a finite, non-*NaN* number.
+    1. Add _pair_.[[size]] to _totalSize_.
+  1. Return _totalSize_.
+</pre>
 
-<h4 id="peek-queue-value">PeekQueueValue ( queue )</h4>
+<h4 id="peek-queue-value" aoid="PeekQueueValue">PeekQueueValue ( queue )</h4>
 
-<ol>
-  <li> Assert: <var>queue</var> is not empty.
-  <li> Let <var>pair</var> be the first element of <var>queue</var>.
-  <li> Return <var>pair</var>.\[[value]].
-</ol>
+<pre is="emu-alg">
+  1. Assert: _queue_ is not empty.
+  1. Let _pair_ be the first element of _queue_.
+  1. Return _pair_.[[value]].
+</pre>
 
 <h3 id="misc-abstract-ops">Miscellaneous Operations</h3>
 
 A few abstract operations are used in this specification for utility purposes. We define them here.
 
-<h4 id="invoke-or-noop">InvokeOrNoop ( O, P, args )</h4>
+<h4 id="invoke-or-noop" aoid="InvokeOrNoop">InvokeOrNoop ( O, P, args )</h4>
 
 <div class="note">
   InvokeOrNoop is a slight modification of the [[!ECMASCRIPT]]
@@ -1697,16 +1579,16 @@ A few abstract operations are used in this specification for utility purposes. W
   <b>undefined</b> when the method is not present.
 </div>
 
-<ol>
-  <li> Assert: <var>P</var> is a valid property key.
-  <li> If <var>args</var> was not passed, let <var>args</var> be a new empty List.
-  <li> Let <var>method</var> be GetV(<var>O</var>, <var>P</var>).
-  <li> ReturnIfAbrupt(<var>method</var>).
-  <li> If <var>method</var> is <b>undefined</b>, return <b>undefined</b>.
-  <li> Return Call(<var>method</var>, <var>O</var>, <var>args</var>).
-</ol>
+<pre is="emu-alg">
+  1. Assert: _P_ is a valid property key.
+  1. If _args_ was not passed, let _args_ be a new empty List.
+  1. Let _method_ be GetV(_O_, _P_).
+  1. ReturnIfAbrupt(_method_).
+  1. If _method_ is *undefined*, return *undefined*.
+  1. Return Call(_method_, _O_, _args_).
+</pre>
 
-<h4 id="promise-invoke-or-fallback-or-noop">PromiseInvokeOrFallbackOrNoop ( O, P1, args1, P2, args2 )</h4>
+<h4 id="promise-invoke-or-fallback-or-noop" aoid="PromiseInvokeOrFallbackOrNoop">PromiseInvokeOrFallbackOrNoop ( O, P1, args1, P2, args2 )</h4>
 
 <div class="note">
   PromiseInvokeOrFallbackOrNoop is a specialized version of
@@ -1715,21 +1597,19 @@ A few abstract operations are used in this specification for utility purposes. W
   method is not present.
 </div>
 
-<ol>
-  <li> Assert: <var>P1</var> is a valid property key.
-  <li> Assert: <var>P2</var> is a valid property key.
-  <li> Let <var>method</var> be GetV(<var>O</var>, <var>P1</var>).
-  <li> If <var>method</var> is an abrupt completion, return a new promise rejected with <var>method</var>.\[[value]].
-  <li> Let <var>method</var> be <var>method</var>.\[[value]].
-  <li> If <var>method</var> is <b>undefined</b>, return PromiseInvokeOrNoop(<var>O</var>, <var>P2</var>,
-    <var>args2</var>).
-  <li> Let <var>returnValue</var> be Call(<var>method</var>, <var>O</var>, <var>args1</var>).
-  <li> If <var>returnValue</var> is an abrupt completion, return a new promise rejected with
-    <var>returnValue</var>.\[[value]].
-  <li> Otherwise, return a new promise resolved with <var>returnValue</var>.\[[value]].
-</ol>
+<pre is="emu-alg">
+  1. Assert: _P1_ is a valid property key.
+  1. Assert: _P2_ is a valid property key.
+  1. Let _method_ be GetV(_O_, _P1_).
+  1. If _method_ is an abrupt completion, return a new promise rejected with _method_.[[value]].
+  1. Let _method_ be _method_.[[value]].
+  1. If _method_ is *undefined*, return PromiseInvokeOrNoop(_O_, _P2_, _args2_).
+  1. Let _returnValue_ be Call(_method_, _O_, _args1_).
+  1. If _returnValue_ is an abrupt completion, return a new promise rejected with _returnValue_.[[value]].
+  1. Otherwise, return a new promise resolved with _returnValue_.[[value]].
+</pre>
 
-<h4 id="promise-invoke-or-noop">PromiseInvokeOrNoop ( O, P, args )</h4>
+<h4 id="promise-invoke-or-noop" aoid="PromiseInvokeOrNoop">PromiseInvokeOrNoop ( O, P, args )</h4>
 
 <div class="note">
   PromiseInvokeOrNoop is a specialized version of
@@ -1737,18 +1617,17 @@ A few abstract operations are used in this specification for utility purposes. W
   methods and returns a promise for <b>undefined</b> when the method is not present.
 </div>
 
-<ol>
-  <li> Assert: <var>P</var> is a valid property key.
-  <li> If <var>args</var> was not passed, let <var>args</var> be a new empty List.
-  <li> Let <var>method</var> be GetV(<var>O</var>, <var>P</var>).
-  <li> If <var>method</var> is an abrupt completion, return a new promise rejected with <var>method</var>.\[[value]].
-  <li> Let <var>method</var> be <var>method</var>.\[[value]].
-  <li> If <var>method</var> is <b>undefined</b>, return a new promise resolved with <b>undefined</b>.
-  <li> Let <var>returnValue</var> be Call(<var>method</var>, <var>O</var>, <var>args</var>).
-  <li> If <var>returnValue</var> is an abrupt completion, return a new promise rejected with
-    <var>returnValue</var>.\[[value]].
-  <li> Otherwise, return a new promise resolved with <var>returnValue</var>.\[[value]].
-</ol>
+<pre is="emu-alg">
+  1. Assert: _P_ is a valid property key.
+  1. If _args_ was not passed, let _args_ be a new empty List.
+  1. Let _method_ be GetV(_O_, _P_).
+  1. If _method_ is an abrupt completion, return a new promise rejected with _method_.[[value]].
+  1. Let _method_ be _method_.[[value]].
+  1. If _method_ is *undefined*, return a new promise resolved with *undefined*.
+  1. Let _returnValue_ be Call(_method_, _O_, _args_).
+  1. If _returnValue_ is an abrupt completion, return a new promise rejected with _returnValue_.[[value]].
+  1. Otherwise, return a new promise resolved with _returnValue_.[[value]].
+</pre>
 
 <h2 id="globals">Global Properties</h2>
 

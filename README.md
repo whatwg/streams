@@ -14,12 +14,44 @@ This repository also includes a polyfill and test suite under `reference-impleme
 
 ## Building the spec
 
-To build the spec locally, [install Bikeshed](https://github.com/tabatkins/bikeshed/blob/master/docs/install.md) and then run `bikeshed spec` in the working directory.
+Building the spec is a two-step process. First, the majority of the conversion work is done via [Bikeshed](https://github.com/tabatkins/bikeshed). Second, we run a custom portion of the [Ecmarkup](https://github.com/bterlson/ecmarkup) pipeline to convert the algorithms from [Ecmarkdown](https://github.com/domenic/ecmarkdown) syntax into HTML, and to automatically add cross-references.
+
+### Bikeshed
+
+To run Bikeshed locally, [install Bikeshed](https://github.com/tabatkins/bikeshed/blob/master/docs/install.md) and then run `bikeshed spec` in the working directory.
 
 Alternately, you can use the command
 
 ```
-curl https://api.csswg.org/bikeshed/ -F file=@index.bs > index.html
+curl https://api.csswg.org/bikeshed/ -F file=@index.bs > index.tmp.html
 ```
 
 to use Bikeshed's web interface without installing anything.
+
+### Ecmarkup
+
+To run the Ecmarkup step, be sure you've done `npm install` in the root directory, then run
+
+```
+npm run ecmarkupify index.tmp.html index.html
+```
+
+### Local "Deploy"
+
+To get the full build experience, including commit and branch snapshots, you can run
+
+```
+bash ./deploy.sh --local
+```
+
+This will output a bunch of files to the `streams.spec.whatwg.org` directory, equaling those that would be uploaded to the server on deploy.
+
+### Local Watch
+
+If you have Bikeshed installed locally, and have run `npm install`, you can try running
+
+```
+npm run local-watch
+```
+
+to start a watcher on `index.bs` that will update `index.html` as you edit.
