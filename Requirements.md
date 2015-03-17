@@ -160,9 +160,9 @@ This signal is similar to, but different than, the "close" signal described abov
 
 ### The stream API should be agnostic to what type of data is being streamed.
 
-Although underlying sources and sinks will often produce or accept only binary data, this should not prevent writing streams that contain other types of data, for example strings, objects, or frames of video. Such streams are extremely useful for programmers, both for direct consumption (consuming a string stream or stream of parsed objects is more useful than consuming `ArrayBuffer`s directly), and for producing composable transform streams.
+Although underlying sources and sinks will often produce or accept only binary data, this should not prevent writing streams that contain other types of data, for example strings, objects, or frames of video. Such streams are extremely useful for programmers, both for direct consumption (consuming a string stream or stream of parsed objects is more useful than consuming `ArrayBuffer`s directly), and for producing composable transform streams. We should also provide some byte-specific features for performance but it should be a superset of the normal generic stream API (see the "Byte Streams" section).
 
-By ensuring the stream API is agnostic to the type of data that the stream contains, it is possible to create streams for such disparate objects as HTML elements, database records, RPC messages, semantic events from remote systems, synchronization deltas for CRDTs, and user input events. By allowing all such streams to be composed together with a single uniform interface, you allow complex systems to be built while still benefiting from all of the features that streams manage for you, such as automatic backpressure, queuing, and abort signals.
+By ensuring the generic stream API is agnostic to the type of data that the stream contains, it is possible to create streams for such disparate objects as HTML elements, database records, RPC messages, semantic events from remote systems, synchronization deltas for CRDTs, and user input events. By allowing all such streams to be composed together with a single uniform interface, you allow complex systems to be built while still benefiting from all of the features that streams manage for you, such as automatic backpressure, queuing, and abort signals.
 
 This poses challenges, mainly regarding the queuing strategy for applying backpressure when it is unclear how much memory a piece of streaming data might take up. This is largely stream-specific, and the best you can do is make it easy for user-created streams to inform the implementation of relevant data, and provide a few useful defaults like a byte counter for `ArrayBuffer`s, a character counter for strings, or a generic object counter for most others. But compared to an implementation that restricts itself to a few binary or string data types, it provides a much more useful, extensible, and forward-thinking abstraction.
 
@@ -198,11 +198,13 @@ When reading from a normal readable stream, the stream is responsible for alloca
 
 For predictable performance and memory usage, however, it is ideal to allow "bring your own buffer" code, where instead of allocating a new buffer, the byte stream reads directly into a supplied buffer. This would allow e.g. reuse of a single pre-allocated memory region.
 
-Given the substitutability constraint, this API must exist alongside the normal auto-allocating one, so that consumers which know they are dealing with a readable byte stream can use it, but agnostic consumers do not need to.
+Given the substitutability constraint, this API must exist alongside the normal auto-allocating one, so that consumers which know they are dealing with a readable byte stream can use the "bring your own buffer" version, but agnostic consumers do not need to.
 
 ### You must not allow observable data races.
 
 While reading into a buffer, possibly from another thread, the consumer must not be able to observe the buffer filling up. (That is, `typedArray[0] !== typedArray[0]` should never occur, even if another thread is mutating the beginning of the backing buffer.) The general solution here is detaching the array buffer.
+
+Given the requirements of "bring your own buffer" and detaching, we need to define clearly how to return the buffer to the consumer which is again available for reuse.
 
 ### You must have a way of specifying an upper limit on the number of bytes read from a readable byte stream.
 
