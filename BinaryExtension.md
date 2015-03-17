@@ -195,3 +195,25 @@ When an error function _F_ is called with argument _error_, the following steps 
 
 1. Let _stream_ be the **this** value.
 1. Return _stream_.[[closedPromise]].
+
+### BufferFeedableReadableByteStream
+
+BufferFeedableReadableByteStream is a ReadableByteStream variant which encapsulates a blocking I/O interface that takes memory region at start.
+
+```
+class BufferFeedableReadableByteStream {
+...
+    feedArrayBuffer(arrayBuffer, offset, size);
+...
+}
+```
+
+##### Internal Slots
+
+| Internal Slot | Description (_non-normative_) |
+|---------------|-------------------------------|
+|[[bufferQueue]]|A List keeping the ArrayBuffers fed by the user|
+
+##### ReadableByteStream.prototype.feedBuffer ( arrayBuffer, offset, size )
+
+1. Append Record{[[arrayBuffer]]: _arrayBuffer_, [[offset]]: _offset_, [[size]]: _size_} as the last element of **this**@[[bufferQueue]].
