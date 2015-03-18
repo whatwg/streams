@@ -492,3 +492,219 @@ function ShouldReadableStreamApplyBackpressure(stream) {
 
   return shouldApplyBackpressure;
 }
+
+function TeeReadableStream(stream, clone) {
+  const reader = stream.getReader();
+
+  let enqueue1, enqueue2, close1, close2, error1, error2;
+  let canceled1, cancelReason1, canceled2, cancelReason2;
+  const branch1 = new ReadableStream({
+    start(enqueue, close, error) {
+      [enqueue1, close1, error1] = [enqueue, close, error];
+    },
+    cancel(reason) {
+      canceled1 = true;
+      cancelReason1 = reason;
+      maybeCancelSource();
+    }
+  });
+  const branch2 = new ReadableStream({
+    start(enqueue, close, error) {
+      [enqueue2, close2, error2] = [enqueue, close, error];
+    },
+    cancel(reason) {
+      canceled2 = true;
+      cancelReason2 = reason;
+      maybeCancelSource();
+    }
+  });
+
+  pump();
+
+  return [branch1, branch2];
+
+  function pump() {
+    reader.read().then(
+      ({ value, done }) => {
+        if (done) {
+          close1();
+          close2();
+          return;
+        }
+
+        if (clone) {
+          enqueue1(StructuredClone(value));
+          enqueue2(StructuredClone(value));
+        } else {
+          enqueue1(value);
+          enqueue2(value);
+        }
+        pump();
+      },
+      e => {
+        error1(e);
+        error2(e);
+      }
+    );
+  }
+
+  function maybeCancelSource() {
+    if (canceled1 && canceled2) {
+      reader.cancel([cancelReason1, cancelReason2]);
+    }
+  }
+}
+
+function TeeReadableStream2(stream, clone) {
+  const reader = stream.getReader();
+
+  let enqueue1, enqueue2, close1, close2, error1, error2;
+  let canceled1, cancelReason1, canceled2, cancelReason2;
+  const branch1 = new ReadableStream({
+    start(enqueue, close, error) {
+      [enqueue1, close1, error1] = [enqueue, close, error];
+    },
+    pull: readAndEnqueueInBoth,
+    cancel(reason) {
+      canceled1 = true;
+      cancelReason1 = reason;
+      maybeCancelSource();
+    }
+  });
+  const branch2 = new ReadableStream({
+    start(enqueue, close, error) {
+      [enqueue2, close2, error2] = [enqueue, close, error];
+    },
+    pull: readAndEnqueueInBoth,
+    cancel(reason) {
+      canceled2 = true;
+      cancelReason2 = reason;
+      maybeCancelSource();
+    }
+  });
+
+  return [branch1, branch2];
+
+  function readAndEnqueueInBoth() {
+    reader.read().then(
+      ({ value, done }) => {
+        if (done) {
+          close1();
+          close2();
+          return;
+        }
+
+        if (clone) {
+          enqueue1(StructuredClone(value));
+          enqueue2(StructuredClone(value));
+        } else {
+          enqueue1(value);
+          enqueue2(value);
+        }
+      },
+      e => {
+        error1(e);
+        error2(e);
+      }
+    );
+  }
+
+  function maybeCancelSource() {
+    if (canceled1 && canceled2) {
+      reader.cancel([cancelReason1, cancelReason2]);
+    }
+  }
+}
+
+
+function SpeculativeTeeReadableByteStream(stream, clone) {
+  const reader = stream.getReader({ feedBuffers: true });
+
+  let enqueue1, close1, error1, enqueue2, close2, error2;
+  let canceled1, cancelReason1, canceled2, cancelReason2;
+  const branch1 = new ReadableStream({
+    start(enqueue, close, error) {
+      [enqueue1, close1, error1] = [enqueue, close, error];
+    },
+    read: readIntoAndEnqueueInOther(enqueue2),
+    pull: readAndEnqueueInBoth,
+    cancel(reason) {
+      canceled1 = true;
+      cancelReason1 = reason;
+      maybeCancelSource();
+    }
+  });
+
+  const branch2 = new ReadableStream({
+    start(enqueue, close, error) {
+      [enqueue2, close2, error2] = [enqueue, close, error];
+    },
+    read: readIntoAndEnqueueInOther(enqueue1),
+    pull: readAndEnqueueInBoth,
+    cancel(reason) {
+      canceled2 = true;
+      cancelReason2 = reason;
+      maybeCancelSource();
+    }
+  });
+
+  return [branch1, branch2];
+
+  function readIntoAndEnqueueInOther(otherEnqueue) {
+    return (view, ready) => {
+      reader.read(view).then(
+        ({ value, done }) => {
+          if (done) {
+            close1();
+            close2();
+            return;
+          }
+
+          if (clone) {
+            otherEnqueue(StructuredClone(value));
+          } else {
+            otherEnqueue(value);
+          }
+
+          ready();
+        },
+        e => {
+          error1(e);
+          error2(e);
+        }
+      );
+    };
+  }
+
+  function readAndEnqueueInBoth() {
+    // Assuming FeedBufferReadableByteStreamReaders (or whatever) allow read() with no arguments still,
+    // which they probably should (?).
+    reader.read().then(
+      ({ value, done }) => {
+        if (done) {
+          close1();
+          close2();
+          return;
+        }
+
+        if (clone) {
+          enqueue1(StructuredClone(value));
+          enqueue2(StructuredClone(value));
+        } else {
+          enqueue1(value);
+          enqueue2(value);
+        }
+      },
+      e => {
+        error1(e);
+        error2(e);
+      }
+    );
+  }
+
+  function maybeCancelSource() {
+    if (canceled1 && canceled2) {
+      reader.cancel([cancelReason1, cancelReason2]);
+    }
+  }
+}
