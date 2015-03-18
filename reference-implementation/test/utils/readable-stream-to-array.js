@@ -6,7 +6,6 @@ export default function readableStreamToArray(readable, reader = readable.getRea
   function pump() {
     return reader.read().then(({ value, done }) => {
       if (done) {
-        reader.releaseLock();
         return chunks;
       }
 
