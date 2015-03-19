@@ -12,6 +12,7 @@ export default (label, factory) => {
     t.equal(typeof rs.getReader, 'function', 'has a getReader method');
     t.equal(typeof rs.pipeThrough, 'function', 'has a pipeThrough method');
     t.equal(typeof rs.pipeTo, 'function', 'has a pipeTo method');
+    t.equal(typeof rs.tee, 'function', 'has a tee method');
 
     t.end();
   });

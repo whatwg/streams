@@ -141,6 +141,14 @@ export default class ReadableStream {
       rejectPipeToPromise(reason);
     }
   }
+
+  tee() {
+    if (IsReadableStream(this) === false) {
+      throw new TypeError('ReadableStream.prototype.getReader can only be used on a ReadableStream');
+    }
+
+    return TeeReadableStream(this, false);
+  }
 }
 
 class ReadableStreamReader {
@@ -494,66 +502,83 @@ function ShouldReadableStreamApplyBackpressure(stream) {
 }
 
 function TeeReadableStream(stream, clone) {
+  // TODO: avoid accessing public .read()
+
   assert(IsReadableStream(stream) === true);
   const reader = AcquireReadableStreamReader(stream);
 
+  let canceled1 = false;
+  let cancelReason1 = undefined;
+  let canceled2 = false;
+  let cancelReason2 = undefined;
+  let closedOrErrored = false;
+
+  let cancelPromise_resolve;
+  const cancelPromise = new Promise((resolve, reject) => {
+    cancelPromise_resolve = resolve;
+  });
+
   const branch1 = new ReadableStream({
-    pull: readAndEnqueueInBoth
-  })
-  let enqueue1, enqueue2, close1, close2, error1, error2;
-  let canceled1, cancelReason1, canceled2, cancelReason2;
-  const branch1 = new ReadableStream({
-    start(enqueue, close, error) {
-      [enqueue1, close1, error1] = [enqueue, close, error];
-    },
     pull: readAndEnqueueInBoth,
     cancel(reason) {
       canceled1 = true;
       cancelReason1 = reason;
       maybeCancelSource();
+      return cancelPromise;
     }
   });
+
   const branch2 = new ReadableStream({
-    start(enqueue, close, error) {
-      [enqueue2, close2, error2] = [enqueue, close, error];
-    },
     pull: readAndEnqueueInBoth,
     cancel(reason) {
       canceled2 = true;
       cancelReason2 = reason;
       maybeCancelSource();
+      return cancelPromise;
+    }
+  });
+
+  reader._closedPromise.catch(e => {
+    if (!closedOrErrored) {
+      branch1._error(e);
+      branch2._error(e);
+      closedOrErrored = true;
     }
   });
 
   return [branch1, branch2];
 
   function readAndEnqueueInBoth() {
-    reader.read().then(
-      ({ value, done }) => {
-        if (done) {
-          close1();
-          close2();
-          return;
-        }
-
-        if (clone) {
-          enqueue1(StructuredClone(value));
-          enqueue2(StructuredClone(value));
-        } else {
-          enqueue1(value);
-          enqueue2(value);
-        }
-      },
-      e => {
-        error1(e);
-        error2(e);
+    reader.read().then(({ value, done }) => {
+      if (done && !closedOrErrored) {
+        branch1._close();
+        branch2._close();
+        closedOrErrored = true;
       }
-    );
+
+      if (closedOrErrored) {
+        return;
+      }
+
+      let value1 = value;
+      let value2 = value;
+      if (clone) {
+        value1 = StructuredClone(value);
+        value2 = StructuredClone(value);
+      }
+
+      if (canceled1 === false) {
+        branch1._enqueue(value1);
+      }
+      if (canceled2 === false) {
+        branch2._enqueue(value2);
+      }
+    });
   }
 
   function maybeCancelSource() {
-    if (canceled1 && canceled2) {
-      reader.cancel([cancelReason1, cancelReason2]);
+    if (canceled1 === true && canceled2 === true) {
+      cancelPromise_resolve(CancelReadableStream(stream, [cancelReason1, cancelReason2]));
     }
   }
 }
