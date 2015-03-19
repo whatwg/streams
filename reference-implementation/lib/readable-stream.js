@@ -8,7 +8,7 @@ export default class ReadableStream {
     this._queue = [];
     this._state = 'readable';
     this._started = false;
-    this._draining = false;
+    this._closeRequested = false;
     this._pullScheduled = false;
     this._reader = undefined;
     this._pullingPromise = undefined;
@@ -218,7 +218,7 @@ class ReadableStreamReader {
     if (this._ownerReadableStream._queue.length > 0) {
       const chunk = DequeueValue(this._ownerReadableStream._queue);
 
-      if (this._ownerReadableStream._draining === true && this._ownerReadableStream._queue.length === 0) {
+      if (this._ownerReadableStream._closeRequested === true && this._ownerReadableStream._queue.length === 0) {
         CloseReadableStream(this._ownerReadableStream);
       } else {
         CallReadableStreamPull(this._ownerReadableStream);
@@ -259,7 +259,7 @@ function AcquireReadableStreamReader(stream) {
 }
 
 function CallReadableStreamPull(stream) {
-  if (stream._draining === true || stream._started === false ||
+  if (stream._closeRequested === true || stream._started === false ||
       stream._state === 'closed' || stream._state === 'errored' ||
       stream._pullScheduled === true) {
     return undefined;
@@ -317,15 +317,23 @@ function CloseReadableStream(stream) {
 
 function CreateReadableStreamCloseFunction(stream) {
   return () => {
-    if (stream._state !== 'readable') {
+    if (stream._closeRequested === true) {
+      throw new TypeError('The stream has already been closed; do not close it again!');
+    }
+    if (stream._state === 'errored') {
+      throw new TypeError('The stream is in an errored state and cannot be closed');
+    }
+
+    if (stream._state === 'closed') {
+      // This will happen if the stream was closed without close() being called, i.e. by a call to stream.cancel()
       return undefined;
     }
+
+    stream._closeRequested = true;
 
     if (stream._queue.length === 0) {
       return CloseReadableStream(stream);
     }
-
-    stream._draining = true;
   };
 }
 
@@ -339,7 +347,7 @@ function CreateReadableStreamEnqueueFunction(stream) {
       throw new TypeError('stream is closed');
     }
 
-    if (stream._draining === true) {
+    if (stream._closeRequested === true) {
       throw new TypeError('stream is draining');
     }
 
@@ -387,7 +395,7 @@ function CreateReadableStreamEnqueueFunction(stream) {
 function CreateReadableStreamErrorFunction(stream) {
   return e => {
     if (stream._state !== 'readable') {
-      return;
+      throw new TypeError(`The stream is ${stream._state} and so cannot be errored`);
     }
 
     stream._queue = [];

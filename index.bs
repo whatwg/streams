@@ -270,9 +270,9 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     <td>A promise that becomes fulfilled when the stream becomes closed; returned by the <code>closed</code> getter
   </tr>
   <tr>
-    <td>\[[draining]]
-    <td>A boolean flag indicating whether the stream has been closed, but still has chunks in its internal queue that
-      have not yet been read
+    <td>\[[closeRequested]]
+    <td>A boolean flag indicating whether the stream has been closed by its <a>underlying source</a>, but still has
+      <a>chunks</a> in its internal queue that have not yet been read
   </tr>
   <tr>
     <td>\[[enqueue]]
@@ -358,7 +358,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. Set *this*@[[underlyingSource]] to _underlyingSource_.
   1. Set *this*@[[queue]] to a new empty List.
   1. Set *this*@[[state]] to "readable".
-  1. Set *this*@[[started]], *this*@[[draining]], and *this*@[[pullScheduled]] to *false*.
+  1. Set *this*@[[started]], *this*@[[closeRequested]], and *this*@[[pullScheduled]] to *false*.
   1. Set *this*@[[reader]], *this*@[[pullingPromise]], and *this*@[[storedError]] to *undefined*.
   1. Set *this*@[[enqueue]] to CreateReadableStreamEnqueueFunction(*this*).
   1. Set *this*@[[close]] to CreateReadableStreamCloseFunction(*this*).
@@ -627,7 +627,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   1. Assert: *this*@[[ownerReadableStream]]@[[state]] is "readable".
   1. If *this*@[[ownerReadableStream]]@[[queue]] is not empty,
     1. Let _chunk_ be DequeueValue(*this*@[[ownerReadableStream]]@[[queue]]).
-    1. If *this*@[[ownerReadableStream]]@[[draining]] is *true* and *this*@[[ownerReadableStream]]@[[queue]] is now empty, call-with-rethrow CloseReadableStream(*this*@[[ownerReadableStream]]).
+    1. If *this*@[[ownerReadableStream]]@[[closeRequested]] is *true* and *this*@[[ownerReadableStream]]@[[queue]] is now empty, call-with-rethrow CloseReadableStream(*this*@[[ownerReadableStream]]).
     1. Otherwise, call-with-rethrow CallReadableStreamPull(*this*@[[ownerReadableStream]]).
     1. Return a new promise resolved with CreateIterResultObject(_chunk_, *false*).
   1. Otherwise,
@@ -673,7 +673,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 <h4 id="call-readable-stream-pull" aoid="CallReadableStreamPull">CallReadableStreamPull ( stream )</h4>
 
 <pre is="emu-alg">
-  1. If _stream_@[[draining]] is *true* or _stream_@[[started]] is *false* or _stream_@[[state]] is "closed" or _stream_@[[state]] is "errored" or _stream_@[[pullScheduled]] is *true*, return *undefined*.
+  1. If _stream_@[[closeRequested]] is *true* or _stream_@[[started]] is *false* or _stream_@[[state]] is "closed" or _stream_@[[state]] is "errored" or _stream_@[[pullScheduled]] is *true*, return *undefined*.
   1. If _stream_@[[pullingPromise]] is not *undefined*,
     1. Set _stream_@[[pullScheduled]] to *true*.
     1. Upon fulfillment of _stream_@[[pullingPromise]],
@@ -728,10 +728,18 @@ A <dfn>Readable Stream Close Function</dfn> is a built-in anonymous function of 
 <var>stream</var>, that performs the following steps:
 
 <pre is="emu-alg">
-  1. If _stream_@[[state]] is not "readable", return *undefined*.
+  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. If _stream_@[[state]] is "errored", throw a *TypeError* exception.
+  1. If _stream_@[[state]] is "closed", return *undefined*.
+  1. Set _stream_@[[closeRequested]] to *true*.
   1. If _stream_@[[queue]] is empty, return CloseReadableStream(_stream_).
-  1. Set _stream_@[[draining]] to *true*.
 </pre>
+
+<div class="note">
+  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
+  <emu-val>false</emu-val>, will happen if the stream was closed without this close function ever being called: i.e.,
+  if the stream was closed by a call to <code>stream.cancel()</code>.
+</div>
 
 <h4 id="create-readable-stream-enqueue-function" aoid="CreateReadableStreamEnqueueFunction">CreateReadableStreamEnqueueFunction ( stream )</h4>
 
@@ -745,7 +753,7 @@ closing over a variable <var>stream</var>, that performs the following steps:
 <pre is="emu-alg">
   1. If _stream_@[[state]] is "errored", throw _stream_@[[storedError]].
   1. If _stream_@[[state]] is "closed", throw a *TypeError* exception.
-  1. If _stream_@[[draining]] is *true*, throw a *TypeError* exception.
+  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. If IsReadableStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty,
     1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
     1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
@@ -785,7 +793,7 @@ A <dfn>Readable Stream Error Function</dfn> is a built-in anonymous function of 
 a variable <var>stream</var>, that performs the following steps:
 
 <pre is="emu-alg">
-  1. If _stream_@[[state]] is not "readable" return *undefined*.
+  1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
   1. Let _stream_@[[queue]] be a new empty List.
   1. Set _stream_@[[storedError]] to _e_.
   1. Set _stream_@[[state]] to "errored".

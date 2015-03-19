@@ -38,57 +38,6 @@ test('ReadableStream: if pull rejects, it should error the stream', t => {
   });
 });
 
-test('ReadableStream: calling close twice should be a no-op', t => {
-  t.plan(2);
-
-  new ReadableStream({
-    start(enqueue, close) {
-      close();
-      t.doesNotThrow(close);
-    }
-  })
-  .getReader().closed.then(() => t.pass('closed should fulfill'));
-});
-
-test('ReadableStream: calling error twice should be a no-op', t => {
-  t.plan(2);
-
-  const theError = new Error('boo!');
-  const error2 = new Error('not me!');
-  new ReadableStream({
-    start(enqueue, close, error) {
-      error(theError);
-      t.doesNotThrow(() => error(error2));
-    }
-  })
-  .getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the first error'));
-});
-
-test('ReadableStream: calling error after close should be a no-op', t => {
-  t.plan(2);
-
-  new ReadableStream({
-    start(enqueue, close, error) {
-      close();
-      t.doesNotThrow(error);
-    }
-  })
-  .getReader().closed.then(() => t.pass('closed should fulfill'));
-});
-
-test('ReadableStream: calling close after error should be a no-op', t => {
-  t.plan(2);
-
-  const theError = new Error('boo!');
-  new ReadableStream({
-    start(enqueue, close, error) {
-      error(theError);
-      t.doesNotThrow(close);
-    }
-  })
-  .getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the first error'));
-});
-
 test('ReadableStream: should only call pull once upon starting the stream', t => {
   t.plan(2);
 
