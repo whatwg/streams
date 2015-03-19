@@ -494,8 +494,12 @@ function ShouldReadableStreamApplyBackpressure(stream) {
 }
 
 function TeeReadableStream(stream, clone) {
-  const reader = stream.getReader();
+  assert(IsReadableStream(stream) === true);
+  const reader = AcquireReadableStreamReader(stream);
 
+  const branch1 = new ReadableStream({
+    pull: readAndEnqueueInBoth
+  })
   let enqueue1, enqueue2, close1, close2, error1, error2;
   let canceled1, cancelReason1, canceled2, cancelReason2;
   const branch1 = new ReadableStream({
