@@ -20,13 +20,12 @@ es6ify.traceurOverrides = {
 
 
 const tests = glob.sync(path.resolve(__dirname, '../test/*.js'));
-const experimentalTests = glob.sync(path.resolve(__dirname, '../test/experimental/*.js'));
 
 const browserifyInstance = browserify({ debug: true })
   .add(es6ify.runtime)
   .add(path.resolve(__dirname, 'setup.js'))
   .transform(es6ify);
-tests.concat(experimentalTests).forEach(t => browserifyInstance.add(t));
+tests.forEach(t => browserifyInstance.add(t));
 
 const dest = fs.createWriteStream(path.resolve(__dirname, 'bundle.js'));
 browserifyInstance.bundle().pipe(dest);
