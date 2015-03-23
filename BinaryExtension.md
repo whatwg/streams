@@ -49,6 +49,8 @@ class ByobByteStreamReader {
 ##### read(view)
 
 1. Let _p_ be a new pending promise.
+1. Detach the ArrayBuffer object pointed by _view_ from _view_.
+1. Let _view_ be a new reference pointing the ArrayBuffer.
 1. If **this**.[[queue]] is not empty,
     1. Fill _view_ with the contents of elements in **this**.[[queue]].
     1. Let _bytesFilled_ be the number of the bytes copied to _view_.
