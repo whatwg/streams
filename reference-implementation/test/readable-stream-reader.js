@@ -139,6 +139,8 @@ test('closed should be fulfilled after reader releases its lock (multiple stream
 });
 
 test('Multiple readers can access the stream in sequence', t => {
+  t.plan(2);
+
   const rs = new ReadableStream({
     start(enqueue, close) {
       enqueue('a');
@@ -154,8 +156,6 @@ test('Multiple readers can access the stream in sequence', t => {
   const reader2 = rs.getReader();
   reader2.read().then(r => t.deepEqual(r, { value: 'b', done: false }, 'reading the second chunk from reader2 works'));
   reader2.releaseLock();
-
-  t.end();
 });
 
 test('Cannot use an already-released reader to unlock a stream again', t => {
