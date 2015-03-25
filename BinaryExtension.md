@@ -101,10 +101,11 @@ If the return promise:
 1. Let _view_ be a new reference pointing the ArrayBuffer.
 1. If **this**.[[queue]] is not empty,
     1. Fill _view_ with the contents of elements in **this**.[[queue]].
+    1. Pop the elements that have been fully consumed from **this**.[[queue]], and adjust partially consumed ones to represent the remaining region.
     1. Let _bytesFilled_ be the number of the bytes copied to _view_.
     1. Let _newView_ be a new `ArrayBufferView` of the same type whose `buffer` is _view_.buffer, `byteLength` is _view_.byteLength, and `byteOffset` is _view_.byteOffset - _bytesFilled_.
-    1. Resolve _p_ with `{done: false, value: _view_}`.
-1. Otherwise, InvokeOrNoop(**this**@[[underlyingByteSource]], `"read"`, «_done_, _newView_»)
+    1. Resolve _p_ with `{done: false, value: view}`.
+1. Otherwise, InvokeOrNoop(**this**@[[underlyingByteSource]], `"read"`, «_done_, _view_»)
 1. Return _p_.
 
 ##### releaseLock()
