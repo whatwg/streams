@@ -76,7 +76,7 @@ Tells the byte stream to stop generating or buffering data.
 
 - _reason_: An object indicating the reason why the consumer lost interest
 
-##### Return value
+###### Return value
 
 If the returned promise:
 - fulfills, that means either of:
@@ -95,7 +95,7 @@ Used for reading bytes into `view` and also for getting notified that the stream
 
 - _view_: An `ArrayBufferView` to which the reader stores the bytes read from the stream
 
-##### Return value
+###### Return value
 
 If the return promise:
 - fulfills with _fulfillmentValue_,
@@ -129,7 +129,7 @@ If the return promise:
 
 Detaches the reader from the stream.
 
-##### Return value and exception
+###### Return value and exception
 
 The return value of this method is void (always **undefined** if successful).
 
