@@ -35,6 +35,8 @@ The reader's `read()` method returns a Uint8Array.
 
 #### getByobReader()
 
+See [#294](https://github.com/whatwg/streams/issues/294) about method naming.
+
 The `getByobReader` method creates a byob byte stream reader and locks the byte stream to the new reader.
 
 ## Class ByobByteStreamReader
