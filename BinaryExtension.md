@@ -117,5 +117,6 @@ If this method returns without throwing, that means either of:
 - the reader was released successfully
 - the reader has already been released
 
-If this method throws, that means that some of `read(view)` calls haven't yet been completed
-
+If this method throws,
+- that means that some of `read(view)` calls haven't yet been completed
+- the failure doesn't affect the state of the stream or reader
