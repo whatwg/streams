@@ -1,6 +1,6 @@
-## Readable Byte Stream
+# Readable Byte Stream
 
-### Semantics
+## Semantics
 
 `ReadableByteStream` has a hidden state. The state can be one of the following:
 - `"readable"`: Data may be readable
@@ -9,9 +9,9 @@
 
 The state is not exposed but is observable by calling the methods on the stream or reader.
 
-### Class ReadableByteStream
+## Class ReadableByteStream
 
-#### Class Definition
+### Class Definition
 
 ```
 class ReadableByteStream {
@@ -25,21 +25,21 @@ class ReadableByteStream {
 }
 ```
 
-#### Properties of the ReadableByteStream Prototype
+### Properties of the ReadableByteStream Prototype
 
-##### getReader()
+#### getReader()
 
 The `getReader` method creates a readable stream reader and locks the byte stream to the new reader.
 
 The reader's `read()` method returns a Uint8Array.
 
-##### getByobReader()
+#### getByobReader()
 
 The `getByobReader` method creates a byob byte stream reader and locks the byte stream to the new reader.
 
-### Class ByobByteStreamReader
+## Class ByobByteStreamReader
 
-#### Class Definition
+### Class Definition
 
 ```
 class ByobByteStreamReader {
@@ -53,9 +53,9 @@ class ByobByteStreamReader {
 }
 ```
 
-#### Properties of the ByobByteStreamReader Prototype
+### Properties of the ByobByteStreamReader Prototype
 
-##### get closed()
+#### get closed()
 
 Used for getting notified that the stream is closed or errored.
 
@@ -66,15 +66,15 @@ If the promise returned by this getter:
 - rejects, that means either of:
     - the stream has been errored
 
-##### cancel(reason)
+#### cancel(reason)
 
-###### Semantics
+##### Semantics
 
 Tells the byte stream to stop generating or buffering data.
 
 - _reason_: An object indicating the reason why the consumer lost interest
 
-###### Return value
+##### Return value
 
 If the returned promise:
 - fulfills, that means either of:
@@ -85,15 +85,15 @@ If the returned promise:
     - the stream has been already errored
     - the stream was cancelled for this `cancel()` call but the cancellation finished uncleanly. In this case, the stream becomes `"closed"`.
 
-##### read(view)
+#### read(view)
 
-###### Semantics
+##### Semantics
 
 Used for reading bytes into `view` and also for getting notified that the stream is closed or errored.
 
 - _view_: An `ArrayBufferView` to which the reader stores the bytes read from the stream
 
-###### Return value
+##### Return value
 
 If the return promise:
 - fulfills with _fulfillmentValue_,
@@ -107,7 +107,7 @@ If the return promise:
 - rejects, that means either of:
     - the stream has been errored
 
-###### Sample algorithm
+##### Sample algorithm
 
 1. Let _p_ be a new pending promise.
 1. Detach the ArrayBuffer object pointed by _view_ from _view_.
@@ -121,13 +121,13 @@ If the return promise:
 1. Otherwise, InvokeOrNoop(**this**@[[underlyingByteSource]], `"read"`, «_done_, _view_»)
 1. Return _p_.
 
-##### releaseLock()
+#### releaseLock()
 
-###### Semantics
+##### Semantics
 
 Detaches the reader from the stream.
 
-###### Return value and exception
+##### Return value and exception
 
 The return value of this method is void (always **undefined** if successful).
 
