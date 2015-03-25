@@ -59,6 +59,8 @@ class ByobByteStreamReader {
 
 #### get closed()
 
+##### Semantics
+
 Used for getting notified that the stream is closed or errored.
 
 If the promise returned by this getter:
