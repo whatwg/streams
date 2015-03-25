@@ -1,5 +1,14 @@
 ## Readable Byte Stream
 
+### Semantics
+
+`ReadableByteStream` has a hidden state. The state can be one of the following:
+- `"readable"`: Data may be readable
+- `"closed"`: No more data is readable
+- `"errored"`: The stream has been errored
+
+The state is not exposed but is observable by calling the methods on the stream or reader.
+
 ### Class ReadableByteStream
 
 #### Class Definition
@@ -59,6 +68,8 @@ If the promise returned by this getter:
 
 ##### cancel(reason)
 
+###### Semantics
+
 Tells the byte stream to stop generating or buffering data.
 
 - _reason_: An object indicating the reason why the consumer lost interest
@@ -75,6 +86,8 @@ If the returned promise:
     - the stream was cancelled for this `cancel()` call but the cancellation finished uncleanly. In this case, the stream becomes `"closed"`.
 
 ##### read(view)
+
+###### Semantics
 
 Used for reading bytes into `view` and also for getting notified that the stream is closed or errored.
 
@@ -94,7 +107,7 @@ If the return promise:
 - rejects, that means either of:
     - the stream has been errored
 
-###### Algorithm
+###### Sample algorithm
 
 1. Let _p_ be a new pending promise.
 1. Detach the ArrayBuffer object pointed by _view_ from _view_.
@@ -110,7 +123,11 @@ If the return promise:
 
 ##### releaseLock()
 
+###### Semantics
+
 Detaches the reader from the stream.
+
+###### Return value and exception
 
 The return value of this method is void (always **undefined** if successful).
 
