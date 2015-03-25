@@ -72,7 +72,7 @@ If the returned promise:
     - the stream was successfully cancelled for this `cancel()` call. In this case, the stream becomes `"closed"`.
 - rejects, that means either of:
     - the stream has been already errored
-    - the stream was cancelled for this `cancel()` call but was unsuccessful. In this case, the stream becomes `"closed"`.
+    - the stream was cancelled for this `cancel()` call but the cancellation finished uncleanly. In this case, the stream becomes `"closed"`.
 
 ##### read(view)
 
