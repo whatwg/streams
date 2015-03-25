@@ -39,23 +39,21 @@ See [#294](https://github.com/whatwg/streams/issues/294) about method naming.
 
 The `getByobReader` method creates a byob byte stream reader and locks the byte stream to the new reader.
 
-## Class ByobByteStreamReader
+## Class ReadableByteStreamReader
 
 ### Class Definition
 
 ```
-class ByobByteStreamReader {
+class ReadableByteStreamReader {
     constructor(byteStream)
 
     get closed()
 
     cancel(reason)
-    read(view)
+    read()
     releaseLock()
 }
 ```
-
-### Properties of the ByobByteStreamReader Prototype
 
 #### get closed()
 
@@ -88,6 +86,70 @@ If the returned promise:
 - rejects, that means either of:
     - the stream has been already errored
     - the stream was cancelled for this `cancel()` call but the cancellation finished uncleanly. In this case, the stream becomes `"closed"`.
+
+#### read()
+
+##### Semantics
+
+Used for reading bytes as an `ArrayBufferView` and also for getting notified that the stream is closed or errored.
+
+###### Return value
+
+If the return promise:
+- fulfills with _fulfillmentValue_,
+    - if _fulfillmentValue_.done is set,
+        - that means either of:
+            - the stream has been closed
+            - the reader has been already released while the stream was readable
+        - _fulfillmentValue_.value is set to **undefined**
+    - otherwise,
+        - that means that bytes were successfully read. The bytes are stored in the region specified by _fulfillmentValue_.value which is an `Uint8Array`
+- rejects, that means either of:
+    - the stream has been errored
+
+#### releaseLock()
+
+##### Semantics
+
+Detaches the reader from the stream.
+
+###### Return value and exception
+
+The return value of this method is void (always **undefined** if successful).
+
+If this method returns without throwing, that means either of:
+- the reader was released successfully
+- the reader has already been released
+
+If this method throws,
+- that means that some of `read(view)` calls haven't yet been completed
+- the failure doesn't affect the state of the stream or reader
+
+## Class ByobByteStreamReader
+
+### Class Definition
+
+```
+class ByobByteStreamReader {
+    constructor(byteStream)
+
+    get closed()
+
+    cancel(reason)
+    read(view)
+    releaseLock()
+}
+```
+
+### Properties of the ByobByteStreamReader Prototype
+
+#### get closed()
+
+The same as `ReadableByteStreamReader`.
+
+#### cancel(reason)
+
+The same as `ReadableByteStreamReader`.
 
 #### read(view)
 
@@ -127,18 +189,4 @@ If the return promise:
 
 #### releaseLock()
 
-##### Semantics
-
-Detaches the reader from the stream.
-
-###### Return value and exception
-
-The return value of this method is void (always **undefined** if successful).
-
-If this method returns without throwing, that means either of:
-- the reader was released successfully
-- the reader has already been released
-
-If this method throws,
-- that means that some of `read(view)` calls haven't yet been completed
-- the failure doesn't affect the state of the stream or reader
+The same as `ReadableByteStreamReader`.
