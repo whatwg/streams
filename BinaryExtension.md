@@ -83,14 +83,14 @@ Used for reading bytes into `view` and also for getting notified that the stream
 ###### Return value
 
 If the return promise:
-- fulfills,
-    - if the fulfillment value's `done` is set,
+- fulfills with _fulfillmentValue_,
+    - if _fulfillmentValue_.done is set,
         - that means either of:
             - the stream has been closed
             - the reader has been already released while the stream was readable
-        - `value` is set to an `ArrayBufferView` of the same type as `view` with `byteLength` set to 0 and `byteOffset` set to the same value as `view`
+        - _fulfillmentValue_.value is set to an `ArrayBufferView` of the same type as _view_ with `byteLength` set to 0 and `byteOffset` set to the same value as _view_
     - otherwise,
-        - that means that bytes were successfully read. The bytes are stored in the region specified by `value` which is an `ArrayBufferView` of the same type as `view` with `byteOffset` set to the same value as `view`
+        - that means that bytes were successfully read. The bytes are stored in the region specified by _fulfillmentValue_.value which is an `ArrayBufferView` of the same type as _view_ with `byteOffset` set to the same value as _view_
 - rejects, that means either of:
     - the stream has been errored
 
