@@ -391,8 +391,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 <h5 id="rs-get-reader">getReader()</h5>
 
 <div class="note">
-  The <code>getReader</code> method creates an <a>readable stream reader</a> and
-  <a lt="locked to a reader">locks</a> the stream to the the new reader. While the stream is locked, no other reader
+  The <code>getReader</code> method creates a <a>readable stream reader</a> and
+  <a lt="locked to a reader">locks</a> the stream to the new reader. While the stream is locked, no other reader
   can be acquired until this one is <a lt="release a read lock">released</a>. The returned reader provides the ability
   to directly read individual <a>chunks</a> from the stream via the reader's <code>read</code> method.
 
