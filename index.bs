@@ -1997,8 +1997,8 @@ APIs:
   streamyWS.writable.write("Hello");
   streamyWS.writable.write("web socket!");
 
-  streamyWS.readable.read().then(chunk => {
-    console.log("The web socket says: ", chunk);
+  streamyWS.readable.read().then(({ value, done }) => {
+    console.log("The web socket says: ", value);
   });
 </code></pre>
 
@@ -2006,8 +2006,8 @@ Note how in this setup canceling the <code>readable</code> side will implicitly 
 and similarly, closing or aborting the <code>writable</code> side will implicitly close the <code>readable</code> side.
 
 <pre><code class="lang-javascript">
-  streamyWS.writable.close().then(() => {
-    assert(streamyWS.readable.state === "closed");
+  streamyWS.readable.cancel().then(() => {
+    assert(streamyWS.writable.state === "closed");
   });
 </code></pre>
 
