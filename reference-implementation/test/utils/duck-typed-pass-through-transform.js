@@ -14,9 +14,9 @@ export default function duckTypedPassThroughTransform() {
     }),
 
     readable: new ReadableStream({
-      start(enqueue, close) {
-        enqueueInReadable = enqueue;
-        closeReadable = close;
+      start(c) {
+        enqueueInReadable = c.enqueue.bind(c);
+        closeReadable = c.close.bind(c);
       }
     })
   };

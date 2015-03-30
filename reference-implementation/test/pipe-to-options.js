@@ -7,11 +7,11 @@ test('Piping with no options and a destination error', t => {
 
   const theError = new Error('destination error');
   const rs = new ReadableStream({
-    start(enqueue, close) {
-      enqueue('a');
-      setTimeout(() => enqueue('b'), 10);
+    start(c) {
+      c.enqueue('a');
+      setTimeout(() => c.enqueue('b'), 10);
       setTimeout(() => {
-        t.throws(() => enqueue('c'), /TypeError/, 'enqueue after cancel must throw a TypeError');
+        t.throws(() => c.enqueue('c'), /TypeError/, 'enqueue after cancel must throw a TypeError');
       }, 20);
     },
     cancel(r) {
@@ -35,11 +35,11 @@ test('Piping with { preventCancel: false } and a destination error', t => {
 
   const theError = new Error('destination error');
   const rs = new ReadableStream({
-    start(enqueue, close) {
-      enqueue('a');
-      setTimeout(() => enqueue('b'), 10);
+    start(c) {
+      c.enqueue('a');
+      setTimeout(() => c.enqueue('b'), 10);
       setTimeout(() => {
-        t.throws(() => enqueue('c'), /TypeError/, 'enqueue after cancel must throw a TypeError');
+        t.throws(() => c.enqueue('c'), /TypeError/, 'enqueue after cancel must throw a TypeError');
       }, 20);
     },
     cancel(r) {
@@ -61,11 +61,11 @@ test('Piping with { preventCancel: false } and a destination error', t => {
 test('Piping with { preventCancel: true } and a destination error', t => {
   const theError = new Error('destination error');
   const rs = new ReadableStream({
-    start(enqueue) {
-      enqueue('a');
-      setTimeout(() => enqueue('b'), 10);
-      setTimeout(() => enqueue('c'), 20);
-      setTimeout(() => enqueue('d'), 30);
+    start(c) {
+      c.enqueue('a');
+      setTimeout(() => c.enqueue('b'), 10);
+      setTimeout(() => c.enqueue('c'), 20);
+      setTimeout(() => c.enqueue('d'), 30);
     },
     cancel(r) {
       t.fail('unexpected call to cancel');

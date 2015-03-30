@@ -35,10 +35,10 @@ export default class TransformStream {
 
     let enqueueInReadable, closeReadable, errorReadable;
     const readable = this.readable = new ReadableStream({
-      start(enqueue, close, error) {
-        enqueueInReadable = enqueue;
-        closeReadable = close;
-        errorReadable = error;
+      start(c) {
+        enqueueInReadable = c.enqueue.bind(c);
+        closeReadable = c.close.bind(c);
+        errorReadable = c.error.bind(c);
       },
       pull() {
         if (chunkWrittenButNotYetTransformed === true) {

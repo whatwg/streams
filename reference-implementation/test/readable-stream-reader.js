@@ -37,8 +37,8 @@ test('Constructing an ReadableStreamReader directly should fail if the stream is
 test('Constructing an ReadableStreamReader directly should be OK if the stream is closed',
      t => {
   const rs = new ReadableStream({
-    start(enqueue, close) {
-      close();
+    start(c) {
+      c.close();
     }
   });
 
@@ -50,8 +50,8 @@ test('Constructing an ReadableStreamReader directly should be OK if the stream i
      t => {
   const theError = new Error('don\'t say i didn\'t warn ya');
   const rs = new ReadableStream({
-    start(enqueue, close, error) {
-      error(theError);
+    start(c) {
+      c.error(theError);
     }
   });
 
@@ -60,10 +60,10 @@ test('Constructing an ReadableStreamReader directly should be OK if the stream i
 });
 
 test('Reading from a reader for an empty stream will wait until a chunk is available', t => {
-  let enqueue;
+  let controller;
   const rs = new ReadableStream({
-    start(e) {
-      enqueue = e;
+    start(c) {
+      controller = c;
     }
   });
   const reader = rs.getReader();
@@ -73,7 +73,7 @@ test('Reading from a reader for an empty stream will wait until a chunk is avail
     t.end();
   });
 
-  enqueue('a');
+  controller.enqueue('a');
 });
 
 test('cancel() on a reader releases the reader before calling through', t => {
@@ -97,10 +97,10 @@ test('cancel() on a reader releases the reader before calling through', t => {
 test('closed should be fulfilled after stream is closed (.closed access before acquiring)', t => {
   t.plan(1);
 
-  let doClose;
+  let controller;
   const rs = new ReadableStream({
-    start(enqueue, close) {
-      doClose = close;
+    start(c) {
+      controller = c;
     }
   });
 
@@ -109,16 +109,16 @@ test('closed should be fulfilled after stream is closed (.closed access before a
     t.pass('reader closed should be fulfilled');
   });
 
-  doClose();
+  controller.close();
 });
 
 test('closed should be fulfilled after reader releases its lock (multiple stream locks)', t => {
   t.plan(2);
 
-  let doClose;
+  let controller;
   const rs = new ReadableStream({
-    start(enqueue, close) {
-      doClose = close;
+    start(c) {
+      controller = c;
     }
   });
 
@@ -127,7 +127,7 @@ test('closed should be fulfilled after reader releases its lock (multiple stream
   reader1.releaseLock();
 
   const reader2 = rs.getReader();
-  doClose();
+  controller.close();
 
   reader1.closed.then(() => {
     t.pass('reader1 closed should be fulfilled');
@@ -142,10 +142,10 @@ test('Multiple readers can access the stream in sequence', t => {
   t.plan(2);
 
   const rs = new ReadableStream({
-    start(enqueue, close) {
-      enqueue('a');
-      enqueue('b');
-      close();
+    start(c) {
+      c.enqueue('a');
+      c.enqueue('b');
+      c.close();
     }
   });
 
@@ -162,8 +162,8 @@ test('Cannot use an already-released reader to unlock a stream again', t => {
   t.plan(1);
 
   const rs = new ReadableStream({
-    start(enqueue) {
-      enqueue('a');
+    start(c) {
+      c.enqueue('a');
     }
   });
 
@@ -181,8 +181,8 @@ test('Cannot use an already-released reader to unlock a stream again', t => {
 
 test('cancel() on a released reader is a no-op and does not pass through', t => {
   const rs = new ReadableStream({
-    start(enqueue) {
-      enqueue('a');
+    start(c) {
+      c.enqueue('a');
     },
     cancel() {
       t.fail('underlying source cancel should not be called');
@@ -202,11 +202,11 @@ test('cancel() on a released reader is a no-op and does not pass through', t => 
 test('Getting a second reader after erroring the stream should succeed', t => {
   t.plan(5);
 
-  let doError;
+  let controller;
   const theError = new Error('bad');
   const rs = new ReadableStream({
-    start(enqueue, close, error) {
-      doError = error;
+    start(c) {
+      controller = c;
     }
   });
 
@@ -222,7 +222,7 @@ test('Getting a second reader after erroring the stream should succeed', t => {
 
   t.throws(() => rs.getReader(), /TypeError/, 'trying to get another reader before erroring should throw');
 
-  doError(theError);
+  controller.error(theError);
 
   rs.getReader().closed.catch(e => {
     t.equal(e, theError, 'the second reader closed getter should be rejected with the error');

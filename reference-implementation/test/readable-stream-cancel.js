@@ -9,10 +9,10 @@ test('ReadableStream cancellation: integration test on an infinite stream derive
 
   let cancellationFinished = false;
   const rs = new ReadableStream({
-    start(enqueue, close, error) {
-      randomSource.ondata = enqueue;
-      randomSource.onend = close;
-      randomSource.onerror = error;
+    start(c) {
+      randomSource.ondata = c.enqueue.bind(c);
+      randomSource.onend = c.close.bind(c);
+      randomSource.onerror = c.error.bind(c);
     },
 
     pull() {
@@ -71,9 +71,9 @@ test('ReadableStream cancellation: cancel() on a locked stream should fail and n
      t => {
   t.plan(3);
   const rs = new ReadableStream({
-    start(enqueue, close) {
-      enqueue('a');
-      close();
+    start(c) {
+      c.enqueue('a');
+      c.close();
     },
     cancel() {
       t.fail('underlying source cancel() should not have been called');

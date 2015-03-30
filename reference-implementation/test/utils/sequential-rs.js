@@ -15,7 +15,7 @@ export default function sequentialReadableStream(limit, options) {
       });
     },
 
-    pull(enqueue, close) {
+    pull(c) {
       return new Promise((resolve, reject) => {
         sequentialSource.read((err, done, chunk) => {
           if (err) {
@@ -25,11 +25,11 @@ export default function sequentialReadableStream(limit, options) {
               if (err) {
                 reject(err);
               }
-              close();
+              c.close();
               resolve();
             });
           } else {
-            enqueue(chunk);
+            c.enqueue(chunk);
             resolve();
           }
         });

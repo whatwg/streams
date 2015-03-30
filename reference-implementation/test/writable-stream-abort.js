@@ -133,7 +133,7 @@ test('Aborting a WritableStream causes any outstanding ready promises to be fulf
   let recordedReason;
   const ws = new WritableStream({
     write(chunk) {
-      return new Promise(() => {}); // forever-pending, so normally .ready would not fulfill.
+      return new Promise(() => { }); // forever-pending, so normally .ready would not fulfill.
     }
   });
   ws.write('a');
@@ -184,7 +184,7 @@ test('Closing a WritableStream and aborting it while it closes causes the stream
 
   const ws = new WritableStream({
     close() {
-      return new Promise(() => {}); // forever-pending
+      return new Promise(() => { }); // forever-pending
     }
   });
 

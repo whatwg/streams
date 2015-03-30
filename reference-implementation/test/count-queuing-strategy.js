@@ -27,7 +27,7 @@ test('Can construct a readable stream with a valid CountQueuingStrategy', t => {
 test('Correctly governs the return value of a ReadableStream\'s enqueue function (HWM = 0)', t => {
   let enqueue;
   const rs = new ReadableStream({
-    start(enqueue_) { enqueue = enqueue_; },
+    start(c) { enqueue = c.enqueue.bind(c); },
     strategy: new CountQueuingStrategy({ highWaterMark: 0 })
   });
   const reader = rs.getReader();
@@ -71,7 +71,7 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
 test('Correctly governs the return value of a ReadableStream\'s enqueue function (HWM = 1)', t => {
   let enqueue;
   const rs = new ReadableStream({
-    start(enqueue_) { enqueue = enqueue_; },
+    start(c) { enqueue = c.enqueue.bind(c); },
     strategy: new CountQueuingStrategy({ highWaterMark: 1 })
   });
   const reader = rs.getReader();
@@ -115,7 +115,7 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
 test('Correctly governs the return value of a ReadableStream\'s enqueue function (HWM = 4)', t => {
   let enqueue;
   const rs = new ReadableStream({
-    start(enqueue_) { enqueue = enqueue_; },
+    start(c) { enqueue = c.enqueue.bind(c); },
     strategy: new CountQueuingStrategy({ highWaterMark: 4 })
   });
   const reader = rs.getReader();

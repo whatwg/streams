@@ -16,11 +16,11 @@ test('Piping through an identity transform stream will close the destination whe
   t.plan(1);
 
   const rs = new ReadableStream({
-    start(enqueue, close) {
-      enqueue('a');
-      enqueue('b');
-      enqueue('c');
-      close();
+    start(c) {
+      c.enqueue('a');
+      c.enqueue('b');
+      c.enqueue('c');
+      c.close();
     }
   });
 
@@ -48,16 +48,16 @@ test.skip('Piping through a default transform stream causes backpressure to be e
   // Producer: every 20 ms
   const enqueueReturnValues = [];
   const rs = new ReadableStream({
-    start(enqueue, close) {
-      setTimeout(() => enqueueReturnValues.push(enqueue('a')), 10);
-      setTimeout(() => enqueueReturnValues.push(enqueue('b')), 30);
-      setTimeout(() => enqueueReturnValues.push(enqueue('c')), 50);
-      setTimeout(() => enqueueReturnValues.push(enqueue('d')), 70);
-      setTimeout(() => enqueueReturnValues.push(enqueue('e')), 90);
-      setTimeout(() => enqueueReturnValues.push(enqueue('f')), 110);
-      setTimeout(() => enqueueReturnValues.push(enqueue('g')), 130);
-      setTimeout(() => enqueueReturnValues.push(enqueue('h')), 150);
-      setTimeout(() => close(), 170);
+    start(c) {
+      setTimeout(() => enqueueReturnValues.push(c.enqueue('a')), 10);
+      setTimeout(() => enqueueReturnValues.push(c.enqueue('b')), 30);
+      setTimeout(() => enqueueReturnValues.push(c.enqueue('c')), 50);
+      setTimeout(() => enqueueReturnValues.push(c.enqueue('d')), 70);
+      setTimeout(() => enqueueReturnValues.push(c.enqueue('e')), 90);
+      setTimeout(() => enqueueReturnValues.push(c.enqueue('f')), 110);
+      setTimeout(() => enqueueReturnValues.push(c.enqueue('g')), 130);
+      setTimeout(() => enqueueReturnValues.push(c.enqueue('h')), 150);
+      setTimeout(() => c.close(), 170);
     }
   });
 

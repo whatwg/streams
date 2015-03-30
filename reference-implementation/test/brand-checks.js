@@ -1,11 +1,24 @@
 const test = require('tape-catch');
 
 let ReadableStreamReader;
+let ReadableStreamController;
 
 test('Can get the ReadableStreamReader constructor indirectly', t => {
   t.doesNotThrow(() => {
     // It's not exposed globally, but we test a few of its properties here.
     ReadableStreamReader = (new ReadableStream()).getReader().constructor;
+  });
+  t.end();
+});
+
+test('Can get the ReadableStreamController constructor indirectly', t => {
+  t.doesNotThrow(() => {
+    // It's not exposed globally, but we test a few of its properties here.
+    new ReadableStream({
+      start(c) {
+        ReadableStreamController = c.constructor;
+      }
+    });
   });
   t.end();
 });
@@ -44,6 +57,14 @@ function fakeReadableStreamReader() {
     cancel(reason) { return Promise.resolve(); },
     read() { return Promise.resolve({ value: undefined, done: true }); },
     releaseLock() { return; }
+  };
+}
+
+function fakeReadableStreamController() {
+  return {
+    close() { },
+    enqueue(chunk) { },
+    error(e) { }
   };
 }
 
@@ -150,7 +171,7 @@ test('ReadableStream.prototype.pipeTo works generically on its this and its argu
 
 test('ReadableStreamReader enforces a brand check on its argument', t => {
   t.plan(1);
-  t.throws(() => new ReadableStreamReader(fakeReadableStream()), /TypeError/, 'Contructing a ReadableStreamReader ' +
+  t.throws(() => new ReadableStreamReader(fakeReadableStream()), /TypeError/, 'Constructing a ReadableStreamReader ' +
     'should throw');
 });
 
@@ -176,6 +197,34 @@ test('ReadableStreamReader.prototype.releaseLock enforces a brand check', t => {
   t.plan(2);
   methodThrows(t, ReadableStreamReader.prototype, 'releaseLock', fakeReadableStreamReader());
   methodThrows(t, ReadableStreamReader.prototype, 'releaseLock', realReadableStream());
+});
+
+
+test('ReadableStreamController enforces a brand check on its argument', t => {
+  t.plan(1);
+  t.throws(() => new ReadableStreamController(fakeReadableStream()), /TypeError/,
+    'Constructing a ReadableStreamController should throw');
+});
+
+test('ReadableStreamController can\'t be given a fully-constructed ReadableStream', t => {
+  t.plan(1);
+  t.throws(() => new ReadableStreamController(realReadableStream()), /TypeError/,
+    'Constructing a ReadableStreamController should throw');
+});
+
+test('ReadableStreamController.prototype.close enforces a brand check', t => {
+  t.plan(1);
+  methodThrows(t, ReadableStreamController.prototype, 'close', fakeReadableStreamController());
+});
+
+test('ReadableStreamController.prototype.enqueue enforces a brand check', t => {
+  t.plan(1);
+  methodThrows(t, ReadableStreamController.prototype, 'enqueue', fakeReadableStreamController());
+});
+
+test('ReadableStreamController.prototype.error enforces a brand check', t => {
+  t.plan(1);
+  methodThrows(t, ReadableStreamController.prototype, 'error', fakeReadableStreamController());
 });
 
 

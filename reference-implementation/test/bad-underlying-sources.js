@@ -67,7 +67,7 @@ test('Underlying source: throwing pull getter (second pull)', t => {
     get pull() {
       ++counter;
       if (counter === 1) {
-        return enqueue => enqueue('a');
+        return c => c.enqueue('a');
       }
 
       throw theError;
@@ -89,10 +89,10 @@ test('Underlying source: throwing pull method (second pull)', t => {
   const theError = new Error('a unique string');
   let counter = 0;
   const rs = new ReadableStream({
-    pull(enqueue) {
+    pull(c) {
       ++counter;
       if (counter === 1) {
-        enqueue('a');
+        c.enqueue('a');
       } else {
         throw theError;
       }
@@ -146,8 +146,8 @@ test('Underlying source: throwing strategy getter', t => {
   const theError = new Error('a unique string');
 
   const rs = new ReadableStream({
-    start(enqueue) {
-      t.throws(() => enqueue('a'), /a unique string/, 'enqueue should throw the error');
+    start(c) {
+      t.throws(() => c.enqueue('a'), /a unique string/, 'enqueue should throw the error');
     },
     get strategy() {
       throw theError;
@@ -162,8 +162,8 @@ test('Underlying source: throwing strategy.size getter', t => {
 
   const theError = new Error('a unique string');
   const rs = new ReadableStream({
-    start(enqueue) {
-      t.throws(() => enqueue('a'), /a unique string/, 'enqueue should throw the error');
+    start(c) {
+      t.throws(() => c.enqueue('a'), /a unique string/, 'enqueue should throw the error');
     },
     strategy: {
       get size() {
@@ -183,8 +183,8 @@ test('Underlying source: throwing strategy.size method', t => {
 
   const theError = new Error('a unique string');
   const rs = new ReadableStream({
-    start(enqueue) {
-      t.throws(() => enqueue('a'), /a unique string/, 'enqueue should throw the error');
+    start(c) {
+      t.throws(() => c.enqueue('a'), /a unique string/, 'enqueue should throw the error');
     },
     strategy: {
       size() {
@@ -204,8 +204,8 @@ test('Underlying source: throwing strategy.shouldApplyBackpressure getter', t =>
 
   const theError = new Error('a unique string');
   const rs = new ReadableStream({
-    start(enqueue) {
-      t.throws(() => enqueue('a'), /a unique string/, 'enqueue should throw the error');
+    start(c) {
+      t.throws(() => c.enqueue('a'), /a unique string/, 'enqueue should throw the error');
     },
     strategy: {
       size() {
@@ -225,8 +225,8 @@ test('Underlying source: throwing strategy.shouldApplyBackpressure method', t =>
 
   const theError = new Error('a unique string');
   const rs = new ReadableStream({
-    start(enqueue) {
-      t.throws(() => enqueue('a'), /a unique string/, 'enqueue should throw the error');
+    start(c) {
+      t.throws(() => c.enqueue('a'), /a unique string/, 'enqueue should throw the error');
     },
     strategy: {
       size() {
@@ -246,9 +246,9 @@ test('Underlying source: strategy.size returning NaN', t => {
 
   let theError;
   const rs = new ReadableStream({
-    start(enqueue) {
+    start(c) {
       try {
-        enqueue('hi');
+        c.enqueue('hi');
         t.fail('enqueue didn\'t throw');
       } catch (error) {
         t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
@@ -273,9 +273,9 @@ test('Underlying source: strategy.size returning -Infinity', t => {
 
   let theError;
   const rs = new ReadableStream({
-    start(enqueue) {
+    start(c) {
       try {
-        enqueue('hi');
+        c.enqueue('hi');
         t.fail('enqueue didn\'t throw');
       } catch (error) {
         t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
@@ -300,9 +300,9 @@ test('Underlying source: strategy.size returning +Infinity', t => {
 
   let theError;
   const rs = new ReadableStream({
-    start(enqueue) {
+    start(c) {
       try {
-        enqueue('hi');
+        c.enqueue('hi');
         t.fail('enqueue didn\'t throw');
       } catch (error) {
         t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
@@ -326,9 +326,9 @@ test('Underlying source: calling close twice on an empty stream should throw the
   t.plan(2);
 
   new ReadableStream({
-    start(enqueue, close) {
-      close();
-      t.throws(close, /TypeError/, 'second call to close should throw a TypeError');
+    start(c) {
+      c.close();
+      t.throws(() => c.close(), /TypeError/, 'second call to close should throw a TypeError');
     }
   })
   .getReader().closed.then(() => t.pass('closed should fulfill'));
@@ -338,10 +338,10 @@ test('Underlying source: calling close twice on a non-empty stream should throw 
   t.plan(3);
 
   const reader = new ReadableStream({
-    start(enqueue, close) {
-      enqueue('a');
-      close();
-      t.throws(close, /TypeError/, 'second call to close should throw a TypeError');
+    start(c) {
+      c.enqueue('a');
+      c.close();
+      t.throws(() => c.close(), /TypeError/, 'second call to close should throw a TypeError');
     }
   })
   .getReader();
@@ -353,15 +353,15 @@ test('Underlying source: calling close twice on a non-empty stream should throw 
 test('Underlying source: calling close on an empty canceled stream should not throw', t => {
   t.plan(2);
 
-  let doClose;
+  let controller;
   const rs = new ReadableStream({
-    start(enqueue, close) {
-      doClose = close;
+    start(c) {
+      controller = c;
     }
   });
 
   rs.cancel();
-  t.doesNotThrow(doClose, 'calling close after canceling should not throw anything');
+  t.doesNotThrow(() => controller.close(), 'calling close after canceling should not throw anything');
 
   rs.getReader().closed.then(() => t.pass('closed should fulfill'));
 });
@@ -369,16 +369,16 @@ test('Underlying source: calling close on an empty canceled stream should not th
 test('Underlying source: calling close on a non-empty canceled stream should not throw', t => {
   t.plan(2);
 
-  let doClose;
+  let controller;
   const rs = new ReadableStream({
-    start(enqueue, close) {
-      enqueue('a');
-      doClose = close;
+    start(c) {
+      controller = c;
+      c.enqueue('a');
     }
   });
 
   rs.cancel();
-  t.doesNotThrow(doClose, 'calling close after canceling should not throw anything');
+  t.doesNotThrow(() => controller.close(), 'calling close after canceling should not throw anything');
 
   rs.getReader().closed.then(() => t.pass('closed should fulfill'));
 });
@@ -388,9 +388,9 @@ test('Underlying source: calling close after error should throw', t => {
 
   const theError = new Error('boo');
   new ReadableStream({
-    start(enqueue, close, error) {
-      error(theError);
-      t.throws(close, /TypeError/, 'call to close should throw a TypeError');
+    start(c) {
+      c.error(theError);
+      t.throws(() => c.close(), /TypeError/, 'call to close should throw a TypeError');
     }
   })
   .getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
@@ -401,9 +401,9 @@ test('Underlying source: calling error twice should throw the second time', t =>
 
   const theError = new Error('boo');
   new ReadableStream({
-    start(enqueue, close, error) {
-      error(theError);
-      t.throws(error, /TypeError/, 'second call to error should throw a TypeError');
+    start(c) {
+      c.error(theError);
+      t.throws(() => c.error(), /TypeError/, 'second call to error should throw a TypeError');
     }
   })
   .getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
@@ -413,9 +413,9 @@ test('Underlying source: calling error after close should throw', t => {
   t.plan(2);
 
   new ReadableStream({
-    start(enqueue, close, error) {
-      close();
-      t.throws(error, /TypeError/, 'call to error should throw a TypeError');
+    start(c) {
+      c.close();
+      t.throws(() => c.error(), /TypeError/, 'call to error should throw a TypeError');
     }
   })
   .getReader().closed.then(() => t.pass('closed should fulfill'));

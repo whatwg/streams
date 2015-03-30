@@ -262,10 +262,6 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     </tr>
   </thead>
   <tr>
-    <td>\[[close]]
-    <td>A <a>Readable Stream Close Function</a> created with the ability to close this stream
-  </tr>
-  <tr>
     <td>\[[closedPromise]]
     <td>A promise that becomes fulfilled when the stream becomes closed; returned by the <code>closed</code> getter
   </tr>
@@ -275,14 +271,9 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
       <a>chunks</a> in its internal queue that have not yet been read
   </tr>
   <tr>
-    <td>\[[enqueue]]
-    <td>A <a>Readable Stream Enqueue Function</a> created with the ability to enqueue a passed <a>chunk</a> in this
-      stream
-  </tr>
-  <tr>
-    <td>\[[error]]
-    <td>A <a>Readable Stream Error Function</a> created with the ability to move this stream to an
-      <code>"errored"</code> state
+    <td>\[[controller]]
+    <td>A <a href="#rs-controller-class"><code>ReadableStreamController</code></a> created with the ability to control the
+      state and queue of this stream
   </tr>
   <tr>
     <td>\[[pullScheduled]]
@@ -300,8 +291,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </tr>
   <tr>
     <td>\[[reader]]
-    <td>A <code>ReadableStreamReader</code> instance, if the stream is <a>locked to a reader</a>, or <b>undefined</b>
-      if it is not
+    <td>A <a href="#reader-class"><code>ReadableStreamReader</code></a> instance, if the stream is <a>locked to a
+      reader</a>, or <b>undefined</b> if it is not
   </tr>
   <tr>
     <td>\[[started]]
@@ -331,10 +322,10 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   govern how the constructed stream instance behaves:
 
   <ul>
-    <li> <code>start(enqueue, close, error)</code> is called immediately, and is typically used to adapt a <a>push
+    <li> <code>start(controller)</code> is called immediately, and is typically used to adapt a <a>push
       source</a> by setting up relevant event listeners, or to acquire access to a <a>pull source</a>. If this process
       is asynchronous, it can return a promise to signal success or failure.
-    <li> <code>pull(enqueue, close)</code> is called when the stream's internal queue of chunks is depleted, and the
+    <li> <code>pull(controller)</code> is called when the stream's internal queue of chunks is depleted, and the
       consumer has signaled that they wish to consume more data. If <code>pull</code> returns a promise, then
       <code>pull</code> will not be called again until that promise fulfills; if the promise rejects, the stream will
       become errored.
@@ -344,8 +335,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </ul>
 
   Both <code>start</code> and <code>pull</code> are given the ability to manipulate the stream's internal queue and
-  state via the passed <code>enqueue</code>, <code>close</code>, and <code>error</code> callbacks. This is an example
-  of the <a href="https://blog.domenic.me/the-revealing-constructor-pattern/">revealing constructor pattern</a>.
+  state via the passed <code>controller</code> object. This is an example of the
+  <a href="https://blog.domenic.me/the-revealing-constructor-pattern/">revealing constructor pattern</a>.
 
   The underlying source can also have a <code>strategy</code> property containing a <a>queuing strategy</a> object with
   two methods <code>shouldApplyBackpressure(queueSize)</code> and <code>size(chunk)</code>. These could be instances of
@@ -360,16 +351,14 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. Set *this*@[[state]] to "readable".
   1. Set *this*@[[started]], *this*@[[closeRequested]], and *this*@[[pullScheduled]] to *false*.
   1. Set *this*@[[reader]], *this*@[[pullingPromise]], and *this*@[[storedError]] to *undefined*.
-  1. Set *this*@[[enqueue]] to CreateReadableStreamEnqueueFunction(*this*).
-  1. Set *this*@[[close]] to CreateReadableStreamCloseFunction(*this*).
-  1. Set *this*@[[error]] to CreateReadableStreamErrorFunction(*this*).
-  1. Let _startResult_ be InvokeOrNoop(_underlyingSource_, "start", «*this*@[[enqueue]], *this*@[[close]], *this*@[[error]]»).
+  1. Set *this*@[[controller]] to Construct(<code>ReadableStreamController</code>, «*this*»).
+  1. Let _startResult_ be InvokeOrNoop(_underlyingSource_, "start", «*this*@[[controller]]»).
   1. ReturnIfAbrupt(startResult).
   1. Resolve _startResult_ as a promise:
     1. Upon fulfillment,
       1. Set *this*@[[started]] to *true*.
       1. Return CallReadableStreamPull(*this*).
-    1. Upon rejection with reason _r_, call-with-rethrow Call(*this*@[[error]], *undefined*, «‍_r_»).
+    1. Upon rejection with reason _r_, return ErrorReadableStream(*this*, _r_).
 </pre>
 
 <h4 id="rs-prototype">Properties of the <code>ReadableStream</code> Prototype</h4>
@@ -489,6 +478,122 @@ bulletproofing before we write it up in prose.
 For now, please consider the reference implementation normative:
 <a href="https://github.com/whatwg/streams/blob/master/reference-implementation/lib/readable-stream.js">reference-implementation/lib/readable-stream.js</a>,
 look for the <code>pipeTo</code> method.
+
+<h3 id="rs-controller-class" lt="ReadableStreamController">Class <code>ReadableStreamController</code></h3>
+
+The <code>ReadableStreamController</code> class has methods that allow control of a <code>ReadableStream</code>'s state
+and <a>internal queue</a>. When constructing a <code>ReadableStream</code>, the <a>underlying source</a> is given a
+corresponding <code>ReadableStreamController</code> instance to manipulate.
+
+<h4 id="rs-controller-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>ReadableStreamReader</code> class in something close to the syntax of [[!ECMASCRIPT]],
+it would look like
+
+<pre><code class="lang-javascript">
+  class ReadableStreamController {
+    constructor(stream)
+
+    close()
+    enqueue(chunk)
+    error(e)
+  }
+</code></pre>
+
+<h4 id="rs-controller-internal-slots">Internal Slots</h4>
+
+Instances of <code>ReadableStreamController</code> are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[controlledReadableStream]]
+    <td>The <code>ReadableStream</code> instance controlled
+  </tr>
+</table>
+
+<h4 id="rs-controller-constructor">new ReadableStreamController(stream)</h4>
+
+<div class="note">
+  The <code>ReadableStreamController</code> constructor cannot be used directly; it only works on a
+  <code>ReadableStream</code> that is in the middle of being constructed.
+</div>
+
+<pre is="emu-alg">
+  1. If IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If _stream_@[[controller]] is not *undefined*, throw a *TypeError* exception.
+  1. Set *this*@[[controlledReadableStream]] to _stream_.
+</pre>
+
+<h4 id="rs-controller-prototype">Properties of the <code>ReadableStreamController</code> Prototype</h4>
+
+<h5 id="rs-controller-close">close()</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _stream_ be *this*@[[controlledReadableStream]].
+  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. If _stream_@[[state]] is "errored", throw a *TypeError* exception.
+  1. If _stream_@[[state]] is "closed", return *undefined*.
+  1. Set _stream_@[[closeRequested]] to *true*.
+  1. If _stream_@[[queue]] is empty, return CloseReadableStream(_stream_).
+</pre>
+
+<div class="note">
+  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
+  <emu-val>false</emu-val>, will happen if the stream was closed without this close function ever being called: i.e.,
+  if the stream was closed by a call to <code>stream.cancel()</code>.
+</div>
+
+<h5 id="rs-controller-enqueue">enqueue(chunk)</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _stream_ be *this*@[[controlledReadableStream]].
+  1. If _stream_@[[state]] is "errored", throw _stream_@[[storedError]].
+  1. If _stream_@[[state]] is "closed", throw a *TypeError* exception.
+  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. If IsReadableStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty,
+    1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
+    1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
+    1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *false*).
+  1. Otherwise,
+    1. Let _chunkSize_ be *1*.
+    1. Let _strategy_ be Get(_stream_@[[underlyingSource]], "strategy").
+    1. If _strategy_ is an abrupt completion,
+      1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_strategy_.[[value]]).
+      1. Return _strategy_.
+    1. Let _strategy_ be _strategy_.[[value]].
+    1. If _strategy_ is not *undefined*, then
+      1. Set _chunkSize_ to Invoke(_strategy_, "size", «‍_chunk_»).
+      1. If _chunkSize_ is an abrupt completion,
+        1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_chunkSize_.[[value]]).
+        1. Return _chunkSize_.
+      1. Let _chunkSize_ be _chunkSize_.[[value]].
+    1. Let _enqueueResult_ be EnqueueValueWithSize(_stream_@[[queue]], _chunk_, _chunkSize_.[[value]]).
+    1. If _enqueueResult_ is an abrupt completion,
+      1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_enqueueResult_.[[value]]).
+      1. Return _enqueueResult_.
+  1. Call-with-rethrow CallReadableStreamPull(_stream_).
+  1. Let _shouldApplyBackpressure_ be ShouldReadableStreamApplyBackpressure(_stream_).
+  1. ReturnIfAbrupt(_shouldApplyBackpressure_).
+  1. If _shouldApplyBackpressure_ is *true*, return *false*.
+  1. Return *true*.
+</pre>
+
+<h5 id="rs-controller-error">error(e)</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
+  1. Return ErrorReadableStream(*this*@[[controlledReadableStream]]).
+</pre>
 
 <h3 id="reader-class">Class <code>ReadableStreamReader</code></h3>
 
@@ -682,9 +787,9 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
     1. Return *undefined*.
   1. Let _shouldApplyBackpressure_ be ShouldReadableStreamApplyBackpressure(_stream_).
   1. If _shouldApplyBackpressure_ is *true*, return *undefined*.
-  1. Set _stream_@[[pullingPromise]] to PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "pull", «‍_stream_@[[enqueue]], _stream_@[[close]]»).
+  1. Set _stream_@[[pullingPromise]] to PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "pull", «‍_stream_@[[controller]]»).
   1. Upon fulfillment of _stream_@[[pullingPromise]], set _stream_@[[pullingPromise]] to *undefined*.
-  1. Upon rejection of _stream_@[[pullingPromise]] with reason _e_, call-with-rethrow _stream_@[[error]](_e_).
+  1. Upon rejection of _stream_@[[pullingPromise]] with reason _e_, return ErrorReadableStream(_stream_, _e_).
   1. Return *undefined*.
 </pre>
 
@@ -718,79 +823,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   1. Return *undefined*.
 </pre>
 
-<h4 id="create-readable-stream-close-function" aoid="CreateReadableStreamCloseFunction">CreateReadableStreamCloseFunction ( stream )</h4>
-
-<pre is="emu-alg">
-  1. Return a new <a>Readable Stream Close Function</a> closing over _stream_.
-</pre>
-
-A <dfn>Readable Stream Close Function</dfn> is a built-in anonymous function of zero arguments, closing over a variable
-<var>stream</var>, that performs the following steps:
-
-<pre is="emu-alg">
-  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. If _stream_@[[state]] is "errored", throw a *TypeError* exception.
-  1. If _stream_@[[state]] is "closed", return *undefined*.
-  1. Set _stream_@[[closeRequested]] to *true*.
-  1. If _stream_@[[queue]] is empty, return CloseReadableStream(_stream_).
-</pre>
-
-<div class="note">
-  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
-  <emu-val>false</emu-val>, will happen if the stream was closed without this close function ever being called: i.e.,
-  if the stream was closed by a call to <code>stream.cancel()</code>.
-</div>
-
-<h4 id="create-readable-stream-enqueue-function" aoid="CreateReadableStreamEnqueueFunction">CreateReadableStreamEnqueueFunction ( stream )</h4>
-
-<pre is="emu-alg">
-  1. Return a new <a>Readable Stream Enqueue Function</a> closing over _stream_.
-</pre>
-
-A <dfn>Readable Stream Enqueue Function</dfn> is a built-in anonymous function of one argument <var>chunk</var>,
-closing over a variable <var>stream</var>, that performs the following steps:
-
-<pre is="emu-alg">
-  1. If _stream_@[[state]] is "errored", throw _stream_@[[storedError]].
-  1. If _stream_@[[state]] is "closed", throw a *TypeError* exception.
-  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. If IsReadableStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty,
-    1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
-    1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
-    1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *false*).
-  1. Otherwise,
-    1. Let _chunkSize_ be *1*.
-    1. Let _strategy_ be Get(_stream_@[[underlyingSource]], "strategy").
-    1. If _strategy_ is an abrupt completion,
-      1. Call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_strategy_.[[value]]»).
-      1. Return _strategy_.
-    1. Let _strategy_ be _strategy_.[[value]].
-    1. If _strategy_ is not *undefined*, then
-      1. Set _chunkSize_ to Invoke(_strategy_, "size", «‍_chunk_»).
-      1. If _chunkSize_ is an abrupt completion,
-        1. Call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_chunkSize_.[[value]]»).
-        1. Return _chunkSize_.
-      1. Let _chunkSize_ be _chunkSize_.[[value]].
-    1. Let _enqueueResult_ be EnqueueValueWithSize(_stream_@[[queue]], _chunk_, _chunkSize_.[[value]]).
-    1. If _enqueueResult_ is an abrupt completion,
-      1. Call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_enqueueResult_.[[value]]»).
-      1. Return _enqueueResult_.
-  1. Call-with-rethrow CallReadableStreamPull(_stream_).
-  1. Let _shouldApplyBackpressure_ be ShouldReadableStreamApplyBackpressure(_stream_).
-  1. ReturnIfAbrupt(_shouldApplyBackpressure_).
-  1. If _shouldApplyBackpressure_ is *true*, return *false*.
-  1. Return *true*.
-</pre>
-
-
-<h4 id="create-readable-stream-error-function" aoid="CreateReadableStreamErrorFunction">CreateReadableStreamErrorFunction ( stream )</h4>
-
-<pre is="emu-alg">
-  1. Return a new <a>Readable Stream Error Function</a> closing over _stream_.
-</pre>
-
-A <dfn>Readable Stream Error Function</dfn> is a built-in anonymous function of one argument <var>e</var>, closing over
-a variable <var>stream</var>, that performs the following steps:
+<h4 id="error-readable-stream" aoid="ErrorReadableStream">ErrorReadableStream ( stream, e )</h4>
 
 <pre is="emu-alg">
   1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
@@ -805,6 +838,14 @@ a variable <var>stream</var>, that performs the following steps:
 <pre is="emu-alg">
   1. If Type(_x_) is not Object, return *false*.
   1. If _x_ does not have a [[underlyingSource]] internal slot, return *false*.
+  1. Return *true*.
+</pre>
+
+<h4 id="is-readable-stream-controller" aoid="IsReadableStreamController">IsReadableStreamController ( x )</h4>
+
+<pre is="emu-alg">
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[controlledReadableStream]] internal slot, return *false*.
   1. Return *true*.
 </pre>
 
@@ -858,12 +899,12 @@ a variable <var>stream</var>, that performs the following steps:
   1. Let _shouldApplyBackpressure_ be *true* if _queueSize_ > *1*, and *false* otherwise.
   1. Let _strategy_ be Get(_stream_@[[underlyingSource]], "strategy").
   1. If _strategy_ is an abrupt completion,
-    1. Call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_strategy_.[[value]]»).
+    1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_strategy_.[[value]]).
     1. Return _strategy_.
   1. Let _strategy_ be _strategy_.[[value]].
   1. If _strategy_ is not *undefined*, then
     1. Set _shouldApplyBackpressure_ to ToBoolean(Invoke(_strategy_, "shouldApplyBackpressure", «‍_queueSize_»)).
-    1. If _shouldApplyBackpressure_ is an abrupt completion, call-with-rethrow Call(_stream_@[[error]], *undefined*, «‍_shouldApplyBackpressure_.[[value]]»).
+    1. If _shouldApplyBackpressure_ is an abrupt completion, call-with-rethrow ErrorReadableStream(_stream_, ‍_shouldApplyBackpressure_.[[value]]).
   1. Return _shouldApplyBackpressure_.
 </pre>
 
@@ -1657,7 +1698,8 @@ standard, and other attributes { \[[Writable]]: <b>true</b>, \[[Enumerable]]: <b
 <div class="note">
   The <code>ReadableStreamReader</code> class is specifically <em>not</em> exposed, as while it does have a
   functioning constructor, instances should instead be created through the <code>getReader</code> method of a
-  <code>ReadableStream</code> instance.
+  <code>ReadableStream</code> instance. Similarly, the <code>ReadableStreamController</code> class is not exposed,
+  since its constructor is not independently useful outside of the <code>ReadableStream</code> implementation.
 </div>
 
 <div class="note">
@@ -1704,7 +1746,7 @@ using the <code>ReadableStream</code> or <code>WritableStream</code> constructor
 
 <h3 id="example-rs-push-no-backpressure">A readable stream with an underlying push source (no backpressure support)</h3>
 
-The following function creates <a>readable streams</a> that wrap web sockets [[HTML]], which are <a>push sources</a>
+The following function creates <a>readable streams</a> that wrap WebSockets [[HTML]], which are <a>push sources</a>
 that do not support backpressure signals. It illustrates how, when adapting a push source, usually most of the work
 happens in the <code>start</code> function.
 
@@ -1714,10 +1756,10 @@ happens in the <code>start</code> function.
     ws.binaryType = "arraybuffer";
 
     return new ReadableStream({
-      start(enqueue, close, error) {
-        ws.onmessage = event => enqueue(event.data);
-        ws.onend = close;
-        ws.onerror = error;
+      start(controller) {
+        ws.onmessage = event => controller.enqueue(event.data);
+        ws.onend = () => controller.close();
+        ws.onerror = () => controller.error(new Error("The WebSocket errored!"));
       },
 
       cancel() {
@@ -1750,17 +1792,17 @@ that have the same API as web sockets, but also provide the ability to pause and
     const socket = createBackpressureSocket(host, port);
 
     return new ReadableStream({
-      start(enqueue, close, error) {
+      start(controller) {
         socket.ondata = event => {
-          if (!enqueue(event.data)) {
+          if (!controller.enqueue(event.data)) {
             // If enqueue returns false, the internal queue is full, so propagate
             // the backpressure signal to the underlying source.
             socket.readStop();
           }
         };
 
-        socket.onend = close;
-        socket.onerror = error;
+        socket.onend = () => controller.close();
+        socket.onerror = () => controller.error(new Error("The socket errored!"));
       },
 
       pull() {
@@ -1805,15 +1847,15 @@ sources</a>. Note how in contrast to the examples with push sources, most of the
         });
       },
 
-      pull(enqueue, close) {
+      pull(controller) {
         const buffer = new ArrayBuffer(CHUNK_SIZE);
 
         return fs.read(fd, buffer, 0, CHUNK_SIZE, position).then(bytesRead => {
           if (bytesRead === 0) {
-            return fs.close(fd).then(close);
+            return fs.close(fd).then(() => controller.close());
           } else {
             position += bytesRead;
-            enqueue(buffer);
+            controller.enqueue(buffer);
           }
         });
       },
@@ -1954,10 +1996,13 @@ source abstractions.
       this._ws = ws;
     }
 
-    start(enqueue, close, error) {
-      this._ws.onmessage = event => enqueue(event.data);
-      this._ws.onend = close;
-      this._ws.onerror = error;
+    start(controller) {
+      this._ws.onmessage = event => controller.enqueue(event.data);
+      this._ws.onend = () => controller.close();
+
+      this._ws.addEventListener("error", () => {
+        controller.error(new Error("The WebSocket errored!"));
+      });
     }
 
     cancel() {
@@ -1971,7 +2016,10 @@ source abstractions.
     }
 
     start(error) {
-      this._ws.onerror = error;
+      this._ws.addEventListener("error", () => {
+        error(new Error("The WebSocket errored!"));
+      });
+
       return new Promise(resolve => this._ws.onopen = resolve);
     }
 

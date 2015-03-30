@@ -20,20 +20,20 @@ templatedRSEmptyReader('ReadableStream (empty) reader',
 
 templatedRSClosed('ReadableStream (closed via call in start)',
   () => new ReadableStream({
-    start(enqueue, close) { close(); }
+    start(c) { c.close(); }
   })
 );
 
 templatedRSClosedReader('ReadableStream (closed via call in start) reader',
   () => {
-    let doClose;
+    let controller;
     const stream = new ReadableStream({
-      start(enqueue, close) {
-        doClose = close;
+      start(c) {
+        controller = c;
       }
     });
     const result = streamAndDefaultReader(stream);
-    doClose();
+    controller.close();
     return result;
   }
 );
@@ -59,35 +59,35 @@ const theError = new Error('boo!');
 
 templatedRSErrored('ReadableStream (errored via call in start)',
   () => new ReadableStream({
-    start(enqueue, close, error) { error(theError); }
+    start(c) { c.error(theError); }
   }),
   theError
 );
 
 templatedRSErroredSyncOnly('ReadableStream (errored via call in start)',
   () => new ReadableStream({
-    start(enqueue, close, error) { error(theError); }
+    start(c) { c.error(theError); }
   }),
   theError
 );
 
 templatedRSErrored('ReadableStream (errored via returning a rejected promise in start)',
   () => new ReadableStream({
-    start(enqueue, close, error) { return Promise.reject(theError); }
+    start() { return Promise.reject(theError); }
   }),
   theError
 );
 
 templatedRSErroredAsyncOnly('ReadableStream (errored via returning a rejected promise in start) reader',
   () => new ReadableStream({
-    start(enqueue, close, error) { return Promise.reject(theError); }
+    start() { return Promise.reject(theError); }
   }),
   theError
 );
 
 templatedRSErroredReader('ReadableStream (errored via returning a rejected promise in start) reader',
   () => streamAndDefaultReader(new ReadableStream({
-    start(enqueue, close, error) { return Promise.reject(theError); }
+    start() { return Promise.reject(theError); }
   })),
   theError
 );
@@ -96,9 +96,9 @@ const chunks = ['a', 'b'];
 
 templatedRSTwoChunksOpenReader('ReadableStream (two chunks enqueued, still open) reader',
   () => streamAndDefaultReader(new ReadableStream({
-    start(enqueue) {
-      enqueue(chunks[0]);
-      enqueue(chunks[1]);
+    start(c) {
+      c.enqueue(chunks[0]);
+      c.enqueue(chunks[1]);
     }
   })),
   chunks
@@ -106,10 +106,10 @@ templatedRSTwoChunksOpenReader('ReadableStream (two chunks enqueued, still open)
 
 templatedRSTwoChunksClosed('ReadableStream (two chunks enqueued, then closed)',
   () => new ReadableStream({
-    start(enqueue, close) {
-      enqueue(chunks[0]);
-      enqueue(chunks[1]);
-      close();
+    start(c) {
+      c.enqueue(chunks[0]);
+      c.enqueue(chunks[1]);
+      c.close();
     }
   }),
   chunks
@@ -117,10 +117,10 @@ templatedRSTwoChunksClosed('ReadableStream (two chunks enqueued, then closed)',
 
 templatedRSTwoChunksClosed('ReadableStream (two chunks enqueued async, then closed)',
   () => new ReadableStream({
-    start(enqueue, close) {
-      setTimeout(() => enqueue(chunks[0]), 10);
-      setTimeout(() => enqueue(chunks[1]), 20);
-      setTimeout(() => close(), 30);
+    start(c) {
+      setTimeout(() => c.enqueue(chunks[0]), 10);
+      setTimeout(() => c.enqueue(chunks[1]), 20);
+      setTimeout(() => c.close(), 30);
     }
   }),
   chunks
@@ -131,11 +131,11 @@ templatedRSTwoChunksClosed('ReadableStream (two chunks enqueued via pull, then c
     let pullCall = 0;
 
     return new ReadableStream({
-      pull(enqueue, close) {
+      pull(c) {
         if (pullCall >= chunks.length) {
-          close();
+          c.close();
         } else {
-          enqueue(chunks[pullCall++]);
+          c.enqueue(chunks[pullCall++]);
         }
       }
     });
@@ -147,10 +147,10 @@ templatedRSTwoChunksClosedReader('ReadableStream (two chunks enqueued, then clos
   () => {
     let doClose;
     const stream = new ReadableStream({
-      start(enqueue, close) {
-      enqueue(chunks[0]);
-      enqueue(chunks[1]);
-        doClose = close;
+      start(c) {
+        c.enqueue(chunks[0]);
+        c.enqueue(chunks[1]);
+        doClose = c.close.bind(c);
       }
     });
     const result = streamAndDefaultReader(stream);
