@@ -733,11 +733,8 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamReader">AcquireReadableStreamReader ( stream )</h4>
 
-<div class="note">
-  This abstract operation is meant to be called from other specifications that may wish to acquire an
-  <a>readable stream reader</a> for a given stream. Within this specification, it is only used once, in the definition
-  of <a href="#rs-get-reader"><code>ReadableStream.prototype.getReader</code></a>.
-</div>
+This abstract operation is meant to be called from other specifications that may wish to acquire an <a>readable stream
+reader</a> for a given stream.
 
 <pre is="emu-alg">
   1. Return Construct(`ReadableStreamReader`, «‍_stream_»).
@@ -774,6 +771,10 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <h4 id="close-readable-stream" aoid="CloseReadableStream">CloseReadableStream ( stream )</h4>
 
+This abstract operation can be called by other specifications that wish to close a readable stream, in the same way
+a developer-created stream would be closed by its associated controller object. Specifications should <em>not</em> do
+this to streams they did not create, and must ensure they have obeyed the preconditions (listed here as asserts).
+
 <pre is="emu-alg">
   1. Assert: _stream_@[[closeRequested]] is *false*.
   1. Assert: _stream_@[[state]] is not "errored".
@@ -798,6 +799,11 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 </pre>
 
 <h4 id="enqueue-in-readable-stream" aoid="EnqueueInReadableStream">EnqueueInReadableStream ( stream, chunk )</h4>
+
+This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in a readable stream,
+in the same way a developer would enqueue chunks using the stream's associated controller object. Specifications should
+<em>not</em> do this to streams they did not create, and must ensure they have obeyed the preconditions (listed here as
+asserts).
 
 <pre is="emu-alg">
   1. Assert: _stream_@[[state]] is "readable".
@@ -832,6 +838,10 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <h4 id="error-readable-stream" aoid="ErrorReadableStream">ErrorReadableStream ( stream, e )</h4>
 
+This abstract operation can be called by other specifications that wish to move a readable stream to an errored state,
+in the same way a developer would error a stream using its associated controller object. Specifications should
+<em>not</em> do this to streams they did not create, and must ensure they have obeyed the precondition (listed here as
+an assert).
 
 <pre is="emu-alg">
   1. Assert: _stream_@[[state]] is "readable".
@@ -859,10 +869,8 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <h4 id="is-readable-stream-locked" aoid="IsReadableStreamLocked">IsReadableStreamLocked ( stream )</h4>
 
-<div class="note">
-  This abstract operation is meant to be called from other specifications that may wish to query whether or not a
-  readable stream is <a>locked to a reader</a>.
-</div>
+This abstract operation is meant to be called from other specifications that may wish to query whether or not a
+readable stream is <a>locked to a reader</a>.
 
 <pre is="emu-alg">
   1. Assert: IsReadableStream(_stream_) is *true*.
