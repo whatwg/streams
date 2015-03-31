@@ -141,6 +141,110 @@ export default class ReadableStream {
   }
 }
 
+class ReadableStreamController {
+  constructor(stream) {
+    if (IsReadableStream(stream) === false) {
+      throw new TypeError('ReadableStreamController can only be constructed with a ReadableStream instance');
+    }
+
+    if (stream._controller !== undefined) {
+      throw new TypeError('ReadableStreamController instances can only be created by the ReadableStream constructor');
+    }
+
+    this._controlledReadableStream = stream;
+  }
+
+  close() {
+    if (IsReadableStreamController(this) === false) {
+      throw new TypeError('ReadableStreamController.prototype.close can only be used on a ReadableStreamController');
+    }
+
+    if (this._controlledReadableStream._closeRequested === true) {
+      throw new TypeError('The stream has already been closed; do not close it again!');
+    }
+    if (this._controlledReadableStream._state === 'errored') {
+      throw new TypeError('The stream is in an errored state and cannot be closed');
+    }
+
+    if (this._controlledReadableStream._state === 'closed') {
+      // This will happen if the stream was closed without close() being called, i.e. by a call to stream.cancel()
+      return undefined;
+    }
+
+    this._controlledReadableStream._closeRequested = true;
+
+    if (this._controlledReadableStream._queue.length === 0) {
+      return CloseReadableStream(this._controlledReadableStream);
+    }
+  }
+
+  enqueue(chunk) {
+    if (IsReadableStreamController(this) === false) {
+      throw new TypeError('ReadableStreamController.prototype.enqueue can only be used on a ReadableStreamController');
+    }
+
+    if (this._controlledReadableStream._state === 'errored') {
+      throw this._controlledReadableStream._storedError;
+    }
+
+    if (this._controlledReadableStream._state === 'closed') {
+      throw new TypeError('stream is closed');
+    }
+
+    if (this._controlledReadableStream._closeRequested === true) {
+      throw new TypeError('stream is draining');
+    }
+
+    if (IsReadableStreamLocked(this._controlledReadableStream) === true &&
+        this._controlledReadableStream._reader._readRequests.length > 0) {
+      const readRequest = this._controlledReadableStream._reader._readRequests.shift();
+      readRequest._resolve(CreateIterResultObject(chunk, false));
+    } else {
+      let chunkSize = 1;
+
+      let strategy;
+      try {
+        strategy = this._controlledReadableStream._underlyingSource.strategy;
+      } catch (strategyE) {
+        ErrorReadableStream(this._controlledReadableStream, strategyE);
+        throw strategyE;
+      }
+
+      if (strategy !== undefined) {
+        try {
+          chunkSize = strategy.size(chunk);
+        } catch (chunkSizeE) {
+          ErrorReadableStream(this._controlledReadableStream, chunkSizeE);
+          throw chunkSizeE;
+        }
+      }
+
+      try {
+        EnqueueValueWithSize(this._controlledReadableStream._queue, chunk, chunkSize);
+      } catch (enqueueE) {
+        ErrorReadableStream(this._controlledReadableStream, enqueueE);
+        throw enqueueE;
+      }
+    }
+
+    CallReadableStreamPull(this._controlledReadableStream);
+
+    const shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(this._controlledReadableStream);
+    if (shouldApplyBackpressure === true) {
+      return false;
+    }
+    return true;
+  }
+
+  error(e) {
+    if (IsReadableStreamController(this) === false) {
+      throw new TypeError('ReadableStreamController.prototype.error can only be used on a ReadableStreamController');
+    }
+
+    return ErrorReadableStream(this._controlledReadableStream, e);
+  }
+}
+
 class ReadableStreamReader {
   constructor(stream) {
     if (IsReadableStream(stream) === false) {
@@ -249,110 +353,6 @@ class ReadableStreamReader {
     }
 
     return ReleaseReadableStreamReader(this);
-  }
-}
-
-class ReadableStreamController {
-  constructor(stream) {
-    if (IsReadableStream(stream) === false) {
-      throw new TypeError('ReadableStreamController can only be constructed with a ReadableStream instance');
-    }
-
-    if (stream._controller !== undefined) {
-      throw new TypeError('ReadableStreamController instances can only be created by the ReadableStream constructor');
-    }
-
-    this._controlledReadableStream = stream;
-  }
-
-  close() {
-    if (IsReadableStreamController(this) === false) {
-      throw new TypeError('ReadableStreamController.prototype.close can only be used on a ReadableStreamController');
-    }
-
-    if (this._controlledReadableStream._closeRequested === true) {
-      throw new TypeError('The stream has already been closed; do not close it again!');
-    }
-    if (this._controlledReadableStream._state === 'errored') {
-      throw new TypeError('The stream is in an errored state and cannot be closed');
-    }
-
-    if (this._controlledReadableStream._state === 'closed') {
-      // This will happen if the stream was closed without close() being called, i.e. by a call to stream.cancel()
-      return undefined;
-    }
-
-    this._controlledReadableStream._closeRequested = true;
-
-    if (this._controlledReadableStream._queue.length === 0) {
-      return CloseReadableStream(this._controlledReadableStream);
-    }
-  }
-
-  enqueue(chunk) {
-    if (IsReadableStreamController(this) === false) {
-      throw new TypeError('ReadableStreamController.prototype.enqueue can only be used on a ReadableStreamController');
-    }
-
-    if (this._controlledReadableStream._state === 'errored') {
-      throw this._controlledReadableStream._storedError;
-    }
-
-    if (this._controlledReadableStream._state === 'closed') {
-      throw new TypeError('stream is closed');
-    }
-
-    if (this._controlledReadableStream._closeRequested === true) {
-      throw new TypeError('stream is draining');
-    }
-
-    if (IsReadableStreamLocked(this._controlledReadableStream) === true &&
-        this._controlledReadableStream._reader._readRequests.length > 0) {
-      const readRequest = this._controlledReadableStream._reader._readRequests.shift();
-      readRequest._resolve(CreateIterResultObject(chunk, false));
-    } else {
-      let chunkSize = 1;
-
-      let strategy;
-      try {
-        strategy = this._controlledReadableStream._underlyingSource.strategy;
-      } catch (strategyE) {
-        ErrorReadableStream(this._controlledReadableStream, strategyE);
-        throw strategyE;
-      }
-
-      if (strategy !== undefined) {
-        try {
-          chunkSize = strategy.size(chunk);
-        } catch (chunkSizeE) {
-          ErrorReadableStream(this._controlledReadableStream, chunkSizeE);
-          throw chunkSizeE;
-        }
-      }
-
-      try {
-        EnqueueValueWithSize(this._controlledReadableStream._queue, chunk, chunkSize);
-      } catch (enqueueE) {
-        ErrorReadableStream(this._controlledReadableStream, enqueueE);
-        throw enqueueE;
-      }
-    }
-
-    CallReadableStreamPull(this._controlledReadableStream);
-
-    const shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(this._controlledReadableStream);
-    if (shouldApplyBackpressure === true) {
-      return false;
-    }
-    return true;
-  }
-
-  error(e) {
-    if (IsReadableStreamController(this) === false) {
-      throw new TypeError('ReadableStreamController.prototype.error can only be used on a ReadableStreamController');
-    }
-
-    return ErrorReadableStream(this._controlledReadableStream, e);
   }
 }
 
