@@ -17,6 +17,8 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 !Version History: <a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a>
 !Version History: [SNAPSHOT-LINK]
 !Version History: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
+
+Link Defaults: html5 (dfn) structured clone
 </pre>
 
 <style>
@@ -97,6 +99,10 @@ Consumers also have the ability to <dfn lt="cancel a readable stream">cancel</df
 that the consumer has lost interest in the stream, and will immediately close the stream, throw away any queued
 <a>chunks</a>, and execute any cancellation mechanism of the <a>underlying source</a>.
 
+Consumers can also <dfn lt="tee a readable stream">tee</dfn> a readable stream. This will
+<a lt="locked to a reader">lock</a> the stream, making it no longer directly usable; however, it will create two new
+streams, called <dfn lt="branches of a readable stream tee">branches</dfn>, which can be consumed independently.
+
 <h3 id="ws-model">Writable Streams</h3>
 
 A <dfn>writable stream</dfn> represents a destination for data, into which you can write. In other words, data goes
@@ -144,6 +150,10 @@ Once a pipe chain is constructed, it can be used to propagate signals regarding 
 through it. If any step in the chain cannot yet accept chunks, it propagates a signal backwards through the pipe chain,
 until eventually the original source is told to stop producing chunks so fast. This process of normalizing flow from
 the original source according to how fast the chain can process chunks is called <dfn>backpressure</dfn>.
+
+When <a lt="tee a readable stream">teeing</a> a readable stream, the <a>backpressure</a> signals from its two
+<a href="branches of a readable stream tee">branches</a> will aggregate, such that if neither branch is read from, a
+backpressure signal will be sent to the <a>underlying source</a> of the original stream.
 
 <!-- TODO when we have writable stream writers
 Piping a readable stream <a href="locked to a reader">locks</a> the readable stream, preventing it from being accessed
@@ -247,6 +257,7 @@ would look like
     getReader()
     pipeThrough({ writable, readable }, options)
     pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})
+    tee()
   }
 </code></pre>
 
@@ -351,7 +362,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. Set *this*@[[state]] to "readable".
   1. Set *this*@[[started]], *this*@[[closeRequested]], and *this*@[[pullScheduled]] to *false*.
   1. Set *this*@[[reader]], *this*@[[pullingPromise]], and *this*@[[storedError]] to *undefined*.
-  1. Set *this*@[[controller]] to Construct(<code>ReadableStreamController</code>, «*this*»).
+  1. Set *this*@[[controller]] to Construct(`ReadableStreamController`, «*this*»).
   1. Let _startResult_ be InvokeOrNoop(_underlyingSource_, "start", «*this*@[[controller]]»).
   1. ReturnIfAbrupt(startResult).
   1. Resolve _startResult_ as a promise:
@@ -478,6 +489,48 @@ bulletproofing before we write it up in prose.
 For now, please consider the reference implementation normative:
 <a href="https://github.com/whatwg/streams/blob/master/reference-implementation/lib/readable-stream.js">reference-implementation/lib/readable-stream.js</a>,
 look for the <code>pipeTo</code> method.
+
+<h5 id="rs-tee">tee()</h5>
+
+<div class="note">
+  The <code>tee</code> method <a lt="tee a readable stream">tees</a> this readable stream, returning a two-element
+  array containing the two resulting branches as new <code>ReadableStream</code> instances.
+
+  Teeing a stream will <a lt="locked to a reader">lock</a> it, preventing any other consumer from acquiring a reader.
+  To <a lt="cancel a readable stream">cancel</a> the stream, cancel both of the resulting branches; a composite
+  cancellation reason will then be propagated to the stream's <a>underlying source</a>.
+
+  Note that the <a>chunks</a> seen in each branch will be the same object. If the chunks are not immutable, this could
+  allow interference between the two branches. (<a href="https://github.com/whatwg/streams/issues/new">Let us know</a>
+  if you think we should add an option to <code>tee</code> that creates <a>structured clones</a> of the chunks for each
+  branch.)
+</div>
+
+<pre is="emu-alg">
+  1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _branches_ be TeeReadableStream(*this*, *false*).
+  1. ReturnIfAbrupt(_branches_).
+  1. Return CreateArrayFromList(_branches_).
+</pre>
+
+<div class="example">
+  Teeing a stream is most useful when you wish to let two independent consumers read from the stream in parallel,
+  perhaps even at different speeds. For example, given a writable stream <code>cacheEntry</code> representing an
+  on-disk file, and another writable stream <code>httpRequestBody</code> representing an upload to a remote server,
+  you could pipe the same readable stream to both destinations at once:
+
+  <pre><code class="lang-javascript">
+    const [forLocal, forRemote] = readableStream.tee();
+
+    Promise.all([
+      forLocal.pipeTo(cacheEntry),
+      forRemote.pipeTo(httpRequestBody)
+    ])
+    .then(() => console.log("Saved the stream to the cache and also uploaded it!"))
+    .catch(e => console.error("Either caching or uploading failed: ", e));
+  </code></pre>
+</div>
+
 
 <h3 id="rs-controller-class" lt="ReadableStreamController">Class <code>ReadableStreamController</code></h3>
 
@@ -929,6 +982,126 @@ readable stream is <a>locked to a reader</a>.
     1. If _shouldApplyBackpressure_ is an abrupt completion, call-with-rethrow ErrorReadableStream(_stream_, ‍_shouldApplyBackpressure_.[[value]]).
   1. Return _shouldApplyBackpressure_.
 </pre>
+
+<h4 id="tee-readable-stream" aoid="TeeReadableStream">TeeReadableStream ( stream, shouldClone )</h4>
+
+This abstract operation is meant to be called from other specifications that may wish to
+<a lt="tee a readable stream">tee</a> a given readable stream. Its second argument governs whether or not the data from
+the original stream will be <a lt="structured clone">structured cloned</a> before becoming visible in the returned
+branches.
+
+<pre is="emu-alg">
+  1. Assert: IsReadableStream(_stream_) is *true*.
+  1. Assert: Type(_shouldClone_) is Boolean.
+  1. Let _reader_ be AcquireReadableStreamReader(_reader_).
+  1. ReturnIfAbrupt(_reader_).
+  1. Let _teeState_ be Record{[[closedOrErrored]]: *false*, [[canceled1]]: *false*, [[canceled2]]: *false*, [[reason1]]: *undefined*, [[reason2]]: *undefined*, [[promise]]: a new promise}.
+  1. Let _pull_ be a new <a>TeeReadableStream pull function</a>.
+  1. Set _pull_@[[reader]] to _reader_, _pull_@[[teeState]] to _teeState_, and _pull_@[[shouldClone]] to _shouldClone_.
+  1. Let _cancel1_ be a new <a>TeeReadableStream branch 1 cancel function</a>.
+  1. Set _cancel1_@[[stream]] to _stream_ and _cancel1_@[[teeState]] to _teeState_.
+  1. Let _cancel2_ be a new <a>TeeReadableStream branch 2 cancel function</a>.
+  1. Set _cancel2_@[[stream]] to _stream_ and _cancel2_@[[teeState]] to _teeState_.
+  1. Let _underlyingSource1_ be ObjectCreate(%ObjectPrototype%).
+  1. Perform CreateDataProperty(_underlyingSource1_, "pull", _pull_).
+  1. Perform CreateDataProperty(_underlyingSource1_, "cancel", _cancel1_).
+  1. Let _branch1_ be Construct(`ReadableStream`, _underlyingSource1_).
+  1. Let _underlyingSource2_ be ObjectCreate(%ObjectPrototype%).
+  1. Perform CreateDataProperty(_underlyingSource2_, "pull", _pull_).
+  1. Perform CreateDataProperty(_underlyingSource2_, "cancel", _cancel2_).
+  1. Let _branch2_ be Construct(`ReadableStream`, _underlyingSource2_).
+  1. Set _pull_@[[branch1]] to _branch1_.
+  1. Set _pull_@[[branch2]] to _branch2_.
+  1. Upon rejection of _reader_@[[closedPromise]] with reason _r_,
+    1. If _teeState_.[[closedOrErrored]] is *true*, return *undefined*.
+    1. Call-with-rethrow ErrorReadableStream(_branch1_, _r_).
+    1. Call-with-rethrow ErrorReadableStream(_branch2_, _r_).
+    1. Set _teeState_.[[closedOrErrored]] to *true*.
+  1. Return «branch1, branch2».
+</pre>
+
+<div class="note">
+  The given algorithm creates two clones of each chunk, and discards the original, instead of creating one clone and
+  giving the original to one branch and the clone to another. This is done to ensure symmetry between the chunks seen
+  by each branch; for example, the clone of <code class="lang-javascript">const r = /?:/; r.expando = "!";</code> is
+  distinguishable from the original since the clone will not have the expando property.
+
+  However, in specific cases implementations may be able to do something more optimal, without observable consequences.
+  For example if each chunk is created by the implementation, and cannot otherwise be modified by the developer, it may
+  be possible to ensure the original and its clone are not distinguishable, in which case only one clone operation
+  would be necessary. <a href="https://lists.w3.org/Archives/Public/public-webcrypto/2014Mar/0141.html">But, be
+  careful!</a>
+</div>
+
+A <dfn>TeeReadableStream pull function</dfn> is an anonymous built-in function that pulls data from a given <a>readable
+stream reader</a> and enqueues it into two other streams ("branches" of the associated tee). Each TeeReadableStream
+pull function has \[[reader]], \[[branch1]], \[[branch2]], \[[teeState]], and \[[shouldClone]] internal slots. When a
+TeeReadableStream pull function <var>F</var> is called, it performs the following steps:
+
+<pre is="emu-alg">
+  1. Let _reader_ be _F_@[[reader]], _branch1_ be _F_@[[branch1]], _branch2_ be _F_@[[branch2]], _teeState_ be _F_@[[teeState]], and _shouldClone_ be _F_@[[shouldClone]].
+  1. Return the result of transforming ReadFromReadableStreamReader(_reader_) by a fulfillment handler which takes the argument _result_ and performs the following steps:
+    1. Assert: Type(_result_) is Object.
+    1. Let _value_ be Get(_result_, "value").
+    1. ReturnIfAbrupt(_value_).
+    1. Let _done_ be Get(_result_, "done").
+    1. ReturnIfAbrupt(_done_).
+    1. Assert: Type(_done_) is Boolean.
+    1. If _done_ is *true* and _teeState_.[[closedOrErrored]] is *false*,
+      1. Call-with-rethrow CloseReadableStream(_branch1_).
+      1. Call-with-rethrow CloseReadableStream(_branch2_).
+      1. Set _teeState_.[[closedOrErrored]] to *true*.
+    1. If _teeState_.[[closedOrErrored]] is *true*, return *undefined*.
+    1. If _teeState_.[[canceled1]] is *false*,
+      1. Let _value1_ be _value_.
+      1. If _shouldClone_ is *true*, set _value1_ to a <a>structured clone</a> of _value_.
+      1. Call-with-rethrow EnqueueInReadableStream(_branch1_, _value1_).
+    1. If _teeState_.[[canceled2]] is *false*,
+      1. Let _value2_ be _value_.
+      1. If _shouldClone_ is *true*, set _value2_ to a <a>structured clone</a> of _value_.
+      1. Call-with-rethrow EnqueueInReadableStream(_branch2_, _value2_).
+</pre>
+
+A <dfn>TeeReadableStream branch 1 cancel function</dfn> is an anonymous built-in function that reacts to the
+cancellation of the first of the two branches of the associated tee. Each TeeReadableStream branch 1 cancel function
+has \[[stream]] and \[[teeState]] internal slots. When a TeeReadableStream branch 1 cancel function <var>F</var> is
+called with argument <var>r</var>, it performs the following steps:
+
+<pre is="emu-alg">
+  1. Let _stream_ be _F_@[[stream]] and _teeState_ be _F_@[[teeState]].
+  1. Set _teeState_.[[canceled1]] to *true*.
+  1. Set _teeState_.[[reason1]] to _r_.
+  1. If _teeState_.[[canceled2]] is *true*,
+    1. Let _compositeReason_ be CreateArrayFromList(«_teeState_.[[reason1]], _teeState_.[[reason2]]»).
+    1. Let _cancelResult_ be CancelReadableStream(_stream_, _compositeReason_).
+    1. ReturnIfAbrupt(_cancelResult_).
+    1. Resolve _teeState_.[[promise]] with _cancelResult_.
+  1. Return _teeState_.[[promise]].
+</pre>
+
+A <dfn>TeeReadableStream branch 2 cancel function</dfn> is an anonymous built-in function that reacts to the
+cancellation of the second of the two branches of the associated tee. Each TeeReadableStream branch 2 cancel function
+has \[[stream]] and \[[teeState]] internal slots. When a TeeReadableStream branch 2 cancel function <var>F</var> is
+called with argument <var>r</var>, it performs the following steps:
+
+<pre is="emu-alg">
+  1. Let _stream_ be _F_@[[stream]] and _teeState_ be _F_@[[teeState]].
+  1. Set _teeState_.[[canceled2]] to *true*.
+  1. Set _teeState_.[[reason2]] to _r_.
+  1. If _teeState_.[[canceled1]] is *true*,
+    1. Let _compositeReason_ be CreateArrayFromList(«_teeState_.[[reason1]], _teeState_.[[reason2]]»).
+    1. Let _cancelResult_ be CancelReadableStream(_stream_, _compositeReason_).
+    1. ReturnIfAbrupt(_cancelResult_).
+    1. Resolve _teeState_.[[promise]] with _cancelResult_.
+  1. Return _teeState_.[[promise]].
+</pre>
+
+<div class="note">
+  The algorithm given here is written such that three new function objects are created for each call to to
+  TeeReadableStream. This is just a simplification, and is not actually necessary, since it is unobservable to
+  developer code. For example, a self-hosted implementation could optimize by creating a class whose prototype contains
+  methods for these functions, with the state stored as instance variables.
+</div>
 
 <h2 id="ws">Writable Streams</h2>
 

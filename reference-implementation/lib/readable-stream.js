@@ -1,5 +1,6 @@
 const assert = require('assert');
-import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject } from './helpers';
+import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop } from './helpers';
+import { createArrayFromList, createDataProperty, typeIsObject } from './helpers';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
 
 export default class ReadableStream {
@@ -138,6 +139,15 @@ export default class ReadableStream {
       }
       rejectPipeToPromise(reason);
     }
+  }
+
+  tee() {
+    if (IsReadableStream(this) === false) {
+      throw new TypeError('ReadableStream.prototype.tee can only be used on a ReadableStream');
+    }
+
+    const branches = TeeReadableStream(this, false);
+    return createArrayFromList(branches);
   }
 }
 
@@ -551,4 +561,134 @@ function ShouldReadableStreamApplyBackpressure(stream) {
   }
 
   return shouldApplyBackpressure;
+}
+
+function TeeReadableStream(stream, shouldClone) {
+  assert(IsReadableStream(stream) === true);
+  assert(typeof shouldClone === 'boolean');
+
+  const reader = AcquireReadableStreamReader(stream);
+
+  const teeState = {
+    closedOrErrored: false,
+    canceled1: false,
+    canceled2: false,
+    reason1: undefined,
+    reason2: undefined
+  };
+  teeState.promise = new Promise(resolve => teeState._resolve = resolve);
+
+  const pull = create_TeeReadableStreamPullFunction();
+  pull._reader = reader;
+  pull._teeState = teeState;
+  pull._shouldClone = shouldClone;
+
+  const cancel1 = create_TeeReadableStreamBranch1CancelFunction();
+  cancel1._stream = stream;
+  cancel1._teeState = teeState;
+
+  const cancel2 = create_TeeReadableStreamBranch2CancelFunction();
+  cancel2._stream = stream;
+  cancel2._teeState = teeState;
+
+  const underlyingSource1 = Object.create(Object.prototype);
+  createDataProperty(underlyingSource1, 'pull', pull);
+  createDataProperty(underlyingSource1, 'cancel', cancel1);
+  const branch1 = new ReadableStream(underlyingSource1);
+
+  const underlyingSource2 = Object.create(Object.prototype);
+  createDataProperty(underlyingSource2, 'pull', pull);
+  createDataProperty(underlyingSource2, 'cancel', cancel2);
+  const branch2 = new ReadableStream(underlyingSource2);
+
+  pull._branch1 = branch1;
+  pull._branch2 = branch2;
+
+  reader._closedPromise.catch(r => {
+    if (teeState.closedOrErrored === true) {
+      return undefined;
+    }
+
+    ErrorReadableStream(branch1, r);
+    ErrorReadableStream(branch2, r);
+    teeState.closedOrErrored = true;
+  });
+
+  return [branch1, branch2];
+}
+
+function create_TeeReadableStreamPullFunction() {
+  const f = () => {
+    const { _reader: reader, _branch1: branch1, _branch2: branch2, _teeState: teeState, _shouldClone: shouldClone } = f;
+
+    return ReadFromReadableStreamReader(reader).then(result => {
+      assert(typeIsObject(result));
+      const value = result.value;
+      const done = result.done;
+      assert(typeof done === "boolean");
+
+      if (done === true && teeState.closedOrErrored === false) {
+        CloseReadableStream(branch1);
+        CloseReadableStream(branch2);
+        teeState.closedOrErrored = true;
+      }
+
+      if (teeState.closedOrErrored === true) {
+        return undefined;
+      }
+
+      // There is no way to access the cloning code right now in the reference implementation.
+      // If we add one then we'll need an implementation for StructuredClone.
+
+
+      if (teeState.canceled1 === false) {
+        let value1 = value;
+//        if (shouldClone === true) {
+//          value1 = StructuredClone(value);
+//        }
+        EnqueueInReadableStream(branch1, value1);
+      }
+
+      if (teeState.canceled2 === false) {
+        let value2 = value;
+//        if (shouldClone === true) {
+//          value2 = StructuredClone(value);
+//        }
+        EnqueueInReadableStream(branch2, value2);
+      }
+    });
+  };
+  return f;
+}
+
+function create_TeeReadableStreamBranch1CancelFunction() {
+  const f = reason => {
+    const { _stream: stream, _teeState: teeState } = f;
+
+    teeState.canceled1 = true;
+    teeState.reason1 = reason;
+    if (teeState.canceled2 === true) {
+      const compositeReason = createArrayFromList([teeState.reason1, teeState.reason2]);
+      const cancelResult = CancelReadableStream(stream, compositeReason);
+      teeState._resolve(cancelResult);
+    }
+    return teeState.promise;
+  };
+  return f;
+}
+
+function create_TeeReadableStreamBranch2CancelFunction() {
+  const f = reason => {
+    const { _stream: stream, _teeState: teeState } = f;
+
+    teeState.canceled2 = true;
+    teeState.reason2 = reason;
+    if (teeState.canceled1 === true) {
+      const compositeReason = createArrayFromList([teeState.reason1, teeState.reason2]);
+      const cancelResult = CancelReadableStream(stream, compositeReason);
+      teeState._resolve(cancelResult);
+    }
+    return teeState.promise;
+  };
+  return f;
 }

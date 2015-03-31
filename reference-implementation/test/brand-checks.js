@@ -26,9 +26,10 @@ test('Can get the ReadableStreamController constructor indirectly', t => {
 function fakeReadableStream() {
   return {
     cancel(reason) { return Promise.resolve(); },
+    getReader() { return new ReadableStream(new ReadableStream()); },
     pipeThrough({ writable, readable }, options) { return readable; },
     pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) { return Promise.resolve(); },
-    getReader() { return new ReadableStream(new ReadableStream()); }
+    tee() { return [realReadableStream(), realReadableStream()]; }
   };
 }
 
@@ -164,6 +165,12 @@ test('ReadableStream.prototype.pipeTo works generically on its this and its argu
   // TODO: expand this with a full fake that records what happens to it?
 
   t.doesNotThrow(() => ReadableStream.prototype.pipeTo.call(fakeReadableStream(), fakeWritableStream()));
+});
+
+test('ReadableStream.prototype.tee enforces a brand check', t => {
+  t.plan(2);
+  methodThrows(t, ReadableStream.prototype, 'tee', fakeReadableStream());
+  methodThrows(t, ReadableStream.prototype, 'tee', realWritableStream());
 });
 
 

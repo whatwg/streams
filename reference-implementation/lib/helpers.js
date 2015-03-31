@@ -25,6 +25,17 @@ export function toInteger(v) {
   return Math.floor(Math.abs(v));
 }
 
+export function createDataProperty(o, p, v) {
+  assert(typeIsObject(o));
+  Object.defineProperty(o, p, { value: v, writable: true, enumerable: true, configurable: true });
+}
+
+export function createArrayFromList(elements) {
+  // We use arrays to represent lists, so this is basically a no-op.
+  // Do a slice though just in case we happen to depend on the unique-ness.
+  return elements.slice();
+}
+
 export function CreateIterResultObject(value, done) {
   assert(typeof done === 'boolean');
   const obj = {};
