@@ -176,57 +176,21 @@ class ReadableStreamController {
       throw new TypeError('ReadableStreamController.prototype.enqueue can only be used on a ReadableStreamController');
     }
 
-    if (this._controlledReadableStream._state === 'errored') {
-      throw this._controlledReadableStream._storedError;
+    const stream = this._controlledReadableStream;
+
+    if (stream._state === 'errored') {
+      throw stream._storedError;
     }
 
-    if (this._controlledReadableStream._state === 'closed') {
+    if (stream._state === 'closed') {
       throw new TypeError('stream is closed');
     }
 
-    if (this._controlledReadableStream._closeRequested === true) {
+    if (stream._closeRequested === true) {
       throw new TypeError('stream is draining');
     }
 
-    if (IsReadableStreamLocked(this._controlledReadableStream) === true &&
-        this._controlledReadableStream._reader._readRequests.length > 0) {
-      const readRequest = this._controlledReadableStream._reader._readRequests.shift();
-      readRequest._resolve(CreateIterResultObject(chunk, false));
-    } else {
-      let chunkSize = 1;
-
-      let strategy;
-      try {
-        strategy = this._controlledReadableStream._underlyingSource.strategy;
-      } catch (strategyE) {
-        ErrorReadableStream(this._controlledReadableStream, strategyE);
-        throw strategyE;
-      }
-
-      if (strategy !== undefined) {
-        try {
-          chunkSize = strategy.size(chunk);
-        } catch (chunkSizeE) {
-          ErrorReadableStream(this._controlledReadableStream, chunkSizeE);
-          throw chunkSizeE;
-        }
-      }
-
-      try {
-        EnqueueValueWithSize(this._controlledReadableStream._queue, chunk, chunkSize);
-      } catch (enqueueE) {
-        ErrorReadableStream(this._controlledReadableStream, enqueueE);
-        throw enqueueE;
-      }
-    }
-
-    CallReadableStreamPull(this._controlledReadableStream);
-
-    const shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(this._controlledReadableStream);
-    if (shouldApplyBackpressure === true) {
-      return false;
-    }
-    return true;
+    return EnqueueInReadableStream(stream, chunk);
   }
 
   error(e) {
@@ -414,6 +378,50 @@ function CloseReadableStream(stream) {
   if (stream._queue.length === 0) {
     return FinishClosingReadableStream(stream);
   }
+}
+
+function EnqueueInReadableStream(stream, chunk) {
+  assert(stream._state === 'readable');
+  assert(stream._closeRequested === false);
+
+  if (IsReadableStreamLocked(stream) === true && stream._reader._readRequests.length > 0) {
+    const readRequest = stream._reader._readRequests.shift();
+    readRequest._resolve(CreateIterResultObject(chunk, false));
+  } else {
+    let chunkSize = 1;
+
+    let strategy;
+    try {
+      strategy = stream._underlyingSource.strategy;
+    } catch (strategyE) {
+      ErrorReadableStream(stream, strategyE);
+      throw strategyE;
+    }
+
+    if (strategy !== undefined) {
+      try {
+        chunkSize = strategy.size(chunk);
+      } catch (chunkSizeE) {
+        ErrorReadableStream(stream, chunkSizeE);
+        throw chunkSizeE;
+      }
+    }
+
+    try {
+      EnqueueValueWithSize(stream._queue, chunk, chunkSize);
+    } catch (enqueueE) {
+      ErrorReadableStream(stream, enqueueE);
+      throw enqueueE;
+    }
+  }
+
+  CallReadableStreamPull(stream);
+
+  const shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
+  if (shouldApplyBackpressure === true) {
+    return false;
+  }
+  return true;
 }
 
 function ErrorReadableStream(stream, e) {

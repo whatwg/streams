@@ -552,32 +552,7 @@ Instances of <code>ReadableStreamController</code> are created with the internal
   1. If _stream_@[[state]] is "errored", throw _stream_@[[storedError]].
   1. If _stream_@[[state]] is "closed", throw a *TypeError* exception.
   1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. If IsReadableStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty,
-    1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
-    1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
-    1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *false*).
-  1. Otherwise,
-    1. Let _chunkSize_ be *1*.
-    1. Let _strategy_ be Get(_stream_@[[underlyingSource]], "strategy").
-    1. If _strategy_ is an abrupt completion,
-      1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_strategy_.[[value]]).
-      1. Return _strategy_.
-    1. Let _strategy_ be _strategy_.[[value]].
-    1. If _strategy_ is not *undefined*, then
-      1. Set _chunkSize_ to Invoke(_strategy_, "size", «‍_chunk_»).
-      1. If _chunkSize_ is an abrupt completion,
-        1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_chunkSize_.[[value]]).
-        1. Return _chunkSize_.
-      1. Let _chunkSize_ be _chunkSize_.[[value]].
-    1. Let _enqueueResult_ be EnqueueValueWithSize(_stream_@[[queue]], _chunk_, _chunkSize_.[[value]]).
-    1. If _enqueueResult_ is an abrupt completion,
-      1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_enqueueResult_.[[value]]).
-      1. Return _enqueueResult_.
-  1. Call-with-rethrow CallReadableStreamPull(_stream_).
-  1. Let _shouldApplyBackpressure_ be ShouldReadableStreamApplyBackpressure(_stream_).
-  1. ReturnIfAbrupt(_shouldApplyBackpressure_).
-  1. If _shouldApplyBackpressure_ is *true*, return *false*.
-  1. Return *true*.
+  1. Return EnqueueInReadableStream(_stream_, _chunk_).
 </pre>
 
 <h5 id="rs-controller-error">error(e)</h5>
@@ -819,6 +794,39 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   1. Set _stream_@[[state]] to "closed".
   1. If IsReadableStreamLocked(_stream_) is *true*, return ReleaseReadableStreamReader(_stream_).
   1. Return *undefined*.
+</pre>
+
+<h4 id="enqueue-in-readable-stream" aoid="EnqueueInReadableStream">EnqueueInReadableStream ( stream, chunk )</h4>
+
+<pre is="emu-alg">
+  1. Assert: _stream_@[[state]] is "readable".
+  1. Assert: _stream_@[[closeRequested]] is *false*.
+  1. If IsReadableStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty,
+    1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
+    1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
+    1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *false*).
+  1. Otherwise,
+    1. Let _chunkSize_ be *1*.
+    1. Let _strategy_ be Get(_stream_@[[underlyingSource]], "strategy").
+    1. If _strategy_ is an abrupt completion,
+      1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_strategy_.[[value]]).
+      1. Return _strategy_.
+    1. Let _strategy_ be _strategy_.[[value]].
+    1. If _strategy_ is not *undefined*, then
+      1. Set _chunkSize_ to Invoke(_strategy_, "size", «‍_chunk_»).
+      1. If _chunkSize_ is an abrupt completion,
+        1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_chunkSize_.[[value]]).
+        1. Return _chunkSize_.
+      1. Let _chunkSize_ be _chunkSize_.[[value]].
+    1. Let _enqueueResult_ be EnqueueValueWithSize(_stream_@[[queue]], _chunk_, _chunkSize_.[[value]]).
+    1. If _enqueueResult_ is an abrupt completion,
+      1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_enqueueResult_.[[value]]).
+      1. Return _enqueueResult_.
+  1. Call-with-rethrow CallReadableStreamPull(_stream_).
+  1. Let _shouldApplyBackpressure_ be ShouldReadableStreamApplyBackpressure(_stream_).
+  1. ReturnIfAbrupt(_shouldApplyBackpressure_).
+  1. If _shouldApplyBackpressure_ is *true*, return *false*.
+  1. Return *true*.
 </pre>
 
 <h4 id="error-readable-stream" aoid="ErrorReadableStream">ErrorReadableStream ( stream, e )</h4>
