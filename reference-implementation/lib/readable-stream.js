@@ -267,37 +267,7 @@ class ReadableStreamReader {
         new TypeError('ReadableStreamReader.prototype.read can only be used on a ReadableStreamReader'));
     }
 
-    if (this._state === 'closed') {
-      return Promise.resolve(CreateIterResultObject(undefined, true));
-    }
-
-    if (this._state === 'errored') {
-      return Promise.reject(this._storedError);
-    }
-
-    assert(this._ownerReadableStream !== undefined);
-    assert(this._ownerReadableStream._state === 'readable');
-
-    if (this._ownerReadableStream._queue.length > 0) {
-      const chunk = DequeueValue(this._ownerReadableStream._queue);
-
-      if (this._ownerReadableStream._closeRequested === true && this._ownerReadableStream._queue.length === 0) {
-        FinishClosingReadableStream(this._ownerReadableStream);
-      } else {
-        CallReadableStreamPull(this._ownerReadableStream);
-      }
-
-      return Promise.resolve(CreateIterResultObject(chunk, false));
-    } else {
-      const readRequest = {};
-      readRequest.promise = new Promise((resolve, reject) => {
-        readRequest._resolve = resolve;
-        readRequest._reject = reject;
-      });
-
-      this._readRequests.push(readRequest);
-      return readRequest.promise;
-    }
+    return ReadFromReadableStreamReader(this);
   }
 
   releaseLock() {
@@ -496,6 +466,40 @@ function IsReadableStreamReader(x) {
   }
 
   return true;
+}
+
+function ReadFromReadableStreamReader(reader) {
+  if (reader._state === 'closed') {
+    return Promise.resolve(CreateIterResultObject(undefined, true));
+  }
+
+  if (reader._state === 'errored') {
+    return Promise.reject(reader._storedError);
+  }
+
+  assert(reader._ownerReadableStream !== undefined);
+  assert(reader._ownerReadableStream._state === 'readable');
+
+  if (reader._ownerReadableStream._queue.length > 0) {
+    const chunk = DequeueValue(reader._ownerReadableStream._queue);
+
+    if (reader._ownerReadableStream._closeRequested === true && reader._ownerReadableStream._queue.length === 0) {
+      FinishClosingReadableStream(reader._ownerReadableStream);
+    } else {
+      CallReadableStreamPull(reader._ownerReadableStream);
+    }
+
+    return Promise.resolve(CreateIterResultObject(chunk, false));
+  } else {
+    const readRequest = {};
+    readRequest.promise = new Promise((resolve, reject) => {
+      readRequest._resolve = resolve;
+      readRequest._reject = reject;
+    });
+
+    reader._readRequests.push(readRequest);
+    return readRequest.promise;
+  }
 }
 
 function ReleaseReadableStreamReader(reader) {

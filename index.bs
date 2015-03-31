@@ -693,20 +693,8 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 </div>
 
 <pre is="emu-alg">
-  1. If IsReadableStreamReader(*this*) is *false*, throw a *TypeError* exception.
-  1. If *this*@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
-  1. If *this*@[[state]] is "errored", return a new promise rejected with *this*@[[storedError]].
-  1. Assert: *this*@[[ownerReadableStream]] is not *undefined*.
-  1. Assert: *this*@[[ownerReadableStream]]@[[state]] is "readable".
-  1. If *this*@[[ownerReadableStream]]@[[queue]] is not empty,
-    1. Let _chunk_ be DequeueValue(*this*@[[ownerReadableStream]]@[[queue]]).
-    1. If *this*@[[ownerReadableStream]]@[[closeRequested]] is *true* and *this*@[[ownerReadableStream]]@[[queue]] is now empty, call-with-rethrow FinishClosingReadableStream(*this*@[[ownerReadableStream]]).
-    1. Otherwise, call-with-rethrow CallReadableStreamPull(*this*@[[ownerReadableStream]]).
-    1. Return a new promise resolved with CreateIterResultObject(_chunk_, *false*).
-  1. Otherwise,
-    1. Let _readRequestPromise_ be a new promise.
-    1. Append _readRequestPromise_ as the last element of *this*@[[readRequests]].
-    1. Return _readRequestPromise_.
+  1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Return ReadFromReadableStreamReader(*this*).
 </pre>
 
 <h5 id="reader-release-lock">releaseLock()</h5>
@@ -884,6 +872,24 @@ readable stream is <a>locked to a reader</a>.
   1. If Type(_x_) is not Object, return *false*.
   1. If _x_ does not have an [[ownerReadableStream]] internal slot, return *false*.
   1. Return *true*.
+</pre>
+
+<h4 id="read-from-readable-stream-reader" aoid="ReadFromReadableStreamReader">ReadFromReadableStreamReader ( reader )</h4>
+
+<pre is="emu-alg">
+  1. If _reader_@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
+  1. If _reader_@[[state]] is "errored", return a new promise rejected with _reader_@[[storedError]].
+  1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
+  1. Assert: _reader_@[[ownerReadableStream]]@[[state]] is "readable".
+  1. If _reader_@[[ownerReadableStream]]@[[queue]] is not empty,
+    1. Let _chunk_ be DequeueValue(_reader_@[[ownerReadableStream]]@[[queue]]).
+    1. If _reader_@[[ownerReadableStream]]@[[closeRequested]] is *true* and _reader_@[[ownerReadableStream]]@[[queue]] is now empty, call-with-rethrow FinishClosingReadableStream(_reader_@[[ownerReadableStream]]).
+    1. Otherwise, call-with-rethrow CallReadableStreamPull(_reader_@[[ownerReadableStream]]).
+    1. Return a new promise resolved with CreateIterResultObject(_chunk_, *false*).
+  1. Otherwise,
+    1. Let _readRequestPromise_ be a new promise.
+    1. Append _readRequestPromise_ as the last element of _reader_@[[readRequests]].
+    1. Return _readRequestPromise_.
 </pre>
 
 <h4 id="release-readable-stream-reader" aoid="ReleaseReadableStreamReader">ReleaseReadableStreamReader ( reader )</h4>
