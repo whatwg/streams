@@ -541,16 +541,8 @@ Instances of <code>ReadableStreamController</code> are created with the internal
   1. Let _stream_ be *this*@[[controlledReadableStream]].
   1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. If _stream_@[[state]] is "errored", throw a *TypeError* exception.
-  1. If _stream_@[[state]] is "closed", return *undefined*.
-  1. Set _stream_@[[closeRequested]] to *true*.
-  1. If _stream_@[[queue]] is empty, return CloseReadableStream(_stream_).
+  1. Return CloseReadableStream(_stream_).
 </pre>
-
-<div class="note">
-  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
-  <emu-val>false</emu-val>, will happen if the stream was closed without this close function ever being called: i.e.,
-  if the stream was closed by a call to <code>stream.cancel()</code>.
-</div>
 
 <h5 id="rs-controller-enqueue">enqueue(chunk)</h5>
 
@@ -732,7 +724,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   1. Assert: *this*@[[ownerReadableStream]]@[[state]] is "readable".
   1. If *this*@[[ownerReadableStream]]@[[queue]] is not empty,
     1. Let _chunk_ be DequeueValue(*this*@[[ownerReadableStream]]@[[queue]]).
-    1. If *this*@[[ownerReadableStream]]@[[closeRequested]] is *true* and *this*@[[ownerReadableStream]]@[[queue]] is now empty, call-with-rethrow CloseReadableStream(*this*@[[ownerReadableStream]]).
+    1. If *this*@[[ownerReadableStream]]@[[closeRequested]] is *true* and *this*@[[ownerReadableStream]]@[[queue]] is now empty, call-with-rethrow FinishClosingReadableStream(*this*@[[ownerReadableStream]]).
     1. Otherwise, call-with-rethrow CallReadableStreamPull(*this*@[[ownerReadableStream]]).
     1. Return a new promise resolved with CreateIterResultObject(_chunk_, *false*).
   1. Otherwise,
@@ -799,12 +791,28 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   1. If _stream_@[[state]] is "closed", return a new promise resolved with *undefined*.
   1. If _stream_@[[state]] is "errored", return a new promise rejected with _stream_@[[storedError]].
   1. Set _stream_@[[queue]] to a new empty List.
-  1. Call-with-rethrow CloseReadableStream(_stream_).
+  1. Call-with-rethrow FinishClosingReadableStream(_stream_).
   1. Let _sourceCancelPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "cancel", «‍_reason_»).
   1. Return the result of transforming _sourceCancelPromise_ by a fulfillment handler that returns *undefined*.
 </pre>
 
 <h4 id="close-readable-stream" aoid="CloseReadableStream">CloseReadableStream ( stream )</h4>
+
+<pre is="emu-alg">
+  1. Assert: _stream_@[[closeRequested]] is *false*.
+  1. Assert: _stream_@[[state]] is not "errored".
+  1. If _stream_@[[state]] is "closed", return *undefined*.
+  1. Set _stream_@[[closeRequested]] to *true*.
+  1. If _stream_@[[queue]] is empty, return FinishClosingReadableStream(_stream_).
+</pre>
+
+<div class="note">
+  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
+  <emu-val>false</emu-val>, will happen if the stream was closed without its controller's close method ever being
+  called: i.e., if the stream was closed by a call to <code>stream.cancel()</code>.
+</div>
+
+<h4 id="finish-closing-readable-stream" aoid="FinishClosingReadableStream">FinishClosingReadableStream ( stream )</h4>
 
 <pre is="emu-alg">
   1. Assert: _stream_@[[state]] is "readable".

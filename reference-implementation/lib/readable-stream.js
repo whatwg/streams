@@ -159,23 +159,16 @@ class ReadableStreamController {
       throw new TypeError('ReadableStreamController.prototype.close can only be used on a ReadableStreamController');
     }
 
-    if (this._controlledReadableStream._closeRequested === true) {
+    const stream = this._controlledReadableStream;
+
+    if (stream._closeRequested === true) {
       throw new TypeError('The stream has already been closed; do not close it again!');
     }
-    if (this._controlledReadableStream._state === 'errored') {
+    if (stream._state === 'errored') {
       throw new TypeError('The stream is in an errored state and cannot be closed');
     }
 
-    if (this._controlledReadableStream._state === 'closed') {
-      // This will happen if the stream was closed without close() being called, i.e. by a call to stream.cancel()
-      return undefined;
-    }
-
-    this._controlledReadableStream._closeRequested = true;
-
-    if (this._controlledReadableStream._queue.length === 0) {
-      return CloseReadableStream(this._controlledReadableStream);
-    }
+    return CloseReadableStream(stream);
   }
 
   enqueue(chunk) {
@@ -321,7 +314,7 @@ class ReadableStreamReader {
       const chunk = DequeueValue(this._ownerReadableStream._queue);
 
       if (this._ownerReadableStream._closeRequested === true && this._ownerReadableStream._queue.length === 0) {
-        CloseReadableStream(this._ownerReadableStream);
+        FinishClosingReadableStream(this._ownerReadableStream);
       } else {
         CallReadableStreamPull(this._ownerReadableStream);
       }
@@ -400,22 +393,27 @@ function CancelReadableStream(stream, reason) {
   }
 
   stream._queue = [];
-  CloseReadableStream(stream);
+  FinishClosingReadableStream(stream);
 
   const sourceCancelPromise = PromiseInvokeOrNoop(stream._underlyingSource, 'cancel', [reason]);
   return sourceCancelPromise.then(() => undefined);
 }
 
 function CloseReadableStream(stream) {
-  assert(stream._state === 'readable');
+  assert(stream._closeRequested === false);
+  assert(stream._state !== 'errored');
 
-  stream._state = 'closed';
-
-  if (IsReadableStreamLocked(stream) === true) {
-    return ReleaseReadableStreamReader(stream._reader);
+  if (stream._state === 'closed') {
+    // This will happen if the stream was closed without calling its controller's close() method, i.e. if it was closed
+    // via cancellation.
+    return undefined;
   }
 
-  return undefined;
+  stream._closeRequested = true;
+
+  if (stream._queue.length === 0) {
+    return FinishClosingReadableStream(stream);
+  }
 }
 
 function ErrorReadableStream(stream, e) {
@@ -430,6 +428,18 @@ function ErrorReadableStream(stream, e) {
   if (IsReadableStreamLocked(stream) === true) {
     return ReleaseReadableStreamReader(stream._reader);
   }
+}
+
+function FinishClosingReadableStream(stream) {
+  assert(stream._state === 'readable');
+
+  stream._state = 'closed';
+
+  if (IsReadableStreamLocked(stream) === true) {
+    return ReleaseReadableStreamReader(stream._reader);
+  }
+
+  return undefined;
 }
 
 function IsReadableStream(x) {
