@@ -198,6 +198,10 @@ class ReadableStreamController {
       throw new TypeError('ReadableStreamController.prototype.error can only be used on a ReadableStreamController');
     }
 
+    if (this._controlledReadableStream._state !== 'readable') {
+      throw new TypeError(`The stream is ${this._controlledReadableStream._state} and so cannot be errored`);
+    }
+
     return ErrorReadableStream(this._controlledReadableStream, e);
   }
 }
@@ -425,9 +429,7 @@ function EnqueueInReadableStream(stream, chunk) {
 }
 
 function ErrorReadableStream(stream, e) {
-  if (stream._state !== 'readable') {
-    throw new TypeError(`The stream is ${stream._state} and so cannot be errored`);
-  }
+  assert(stream._state === 'readable');
 
   stream._queue = [];
   stream._storedError = e;
