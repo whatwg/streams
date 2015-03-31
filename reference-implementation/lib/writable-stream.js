@@ -20,17 +20,18 @@ export default class WritableStream {
     this._started = false;
     this._writing = false;
 
-    this._error = CreateWritableStreamErrorFunction(this);
+    const error = closure_WritableStreamErrorFunction();
+    error._stream = this;
 
     SyncWritableStreamStateWithQueue(this);
 
-    const startResult = InvokeOrNoop(underlyingSink, 'start', [this._error]);
+    const startResult = InvokeOrNoop(underlyingSink, 'start', [error]);
     this._startedPromise = Promise.resolve(startResult);
     this._startedPromise.then(() => {
       this._started = true;
       this._startedPromise = undefined;
     });
-    this._startedPromise.catch(r => this._error(r));
+    this._startedPromise.catch(r => ErrorWritableStream(this, r));
   }
 
   get closed() {
@@ -61,7 +62,7 @@ export default class WritableStream {
       return Promise.reject(this._storedError);
     }
 
-    this._error(reason);
+    ErrorWritableStream(this, reason);
     const sinkAbortPromise = PromiseInvokeOrFallbackOrNoop(this._underlyingSink, 'abort', [reason], 'close', []);
     return sinkAbortPromise.then(() => undefined);
   }
@@ -122,7 +123,7 @@ export default class WritableStream {
     try {
       strategy = this._underlyingSink.strategy;
     } catch (strategyE) {
-      this._error(strategyE);
+      ErrorWritableStream(this, strategyE);
       return Promise.reject(strategyE);
     }
 
@@ -130,7 +131,7 @@ export default class WritableStream {
       try {
         chunkSize = strategy.size(chunk);
       } catch (chunkSizeE) {
-        this._error(chunkSizeE);
+        ErrorWritableStream(this, chunkSizeE);
         return Promise.reject(chunkSizeE);
       }
     }
@@ -145,14 +146,14 @@ export default class WritableStream {
     try {
       EnqueueValueWithSize(this._queue, writeRecord, chunkSize);
     } catch (enqueueResultE) {
-      this._error(enqueueResultE);
+      ErrorWritableStream(this, enqueueResultE);
       return Promise.reject(enqueueResultE);
     }
 
     try {
       SyncWritableStreamStateWithQueue(this);
     } catch (syncResultE) {
-      this._error(syncResultE);
+      ErrorWritableStream(this, syncResultE);
       return promise;
     }
 
@@ -160,6 +161,12 @@ export default class WritableStream {
     return promise;
   }
 }
+
+function closure_WritableStreamErrorFunction() {
+  const f = e => ErrorWritableStream(f._stream, e);
+  return f;
+}
+
 
 function CallOrScheduleWritableStreamAdvanceQueue(stream) {
   if (stream._started === false) {
@@ -189,33 +196,29 @@ function CloseWritableStream(stream) {
       stream._closedPromise_resolve(undefined);
       stream._state = 'closed';
     },
-    r => {
-      stream._error(r);
-    }
+    r => ErrorWritableStream(stream, r)
   );
 }
 
-function CreateWritableStreamErrorFunction(stream) {
-  return e => {
-    if (stream._state === 'closed' || stream._state === 'errored') {
-      return undefined;
-    }
+function ErrorWritableStream(stream, e) {
+  if (stream._state === 'closed' || stream._state === 'errored') {
+    return undefined;
+  }
 
-    while (stream._queue.length > 0) {
-      const writeRecord = DequeueValue(stream._queue);
-      if (writeRecord !== 'close') {
-        writeRecord._reject(e);
-      }
+  while (stream._queue.length > 0) {
+    const writeRecord = DequeueValue(stream._queue);
+    if (writeRecord !== 'close') {
+      writeRecord._reject(e);
     }
+  }
 
-    stream._storedError = e;
+  stream._storedError = e;
 
-    if (stream._state === 'waiting') {
-      stream._readyPromise_resolve(undefined);
-    }
-    stream._closedPromise_reject(e);
-    stream._state = 'errored';
-  };
+  if (stream._state === 'waiting') {
+    stream._readyPromise_resolve(undefined);
+  }
+  stream._closedPromise_reject(e);
+  stream._state = 'errored';
 }
 
 export function IsWritableStream(x) {
@@ -290,14 +293,11 @@ function WritableStreamAdvanceQueue(stream) {
         try {
           SyncWritableStreamStateWithQueue(stream);
         } catch (syncResultE) {
-          stream._error(syncResultE);
-          return;
+          return ErrorWritableStream(stream, syncResultE);
         }
         return WritableStreamAdvanceQueue(stream);
       },
-      r => {
-        stream._error(r);
-      }
+      r => ErrorWritableStream(stream, r)
     )
     .catch(e => process.nextTick(() => { throw e; })); // to catch assertion failures
   }
