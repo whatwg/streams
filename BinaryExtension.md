@@ -107,6 +107,22 @@ If the return promise:
 - rejects, that means either of:
     - the stream has been errored
 
+##### Algorithm
+
+1. If IsReadableByteStreamReader(**this**) is **false**, throw a **TypeError** exception.
+1. If **this**@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(**undefined**, *true*).
+1. If **this**@[[state]] is "errored", return a new promise rejected with **this**@[[storedError]].
+1. Assert: **this**@[[stream]] is not **undefined**.
+1. Assert: **this**@[[stream]]@[[state]] is "readable".
+1. If **this**@[[stream]] can generate a chunk to return synchronously,
+    1. Let _chunk_ be the chunk.
+    1. If _chunk_ is the final chunk to return, call-with-rethrow CloseReadableStream(*this*@[[stream]]).
+    1. Return a new promise resolved with CreateIterResultObject(_chunk_, **false**).
+1. Otherwise,
+    1. Let _readRequestPromise_ be a new promise.
+    1. Append _readRequestPromise_ as the last element of **this**@[[readRequests]].
+    1. Return _readRequestPromise_.
+
 #### releaseLock()
 
 ##### Semantics
@@ -173,19 +189,31 @@ If the return promise:
 - rejects, that means either of:
     - the stream has been errored
 
-##### Sample algorithm
+##### Algorithm
 
-1. Let _p_ be a new pending promise.
-1. Detach the ArrayBuffer object pointed by _view_ from _view_.
-1. Let _view_ be a new reference pointing the ArrayBuffer.
-1. If **this**.[[queue]] is not empty,
-    1. Fill _view_ with the contents of elements in **this**.[[queue]].
-    1. Pop the elements that have been fully consumed from **this**.[[queue]], and adjust partially consumed ones to represent the remaining region.
-    1. Let _bytesFilled_ be the number of the bytes copied to _view_.
-    1. Let _newView_ be a new `ArrayBufferView` of the same type whose `buffer` is _view_.buffer, `byteLength` is _view_.byteLength, and `byteOffset` is _view_.byteOffset - _bytesFilled_.
-    1. Resolve _p_ with `{done: false, value: view}`.
-1. Otherwise, InvokeOrNoop(**this**@[[underlyingByteSource]], `"read"`, «_done_, _view_»)
-1. Return _p_.
+1. If IsReadableByteStreamReader(*this*) is *false*, throw a **TypeError** exception.
+1. If **this**@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(_view_, **true**).
+1. If **this**@[[state]] is "errored", return a new promise rejected with **this**@[[storedError]].
+1. Assert: **this**@[[stream]] is not **undefined**.
+1. Assert: **this**@[[stream]]@[[state]] is "readable".
+1. If **this**@[[stream]]'s buffer is not empty,
+    1. Fill _view_ with the bytes in **this**@[[stream]]'s buffer.
+    1. Let _bytesFilled_ be the number of the bytes written to _view_ in the last step, and pop the bytes that have been consumed from **this**@[[stream]]'s buffer in the last step.
+1. If **this**@[[stream]] can generate bytes to return synchronously,
+    1. Generate bytes into _view_.
+1. If non-zero bytes have been written to _view_,
+    1. If the bytes are the final bytes to return, call-with-rethrow CloseReadableByteStream(**this**@[[stream]]).
+    1. Return a new promise resolved with CreateIterResultObject(_view_, **false**).
+1. Otherwise,
+    1. Detach the ArrayBuffer object pointed by _view_ from _view_.
+    1. Let _view_ be a new reference pointing the ArrayBuffer.
+    1. Let _readRequestPromise_ be a new promise.
+    1. Append _readRequestPromise_ as the last element of *this*@[[readRequests]].
+    1. Run the steps below asynchronously,
+        1. Generate bytes into _view_.
+        1. Let _newView_ be a new `ArrayBufferView` of the same type whose `buffer` is _view_.buffer, `byteLength` is _view_.byteLength, and `byteOffset` is _view_.byteOffset - _bytesFilled_.
+        1. Resolve _readRequestPromise_ with CreateIterResultObject(_newView_, *false*).
+    1. Return _readRequestPromise_.
 
 #### releaseLock()
 
