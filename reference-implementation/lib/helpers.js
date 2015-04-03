@@ -89,3 +89,27 @@ export function PromiseInvokeOrFallbackOrNoop(O, P1, args1, P2, args2) {
     return Promise.reject(e);
   }
 }
+
+export function ValidateAndNormalizeQueuingStrategy(strategy, defaultHWM) {
+  assert(typeof defaultHWM === 'number');
+  assert(defaultHWM >= 0);
+
+  if (strategy === undefined) {
+    return { size: undefined, highWaterMark: defaultHWM };
+  }
+
+  const size = strategy.size;
+  if (typeof size !== 'function') {
+    throw new TypeError('size property of a queuing strategy must be a function');
+  }
+
+  const highWaterMark = Number(strategy.highWaterMark);
+  if (Number.isNaN(highWaterMark)) {
+    throw new TypeError('highWaterMark property of a queuing strategy must be convertible to a non-NaN number');
+  }
+  if (highWaterMark < 0) {
+    throw new RangeError('highWaterMark property of a queuing strategy must be nonnegative');
+  }
+
+  return { size, highWaterMark };
+}

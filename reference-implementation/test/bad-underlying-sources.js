@@ -1,6 +1,6 @@
 const test = require('tape-catch');
 
-test('Underlying source start: throwing getter', t => {
+test('Underlying source: throwing start getter', t => {
   const theError = new Error('a unique string');
 
   t.throws(() => {
@@ -13,7 +13,7 @@ test('Underlying source start: throwing getter', t => {
   t.end();
 });
 
-test('Underlying source start: throwing method', t => {
+test('Underlying source: throwing start method', t => {
   const theError = new Error('a unique string');
 
   t.throws(() => {
@@ -141,41 +141,34 @@ test('Underlying source: throwing cancel method', t => {
 });
 
 test('Underlying source: throwing strategy getter', t => {
-  t.plan(2);
+  t.plan(1);
 
   const theError = new Error('a unique string');
 
-  const rs = new ReadableStream({
-    start(c) {
-      t.throws(() => c.enqueue('a'), /a unique string/, 'enqueue should throw the error');
-    },
-    get strategy() {
-      throw theError;
-    }
-  });
-
-  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+  t.throws(() => {
+    new ReadableStream({
+      get strategy() {
+        throw theError;
+      }
+    });
+  }, /a unique string/, 'construction should re-throw the error');
 });
 
 test('Underlying source: throwing strategy.size getter', t => {
-  t.plan(2);
+  t.plan(1);
 
   const theError = new Error('a unique string');
-  const rs = new ReadableStream({
-    start(c) {
-      t.throws(() => c.enqueue('a'), /a unique string/, 'enqueue should throw the error');
-    },
-    strategy: {
-      get size() {
-        throw theError;
-      },
-      shouldApplyBackpressure() {
-        return true;
-      }
-    }
-  });
 
-  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+  t.throws(() => {
+    new ReadableStream({
+      strategy: {
+        get size() {
+          throw theError;
+        },
+        highWaterMark: 5
+      }
+    });
+  }, /a unique string/, 'construction should re-throw the error');
 });
 
 test('Underlying source: throwing strategy.size method', t => {
@@ -190,55 +183,75 @@ test('Underlying source: throwing strategy.size method', t => {
       size() {
         throw theError;
       },
-      shouldApplyBackpressure() {
-        return true;
-      }
+      highWaterMark: 5
     }
   });
 
   rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
-test('Underlying source: throwing strategy.shouldApplyBackpressure getter', t => {
-  t.plan(2);
+test('Underlying source: throwing strategy.highWaterMark getter', t => {
+  t.plan(1);
 
   const theError = new Error('a unique string');
-  const rs = new ReadableStream({
-    start(c) {
-      t.throws(() => c.enqueue('a'), /a unique string/, 'enqueue should throw the error');
-    },
-    strategy: {
-      size() {
-        return 1;
-      },
-      get shouldApplyBackpressure() {
-        throw theError;
-      }
-    }
-  });
 
-  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+  t.throws(() => {
+    new ReadableStream({
+      strategy: {
+        size() {
+          return 1;
+        },
+        get highWaterMark() {
+          throw theError;
+        }
+      }
+    });
+  }, /a unique string/, 'construction should re-throw the error');
 });
 
-test('Underlying source: throwing strategy.shouldApplyBackpressure method', t => {
-  t.plan(2);
+test('Underlying source: invalid strategy.highWaterMark', t => {
+  t.plan(5);
 
-  const theError = new Error('a unique string');
-  const rs = new ReadableStream({
-    start(c) {
-      t.throws(() => c.enqueue('a'), /a unique string/, 'enqueue should throw the error');
-    },
-    strategy: {
-      size() {
-        return 1;
-      },
-      shouldApplyBackpressure() {
-        throw theError;
+  for (const highWaterMark of [-1, -Infinity]) {
+    t.throws(() => {
+      new ReadableStream({
+        strategy: {
+          size() {
+            return 1;
+          },
+          highWaterMark
+        }
+      });
+    }, /RangeError/, `construction should throw a RangeError for ${highWaterMark}`);
+  }
+
+  for (const highWaterMark of [NaN, 'foo', {}]) {
+    t.throws(() => {
+      new ReadableStream({
+        strategy: {
+          size() {
+            return 1;
+          },
+          highWaterMark
+        }
+      });
+    }, /TypeError/, `construction should throw a TypeError for ${highWaterMark}`);
+  }
+});
+
+test('Underlying source: negative strategy.highWaterMark', t => {
+  t.plan(1);
+
+  t.throws(() => {
+    new ReadableStream({
+      strategy: {
+        size() {
+          return 1;
+        },
+        highWaterMark: -1
       }
-    }
-  });
-
-  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+    });
+  }, /RangeError/, 'construction should throw a RangeError');
 });
 
 test('Underlying source: strategy.size returning NaN', t => {
@@ -259,9 +272,7 @@ test('Underlying source: strategy.size returning NaN', t => {
       size() {
         return NaN;
       },
-      shouldApplyBackpressure() {
-        return true;
-      }
+      highWaterMark: 5
     }
   });
 
@@ -286,9 +297,7 @@ test('Underlying source: strategy.size returning -Infinity', t => {
       size() {
         return -Infinity;
       },
-      shouldApplyBackpressure() {
-        return true;
-      }
+      highWaterMark: 5
     }
   });
 
@@ -313,9 +322,7 @@ test('Underlying source: strategy.size returning +Infinity', t => {
       size() {
         return +Infinity;
       },
-      shouldApplyBackpressure() {
-        return true;
-      }
+      highWaterMark: 5
     }
   });
 

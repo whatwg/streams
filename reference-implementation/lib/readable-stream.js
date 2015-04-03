@@ -1,5 +1,5 @@
 const assert = require('assert');
-import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop } from './helpers';
+import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeQueuingStrategy } from './helpers';
 import { createArrayFromList, createDataProperty, typeIsObject } from './helpers';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
 
@@ -14,6 +14,11 @@ export default class ReadableStream {
     this._reader = undefined;
     this._pullingPromise = undefined;
     this._storedError = undefined;
+
+    const strategy = underlyingSource.strategy;
+    const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(strategy, 1);
+    this._strategySize = normalizedStrategy.size;
+    this._strategyHWM = normalizedStrategy.highWaterMark;
 
     this._controller = new ReadableStreamController(this);
 
@@ -162,6 +167,15 @@ class ReadableStreamController {
     }
 
     this._controlledReadableStream = stream;
+  }
+
+  get desiredSize() {
+    if (IsReadableStreamController(this) === false) {
+      throw new TypeError(
+        'ReadableStreamController.prototype.desiredSize can only be used on a ReadableStreamController');
+    }
+
+    return GetReadableStreamDesiredSize(this._controlledReadableStream);
   }
 
   close() {
@@ -318,9 +332,11 @@ function CallReadableStreamPull(stream) {
     return undefined;
   }
 
-  const shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
-  if (shouldApplyBackpressure === true) {
-    return undefined;
+  if (IsReadableStreamLocked(stream) === false || stream._reader._readRequests.length === 0) {
+    const desiredSize = GetReadableStreamDesiredSize(stream);
+    if (desiredSize <= 0) {
+      return undefined;
+    }
   }
 
   stream._pullingPromise = PromiseInvokeOrNoop(stream._underlyingSource, 'pull', [stream._controller]);
@@ -374,17 +390,9 @@ function EnqueueInReadableStream(stream, chunk) {
   } else {
     let chunkSize = 1;
 
-    let strategy;
-    try {
-      strategy = stream._underlyingSource.strategy;
-    } catch (strategyE) {
-      ErrorReadableStream(stream, strategyE);
-      throw strategyE;
-    }
-
-    if (strategy !== undefined) {
+    if (stream._strategySize !== undefined) {
       try {
-        chunkSize = strategy.size(chunk);
+        chunkSize = stream._strategySize(chunk);
       } catch (chunkSizeE) {
         ErrorReadableStream(stream, chunkSizeE);
         throw chunkSizeE;
@@ -401,11 +409,7 @@ function EnqueueInReadableStream(stream, chunk) {
 
   CallReadableStreamPull(stream);
 
-  const shouldApplyBackpressure = ShouldReadableStreamApplyBackpressure(stream);
-  if (shouldApplyBackpressure === true) {
-    return false;
-  }
-  return true;
+  return undefined;
 }
 
 function ErrorReadableStream(stream, e) {
@@ -430,6 +434,11 @@ function FinishClosingReadableStream(stream) {
   }
 
   return undefined;
+}
+
+function GetReadableStreamDesiredSize(stream) {
+  const queueSize = GetTotalQueueSize(stream._queue);
+  return stream._strategyHWM - queueSize;
 }
 
 function IsReadableStream(x) {
@@ -537,30 +546,6 @@ function ReleaseReadableStreamReader(reader) {
   reader._readRequests = [];
   reader._ownerReadableStream._reader = undefined;
   reader._ownerReadableStream = undefined;
-}
-
-function ShouldReadableStreamApplyBackpressure(stream) {
-  const queueSize = GetTotalQueueSize(stream._queue);
-  let shouldApplyBackpressure = queueSize > 1;
-
-  let strategy;
-  try {
-    strategy = stream._underlyingSource.strategy;
-  } catch (strategyE) {
-    ErrorReadableStream(stream, strategyE);
-    throw strategyE;
-  }
-
-  if (strategy !== undefined) {
-    try {
-      shouldApplyBackpressure = Boolean(strategy.shouldApplyBackpressure(queueSize));
-    } catch (shouldApplyBackpressureE) {
-      ErrorReadableStream(stream, shouldApplyBackpressureE);
-      throw shouldApplyBackpressureE;
-    }
-  }
-
-  return shouldApplyBackpressure;
 }
 
 function TeeReadableStream(stream, shouldClone) {

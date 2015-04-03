@@ -1,5 +1,6 @@
 const assert = require('assert');
-import { InvokeOrNoop, PromiseInvokeOrNoop, PromiseInvokeOrFallbackOrNoop, typeIsObject } from './helpers';
+import { InvokeOrNoop, PromiseInvokeOrNoop, PromiseInvokeOrFallbackOrNoop, ValidateAndNormalizeQueuingStrategy } from './helpers';
+import { typeIsObject } from './helpers';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } from './queue-with-sizes';
 import CountQueuingStrategy from './count-queuing-strategy';
 
@@ -19,6 +20,11 @@ export default class WritableStream {
     this._state = 'writable';
     this._started = false;
     this._writing = false;
+
+    const strategy = underlyingSink.strategy;
+    const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(strategy, 0);
+    this._strategySize = normalizedStrategy.size;
+    this._strategyHWM = normalizedStrategy.highWaterMark;
 
     const error = closure_WritableStreamErrorFunction();
     error._stream = this;
@@ -119,17 +125,9 @@ export default class WritableStream {
 
     let chunkSize = 1;
 
-    let strategy;
-    try {
-      strategy = this._underlyingSink.strategy;
-    } catch (strategyE) {
-      ErrorWritableStream(this, strategyE);
-      return Promise.reject(strategyE);
-    }
-
-    if (strategy !== undefined) {
+    if (this._strategySize !== undefined) {
       try {
-        chunkSize = strategy.size(chunk);
+        chunkSize = this._strategySize(chunk);
       } catch (chunkSizeE) {
         ErrorWritableStream(this, chunkSizeE);
         return Promise.reject(chunkSizeE);
@@ -242,12 +240,7 @@ function SyncWritableStreamStateWithQueue(stream) {
     'stream must be in a writable or waiting state while calling SyncWritableStreamStateWithQueue');
 
   const queueSize = GetTotalQueueSize(stream._queue);
-  let shouldApplyBackpressure = queueSize > 0;
-
-  const strategy = stream._underlyingSink.strategy;
-  if (strategy !== undefined) {
-    shouldApplyBackpressure = Boolean(strategy.shouldApplyBackpressure(queueSize));
-  }
+  const shouldApplyBackpressure = queueSize > stream._strategyHWM;
 
   if (shouldApplyBackpressure === true && stream._state === 'writable') {
     stream._state = 'waiting';

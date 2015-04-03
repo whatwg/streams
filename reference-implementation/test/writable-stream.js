@@ -29,8 +29,7 @@ test('Underlying sink\'s write won\'t be called until start finishes', t => {
   let resolveStartPromise;
   const ws = new WritableStream({
     start() {
-      return new Promise(
-          (resolve, reject) => { resolveStartPromise = resolve; });
+      return new Promise(resolve => { resolveStartPromise = resolve; });
     },
     write(chunk) {
       if (expectWriteCall) {
@@ -46,8 +45,9 @@ test('Underlying sink\'s write won\'t be called until start finishes', t => {
       t.end();
     }
   });
+
   ws.write('a');
-  t.equal(ws.state, 'waiting');
+  t.equal(ws.state, 'waiting', `writable stream should be waiting, not ${ws.state}`);
 
   // Wait and see that write won't be called.
   setTimeout(() => {
@@ -228,7 +228,10 @@ test('WritableStream with simple input, processed synchronously', t => {
 
 test('WritableStream is writable and ready fulfills immediately if the strategy does not apply backpressure', t => {
   const ws = new WritableStream({
-    strategy: { shouldApplyBackpressure() { return false; } }
+    strategy: {
+      highWaterMark: Infinity,
+      size() { return 0; }
+    }
   });
 
   t.equal(ws.state, 'writable');
@@ -237,24 +240,6 @@ test('WritableStream is writable and ready fulfills immediately if the strategy 
     t.pass('ready promise was fulfilled');
     t.end();
   });
-});
-
-test('WritableStream is waiting and ready does not fulfill immediately if the stream is applying backpressure', t => {
-  const ws = new WritableStream({
-    strategy: { shouldApplyBackpressure() { return true; } }
-  });
-
-  t.equal(ws.state, 'waiting');
-
-  ws.ready.then(() => {
-    t.fail('ready promise was fulfilled');
-    t.end();
-  });
-
-  setTimeout(() => {
-    t.pass('ready promise was left pending');
-    t.end();
-  }, 30);
 });
 
 test('Fulfillment value of ws.write() call must be undefined even if the underlying sink returns a non-undefined ' +
@@ -596,165 +581,6 @@ test('WritableStream if sink throws an error inside write, the stream becomes er
   );
 });
 
-test('WritableStream exception in shouldApplyBackpressure during write moves the stream into errored state', t => {
-  t.plan(3);
-
-  let aboutToWrite = false;
-  const thrownError = new Error('throw me');
-  const ws = new WritableStream({
-    strategy: {
-      size() {
-        return 1;
-      },
-      shouldApplyBackpressure() {
-        if (aboutToWrite) {
-          throw thrownError;
-        }
-      }
-    }
-  });
-
-  aboutToWrite = true;
-  ws.write('a').catch(r => {
-    t.equal(r, thrownError);
-  });
-
-  t.equal(ws.state, 'errored', 'the state of ws must be errored as shouldApplyBackpressure threw');
-  ws.closed.catch(r => {
-    t.equal(r, thrownError);
-  });
-});
-
-test('WritableStream exception in size during write moves the stream into errored state', t => {
-  t.plan(3);
-
-  const thrownError = new Error('throw me');
-  const ws = new WritableStream({
-    strategy: {
-      size() {
-        throw thrownError;
-      },
-      shouldApplyBackpressure() {
-        return false;
-      }
-    }
-  });
-  ws.write('a').catch(r => {
-    t.equal(r, thrownError);
-  });
-  t.equal(ws.state, 'errored', 'the state of ws must be errored as size threw');
-  ws.closed.catch(r => {
-    t.equal(r, thrownError);
-  });
-});
-
-test('WritableStream NaN size during write moves the stream into errored state', t => {
-  t.plan(3);
-
-  const ws = new WritableStream({
-    strategy: {
-      size() {
-        return NaN;
-      },
-      shouldApplyBackpressure() {
-        return false;
-      }
-    }
-  });
-  ws.write('a').catch(r => {
-    t.equal(r.constructor, RangeError);
-  });
-  t.equal(ws.state, 'errored', 'the state of ws must be errored as an invalid size was returned');
-  ws.closed.catch(r => {
-    t.equal(r.constructor, RangeError);
-  });
-});
-
-test('WritableStream +Infinity size during write moves the stream into errored state', t => {
-  t.plan(3);
-
-  const ws = new WritableStream({
-    strategy: {
-      size() {
-        return +Infinity;
-      },
-      shouldApplyBackpressure() {
-        return false;
-      }
-    }
-  });
-  ws.write('a').catch(r => {
-    t.equal(r.constructor, RangeError);
-  });
-  t.equal(ws.state, 'errored', 'the state of ws must be errored as an invalid size was returned');
-  ws.closed.catch(r => {
-    t.equal(r.constructor, RangeError);
-  });
-});
-
-test('WritableStream -Infinity size during write moves the stream into errored state', t => {
-  t.plan(3);
-
-  const ws = new WritableStream({
-    strategy: {
-      size() {
-        return -Infinity;
-      },
-      shouldApplyBackpressure() {
-        return false;
-      }
-    }
-  });
-  ws.write('a').catch(r => {
-    t.equal(r.constructor, RangeError);
-  });
-  t.equal(ws.state, 'errored', 'the state of ws must be errored as an invalid size was returned');
-  ws.closed.catch(r => {
-    t.equal(r.constructor, RangeError);
-  });
-});
-
-test('WritableStream exception in shouldApplyBackpressure moves the stream into errored state but previous writes ' +
-     'finish', t => {
-  t.plan(4);
-
-  let thrownError;
-
-  let resolveWritePromise;
-  const ws = new WritableStream({
-    write(chunk) {
-      return new Promise(resolve => resolveWritePromise = resolve);
-    },
-    strategy: {
-      size() {
-        return 1;
-      },
-      shouldApplyBackpressure() {
-        if (thrownError) {
-          throw thrownError;
-        } else {
-          return false;
-        }
-      }
-    }
-  });
-
-  setTimeout(() => {
-    ws.write('a').then(() => {
-      t.pass('The write must be successful as the underlying sink acknowledged it');
-
-      t.equal(ws.state, 'errored', 'the state of ws must be errored as shouldApplyBackpressure threw');
-      ws.closed.catch(r => {
-        t.equal(r, thrownError);
-      });
-    });
-    t.equal(ws.state, 'writable', 'the state of ws must be still writable');
-
-    thrownError = new Error('throw me');
-    resolveWritePromise();
-  }, 0);
-});
-
 test('WritableStream if sink throws an error while closing, the stream becomes errored', t => {
   t.plan(3);
 
@@ -874,7 +700,7 @@ test('WritableStream queue lots of data and have all of them processed at once',
 });
 
 test('WritableStream should call underlying sink methods as methods', t => {
-  t.plan(7);
+  t.plan(5);
 
   class Sink {
     start() {
@@ -894,7 +720,6 @@ test('WritableStream should call underlying sink methods as methods', t => {
     }
 
     get strategy() {
-      // Called three times
       t.equal(this, theSink, 'strategy getter should be called with the correct this');
       return undefined;
     }

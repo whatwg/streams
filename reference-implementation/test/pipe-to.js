@@ -381,11 +381,11 @@ test('Piping from a non-empty ReadableStream to a WritableStream in the waiting 
     },
     write(chunk) {
       if (!resolveWritePromise) {
-        t.equal(chunk, 'Hello');
+        t.equal(chunk, 'Hello', 'the first chunk to arrive in write should be the first chunk written');
         return new Promise(resolve => resolveWritePromise = resolve);
       } else {
-        t.equal(chunk, 'World');
-        t.equal(pullCount, 2);
+        t.equal(chunk, 'World', 'the second chunk to arrive in write should be from the readable stream');
+        t.equal(pullCount, 1, 'the readable stream\'s pull should have been called once');
         t.end();
       }
     },
@@ -399,14 +399,14 @@ test('Piping from a non-empty ReadableStream to a WritableStream in the waiting 
   ws.write('Hello');
 
   startPromise.then(() => {
-    t.equal(ws.state, 'waiting');
+    t.equal(ws.state, 'waiting', 'writable stream state should start waiting');
 
     rs.pipeTo(ws);
-    t.equal(ws.state, 'waiting');
+    t.equal(ws.state, 'waiting', 'writable stream state should still be waiting immediately after piping');
 
     resolveWritePromise();
     ws.ready.then(() => {
-      t.equal(ws.state, 'writable');
+      t.equal(ws.state, 'writable', 'writable stream should eventually become writable (when ready fulfills)');
     })
     .catch(e => t.error(e));
   });
@@ -426,7 +426,7 @@ test('Piping from a non-empty ReadableStream to a WritableStream in waiting stat
     },
     cancel() {
       t.assert(writeCalled);
-      t.equal(pullCount, 2);
+      t.equal(pullCount, 1);
       t.end();
     }
   });
@@ -509,7 +509,7 @@ test('Piping from a non-empty ReadableStream which becomes errored after pipeTo 
 
   startPromise.then(() => {
     t.equal(ws.state, 'waiting');
-    t.equal(pullCount, 1);
+    t.equal(pullCount, 0);
 
     rs.pipeTo(ws);
     t.equal(ws.state, 'waiting');
@@ -534,8 +534,7 @@ test('Piping from a non-empty ReadableStream to a WritableStream in the waiting 
     }
   });
 
-  let checkSecondWrite = false;
-
+  let writeCount = 0;
   let resolveWritePromise;
   const startPromise = Promise.resolve();
   const ws = new WritableStream({
@@ -543,13 +542,15 @@ test('Piping from a non-empty ReadableStream to a WritableStream in the waiting 
       return startPromise;
     },
     write(chunk) {
-      if (checkSecondWrite) {
-        t.equal(chunk, 'Goodbye');
-        t.end();
-      } else {
-        t.assert(!resolveWritePromise);
-        t.equal(chunk, 'Hello');
+      ++writeCount;
+
+      if (writeCount === 1) {
+        t.equal(chunk, 'Hello', 'first chunk written should equal the one passed to ws.write');
         return new Promise(resolve => resolveWritePromise = resolve);
+      }
+      if (writeCount === 2) {
+        t.equal(chunk, 'Goodbye', 'second chunk written should be from the source readable stream');
+        t.end();
       }
     },
     close() {
@@ -562,22 +563,18 @@ test('Piping from a non-empty ReadableStream to a WritableStream in the waiting 
   ws.write('Hello');
 
   startPromise.then(() => {
-    t.assert(resolveWritePromise);
-    t.equal(ws.state, 'waiting');
+    t.equal(writeCount, 1, 'exactly one write should have happened');
+    t.equal(ws.state, 'waiting', 'writable stream should be waiting');
 
+    t.equal(pullCount, 1, 'pull should have been called only once');
     rs.pipeTo(ws);
 
     controller.enqueue('Goodbye');
 
-    // Check that nothing happens before calling done(), and then call done()
+    // Check that nothing happens before calling resolveWritePromise(), and then call resolveWritePromise()
     // to check that pipeTo is woken up.
-    setTimeout(() => {
-      t.equal(pullCount, 2);
-
-      checkSecondWrite = true;
-
-      resolveWritePromise();
-    }, 100);
+    t.equal(pullCount, 1, 'after the pipeTo and enqueue, pull still should have been called only once');
+    resolveWritePromise();
   });
 });
 
@@ -949,14 +946,19 @@ test('Piping to a stream that errors soon after writing should pass through the 
 
 test('Piping to a writable stream that does not consume the writes fast enough exerts backpressure on the source',
      t => {
-  const enqueueReturnValues = [];
+  const desiredSizes = [];
   const rs = new ReadableStream({
     start(c) {
-      setTimeout(() => enqueueReturnValues.push(c.enqueue('a')), 100);
-      setTimeout(() => enqueueReturnValues.push(c.enqueue('b')), 200);
-      setTimeout(() => enqueueReturnValues.push(c.enqueue('c')), 300);
-      setTimeout(() => enqueueReturnValues.push(c.enqueue('d')), 400);
+      setTimeout(() => enqueue('a'), 100);
+      setTimeout(() => enqueue('b'), 200);
+      setTimeout(() => enqueue('c'), 300);
+      setTimeout(() => enqueue('d'), 400);
       setTimeout(() => c.close(), 500);
+
+      function enqueue(chunk) {
+        c.enqueue(chunk);
+        desiredSizes.push(c.desiredSize);
+      }
     }
   });
 
@@ -980,7 +982,7 @@ test('Piping to a writable stream that does not consume the writes fast enough e
 
   startPromise.then(() => {
     rs.pipeTo(ws).then(() => {
-      t.deepEqual(enqueueReturnValues, [true, true, true, false], 'backpressure was correctly exerted at the source');
+      t.deepEqual(desiredSizes, [1, 1, 0, -1], 'backpressure was correctly exerted at the source');
       t.deepEqual(chunksFinishedWriting, ['a', 'b', 'c', 'd'], 'all chunks were written');
       t.end();
     });
@@ -992,8 +994,9 @@ test('Piping to a writable stream that does not consume the writes fast enough e
       t.deepEqual(chunksGivenToWrite, ['a'], 'at t = 125 ms, ws.write should have been called with one chunk');
       t.deepEqual(chunksFinishedWriting, [], 'at t = 125 ms, no chunks should have finished writing');
 
-      // The queue was empty when 'a' (the very first chunk) was enqueued
-      t.deepEqual(enqueueReturnValues, [true],
+      // When 'a' (the very first chunk) was enqueued, it was immediately used to fulfill the outstanding read request
+      // promise, leaving room in the queue
+      t.deepEqual(desiredSizes, [1],
         'at t = 125 ms, the one enqueued chunk in rs did not cause backpressure');
     }, 125);
 
@@ -1004,7 +1007,7 @@ test('Piping to a writable stream that does not consume the writes fast enough e
 
       // When 'b' was enqueued at 200 ms, the queue was also empty, since immediately after enqueuing 'a' at
       // t = 100 ms, it was dequeued in order to fulfill the read() call that was made at time t = 0.
-      t.deepEqual(enqueueReturnValues, [true, true],
+      t.deepEqual(desiredSizes, [1, 1],
         'at t = 225 ms, the two enqueued chunks in rs did not cause backpressure');
     }, 225);
 
@@ -1015,7 +1018,8 @@ test('Piping to a writable stream that does not consume the writes fast enough e
 
       // When 'c' was enqueued at 300 ms, the queue was again empty, since at time t = 200 ms when 'b' was enqueued,
       // it was immediately dequeued in order to fulfill the second read() call that was made at time t = 0.
-      t.deepEqual(enqueueReturnValues, [true, true, true],
+      // However, this time there was no pending read request to whisk it away, so after the enqueue desired size is 0.
+      t.deepEqual(desiredSizes, [1, 1, 0],
         'at t = 325 ms, the three enqueued chunks in rs did not cause backpressure');
     }, 325);
 
@@ -1026,7 +1030,7 @@ test('Piping to a writable stream that does not consume the writes fast enough e
 
       // When 'd' was enqueued at 400 ms, the queue was *not* empty. 'c' was still in it, since the write() of 'b' will
       // not finish until t = 100 ms + 350 ms = 450 ms. Thus backpressure should have been exerted.
-      t.deepEqual(enqueueReturnValues, [true, true, true, false],
+      t.deepEqual(desiredSizes, [1, 1, 0, -1],
         'at t = 425 ms, the fourth enqueued chunks in rs did cause backpressure');
     }, 425);
 

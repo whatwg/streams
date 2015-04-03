@@ -71,9 +71,7 @@ function fakeReadableStreamController() {
 
 function fakeByteLengthQueuingStrategy() {
   return {
-    shouldApplyBackpressure(queueSize) {
-      return queueSize > 1;
-    },
+    highWaterMark: 0,
     size(chunk) {
       return chunk.byteLength;
     }
@@ -86,9 +84,7 @@ function realByteLengthQueuingStrategy() {
 
 function fakeCountQueuingStrategy() {
   return {
-    shouldApplyBackpressure(queueSize) {
-      return queueSize > 1;
-    },
+    highWaterMark: 0,
     size(chunk) {
       return 1;
     }
@@ -272,12 +268,6 @@ test('WritableStream.prototype.close enforces a brand check', t => {
 });
 
 
-test('ByteLengthQueuingStrategy.prototype.shouldApplyBackpressure enforces a brand check', t => {
-  t.plan(2);
-  methodThrows(t, ByteLengthQueuingStrategy.prototype, 'shouldApplyBackpressure', fakeByteLengthQueuingStrategy());
-  methodThrows(t, ByteLengthQueuingStrategy.prototype, 'shouldApplyBackpressure', realCountQueuingStrategy());
-});
-
 test('ByteLengthQueuingStrategy.prototype.size should work generically on its this and its arguments', t => {
   t.plan(1);
   const thisValue = null;
@@ -289,12 +279,6 @@ test('ByteLengthQueuingStrategy.prototype.size should work generically on its th
   };
 
   t.equal(ByteLengthQueuingStrategy.prototype.size.call(thisValue, chunk), returnValue);
-});
-
-test('CountQueuingStrategy.prototype.shouldApplyBackpressure enforces a brand check', t => {
-  t.plan(2);
-  methodThrows(t, CountQueuingStrategy.prototype, 'shouldApplyBackpressure', fakeCountQueuingStrategy());
-  methodThrows(t, CountQueuingStrategy.prototype, 'shouldApplyBackpressure', realByteLengthQueuingStrategy());
 });
 
 test('CountQueuingStrategy.prototype.size should work generically on its this and its arguments', t => {

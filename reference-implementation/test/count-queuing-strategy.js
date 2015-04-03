@@ -6,14 +6,22 @@ test('Can construct a CountQueuingStrategy with a valid high water mark', t => {
   t.end();
 });
 
-test('Gives a RangeError when the number is negative', t => {
-  t.throws(() => new CountQueuingStrategy({ highWaterMark: -4 }),
-           /RangeError/,
-           'throws for { highWaterMark: -4 }');
+test('Can construct a CountQueuingStrategy with any value as its high water mark', t => {
+  for (const highWaterMark of [-Infinity, NaN, 'foo', {}, function () {}]) {
+    const strategy = new CountQueuingStrategy({ highWaterMark });
+    t.ok(Object.is(strategy.highWaterMark, highWaterMark), `${highWaterMark} gets set correctly`);
+  }
 
-  t.throws(() => new CountQueuingStrategy({ highWaterMark: '-4' }),
-           /RangeError/,
-           'throws for { highWaterMark: \'-4\' }');
+  t.end();
+});
+
+test('CountQueuingStrategy instances have the correct properties', t => {
+  const strategy = new CountQueuingStrategy({ highWaterMark: 4 });
+
+  t.deepEqual(Object.getOwnPropertyDescriptor(strategy, 'highWaterMark'),
+    { value: 4, writable: true, enumerable: true, configurable: true },
+    'highWaterMark property should be a data property with the value passed the connstructor');
+  t.equal(typeof strategy.size, 'function');
 
   t.end();
 });
@@ -24,18 +32,25 @@ test('Can construct a readable stream with a valid CountQueuingStrategy', t => {
   t.end();
 });
 
-test('Correctly governs the return value of a ReadableStream\'s enqueue function (HWM = 0)', t => {
-  let enqueue;
+test('Correctly governs a ReadableStreamController\'s desiredSize property (HWM = 0)', t => {
+  let controller;
   const rs = new ReadableStream({
-    start(c) { enqueue = c.enqueue.bind(c); },
+    start(c) {
+      controller = c;
+    },
     strategy: new CountQueuingStrategy({ highWaterMark: 0 })
   });
   const reader = rs.getReader();
 
-  t.equal(enqueue('a'), false, 'After 0 reads, 1st enqueue should return false (queue now contains 1 chunk)');
-  t.equal(enqueue('b'), false, 'After 0 reads, 2nd enqueue should return false (queue now contains 2 chunks)');
-  t.equal(enqueue('c'), false, 'After 0 reads, 3rd enqueue should return false (queue now contains 3 chunks)');
-  t.equal(enqueue('d'), false, 'After 0 reads, 4th enqueue should return false (queue now contains 4 chunks)');
+  t.equal(controller.desiredSize, 0, '0 reads, 0 enqueues: desiredSize should be 0');
+  controller.enqueue('a');
+  t.equal(controller.desiredSize, -1, '0 reads, 1 enqueue: desiredSize should be -1');
+  controller.enqueue('b');
+  t.equal(controller.desiredSize, -2, '0 reads, 2 enqueues: desiredSize should be -2');
+  controller.enqueue('c');
+  t.equal(controller.desiredSize, -3, '0 reads, 3 enqueues: desiredSize should be -3');
+  controller.enqueue('d');
+  t.equal(controller.desiredSize, -4, '0 reads, 4 enqueues: desiredSize should be -4');
 
   reader.read().then(result => {
     t.deepEqual(result, { value: 'a', done: false },
@@ -50,7 +65,11 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
   .then(result => {
     t.deepEqual(result, { value: 'c', done: false },
       '3rd read gives back the 3rd chunk enqueued (queue now contains 1 chunk)');
-    t.equal(enqueue('e'), false, 'After 3 reads, 5th enqueue should return false (queue now contains 2 chunks)');
+
+    t.equal(controller.desiredSize, -1, '3 reads, 4 enqueues: desiredSize should be -1');
+    controller.enqueue('e');
+    t.equal(controller.desiredSize, -2, '3 reads, 5 enqueues: desiredSize should be -2');
+
     return reader.read();
   })
   .then(result => {
@@ -61,25 +80,37 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
   .then(result => {
     t.deepEqual(result, { value: 'e', done: false },
       '5th read gives back the 5th chunk enqueued (queue now contains 0 chunks)');
-    t.equal(enqueue('f'), false, 'After 5 reads, 6th enqueue should return false (queue now contains 1 chunk)');
-    t.equal(enqueue('g'), false, 'After 5 reads, 7th enqueue should return false (queue now contains 2 chunks)');
+
+    t.equal(controller.desiredSize, 0, '5 reads, 5 enqueues: desiredSize should be 0');
+    controller.enqueue('f');
+    t.equal(controller.desiredSize, -1, '5 reads, 6 enqueues: desiredSize should be -1');
+    controller.enqueue('g');
+    t.equal(controller.desiredSize, -2, '5 reads, 7 enqueues: desiredSize should be -2');
+
     t.end();
   })
   .catch(e => t.error(e));
 });
 
-test('Correctly governs the return value of a ReadableStream\'s enqueue function (HWM = 1)', t => {
-  let enqueue;
+test('Correctly governs a ReadableStreamController\'s desiredSize property (HWM = 1)', t => {
+  let controller;
   const rs = new ReadableStream({
-    start(c) { enqueue = c.enqueue.bind(c); },
+    start(c) {
+      controller = c;
+    },
     strategy: new CountQueuingStrategy({ highWaterMark: 1 })
   });
   const reader = rs.getReader();
 
-  t.equal(enqueue('a'), true, 'After 0 reads, 1st enqueue should return true (queue now contains 1 chunk)');
-  t.equal(enqueue('b'), false, 'After 0 reads, 2nd enqueue should return false (queue now contains 2 chunks)');
-  t.equal(enqueue('c'), false, 'After 0 reads, 3rd enqueue should return false (queue now contains 3 chunks)');
-  t.equal(enqueue('d'), false, 'After 0 reads, 4th enqueue should return false (queue now contains 4 chunks)');
+  t.equal(controller.desiredSize, 1, '0 reads, 0 enqueues: desiredSize should be 1');
+  controller.enqueue('a');
+  t.equal(controller.desiredSize, 0, '0 reads, 1 enqueue: desiredSize should be 0');
+  controller.enqueue('b');
+  t.equal(controller.desiredSize, -1, '0 reads, 2 enqueues: desiredSize should be -1');
+  controller.enqueue('c');
+  t.equal(controller.desiredSize, -2, '0 reads, 3 enqueues: desiredSize should be -2');
+  controller.enqueue('d');
+  t.equal(controller.desiredSize, -3, '0 reads, 4 enqueues: desiredSize should be -3');
 
   reader.read().then(result => {
     t.deepEqual(result, { value: 'a', done: false },
@@ -94,7 +125,11 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
   .then(result => {
     t.deepEqual(result, { value: 'c', done: false },
       '3rd read gives back the 3rd chunk enqueued (queue now contains 1 chunk)');
-    t.equal(enqueue('e'), false, 'After 3 reads, 5th enqueue should return false (queue now contains 2 chunks)');
+
+    t.equal(controller.desiredSize, 0, '3 reads, 4 enqueues: desiredSize should be 0');
+    controller.enqueue('e');
+    t.equal(controller.desiredSize, -1, '3 reads, 5 enqueues: desiredSize should be -1');
+
     return reader.read();
   })
   .then(result => {
@@ -105,27 +140,42 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
   .then(result => {
     t.deepEqual(result, { value: 'e', done: false },
       '5th read gives back the 5th chunk enqueued (queue now contains 0 chunks)');
-    t.equal(enqueue('f'), true, 'After 5 reads, 6th enqueue should return true (queue now contains 1 chunk)');
-    t.equal(enqueue('g'), false, 'After 5 reads, 7th enqueue should return false (queue now contains 2 chunks)');
+
+    t.equal(controller.desiredSize, 1, '5 reads, 5 enqueues: desiredSize should be 1');
+    controller.enqueue('f');
+    t.equal(controller.desiredSize, 0, '5 reads, 6 enqueues: desiredSize should be 0');
+    controller.enqueue('g');
+    t.equal(controller.desiredSize, -1, '5 reads, 7 enqueues: desiredSize should be -1');
+
     t.end();
   })
   .catch(e => t.error(e));
 });
 
-test('Correctly governs the return value of a ReadableStream\'s enqueue function (HWM = 4)', t => {
-  let enqueue;
+test('Correctly governs a ReadableStreamController\'s desiredSize property (HWM = 4)', t => {
+  let controller;
   const rs = new ReadableStream({
-    start(c) { enqueue = c.enqueue.bind(c); },
+    start(c) {
+      controller = c;
+    },
     strategy: new CountQueuingStrategy({ highWaterMark: 4 })
   });
   const reader = rs.getReader();
 
-  t.equal(enqueue('a'), true, 'After 0 reads, 1st enqueue should return true (queue now contains 1 chunk)');
-  t.equal(enqueue('b'), true, 'After 0 reads, 2nd enqueue should return true (queue now contains 2 chunks)');
-  t.equal(enqueue('c'), true, 'After 0 reads, 3rd enqueue should return true (queue now contains 3 chunks)');
-  t.equal(enqueue('d'), true, 'After 0 reads, 4th enqueue should return true (queue now contains 4 chunks)');
-  t.equal(enqueue('e'), false, 'After 0 reads, 5th enqueue should return false (queue now contains 5 chunks)');
-  t.equal(enqueue('f'), false, 'After 0 reads, 6th enqueue should return false (queue now contains 6 chunks)');
+  t.equal(controller.desiredSize, 4, '0 reads, 0 enqueues: desiredSize should be 4');
+  controller.enqueue('a');
+  t.equal(controller.desiredSize, 3, '0 reads, 1 enqueue: desiredSize should be 3');
+  controller.enqueue('b');
+  t.equal(controller.desiredSize, 2, '0 reads, 2 enqueues: desiredSize should be 2');
+  controller.enqueue('c');
+  t.equal(controller.desiredSize, 1, '0 reads, 3 enqueues: desiredSize should be 1');
+  controller.enqueue('d');
+  t.equal(controller.desiredSize, 0, '0 reads, 4 enqueues: desiredSize should be 0');
+  controller.enqueue('e');
+  t.equal(controller.desiredSize, -1, '0 reads, 5 enqueues: desiredSize should be -1');
+  controller.enqueue('f');
+  t.equal(controller.desiredSize, -2, '0 reads, 6 enqueues: desiredSize should be -2');
+
 
   reader.read().then(result => {
     t.deepEqual(result, { value: 'a', done: false },
@@ -135,7 +185,11 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
   .then(result => {
     t.deepEqual(result, { value: 'b', done: false },
       '2nd read gives back the 2nd chunk enqueued (queue now contains 4 chunks)');
-    t.equal(enqueue('g'), false, 'After 2 reads, 7th enqueue should return false (queue now contains 5 chunks)');
+
+    t.equal(controller.desiredSize, 0, '2 reads, 6 enqueues: desiredSize should be 0');
+    controller.enqueue('g');
+    t.equal(controller.desiredSize, -1, '2 reads, 7 enqueues: desiredSize should be -1');
+
     return reader.read();
   })
   .then(result => {
@@ -155,11 +209,18 @@ test('Correctly governs the return value of a ReadableStream\'s enqueue function
   })
   .then(result => {
     t.deepEqual(result, { value: 'f', done: false },
-      '6th read gives back the 6th chunk enqueued (queue now contains 1 chunk)');
-    t.equal(enqueue('h'), true, 'After 6 reads, 8th enqueue should return true (queue now contains 2 chunks)');
-    t.equal(enqueue('i'), true, 'After 6 reads, 9th enqueue should return true (queue now contains 3 chunks)');
-    t.equal(enqueue('j'), true, 'After 6 reads, 10th enqueue should return true (queue now contains 4 chunks)');
-    t.equal(enqueue('k'), false, 'After 6 reads, 11th enqueue should return false (queue now contains 5 chunks)');
+      '6th read gives back the 6th chunk enqueued (queue now contains 0 chunks)');
+
+    t.equal(controller.desiredSize, 3, '6 reads, 7 enqueues: desiredSize should be 3');
+    controller.enqueue('h');
+    t.equal(controller.desiredSize, 2, '6 reads, 8 enqueues: desiredSize should be 2');
+    controller.enqueue('i');
+    t.equal(controller.desiredSize, 1, '6 reads, 9 enqueues: desiredSize should be 1');
+    controller.enqueue('j');
+    t.equal(controller.desiredSize, 0, '6 reads, 10 enqueues: desiredSize should be 0');
+    controller.enqueue('k');
+    t.equal(controller.desiredSize, -1, '6 reads, 11 enqueues: desiredSize should be -1');
+
     t.end();
   })
   .catch(e => t.error(e));

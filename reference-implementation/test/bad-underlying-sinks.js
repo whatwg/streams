@@ -1,6 +1,6 @@
 const test = require('tape-catch');
 
-test('Throwing underlying sink start getter', t => {
+test('Underlying sink: throwing start getter', t => {
   const theError = new Error('a unique string');
 
   t.throws(() => {
@@ -13,7 +13,7 @@ test('Throwing underlying sink start getter', t => {
   t.end();
 });
 
-test('Throwing underlying sink start method', t => {
+test('Underlying sink: throwing start method', t => {
   const theError = new Error('a unique string');
 
   t.throws(() => {
@@ -26,7 +26,7 @@ test('Throwing underlying sink start method', t => {
   t.end();
 });
 
-test('Throwing underlying source write getter', t => {
+test('Underlying sink: throwing write getter', t => {
   t.plan(2);
 
   const theError = new Error('a unique string');
@@ -47,7 +47,7 @@ test('Throwing underlying source write getter', t => {
   );
 });
 
-test('Throwing underlying source write method', t => {
+test('Underlying sink: throwing write method', t => {
   t.plan(2);
 
   const theError = new Error('a unique string');
@@ -68,7 +68,7 @@ test('Throwing underlying source write method', t => {
   );
 });
 
-test('Throwing underlying sink abort getter', t => {
+test('Underlying sink: throwing abort getter', t => {
   t.plan(2);
 
   const theError = new Error('a unique string');
@@ -90,7 +90,7 @@ test('Throwing underlying sink abort getter', t => {
   );
 });
 
-test('Throwing underlying sink abort method', t => {
+test('Underlying sink: throwing abort method', t => {
   t.plan(2);
 
   const theError = new Error('a unique string');
@@ -112,7 +112,7 @@ test('Throwing underlying sink abort method', t => {
   );
 });
 
-test('Throwing underlying sink close getter', t => {
+test('Underlying sink: throwing close getter', t => {
   t.plan(1);
 
   const theError = new Error('a unique string');
@@ -128,7 +128,7 @@ test('Throwing underlying sink close getter', t => {
   );
 });
 
-test('Throwing underlying sink close method', t => {
+test('Underlying sink: throwing close method', t => {
   t.plan(1);
 
   const theError = new Error('a unique string');
@@ -144,7 +144,9 @@ test('Throwing underlying sink close method', t => {
   );
 });
 
-test('Throwing underlying source strategy getter: initial construction', t => {
+test('Underlying sink: throwing strategy getter', t => {
+  t.plan(1);
+
   const theError = new Error('a unique string');
 
   t.throws(() => {
@@ -153,90 +155,41 @@ test('Throwing underlying source strategy getter: initial construction', t => {
         throw theError;
       }
     });
-  }, /a unique string/);
-  t.end();
+  }, /a unique string/, 'construction should re-throw the error');
 });
 
-test('Throwing underlying source strategy getter: first write', t => {
-  t.plan(2);
+test('Underlying sink: throwing strategy.size getter', t => {
+  t.plan(1);
 
-  let counter = 0;
   const theError = new Error('a unique string');
-  const ws = new WritableStream({
-    get strategy() {
-      ++counter;
-      if (counter === 1) {
-        return {
-          size() {
-            return 1;
-          },
-          shouldApplyBackpressure() {
-            return true;
-          }
-        };
-      }
 
-      throw theError;
-    }
-  });
-
-  ws.write('a').then(
-    () => t.fail('write should not fulfill'),
-    r => t.equal(r, theError, 'write should reject with the thrown error')
-  );
-
-  ws.closed.then(
-    () => t.fail('closed should not fulfill'),
-    r => t.equal(r, theError, 'closed should reject with the thrown error')
-  );
-});
-
-test('Throwing underlying source strategy.size getter: initial construction', t => {
-  t.doesNotThrow(() => {
+  t.throws(() => {
     new WritableStream({
       strategy: {
         get size() {
-          throw new Error('boo');
+          throw theError;
         },
-        shouldApplyBackpressure() {
-          return true;
-        }
+        highWaterMark: 5
       }
     });
-  });
-  t.end();
+  }, /a unique string/, 'construction should re-throw the error');
 });
 
-test('Throwing underlying source strategy.size method: initial construction', t => {
+test('Underlying sink: throwing strategy.size method', t => {
+  t.plan(3);
+
+  const theError = new Error('a unique string');
+  let ws;
   t.doesNotThrow(() => {
-    new WritableStream({
+    ws = new WritableStream({
       strategy: {
         size() {
-          throw new Error('boo');
+          throw theError;
         },
-        shouldApplyBackpressure() {
-          return true;
-        }
+        highWaterMark: 5
       }
     });
-  });
-  t.end();
-});
-
-test('Throwing underlying source strategy.size getter: first write', t => {
-  t.plan(2);
-
-  const theError = new Error('a unique string');
-  const ws = new WritableStream({
-    strategy: {
-      get size() {
-        throw theError;
-      },
-      shouldApplyBackpressure() {
-        return true;
-      }
-    }
-  });
+  }, 'initial construction should not throw');
 
   ws.write('a').then(
     () => t.fail('write should not fulfill'),
@@ -249,33 +202,9 @@ test('Throwing underlying source strategy.size getter: first write', t => {
   );
 });
 
-test('Throwing underlying source strategy.size method: first write', t => {
-  t.plan(2);
+test('Underlying sink: throwing strategy.highWaterMark getter', t => {
+  t.plan(1);
 
-  const theError = new Error('a unique string');
-  const ws = new WritableStream({
-    strategy: {
-      size() {
-        throw theError;
-      },
-      shouldApplyBackpressure() {
-        return true;
-      }
-    }
-  });
-
-  ws.write('a').then(
-    () => t.fail('write should not fulfill'),
-    r => t.equal(r, theError, 'write should reject with the thrown error')
-  );
-
-  ws.closed.then(
-    () => t.fail('closed should not fulfill'),
-    r => t.equal(r, theError, 'closed should reject with the thrown error')
-  );
-});
-
-test('Throwing underlying source strategy.shouldApplyBackpressure getter: initial construction', t => {
   const theError = new Error('a unique string');
 
   t.throws(() => {
@@ -284,17 +213,46 @@ test('Throwing underlying source strategy.shouldApplyBackpressure getter: initia
         size() {
           return 1;
         },
-        get shouldApplyBackpressure() {
+        get highWaterMark() {
           throw theError;
         }
       }
     });
-  }, /a unique string/);
-  t.end();
+  }, /a unique string/, 'construction should re-throw the error');
 });
 
-test('Throwing underlying source strategy.shouldApplyBackpressure method: initial construction', t => {
-  const theError = new Error('a unique string');
+test('Underlying sink: invalid strategy.highWaterMark', t => {
+  t.plan(5);
+
+  for (const highWaterMark of [-1, -Infinity]) {
+    t.throws(() => {
+      new WritableStream({
+        strategy: {
+          size() {
+            return 1;
+          },
+          highWaterMark
+        }
+      });
+    }, /RangeError/, `construction should throw a RangeError for ${highWaterMark}`);
+  }
+
+  for (const highWaterMark of [NaN, 'foo', {}]) {
+    t.throws(() => {
+      new WritableStream({
+        strategy: {
+          size() {
+            return 1;
+          },
+          highWaterMark
+        }
+      });
+    }, /TypeError/, `construction should throw a TypeError for ${highWaterMark}`);
+  }
+});
+
+test('Underlying sink: negative strategy.highWaterMark', t => {
+  t.plan(1);
 
   t.throws(() => {
     new WritableStream({
@@ -302,11 +260,8 @@ test('Throwing underlying source strategy.shouldApplyBackpressure method: initia
         size() {
           return 1;
         },
-        shouldApplyBackpressure() {
-          throw theError;
-        }
+        highWaterMark: -1
       }
     });
-  }, /a unique string/);
-  t.end();
+  }, /RangeError/, 'construction should throw a RangeError');
 });

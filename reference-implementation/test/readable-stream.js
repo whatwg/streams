@@ -59,11 +59,11 @@ test('ReadableStream constructor can get initial garbage as pull argument', t =>
   t.doesNotThrow(() => new ReadableStream({ pull: { } }), 'constructor should not throw when pull is not a function');
 });
 
-test('ReadableStream constructor can get initial garbage as strategy argument', t => {
+test('ReadableStream constructor cannot get initial garbage as strategy argument', t => {
   t.plan(1);
 
-  t.doesNotThrow(() => new ReadableStream({ strategy: 2 }),
-    'constructor should not throw when strategy is not an object');
+  t.throws(() => new ReadableStream({ strategy: 2 }), /TypeError/,
+    'constructor should throw when strategy is not an object');
 });
 
 test('ReadableStream start should be able to return a promise', t => {
@@ -126,14 +126,6 @@ test('ReadableStream should be able to enqueue different objects', t => {
   }
 
   reader.closed.then(() => t.pass('stream should close correctly correctly'));
-});
-
-test('ReadableStream: if start throws an error, it should be re-thrown', t => {
-  t.plan(1);
-
-  const error = new Error('aaaugh!!');
-
-  t.throws(() => new ReadableStream({ start() { throw error; } }), /aaaugh/, 'error should be re-thrown');
 });
 
 test('ReadableStream: if pull rejects, it should error the stream', t => {
@@ -230,8 +222,8 @@ test('ReadableStream: should only call pull once on a non-empty stream read from
   setTimeout(() => t.equal(pullCount, 1, 'pull should be called exactly once'), 50);
 });
 
-test('ReadableStream: should only call pull twice on a non-empty stream read from after start fulfills', t => {
-  t.plan(5);
+test('ReadableStream: should only call pull once on a non-empty stream read from after start fulfills', t => {
+  t.plan(4);
 
   let pullCount = 0;
   const startPromise = Promise.resolve();
@@ -246,17 +238,16 @@ test('ReadableStream: should only call pull twice on a non-empty stream read fro
   });
 
   startPromise.then(() => {
-    t.equal(pullCount, 1, 'pull should be called once start finishes');
+    t.equal(pullCount, 0, 'pull should not be called once start finishes, since the queue is full');
 
     rs.getReader().read().then(r => {
       t.deepEqual(r, { value: 'a', done: false }, 'first read() should return first chunk');
-      t.equal(pullCount, 2, 'pull should be called again once read fulfills');
+
+      setTimeout(() => t.equal(pullCount, 1, 'pull should be called exactly once'), 50);
     });
+
+    t.equal(pullCount, 1, 'calling read() should not cause pull to be called immediately');
   });
-
-  t.equal(pullCount, 0, 'calling read() should not cause pull to be called yet');
-
-  setTimeout(() => t.equal(pullCount, 2, 'pull should be called exactly twice'), 50);
 });
 
 test('ReadableStream: should call pull in reaction to read()ing the last chunk, if not draining', t => {
@@ -265,7 +256,6 @@ test('ReadableStream: should call pull in reaction to read()ing the last chunk, 
   let pullCount = 0;
   let controller;
   const startPromise = Promise.resolve();
-  const pullPromise = Promise.resolve();
   const rs = new ReadableStream({
     start(c) {
       controller = c;
@@ -273,28 +263,24 @@ test('ReadableStream: should call pull in reaction to read()ing the last chunk, 
     },
     pull() {
       ++pullCount;
-      return pullPromise;
     }
   });
 
   const reader = rs.getReader();
 
   startPromise.then(() => {
-    t.equal(pullCount, 1, 'pull should have been called once after read');
+    t.equal(pullCount, 1, 'pull should have been called once by the time the stream starts');
 
     controller.enqueue('a');
+    t.equal(pullCount, 1, 'pull should not have been called again after enqueue');
 
-    return pullPromise.then(() => {
-      t.equal(pullCount, 2, 'pull should have been called a second time after enqueue');
+    return reader.read().then(() => {
+      t.equal(pullCount, 2, 'pull should have been called again after read');
 
-      return reader.read().then(() => {
-        t.equal(pullCount, 3, 'pull should have been called a third time after read');
-      });
+      setTimeout(() => t.equal(pullCount, 2, 'pull should be called exactly twice'), 50);
     });
   })
   .catch(e => t.error(e));
-
-  setTimeout(() => t.equal(pullCount, 3, 'pull should be called exactly thrice'), 50);
 });
 
 test('ReadableStream: should not call pull() in reaction to read()ing the last chunk, if draining', t => {
@@ -318,23 +304,21 @@ test('ReadableStream: should not call pull() in reaction to read()ing the last c
   const reader = rs.getReader();
 
   startPromise.then(() => {
-    t.equal(pullCount, 1, 'pull should have been called once after read');
+    t.equal(pullCount, 1, 'pull should have been called once by the time the stream starts');
 
     controller.enqueue('a');
+    t.equal(pullCount, 1, 'pull should not have been called again after enqueue');
 
-    return pullPromise.then(() => {
-      t.equal(pullCount, 2, 'pull should have been called a second time after enqueue');
+    controller.close();
 
-      controller.close();
+    return reader.read().then(() => {
+      t.equal(pullCount, 1, 'pull should not have been called a second time after read');
 
-      return reader.read().then(() => {
-        t.equal(pullCount, 2, 'pull should not have been called a third time after read');
-      });
+      setTimeout(() => t.equal(pullCount, 1, 'pull should be called exactly once'), 50);
     });
   })
   .catch(e => t.error(e));
 
-  setTimeout(() => t.equal(pullCount, 2, 'pull should be called exactly twice'), 50);
 });
 
 test('ReadableStream: should not call pull until the previous pull call\'s promise fulfills', t => {
@@ -343,12 +327,11 @@ test('ReadableStream: should not call pull until the previous pull call\'s promi
   let timesCalled = 0;
   const startPromise = Promise.resolve();
   const rs = new ReadableStream({
-    start(c) {
-      c.enqueue('a');
+    start() {
       return startPromise;
     },
-    pull() {
-      ++timesCalled;
+    pull(c) {
+      c.enqueue(++timesCalled);
       returnedPromise = new Promise(r => { resolve = r; });
       return returnedPromise;
     }
@@ -359,7 +342,7 @@ test('ReadableStream: should not call pull until the previous pull call\'s promi
     reader.read().then(result1 => {
       t.equal(timesCalled, 1,
         'pull should have been called once after start, but not yet have been called a second time');
-      t.deepEqual(result1, { value: 'a', done: false }, 'read() should fulfill with the enqueued value');
+      t.deepEqual(result1, { value: 1, done: false }, 'read() should fulfill with the enqueued value');
 
       setTimeout(() => {
         t.equal(timesCalled, 1, 'after 30 ms, pull should still only have been called once');
@@ -394,9 +377,7 @@ test('ReadableStream: should pull after start, and after every read', t => {
       size() {
         return 1;
       },
-      shouldApplyBackpressure() {
-        return false;
-      }
+      highWaterMark: Infinity
     }
   });
   const reader = rs.getReader();
@@ -468,9 +449,7 @@ test('ReadableStream: should call pull after enqueueing from inside pull (with n
       size() {
         return 1;
       },
-      shouldApplyBackpressure(size) {
-        return size > 3;
-      }
+      highWaterMark: 4
     }
   });
 
@@ -503,7 +482,7 @@ test('ReadableStream: enqueue should throw when the stream is readable but drain
 
   const rs = new ReadableStream({
     start(c) {
-      t.equal(c.enqueue('a'), true, 'the first enqueue should return true');
+      t.equal(c.enqueue('a'), undefined, 'the first enqueue should return undefined');
       c.close();
 
       t.throws(
@@ -550,7 +529,7 @@ test('ReadableStream: enqueue should throw the stored error when the stream is e
 
 
 test('ReadableStream: should call underlying source methods as methods', t => {
-  t.plan(6);
+  t.plan(4);
 
   class Source {
     start(c) {
@@ -567,7 +546,6 @@ test('ReadableStream: should call underlying source methods as methods', t => {
     }
 
     get strategy() {
-      // Called three times
       t.equal(this, theSource, 'strategy getter should be called with the correct this');
       return undefined;
     }
@@ -585,21 +563,27 @@ test('ReadableStream: should call underlying source methods as methods', t => {
   .catch(e => t.error(e));
 });
 
-test('ReadableStream strategies: the default strategy should return false for all but the first enqueue call', t => {
+test('ReadableStream strategies: the default strategy should give desiredSize of 1 to start, decreasing by 1 ' +
+     'per enqueue', t => {
   t.plan(5);
 
   new ReadableStream({
     start(c) {
-      t.equal(c.enqueue('a'), true, 'first enqueue should return true');
-      t.equal(c.enqueue('b'), false, 'second enqueue should return false');
-      t.equal(c.enqueue('c'), false, 'third enqueue should return false');
-      t.equal(c.enqueue('d'), false, 'fourth enqueue should return false');
-      t.equal(c.enqueue('e'), false, 'fifth enqueue should return false');
+      t.equal(c.desiredSize, 1);
+      c.enqueue('a');
+      t.equal(c.desiredSize, 0);
+      c.enqueue('b');
+      t.equal(c.desiredSize, -1);
+      c.enqueue('c');
+      t.equal(c.desiredSize, -2);
+      c.enqueue('d');
+      t.equal(c.desiredSize, -3);
+      c.enqueue('e');
     }
   });
 });
 
-test('ReadableStream strategies: the default strategy should continue returning true from enqueue if the chunks are ' +
+test('ReadableStream strategies: the default strategy should continue giving desiredSize of 1 if the chunks are ' +
      'read immediately', t => {
   let controller;
   const rs = new ReadableStream({
@@ -609,23 +593,34 @@ test('ReadableStream strategies: the default strategy should continue returning 
   });
   const reader = rs.getReader();
 
-  t.equal(controller.enqueue('a'), true, 'first enqueue should return true');
+  t.equal(controller.desiredSize, 1, 'desiredSize should start at 1');
+  controller.enqueue('a');
+  t.equal(controller.desiredSize, 0, 'desiredSize should decrease to 0 after first enqueue');
 
   reader.read().then(result1 => {
     t.deepEqual(result1, { value: 'a', done: false }, 'first chunk read should be correct');
-    t.equal(controller.enqueue('b'), true, 'second enqueue should return true');
+
+    t.equal(controller.desiredSize, 1, 'desiredSize should go up to 1 after the first read');
+    controller.enqueue('b');
+    t.equal(controller.desiredSize, 0, 'desiredSize should go down to 0 after the second enqueue');
 
     return reader.read();
   })
   .then(result2 => {
     t.deepEqual(result2, { value: 'b', done: false }, 'second chunk read should be correct');
-    t.equal(controller.enqueue('c'), true, 'third enqueue should return true');
+
+    t.equal(controller.desiredSize, 1, 'desiredSize should go up to 1 after the second read');
+    controller.enqueue('c');
+    t.equal(controller.desiredSize, 0, 'desiredSize should go down to 0 after the third enqueue');
 
     return reader.read();
   })
   .then(result3 => {
     t.deepEqual(result3, { value: 'c', done: false }, 'third chunk read should be correct');
-    t.equal(controller.enqueue('d'), true, 'fourth enqueue should return true');
+
+    t.equal(controller.desiredSize, 1, 'desiredSize should go up to 1 after the third read');
+    controller.enqueue('d');
+    t.equal(controller.desiredSize, 0, 'desiredSize should go down to 0 after the fourth enqueue');
 
     t.end();
   })
@@ -643,7 +638,7 @@ test('ReadableStream integration test: adapting a random push source', t => {
       t.equal(typeof c.error, 'function', 'error should be a function in start');
 
       randomSource.ondata = chunk => {
-        if (!c.enqueue(chunk)) {
+        if (c.enqueue(chunk) <= 0) {
           randomSource.readStop();
         }
       };

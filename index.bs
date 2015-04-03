@@ -167,16 +167,20 @@ source</a>, but not yet read by the consumer. In the case of a writable stream, 
 <a>chunks</a> which have been written to the stream by the producer, but not yet processed and acknowledged by the
 <a>underlying sink</a>.
 
-A <dfn>queuing strategy</dfn> is a pair of methods that help determine whether a stream should apply
-<a>backpressure</a> based on the state of its <a>internal queue</a>. The queuing strategy assigns a size to each
-<a>chunk</a>; later, the stream implementation asks the queuing strategy whether the stream should apply backpressure,
-based the total size of all chunks in the stream's internal queue.
+A <dfn>queuing strategy</dfn> is an object that determines how a stream should signal <a>backpressure</a> based on
+the state of its <a>internal queue</a>. The queuing strategy assigns a size to each <a>chunk</a>, and compares the
+total size of all chunks in the queue to a specified number, known as the <dfn>high water mark</dfn>. The resulting
+difference, high water mark minus total size, is used to determine the
+<dfn lt="desired size to fill a stream's internal queue">desired size to fill the stream's queue</dfn>.
+
+For readable streams, an underlying source can use this desired size as a backpressure signal, slowing down chunk
+generation so as to try to keep the desired size above or at zero. For writable streams, a producer can behave
+similarly, avoiding writes that would cause the desired size to go negative.
 
 <div class="example">
-  A simple example of a queuing strategy would be one that assigns a size of one to each chunk, and applies
-  backpressure whenever three or more chunks are in the internal queue. This would mean that up to three chunks could
-  be enqueued in a readable stream, or three chunks could be written to a writable stream, before they send a
-  backpressure signal.
+  A simple example of a queuing strategy would be one that assigns a size of one to each chunk, and has a high water
+  mark of three. This would mean that up to three chunks could be enqueued in a readable stream, or three chunks
+  written to a writable stream, before the streams are considered to be applying backpressure.
 </div>
 
 A queuing strategy is generally associated with a specific type of <a>underlying source</a> or <a>underlying sink</a>.
@@ -320,6 +324,16 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
       on an errored stream
   </tr>
   <tr>
+    <td>\[[strategySize]]
+    <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
+      the size of enqueued <a>chunks</a>; can be <b>undefined</b> for the default behavior.
+  </tr>
+  <tr>
+    <td>\[[strategyHWM]]
+    <td>A number supplied to the constructor as part of the stream's <a>queuing strategy</a>, indicating the point at
+      which the stream will apply <a>backpressure</a> to its <a>underlying source</a>.
+  </tr>
+  <tr>
     <td>\[[underlyingSource]]
     <td>An object representation of the stream's <a>underlying source</a>, including its <a>queuing strategy</a>; also
       used for the <a href="#is-readable-stream">IsReadableStream</a> brand check
@@ -349,11 +363,11 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   state via the passed <code>controller</code> object. This is an example of the
   <a href="https://blog.domenic.me/the-revealing-constructor-pattern/">revealing constructor pattern</a>.
 
-  The underlying source can also have a <code>strategy</code> property containing a <a>queuing strategy</a> object with
-  two methods <code>shouldApplyBackpressure(queueSize)</code> and <code>size(chunk)</code>. These could be instances of
-  the built-in <code>CountQueuingStrategy</code> or <code>ByteLengthQueuingStrategy</code> classes, or custom strategy
-  objects. If no strategy is supplied, the default behavior will be to apply backpressure (via the return value of
-  <code>enqueue</code>) when enqueuing into a non-empty queue.
+  The underlying sink can also have a <code>strategy</code> property containing a <a>queuing strategy</a> object with
+  two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
+  supplied <code>strategy</code> could be an instance of the built-in <code>CountQueuingStrategy</code> or
+  <code>ByteLengthQueuingStrategy</code> classes, or it could be custom. If no strategy is supplied, the default
+  behavior will be the same as a <code>CountQueuingStrategy</code> with a high water mark of 1.
 </div>
 
 <pre is="emu-alg">
@@ -363,8 +377,12 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. Set *this*@[[started]], *this*@[[closeRequested]], and *this*@[[pullScheduled]] to *false*.
   1. Set *this*@[[reader]], *this*@[[pullingPromise]], and *this*@[[storedError]] to *undefined*.
   1. Set *this*@[[controller]] to Construct(`ReadableStreamController`, «*this*»).
+  1. Let _strategy_ be Get(_underlyingSource_, "strategy").
+  1. ReturnIfAbrupt(_strategy_).
+  1. Let _normalizedStrategy_ be ValidateAndNormalizeQueuingStrategy(_strategy_, 1).
+  1. Set *this*@[[strategySize]] to _normalizedStrategy_.[[size]] and *this*@[[strategyHWM]] to _normalizedStrategy_.[[highWaterMark]].
   1. Let _startResult_ be InvokeOrNoop(_underlyingSource_, "start", «*this*@[[controller]]»).
-  1. ReturnIfAbrupt(startResult).
+  1. ReturnIfAbrupt(_startResult_).
   1. Resolve _startResult_ as a promise:
     1. Upon fulfillment,
       1. Set *this*@[[started]] to *true*.
@@ -549,6 +567,8 @@ it would look like
   class ReadableStreamController {
     constructor(stream)
 
+    get desiredSize()
+
     close()
     enqueue(chunk)
     error(e)
@@ -586,6 +606,13 @@ Instances of <code>ReadableStreamController</code> are created with the internal
 </pre>
 
 <h4 id="rs-controller-prototype">Properties of the <code>ReadableStreamController</code> Prototype</h4>
+
+<h5 id="rs-controller-desired-size">get desiredSize</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
+  1. Return GetReadableStreamDesiredSize(*this*@[[controlledReadableStream]]).
+</pre>
 
 <h5 id="rs-controller-close">close()</h5>
 
@@ -791,8 +818,10 @@ reader</a> for a given stream.
       1. Set _stream_@[[pullScheduled]] to *false*.
       1. Call-with-rethrow CallReadableStreamPull(_stream_).
     1. Return *undefined*.
-  1. Let _shouldApplyBackpressure_ be ShouldReadableStreamApplyBackpressure(_stream_).
-  1. If _shouldApplyBackpressure_ is *true*, return *undefined*.
+  1. If IsReadableStreamLocked(_stream_) is *false* or _stream_@[[reader]]@[[readRequests]] is empty,
+    1. Let _desiredSize_ be GetReadableStreamDesiredSize(_stream_).
+    1. ReturnIfAbrupt(_desiredSize_).
+    1. If _desiredSize_ ≤ 0, return *undefined*.
   1. Set _stream_@[[pullingPromise]] to PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "pull", «‍_stream_@[[controller]]»).
   1. Upon fulfillment of _stream_@[[pullingPromise]], set _stream_@[[pullingPromise]] to *undefined*.
   1. Upon rejection of _stream_@[[pullingPromise]] with reason _e_, return ErrorReadableStream(_stream_, _e_).
@@ -855,26 +884,18 @@ asserts).
     1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *false*).
   1. Otherwise,
     1. Let _chunkSize_ be *1*.
-    1. Let _strategy_ be Get(_stream_@[[underlyingSource]], "strategy").
-    1. If _strategy_ is an abrupt completion,
-      1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_strategy_.[[value]]).
-      1. Return _strategy_.
-    1. Let _strategy_ be _strategy_.[[value]].
-    1. If _strategy_ is not *undefined*, then
-      1. Set _chunkSize_ to Invoke(_strategy_, "size", «‍_chunk_»).
+    1. If _stream_@[[strategySize]] is not *undefined*,
+      1. Set _chunkSize_ to Call(_stream_@[[strategySize]], *undefined*, «‍_chunk_»).
       1. If _chunkSize_ is an abrupt completion,
         1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_chunkSize_.[[value]]).
         1. Return _chunkSize_.
       1. Let _chunkSize_ be _chunkSize_.[[value]].
-    1. Let _enqueueResult_ be EnqueueValueWithSize(_stream_@[[queue]], _chunk_, _chunkSize_.[[value]]).
+    1. Let _enqueueResult_ be EnqueueValueWithSize(_stream_@[[queue]], _chunk_, _chunkSize_).
     1. If _enqueueResult_ is an abrupt completion,
       1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_enqueueResult_.[[value]]).
       1. Return _enqueueResult_.
   1. Call-with-rethrow CallReadableStreamPull(_stream_).
-  1. Let _shouldApplyBackpressure_ be ShouldReadableStreamApplyBackpressure(_stream_).
-  1. ReturnIfAbrupt(_shouldApplyBackpressure_).
-  1. If _shouldApplyBackpressure_ is *true*, return *false*.
-  1. Return *true*.
+  1. Return *undefined*.
 </pre>
 
 <h4 id="error-readable-stream" aoid="ErrorReadableStream">ErrorReadableStream ( stream, e )</h4>
@@ -890,6 +911,14 @@ an assert).
   1. Set _stream_@[[storedError]] to _e_.
   1. Set _stream_@[[state]] to "errored".
   1. If IsReadableStreamLocked(_stream_) is *true*, return ReleaseReadableStreamReader(_stream_@[[reader]]).
+</pre>
+
+<h4 id="get-readable-stream-desired-size" aoid="GetReadableStreamDesiredSize">GetReadableStreamDesiredSize ( stream )</h4>
+
+<pre is="emu-alg">
+  1. Let _queueSize_ be GetTotalQueueSize(_stream_@[[queue]]).
+  1. ReturnIfAbrupt(_queueSize_).
+  1. Return _stream_@[[strategyHWM]] − _queueSize_.
 </pre>
 
 <h4 id="is-readable-stream" aoid="IsReadableStream">IsReadableStream ( x )</h4>
@@ -964,23 +993,6 @@ readable stream is <a>locked to a reader</a>.
   1. Set _reader_@[[readRequests]] to a new empty List.
   1. Set _reader_@[[ownerReadableStream]]@[[reader]] to *undefined*.
   1. Set _reader_@[[ownerReadableStream]] to *undefined*.
-</pre>
-
-<h4 id="should-readable-stream-apply-backpressure" aoid="ShouldReadableStreamApplyBackpressure">ShouldReadableStreamApplyBackpressure ( stream )</h4>
-
-<pre is="emu-alg">
-  1. Let _queueSize_ be GetTotalQueueSize(_stream_@[[queue]]).
-  1. ReturnIfAbrupt(_queueSize_).
-  1. Let _shouldApplyBackpressure_ be *true* if _queueSize_ > *1*, and *false* otherwise.
-  1. Let _strategy_ be Get(_stream_@[[underlyingSource]], "strategy").
-  1. If _strategy_ is an abrupt completion,
-    1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_strategy_.[[value]]).
-    1. Return _strategy_.
-  1. Let _strategy_ be _strategy_.[[value]].
-  1. If _strategy_ is not *undefined*, then
-    1. Set _shouldApplyBackpressure_ to ToBoolean(Invoke(_strategy_, "shouldApplyBackpressure", «‍_queueSize_»)).
-    1. If _shouldApplyBackpressure_ is an abrupt completion, call-with-rethrow ErrorReadableStream(_stream_, ‍_shouldApplyBackpressure_.[[value]]).
-  1. Return _shouldApplyBackpressure_.
 </pre>
 
 <h4 id="tee-readable-stream" aoid="TeeReadableStream">TeeReadableStream ( stream, shouldClone )</h4>
@@ -1229,13 +1241,23 @@ Instances of <code>WritableStream</code> are created with the internal slots des
       on the stream while in the <code>"errored"</code> state
   </tr>
   <tr>
+    <td>\[[strategySize]]
+    <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
+      the size of <a>chunks</a> written; can be <b>undefined</b> for the default behavior.
+  </tr>
+  <tr>
+    <td>\[[strategyHWM]]
+    <td>A number supplied to the constructor as part of the stream's <a>queuing strategy</a>, indicating the point at
+      which the stream will apply <a>backpressure</a> to any <a>producers</a>.
+  </tr>
+  <tr>
     <td>\[[readyPromise]]
     <td>A promise returned by the <code>ready</code> getter
   </tr>
   <tr>
     <td>\[[underlyingSink]]
-    <td>An object representation of the stream's <a>underlying sink</a>, including its <a>queuing strategy</a>; also
-      used for the <a href="#is-writable-stream">IsWritableStream</a> brand check
+    <td>An object representation of the stream's <a>underlying sink</a>; also used for the
+      <a href="#is-writable-stream">IsWritableStream</a> brand check
   </tr>
   <tr>
     <td>\[[writing]]
@@ -1272,9 +1294,10 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </ul>
 
   The underlying sink can also have a <code>strategy</code> property containing a <a>queuing strategy</a> object with
-  two methods <code>shouldApplyBackpressure(queueSize)</code> and <code>size(chunk)</code>. These could be instances of
-  the built-in <code>CountQueuingStrategy</code> or <code>ByteLengthQueuingStrategy</code> classes, or custom strategy
-  objects. By default, a strategy that applies backpressure whenever writing into a non-empty queue will be used.
+  two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
+  supplied <code>strategy</code> could be an instance of the built-in <code>CountQueuingStrategy</code> or
+  <code>ByteLengthQueuingStrategy</code> classes, or it could be custom. If no strategy is supplied, the default
+  behavior will be the same as a <code>CountQueuingStrategy</code> with a high water mark of 0.
 </div>
 
 <div class="note">
@@ -1294,6 +1317,10 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   1. Set *this*@[[state]] to "writable".
   1. Set *this*@[[started]] and *this*@[[writing]] to *false*.
   1. Call-with-rethrow SyncWritableStreamStateWithQueue(*this*).
+  1. Let _strategy_ be Get(_underlyingSink_, "strategy").
+  1. ReturnIfAbrupt(_strategy_).
+  1. Let _normalizedStrategy_ be ValidateAndNormalizeQueuingStrategy(_strategy_, 0).
+  1. Set *this*@[[strategySize]] to _normalizedStrategy_.[[size]] and *this*@[[strategyHWM]] to _normalizedStrategy_.[[highWaterMark]].
   1. Let _error_ be a new <a><code>WritableStream</code> error function</a>.
   1. Set _error_@[[stream]] to *this*.
   1. Let _startResult_ be InvokeOrNoop(_underlyingSink_, "start", «_error_»).
@@ -1432,13 +1459,8 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. If *this*@[[state]] is "errored", return a promise rejected with *this*@[[storedError]].
   1. Assert: *this*@[[state]] is either "waiting" or "writable".
   1. Let _chunkSize_ be *1*.
-  1. Let _strategy_ be Get(*this*@[[underlyingSink]], "strategy").
-  1. If _strategy_ is an abrupt completion,
-    1. Call-with-rethrow ErrorWritableStream(*this*, _strategy_.[[value]]).
-    1. Return a new promise rejected with _strategy_.[[value]].
-  1. Set _strategy_ to _strategy_.[[value]].
-  1. If _strategy_ is not *undefined*, then
-    1. Set _chunkSize_ to Invoke(_strategy_, "size", «‍_chunk_»).
+  1. If *this*@[[strategySize]] is not *undefined*, then
+    1. Set _chunkSize_ to Call(*this*@[[strategySize]], *undefined*, «‍_chunk_»).
     1. If _chunkSize_ is an abrupt completion,
       1. Call-with-rethrow ErrorWritableStream(*this*, _chunkSize_.[[value]]).
       1. Return a new promise rejected with _chunkSize_.[[value]].
@@ -1511,12 +1533,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Assert: _stream_@[[state]] is either "writable" or "waiting".
   1. Let _queueSize_ be GetTotalQueueSize(_stream_@[[queue]]).
   1. ReturnIfAbrupt(_queueSize_).
-  1. Let _shouldApplyBackpressure_ be *true* if _queueSize_ > 0, and *false* otherwise.
-  1. Let _strategy_ be Get(_stream_@[[underlyingSink]], "strategy").
-  1. ReturnIfAbrupt(_strategy_).
-  1. If _strategy_ is not *undefined*, then
-    1. Set _shouldApplyBackpressure_ to ToBoolean(Invoke(_strategy_, "shouldApplyBackpressure", «‍_queueSize_»)).
-    1. ReturnIfAbrupt(_shouldApplyBackpressure_).
+  1. Let _shouldApplyBackpressure_ be *true* if _queueSize_ > _stream_@[[strategyHWM]], and *false* otherwise.
   1. If _shouldApplyBackpressure_ is *true* and _stream_@[[state]] is "writable", then
     1. Set _stream_@[[state]] to "waiting".
     1. Set _stream_@[[readyPromise]] to a new promise.
@@ -1600,58 +1617,24 @@ If one were to write the <code>ByteLengthQueuingStrategy</code> class in somethi
 <pre><code class="lang-javascript">
   class ByteLengthQueuingStrategy {
     constructor({ highWaterMark })
-    shouldApplyBackpressure(queueSize)
     size(chunk)
   }
 </code></pre>
 
-<h4 id="blqs-internal-slots">Internal Slots</h4>
-
-Instances of <code>ByteLengthQueuingStrategy</code> are created with the internal slots described in the following
-table:
-
-<table>
-  <thead>
-    <tr>
-      <th>Internal Slot</th>
-      <th>Description (<em>non-normative</em>)</th>
-    </tr>
-  </thead>
-  <tr>
-    <td>\[[blqsHighWaterMark]]
-    <td>A nonnegative number that determines when the strategy applies <a>backpressure</a>
-  </tr>
-</table>
+Each <code>ByteLengthQueuingStrategy</code> instance will additionally have an own data property
+<code>highWaterMark</code> set by its constructor.
 
 <h4 id="blqs-constructor">new ByteLengthQueuingStrategy({ highWaterMark })</h4>
 
 <div class="note">
-  The constructor takes a nonnegative number for the high-water mark, and stores it for later use.
+  The constructor takes a nonnegative number for the high-water mark, and stores it on the object as a property.
 </div>
 
 <pre is="emu-alg">
-  1. Let _highWaterMark_ be ToNumber(_highWaterMark_).
-  1. If _highWaterMark_ is *NaN*, throw a *TypeError* exception.
-  1. If _highWaterMark_ < 0, throw a *RangeError* exception.
-  1. Set *this*@[[blqsHighWaterMark]] to _highWaterMark_.
+  1. CreateDataProperty(*this*, "highWaterMark", _highWaterMark_).
 </pre>
 
 <h4 id="blqs-prototype">Properties of the <code>ByteLengthQueuingStrategy</code> Prototype</h4>
-
-<h5 id="blqs-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h5>
-
-<div class="note">
-  The <code>shouldApplyBackpressure</code> method returns whether or not the given queue size is greater than the
-  queuing strategy's high-water mark.
-</div>
-
-<pre is="emu-alg">
-  1. If Type(*this*) is not Object, throw a *TypeError* exception.
-  1. If *this* does not have a [[blqsHighWaterMark]] internal slot, throw a *TypeError* exception.
-  1. Let _queueSize_ be ToNumber(_queueSize_).
-  1. If _queueSize_ is *NaN*, return *false*.
-  1. Return _queueSize_ > *this*@[[blqsHighWaterMark]].
-</pre>
 
 <h5 id="blqs-size">size(chunk)</h5>
 
@@ -1708,57 +1691,24 @@ it would look like
 <pre><code class="lang-javascript">
   class CountQueuingStrategy {
     constructor({ highWaterMark })
-    shouldApplyBackpressure(queueSize)
     size()
   }
 </code></pre>
 
-<h4 id="cqs-internal-slots">Internal Slots</h4>
+Each <code>CountQueuingStrategy</code> instance will additionally have an own data property <code>highWaterMark</code>
+set by its constructor.
 
-Instances of <code>CountQueuingStrategy</code> are created with the internal slots described in the following table:
-
-<table>
-  <thead>
-    <tr>
-      <th>Internal Slot</th>
-      <th>Description (<em>non-normative</em>)</th>
-    </tr>
-  </thead>
-  <tr>
-    <td>\[[cqsHighWaterMark]]
-    <td>A nonnegative number that determines when the strategy applies <a>backpressure</a>
-  </tr>
-</table>
-
-<h4 id="cqs-constructor">new CountQueuingStrategy({ highWaterMark })</h4>
+<h4 id="blqs-constructor">new CountQueuingStrategy({ highWaterMark })</h4>
 
 <div class="note">
-  The constructor takes a nonnegative number for the high-water mark, and stores it for later use.
+  The constructor takes a nonnegative number for the high-water mark, and stores it on the object as a property.
 </div>
 
 <pre is="emu-alg">
-  1. Let _highWaterMark_ be ToNumber(_highWaterMark_).
-  1. If _highWaterMark_ is *NaN*, throw a *TypeError* exception.
-  1. If _highWaterMark_ < 0, throw a *RangeError* exception.
-  1. Set *this*@[[cqsHighWaterMark]] to _highWaterMark_.
+  1. CreateDataProperty(*this*, "highWaterMark", _highWaterMark_).
 </pre>
 
 <h4 id="cqs-prototype">Properties of the <code>CountQueuingStrategy</code> Prototype</h4>
-
-<h5 id="cqs-should-apply-backpressure">shouldApplyBackpressure(queueSize)</h5>
-
-<div class="note">
-  The <code>shouldApplyBackpressure</code> method returns whether or not the given queue size is greater than the
-  queuing strategy's high-water mark.
-</div>
-
-<pre is="emu-alg">
-  1. If Type(*this*) is not Object, throw a *TypeError* exception.
-  1. If *this* does not have a [[cqsHighWaterMark]] internal slot, throw a *TypeError* exception.
-  1. Let _queueSize_ be ToNumber(_queueSize_).
-  1. If _queueSize_ is *NaN*, return *false*.
-  1. Return _queueSize_ > *this*@[[cqsHighWaterMark]].
-</pre>
 
 <h5 id="cqs-size">size()</h5>
 
@@ -1879,6 +1829,22 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Let _returnValue_ be Call(_method_, _O_, _args_).
   1. If _returnValue_ is an abrupt completion, return a new promise rejected with _returnValue_.[[value]].
   1. Otherwise, return a new promise resolved with _returnValue_.[[value]].
+</pre>
+
+<h4 id="validate-and-normalize-queuing-strategy" aoid="ValidateAndNormalizeQueuingStrategy">ValidateAndNormalizeQueuingStrategy ( strategy, defaultHWM )</h4>
+
+<pre is="emu-alg">
+  1. Assert: Type(_defaultHWM_) is Number.
+  1. Assert: _defaultHWM_ ≥ 0.
+  1. If _strategy_ is *undefined*, return Record{[[size]]: *undefined*, [[highWaterMark]]: _defaultHWM_ }.
+  1. Let _size_ be Get(_strategy_, "size").
+  1. ReturnIfAbrupt(_size_).
+  1. If IsCallable(_size_) is *false*, throw a *TypeError* exception.
+  1. Let _highWaterMark_ be ToNumber(Get(_strategy_, "highWaterMark")).
+  1. ReturnIfAbrupt(_highWaterMark_).
+  1. If _highWaterMark_ is *NaN*, throw a *TypeError* exception.
+  1. If _highWaterMark_ < *0*, throw a *RangeError* exception.
+  1. Return Record{[[size]]: size, [[highWaterMark]]: highWaterMark}.
 </pre>
 
 <h2 id="globals">Global Properties</h2>
