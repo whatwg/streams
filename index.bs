@@ -813,16 +813,6 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   1. Return *undefined*.
 </pre>
 
-<h4 id="close-readable-stream-reader" aoid="CloseReadableStreamReader">CloseReadableStreamReader ( reader )</h4>
-
-<pre is="emu-alg">
-  1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
-    1. Resolve _readRequestPromise_ with CreateIterResultObject(*undefined*, *true*).
-  1. Set _reader_@[[readRequests]] to a new empty List.
-  1. Resolve _reader_@[[closedPromise]] with *undefined*.
-  1. Return *undefined*.
-</pre>
-
 <h4 id="error-readable-stream" aoid="ErrorReadableStream">ErrorReadableStream ( stream, e )</h4>
 
 <pre is="emu-alg">
