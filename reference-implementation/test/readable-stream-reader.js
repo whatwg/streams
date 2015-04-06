@@ -10,7 +10,7 @@ test('Can get the ReadableStreamReader constructor indirectly', t => {
   t.end();
 });
 
-test('Constructing an ReadableStreamReader directly should fail if the stream is already locked (via direct ' +
+test('Constructing a ReadableStreamReader directly should fail if the stream is already locked (via direct ' +
      'construction)', t => {
   const rs = new ReadableStream();
   t.doesNotThrow(() => new ReadableStreamReader(rs), 'constructing directly the first time should be fine');
@@ -18,7 +18,7 @@ test('Constructing an ReadableStreamReader directly should fail if the stream is
   t.end();
 });
 
-test('Getting an ReadableStreamReader via getReader should fail if the stream is already locked (via direct ' +
+test('Getting a ReadableStreamReader via getReader should fail if the stream is already locked (via direct ' +
      'construction', t => {
   const rs = new ReadableStream();
   t.doesNotThrow(() => new ReadableStreamReader(rs), 'constructing directly should be fine');
@@ -26,7 +26,7 @@ test('Getting an ReadableStreamReader via getReader should fail if the stream is
   t.end();
 });
 
-test('Constructing an ReadableStreamReader directly should fail if the stream is already locked (via getReader)',
+test('Constructing a ReadableStreamReader directly should fail if the stream is already locked (via getReader)',
      t => {
   const rs = new ReadableStream();
   t.doesNotThrow(() => rs.getReader(), 'getReader() should be fine');
@@ -34,7 +34,7 @@ test('Constructing an ReadableStreamReader directly should fail if the stream is
   t.end();
 });
 
-test('Constructing an ReadableStreamReader directly should be OK if the stream is closed',
+test('Constructing a ReadableStreamReader directly should be OK if the stream is closed',
      t => {
   const rs = new ReadableStream({
     start(c) {
@@ -46,7 +46,7 @@ test('Constructing an ReadableStreamReader directly should be OK if the stream i
   t.end();
 });
 
-test('Constructing an ReadableStreamReader directly should be OK if the stream is errored',
+test('Constructing a ReadableStreamReader directly should be OK if the stream is errored',
      t => {
   const theError = new Error('don\'t say i didn\'t warn ya');
   const rs = new ReadableStream({
