@@ -47,6 +47,26 @@ test('ReadableStream constructor should throw for non-function start arguments',
     'constructor should throw when start is not a function');
 });
 
+test('ReadableStream constructor can get initial garbage as cancel argument', t => {
+  t.plan(1);
+
+  t.doesNotThrow(() => new ReadableStream({ cancel: '2'}),
+    'constructor should not throw when cancel is not a function');
+});
+
+test('ReadableStream constructor can get initial garbage as pull argument', t => {
+  t.plan(1);
+
+  t.doesNotThrow(() => new ReadableStream({ pull: { } }), 'constructor should not throw when pull is not a function');
+});
+
+test('ReadableStream constructor can get initial garbage as strategy argument', t => {
+  t.plan(1);
+
+  t.doesNotThrow(() => new ReadableStream({ strategy: 2 }),
+    'constructor should not throw when strategy is not an object');
+});
+
 test('ReadableStream start should be able to return a promise', t => {
   t.plan(2);
 
