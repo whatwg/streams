@@ -40,6 +40,75 @@ test('ReadableStream instances should have the correct list of properties', t =>
   t.end();
 });
 
+test('ReadableStream constructor should throw for non-function start arguments', t => {
+  t.plan(1);
+
+  t.throws(() => new ReadableStream({ start: 'potato' }), /TypeError/,
+    'constructor should throw when start is not a function');
+});
+
+test('ReadableStream start should be able to return a promise', t => {
+  t.plan(2);
+
+  const rs = new ReadableStream({
+    start(c) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          c.enqueue('a');
+          c.close();
+          resolve();
+        }, 50);
+      });
+    },
+  });
+
+  const reader = rs.getReader();
+
+  reader.read().then(r => t.deepEqual(r, { value: 'a', done: false }, 'value read should be the one enqueued'));
+
+  reader.closed.then(() => t.pass('stream should close successfully'));
+});
+
+test('ReadableStream start should be able to return a promise and reject it', t => {
+  t.plan(1);
+
+  const theError = new Error('rejected!');
+  const rs = new ReadableStream({
+    start() {
+      return new Promise((resolve, reject) => setTimeout(() => reject(theError), 50));
+    }
+  });
+
+  rs.getReader().closed.catch(e => t.equal(e, theError, 'promise should be rejected with the same error'));
+});
+
+test('ReadableStream should be able to enqueue different objects', t => {
+  t.plan(4);
+
+  const objects = [
+    { potato: 'Give me more!'},
+    'test',
+    1
+  ];
+
+  const rs = new ReadableStream({
+    start(c) {
+      for (const o of objects) {
+        c.enqueue(o);
+      }
+      c.close();
+    }
+  });
+
+  const reader = rs.getReader();
+
+  for (const o of objects) {
+    reader.read().then(r => t.deepEqual(r, { value: o, done: false }, 'value read should be the one enqueued'));
+  }
+
+  reader.closed.then(() => t.pass('stream should close correctly correctly'));
+});
+
 test('ReadableStream: if start throws an error, it should be re-thrown', t => {
   t.plan(1);
 
