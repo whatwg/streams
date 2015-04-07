@@ -91,6 +91,23 @@ test('ReadableStream cancellation: cancel() on a locked stream should fail and n
   reader.closed.then(() => t.pass('closed should fulfill without underlying source cancel ever being called'));
 });
 
+test('ReadableStream cancellation: should fulfill promise when cancel callback went fine', t => {
+  t.plan(2);
+
+  const cancelReason = new Error('I am tired of this stream, I prefer to cancel it');
+  const rs = new ReadableStream({
+    cancel(reason) {
+      t.equal(reason, cancelReason,
+        'cancellation reason given to the underlying source should be equal to the one passed');
+    }
+  });
+
+  rs.cancel(cancelReason).then(
+    () => t.pass('stream was successfully cancelled'),
+    e => t.error(e)
+  );
+});
+
 test('ReadableStream cancellation: returning a value from the underlying source\'s cancel should not affect the ' +
      'fulfillment value of the promise returned by the stream\'s cancel', t => {
   t.plan(1);
@@ -107,8 +124,45 @@ test('ReadableStream cancellation: returning a value from the underlying source\
   );
 });
 
+test('ReadableStream cancellation: should reject promise when cancel callback raises an exception', t => {
+  t.plan(2);
+
+  let thrownError = new Error('test');
+
+  const rs = new ReadableStream({
+    cancel() {
+      t.pass('cancel should be called');
+      throw thrownError;
+    }
+  });
+
+  rs.cancel('test').then(
+    () => t.fail('cancel should reject'),
+    e => t.equal(e, thrownError)
+  );
+});
+
 test('ReadableStream cancellation: if the underlying source\'s cancel method returns a promise, the promise returned ' +
-     'by the stream\'s cancel should fulfill when that one does', t => {
+     'by the stream\'s cancel should fulfill when that one does (1)', t => {
+  t.plan(2);
+
+  const cancelReason = new Error('test');
+
+  const rs = new ReadableStream({
+    cancel(error) {
+      t.equal(error, cancelReason);
+      return new Promise(resolve => setTimeout(resolve, 50));
+    }
+  });
+
+  rs.cancel(cancelReason).then(
+    () => t.pass('stream successfully cancelled'),
+    e => t.error(e)
+  );
+});
+
+test('ReadableStream cancellation: if the underlying source\'s cancel method returns a promise, the promise returned ' +
+     'by the stream\'s cancel should fulfill when that one does (2)', t => {
 
   let resolveSourceCancelPromise;
   let sourceCancelPromiseHasFulfilled = false;
