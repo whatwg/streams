@@ -1105,6 +1105,14 @@ called with argument <var>r</var>, it performs the following steps:
 
 <h2 id="ws">Writable Streams</h2>
 
+<div class="warning">
+  Although readable streams have been significantly evolved recently due to implementation progress providing feedback,
+  writable streams have not yet caught up to all the discoveries in that space. As such, while the following spec will
+  be the basis for a final API, it is expected to change in several important ways before being ready to ship. Please
+  follow along on the <a href="https://github.com/whatwg/streams/labels/writable%20streams">writable streams issues
+  label</a> for details.
+</div>
+
 <h3 id="ws-intro">Using Writable Streams</h3>
 
 <div class="example">
