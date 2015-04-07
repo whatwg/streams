@@ -9,7 +9,7 @@
     "ecmarkup": "domenic/ecmarkup#jsdom-update",
     "jsdom": "^4.0.2",
     "promise-debounce": "^1.0.0",
-    "traceur": "0.0.87",
+    "traceur": "0.0.88",
     "traceur-runner": "^2.0.1"
   }
 }

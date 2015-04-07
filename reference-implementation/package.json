@@ -33,7 +33,7 @@
     "tape": "^4.0.0",
     "tape-catch": "^1.0.4",
     "text-table": "^0.2.0",
-    "traceur": "0.0.87",
+    "traceur": "0.0.88",
     "traceur-runner": "^2.0.1"
   }
 }

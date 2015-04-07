@@ -9,6 +9,37 @@ test('ReadableStream can be constructed with no arguments', t => {
   t.end();
 });
 
+test('ReadableStream can be constructed with an empty object as its argument', t => {
+  t.doesNotThrow(() => new ReadableStream({ }), 'ReadableStream constructed with no errors');
+  t.end();
+});
+
+test('ReadableStream instances should have the correct list of properties', t => {
+  const methods = ['cancel', 'constructor', 'getReader', 'pipeThrough', 'pipeTo', 'tee'];
+
+  const rs = new ReadableStream();
+  const proto = Object.getPrototypeOf(rs);
+
+  t.deepEqual(Object.getOwnPropertyNames(proto).sort(), methods, 'should have all the correct methods');
+
+  for (const m of methods) {
+    const propDesc = Object.getOwnPropertyDescriptor(proto, m);
+    t.equal(propDesc.enumerable, false, `${m} should be non-enumerable`);
+    t.equal(propDesc.configurable, true, `${m} should be configurable`);
+    t.equal(propDesc.writable, true, `${m} should be writable`);
+    t.equal(typeof rs[m], 'function', `should have a ${m} method`);
+  }
+
+  t.equal(rs.cancel.length, 1, 'cancel has 1 parameter');
+  t.equal(rs.constructor.length, 0, 'constructor has no parameters');
+  t.equal(rs.getReader.length, 0, 'getReader has no parameters');
+  t.equal(rs.pipeThrough.length, 2, 'pipeThrough has 2 parameters');
+  t.equal(rs.pipeTo.length, 1, 'pipeTo has 1 parameter');
+  t.equal(rs.tee.length, 0, 'tee has no parameters');
+
+  t.end();
+});
+
 test('ReadableStream: if start throws an error, it should be re-thrown', t => {
   t.plan(1);
 
