@@ -397,6 +397,19 @@ test('ReadableStream: should call pull after enqueueing from inside pull (with n
   });
 });
 
+test('ReadableStream pull should be able to close a stream', t => {
+  t.plan(1);
+
+  const rs = new ReadableStream({
+    pull(c) {
+      c.close();
+    }
+  });
+
+  const reader = rs.getReader();
+  reader.closed.then(() => t.pass('stream was closed successfully'));
+});
+
 test('ReadableStream: enqueue should throw when the stream is readable but draining', t => {
   t.plan(2);
 
