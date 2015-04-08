@@ -387,7 +387,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     1. Upon fulfillment,
       1. Set *this*@[[started]] to *true*.
       1. Return CallReadableStreamPull(*this*).
-    1. Upon rejection with reason _r_, return ErrorReadableStream(*this*, _r_).
+    1. Upon rejection with reason _r_,
+      1. If *this*@[[state]] is "readable", return ErrorReadableStream(*this*, _r_).
 </pre>
 
 <h4 id="rs-prototype">Properties of the <code>ReadableStream</code> Prototype</h4>
@@ -824,7 +825,7 @@ reader</a> for a given stream.
     1. If _desiredSize_ ≤ 0, return *undefined*.
   1. Set _stream_@[[pullingPromise]] to PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "pull", «‍_stream_@[[controller]]»).
   1. Upon fulfillment of _stream_@[[pullingPromise]], set _stream_@[[pullingPromise]] to *undefined*.
-  1. Upon rejection of _stream_@[[pullingPromise]] with reason _e_, return ErrorReadableStream(_stream_, _e_).
+  1. Upon rejection of _stream_@[[pullingPromise]] with reason _e_, if _stream_@[[state]] is "readable", return ErrorReadableStream(_stream_, _e_).
   1. Return *undefined*.
 </pre>
 

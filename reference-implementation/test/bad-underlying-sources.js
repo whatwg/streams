@@ -427,3 +427,35 @@ test('Underlying source: calling error after close should throw', t => {
   })
   .getReader().closed.then(() => t.pass('closed should fulfill'));
 });
+
+test('Underlying source: calling error and returning a rejected promise from start should cause the stream to error ' +
+     'with the first error', t => {
+  t.plan(1);
+
+  const firstError = new Error('1');
+  const secondError = new Error('2');
+  new ReadableStream({
+    start(c) {
+      c.error(firstError);
+
+      return Promise.reject(secondError);
+    }
+  })
+  .getReader().closed.catch(e => t.equal(e, firstError, 'stream should error with the first error'));
+});
+
+test('Underlying source: calling error and returning a rejected promise from pull should cause the stream to error ' +
+     'with the first error', t => {
+  t.plan(1);
+
+  const firstError = new Error('1');
+  const secondError = new Error('2');
+  new ReadableStream({
+    pull(c) {
+      c.error(firstError);
+
+      return Promise.reject(secondError);
+    }
+  })
+  .getReader().closed.catch(e => t.equal(e, firstError, 'stream should error with the first error'));
+});

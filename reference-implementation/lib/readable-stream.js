@@ -29,7 +29,11 @@ export default class ReadableStream {
         this._started = true;
         CallReadableStreamPull(this);
       },
-      r => ErrorReadableStream(this, r)
+      r => {
+        if (this._state === 'readable') {
+          return ErrorReadableStream(this, r);
+        }
+      }
     )
     .catch(rethrowAssertionErrorRejection);
   }
@@ -345,7 +349,11 @@ function CallReadableStreamPull(stream) {
   stream._pullingPromise = PromiseInvokeOrNoop(stream._underlyingSource, 'pull', [stream._controller]);
   stream._pullingPromise.then(
     () => { stream._pullingPromise = undefined; },
-    e => ErrorReadableStream(stream, e)
+    e => {
+      if (stream._state === 'readable') {
+        return ErrorReadableStream(stream, e);
+      }
+    }
   )
   .catch(rethrowAssertionErrorRejection);
 
