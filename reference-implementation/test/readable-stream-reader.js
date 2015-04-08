@@ -1,5 +1,7 @@
 const test = require('tape-catch');
 
+require('./utils/gc');
+
 let ReadableStreamReader;
 
 test('Can get the ReadableStreamReader constructor indirectly', t => {
@@ -290,4 +292,12 @@ test('Getting a second reader after erroring the stream should succeed', t => {
   rs.getReader().read().catch(e => {
     t.equal(e, theError, 'the third reader read() should be rejected with the error');
   });
+});
+
+test('Collecting a ReadableStreamReader should not unlock its stream', t => {
+  const rs = new ReadableStream({});
+  rs.getReader();
+  global.gc();
+  t.throws(() => rs.getReader(), /TypeError/, 'old reader should still be locking a new one even after garbage collection');
+  t.end();
 });
