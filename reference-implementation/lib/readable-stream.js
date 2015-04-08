@@ -1,6 +1,7 @@
 const assert = require('assert');
 import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeQueuingStrategy } from './helpers';
 import { createArrayFromList, createDataProperty, typeIsObject } from './helpers';
+import { rethrowAssertionErrorRejection } from './utils';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
 
 export default class ReadableStream {
@@ -29,7 +30,8 @@ export default class ReadableStream {
         CallReadableStreamPull(this);
       },
       r => ErrorReadableStream(this, r)
-    );
+    )
+    .catch(rethrowAssertionErrorRejection);
   }
 
   cancel(reason) {
@@ -328,7 +330,8 @@ function CallReadableStreamPull(stream) {
     stream._pullingPromise.then(() => {
       stream._pullScheduled = false;
       CallReadableStreamPull(stream);
-    });
+    })
+    .catch(rethrowAssertionErrorRejection);
     return undefined;
   }
 
@@ -343,7 +346,8 @@ function CallReadableStreamPull(stream) {
   stream._pullingPromise.then(
     () => { stream._pullingPromise = undefined; },
     e => ErrorReadableStream(stream, e)
-  );
+  )
+  .catch(rethrowAssertionErrorRejection);
 
   return undefined;
 }

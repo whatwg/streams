@@ -1,6 +1,7 @@
 const assert = require('assert');
 import { InvokeOrNoop, PromiseInvokeOrNoop, PromiseInvokeOrFallbackOrNoop, ValidateAndNormalizeQueuingStrategy } from './helpers';
 import { typeIsObject } from './helpers';
+import { rethrowAssertionErrorRejection } from './utils';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } from './queue-with-sizes';
 import CountQueuingStrategy from './count-queuing-strategy';
 
@@ -37,7 +38,7 @@ export default class WritableStream {
       this._started = true;
       this._startedPromise = undefined;
     });
-    this._startedPromise.catch(r => ErrorWritableStream(this, r));
+    this._startedPromise.catch(r => ErrorWritableStream(this, r)).catch(rethrowAssertionErrorRejection);
   }
 
   get closed() {
@@ -170,7 +171,8 @@ function CallOrScheduleWritableStreamAdvanceQueue(stream) {
   if (stream._started === false) {
     stream._startedPromise.then(() => {
       WritableStreamAdvanceQueue(stream);
-    });
+    })
+    .catch(rethrowAssertionErrorRejection);
     return undefined;
   }
 
@@ -195,7 +197,8 @@ function CloseWritableStream(stream) {
       stream._state = 'closed';
     },
     r => ErrorWritableStream(stream, r)
-  );
+  )
+  .catch(rethrowAssertionErrorRejection);
 }
 
 function ErrorWritableStream(stream, e) {
@@ -292,6 +295,6 @@ function WritableStreamAdvanceQueue(stream) {
       },
       r => ErrorWritableStream(stream, r)
     )
-    .catch(e => process.nextTick(() => { throw e; })); // to catch assertion failures
+    .catch(rethrowAssertionErrorRejection);
   }
 }
