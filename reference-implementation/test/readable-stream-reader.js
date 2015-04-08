@@ -1,3 +1,4 @@
+import gc from './utils/gc';
 const test = require('tape-catch');
 
 let ReadableStreamReader;
@@ -290,4 +291,15 @@ test('Getting a second reader after erroring the stream should succeed', t => {
   rs.getReader().read().catch(e => {
     t.equal(e, theError, 'the third reader read() should be rejected with the error');
   });
+});
+
+test('Garbage-collecting a ReadableStreamReader should not unlock its stream', t => {
+  const rs = new ReadableStream({});
+
+  rs.getReader();
+  gc();
+
+  t.throws(() => rs.getReader(), /TypeError/,
+    'old reader should still be locking the stream even after garbage collection');
+  t.end();
 });
