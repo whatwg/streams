@@ -10,6 +10,57 @@ test('Can get the ReadableStreamReader constructor indirectly', t => {
   t.end();
 });
 
+test('ReadableStreamReader constructor should get a ReadableStream object as argument', t => {
+  t.throws(() => { new ReadableStreamReader('potato'); }, /TypeError/, 'constructor fails with a string');
+  t.throws(() => { new ReadableStreamReader({ }); }, /TypeError/, 'constructor fails with a plain object');
+  t.throws(() => { new ReadableStreamReader(); }, /TypeError/, 'constructor fails without parameters');
+  t.end();
+});
+
+test('ReadableStream instances should have the correct list of properties', t => {
+  const methods = ['cancel', 'constructor', 'read', 'releaseLock'];
+  const properties = methods.concat(['closed']).sort();
+
+  const rsReader = new ReadableStreamReader(new ReadableStream());
+  const proto = Object.getPrototypeOf(rsReader);
+
+  t.deepEqual(Object.getOwnPropertyNames(proto).sort(), properties);
+
+  for (let m of methods) {
+    const propDesc = Object.getOwnPropertyDescriptor(proto, m);
+    t.equal(propDesc.enumerable, false, `${m} should be non-enumerable`);
+    t.equal(propDesc.configurable, true, `${m} should be configurable`);
+    t.equal(propDesc.writable, true, `${m} should be writable`);
+    t.equal(typeof rsReader[m], 'function', `should have a ${m} method`);
+  }
+
+  const closedPropDesc = Object.getOwnPropertyDescriptor(proto, 'closed');
+  t.equal(closedPropDesc.enumerable, false, 'closed should be non-enumerable');
+  t.equal(closedPropDesc.configurable, true, 'closed should be configurable');
+  t.notEqual(closedPropDesc.get, undefined, 'closed should have a getter');
+  t.equal(closedPropDesc.set, undefined, 'closed should not have a setter');
+
+  t.equal(rsReader.cancel.length, 1, 'cancel has 1 parameter');
+  t.notEqual(rsReader.closed, undefined, 'has a non-undefined closed property');
+  t.equal(typeof rsReader.closed.then, 'function', 'closed property is thenable');
+  t.equal(typeof rsReader.constructor, 'function', 'has a constructor method');
+  t.equal(rsReader.constructor.length, 1, 'constructor has 1 parameter');
+  t.equal(typeof rsReader.read, 'function', 'has a getReader method');
+  t.equal(rsReader.read.length, 0, 'read has no parameters');
+  t.equal(typeof rsReader.releaseLock, 'function', 'has a releaseLock method');
+  t.equal(rsReader.releaseLock.length, 0, 'releaseLock has no parameters');
+
+  t.end();
+});
+
+test('ReadableStreamReader closed should always return the same promise object', t => {
+  const rsReader = new ReadableStreamReader(new ReadableStream());
+
+  t.equal(rsReader.closed, rsReader.closed, 'closed should return the same promise');
+
+  t.end();
+});
+
 test('Constructing a ReadableStreamReader directly should fail if the stream is already locked (via direct ' +
      'construction)', t => {
   const rs = new ReadableStream();
@@ -31,6 +82,14 @@ test('Constructing a ReadableStreamReader directly should fail if the stream is 
   const rs = new ReadableStream();
   t.doesNotThrow(() => rs.getReader(), 'getReader() should be fine');
   t.throws(() => new ReadableStreamReader(rs), /TypeError/, 'constructing directly should fail');
+  t.end();
+});
+
+test('Getting a ReadableStreamReader via getReader should fail if the stream is already locked (via getReader)',
+     t => {
+  const rs = new ReadableStream();
+  t.doesNotThrow(() => rs.getReader(), 'getReader() should be fine');
+  t.throws(() => rs.getReader(), /TypeError/, 'getReader() should fail');
   t.end();
 });
 
