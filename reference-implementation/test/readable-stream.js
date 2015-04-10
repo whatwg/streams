@@ -22,7 +22,7 @@ test('ReadableStream instances should have the correct list of properties', t =>
 
   t.deepEqual(Object.getOwnPropertyNames(proto).sort(), methods, 'should have all the correct methods');
 
-  for (const m of methods) {
+  for (let m of methods) {
     const propDesc = Object.getOwnPropertyDescriptor(proto, m);
     t.equal(propDesc.enumerable, false, `${m} should be non-enumerable`);
     t.equal(propDesc.configurable, true, `${m} should be configurable`);
@@ -93,7 +93,7 @@ test('ReadableStream should be able to enqueue different objects', t => {
 
   const rs = new ReadableStream({
     start(c) {
-      for (const o of objects) {
+      for (let o of objects) {
         c.enqueue(o);
       }
       c.close();
@@ -102,7 +102,7 @@ test('ReadableStream should be able to enqueue different objects', t => {
 
   const reader = rs.getReader();
 
-  for (const o of objects) {
+  for (let o of objects) {
     reader.read().then(r => t.deepEqual(r, { value: o, done: false }, 'value read should be the one enqueued'));
   }
 
