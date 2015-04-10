@@ -4,13 +4,12 @@ import RandomPushSource from './utils/random-push-source';
 import readableStreamToArray from './utils/readable-stream-to-array';
 import sequentialReadableStream from './utils/sequential-rs';
 
-test('ReadableStream can be constructed with no arguments', t => {
-  t.doesNotThrow(() => new ReadableStream(), 'ReadableStream constructed with no errors');
-  t.end();
-});
-
-test('ReadableStream can be constructed with an empty object as its argument', t => {
-  t.doesNotThrow(() => new ReadableStream({ }), 'ReadableStream constructed with no errors');
+test('ReadableStream can be constructed with no errors', t => {
+  t.doesNotThrow(() => new ReadableStream(), 'ReadableStream constructed with no parameters');
+  t.doesNotThrow(() => new ReadableStream({ }), 'ReadableStream constructed with an empty object as parameter');
+  t.doesNotThrow(() => new ReadableStream(undefined), 'ReadableStream constructed with undefined as parameter');
+  let x;
+  t.doesNotThrow(() => new ReadableStream(x), 'ReadableStream constructed with an undefined variable as parameter');
   t.end();
 });
 
