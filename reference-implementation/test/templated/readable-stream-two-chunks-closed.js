@@ -67,5 +67,53 @@ export default (label, factory, chunks) => {
       t.end();
     });
   });
+
+  test('piping with { preventClose: false } and a destination with that errors synchronously', t => {
+    t.plan(1);
+
+    const rs = factory();
+
+    const theError = new Error('!!!');
+    const ws = new WritableStream({
+      close() {
+        t.fail('unexpected close call');
+      },
+      abort() {
+        t.fail('unexpected abort call');
+      },
+      write() {
+        throw theError;
+      }
+    });
+
+    rs.pipeTo(ws, { preventClose: false }).then(
+      () => t.fail('pipeTo promise should not fulfill'),
+      e => t.equal(e, theError, 'pipeTo promise should reject with the write error')
+    );
+  });
+
+  test('piping with { preventClose: true } and a destination with that errors synchronously', t => {
+    t.plan(1);
+
+    const rs = factory();
+
+    const theError = new Error('!!!');
+    const ws = new WritableStream({
+      close() {
+        t.fail('unexpected close call');
+      },
+      abort() {
+        t.fail('unexpected abort call');
+      },
+      write() {
+        throw theError;
+      }
+    });
+
+    rs.pipeTo(ws, { preventClose: true }).then(
+      () => t.fail('pipeTo promise should not fulfill'),
+      e => t.equal(e, theError, 'pipeTo promise should reject with the write error')
+    );
+  });
 };
 

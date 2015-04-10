@@ -212,12 +212,8 @@ class ReadableStreamController {
       throw stream._storedError;
     }
 
-    if (stream._state === 'closed') {
-      throw new TypeError('stream is closed');
-    }
-
     if (stream._closeRequested === true) {
-      throw new TypeError('stream is draining');
+      throw new TypeError('stream is closed or draining');
     }
 
     return EnqueueInReadableStream(stream, chunk);
@@ -355,8 +351,14 @@ function CloseReadableStream(stream) {
 }
 
 function EnqueueInReadableStream(stream, chunk) {
-  assert(stream._state === 'readable');
   assert(stream._closeRequested === false);
+  assert(stream._state !== 'errored');
+
+  if (stream._state === 'closed') {
+    // This will happen if the stream was closed without calling its controller's close() method, i.e. if it was closed
+    // via cancellation.
+    return undefined;
+  }
 
   if (IsReadableStreamLocked(stream) === true && stream._reader._readRequests.length > 0) {
     const readRequest = stream._reader._readRequests.shift();

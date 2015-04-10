@@ -632,7 +632,6 @@ Instances of <code>ReadableStreamController</code> are created with the internal
   1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableStream]].
   1. If _stream_@[[state]] is "errored", throw _stream_@[[storedError]].
-  1. If _stream_@[[state]] is "closed", throw a *TypeError* exception.
   1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. Return EnqueueInReadableStream(_stream_, _chunk_).
 </pre>
@@ -838,7 +837,9 @@ this to streams they did not create, and must ensure they have obeyed the precon
 <div class="note">
   The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
   <emu-val>false</emu-val>, will happen if the stream was closed without its controller's close method ever being
-  called: i.e., if the stream was closed by a call to <code>stream.cancel()</code>.
+  called: i.e., if the stream was closed by a call to <code>stream.cancel()</code>. In this case we allow the
+  controller's <code>close</code> method to be called and silently do nothing, since the cancelation was outside the
+  control of the underlying source.
 </div>
 
 <h4 id="finish-closing-readable-stream" aoid="FinishClosingReadableStream">FinishClosingReadableStream ( stream )</h4>
@@ -858,8 +859,9 @@ in the same way a developer would enqueue chunks using the stream's associated c
 asserts).
 
 <pre is="emu-alg">
-  1. Assert: _stream_@[[state]] is "readable".
   1. Assert: _stream_@[[closeRequested]] is *false*.
+  1. Assert: _stream_@[[state]] is not "errored".
+  1. If _stream_@[[state]] is "closed", return *undefined*.
   1. If IsReadableStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty,
     1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
     1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
@@ -879,6 +881,14 @@ asserts).
   1. Call-with-rethrow RequestReadableStreamPull(_stream_).
   1. Return *undefined*.
 </pre>
+
+<div class="note">
+  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
+  <emu-val>false</emu-val>, will happen if the stream was closed without its controller's close method ever being
+  called: i.e., if the stream was closed by a call to <code>stream.cancel()</code>. In this case we allow the
+  controller's <code>enqueue</code> method to be called and silently do nothing, since the cancelation was outside the
+  control of the underlying source.
+</div>
 
 <h4 id="error-readable-stream" aoid="ErrorReadableStream">ErrorReadableStream ( stream, e )</h4>
 

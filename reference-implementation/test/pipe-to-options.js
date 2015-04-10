@@ -11,7 +11,7 @@ test('Piping with no options and a destination error', t => {
       c.enqueue('a');
       setTimeout(() => c.enqueue('b'), 10);
       setTimeout(() => {
-        t.throws(() => c.enqueue('c'), /TypeError/, 'enqueue after cancel must throw a TypeError');
+        t.doesNotThrow(() => c.enqueue('c'), 'enqueue after cancel should not throw');
       }, 20);
     },
     cancel(r) {
@@ -39,7 +39,7 @@ test('Piping with { preventCancel: false } and a destination error', t => {
       c.enqueue('a');
       setTimeout(() => c.enqueue('b'), 10);
       setTimeout(() => {
-        t.throws(() => c.enqueue('c'), /TypeError/, 'enqueue after cancel must throw a TypeError');
+        t.doesNotThrow(() => c.enqueue('c'), 'enqueue after cancel should not throw');
       }, 20);
     },
     cancel(r) {

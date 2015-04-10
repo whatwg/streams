@@ -329,6 +329,65 @@ test('Underlying source: strategy.size returning +Infinity', t => {
   rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
 });
 
+test('Underlying source: calling enqueue on an empty canceled stream should not throw', t => {
+  t.plan(2);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  rs.cancel();
+  t.doesNotThrow(() => controller.enqueue('a'), 'calling enqueue after canceling should not throw anything');
+
+  rs.getReader().closed.then(() => t.pass('closed should fulfill'));
+});
+
+test('Underlying source: calling enqueue on a non-empty canceled stream should not throw', t => {
+  t.plan(2);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      c.enqueue('a');
+      c.enqueue('b');
+      controller = c;
+    }
+  });
+
+  rs.cancel();
+  t.doesNotThrow(() => controller.enqueue('c'), 'calling enqueue after canceling should not throw anything');
+
+  rs.getReader().closed.then(() => t.pass('closed should fulfill'));
+});
+
+test('Underlying source: calling enqueue on a closed stream should throw', t => {
+  t.plan(2);
+
+  new ReadableStream({
+    start(c) {
+      c.close();
+      t.throws(() => c.enqueue('a'), /TypeError/, 'call to enqueue should throw a TypeError');
+    }
+  })
+  .getReader().closed.then(() => t.pass('closed should fulfill'));
+});
+
+test('Underlying source: calling enqueue on an errored stream should throw', t => {
+  t.plan(2);
+
+  const theError = new Error('boo');
+  new ReadableStream({
+    start(c) {
+      c.error(theError);
+      t.throws(() => c.enqueue('a'), /boo/, 'call to enqueue should throw the error');
+    }
+  })
+  .getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+});
+
 test('Underlying source: calling close twice on an empty stream should throw the second time', t => {
   t.plan(2);
 
