@@ -72,6 +72,7 @@ export default class ReadableStream {
 
     let reader;
     let lastRead;
+    let lastWrite;
     let closedPurposefully = false;
     let resolvePipeToPromise;
     let rejectPipeToPromise;
@@ -101,7 +102,7 @@ export default class ReadableStream {
         if (Boolean(done) === true) {
           closeDest();
         } else if (dest.state === 'writable') {
-          dest.write(value);
+          lastWrite = dest.write(value);
           doPipe();
         }
       });
@@ -135,6 +136,8 @@ export default class ReadableStream {
       if (preventClose === false && (destState === 'waiting' || destState === 'writable')) {
         closedPurposefully = true;
         dest.close().then(resolvePipeToPromise, rejectPipeToPromise);
+      } else if (lastWrite !== undefined) {
+        lastWrite.then(resolvePipeToPromise, rejectPipeToPromise);
       } else {
         resolvePipeToPromise();
       }
