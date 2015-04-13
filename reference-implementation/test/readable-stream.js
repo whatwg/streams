@@ -34,12 +34,12 @@ test('ReadableStream instances should have the correct list of properties', t =>
     t.equal(typeof rs[m], 'function', `should have a ${m} method`);
   }
 
-  t.equal(rs.cancel.length, 1, 'cancel has 1 parameter');
-  t.equal(rs.constructor.length, 0, 'constructor has no parameters');
-  t.equal(rs.getReader.length, 0, 'getReader has no parameters');
-  t.equal(rs.pipeThrough.length, 2, 'pipeThrough has 2 parameters');
-  t.equal(rs.pipeTo.length, 1, 'pipeTo has 1 parameter');
-  t.equal(rs.tee.length, 0, 'tee has no parameters');
+  t.equal(rs.cancel.length, 1, 'cancel should have 1 parameter');
+  t.equal(rs.constructor.length, 0, 'constructor should have no parameters');
+  t.equal(rs.getReader.length, 0, 'getReader should have no parameters');
+  t.equal(rs.pipeThrough.length, 2, 'pipeThrough should have 2 parameters');
+  t.equal(rs.pipeTo.length, 1, 'pipeTo should have 1 parameter');
+  t.equal(rs.tee.length, 0, 'tee should have no parameters');
 
   t.end();
 });
