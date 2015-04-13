@@ -13,6 +13,11 @@ test('ReadableStream can be constructed with no errors', t => {
   t.end();
 });
 
+test('ReadableStream can\'t be constructed with garbage', t => {
+  t.throws(() => new ReadableStream(null), /TypeError/, 'constructor should throw when the source is null');
+  t.end();
+});
+
 test('ReadableStream instances should have the correct list of properties', t => {
   const methods = ['cancel', 'constructor', 'getReader', 'pipeThrough', 'pipeTo', 'tee'];
 
@@ -57,6 +62,76 @@ test('ReadableStream constructor can get initial garbage as pull argument', t =>
   t.plan(1);
 
   t.doesNotThrow(() => new ReadableStream({ pull: { } }), 'constructor should not throw when pull is not a function');
+});
+
+test('ReadableStream start should be called with the proper parameters', t => {
+  const source = {
+    start(controller) {
+      t.equal(this, source, 'source is this during start');
+
+      const methods = ['close', 'enqueue', 'error', 'constructor'];
+      const properties = ['desiredSize'].concat(methods).sort();
+      const proto = Object.getPrototypeOf(controller);
+
+      t.deepEqual(Object.getOwnPropertyNames(proto).sort(), properties,
+        'the controller should have the right properties');
+
+      for (const m of methods) {
+        const propDesc = Object.getOwnPropertyDescriptor(proto, m);
+        t.equal(typeof controller[m], 'function', `should have a ${m} method`);
+        t.equal(propDesc.enumerable, false, `${m} should be non-enumerable`);
+        t.equal(propDesc.configurable, true, `${m} should be configurable`);
+        t.equal(propDesc.writable, true, `${m} should be writable`);
+      }
+
+      const desiredSizePropDesc = Object.getOwnPropertyDescriptor(proto, 'desiredSize');
+      t.equal(desiredSizePropDesc.enumerable, false, 'desiredSize should be non-enumerable');
+      t.equal(desiredSizePropDesc.writable, undefined, 'desiredSize should not be a data property');
+      t.equal(typeof desiredSizePropDesc.get, 'function', 'desiredSize should have a getter');
+      t.equal(desiredSizePropDesc.set, undefined, 'desiredSize should not have a setter');
+      t.equal(desiredSizePropDesc.configurable, true, 'desiredSize should be configurable');
+
+      t.equal(controller.close.length, 0, 'close should have no parameters');
+      t.equal(controller.constructor.length, 1, 'constructor should have 1 parameter');
+      t.equal(controller.enqueue.length, 1, 'enqueue should have 1 parameter');
+      t.equal(controller.error.length, 1, 'error should have 1 parameter');
+
+      t.end();
+    }
+  };
+
+  new ReadableStream(source);
+});
+
+test('ReadableStream start controller parameter should be extensible', t => {
+  t.plan(3);
+
+  const source = {
+    start(controller) {
+      const properties = ['close', 'constructor', 'desiredSize', 'enqueue', 'error'];
+      t.deepEqual(Object.getOwnPropertyNames(Object.getPrototypeOf(controller)).sort(), properties,
+        'prototype should have the right properties');
+      controller.test = '';
+      t.deepEqual(Object.getOwnPropertyNames(Object.getPrototypeOf(controller)).sort(), properties,
+        'prototype should still have the right properties');
+      t.notEqual(Object.getOwnPropertyNames(controller).indexOf('test'), -1,
+        '"test" should be a property of the controller');
+    }
+  };
+
+  const rs = new ReadableStream(source);
+});
+
+test('ReadableStream should be able to call start method within prototype chain of its source', t => {
+  t.plan(1);
+
+  class SimpleStreamSource {
+    start() {
+      t.pass('start should be called');
+    }
+  }
+
+  new ReadableStream(new SimpleStreamSource());
 });
 
 test('ReadableStream start should be able to return a promise', t => {
