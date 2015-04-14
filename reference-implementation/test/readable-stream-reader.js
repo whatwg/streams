@@ -17,7 +17,7 @@ test('ReadableStreamReader constructor should get a ReadableStream object as arg
   t.end();
 });
 
-test('ReadableStream instances should have the correct list of properties', t => {
+test('ReadableStreamReader instances should have the correct list of properties', t => {
   const methods = ['cancel', 'constructor', 'read', 'releaseLock'];
   const properties = methods.concat(['closed']).sort();
 
