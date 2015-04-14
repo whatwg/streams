@@ -2347,7 +2347,7 @@ Bert Belder for bringing up <a href="https://github.com/whatwg/streams/issues/25
   to crucial API changes,
 Will Chan for his help ensuring that the API allows high-performance network streaming,
 Janessa Det for the logo,
-Yutaka Hirano for his help with the readable stream reader design,
+平野裕 (Yutaka Hirano) for his help with the readable stream reader design,
 Gorgi Kosev for his breakthrough idea of separating piping into two methods, thus resolving
   <a href="https://github.com/whatwg/streams/issues/44">a major sticking point</a>;
 Forrest Norvell for his enthusiastic iteration on the reference implementation;
@@ -2356,7 +2356,7 @@ Jake Verbaten for his continued involvement, support, and interest in pushing th
 
 This standard is written by <a href="https://domenic.me/">Domenic Denicola</a>
 (<a href="https://google.com">Google</a>, <a href="mailto:d@domenic.me">d@domenic.me</a>) with substantial help from
-Takeshi Yoshino (<a href="https://google.com">Google</a>,
+吉野剛史 (Takeshi Yoshino, <a href="https://google.com">Google</a>,
 <a href="mailto:tyoshino@chromium.org">tyoshino@chromium.org</a>).
 
 Per <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a>, to the extent possible under law, the editor has waived all copyright and related or neighboring rights to this work.
