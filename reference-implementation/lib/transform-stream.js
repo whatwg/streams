@@ -34,7 +34,7 @@ export default class TransformStream {
     });
 
     let enqueueInReadable, closeReadable, errorReadable;
-    const readable = this.readable = new ReadableStream({
+    this.readable = new ReadableStream({
       start(c) {
         enqueueInReadable = c.enqueue.bind(c);
         closeReadable = c.close.bind(c);
