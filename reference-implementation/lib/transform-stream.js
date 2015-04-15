@@ -53,6 +53,8 @@ export default class TransformStream {
         transforming = true;
         try {
           transform(writeChunk, enqueueInReadable, transformDone);
+          writeChunk = undefined;
+          chunkWrittenButNotYetTransformed = false;
         } catch (e) {
           transforming = false;
           errorWritable(e);
@@ -63,7 +65,6 @@ export default class TransformStream {
 
     function transformDone() {
       transforming = false;
-      chunkWrittenButNotYetTransformed = false;
       writeDone();
     }
   }
