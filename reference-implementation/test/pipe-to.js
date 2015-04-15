@@ -325,7 +325,7 @@ test('Piping from an empty ReadableStream to a WritableStream in the writable st
     },
     cancel(reason) {
       t.equal(reason, theError, 'underlying source cancellation reason should be the writable stream error');
-      t.equal(pullCount, 1, 'pull should have been called once by cancel-time');
+      t.equal(pullCount, 2, 'pull should have been called twice by cancel-time');
     }
   });
 
@@ -620,7 +620,7 @@ test('Piping from an empty ReadableStream to a WritableStream in the waiting sta
 
     resolveWritePromise();
     setTimeout(() => {
-      t.equal(pullCount, 1);
+      t.equal(pullCount, 2);
 
       t.end();
     }, 100);

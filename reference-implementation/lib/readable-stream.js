@@ -11,9 +11,9 @@ export default class ReadableStream {
     this._state = 'readable';
     this._started = false;
     this._closeRequested = false;
-    this._pullScheduled = false;
+    this._pulling = false;
+    this._pullAgain = false;
     this._reader = undefined;
-    this._pullingPromise = undefined;
     this._storedError = undefined;
 
     const strategy = underlyingSource.strategy;
@@ -27,7 +27,7 @@ export default class ReadableStream {
     Promise.resolve(startResult).then(
       () => {
         this._started = true;
-        CallReadableStreamPull(this);
+        RequestReadableStreamPull(this);
       },
       r => {
         if (this._state === 'readable') {
@@ -322,44 +322,6 @@ function AcquireReadableStreamReader(stream) {
   return new ReadableStreamReader(stream);
 }
 
-function CallReadableStreamPull(stream) {
-  if (stream._closeRequested === true || stream._started === false ||
-      stream._state === 'closed' || stream._state === 'errored' ||
-      stream._pullScheduled === true) {
-    return undefined;
-  }
-
-  if (stream._pullingPromise !== undefined) {
-    stream._pullScheduled = true;
-    stream._pullingPromise.then(() => {
-      stream._pullScheduled = false;
-      CallReadableStreamPull(stream);
-    })
-    .catch(rethrowAssertionErrorRejection);
-    return undefined;
-  }
-
-  if (IsReadableStreamLocked(stream) === false || stream._reader._readRequests.length === 0) {
-    const desiredSize = GetReadableStreamDesiredSize(stream);
-    if (desiredSize <= 0) {
-      return undefined;
-    }
-  }
-
-  stream._pullingPromise = PromiseInvokeOrNoop(stream._underlyingSource, 'pull', [stream._controller]);
-  stream._pullingPromise.then(
-    () => { stream._pullingPromise = undefined; },
-    e => {
-      if (stream._state === 'readable') {
-        return ErrorReadableStream(stream, e);
-      }
-    }
-  )
-  .catch(rethrowAssertionErrorRejection);
-
-  return undefined;
-}
-
 function CancelReadableStream(stream, reason) {
   if (stream._state === 'closed') {
     return Promise.resolve(undefined);
@@ -419,7 +381,7 @@ function EnqueueInReadableStream(stream, chunk) {
     }
   }
 
-  CallReadableStreamPull(stream);
+  RequestReadableStreamPull(stream);
 
   return undefined;
 }
@@ -517,7 +479,7 @@ function ReadFromReadableStreamReader(reader) {
     if (reader._ownerReadableStream._closeRequested === true && reader._ownerReadableStream._queue.length === 0) {
       FinishClosingReadableStream(reader._ownerReadableStream);
     } else {
-      CallReadableStreamPull(reader._ownerReadableStream);
+      RequestReadableStreamPull(reader._ownerReadableStream);
     }
 
     return Promise.resolve(CreateIterResultObject(chunk, false));
@@ -529,6 +491,7 @@ function ReadFromReadableStreamReader(reader) {
     });
 
     reader._readRequests.push(readRequest);
+    RequestReadableStreamPull(reader._ownerReadableStream);
     return readRequest.promise;
   }
 }
@@ -558,6 +521,64 @@ function ReleaseReadableStreamReader(reader) {
   reader._readRequests = [];
   reader._ownerReadableStream._reader = undefined;
   reader._ownerReadableStream = undefined;
+}
+
+function RequestReadableStreamPull(stream) {
+  const shouldPull = ShouldReadableStreamPull(stream);
+  if (shouldPull === false) {
+    return undefined;
+  }
+
+  if (stream._pulling === true) {
+    stream._pullAgain = true;
+    return undefined;
+  }
+
+  stream._pulling = true;
+  const pullPromise = PromiseInvokeOrNoop(stream._underlyingSource, 'pull', [stream._controller]);
+  pullPromise.then(
+    () => {
+      stream._pulling = false;
+
+      if (stream._pullAgain === true) {
+        stream._pullAgain = false;
+        return RequestReadableStreamPull(stream);
+      }
+    },
+    e => {
+      if (stream._state === 'readable') {
+        return ErrorReadableStream(stream, e);
+      }
+    }
+  )
+  .catch(rethrowAssertionErrorRejection);
+
+  return undefined;
+}
+
+function ShouldReadableStreamPull(stream) {
+  if (stream._state === 'closed' || stream._state === 'errored') {
+    return false;
+  }
+
+  if (stream._closeRequested === true) {
+    return false;
+  }
+
+  if (stream._started === false) {
+    return false;
+  }
+
+  if (IsReadableStreamLocked(stream) === true && stream._reader._readRequests.length > 0) {
+    return true;
+  }
+
+  const desiredSize = GetReadableStreamDesiredSize(stream);
+  if (desiredSize > 0) {
+    return true;
+  }
+
+  return false;
 }
 
 function TeeReadableStream(stream, shouldClone) {

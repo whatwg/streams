@@ -291,14 +291,15 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
       state and queue of this stream
   </tr>
   <tr>
-    <td>\[[pullScheduled]]
-    <td>A boolean flag set to <b>true</b> when the underlying source's <code>pull</code> method is scheduled to be
-      called again after the current call to it finishes
+    <td>\[[pullAgain]]
+    <td>A boolean flag set to <b>true</b> if the stream's mechanisms requested a call to the underlying source's
+      <code>pull</code> method to pull more data, but the pull could not yet be done since a previous call is still
+      executing
   </tr>
   <tr>
-    <td>\[[pullingPromise]]
-    <td>A promise returned by the <a>underlying source</a>'s <code>pull</code> method, stored so that the stream can
-      re-pull when it fulfills
+    <td>\[[pulling]]
+    <td>A boolean flag set to <b>true</b> while the underlying source's <code>pull</code> method is executing and has
+      not yet fulfilled, used to prevent reentrant calls
   </tr>
   <tr>
     <td>\[[queue]]
@@ -374,8 +375,8 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. Set *this*@[[underlyingSource]] to _underlyingSource_.
   1. Set *this*@[[queue]] to a new empty List.
   1. Set *this*@[[state]] to "readable".
-  1. Set *this*@[[started]], *this*@[[closeRequested]], and *this*@[[pullScheduled]] to *false*.
-  1. Set *this*@[[reader]], *this*@[[pullingPromise]], and *this*@[[storedError]] to *undefined*.
+  1. Set *this*@[[started]], *this*@[[closeRequested]], *this*@[[pullAgain]], and *this*@[[pulling]] to *false*.
+  1. Set *this*@[[reader]] and *this*@[[storedError]] to *undefined*.
   1. Set *this*@[[controller]] to Construct(`ReadableStreamController`, «*this*»).
   1. Let _strategy_ be Get(_underlyingSource_, "strategy").
   1. ReturnIfAbrupt(_strategy_).
@@ -386,7 +387,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. Resolve _startResult_ as a promise:
     1. Upon fulfillment,
       1. Set *this*@[[started]] to *true*.
-      1. Return CallReadableStreamPull(*this*).
+      1. Return RequestReadableStreamPull(*this*).
     1. Upon rejection with reason _r_,
       1. If *this*@[[state]] is "readable", return ErrorReadableStream(*this*, _r_).
 </pre>
@@ -809,26 +810,6 @@ reader</a> for a given stream.
   1. Return Construct(`ReadableStreamReader`, «‍_stream_»).
 </pre>
 
-<h4 id="call-readable-stream-pull" aoid="CallReadableStreamPull">CallReadableStreamPull ( stream )</h4>
-
-<pre is="emu-alg">
-  1. If _stream_@[[closeRequested]] is *true* or _stream_@[[started]] is *false* or _stream_@[[state]] is "closed" or _stream_@[[state]] is "errored" or _stream_@[[pullScheduled]] is *true*, return *undefined*.
-  1. If _stream_@[[pullingPromise]] is not *undefined*,
-    1. Set _stream_@[[pullScheduled]] to *true*.
-    1. Upon fulfillment of _stream_@[[pullingPromise]],
-      1. Set _stream_@[[pullScheduled]] to *false*.
-      1. Call-with-rethrow CallReadableStreamPull(_stream_).
-    1. Return *undefined*.
-  1. If IsReadableStreamLocked(_stream_) is *false* or _stream_@[[reader]]@[[readRequests]] is empty,
-    1. Let _desiredSize_ be GetReadableStreamDesiredSize(_stream_).
-    1. ReturnIfAbrupt(_desiredSize_).
-    1. If _desiredSize_ ≤ 0, return *undefined*.
-  1. Set _stream_@[[pullingPromise]] to PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "pull", «‍_stream_@[[controller]]»).
-  1. Upon fulfillment of _stream_@[[pullingPromise]], set _stream_@[[pullingPromise]] to *undefined*.
-  1. Upon rejection of _stream_@[[pullingPromise]] with reason _e_, if _stream_@[[state]] is "readable", return ErrorReadableStream(_stream_, _e_).
-  1. Return *undefined*.
-</pre>
-
 <h4 id="cancel-readable-stream" aoid="CancelReadableStream">CancelReadableStream ( stream, reason )</h4>
 
 <pre is="emu-alg">
@@ -895,7 +876,7 @@ asserts).
     1. If _enqueueResult_ is an abrupt completion,
       1. Call-with-rethrow ErrorReadableStream(_stream_, ‍_enqueueResult_.[[value]]).
       1. Return _enqueueResult_.
-  1. Call-with-rethrow CallReadableStreamPull(_stream_).
+  1. Call-with-rethrow RequestReadableStreamPull(_stream_).
   1. Return *undefined*.
 </pre>
 
@@ -967,11 +948,12 @@ readable stream is <a>locked to a reader</a>.
   1. If _reader_@[[ownerReadableStream]]@[[queue]] is not empty,
     1. Let _chunk_ be DequeueValue(_reader_@[[ownerReadableStream]]@[[queue]]).
     1. If _reader_@[[ownerReadableStream]]@[[closeRequested]] is *true* and _reader_@[[ownerReadableStream]]@[[queue]] is now empty, call-with-rethrow FinishClosingReadableStream(_reader_@[[ownerReadableStream]]).
-    1. Otherwise, call-with-rethrow CallReadableStreamPull(_reader_@[[ownerReadableStream]]).
+    1. Otherwise, call-with-rethrow RequestReadableStreamPull(_reader_@[[ownerReadableStream]]).
     1. Return a new promise resolved with CreateIterResultObject(_chunk_, *false*).
   1. Otherwise,
     1. Let _readRequestPromise_ be a new promise.
     1. Append _readRequestPromise_ as the last element of _reader_@[[readRequests]].
+    1. Call-with-rethrow RequestReadableStreamPull(_reader_@[[ownerReadableStream]]).
     1. Return _readRequestPromise_.
 </pre>
 
@@ -994,6 +976,40 @@ readable stream is <a>locked to a reader</a>.
   1. Set _reader_@[[readRequests]] to a new empty List.
   1. Set _reader_@[[ownerReadableStream]]@[[reader]] to *undefined*.
   1. Set _reader_@[[ownerReadableStream]] to *undefined*.
+</pre>
+
+<h4 id="request-readable-stream-pull" aoid="RequestReadableStreamPull">RequestReadableStreamPull ( stream )</h4>
+
+<pre is="emu-alg">
+  1. Let _shouldPull_ be ShouldReadableStreamPull(stream).
+  1. ReturnIfAbrupt(_shouldPull_).
+  1. If _shouldPull_ is *false*, return *undefined*.
+  1. If _stream_@[[pulling]] is *true*,
+    1. Set _stream_@[[pullAgain]] to *true*.
+    1. Return *undefined*.
+  1. Set _stream_@[[pulling]] to *true*.
+  1. Let _pullPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "pull", «‍_stream_@[[controller]]»).
+  1. Upon fulfillment of _pullPromise_,
+    1. Set _stream_@[[pulling]] to *false*.
+    1. If _stream_@[[pullAgain]] is *true*,
+      1. Set _stream_@[[pullAgain]] to *false*.
+      1. Return RequestReadableStreamPull(_stream_).
+  1. Upon rejection of _pullPromise_ with reason _e_,
+    1. If _stream_@[[state]] is "readable", return ErrorReadableStream(_stream_, _e_).
+  1. Return *undefined*.
+</pre>
+
+<h4 id="should-readable-stream-pull" aoid="ShouldReadableStreamPull">ShouldReadableStreamPull ( stream )</h4>
+
+<pre is="emu-alg">
+  1. If _stream_@[[state]] is "closed" or _stream_@[[state]] is "errored", return *false*.
+  1. If _stream_@[[closeRequested]] is *true*, return *false*.
+  1. If _stream_@[[started]] is *false*, return *false*.
+  1. If IsReadableStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty, return *true*.
+  1. Let _desiredSize_ be GetReadableStreamDesiredSize(_stream_).
+  1. ReturnIfAbrupt(_desiredSize_).
+  1. If _desiredSize_ > 0, return *true*.
+  1. Return *false*.
 </pre>
 
 <h4 id="tee-readable-stream" aoid="TeeReadableStream">TeeReadableStream ( stream, shouldClone )</h4>

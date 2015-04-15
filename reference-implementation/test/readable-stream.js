@@ -170,8 +170,8 @@ test('ReadableStream: should only call pull once upon starting the stream', t =>
   setTimeout(() => t.equal(pullCount, 1, 'pull should be called exactly once'), 50);
 });
 
-test('ReadableStream: should only call pull once for a forever-empty stream, even after reading', t => {
-  t.plan(2);
+test('ReadableStream: should call pull when trying to read from a started, empty stream', t => {
+  t.plan(3);
 
   let pullCount = 0;
   const startPromise = Promise.resolve();
@@ -179,18 +179,26 @@ test('ReadableStream: should only call pull once for a forever-empty stream, eve
     start() {
       return startPromise;
     },
-    pull() {
-      pullCount++;
+    pull(c) {
+      // Don't enqueue immediately after start. We want the stream to be empty when we call .read() on it.
+      if (pullCount > 0) {
+        c.enqueue(pullCount);
+      }
+
+      ++pullCount;
     }
   });
 
   startPromise.then(() => {
     t.equal(pullCount, 1, 'pull should be called once start finishes');
-  });
 
-  rs.getReader().read();
-
-  setTimeout(() => t.equal(pullCount, 1, 'pull should be called exactly once'), 50);
+    const reader = rs.getReader();
+    return reader.read().then(result => {
+      t.equal(pullCount, 2, 'pull should be called again in reaction to calling read');
+      t.deepEqual(result, { value: 1, done: false }, 'the result read should be the one enqueued');
+    });
+  })
+  .catch(e => t.error(e));
 });
 
 test('ReadableStream: should only call pull once on a non-empty stream read from before start fulfills', t => {
@@ -453,7 +461,7 @@ test('ReadableStream: should call pull after enqueueing from inside pull (with n
     }
   });
 
-  startPromise.then(() => {
+  setTimeout(() => {
     // after start: size = 0, pull()
     // after enqueue(1): size = 1, pull()
     // after enqueue(2): size = 2, pull()
@@ -461,7 +469,7 @@ test('ReadableStream: should call pull after enqueueing from inside pull (with n
     // after enqueue(4): size = 4, do not pull
     t.equal(timesCalled, 4, 'pull() should have been called four times');
     t.end();
-  });
+  }, 50);
 });
 
 test('ReadableStream pull should be able to close a stream', t => {
