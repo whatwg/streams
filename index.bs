@@ -69,7 +69,7 @@ ride.
 
 A <dfn>chunk</dfn> is a single piece of data that is written to or read from a stream. It can be of any type; streams
 can even contain chunks of different types. A chunk will often not be the most atomic unit of data for a given stream;
-for example a binary stream might contain chunks consisting of 16 KiB <code>ArrayBuffer</code>s, instead of single
+for example a binary stream might contain chunks consisting of 16 KiB <code>Uint8Array</code>s, instead of single
 bytes.
 
 <h3 id="rs-model">Readable Streams</h3>
@@ -542,7 +542,7 @@ corresponding <code>ReadableStreamController</code> instance to manipulate.
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>ReadableStreamReader</code> class in something close to the syntax of [[!ECMASCRIPT]],
+If one were to write the <code>ReadableStreamController</code> class in something close to the syntax of [[!ECMASCRIPT]],
 it would look like
 
 <pre><code class="lang-javascript">
@@ -2326,33 +2326,36 @@ itself will evolve in these ways.
 <h2 id="acks" class="no-num">Acknowledgments</h2>
 
 The editor would like to thank
-Tab Atkins,
-Marcos Caceres,
-Tim Caswell,
+Anne van Kesteren,
 Brian di Palma,
-Forbes Lindesay,
-Thorsten Lorenz,
 Calvin Metcalf,
-Michael Mior,
-Jens Nockert,
-Trevor Norris,
-Xabier Rodríguez,
+Dominic Tarr,
+Forbes Lindesay,
 HE Shi-Jun,
-Dominic Tarr, and
-tzik
+Jens Nockert,
+Marcos Caceres,
+Michael Mior,
+Tab Atkins,
+Thorsten Lorenz,
+Tim Caswell,
+Trevor Norris,
+tzik,
+and
+Xabier Rodríguez
 for their contributions to this specification.
 
 Special thanks to:
 Bert Belder for bringing up <a href="https://github.com/whatwg/streams/issues/253">implementation concerns</a> that led
-  to crucial API changes,
-Will Chan for his help ensuring that the API allows high-performance network streaming,
-Janessa Det for the logo,
-平野裕 (Yutaka Hirano) for his help with the readable stream reader design,
+  to crucial API changes;
+Forrest Norvell for his work on the initial reference implementation;
 Gorgi Kosev for his breakthrough idea of separating piping into two methods, thus resolving
   <a href="https://github.com/whatwg/streams/issues/44">a major sticking point</a>;
-Forrest Norvell for his enthusiastic iteration on the reference implementation;
-Isaac Schlueter for his pioneering work on JavaScript streams in Node.js; and
-Jake Verbaten for his continued involvement, support, and interest in pushing this spec forward.
+Isaac Schlueter for his pioneering work on JavaScript streams in Node.js;
+Jake Verbaten for his early involvement and support;
+Janessa Det for the logo;
+Will Chan for his help ensuring that the API allows high-performance network streaming;
+and
+平野裕 (Yutaka Hirano) for his help with the readable stream reader design,
 
 This standard is written by <a href="https://domenic.me/">Domenic Denicola</a>
 (<a href="https://google.com">Google</a>, <a href="mailto:d@domenic.me">d@domenic.me</a>) with substantial help from
