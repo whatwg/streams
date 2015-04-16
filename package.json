@@ -7,7 +7,7 @@
   },
   "devDependencies": {
     "ecmarkup": "domenic/ecmarkup#jsdom-update",
-    "jsdom": "^4.0.2",
+    "jsdom": "^5.0.1",
     "promise-debounce": "^1.0.0",
     "traceur": "0.0.88",
     "traceur-runner": "^2.0.1"
