@@ -203,6 +203,14 @@ longer active. At this point another reader can be acquired at will. If the stre
 result of the behavior of its <a>underlying source</a> or via <a lt="cancel a readable stream">cancellation</a>, its
 reader (if one exists) will automatically release its lock.
 
+<h3 id="byte-streams">Readable Byte Streams and Writable Byte Streams</h3>
+
+For streams representing binary data, an extended version of the base Readable Stream and one of the base Writable Stream are provided for efficient binary data handling.
+
+A <dfn>readable byte stream</dfn> represents a source of bytes.
+
+A <dfn>writable byte stream</dfn> represents a destination for bytes.
+
 <h2 id="rs">Readable Streams</h2>
 
 <h3 id="rs-intro">Using Readable Streams</h3>
@@ -1873,6 +1881,425 @@ A few abstract operations are used in this specification for utility purposes. W
   1. If _highWaterMark_ < *0*, throw a *RangeError* exception.
   1. Return Record{[[size]]: size, [[highWaterMark]]: highWaterMark}.
 </pre>
+
+<h2 id="rbs">Readable Byte Streams</h2>
+
+TBA
+
+<h3 id="rbs-intro">Using Readable Byte Streams</h3>
+
+TBA
+
+<h3 id="rbs-class">Class <code>ReadableByteStream</code></h3>
+
+<h4 id="rbs-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>ReadableByteStream</code> class in something close to the syntax of [[!ECMASCRIPT]], it
+would look like
+
+<pre><code class="lang-javascript">
+  class ReadableByteStream {
+    constructor(underlyingByteSource = {})
+
+    cancel(reason)
+    getByobReader()
+    getReader()
+    pipeThrough({ writable, readable }, options)
+    pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})
+    tee()
+  }
+</code></pre>
+
+<h4 id="rbs-internal-slots">Internal Slots</h4>
+
+Instances of <code>ReadableByteStream</code> are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[closedPromise]]
+    <td>A promise that becomes fulfilled when the stream becomes closed; returned by the <code>closed</code> getter
+  </tr>
+  <tr>
+    <td>\[[controller]]
+    <td>A <a href="#rbs-controller-class"><code>ReadableByteStreamController</code></a> created with the ability to control the
+      state and queue of this stream
+  </tr>
+  <tr>
+    <td>\[[reader]]
+    <td>A <a href="#byte-reader-class"><code>ReadableByteStreamReader</code></a> instance, if the stream is <a>locked to a
+      reader</a>, or <b>undefined</b> if it is not
+  </tr>
+  <tr>
+    <td>\[[state]]
+    <td>A string containing the stream's current state, used internally; one of <code>"readable"</code>,
+      <code>"closed"</code>, or <code>"errored"</code>.
+  </tr>
+  <tr>
+    <td>\[[storedError]]
+    <td>A value indicating how the stream failed, to be given as a failure reason or exception when trying to operate
+      on an errored stream
+  </tr>
+  <tr>
+    <td>\[[underlyingByteSource]]
+    <td>An object representation of the stream's <a>underlying byte source</a>, including its <a>queuing strategy</a>; also
+      used for the <a href="#is-readable-byte-stream">IsReadableByteStream</a> brand check
+  </tr>
+</table>
+
+<h4 id="rbs-constructor">new ReadableByteStream(underlyingByteSource = {})</h4>
+
+<pre is="emu-alg">
+  1. Set *this*@[[underlyingByteSource]] to _underlyingByteSource_.
+  1. Set *this*@[[state]] to "readable".
+  1. Set *this*@[[reader]] and *this*@[[storedError]] to *undefined*.
+  1. Set *this*@[[controller]] to Construct(`ReadableByteStreamController`, «*this*»).
+  1. Let _startResult_ be InvokeOrNoop(_underlyingByteSource_, "start", «*this*@[[controller]]»).
+  1. ReturnIfAbrupt(startResult).
+</pre>
+
+<h4 id="rbs-prototype">Properties of the <code>ReadableByteStream</code> Prototype</h4>
+
+<h5 id="rbs-cancel">cancel(reason)</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If IsReadableByteStreamLocked(*this*) is *true*, return a promise rejected with a *TypeError* exception.
+  1. Return CancelReadableByteStream(*this*, _reason_).
+</pre>
+
+<h5 id="rbs-get-byob-reader">getByobReader()</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStream(*this*) is *false*, throw a *TypeError* exception.
+  1. Return AcquireReadableByteStreamByobReader(*this*).
+</pre>
+
+<h5 id="rbs-get-reader">getReader()</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStream(*this*) is *false*, throw a *TypeError* exception.
+  1. Return AcquireReadableByteStreamReader(*this*).
+</pre>
+
+<h5 id="rbs-pipe-through">pipeThrough({ writable, readable }, options)</h5>
+
+<pre is="emu-alg">
+  1. Call-with-rethrow Invoke(*this*, "pipeTo", «_writable_, _options_»).
+  1. Return _readable_.
+</pre>
+
+<h5 id="rbs-pipe-to">pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})</h5>
+
+TBA
+
+<h5 id="rbs-tee">tee()</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStream(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _branches_ be TeeReadableByteStream(*this*, *false*).
+  1. ReturnIfAbrupt(_branches_).
+  1. Return CreateArrayFromList(_branches_).
+</pre>
+
+<h3 id="rbs-controller-class" lt="ReadableByteStreamController">Class <code>ReadableByteStreamController</code></h3>
+
+<h4 id="rs-controller-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>ReadableByteStreamReader</code> class in something close to the syntax of [[!ECMASCRIPT]],
+it would look like
+
+<pre><code class="lang-javascript">
+  class ReadableStreamController {
+    constructor(stream)
+
+    close()
+    enqueue(chunk)
+    error(e)
+  }
+</code></pre>
+
+<h4 id="rbs-controller-internal-slots">Internal Slots</h4>
+
+Instances of <code>ReadableByteStreamController</code> are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[controlledReadableByteStream]]
+    <td>The <code>ReadableByteStream</code> instance controlled
+  </tr>
+</table>
+
+<h4 id="rbs-controller-constructor">new ReadableByteStreamController(stream)</h4>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If _stream_@[[controller]] is not *undefined*, throw a *TypeError* exception.
+  1. Set *this*@[[controlledReadableByteStream]] to _stream_.
+</pre>
+
+<h4 id="rbs-controller-prototype">Properties of the <code>ReadableStreamController</code> Prototype</h4>
+
+<h5 id="rbs-controller-close">close()</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _stream_ be *this*@[[controlledReadableByteStream]].
+  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. If _stream_@[[state]] is "errored", throw a *TypeError* exception.
+  1. Return FinishClosingReadableByteStream(_stream_).
+</pre>
+
+<h5 id="rbs-controller-enqueue">fulfill(chunk)</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _stream_ be *this*@[[controlledReadableByteStream]].
+  1. If _stream_@[[state]] is "errored", throw _stream_@[[storedError]].
+  1. If _stream_@[[state]] is "closed", throw a *TypeError* exception.
+  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. Return FulfillReadableByteStream(_stream_, _chunk_).
+</pre>
+
+<h5 id="rbs-controller-error">error(e)</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*@[[controlledReadableByteStream]]@[[state]] is not "readable", throw a *TypeError* exception.
+  1. Return ErrorReadableByteStream(*this*@[[controlledReadableByteStream]]).
+</pre>
+
+<h3 id="byte-reader-class">Class <code>ReadableByteStreamReader</code></h3>
+
+<h4 id="byte-reader-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>ReadableByteStreamReader</code> class in something close to the syntax of [[!ECMASCRIPT]],
+it would look like
+
+<pre><code class="lang-javascript">
+  class ReadableByteStreamReader {
+    constructor(stream)
+
+    get closed()
+
+    cancel(reason)
+    read()
+    releaseLock()
+  }
+</code></pre>
+
+<h4 id="byte-reader-internal-slots">Internal Slots</h4>
+
+Instances of <code>ReadableByteStreamReader</code> are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[closedPromise]]
+    <td>A promise returned by the reader's <code>closed</code> getter
+  </tr>
+  <tr>
+    <td>\[[ownerReadableByteStream]]
+    <td>A <code>ReadableByteStream</code> instance that owns this reader; also used for the
+      <a href="#is-readable-byte-stream-reader">IsReadableByteStreamReader</a> brand check
+  </tr>
+  <tr>
+    <td>\[[readRequests]]
+    <td>A List of promises returned by calls to the reader's <code>read()</code> method that have not yet been resolved,
+      due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available
+  </tr>
+  <tr>
+    <td>\[[state]]
+    <td>A string containing the reader's current state, used internally; one of <code>"readable"</code>,
+      <code>"closed"</code>, or <code>"errored"</code>
+  </tr>
+  <tr>
+    <td>\[[storedError]]
+    <td>A value indicating how the reader's stream failed, to be given as a failure reason or exception when trying to
+      operate on the reader; applicable only when \[[state]] is <code>"errored"</code>
+  </tr>
+</table>
+
+<h4 id="byte-reader-constructor">new ReadableByteStreamReader(stream)</h4>
+
+<h4 id="byte-reader-prototype">Properties of the <code>ReadableByteStreamReader</code> Prototype</h4>
+
+<h5 id="byte-reader-closed">get closed</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Return *this*@[[closedPromise]].
+</pre>
+
+<h5 id="byte-reader-cancel">cancel(reason)</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[state]] is "closed", return a new promise resolved with *undefined*.
+  1. If *this*@[[state]] is "errored", return a new promise rejected with *this*@[[storedError]].
+  1. Assert: *this*@[[ownerReadableByteStream]] is not *undefined*.
+  1. Assert: *this*@[[ownerReadableByteStream]]@[[state]] is "readable".
+  1. Return CancelReadableByteStream(*this*@[[ownerReadableByteStream]], _reason_).
+</pre>
+
+<h5 id="byte-reader-read">read()</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Return ReadFromReadableByteStreamReader(*this*).
+</pre>
+
+<h5 id="byte-reader-release-lock">releaseLock()</h5>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStreamReader(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*@[[ownerReadableByteStream]] is *undefined*, return *undefined*.
+  1. If *this*@[[readRequests]] is not empty, throw a *TypeError* exception.
+  1. Return ReleaseReadableByteStreamReader(*this*).
+</pre>
+
+<h3 id="byte-rs-abstract-ops">Readable Byte Stream Abstract Operations</h3>
+
+<h4 id="acquire-readable-byte-stream-reader" aoid="AcquireReadableByteStreamReader">AcquireReadableByteStreamReader ( stream )</h4>
+
+<pre is="emu-alg">
+  1. Return Construct(`ReadableByteStreamReader`, «‍_stream_»).
+</pre>
+
+<h4 id="cancel-readable-byte-stream" aoid="CancelReadableByteStream">CancelReadableByteStream ( stream, reason )</h4>
+
+<pre is="emu-alg">
+  1. If _stream_@[[state]] is "closed", return a new promise resolved with *undefined*.
+  1. If _stream_@[[state]] is "errored", return a new promise rejected with _stream_@[[storedError]].
+  1. Call-with-rethrow FinishClosingReadableByteStream(_stream_).
+  1. Let _sourceCancelPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingByteSource]], "cancel", «‍_reason_»).
+  1. Return the result of transforming _sourceCancelPromise_ by a fulfillment handler that returns *undefined*.
+</pre>
+
+<h4 id="finish-closing-readable-byte-stream" aoid="FinishClosingReadableByteStream">FinishClosingReadableByteStream ( stream )</h4>
+
+<pre is="emu-alg">
+  1. Assert: _stream_@[[closeRequested]] is *false*.
+  1. Assert: _stream_@[[state]] is "readable".
+  1. Set _stream_@[[state]] to "closed".
+  1. Set _stream_@[[closeRequested]] to *true*.
+  1. If IsReadableByteStreamLocked(_stream_) is *true*, return ReleaseReadableByteStreamReader(_stream_).
+  1. Return *undefined*.
+</pre>
+
+<h4 id="fulfill-readable-bytestream" aoid="FulfillReadableByteStream">FulfillReadableByteStream ( stream, chunk )</h4>
+
+<pre is="emu-alg">
+  1. Assert: _stream_@[[state]] is "readable".
+  1. Assert: IsReadableByteStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty,
+    1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
+    1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
+    1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *false*).
+  1. Return *undefined*.
+</pre>
+
+<h4 id="error-readable-byte-stream" aoid="ErrorReadableByteStream">ErrorReadableByteStream ( stream, e )</h4>
+
+<pre is="emu-alg">
+  1. Assert: _stream_@[[state]] is "readable".
+  1. Set _stream_@[[storedError]] to _e_.
+  1. Set _stream_@[[state]] to "errored".
+  1. If IsReadableByteStreamLocked(_stream_) is *true*, return ReleaseReadableByteStreamReader(_stream_@[[reader]]).
+</pre>
+
+<h4 id="is-readable-byte-stream" aoid="IsReadableByteStream">IsReadableByteStream ( x )</h4>
+
+<pre is="emu-alg">
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[underlyingByteSource]] internal slot, return *false*.
+  1. Return *true*.
+</pre>
+
+<h4 id="is-readable-byte-stream-controller" aoid="IsReadableByteStreamController">IsReadableByteStreamController ( x )</h4>
+
+<pre is="emu-alg">
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[controlledReadableByteStream]] internal slot, return *false*.
+  1. Return *true*.
+</pre>
+
+<h4 id="is-readable-byte-stream-locked" aoid="IsReadableByteStreamLocked">IsReadableByteStreamLocked ( stream )</h4>
+
+<pre is="emu-alg">
+  1. Assert: IsReadableByteStream(_stream_) is *true*.
+  1. If _stream_@[[reader]] is *undefined*, return *false*.
+  1. Return *true*.
+</pre>
+
+<h4 id="is-readable-byte-stream-reader" aoid="IsReadableByteStreamReader">IsReadableByteStreamReader ( x )</h4>
+
+<pre is="emu-alg">
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have an [[ownerReadableByteStream]] internal slot, return *false*.
+  1. Return *true*.
+</pre>
+
+<h4 id="read-from-readable-byte-stream-reader" aoid="ReadFromReadableByteStreamReader">ReadFromReadableByteStreamReader ( reader )</h4>
+
+<pre is="emu-alg">
+  1. If _reader_@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
+  1. If _reader_@[[state]] is "errored", return a new promise rejected with _reader_@[[storedError]].
+  1. Assert: _reader_@[[ownerReadableByteStream]] is not *undefined*.
+  1. Assert: _reader_@[[ownerReadableByteStream]]@[[state]] is "readable".
+  1. Let _readRequestPromise_ be a new promise.
+  1. Append _readRequestPromise_ as the last element of _reader_@[[readRequests]].
+  1. Let _owner_ be _reader_@[[ownerReadableByteStream]].
+  1. Let _pullResult_ be Invoke(_owner_, "pull").
+  1. If _pullResult_ is an abrupt completion, ErrorReadableStream(_owner_, _pullResult_.[[value]]).
+  1. Return _readRequestPromise_.
+</pre>
+
+<h4 id="release-readable-byte-stream-reader" aoid="ReleaseReadableByteStreamReader">ReleaseReadableByteStreamReader ( reader )</h4>
+
+<pre is="emu-alg">
+  1. Assert: _reader_@[[ownerReadableByteStream]] is not *undefined*.
+  1. If _reader_@[[ownerReadableByteStream]]@[[state]] is "errored",
+    1. Set _reader_@[[state]] to "errored".
+    1. Let _e_ be _reader_@[[ownerReadableByteStream]]@[[storedError]].
+    1. Set _reader_@[[storedError]] to _e_.
+    1. Reject _reader_@[[closedPromise]] with _e_.
+    1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
+      1. Reject _readRequestPromise_ with _e_.
+  1. Otherwise,
+    1. Set _reader_@[[state]] to "closed".
+    1. Resolve _reader_@[[closedPromise]] with *undefined*.
+    1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
+      1. Resolve _readRequestPromise_ with CreateIterResultObject(*undefined*, *true*).
+  1. Set _reader_@[[readRequests]] to a new empty List.
+  1. Set _reader_@[[ownerReadableByteStream]]@[[reader]] to *undefined*.
+  1. Set _reader_@[[ownerReadableByteStream]] to *undefined*.
+</pre>
+
+<h4 id="tee-readable-byte-stream" aoid="TeeReadableByteStream">TeeReadableByteStream ( stream, shouldClone )</h4>
+
+TBA
 
 <h2 id="globals">Global Properties</h2>
 
