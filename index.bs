@@ -69,7 +69,7 @@ ride.
 
 A <dfn>chunk</dfn> is a single piece of data that is written to or read from a stream. It can be of any type; streams
 can even contain chunks of different types. A chunk will often not be the most atomic unit of data for a given stream;
-for example a binary stream might contain chunks consisting of 16 KiB <code>Uint8Array</code>s, instead of single
+for example a byte stream might contain chunks consisting of 16 KiB <code>Uint8Array</code>s, instead of single
 bytes.
 
 <h3 id="rs-model">Readable Streams</h3>
@@ -1560,7 +1560,7 @@ We are waiting to validate their design before doing so. In the meantime, see
 
 <h3 id="blqs-class">Class <code>ByteLengthQueuingStrategy</code></h3>
 
-A common <a>queuing strategy</a> when dealing with binary data is to wait until the accumulated <code>byteLength</code>
+A common <a>queuing strategy</a> when dealing with bytes is to wait until the accumulated <code>byteLength</code>
 properties of the incoming chunks reaches a specified high-water mark. As such, this is provided as a built-in
 <a>queuing strategy</a> that can be used when constructing streams.
 
