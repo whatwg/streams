@@ -18,7 +18,7 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 !Version History: [SNAPSHOT-LINK]
 !Version History: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
 
-Link Defaults: html5 (dfn) structured clone
+Link Defaults: html (dfn) structured clone
 </pre>
 
 <style>
