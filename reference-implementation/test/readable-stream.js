@@ -59,13 +59,6 @@ test('ReadableStream constructor can get initial garbage as pull argument', t =>
   t.doesNotThrow(() => new ReadableStream({ pull: { } }), 'constructor should not throw when pull is not a function');
 });
 
-test('ReadableStream constructor cannot get initial garbage as strategy argument', t => {
-  t.plan(1);
-
-  t.throws(() => new ReadableStream({ strategy: 2 }), /TypeError/,
-    'constructor should throw when strategy is not an object');
-});
-
 test('ReadableStream start should be able to return a promise', t => {
   t.plan(2);
 
@@ -380,13 +373,13 @@ test('ReadableStream: should pull after start, and after every read', t => {
     },
     pull() {
       ++timesCalled;
-    },
-    strategy: {
-      size() {
-        return 1;
-      },
-      highWaterMark: Infinity
     }
+  },
+  {
+    size() {
+      return 1;
+    },
+    highWaterMark: Infinity
   });
   const reader = rs.getReader();
 
@@ -452,13 +445,13 @@ test('ReadableStream: should call pull after enqueueing from inside pull (with n
     },
     pull(c) {
       c.enqueue(++timesCalled);
-    },
-    strategy: {
-      size() {
-        return 1;
-      },
-      highWaterMark: 4
     }
+  },
+  {
+    size() {
+      return 1;
+    },
+    highWaterMark: 4
   });
 
   setTimeout(() => {
@@ -537,7 +530,7 @@ test('ReadableStream: enqueue should throw the stored error when the stream is e
 
 
 test('ReadableStream: should call underlying source methods as methods', t => {
-  t.plan(4);
+  t.plan(3);
 
   class Source {
     start(c) {
@@ -551,11 +544,6 @@ test('ReadableStream: should call underlying source methods as methods', t => {
 
     cancel() {
       t.equal(this, theSource, 'cancel() should be called with the correct this');
-    }
-
-    get strategy() {
-      t.equal(this, theSource, 'strategy getter should be called with the correct this');
-      return undefined;
     }
   }
 

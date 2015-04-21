@@ -16,11 +16,7 @@ test('Piping from a ReadableStream from which lots of data are readable synchron
     }
   });
 
-  const ws = new WritableStream({
-    strategy: new CountQueuingStrategy({
-      highWaterMark: 1000
-    })
-  });
+  const ws = new WritableStream({}, new CountQueuingStrategy({ highWaterMark: 1000 }));
 
   t.equal(ws.state, 'writable', 'writable stream state should start out writable');
 

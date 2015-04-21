@@ -9,37 +9,38 @@ export default params => {
   let pauses = 0;
 
   let generateData;
-  const rs = new ReadableStream({
-    start(enqueue, close) {
-      generateData = () => {
-        if (paused) {
-          return;
-        }
+  const rs = new ReadableStream(
+    {
+      start(enqueue, close) {
+        generateData = () => {
+          if (paused) {
+            return;
+          }
 
-        if (chunksSoFar++ >= params.underlyingSourceChunks) {
-          close();
-          return;
-        }
+          if (chunksSoFar++ >= params.underlyingSourceChunks) {
+            close();
+            return;
+          }
 
-        const chunk = new ArrayBuffer(params.underlyingSourceChunkSize);
-        if (!enqueue(chunk)) {
-          paused = true;
-          ++pauses;
-        }
+          const chunk = new ArrayBuffer(params.underlyingSourceChunkSize);
+          if (!enqueue(chunk)) {
+            paused = true;
+            ++pauses;
+          }
+
+          potentiallySyncSetTimeout(generateData, params.underlyingSourceChunkInterval);
+        };
 
         potentiallySyncSetTimeout(generateData, params.underlyingSourceChunkInterval);
-      };
+      },
 
-      potentiallySyncSetTimeout(generateData, params.underlyingSourceChunkInterval);
+      pull(enqueue, close) {
+        paused = false;
+        potentiallySyncSetTimeout(generateData, params.underlyingSourceChunkInterval);
+      }
     },
-
-    pull(enqueue, close) {
-      paused = false;
-      potentiallySyncSetTimeout(generateData, params.underlyingSourceChunkInterval);
-    },
-
-    strategy: new ByteLengthQueuingStrategy({ highWaterMark: params.readableStreamHWM })
-  });
+    new ByteLengthQueuingStrategy({ highWaterMark: params.readableStreamHWM })
+  );
 
   const ts = new TransformStream({
     transform(chunk, enqueue, done) {
@@ -52,13 +53,14 @@ export default params => {
     readableStrategy: new ByteLengthQueuingStrategy({ highWaterMark: params.transformReadableHWM })
   });
 
-  const ws = new WritableStream({
-    write(chunk) {
-      return new Promise(resolve => potentiallySyncSetTimeout(resolve, params.underlyingSinkAckLatency));
+  const ws = new WritableStream(
+    {
+      write(chunk) {
+        return new Promise(resolve => potentiallySyncSetTimeout(resolve, params.underlyingSinkAckLatency));
+      }
     },
-
-    strategy: new ByteLengthQueuingStrategy({ highWaterMark: params.writableStreamHWM })
-  });
+    new ByteLengthQueuingStrategy({ highWaterMark: params.writableStreamHWM })
+  );
 
   return rs.pipeThrough(ts).pipeTo(ws).then(() => ({ pauses }));
 };

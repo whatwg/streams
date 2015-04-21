@@ -27,19 +27,21 @@ test('CountQueuingStrategy instances have the correct properties', t => {
 });
 
 test('Can construct a readable stream with a valid CountQueuingStrategy', t => {
-  t.doesNotThrow(() => new ReadableStream({ strategy: new CountQueuingStrategy({ highWaterMark: 4 }) }));
+  t.doesNotThrow(() => new ReadableStream({}, new CountQueuingStrategy({ highWaterMark: 4 })));
 
   t.end();
 });
 
 test('Correctly governs a ReadableStreamController\'s desiredSize property (HWM = 0)', t => {
   let controller;
-  const rs = new ReadableStream({
-    start(c) {
-      controller = c;
+  const rs = new ReadableStream(
+    {
+      start(c) {
+        controller = c;
+      }
     },
-    strategy: new CountQueuingStrategy({ highWaterMark: 0 })
-  });
+    new CountQueuingStrategy({ highWaterMark: 0 })
+  );
   const reader = rs.getReader();
 
   t.equal(controller.desiredSize, 0, '0 reads, 0 enqueues: desiredSize should be 0');
@@ -94,12 +96,14 @@ test('Correctly governs a ReadableStreamController\'s desiredSize property (HWM 
 
 test('Correctly governs a ReadableStreamController\'s desiredSize property (HWM = 1)', t => {
   let controller;
-  const rs = new ReadableStream({
-    start(c) {
-      controller = c;
+  const rs = new ReadableStream(
+    {
+      start(c) {
+        controller = c;
+      },
     },
-    strategy: new CountQueuingStrategy({ highWaterMark: 1 })
-  });
+    new CountQueuingStrategy({ highWaterMark: 1 })
+  );
   const reader = rs.getReader();
 
   t.equal(controller.desiredSize, 1, '0 reads, 0 enqueues: desiredSize should be 1');
@@ -154,12 +158,14 @@ test('Correctly governs a ReadableStreamController\'s desiredSize property (HWM 
 
 test('Correctly governs a ReadableStreamController\'s desiredSize property (HWM = 4)', t => {
   let controller;
-  const rs = new ReadableStream({
-    start(c) {
-      controller = c;
+  const rs = new ReadableStream(
+    {
+      start(c) {
+        controller = c;
+      }
     },
-    strategy: new CountQueuingStrategy({ highWaterMark: 4 })
-  });
+    new CountQueuingStrategy({ highWaterMark: 4 })
+  );
   const reader = rs.getReader();
 
   t.equal(controller.desiredSize, 4, '0 reads, 0 enqueues: desiredSize should be 4');
@@ -227,7 +233,7 @@ test('Correctly governs a ReadableStreamController\'s desiredSize property (HWM 
 });
 
 test('Can construct a writable stream with a valid CountQueuingStrategy', t => {
-  t.doesNotThrow(() => new WritableStream({ strategy: new CountQueuingStrategy({ highWaterMark: 4 }) }));
+  t.doesNotThrow(() => new WritableStream({}, new CountQueuingStrategy({ highWaterMark: 4 })));
 
   t.end();
 });
@@ -235,12 +241,14 @@ test('Can construct a writable stream with a valid CountQueuingStrategy', t => {
 test('Correctly governs the value of a WritableStream\'s state property (HWM = 0)', t => {
   const dones = Object.create(null);
 
-  const ws = new WritableStream({
-    write(chunk) {
-      return new Promise(resolve => dones[chunk] = resolve);
+  const ws = new WritableStream(
+    {
+      write(chunk) {
+        return new Promise(resolve => dones[chunk] = resolve);
+      }
     },
-    strategy: new CountQueuingStrategy({ highWaterMark: 0 })
-  });
+    new CountQueuingStrategy({ highWaterMark: 0 })
+  );
 
   setTimeout(() => {
     t.equal(ws.state, 'writable', 'After 0 writes, 0 of which finished, state should be \'writable\'');
@@ -277,12 +285,14 @@ test('Correctly governs the value of a WritableStream\'s state property (HWM = 0
 test('Correctly governs the value of a WritableStream\'s state property (HWM = 4)', t => {
   const dones = Object.create(null);
 
-  const ws = new WritableStream({
-    write(chunk) {
-      return new Promise(resolve => dones[chunk] = resolve);
+  const ws = new WritableStream(
+    {
+      write(chunk) {
+        return new Promise(resolve => dones[chunk] = resolve);
+      }
     },
-    strategy: new CountQueuingStrategy({ highWaterMark: 4 })
-  });
+    new CountQueuingStrategy({ highWaterMark: 4 })
+  );
 
   setTimeout(() => {
     t.equal(ws.state, 'writable', 'After 0 writes, 0 of which finished, state should be \'writable\'');

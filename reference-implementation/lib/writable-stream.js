@@ -6,7 +6,7 @@ import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue }
 import CountQueuingStrategy from './count-queuing-strategy';
 
 export default class WritableStream {
-  constructor(underlyingSink = {}) {
+  constructor(underlyingSink = {}, { size, highWaterMark = 0 } = {}) {
     this._underlyingSink = underlyingSink;
 
     this._closedPromise = new Promise((resolve, reject) => {
@@ -22,8 +22,7 @@ export default class WritableStream {
     this._started = false;
     this._writing = false;
 
-    const strategy = underlyingSink.strategy;
-    const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(strategy, 0);
+    const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
     this._strategySize = normalizedStrategy.size;
     this._strategyHWM = normalizedStrategy.highWaterMark;
 

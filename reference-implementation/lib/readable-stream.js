@@ -5,7 +5,7 @@ import { rethrowAssertionErrorRejection } from './utils';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
 
 export default class ReadableStream {
-  constructor(underlyingSource = {}) {
+  constructor(underlyingSource = {}, { size, highWaterMark = 1 } = {}) {
     this._underlyingSource = underlyingSource;
     this._queue = [];
     this._state = 'readable';
@@ -16,8 +16,7 @@ export default class ReadableStream {
     this._reader = undefined;
     this._storedError = undefined;
 
-    const strategy = underlyingSource.strategy;
-    const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(strategy, 1);
+    const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
     this._strategySize = normalizedStrategy.size;
     this._strategyHWM = normalizedStrategy.highWaterMark;
 

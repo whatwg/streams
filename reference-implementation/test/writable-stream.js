@@ -227,11 +227,9 @@ test('WritableStream with simple input, processed synchronously', t => {
 });
 
 test('WritableStream is writable and ready fulfills immediately if the strategy does not apply backpressure', t => {
-  const ws = new WritableStream({
-    strategy: {
-      highWaterMark: Infinity,
-      size() { return 0; }
-    }
+  const ws = new WritableStream({}, {
+    highWaterMark: Infinity,
+    size() { return 0; }
   });
 
   t.equal(ws.state, 'writable');
@@ -704,6 +702,7 @@ test('WritableStream should call underlying sink methods as methods', t => {
 
   class Sink {
     start() {
+      // Called twice
       t.equal(this, theSink, 'start() should be called with the correct this');
     }
 
@@ -718,11 +717,6 @@ test('WritableStream should call underlying sink methods as methods', t => {
     abort() {
       t.equal(this, theSink, 'abort() should be called with the correct this');
     }
-
-    get strategy() {
-      t.equal(this, theSink, 'strategy getter should be called with the correct this');
-      return undefined;
-    }
   }
 
   const theSink = new Sink();
@@ -733,5 +727,5 @@ test('WritableStream should call underlying sink methods as methods', t => {
   ws.close();
 
   const ws2 = new WritableStream(theSink);
-  ws.abort();
+  ws2.abort();
 });

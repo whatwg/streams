@@ -123,23 +123,25 @@ export default (label, factory, chunks) => {
 
     const theError = new Error('!!!');
     let chunkCounter = 0;
-    const ws = new WritableStream({
-      close() {
-        t.fail('unexpected close call');
-      },
-      abort() {
-        t.fail('unexpected abort call');
-      },
-      write() {
-        if (++chunkCounter === 2) {
-          return new Promise((r, reject) => setTimeout(() => reject(theError), 50));
+    const ws = new WritableStream(
+      {
+        close() {
+          t.fail('unexpected close call');
+        },
+        abort() {
+          t.fail('unexpected abort call');
+        },
+        write() {
+          if (++chunkCounter === 2) {
+            return new Promise((r, reject) => setTimeout(() => reject(theError), 50));
+          }
         }
       },
-      strategy: {
+      {
         highWaterMark: Infinity,
         size() { return 1; }
       }
-    });
+    );
 
     rs.pipeTo(ws, { preventClose: true }).then(
       () => t.fail('pipeTo promise should not fulfill'),

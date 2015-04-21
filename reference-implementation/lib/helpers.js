@@ -90,20 +90,12 @@ export function PromiseInvokeOrFallbackOrNoop(O, P1, args1, P2, args2) {
   }
 }
 
-export function ValidateAndNormalizeQueuingStrategy(strategy, defaultHWM) {
-  assert(typeof defaultHWM === 'number');
-  assert(defaultHWM >= 0);
-
-  if (strategy === undefined) {
-    return { size: undefined, highWaterMark: defaultHWM };
-  }
-
-  const size = strategy.size;
-  if (typeof size !== 'function') {
+export function ValidateAndNormalizeQueuingStrategy(size, highWaterMark) {
+  if (size !== undefined && typeof size !== 'function') {
     throw new TypeError('size property of a queuing strategy must be a function');
   }
 
-  const highWaterMark = Number(strategy.highWaterMark);
+  highWaterMark = Number(highWaterMark);
   if (Number.isNaN(highWaterMark)) {
     throw new TypeError('highWaterMark property of a queuing strategy must be convertible to a non-NaN number');
   }

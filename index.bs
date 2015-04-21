@@ -183,8 +183,6 @@ similarly, avoiding writes that would cause the desired size to go negative.
   written to a writable stream, before the streams are considered to be applying backpressure.
 </div>
 
-A queuing strategy is generally associated with a specific type of <a>underlying source</a> or <a>underlying sink</a>.
-
 <h3 id="locking">Locking</h3>
 
 <!-- TODO: writable streams too, probably -->
@@ -255,7 +253,7 @@ would look like
 
 <pre><code class="lang-javascript">
   class ReadableStream {
-    constructor(underlyingSource = {})
+    constructor(underlyingSource = {}, { size, highWaterMark = 1 } = {})
 
     cancel(reason)
     getReader()
@@ -341,7 +339,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </tr>
 </table>
 
-<h4 id="rs-constructor">new ReadableStream(underlyingSource = {})</h4>
+<h4 id="rs-constructor">new ReadableStream(underlyingSource = {}, { size, highWaterMark = 1 } = {})</h4>
 
 <div class="note">
   The <var>underlyingSource</var> object passed to the constructor can implement any of the following methods to
@@ -364,7 +362,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   state via the passed <code>controller</code> object. This is an example of the
   <a href="https://blog.domenic.me/the-revealing-constructor-pattern/">revealing constructor pattern</a>.
 
-  The underlying sink can also have a <code>strategy</code> property containing a <a>queuing strategy</a> object with
+  The constructor also accepts a second argument containing the <a>queuing strategy</a> object with
   two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
   supplied <code>strategy</code> could be an instance of the built-in <code>CountQueuingStrategy</code> or
   <code>ByteLengthQueuingStrategy</code> classes, or it could be custom. If no strategy is supplied, the default
@@ -378,9 +376,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. Set *this*@[[started]], *this*@[[closeRequested]], *this*@[[pullAgain]], and *this*@[[pulling]] to *false*.
   1. Set *this*@[[reader]] and *this*@[[storedError]] to *undefined*.
   1. Set *this*@[[controller]] to Construct(`ReadableStreamController`, «*this*»).
-  1. Let _strategy_ be Get(_underlyingSource_, "strategy").
-  1. ReturnIfAbrupt(_strategy_).
-  1. Let _normalizedStrategy_ be ValidateAndNormalizeQueuingStrategy(_strategy_, 1).
+  1. Let _normalizedStrategy_ be ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
   1. Set *this*@[[strategySize]] to _normalizedStrategy_.[[size]] and *this*@[[strategyHWM]] to _normalizedStrategy_.[[highWaterMark]].
   1. Let _startResult_ be InvokeOrNoop(_underlyingSource_, "start", «*this*@[[controller]]»).
   1. ReturnIfAbrupt(_startResult_).
@@ -1217,7 +1213,7 @@ would look like
 
 <pre><code class="lang-javascript">
   class WritableStream {
-    constructor(underlyingSink = {})
+    constructor(underlyingSink = {}, { size, highWaterMark = 0 } = {})
 
     get closed()
     get ready()
@@ -1293,7 +1289,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </tr>
 </table>
 
-<h4 id="ws-constructor">new WritableStream(underlyingSink = {})</h4>
+<h4 id="ws-constructor">new WritableStream(underlyingSink = {}, { size, highWaterMark = 0 } = {})</h4>
 
 <div class="note">
   The <var>underlyingSink</var> object passed to the constructor can implement any of the following methods to govern
@@ -1320,7 +1316,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
       <code>close</code> method will be called instead.
   </ul>
 
-  The underlying sink can also have a <code>strategy</code> property containing a <a>queuing strategy</a> object with
+  The constructor also accepts a second argument containing the <a>queuing strategy</a> object with
   two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
   supplied <code>strategy</code> could be an instance of the built-in <code>CountQueuingStrategy</code> or
   <code>ByteLengthQueuingStrategy</code> classes, or it could be custom. If no strategy is supplied, the default
@@ -1344,9 +1340,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   1. Set *this*@[[state]] to "writable".
   1. Set *this*@[[started]] and *this*@[[writing]] to *false*.
   1. Call-with-rethrow SyncWritableStreamStateWithQueue(*this*).
-  1. Let _strategy_ be Get(_underlyingSink_, "strategy").
-  1. ReturnIfAbrupt(_strategy_).
-  1. Let _normalizedStrategy_ be ValidateAndNormalizeQueuingStrategy(_strategy_, 0).
+  1. Let _normalizedStrategy_ be ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
   1. Set *this*@[[strategySize]] to _normalizedStrategy_.[[size]] and *this*@[[strategyHWM]] to _normalizedStrategy_.[[highWaterMark]].
   1. Let _error_ be a new <a><code>WritableStream</code> error function</a>.
   1. Set _error_@[[stream]] to *this*.
@@ -1613,20 +1607,20 @@ properties of the incoming chunks reaches a specified high-water mark. As such, 
   directly:
 
   <pre><code class="lang-javascript">
-    const stream = new ReadableStream({
-      ...,
-      strategy: new ByteLengthQueuingStrategy({ highWaterMark: 16 * 1024 })
-    });
+    const stream = new ReadableStream(
+      { ... },
+      new ByteLengthQueuingStrategy({ highWaterMark: 16 * 1024 })
+    );
   </code></pre>
 
   In this case, 16 KiB worth of <a>chunks</a> can be enqueued by the readable stream's <a>underlying source</a> before
   the readable stream implementation starts sending <a>backpressure</a> signals to the underlying source.
 
   <pre><code class="lang-javascript">
-    const stream = new WritableStream({
-      ...,
-      strategy: new ByteLengthQueuingStrategy({ highWaterMark: 32 * 1024 })
-    });
+    const stream = new WritableStream(
+      { ... },
+      new ByteLengthQueuingStrategy({ highWaterMark: 32 * 1024 })
+    );
   </code></pre>
 
   In this case, 32 KiB worth of <a>chunks</a> can be accumulated in the writable stream's internal queue, waiting for
@@ -1687,20 +1681,20 @@ strategy is also provided out of the box.
   When creating a <a>readable stream</a> or <a>writable stream</a>, you can supply a count queuing strategy directly:
 
   <pre><code class="lang-javascript">
-    const stream = new ReadableStream({
-      ...,
-      strategy: new CountQueuingStrategy({ highWaterMark: 10 })
-    });
+    const stream = new ReadableStream(
+      { ... },
+      new CountQueuingStrategy({ highWaterMark: 10 })
+    );
   </code></pre>
 
   In this case, 10 <a>chunks</a> (of any kind) can be enqueued by the readable stream's <a>underlying source</a> before
   the readable stream implementation starts sending <a>backpressure</a> signals to the underlying source.
 
   <pre><code class="lang-javascript">
-    const stream = new WritableStream({
-      ...,
-      strategy: new CountQueuingStrategy({ highWaterMark: 5 })
-    });
+    const stream = new WritableStream(
+      { ... },
+      new CountQueuingStrategy({ highWaterMark: 5 })
+    );
   </code></pre>
 
   In this case, five <a>chunks</a> (of any kind) can be accumulated in the writable stream's internal queue, waiting
@@ -1725,7 +1719,7 @@ it would look like
 Each <code>CountQueuingStrategy</code> instance will additionally have an own data property <code>highWaterMark</code>
 set by its constructor.
 
-<h4 id="blqs-constructor">new CountQueuingStrategy({ highWaterMark })</h4>
+<h4 id="cqs-constructor">new CountQueuingStrategy({ highWaterMark })</h4>
 
 <div class="note">
   The constructor takes a nonnegative number for the high-water mark, and stores it on the object as a property.
@@ -1858,16 +1852,11 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Otherwise, return a new promise resolved with _returnValue_.[[value]].
 </pre>
 
-<h4 id="validate-and-normalize-queuing-strategy" aoid="ValidateAndNormalizeQueuingStrategy">ValidateAndNormalizeQueuingStrategy ( strategy, defaultHWM )</h4>
+<h4 id="validate-and-normalize-queuing-strategy" aoid="ValidateAndNormalizeQueuingStrategy">ValidateAndNormalizeQueuingStrategy ( size, highWaterMark )</h4>
 
 <pre is="emu-alg">
-  1. Assert: Type(_defaultHWM_) is Number.
-  1. Assert: _defaultHWM_ ≥ 0.
-  1. If _strategy_ is *undefined*, return Record{[[size]]: *undefined*, [[highWaterMark]]: _defaultHWM_ }.
-  1. Let _size_ be Get(_strategy_, "size").
-  1. ReturnIfAbrupt(_size_).
-  1. If IsCallable(_size_) is *false*, throw a *TypeError* exception.
-  1. Let _highWaterMark_ be ToNumber(Get(_strategy_, "highWaterMark")).
+  1. If _size_ is not *undefined* and IsCallable(_size_) is *false*, throw a *TypeError* exception.
+  1. Set _highWaterMark_ to ToNumber(_highWaterMark_).
   1. ReturnIfAbrupt(_highWaterMark_).
   1. If _highWaterMark_ is *NaN*, throw a *TypeError* exception.
   1. If _highWaterMark_ < *0*, throw a *RangeError* exception.

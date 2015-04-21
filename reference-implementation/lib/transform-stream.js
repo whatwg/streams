@@ -29,9 +29,8 @@ export default class TransformStream {
           errorWritable(e);
           errorReadable(e);
         }
-      },
-      strategy: writableStrategy
-    });
+      }
+    }, writableStrategy);
 
     let enqueueInReadable, closeReadable, errorReadable;
     this.readable = new ReadableStream({
@@ -44,9 +43,8 @@ export default class TransformStream {
         if (chunkWrittenButNotYetTransformed === true) {
           maybeDoTransform();
         }
-      },
-      strategy: readableStrategy
-    });
+      }
+    }, readableStrategy);
 
     function maybeDoTransform() {
       if (transforming === false) {
