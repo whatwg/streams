@@ -1990,8 +1990,10 @@ that have the same API as web sockets, but also provide the ability to pause and
     return new ReadableStream({
       start(controller) {
         socket.ondata = event => {
-          if (!controller.enqueue(event.data)) {
-            // If enqueue returns false, the internal queue is full, so propagate
+          controller.enqueue(event.data);
+
+          if (controller.desiredSize <= 0) {
+            // The internal queue is full, so propagate
             // the backpressure signal to the underlying source.
             socket.readStop();
           }
@@ -2323,6 +2325,7 @@ Anne van Kesteren,
 Brian di Palma,
 Calvin Metcalf,
 Dominic Tarr,
+Ed Hager,
 Forbes Lindesay,
 贺师俊 (hax),
 Jens Nockert,
