@@ -189,11 +189,11 @@ A queuing strategy is generally associated with a specific type of <a>underlying
 
 <!-- TODO: writable streams too, probably -->
 
-A <dfn>readable stream reader</dfn> or simply reader is an object that allows direct reading of <a>chunks</a> from
-a <a>readable stream</a>. Without a reader, a <a>consumer</a> can only perform high-level operations on the readable
-stream: waiting for the stream to become closed or errored, <a lt="cancel a readable stream">canceling</a> the stream,
-or <a>piping</a> the readable stream to a writable stream. Many of those high-level operations actually use a reader
-themselves.
+A <dfn>readable stream reader</dfn> (<dfn>readable byte stream reader</dfn> for <a>readable byte stream</a>) or simply
+reader is an object that allows direct reading of <a>chunks</a> from a <a>readable stream</a>). Without a reader, a
+<a>consumer</a> can only perform high-level operations on the readable stream: waiting for the stream to become closed
+or errored, <a lt="cancel a readable stream">canceling</a> the stream, or <a>piping</a> the readable stream to a
+writable stream. Many of those high-level operations actually use a reader themselves.
 
 A given readable stream only has at most one reader at a time. We say in this case the stream is
 <dfn lt="locked to a reader">locked to the reader</dfn>, and that the reader is <dfn lt="active reader">active</dfn>.
@@ -203,13 +203,14 @@ longer active. At this point another reader can be acquired at will. If the stre
 result of the behavior of its <a>underlying source</a> or via <a lt="cancel a readable stream">cancellation</a>, its
 reader (if one exists) will automatically release its lock.
 
-<h3 id="byte-streams">Readable Byte Streams and Writable Byte Streams</h3>
+<h3 id="byte-streams">Readable Byte Streams</h3>
 
 For streams representing binary data, an extended version of the base Readable Stream and one of the base Writable Stream are provided for efficient binary data handling.
 
-A <dfn>readable byte stream</dfn> represents a source of bytes.
+A <dfn>readable byte stream</dfn> represents a source of bytes, from which you can read.
 
-A <dfn>writable byte stream</dfn> represents a destination for bytes.
+Although a readable byte stream can be created with arbitrary behavior, most readable byte streams wrap a lower-level
+I/O source, called the <dfn>underlying byte source</dfn>.
 
 <h2 id="rs">Readable Streams</h2>
 
@@ -764,7 +765,6 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 </pre>
 
 <h5 id="reader-read">read()</h5>
-
 
 <div class="note">
   The <code>read</code> method will return a promise that allows access to the next <a>chunk</a> from the stream's
@@ -1884,11 +1884,14 @@ A few abstract operations are used in this specification for utility purposes. W
 
 <h2 id="rbs">Readable Byte Streams</h2>
 
-TBA
-
 <h3 id="rbs-intro">Using Readable Byte Streams</h3>
 
-TBA
+<div class="example">
+  Unlike the readable stream, the readable byte stream provides multiple different kinds of readers. One is the
+  <code>ReadableByteStreamReader</code>. It has the same methods as the <code>ReadableStreamReader</code>, and can be
+  read in the same manner as the <code>ReadableStreamReader</code>. Other readers dedicated for the readable byte stream
+  are to be introduced into this spec.
+</div>
 
 <h3 id="rbs-class">Class <code>ReadableByteStream</code></h3>
 
@@ -1904,7 +1907,6 @@ would look like
     constructor(underlyingByteSource = {})
 
     cancel(reason)
-    getByobReader()
     getReader()
     pipeThrough({ writable, readable }, options)
     pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})
@@ -1929,18 +1931,18 @@ Instances of <code>ReadableByteStream</code> are created with the internal slots
   </tr>
   <tr>
     <td>\[[controller]]
-    <td>A <a href="#rbs-controller-class"><code>ReadableByteStreamController</code></a> created with the ability to control the
-      state and queue of this stream
+    <td>A <a href="#rbs-controller-class"><code>ReadableByteStreamController</code></a> created with the ability to
+      control the state of this stream
   </tr>
   <tr>
     <td>\[[reader]]
-    <td>A <a href="#byte-reader-class"><code>ReadableByteStreamReader</code></a> instance, if the stream is <a>locked to a
-      reader</a>, or <b>undefined</b> if it is not
+    <td>A <a href="#byte-reader-class"><code>ReadableByteStreamReader</code></a> instance, if the stream is <a>locked to
+      a reader</a>, or <b>undefined</b> if it is not
   </tr>
   <tr>
     <td>\[[state]]
     <td>A string containing the stream's current state, used internally; one of <code>"readable"</code>,
-      <code>"closed"</code>, or <code>"errored"</code>.
+      <code>"closed"</code>, or <code>"errored"</code>
   </tr>
   <tr>
     <td>\[[storedError]]
@@ -1949,8 +1951,8 @@ Instances of <code>ReadableByteStream</code> are created with the internal slots
   </tr>
   <tr>
     <td>\[[underlyingByteSource]]
-    <td>An object representation of the stream's <a>underlying source</a>, including its <a>queuing strategy</a>; also
-      used for the <a href="#is-readable-byte-stream">IsReadableByteStream</a> brand check
+    <td>An object representation of the stream's <a>underlying byte source</a>, including its <a>queuing strategy</a>;
+      also used for the <a href="#is-readable-byte-stream">IsReadableByteStream</a> brand check
   </tr>
 </table>
 
@@ -1975,13 +1977,6 @@ Instances of <code>ReadableByteStream</code> are created with the internal slots
   1. Return CancelReadableByteStream(*this*, _reason_).
 </pre>
 
-<h5 id="rbs-get-byob-reader">getByobReader()</h5>
-
-<pre is="emu-alg">
-  1. If IsReadableByteStream(*this*) is *false*, throw a *TypeError* exception.
-  1. Return AcquireReadableByteStreamByobReader(*this*).
-</pre>
-
 <h5 id="rbs-get-reader">getReader()</h5>
 
 <pre is="emu-alg">
@@ -1998,7 +1993,12 @@ Instances of <code>ReadableByteStream</code> are created with the internal slots
 
 <h5 id="rbs-pipe-to">pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})</h5>
 
-TBA
+The <code>pipeTo</code> method is one of the more complex methods, and is undergoing some revision and edge-case
+bulletproofing before we write it up in prose.
+
+For now, please consider the reference implementation normative:
+<a href="https://github.com/whatwg/streams/blob/master/reference-implementation/lib/readable-stream.js">reference-implementation/lib/readable-stream.js</a>,
+look for the <code>pipeTo</code> method.
 
 <h5 id="rbs-tee">tee()</h5>
 
@@ -2015,22 +2015,23 @@ TBA
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>ReadableByteStreamReader</code> class in something close to the syntax of [[!ECMASCRIPT]],
-it would look like
+If one were to write the <code>ReadableByteStreamReader</code> class in something close to the syntax of
+[[!ECMASCRIPT]], it would look like
 
 <pre><code class="lang-javascript">
   class ReadableStreamController {
     constructor(stream)
 
     close()
-    enqueue(chunk)
+    resolve(chunk)
     error(e)
   }
 </code></pre>
 
 <h4 id="rbs-controller-internal-slots">Internal Slots</h4>
 
-Instances of <code>ReadableByteStreamController</code> are created with the internal slots described in the following table:
+Instances of <code>ReadableByteStreamController</code> are created with the internal slots described in the following
+table:
 
 <table>
   <thead>
@@ -2060,28 +2061,27 @@ Instances of <code>ReadableByteStreamController</code> are created with the inte
 <pre is="emu-alg">
   1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableByteStream]].
-  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. If _stream_@[[state]] is "errored", throw a *TypeError* exception.
-  1. Return FinishClosingReadableByteStream(_stream_).
+  1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
+  1. Return CloseReadableByteStream(_stream_).
 </pre>
 
-<h5 id="rbs-controller-enqueue">fulfill(chunk)</h5>
+<h5 id="rbs-controller-enqueue">resolve(chunk)</h5>
 
 <pre is="emu-alg">
   1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableByteStream]].
-  1. If _stream_@[[state]] is "errored", throw _stream_@[[storedError]].
-  1. If _stream_@[[state]] is "closed", throw a *TypeError* exception.
-  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. Return FulfillReadableByteStream(_stream_, _chunk_).
+  1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
+  1. If _stream_@[[reader]]@[[readRequests]] is empty, throw a *TypeError* exception.
+  1. Return ResolveReadableByteStream(_stream_, _chunk_).
 </pre>
 
 <h5 id="rbs-controller-error">error(e)</h5>
 
 <pre is="emu-alg">
   1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
-  1. If *this*@[[controlledReadableByteStream]]@[[state]] is not "readable", throw a *TypeError* exception.
-  1. Return ErrorReadableByteStream(*this*@[[controlledReadableByteStream]]).
+  1. Let _stream_ be *this*@[[controlledReadableByteStream]].
+  1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
+  1. Return ErrorReadableByteStream(_stream_).
 </pre>
 
 <h3 id="byte-reader-class">Class <code>ReadableByteStreamReader</code></h3>
@@ -2144,6 +2144,24 @@ Instances of <code>ReadableByteStreamReader</code> are created with the internal
 
 <h4 id="byte-reader-constructor">new ReadableByteStreamReader(stream)</h4>
 
+<div class="note">
+  The <code>ReadableByteStreamReader</code> constructor is generally not meant to be used directly; instead, a stream's
+  <code>getReader()</code> method should be used. This allows different classes of readable streams to vend different
+  classes of readers without the <a>consumer</a> needing to know which goes with which.
+</div>
+
+<pre is="emu-alg">
+  1. If IsReadableByteStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If IsReadableByteStreamLocked(_stream_) is *true*, throw a *TypeError* exception.
+  1. Set _stream_@[[reader]] to *this*.
+  1. Set *this*@[[ownerReadableByteStream]] to _stream_.
+  1. Set *this*@[[state]] to "readable".
+  1. Set *this*@[[storedError]] to *undefined*.
+  1. Set *this*@[[readRequests]] to a new empty List.
+  1. Set *this*@[[closedPromise]] to a new promise.
+  1. If _stream_@[[state]] is "closed" or "errored", call-with-rethrow ReleaseReadableByteStreamReader(*this*).
+</pre>
+
 <h4 id="byte-reader-prototype">Properties of the <code>ReadableByteStreamReader</code> Prototype</h4>
 
 <h5 id="byte-reader-closed">get closed</h5>
@@ -2160,7 +2178,6 @@ Instances of <code>ReadableByteStreamReader</code> are created with the internal
   1. If *this*@[[state]] is "closed", return a new promise resolved with *undefined*.
   1. If *this*@[[state]] is "errored", return a new promise rejected with *this*@[[storedError]].
   1. Assert: *this*@[[ownerReadableByteStream]] is not *undefined*.
-  1. Assert: *this*@[[ownerReadableByteStream]]@[[state]] is "readable".
   1. Return CancelReadableByteStream(*this*@[[ownerReadableByteStream]], _reason_).
 </pre>
 
@@ -2184,6 +2201,9 @@ Instances of <code>ReadableByteStreamReader</code> are created with the internal
 
 <h4 id="acquire-readable-byte-stream-reader" aoid="AcquireReadableByteStreamReader">AcquireReadableByteStreamReader ( stream )</h4>
 
+This abstract operation is meant to be called from other specifications that may wish to acquire an <a>readable byte
+stream reader</a> for a given stream.
+
 <pre is="emu-alg">
   1. Return Construct(`ReadableByteStreamReader`, «‍_stream_»).
 </pre>
@@ -2193,30 +2213,28 @@ Instances of <code>ReadableByteStreamReader</code> are created with the internal
 <pre is="emu-alg">
   1. If _stream_@[[state]] is "closed", return a new promise resolved with *undefined*.
   1. If _stream_@[[state]] is "errored", return a new promise rejected with _stream_@[[storedError]].
-  1. Call-with-rethrow FinishClosingReadableByteStream(_stream_).
+  1. CloseReadableByteStream(_stream_).
   1. Let _sourceCancelPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingByteSource]], "cancel", «‍_reason_»).
   1. Return the result of transforming _sourceCancelPromise_ by a fulfillment handler that returns *undefined*.
 </pre>
 
-<h4 id="finish-closing-readable-byte-stream" aoid="FinishClosingReadableByteStream">FinishClosingReadableByteStream ( stream )</h4>
+<h4 id="finish-closing-readable-byte-stream" aoid="CloseReadableByteStream">CloseReadableByteStream ( stream )</h4>
 
 <pre is="emu-alg">
-  1. Assert: _stream_@[[closeRequested]] is *false*.
   1. Assert: _stream_@[[state]] is "readable".
   1. Set _stream_@[[state]] to "closed".
-  1. Set _stream_@[[closeRequested]] to *true*.
   1. If IsReadableByteStreamLocked(_stream_) is *true*, return ReleaseReadableByteStreamReader(_stream_).
   1. Return *undefined*.
 </pre>
 
-<h4 id="fulfill-readable-bytestream" aoid="FulfillReadableByteStream">FulfillReadableByteStream ( stream, chunk )</h4>
+<h4 id="resolve-readable-bytestream" aoid="ResolveReadableByteStream">ResolveReadableByteStream ( stream, chunk )</h4>
 
 <pre is="emu-alg">
   1. Assert: _stream_@[[state]] is "readable".
-  1. Assert: IsReadableByteStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty,
-    1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
-    1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
-    1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *false*).
+  1. Assert: _stream_@[[reader]]@[[readRequests]] is not empty,
+  1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
+  1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
+  1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *false*).
   1. Return *undefined*.
 </pre>
 
@@ -2227,6 +2245,7 @@ Instances of <code>ReadableByteStreamReader</code> are created with the internal
   1. Set _stream_@[[storedError]] to _e_.
   1. Set _stream_@[[state]] to "errored".
   1. If IsReadableByteStreamLocked(_stream_) is *true*, return ReleaseReadableByteStreamReader(_stream_@[[reader]]).
+  1. Return *undefined*.
 </pre>
 
 <h4 id="is-readable-byte-stream" aoid="IsReadableByteStream">IsReadableByteStream ( x )</h4>
@@ -2299,7 +2318,147 @@ Instances of <code>ReadableByteStreamReader</code> are created with the internal
 
 <h4 id="tee-readable-byte-stream" aoid="TeeReadableByteStream">TeeReadableByteStream ( stream, shouldClone )</h4>
 
-TBA
+This abstract operation is meant to be called from other specifications that may wish to tee a given readable byte
+stream. Its second argument governs whether or not the data from the original stream will be
+<a lt="structured clone">structured cloned</a> before becoming visible in the returned branches.
+
+<pre is="emu-alg">
+  1. Assert: IsReadableByteStream(_stream_) is *true*.
+  1. Assert: Type(_shouldClone_) is Boolean.
+  1. Let _reader_ be AcquireReadableByteStreamReader(_reader_).
+  1. ReturnIfAbrupt(_reader_).
+  1. Let _pull1_ be a new <a>TeeReadableByteStream branch 1 pull function</a>.
+  1. Let _pull2_ be a new <a>TeeReadableByteStream branch 2 pull function</a>.
+  1. Let _cancel1_ be a new <a>TeeReadableByteStream branch 1 cancel function</a>.
+  1. Let _cancel2_ be a new <a>TeeReadableByteStream branch 2 cancel function</a>.
+  1. Let _underlyingByteSource1_ be ObjectCreate(%ObjectPrototype%).
+  1. Perform CreateDataProperty(_underlyingByteSource1_, "pull", _pull1_).
+  1. Perform CreateDataProperty(_underlyingByteSource1_, "cancel", _cancel1_).
+  1. Let _branch1_ be Construct(`ReadableByteStream`, _underlyingByteSource1_).
+  1. Let _underlyingByteSource2_ be ObjectCreate(%ObjectPrototype%).
+  1. Perform CreateDataProperty(_underlyingByteSource2_, "pull", _pull2_).
+  1. Perform CreateDataProperty(_underlyingByteSource2_, "cancel", _cancel2_).
+  1. Let _branch2_ be Construct(`ReadableByteStream`, _underlyingByteSource2_).
+  1. Let _teeState_ be Record{[[reader]]: _reader_, [[closedOrError]]: *false*, [[branch1]]: _branch1_, [[branch2]]: _branch2_, [[pullCount1]]: 0, [[pullCount2]]: 0, [[queue1]]: an empty List, [[queue2]]: an empty List, [[originalClosed]]: *false*, [[canceled1]]: *false*, [[canceled2]]: *false*, [[reason1]]: *undefined*, [[reason2]]: *undefined*, [[promise]]: a new promise, [[shouldClone]]: _shouldClone_}.
+  1. Set _pull1_@[[teeState]] to _teeState_.
+  1. Set _pull2_@[[teeState]] to _teeState_.
+  1. Set _cancel1_@[[teeState]] to _teeState_.
+  1. Set _cancel2_@[[teeState]] to _teeState_.
+  1. Upon fulfillment of _reader_@[[closedPromise]],
+    1. If _teeState_.[[closedOrErrored]] is *true*, return *undefined*.
+    1. Set _teeState_.[[closedOrErrored]] to *true*.
+    1. Set _teeState_.[[originalClosed]] to *true*.
+    1. If _teeState_.[[canceled1]] is *false* and _teeState_.[[queue1]] is empty, CloseReadableByteStream(_branch1_).
+    1. If _teeState_.[[canceled2]] is *false* and _teeState_.[[queue2]] is empty, CloseReadableByteStream(_branch2_).
+  1. Upon rejection of _reader_@[[closedPromise]] with reason _r_,
+    1. If _teeState_.[[doneHaloseOrErrored]] is *true*, return *undefined*.
+    1. Set _teeState_.[[doneHandlingCloseOrError]] to *true*.
+    1. If _teeState_.[[canceled1]] is *false*, ErrorReadableByteStream(_branch1_, _r_).
+    1. If _teeState_.[[canceled2]] is *false*, ErrorReadableByteStream(_branch2_, _r_).
+  1. Return «branch1, branch2».
+</pre>
+
+A <dfn>TeeReadableByteStream read function</dfn> is an anonymous built-in function that reads data from a given
+<a>readable byte stream reader</a> and enqueues it into two other streams ("branches" of the associated tee). Each
+TeeReadableByteStream read function has \[[teeState]] internal slot. When a TeeReadableByteStream read function
+<var>F</var> is called with the argument _result_, it performs the following steps:
+
+<pre is="emu-alg">
+  1. Let _teeState_ be _F_@[[teeState]].
+  1. Assert: Type(_result_) is Object.
+  1. Let _value_ be Get(_result_, "value").
+  1. ReturnIfAbrupt(_value_).
+  1. Let _done_ be Get(_result_, "done").
+  1. ReturnIfAbrupt(_done_).
+  1. Assert: Type(_done_) is Boolean.
+  1. If _done_ is *true*, return *undefined*.
+  1. If _teeState_.[[canceled1]] is *false*,
+    1. Let _value1_ be _value_.
+    1. If _shouldClone_ is *true*, set _value1_ to a <a>structured clone</a> of _value_.
+    1. If _teeState_.[[pullCount1]] > 0,
+      1. FulfillReadableByteStream(_branch1_, _value1_).
+      1. Set _teeState_.[[pullCount1]] to _teeState_.[[pullCount1]] - 1.
+      1. Return *undefined*.
+    1. Append _value1_ as the last element of _teeState_.[[queue1]].
+  1. If _teeState_.[[canceled2]] is *false*,
+    1. Let _value2_ be _value_.
+    1. If _shouldClone_ is *true*, set _value2_ to a <a>structured clone</a> of _value_.
+    1. If _teeState_.[[pullCount2]] > 0,
+      1. FulfillReadableByteStream(_branch2_, _value1_).
+      1. Set _teeState_.[[pullCount2]] to _teeState_.[[pullCount2]] - 1.
+      1. Return *undefined*.
+    1. Append _value1_ as the last element of _teeState_.[[queue2]].
+</pre>
+
+A <dfn>TeeReadableByteStream branch 1 pull function</dfn> is an anonymous built-in function that pulls data from a
+given <a>readable byte stream reader</a> and enqueues it into two other streams ("branches" of the associated tee).
+Each TeeReadableByteStream branch 1 pull function has \[[teeState]] internal slot. When a
+TeeReadableByteStream branch 1 pull function <var>F</var> is called, it performs the following steps:
+
+<pre is="emu-alg">
+  1. Let _teeState_ be _F_@[[teeState]].
+  1. If _teeState_.[[queue1]] is not empty,
+    1. Remove _chunk_ from _teeState_@[[queue1]], shifting all other elements downward (so that the second becomes the first, and so on).
+    1. FulfillReadableByteStream(_branch1_, _value1_).
+    1. If _teeState_.[[originalClosed]], CloseReadableByteStream(_branch1_).
+    1. Return *undefined*.
+  1. Set _teeState_.[[pullCount1]] to _teeState_.[[pullCount1]] + 1.
+  1. Let _readFunction_ be a new <a>TeeReadableByteStream read function</a>.
+  1. Set _readFunction_@[[teeState][] to _teeState_.
+  1. Return the result of transforming ReadFromReadableStreamReader(_reader_) by a fulfillment handler _readFunction_.
+</pre>
+
+A <dfn>TeeReadableByteStream branch 2 pull function</dfn> is an anonymous built-in function that pulls data from a
+given <a>readable byte stream reader</a> and enqueues it into two other streams ("branches" of the associated tee).
+Each TeeReadableByteStream branch 2 pull function has \[[teeState]] internal slot. When a
+TeeReadableByteStream branch 2 pull function <var>F</var> is called, it performs the following steps:
+
+<pre is="emu-alg">
+  1. Let _teeState_ be _F_@[[teeState]].
+  1. If _teeState_.[[queue2]] is not empty,
+    1. Remove _chunk_ from _teeState_@[[queue2]], shifting all other elements downward (so that the second becomes the first, and so on).
+    1. FulfillReadableByteStream(_branch2_, _value1_).
+    1. If _teeState_.[[originalClosed]], CloseReadableByteStream(_branch2_).
+    1. Return *undefined*.
+  1. Set _teeState_.[[pullCount2]] to _teeState_.[[pullCount2]] + 1.
+  1. Let _readFunction_ be a new <a>TeeReadableByteStream read function</a>.
+  1. Set _readFunction_@[[teeState][] to _teeState_.
+  1. Return the result of transforming ReadFromReadableStreamReader(_reader_) by a fulfillment handler _readFunction_.
+</pre>
+
+A <dfn>TeeReadableByteStream branch 1 cancel function</dfn> is an anonymous built-in function that reacts to the
+cancellation of the first of the two branches of the associated tee. Each TeeReadableByteStream branch 1 cancel
+function has \[[teeState]] internal slot. When a TeeReadableByteStream branch 1 cancel function
+<var>F</var> is called with argument <var>r</var>, it performs the following steps:
+
+<pre is="emu-alg">
+  1. Let _teeState_ be _F_@[[teeState]].
+  1. Set _teeState_.[[queue1]] to *undefined*.
+  1. Set _teeState_.[[canceled1]] to *true*.
+  1. Set _teeState_.[[reason1]] to _r_.
+  1. If _teeState_.[[canceled2]] is *true*,
+    1. Let _compositeReason_ be CreateArrayFromList(«_teeState_.[[reason1]], _teeState_.[[reason2]]»).
+    1. Let _cancelResult_ be CancelReadableStream(_teeState_.[[reader]], _compositeReason_).
+    1. Resolve _teeState_.[[promise]] with _cancelResult_.
+  1. Return _teeState_.[[promise]].
+</pre>
+
+A <dfn>TeeReadableByteStream branch 2 cancel function</dfn> is an anonymous built-in function that reacts to the
+cancellation of the second of the two branches of the associated tee. Each TeeReadableByteStream branch 2 cancel
+function has \[[stream]] and \[[teeState]] internal slots. When a TeeReadableStream branch 2 cancel function
+<var>F</var> is called with argument <var>r</var>, it performs the following steps:
+
+<pre is="emu-alg">
+  1. Let _teeState_ be _F_@[[teeState]].
+  1. Set _teeState_.[[queue2]] to *undefined*.
+  1. Set _teeState_.[[canceled2]] to *true*.
+  1. Set _teeState_.[[reason2]] to _r_.
+  1. If _teeState_.[[canceled1]] is *true*,
+    1. Let _compositeReason_ be CreateArrayFromList(«_teeState_.[[reason1]], _teeState_.[[reason2]]»).
+    1. Let _cancelResult_ be CancelReadableStream(_teeState_.[[reader]], _compositeReason_).
+    1. Resolve _teeState_.[[promise]] with _cancelResult_.
+  1. Return _teeState_.[[promise]].
+</pre>
 
 <h2 id="globals">Global Properties</h2>
 
@@ -2309,6 +2468,7 @@ flux, in the meantime the following properties must be exposed on the global obj
 
 <ul>
   <li> <code>ReadableStream</code>
+  <li> <code>ReadableByteStream</code>
   <li> <code>WritableStream</code>
   <li> <code>ByteLengthQueuingStrategy</code>
   <li> <code>CountQueuingStrategy</code>
