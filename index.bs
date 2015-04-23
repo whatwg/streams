@@ -847,7 +847,7 @@ this to streams they did not create, and must ensure they have obeyed the precon
 <pre is="emu-alg">
   1. Assert: _stream_@[[state]] is "readable".
   1. Set _stream_@[[state]] to "closed".
-  1. If IsReadableStreamLocked(_stream_) is *true*, return ReleaseReadableStreamReader(_stream_).
+  1. If IsReadableStreamLocked(_stream_) is *true*, return ReleaseReadableStreamReader(_stream_@[[reader]]).
   1. Return *undefined*.
 </pre>
 
