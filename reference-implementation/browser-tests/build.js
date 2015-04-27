@@ -5,19 +5,17 @@ const path = require('path');
 const fs = require('fs');
 
 es6ify.traceurOverrides = {
-  // Present in Chrome 41
+  // Settings based on Chrome 42
   blockBinding: 'parse',
   forOf: 'parse',
   generators: 'parse',
   numericLiterals: 'parse',
   symbols: false,
-  templateLiterals: 'parse'
-
-  // Probably Chrome 42
-  //  classes: 'parse',
-  //  computedPropertyNames: 'parse',
-  //  propertyMethods: 'parse',
-  //  propertyNameShorthand: 'parse'
+  templateLiterals: 'parse',
+  classes: 'parse',
+  computedPropertyNames: 'parse',
+  propertyMethods: 'parse',
+  propertyNameShorthand: 'parse'
 };
 
 

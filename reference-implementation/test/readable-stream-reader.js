@@ -26,7 +26,7 @@ test('ReadableStreamReader instances should have the correct list of properties'
 
   t.deepEqual(Object.getOwnPropertyNames(proto).sort(), properties);
 
-  for (let m of methods) {
+  for (const m of methods) {
     const propDesc = Object.getOwnPropertyDescriptor(proto, m);
     t.equal(propDesc.enumerable, false, `${m} should be non-enumerable`);
     t.equal(propDesc.configurable, true, `${m} should be configurable`);

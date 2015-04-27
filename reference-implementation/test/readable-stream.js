@@ -105,7 +105,7 @@ test('ReadableStream should be able to enqueue different objects', t => {
 
   const rs = new ReadableStream({
     start(c) {
-      for (let o of objects) {
+      for (const o of objects) {
         c.enqueue(o);
       }
       c.close();
@@ -114,7 +114,7 @@ test('ReadableStream should be able to enqueue different objects', t => {
 
   const reader = rs.getReader();
 
-  for (let o of objects) {
+  for (const o of objects) {
     reader.read().then(r => t.deepEqual(r, { value: o, done: false }, 'value read should be the one enqueued'));
   }
 

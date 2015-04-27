@@ -79,12 +79,11 @@ else
     echo "Living standard output to $WEB_ROOT"
 
     # Test suite, if master
-# DISABLED FOR NOW: https://github.com/whatwg/streams/issues/339
-#    cd reference-implementation
-#    npm run build-browser-tests
-#    cd ..
-#    mkdir "$WEB_ROOT/$TESTS_DIR"
-#    cp reference-implementation/browser-tests/{index.html,bundle.js} "$WEB_ROOT/$TESTS_DIR"
+    cd reference-implementation
+    npm run build-browser-tests
+    cd ..
+    mkdir "$WEB_ROOT/$TESTS_DIR"
+    cp reference-implementation/browser-tests/{index.html,bundle.js} "$WEB_ROOT/$TESTS_DIR"
 fi
 
 echo ""
