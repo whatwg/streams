@@ -76,7 +76,7 @@ export default (label, factory, chunks) => {
 
   test('reader\'s closed property always returns the same promise', t => {
     t.plan(4);
-    const { reader } = factory();
+    const { stream, reader } = factory();
 
     const readerClosed = reader.closed;
 
@@ -91,8 +91,8 @@ export default (label, factory, chunks) => {
 
       const newReader = stream.getReader();
       newReader.read();
-    });
 
-    t.equal(reader.closed, readerClosed, 'reader.closed is the same after calling read()');
+      t.equal(reader.closed, readerClosed, 'reader.closed is the same after calling read()');
+    });
   });
 };
