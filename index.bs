@@ -2011,6 +2011,10 @@ look for the <code>pipeTo</code> method.
 
 <h3 id="rbs-controller-class" lt="ReadableByteStreamController">Class <code>ReadableByteStreamController</code></h3>
 
+The <code>ReadableByteStreamController</code> class has methods that allow control of a <code>ReadableStream</code>'s
+state. When constructing a <code>ReadableByteStream</code>, the <a>underlying byte source</a> is given a
+corresponding <code>ReadableByteStreamController</code> instance to manipulate.
+
 <h4 id="rbs-controller-class-definition">Class Definition</h4>
 
 <em>This section is non-normative.</em>
