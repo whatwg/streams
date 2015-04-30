@@ -2015,7 +2015,7 @@ look for the <code>pipeTo</code> method.
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>ReadableByteStreamReader</code> class in something close to the syntax of
+If one were to write the <code>ReadableByteStreamController</code> class in something close to the syntax of
 [[!ECMASCRIPT]], it would look like
 
 <pre><code class="lang-javascript">
