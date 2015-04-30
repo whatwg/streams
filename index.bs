@@ -2054,7 +2054,7 @@ table:
   1. Set *this*@[[controlledReadableByteStream]] to _stream_.
 </pre>
 
-<h4 id="rbs-controller-prototype">Properties of the <code>ReadableStreamController</code> Prototype</h4>
+<h4 id="rbs-controller-prototype">Properties of the <code>ReadableByteStreamController</code> Prototype</h4>
 
 <h5 id="rbs-controller-close">close()</h5>
 
