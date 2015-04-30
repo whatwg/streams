@@ -168,3 +168,49 @@ test('ReadableStream teeing: failing to cancel the original stream should cause 
   branch1.cancel().catch(e => t.equal(e, theError, 'branch1.cancel() should reject with the error'));
   branch2.cancel().catch(e => t.equal(e, theError, 'branch2.cancel() should reject with the error'));
 });
+
+test('ReadableStream teeing: closing the original should immediately close the branches', t => {
+  t.plan(2);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const [branch1, branch2] = rs.tee();
+  const [reader1, reader2] = [branch1.getReader(), branch2.getReader()];
+
+  reader1.closed.then(() => t.pass('branch1 should be closed')).catch(e => t.error(e));
+  reader2.closed.then(() => t.pass('branch2 should be closed')).catch(e => t.error(e));
+
+  controller.close();
+});
+
+test('ReadableStream teeing: erroring the original should immediately error the branches', t => {
+  t.plan(2);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const [branch1, branch2] = rs.tee();
+  const [reader1, reader2] = [branch1.getReader(), branch2.getReader()];
+
+  const theError = new Error('boo!');
+
+  reader1.closed.then(
+    () => t.fail('branch1 should not be closed'),
+    e => t.equal(e, theError, 'branch1 should be errored with the error')
+  );
+  reader2.closed.then(
+    () => t.fail('branch2 should not be closed'),
+    e => t.equal(e, theError, 'branch2 should be errored with the error')
+  );
+
+  controller.error(theError);
+});
