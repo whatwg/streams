@@ -2295,7 +2295,8 @@ stream reader</a> for a given stream.
   1. Append _readRequestPromise_ as the last element of _reader_@[[readRequests]].
   1. Let _owner_ be _reader_@[[ownerReadableByteStream]].
   1. Let _pullResult_ be Invoke(_owner_, "pull").
-  1. If _pullResult_ is an abrupt completion, ErrorReadableStream(_owner_, _pullResult_.[[value]]).
+  1. If _pullResult_ is an abrupt completion,
+    1. If _owner_@[[state]] is "readable", ErrorReadableByteStream(_owner_, _pullResult_.[[value]]).
   1. Return _readRequestPromise_.
 </pre>
 
