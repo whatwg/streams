@@ -205,7 +205,7 @@ reader (if one exists) will automatically release its lock.
 
 <h3 id="byte-streams">Readable Byte Streams</h3>
 
-For streams representing binary data, an extended version of the base Readable Stream and one of the base Writable Stream are provided for efficient binary data handling.
+For streams representing bytes, an extended version of the readable stream is provided to handle bytes efficiently.
 
 A <dfn>readable byte stream</dfn> represents a source of bytes, from which you can read.
 
