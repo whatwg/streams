@@ -2227,7 +2227,7 @@ stream reader</a> for a given stream.
 <pre is="emu-alg">
   1. Assert: _stream_@[[state]] is "readable".
   1. Set _stream_@[[state]] to "closed".
-  1. If IsReadableByteStreamLocked(_stream_) is *true*, return ReleaseReadableByteStreamReader(_stream_).
+  1. If IsReadableByteStreamLocked(_stream_) is *true*, return ReleaseReadableByteStreamReader(_stream_@[[reader]]).
   1. Return *undefined*.
 </pre>
 
