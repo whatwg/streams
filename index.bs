@@ -2381,7 +2381,7 @@ TeeReadableByteStream read function has \[[teeState]] internal slot. When a TeeR
     1. Let _value1_ be _value_.
     1. If _shouldClone_ is *true*, set _value1_ to a <a>structured clone</a> of _value_.
     1. If _teeState_.[[pullCount1]] > 0,
-      1. FulfillReadableByteStream(_branch1_, _value1_).
+      1. ResolveReadableByteStream(_branch1_, _value1_).
       1. Set _teeState_.[[pullCount1]] to _teeState_.[[pullCount1]] - 1.
       1. Return *undefined*.
     1. Append _value1_ as the last element of _teeState_.[[queue1]].
@@ -2389,10 +2389,10 @@ TeeReadableByteStream read function has \[[teeState]] internal slot. When a TeeR
     1. Let _value2_ be _value_.
     1. If _shouldClone_ is *true*, set _value2_ to a <a>structured clone</a> of _value_.
     1. If _teeState_.[[pullCount2]] > 0,
-      1. FulfillReadableByteStream(_branch2_, _value1_).
+      1. ResolveReadableByteStream(_branch2_, _value2_).
       1. Set _teeState_.[[pullCount2]] to _teeState_.[[pullCount2]] - 1.
       1. Return *undefined*.
-    1. Append _value1_ as the last element of _teeState_.[[queue2]].
+    1. Append _value2_ as the last element of _teeState_.[[queue2]].
 </pre>
 
 A <dfn>TeeReadableByteStream branch 1 pull function</dfn> is an anonymous built-in function that pulls data from a
@@ -2404,7 +2404,7 @@ TeeReadableByteStream branch 1 pull function <var>F</var> is called, it performs
   1. Let _teeState_ be _F_@[[teeState]].
   1. If _teeState_.[[queue1]] is not empty,
     1. Remove _chunk_ from _teeState_@[[queue1]], shifting all other elements downward (so that the second becomes the first, and so on).
-    1. FulfillReadableByteStream(_branch1_, _value1_).
+    1. ResolveReadableByteStream(_branch1_, _value1_).
     1. If _teeState_.[[originalClosed]], CloseReadableByteStream(_branch1_).
     1. Return *undefined*.
   1. Set _teeState_.[[pullCount1]] to _teeState_.[[pullCount1]] + 1.
@@ -2422,7 +2422,7 @@ TeeReadableByteStream branch 2 pull function <var>F</var> is called, it performs
   1. Let _teeState_ be _F_@[[teeState]].
   1. If _teeState_.[[queue2]] is not empty,
     1. Remove _chunk_ from _teeState_@[[queue2]], shifting all other elements downward (so that the second becomes the first, and so on).
-    1. FulfillReadableByteStream(_branch2_, _value1_).
+    1. ResolveReadableByteStream(_branch2_, _value1_).
     1. If _teeState_.[[originalClosed]], CloseReadableByteStream(_branch2_).
     1. Return *undefined*.
   1. Set _teeState_.[[pullCount2]] to _teeState_.[[pullCount2]] + 1.
