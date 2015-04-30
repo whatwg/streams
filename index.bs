@@ -2350,23 +2350,19 @@ stream. Its second argument governs whether or not the data from the original st
   1. Set _cancel1_@[[teeState]] to _teeState_.
   1. Set _cancel2_@[[teeState]] to _teeState_.
   1. Upon fulfillment of _reader_@[[closedPromise]],
-    1. If _teeState_.[[closedOrErrored]] is *true*, return *undefined*.
-    1. Set _teeState_.[[closedOrErrored]] to *true*.
     1. Set _teeState_.[[originalClosed]] to *true*.
     1. If _teeState_.[[canceled1]] is *false* and _teeState_.[[queue1]] is empty, CloseReadableByteStream(_branch1_).
     1. If _teeState_.[[canceled2]] is *false* and _teeState_.[[queue2]] is empty, CloseReadableByteStream(_branch2_).
   1. Upon rejection of _reader_@[[closedPromise]] with reason _r_,
-    1. If _teeState_.[[doneHaloseOrErrored]] is *true*, return *undefined*.
-    1. Set _teeState_.[[doneHandlingCloseOrError]] to *true*.
     1. If _teeState_.[[canceled1]] is *false*, ErrorReadableByteStream(_branch1_, _r_).
     1. If _teeState_.[[canceled2]] is *false*, ErrorReadableByteStream(_branch2_, _r_).
   1. Return «branch1, branch2».
 </pre>
 
-A <dfn>TeeReadableByteStream read function</dfn> is an anonymous built-in function that reads data from a given
-<a>readable byte stream reader</a> and enqueues it into two other streams ("branches" of the associated tee). Each
-TeeReadableByteStream read function has \[[teeState]] internal slot. When a TeeReadableByteStream read function
-<var>F</var> is called with the argument _result_, it performs the following steps:
+A <dfn>TeeReadableByteStream read handler function</dfn> is an anonymous built-in function that reads data from a given
+<a>readable byte stream reader</a> and fulfills read requests of two other streams ("branches" of the associated tee).
+Each TeeReadableByteStream read handler function has \[[teeState]] internal slot. When a TeeReadableByteStream read
+handler function <var>F</var> is called with the argument _result_, it performs the following steps:
 
 <pre is="emu-alg">
   1. Let _teeState_ be _F_@[[teeState]].
@@ -2396,9 +2392,8 @@ TeeReadableByteStream read function has \[[teeState]] internal slot. When a TeeR
 </pre>
 
 A <dfn>TeeReadableByteStream branch 1 pull function</dfn> is an anonymous built-in function that pulls data from a
-given <a>readable byte stream reader</a> and enqueues it into two other streams ("branches" of the associated tee).
-Each TeeReadableByteStream branch 1 pull function has \[[teeState]] internal slot. When a
-TeeReadableByteStream branch 1 pull function <var>F</var> is called, it performs the following steps:
+given <a>readable byte stream reader</a>. Each TeeReadableByteStream branch 1 pull function has \[[teeState]] internal
+slot. When a TeeReadableByteStream branch 1 pull function <var>F</var> is called, it performs the following steps:
 
 <pre is="emu-alg">
   1. Let _teeState_ be _F_@[[teeState]].
@@ -2408,15 +2403,15 @@ TeeReadableByteStream branch 1 pull function <var>F</var> is called, it performs
     1. If _teeState_.[[originalClosed]], CloseReadableByteStream(_branch1_).
     1. Return *undefined*.
   1. Set _teeState_.[[pullCount1]] to _teeState_.[[pullCount1]] + 1.
-  1. Let _readFunction_ be a new <a>TeeReadableByteStream read function</a>.
-  1. Set _readFunction_@[[teeState][] to _teeState_.
-  1. Return the result of transforming ReadFromReadableStreamReader(_reader_) by a fulfillment handler _readFunction_.
+  1. If _teeState_.[[pullCount1]] > _teeState_.[[pullCount2]],
+    1. Let _readFunction_ be a new <a>TeeReadableByteStream read handler function</a>.
+    1. Set _readFunction_@[[teeState][] to _teeState_.
+    1. Return the result of transforming ReadFromReadableStreamReader(_reader_) by a fulfillment handler _readFunction_.
 </pre>
 
 A <dfn>TeeReadableByteStream branch 2 pull function</dfn> is an anonymous built-in function that pulls data from a
-given <a>readable byte stream reader</a> and enqueues it into two other streams ("branches" of the associated tee).
-Each TeeReadableByteStream branch 2 pull function has \[[teeState]] internal slot. When a
-TeeReadableByteStream branch 2 pull function <var>F</var> is called, it performs the following steps:
+given <a>readable byte stream reader</a>. Each TeeReadableByteStream branch 2 pull function has \[[teeState]] internal
+slot. When a TeeReadableByteStream branch 2 pull function <var>F</var> is called, it performs the following steps:
 
 <pre is="emu-alg">
   1. Let _teeState_ be _F_@[[teeState]].
@@ -2426,15 +2421,16 @@ TeeReadableByteStream branch 2 pull function <var>F</var> is called, it performs
     1. If _teeState_.[[originalClosed]], CloseReadableByteStream(_branch2_).
     1. Return *undefined*.
   1. Set _teeState_.[[pullCount2]] to _teeState_.[[pullCount2]] + 1.
-  1. Let _readFunction_ be a new <a>TeeReadableByteStream read function</a>.
-  1. Set _readFunction_@[[teeState][] to _teeState_.
-  1. Return the result of transforming ReadFromReadableStreamReader(_reader_) by a fulfillment handler _readFunction_.
+  1. If _teeState_.[[pullCount2]] > _teeState_.[[pullCount1]],
+    1. Let _readFunction_ be a new <a>TeeReadableByteStream read handler function</a>.
+    1. Set _readFunction_@[[teeState][] to _teeState_.
+    1. Return the result of transforming ReadFromReadableStreamReader(_reader_) by a fulfillment handler _readFunction_.
 </pre>
 
 A <dfn>TeeReadableByteStream branch 1 cancel function</dfn> is an anonymous built-in function that reacts to the
 cancellation of the first of the two branches of the associated tee. Each TeeReadableByteStream branch 1 cancel
-function has \[[teeState]] internal slot. When a TeeReadableByteStream branch 1 cancel function
-<var>F</var> is called with argument <var>r</var>, it performs the following steps:
+function has \[[teeState]] internal slot. When a TeeReadableByteStream branch 1 cancel function <var>F</var> is called
+with argument <var>r</var>, it performs the following steps:
 
 <pre is="emu-alg">
   1. Let _teeState_ be _F_@[[teeState]].
@@ -2450,8 +2446,8 @@ function has \[[teeState]] internal slot. When a TeeReadableByteStream branch 1 
 
 A <dfn>TeeReadableByteStream branch 2 cancel function</dfn> is an anonymous built-in function that reacts to the
 cancellation of the second of the two branches of the associated tee. Each TeeReadableByteStream branch 2 cancel
-function has \[[stream]] and \[[teeState]] internal slots. When a TeeReadableStream branch 2 cancel function
-<var>F</var> is called with argument <var>r</var>, it performs the following steps:
+function has \[[teeState]] internal slot. When a TeeReadableStream branch 2 cancel function <var>F</var> is called with
+argument <var>r</var>, it performs the following steps:
 
 <pre is="emu-alg">
   1. Let _teeState_ be _F_@[[teeState]].
