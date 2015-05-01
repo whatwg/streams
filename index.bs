@@ -1926,10 +1926,6 @@ Instances of <code>ReadableByteStream</code> are created with the internal slots
     </tr>
   </thead>
   <tr>
-    <td>\[[closedPromise]]
-    <td>A promise that becomes fulfilled when the stream becomes closed; returned by the <code>closed</code> getter
-  </tr>
-  <tr>
     <td>\[[controller]]
     <td>A <a href="#rbs-controller-class"><code>ReadableByteStreamController</code></a> created with the ability to
       control the state of this stream
