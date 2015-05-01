@@ -14,7 +14,7 @@ This repository also includes a polyfill and test suite under `reference-impleme
 
 ## Building the spec
 
-Building the spec is a two-step process. First, the majority of the conversion work is done via [Bikeshed](https://github.com/tabatkins/bikeshed). Second, we run a custom portion of the [Ecmarkup](https://github.com/bterlson/ecmarkup) pipeline to convert the algorithms from [Ecmarkdown](https://github.com/domenic/ecmarkdown) syntax into HTML, and to automatically add cross-references.
+Building the spec is a two-step process. First, the majority of the conversion work is done via [Bikeshed](https://github.com/tabatkins/bikeshed). Second, we run a custom portion of the [Ecmarkup](https://github.com/bterlson/ecmarkup) pipeline to convert the algorithms from [Ecmarkdown](https://github.com/domenic/ecmarkdown) syntax into HTML, and to automatically add cross-references. This second step requires [io.js](https://iojs.org/) to be installed.
 
 ### Bikeshed
 
@@ -23,7 +23,7 @@ To run Bikeshed locally, [install Bikeshed](https://github.com/tabatkins/bikeshe
 Alternately, you can use the command
 
 ```
-curl https://api.csswg.org/bikeshed/ -F file=@index.bs > index.tmp.html
+curl https://api.csswg.org/bikeshed/ -F md-Text-Macro="SNAPSHOT-LINK dummy" -F file=@index.bs > index.tmp.html
 ```
 
 to use Bikeshed's web interface without installing anything.
