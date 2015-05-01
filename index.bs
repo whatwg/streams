@@ -275,10 +275,6 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     </tr>
   </thead>
   <tr>
-    <td>\[[closedPromise]]
-    <td>A promise that becomes fulfilled when the stream becomes closed; returned by the <code>closed</code> getter
-  </tr>
-  <tr>
     <td>\[[closeRequested]]
     <td>A boolean flag indicating whether the stream has been closed by its <a>underlying source</a>, but still has
       <a>chunks</a> in its internal queue that have not yet been read
