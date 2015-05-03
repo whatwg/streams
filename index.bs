@@ -1890,9 +1890,18 @@ A few abstract operations are used in this specification for utility purposes. W
 
 <h2 id="rbs">Readable Byte Streams</h2>
 
+<div class="warning">
+  Readable byte streams are still a work in progress. We are currently trying to ensure that their public API is stable,
+  as well as any operations needed to interface with them from other specifications. However, we're much less sure
+  about the details of their internal algorithms, as well as the APIs necessary to construct readable byte streams
+  (viz. the underlying byte source API and the controller API). Please follow along in
+  <a href="https://github.com/whatwg/streams/issues/300">the tracking issue</a>, as well as other issues under the
+  <a href="https://github.com/whatwg/streams/labels/byte%20streams">byte streams issues label</a>.
+</div>
+
 <h3 id="rbs-intro">Using Readable Byte Streams</h3>
 
-<div class="example">
+<div class="note">
   Unlike the readable stream, the readable byte stream provides multiple different kinds of readers. One is the
   <code>ReadableByteStreamReader</code>. It has the same methods as the <code>ReadableStreamReader</code>, and can be
   read in the same manner as the <code>ReadableStreamReader</code>. Other readers dedicated for the readable byte stream
