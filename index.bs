@@ -364,14 +364,15 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </ul>
 
   Both <code>start</code> and <code>pull</code> are given the ability to manipulate the stream's internal queue and
-  state via the passed <code>controller</code> object. This is an example of the
+  state via the passed <code>controller</code> object, which is an instance of
+  <a href="#rs-controller-class"><code>ReadableStreamController</code></a>. This is an example of the
   <a href="https://blog.domenic.me/the-revealing-constructor-pattern/">revealing constructor pattern</a>.
 
   The constructor also accepts a second argument containing the <a>queuing strategy</a> object with
   two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
   supplied <code>strategy</code> could be an instance of the built-in <code>CountQueuingStrategy</code> or
   <code>ByteLengthQueuingStrategy</code> classes, or it could be custom. If no strategy is supplied, the default
-  behavior will be the same as a <code>CountQueuingStrategy</code> with a high water mark of 1.
+  behavior will be the same as a <code>CountQueuingStrategy</code> with a <a>high water mark</a> of 1.
 </div>
 
 <pre is="emu-alg">
@@ -612,12 +613,23 @@ Instances of <code>ReadableStreamController</code> are created with the internal
 
 <h5 id="rs-controller-desired-size">get desiredSize</h5>
 
+<div class="note">
+  The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size
+  to fill the controlled stream's internal queue</a>. It can be negative, if the queue is over-full. An <a>underlying
+  source</a> should use this information to determine when and how to apply <a>backpressure</a>.
+</div>
+
 <pre is="emu-alg">
   1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Return GetReadableStreamDesiredSize(*this*@[[controlledReadableStream]]).
 </pre>
 
 <h5 id="rs-controller-close">close()</h5>
+
+<div class="note">
+  The <code>close</code> method will close the controlled readable stream. <a>Consumers</a> will still be able to read
+  any previously-enqueued <a>chunks</a> from the stream, but once those are read, the stream will become closed.
+</div>
 
 <pre is="emu-alg">
   1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
@@ -629,6 +641,10 @@ Instances of <code>ReadableStreamController</code> are created with the internal
 
 <h5 id="rs-controller-enqueue">enqueue(chunk)</h5>
 
+<div class="note">
+  The <code>enqueue</code> method will enqueue a given <a>chunk</a> in the controlled readable stream.
+</div>
+
 <pre is="emu-alg">
   1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableStream]].
@@ -638,6 +654,11 @@ Instances of <code>ReadableStreamController</code> are created with the internal
 </pre>
 
 <h5 id="rs-controller-error">error(e)</h5>
+
+<div class="note">
+  The <code>error</code> method will error the readable stream, making all future interactions with it fail with the
+  given error <var>e</var>.
+</div>
 
 <pre is="emu-alg">
   1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
@@ -1324,7 +1345,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
   supplied <code>strategy</code> could be an instance of the built-in <code>CountQueuingStrategy</code> or
   <code>ByteLengthQueuingStrategy</code> classes, or it could be custom. If no strategy is supplied, the default
-  behavior will be the same as a <code>CountQueuingStrategy</code> with a high water mark of 0.
+  behavior will be the same as a <code>CountQueuingStrategy</code> with a <a>high water mark</a> of 0.
 </div>
 
 <div class="note">
