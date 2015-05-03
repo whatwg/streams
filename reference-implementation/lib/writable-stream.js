@@ -26,10 +26,10 @@ export default class WritableStream {
     this._strategySize = normalizedStrategy.size;
     this._strategyHWM = normalizedStrategy.highWaterMark;
 
+    SyncWritableStreamStateWithQueue(this);
+
     const error = closure_WritableStreamErrorFunction();
     error._stream = this;
-
-    SyncWritableStreamStateWithQueue(this);
 
     const startResult = InvokeOrNoop(underlyingSink, 'start', [error]);
     this._startedPromise = Promise.resolve(startResult);

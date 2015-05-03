@@ -1364,9 +1364,9 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   1. Set *this*@[[queue]] to a new empty List.
   1. Set *this*@[[state]] to "writable".
   1. Set *this*@[[started]] and *this*@[[writing]] to *false*.
-  1. Call-with-rethrow SyncWritableStreamStateWithQueue(*this*).
   1. Let _normalizedStrategy_ be ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
   1. Set *this*@[[strategySize]] to _normalizedStrategy_.[[size]] and *this*@[[strategyHWM]] to _normalizedStrategy_.[[highWaterMark]].
+  1. Call-with-rethrow SyncWritableStreamStateWithQueue(*this*).
   1. Let _error_ be a new <a><code>WritableStream</code> error function</a>.
   1. Set _error_@[[stream]] to *this*.
   1. Let _startResult_ be InvokeOrNoop(_underlyingSink_, "start", «_error_»).
@@ -2928,6 +2928,7 @@ Ed Hager,
 Forbes Lindesay,
 贺师俊 (hax),
 Jens Nockert,
+Mangala Sadhu Sangeet Singh Khalsa,
 Marcos Caceres,
 Michael Mior,
 Tab Atkins,
