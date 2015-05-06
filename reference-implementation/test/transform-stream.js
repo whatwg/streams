@@ -367,3 +367,28 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
   })
   .catch(e => t.error(e));
 });
+
+test('Transform stream should call transformer methods as methods', t => {
+  t.plan(1);
+  const ts = new TransformStream({
+    suffix: '-suffix',
+
+    transform(chunk, enqueue, done) {
+      enqueue(chunk + this.suffix);
+      done();
+    },
+
+    flush(enqueue, close) {
+      enqueue('flushed' + this.suffix);
+      close();
+    }
+  });
+
+  ts.writable.write('a');
+  ts.writable.close();
+  ts.writable.closed.then(() => {
+    return readableStreamToArray(ts.readable).then(chunks => {
+      t.deepEqual(chunks, ['a-suffix', 'flushed-suffix'], 'both enqueued chunks have suffixes');
+    });
+  }, e => t.error(e));
+});
