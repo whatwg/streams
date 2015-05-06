@@ -3,7 +3,7 @@ import WritableStream from './writable-stream';
 
 export default class TransformStream {
   constructor(transformer) {
-    if (transformer.flush == null) {
+    if (transformer.flush === undefined) {
       transformer.flush = (enqueue, close) => close();
     }
 
