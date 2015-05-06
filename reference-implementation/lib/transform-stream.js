@@ -2,8 +2,12 @@ import ReadableStream from './readable-stream';
 import WritableStream from './writable-stream';
 
 export default class TransformStream {
-  constructor({ transform, flush = (enqueue, close) => close(), writableStrategy, readableStrategy }) {
-    if (typeof transform !== 'function') {
+  constructor(transformer) {
+    if (transformer.flush == null) {
+      transformer.flush = (enqueue, close) => close();
+    }
+
+    if (typeof transformer.transform !== 'function') {
       throw new TypeError('transform must be a function');
     }
 
@@ -24,13 +28,13 @@ export default class TransformStream {
       },
       close() {
         try {
-          flush(enqueueInReadable, closeReadable);
+          transformer.flush(enqueueInReadable, closeReadable);
         } catch (e) {
           errorWritable(e);
           errorReadable(e);
         }
       }
-    }, writableStrategy);
+    }, transformer.writableStrategy);
 
     let enqueueInReadable, closeReadable, errorReadable;
     this.readable = new ReadableStream({
@@ -44,13 +48,13 @@ export default class TransformStream {
           maybeDoTransform();
         }
       }
-    }, readableStrategy);
+    }, transformer.readableStrategy);
 
     function maybeDoTransform() {
       if (transforming === false) {
         transforming = true;
         try {
-          transform(writeChunk, enqueueInReadable, transformDone);
+          transformer.transform(writeChunk, enqueueInReadable, transformDone);
           writeChunk = undefined;
           chunkWrittenButNotYetTransformed = false;
         } catch (e) {

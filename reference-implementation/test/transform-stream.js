@@ -367,3 +367,25 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
   })
   .catch(e => t.error(e));
 });
+
+test('Transform context', t => {
+  t.plan(1);
+  const ts = new TransformStream({
+    prefix: '-prefix',
+
+    transform(chunk, enqueue, done) {
+      enqueue(chunk + this.prefix);
+      done();
+    },
+
+    flush(enqueue, close) {
+      close();
+    }
+  });
+
+  ts.writable.write('a');
+  ts.writable.close();
+  ts.readable.getReader().read().then((result) => {
+    t.equal(result.value, 'a-prefix');
+  }, e => t.error(e));
+});
