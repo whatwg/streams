@@ -1820,6 +1820,24 @@ throughout the rest of this standard.
 
 A few abstract operations are used in this specification for utility purposes. We define them here.
 
+<h4 id="get-viewed-array-buffer" aoid="GetViewedArrayBuffer">GetViewedArrayBuffer ( O )</h4>
+
+<pre is="emu-alg">
+  1. Return the result of calling the get accessor function of %TypedArray%.prototype.buffer on _O_ passing no arguments.
+</pre>
+
+<h4 id="get-byte-length" aoid="GetByteLength">GetByteLength ( O )</h4>
+
+<pre is="emu-alg">
+  1. Return the result of calling the get accessor function of %TypedArray%.prototype.byteLength on _O_ passing no arguments.
+</pre>
+
+<h4 id="get-byte-offset" aoid="GetByteOffset">GetByteOffset ( O )</h4>
+
+<pre is="emu-alg">
+  1. Return the result of calling the get accessor function of %TypedArray%.prototype.byteOffset on _O_ passing no arguments.
+</pre>
+
 <h4 id="invoke-or-noop" aoid="InvokeOrNoop">InvokeOrNoop ( O, P, args )</h4>
 
 <div class="note">
@@ -1953,6 +1971,10 @@ Instances of <code>ReadableByteStream</code> are created with the internal slots
       a reader</a>, or <b>undefined</b> if it is not
   </tr>
   <tr>
+    <td>\[[sourceSupportsByob]]
+    <td>A boolean flag indicating whether the provided underlying byte source has the "pullInto" method.
+  </tr>
+  <tr>
     <td>\[[state]]
     <td>A string containing the stream's current state, used internally; one of <code>"readable"</code>,
       <code>"closed"</code>, or <code>"errored"</code>
@@ -1972,6 +1994,16 @@ Instances of <code>ReadableByteStream</code> are created with the internal slots
 <h4 id="rbs-constructor">new ReadableByteStream(underlyingByteSource = {})</h4>
 
 <pre is="emu-alg">
+  1. Let _pull_ be GetV(_underlyingByteSource_, "pull").
+  1. ReturnIfAbrupt(_pull_).
+  1. If _pull_ is not *undefined*,
+    1. If IsCallable(_pull_) is *false*, throw a *TypeError* exception.
+  1. Let _pullInto_ be GetV(_underlyingByteSource_, "pullInto").
+  1. ReturnIfAbrupt(_pullInto_).
+  1. If _pullInto_ is not *undefined*,
+    1. If IsCallable(_pullInto_) is *false*, throw a *TypeError* exception.
+    1. Set *this*@[[sourceSupportsByob]] to *true*.
+  1. Otherwise, set *this*@[[sourceSupportsByob]] to *false*.
   1. Set *this*@[[underlyingByteSource]] to _underlyingByteSource_.
   1. Set *this*@[[state]] to "readable".
   1. Set *this*@[[reader]] and *this*@[[storedError]] to *undefined*.
@@ -2066,12 +2098,18 @@ table:
     </tr>
   </thead>
   <tr>
+    <td>\[[bytesOfHeadAlreadyConsumed]]
+    <td>The number of bytes of the first element in \[[queue]] which are already consumed
+  </tr>
+  <tr>
     <td>\[[controlledReadableByteStream]]
     <td>The <code>ReadableByteStream</code> instance controlled
   </tr>
   <tr>
-    <td>\[[queueTopConsumedBytes]]
-    <td>The number of bytes of the first element in [[queue]] which are already consumed
+    <td>\[[pendingViews]]
+    <td>A List of objects implementing the ArrayBufferView type provided by the consumer via
+      <code>ReadableByteStreamByobReader</code>; used only when the provided underlying byte source doesn't have the
+      "pullInto" method.
   </tr>
   <tr>
     <td>\[[queue]]
@@ -2105,24 +2143,55 @@ table:
 
 <pre is="emu-alg">
   1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
-  1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableByteStream]].
+  1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
   1. Let _reader_ be _stream_@[[reader]].
-  1. If _reader_ is *undefined*, EnqueueInReadableByteStreamController(*this*, _chunk_).
+  1. If _reader_ is *undefined*,
+    1. EnqueueInReadableByteStreamController(*this*, _chunk_).
+    1. Return *undefined*.
   1. If _reader_ has a [[readRequests]] internal slot,
     1. If _stream_@[[reader]]@[[readRequests]] is empty,
       1. EnqueueInReadableByteStreamController(*this*, _chunk_).
       1. Return *undefined*.
+    1. Assert: *this*@[[queue]] is empty.
     1. RespondToReadableByteStreamReaderReadRequest(_stream_, _chunk_).
     1. Return *undefined*.
-  1. If _reader_ has a [[readIntoRequests]] internal slot,
+  1. Otherwise, _reader_ must have a [[readIntoRequests]] internal slot so,
     1. If _stream_@[[reader]]@[[readIntoRequests]] is empty,
       1. EnqueueInReadableByteStreamController(*this*, _chunk_).
       1. Return *undefined*.
-    1. Let _bytesCopied_ be CopyArrayBufferViewContents(_view_, _chunk_, *0*).
-    1. RespondToReadableByteStreamByobReaderReadIntoRequest(_stream_, _chunk_).
+    1. Assert: *this*@[[queue]] is empty.
+    1. If _stream_@[[sourceSupportsByob]] is *true*, throw a *TypeError* exception.
+    1. Let _dest_ be the first element of *this*@[[pendingViews]].
+    1. Remove _dest_ from *this*@[[pendingViews]], shifting all other elements downward (so that the second becomes the first, and so on).
+    1. Let _bytesCopied_ be CopyArrayBufferViewContents(_dest_, _chunk_, *0*).
+    1. If _bytesCopied_ is an abrupt completion,
+      1. ErrorReadableByteStream(_stream_, _bytesCopied_.[[value]]).
+      1. Return _bytesCopied_.
+    1. Let _bytesCopied_ be _bytesCopied_.[[value]].
+    1. Let _destBuffer_ be GetViewedArrayBuffer(_dest_).
+    1. If _destBuffer_ is an abrupt completion,
+      1. ErrorReadableByteStream(_stream_, _destBuffer_.[[value]]).
+    1. ReturnIfAbrupt(_destBuffer_).
+    1. Let _destByteLength_ be GetByteLength(_dest_).
+    1. If _destByteLength_ is an abrupt completion,
+      1. ErrorReadableByteStream(_stream_, _destByteLength_.[[value]]).
+    1. ReturnIfAbrupt(_destByteLength_).
+    1. Let _destByteOffset_ be GetByteOffset(_dest_).
+    1. If _destByteOffset_ is an abrupt completion,
+      1. ErrorReadableByteStream(_stream_, _destByteOffset_.[[value]]).
+    1. ReturnIfAbrupt(_destByteOffset_).
+    1. If _destByteLength_ is not equal to _bytesCopied_,
+      1. Let _dest_ be Construct(`Uint8Array`, «_destBuffer_, _destByteOffset_, _bytesCopied_»).
+    1. RespondToReadableByteStreamByobReaderReadIntoRequest(_stream_, _dest_).
+    1. Let _chunkByteLength_ be GetByteLength(_chunk_).
+    1. If _chunkByteLength_ is an abrupt completion,
+      1. ErrorReadableByteStream(_stream_, _chunkByteLength_.[[value]]).
+    1. ReturnIfAbrupt(_chunkByteLength_).
+    1. If _chunkByteLength_ is not equal to _bytesCopied_,
+      1. Append _chunk_ as the last element of *this*[[queue]].
+      1. Set *this*@[[bytesOfHeadAlreadyConsumed]] to _bytesCopied_.
     1. Return *undefined*.
-  1. Assert: *false*.
 </pre>
 
 <h5 id="rbs-controller-error">error(e)</h5>
@@ -2141,14 +2210,14 @@ table:
 <pre is="emu-alg">
   1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableByteStream]].
+  1. If _stream_@[[sourceSupportsByob]] is *false*, throw a *TypeError* exception.
   1. Let _reader_ be _stream_@[[reader]].
   1. If _reader_ is *undefined*, throw a *TypeError* exception.
   1. If _reader_ has a [[readRequests]] internal slot, throw a *TypeError* exception.
-  1. If _reader_ has a [[readIntoRequests]] internal slot,
+  1. Otherwise, _reader_ must have a [[readIntoRequests]] internal slot so,
     1. If _stream_@[[reader]]@[[readIntoRequests]] is empty, throw a *TypeError* exception.
     1. RespondToReadableByteStreamByobReaderReadIntoRequest(_stream_, _chunk_).
     1. Return *undefined*.
-  1. Assert: *false*.
 </pre>
 
 <h3 id="byte-reader-class">Class <code>ReadableByteStreamReader</code></h3>
@@ -2526,41 +2595,65 @@ stream byob reader</a> for a given stream.
 <h4 id="pull-from-readable-byte-stream-into" aoid="PullFromReadableByteStreamInto">PullFromReadableByteStreamInto ( stream, view )</h4>
 
 <pre is="emu-alg">
-  1. Let _controller_ be _stream_@[[controller]].
-  1. If _controller_@[[queue]] is empty,
-    1. Let _pullResult_ be Invoke(_stream_@[[underlyingByteSource]], "pullInto", « view »).
-    1. If _pullResult_ is an abrupt completion,
-      1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _pullResult_.[[value]]).
+  1. Let _queue_ be _stream_@[[controller]]@[[queue]].
+  1. If _queue_ is empty,
+    1. If _stream_@[[sourceSupportsByob]],
+      1. Let _pullIntoResult_ be Invoke(_stream_@[[underlyingByteSource]], "pullInto", «_view_»).
+      1. If _pullIntoResult_ is an abrupt completion,
+        1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _pullIntoResult_.[[value]]).
+    1. Otherwise,
+      1. Append _view_ as the last element of _controller_@[[pendingViews]].
+      1. Let _pullResult_ be Invoke(_stream_@[[underlyingByteSource]], "pull").
+      1. If _pullResult_ is an abrupt completion,
+        1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _pullResult_.[[value]]).
     1. Return *undefined*.
-  1. Let _chunk_ be the first element of _controller_@[[queue]].
-  1. Let _bytesCopied_ be CopyArrayBufferViewContents(_view_, _chunk_, _controller_@[[queueTopConsumedBytes]]).
+  1. Let _chunk_ be the first element of _queue_.
+  1. Let _bytesAlreadyConsumed_ be _controller_@[[bytesOfHeadAlreadyConsumed]].
+  1. Let _bytesCopied_ be CopyArrayBufferViewContents(_view_, _chunk_, _bytesAlreadyConsumed_).
+  1. If _bytesCopied_ is an abrupt completion,
+    1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _bytesCopied_.[[value]]).
+    1. Return *undefined*.
+  1. Keep the same type
   1. If _bytesCopied_ does not equal to Get(_view_, "byteLength"),
-    1. Let _view_ be Construct(`Uint8Array`, «Get(_view_, "buffer"), Get(_view_, "byteOffset"), _bytesCopied_».
+    1. Let _view_ be Construct(`Uint8Array`, «Get(_view_, "buffer"), Get(_view_, "byteOffset"), _bytesCopied_»).
   1. RespondToReadableByteStreamByobReaderReadIntoRequest(_stream_, _view_).
-  1. If _bytesAlreadyConsumed_ + _bytesToCopy_ equals to Get(_chunk_, "byteLength"),
-    1. Remove _chunk_ from _controller_@[[queue]], shifting all other elements downward (so that the second becomes the first, and so on).
-    1. Set _controller_@[[queueTopConsumedBytes]] to *0*.
-    1. If _controller_@[[queue]] is empty and _controller_@[[closeRequested]], CloseReadableByteStream(_stream_).
-  1. Otherwise, set _controller_@[[queueTopConsumedBytes]] to _controller_@[[queueTopConsumedBytes]] + _bytesToCopy_.
+  1. If _bytesAlreadyConsumed_ + _bytesToCopy_ equals Get(_chunk_, "byteLength"),
+    1. Remove _chunk_ from _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
+    1. Set _controller_@[[bytesOfHeadAlreadyConsumed]] to *0*.
+    1. If _queue_ is empty and _controller_@[[closeRequested]] is *true*, CloseReadableByteStream(_stream_).
+  1. Otherwise, set _controller_@[[bytesOfHeadAlreadyConsumed]] to _bytesAlreadyConsumed_ + _bytesToCopy_.
   1. Return *undefined*.
 </pre>
 
 <h4 id="pull-from-readable-byte-stream" aoid="PullFromReadableByteStream">PullFromReadableByteStream ( stream )</h4>
 
 <pre is="emu-alg">
-  1. Let _controller_ be _stream_@[[controller]].
-  1. If _controller_@[[queue]] is empty,
+  1. Let _queue_ be _stream_@[[controller]]@[[queue]].
+  1. If _queue_ is empty,
     1. Let _pullResult_ be Invoke(_stream_@[[underlyingByteSource]], "pull").
     1. If _pullResult_ is an abrupt completion,
       1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _pullResult_.[[value]]).
-  1. Let _chunk_ be the first element of _controller_@[[queue]].
-  1. Remove _chunk_ from _controller_@[[queue]], shifting all other elements downward (so that the second becomes the first, and so on).
-  1. Let _bytesAlreadyConsumed_ be _controller_@[[queueTopConsumedBytes]].
+    1. Return *undefined*.
+  1. Let _chunk_ be the first element of _queue_.
+  1. Remove _chunk_ from _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
+  1. Let _bytesAlreadyConsumed_ be _controller_@[[bytesOfHeadAlreadyConsumed]].
   1. If _bytesAlreadyConsumed_ is not *0*,
-    1. Let _chunk_ be Construct(`Uint8Array`, «Get(_chunk_, "buffer"), Get(_chunk_, "byteOffset") + _bytesAlreadyConsumed_, Get(_chunk_, "byteLength") - _bytesAlreadyConsumed_».
-    1. Set _controller_@[[queueTopConsumedBytes]] to *0*.
+    1. Let _buffer_ be GetViewedArrayBuffer(_chunk_).
+    1. If _buffer_ is an abrupt completion,
+      1. ErrorReadableByteStream(_stream_, _buffer_.[[value]]).
+      1. Return *undefined*.
+    1. Let _byteLength_ be GetByteLength(_chunk_).
+    1. If _byteLength_ is an abrupt completion,
+      1. ErrorReadableByteStream(_stream_, _byteLength_.[[value]]).
+      1. Return *undefined*.
+    1. Let _byteOffset_ be GetByteOffset(_chunk_).
+    1. If _byteOffset_ is an abrupt completion,
+      1. ErrorReadableByteStream(_stream_, _byteOffset_.[[value]]).
+      1. Return *undefined*.
+    1. Let _chunk_ be Construct(`Uint8Array`, «_buffer_, _byteOffset_ + _bytesAlreadyConsumed_, _byteLength_ - _bytesAlreadyConsumed_»).
+    1. Set _controller_@[[bytesOfHeadAlreadyConsumed]] to *0*.
   1. RespondToReadableByteStreamReaderReadRequest(_stream_, _chunk_).
-  1. If _controller_@[[queue]] is empty and _controller_@[[closeRequested]] is *true*, CloseReadableByteStream(_stream_).
+  1. If _queue_ is empty and _controller_@[[closeRequested]] is *true*, CloseReadableByteStream(_stream_).
   1. Return *undefined*.
 </pre>
 
@@ -2572,8 +2665,7 @@ stream byob reader</a> for a given stream.
     1. If _reader_@[[state]] is "errored", return a new promise rejected with CreateIterResultObject(_reader_@[[storedError]], _view_).
   1. Let _readRequestPromise_ be a new promise.
   1. Append _readRequestPromise_ as the last element of _reader_@[[readRequests]].
-  1. Let _owner_ be _reader_@[[ownerReadableByteStream]].
-  1. PullFromReadableByteStreamInto(_owner_, _view_).
+  1. PullFromReadableByteStreamInto(_reader_@[[ownerReadableByteStream]], _view_).
   1. Return _readRequestPromise_.
 </pre>
 
@@ -2586,8 +2678,7 @@ stream byob reader</a> for a given stream.
   1. Assert: _reader_@[[ownerReadableByteStream]]@[[state]] is "readable".
   1. Let _readRequestPromise_ be a new promise.
   1. Append _readRequestPromise_ as the last element of _reader_@[[readRequests]].
-  1. Let _owner_ be _reader_@[[ownerReadableByteStream]].
-  1. PullFromReadableByteStream(_owner_).
+  1. PullFromReadableByteStream(_reader_@[[ownerReadableByteStream]]).
   1. Return _readRequestPromise_.
 </pre>
 
@@ -2596,17 +2687,15 @@ stream byob reader</a> for a given stream.
 <pre is="emu-alg">
   1. Let _reader_ be _stream_@[[reader]].
   1. If _reader_ is *undefined*, return *undefined*.
-  1. Assert: Type(_reader_) is Object.
   1. If _reader_ has a [[readRequests]] internal slot,
     1. SyncReadableByteStreamReaderStateWithOwner(_stream_).
     1. FlushReadableByteStreamReaderReadRequests(_stream_).
     1. DetachReadableByteStreamReader(_reader_).
     1. Return *undefined*.
-  1. If _reader_ has a [[readIntoRequests]] internal slot,
+  1. Otherwise, _reader_ must have a [[readIntoRequests]] internal slot so,
     1. SyncReadableByteStreamReaderStateWithOwner(_stream_).
     1. If _reader_@[[readIntoRequests]] is empty, DetachReadableByteStreamReader(_stream_).
     1. Return *undefined*.
-  1. Assert: *false*.
 </pre>
 
 <h4 id="respond-to-readable-byte-stream-reader-read-request" aoid="RespondToReadableByteStreamReaderReadRequest">RespondToReadableByteStreamReaderReadRequest ( stream, chunk )</h4>
@@ -2633,8 +2722,7 @@ stream byob reader</a> for a given stream.
     1. Return *undefined*.
   1. If _stream_@[[state]] is "closed",
     1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *true*).
-  1. Otherwise,
-    1. Assert: _reader_@[[state]] is "errored".
+  1. Otherwise, _reader_@[[state]] must be "errored" so,
     1. Reject _readRequestPromise_ with CreateIterResultObject(_stream_@[[storedError]], _chunk_).
   1. If _reader_@[[readIntoRequests]] is empty, DetachReadableByteStreamReader(_stream_).
   1. Return *undefined*.
