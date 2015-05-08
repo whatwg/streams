@@ -2098,8 +2098,12 @@ table:
     </tr>
   </thead>
   <tr>
-    <td>\[[bytesOfHeadAlreadyConsumed]]
+    <td>\[[consumedBytesOfQueueHead]]
     <td>The number of bytes of the first element in \[[queue]] which are already consumed
+  </tr>
+  <tr>
+    <td>\[[filledBytesOfPendingViewsHead]]
+    <td>The number of bytes of the first element in \[[pendingView]] which are already filled
   </tr>
   <tr>
     <td>\[[controlledReadableByteStream]]
@@ -2135,7 +2139,9 @@ table:
   1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
   1. If *this*@[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. Set *this*@[[closeRequested]] to *true*.
-  1. If *this*@[[queue]] is empty, CloseReadableByteStream(_stream_).
+  1. If *this*@[[queue]] is empty,
+    1. If *this*@[[filledBytesOfPendingViewsHead]] is not equal to *0*, throw a *RangeError* exception.
+    1. CloseReadableByteStream(_stream_).
   1. Return *undefined*.
 </pre>
 
@@ -2148,6 +2154,7 @@ table:
   1. Let _reader_ be _stream_@[[reader]].
   1. If _reader_ is *undefined*,
     1. EnqueueInReadableByteStreamController(*this*, _chunk_).
+    1. Call-with-rethrow RequestReadableByteStreamPull(_stream_).
     1. Return *undefined*.
   1. If _reader_ has a [[readRequests]] internal slot,
     1. If _stream_@[[reader]]@[[readRequests]] is empty,
@@ -2155,42 +2162,18 @@ table:
       1. Return *undefined*.
     1. Assert: *this*@[[queue]] is empty.
     1. RespondToReadableByteStreamReaderReadRequest(_stream_, _chunk_).
+    1. Call-with-rethrow RequestReadableByteStreamPull(_stream_).
     1. Return *undefined*.
   1. Otherwise, _reader_ must have a [[readIntoRequests]] internal slot so,
-    1. If _stream_@[[reader]]@[[readIntoRequests]] is empty,
+    1. If _stream_@[[reader]]@[[readIntoRequests]] is not empty,
+      1. If _stream_@[[sourceSupportsByob]] is *true*, throw a *TypeError* exception.
       1. EnqueueInReadableByteStreamController(*this*, _chunk_).
-      1. Return *undefined*.
-    1. Assert: *this*@[[queue]] is empty.
-    1. If _stream_@[[sourceSupportsByob]] is *true*, throw a *TypeError* exception.
-    1. Let _dest_ be the first element of *this*@[[pendingViews]].
-    1. Remove _dest_ from *this*@[[pendingViews]], shifting all other elements downward (so that the second becomes the first, and so on).
-    1. Let _bytesCopied_ be CopyArrayBufferViewContents(_dest_, _chunk_, *0*).
-    1. If _bytesCopied_ is an abrupt completion,
-      1. ErrorReadableByteStream(_stream_, _bytesCopied_.[[value]]).
-      1. Return _bytesCopied_.
-    1. Let _bytesCopied_ be _bytesCopied_.[[value]].
-    1. Let _destBuffer_ be GetViewedArrayBuffer(_dest_).
-    1. If _destBuffer_ is an abrupt completion,
-      1. ErrorReadableByteStream(_stream_, _destBuffer_.[[value]]).
-    1. ReturnIfAbrupt(_destBuffer_).
-    1. Let _destByteLength_ be GetByteLength(_dest_).
-    1. If _destByteLength_ is an abrupt completion,
-      1. ErrorReadableByteStream(_stream_, _destByteLength_.[[value]]).
-    1. ReturnIfAbrupt(_destByteLength_).
-    1. Let _destByteOffset_ be GetByteOffset(_dest_).
-    1. If _destByteOffset_ is an abrupt completion,
-      1. ErrorReadableByteStream(_stream_, _destByteOffset_.[[value]]).
-    1. ReturnIfAbrupt(_destByteOffset_).
-    1. If _destByteLength_ is not equal to _bytesCopied_,
-      1. Let _dest_ be Construct(`Uint8Array`, «_destBuffer_, _destByteOffset_, _bytesCopied_»).
-    1. RespondToReadableByteStreamByobReaderReadIntoRequest(_stream_, _dest_).
-    1. Let _chunkByteLength_ be GetByteLength(_chunk_).
-    1. If _chunkByteLength_ is an abrupt completion,
-      1. ErrorReadableByteStream(_stream_, _chunkByteLength_.[[value]]).
-    1. ReturnIfAbrupt(_chunkByteLength_).
-    1. If _chunkByteLength_ is not equal to _bytesCopied_,
-      1. Append _chunk_ as the last element of *this*[[queue]].
-      1. Set *this*@[[bytesOfHeadAlreadyConsumed]] to _bytesCopied_.
+      1. Let _respondResult_ be MaybeRespondToReadIntoRequestFromQueue(_stream_).
+      1. If _respondResult_ is an abrupt completion,
+        1. ErrorReadableByteStream(_stream_, _respondResult_.[[value]]).
+        1. Return _respondResult_.
+    1. Otherwise, EnqueueInReadableByteStreamController(*this*, _chunk_).
+    1. Call-with-rethrow RequestReadableByteStreamPull(_stream_).
     1. Return *undefined*.
 </pre>
 
@@ -2491,16 +2474,6 @@ stream byob reader</a> for a given stream.
   1. Return *undefined*.
 </pre>
 
-<h4 id="copy-array-buffer-view-contents" aoid="CopyArrayBufferViewContents">CopyArrayBufferViewContents ( dest, source, sourceBytesAlreadyConsumed )</h4>
-
-<pre is="emu-alg">
-  1. Let _bytesToCopy_ be Get(_source_, "byteLength") - _sourceBytesAlreadyConsumed_.
-  1. Let _destSize_ be Get(_dest_, "byteLength").
-  1. If _bytesToCopy_ > _destSize_, let _bytesToCopy_ be _destSize_.
-  1. Set the contents of Get(_dest_, "buffer") from Get(_dest_, "byteOffset"), inclusive, up to Get(_dest_, "byteOffset") + _bytesToCopy_, exclusive, to the bytes in Get(_source_, "buffer") from Get(_source_, "byteOffset") + _sourceBytesAlreadyConsumed_, inclusive, up to Get(_source_, "byteOffset") + _sourceBytesAlreadyConsumed_ + _bytesToCopy_, exclusive.
-  1. Return _bytesToCopy_.
-</pre>
-
 <h4 id="detach-readable-byte-stream-reader" aoid="DetachReadableByteStreamReader">DetachReadableByteStreamReader ( stream )</h4>
 
 <pre is="emu-alg">
@@ -2552,6 +2525,14 @@ stream byob reader</a> for a given stream.
   1. Set _reader_@[[readRequests]] to a new empty List.
 </pre>
 
+<h4 id="get-readable-byte-stream-desired-size" aoid="GetReadableByteStreamDesiredSize">GetReadableByteStreamDesiredSize ( stream )</h4>
+
+<pre is="emu-alg">
+  1. Let _queueSize_ be GetTotalQueueSize(_stream_@[[controller]]@[[queue]]) - _stream_@[[controller]]@[[consumedBytesOfQueueHead]].
+  1. ReturnIfAbrupt(_queueSize_).
+  1. Return _stream_@[[controller]]@[[strategyHWM]] − _queueSize_.
+</pre>
+
 <h4 id="is-readable-byte-stream" aoid="IsReadableByteStream">IsReadableByteStream ( x )</h4>
 
 <pre is="emu-alg">
@@ -2592,6 +2573,65 @@ stream byob reader</a> for a given stream.
   1. Return *true*.
 </pre>
 
+<h4 id="maybe-respond-to-read-into-request-from-queue" aoid="MaybeRespondToReadIntoRequestFromQueue">MaybeRespondToReadIntoRequestFromQueue ( stream )</h4>
+
+<pre is="emu-alg">
+  1. Let _queue_ be _stream_@[[controller]]@[[queue]].
+  1. Assert: _queue_ is not empty.
+  1. Let _dest_ be the first element of _stream_@[[controller]]@[[pendingViews]].
+  1. Let _destBuffer_ be GetViewedArrayBuffer(_dest_).
+  1. ReturnIfAbrupt(_destBuffer_).
+  1. Let _destByteLength_ be GetByteLength(_dest_).
+  1. ReturnIfAbrupt(_destByteLength_).
+  1. Let _destByteOffset_ be GetByteOffset(_dest_).
+  1. ReturnIfAbrupt(_destByteOffset_).
+  1. Let _destBytesAlreadyFilled_ be _controller_@[[filledBytesOfPendingViewsHead]].
+  1. Let _chunk_ be PeakQueueValue(_queue_).
+  1. Let _chunkBuffer_ be GetViewedArrayBuffer(_chunk_).
+  1. ReturnIfAbrupt(_chunkBuffer_).
+  1. Let _chunkByteLength_ be GetByteLength(_chunk_).
+  1. ReturnIfAbrupt(_chunkByteLength_).
+  1. Let _chunkByteOffset_ be GetByteOffset(_chunk_).
+  1. ReturnIfAbrupt(_chunkByteOffset_).
+  1. Let _chunkBytesAlreadyConsumed_ be _controller_@[[consumedBytesOfQueueHead]].
+  1. Let _bytesToCopy_ be _chunkByteLength_ - _chunkBytesAlreadyConsumed_.
+  1. Let _destRemaining_ be _destByteLength_ - _destBytesAlreadyFilled_.
+  1. If _bytesToCopy_ > _destRemaining_, let _bytesToCopy_ be _destRemaining_.
+  1. Let _validationResult_ be ValidateTypedArray(_dest_).
+  1. Let _elementSize_ be *1*.
+  1. If _validationResult_ is not an abrupt completion,
+    1. Let _constructorName_ be the string value of _dest_'s [[TypedArrayName]] internal slot.
+    1. Let _elementSize_ be the Number value of the Element Size value for _constructorName_.
+    1. If _bytesToCopy_ + _destBytesAlreadyFilled_ > _elementSize_,
+      1. Let _remainderBytes_ be (_bytesToCopy_ + _destBytesAlreadyFilled_) modulo _elementSize_.
+      1. Let _bytesToCopy_ be _bytesToCopy_ - _remainderBytes_.
+  1. Let _destBeginPosition_ be _destByteOffset_ + _destBytesAlreadyFilled_.
+  1. Let _destEndPosition_ be _destByteOffset_ + _destBytesAlreadyFilled_ + _bytesToCopy_.
+  1. Let _chunkBeginPosition_ be _chunkByteOffset_ + _chunkBytesAlreadyConsumed_.
+  1. Let _chunkEndPosition_ be _chunkByteOffset_ + _chunkBytesAlreadyConsumed_ + _bytesToCopy_.
+  1. Set the contents of _destBuffer_ from _destBeginPosition_, inclusive, up to _destEndPosition_, exclusive, to the bytes in _chunkBuffer_ from _chunkBeginPosition_, inclusive, up to _chunkEndPosition_, exclusive.
+  1. Let _destBytesAlreadyFilled_ be _destBytesAlreadyFilled_ + _bytesToCopy_.
+  1. If _destBytesAlreadyFilled_ ≥ _elementSize_,
+    1. Remove _dest_ from _controller_@[[pendingViews]], shifting all other elements downward (so that the second becomes the first, and so on).
+    1. If _destByteLength_ is not equal to _destBytesAlreadyFilled_,
+      1. If _validationResult_ is not an abrupt completion,
+        1. Let _newLength_ be _destBytesAlreadyFilled_ / _elementSize_.
+        1. Let _dest_ be the result of calling %TypedArray%.prototype.subarray on _dest_ passing *0* and _newLength_ as the arguments.
+      1. Otherwise,
+        1. If _dest_ does not have a [[DataView]] internal slot, throw a *TypeError* exception.
+        1. Let _dest_ be Construct(`DataView`, «_destBuffer_, _destByteOffset, _destBytesAlreadyFilled_»).
+    1. RespondToReadableByteStreamByobReaderReadIntoRequest(_stream_, _dest_).
+    1. Set _controller_@[[filledBytesOfPendingViewsHead]] to *0*.
+  1. Let _chunkBytesAlreadyConsumed_ be _chunkBytesAlreadyConsumed_ + _bytesToCopy_.
+  1. If _chunkBytesAlreadyConsumed_ equals _chunkByteLength_,
+    1. DequeueValue(_queue_).
+    1. Set _controller_@[[consumedBytesOfQueueHead]] to *0*.
+    1. If _queue_ is empty and _controller_@[[closeRequested]] is *true*,
+      1. If _controller_@[[filledBytesOfPendingViewsHead]] is not equal to *0*, throw a *RangeError* exception.
+      1. CloseReadableByteStream(_stream_).
+  1. Otherwise, set _controller_@[[consumedBytesOfQueueHead]] to _chunkBytesAlreadyConsumed_.
+</pre>
+
 <h4 id="pull-from-readable-byte-stream-into" aoid="PullFromReadableByteStreamInto">PullFromReadableByteStreamInto ( stream, view )</h4>
 
 <pre is="emu-alg">
@@ -2603,25 +2643,13 @@ stream byob reader</a> for a given stream.
         1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _pullIntoResult_.[[value]]).
     1. Otherwise,
       1. Append _view_ as the last element of _controller_@[[pendingViews]].
-      1. Let _pullResult_ be Invoke(_stream_@[[underlyingByteSource]], "pull").
-      1. If _pullResult_ is an abrupt completion,
-        1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _pullResult_.[[value]]).
+    1. Call-with-rethrow RequestReadableByteStreamPull(_stream_).
     1. Return *undefined*.
-  1. Let _chunk_ be the first element of _queue_.
-  1. Let _bytesAlreadyConsumed_ be _controller_@[[bytesOfHeadAlreadyConsumed]].
-  1. Let _bytesCopied_ be CopyArrayBufferViewContents(_view_, _chunk_, _bytesAlreadyConsumed_).
-  1. If _bytesCopied_ is an abrupt completion,
-    1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _bytesCopied_.[[value]]).
-    1. Return *undefined*.
-  1. Keep the same type
-  1. If _bytesCopied_ does not equal to Get(_view_, "byteLength"),
-    1. Let _view_ be Construct(`Uint8Array`, «Get(_view_, "buffer"), Get(_view_, "byteOffset"), _bytesCopied_»).
-  1. RespondToReadableByteStreamByobReaderReadIntoRequest(_stream_, _view_).
-  1. If _bytesAlreadyConsumed_ + _bytesToCopy_ equals Get(_chunk_, "byteLength"),
-    1. Remove _chunk_ from _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
-    1. Set _controller_@[[bytesOfHeadAlreadyConsumed]] to *0*.
-    1. If _queue_ is empty and _controller_@[[closeRequested]] is *true*, CloseReadableByteStream(_stream_).
-  1. Otherwise, set _controller_@[[bytesOfHeadAlreadyConsumed]] to _bytesAlreadyConsumed_ + _bytesToCopy_.
+  1. Append _view_ as the last element of _stream_@[[controller]]@[[pendingViews]].
+  1. Let _respondResult_ be MaybeRespondToReadIntoRequestFromQueue(_stream_).
+  1. If _respondResult_ is an abrupt completion,
+    1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _respondResult_.[[value]]).
+  1. Call-with-rethrow RequestReadableByteStreamPull(_stream_).
   1. Return *undefined*.
 </pre>
 
@@ -2630,13 +2658,15 @@ stream byob reader</a> for a given stream.
 <pre is="emu-alg">
   1. Let _queue_ be _stream_@[[controller]]@[[queue]].
   1. If _queue_ is empty,
-    1. Let _pullResult_ be Invoke(_stream_@[[underlyingByteSource]], "pull").
-    1. If _pullResult_ is an abrupt completion,
-      1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _pullResult_.[[value]]).
+    1. If _stream_@[[sourceSupportsByob]],
+      1. Let _pullResult_ be Invoke(_stream_@[[underlyingByteSource]], "pull").
+      1. If _pullResult_ is an abrupt completion,
+        1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _pullResult_.[[value]]).
+    1. Call-with-rethrow RequestReadableByteStreamPull(_stream_).
     1. Return *undefined*.
-  1. Let _chunk_ be the first element of _queue_.
-  1. Remove _chunk_ from _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
-  1. Let _bytesAlreadyConsumed_ be _controller_@[[bytesOfHeadAlreadyConsumed]].
+  1. Let _chunk_ be PeekQueueValue(_queue_).
+  1. DequeueValue(_queue_).
+  1. Let _bytesAlreadyConsumed_ be _controller_@[[consumedBytesOfQueueHead]].
   1. If _bytesAlreadyConsumed_ is not *0*,
     1. Let _buffer_ be GetViewedArrayBuffer(_chunk_).
     1. If _buffer_ is an abrupt completion,
@@ -2651,9 +2681,10 @@ stream byob reader</a> for a given stream.
       1. ErrorReadableByteStream(_stream_, _byteOffset_.[[value]]).
       1. Return *undefined*.
     1. Let _chunk_ be Construct(`Uint8Array`, «_buffer_, _byteOffset_ + _bytesAlreadyConsumed_, _byteLength_ - _bytesAlreadyConsumed_»).
-    1. Set _controller_@[[bytesOfHeadAlreadyConsumed]] to *0*.
+    1. Set _controller_@[[consumedBytesOfQueueHead]] to *0*.
   1. RespondToReadableByteStreamReaderReadRequest(_stream_, _chunk_).
   1. If _queue_ is empty and _controller_@[[closeRequested]] is *true*, CloseReadableByteStream(_stream_).
+  1. Call-with-rethrow RequestReadableByteStreamPull(_stream_).
   1. Return *undefined*.
 </pre>
 
@@ -2698,6 +2729,27 @@ stream byob reader</a> for a given stream.
     1. Return *undefined*.
 </pre>
 
+<h4 id="request-readable-byte-stream-pull" aoid="RequestReadableByteStreamPull">RequestReadableByteStreamPull ( stream )</h4>
+
+<pre is="emu-alg">
+  1. Let _shouldPull_ be ShouldReadableByteStreamPull(_stream_).
+  1. ReturnIfAbrupt(_shouldPull_).
+  1. If _shouldPull_ is *false*, return *undefined*.
+  1. If _stream_@[[pulling]] is *true*,
+    1. Set _stream_@[[pullAgain]] to *true*.
+    1. Return *undefined*.
+  1. Set _stream_@[[pulling]] to *true*.
+  1. Let _pullPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingByteSource]], "pull", «‍_stream_@[[controller]]»).
+  1. Upon fulfillment of _pullPromise_,
+    1. Set _stream_@[[pulling]] to *false*.
+    1. If _stream_@[[pullAgain]] is *true*,
+      1. Set _stream_@[[pullAgain]] to *false*.
+      1. Return RequestReadableStreamPull(_stream_).
+  1. Upon rejection of _pullPromise_ with reason _e_,
+    1. If _stream_@[[state]] is "readable", return ErrorReadableByteStream(_stream_, _e_).
+  1. Return *undefined*.
+</pre>
+
 <h4 id="respond-to-readable-byte-stream-reader-read-request" aoid="RespondToReadableByteStreamReaderReadRequest">RespondToReadableByteStreamReaderReadRequest ( stream, chunk )</h4>
 
 <pre is="emu-alg">
@@ -2726,6 +2778,19 @@ stream byob reader</a> for a given stream.
     1. Reject _readRequestPromise_ with CreateIterResultObject(_stream_@[[storedError]], _chunk_).
   1. If _reader_@[[readIntoRequests]] is empty, DetachReadableByteStreamReader(_stream_).
   1. Return *undefined*.
+</pre>
+
+<h4 id="should-readable-byte-stream-pull" aoid="ShouldReadableByteStreamPull">ShouldReadableByteStreamPull ( stream )</h4>
+
+<pre is="emu-alg">
+  1. If _stream_@[[sourceSupportsByob]] is *true*, return *false*.
+  1. If _stream_@[[state]] is "closed" or _stream_@[[state]] is "errored", return *false*.
+  1. If _stream_@[[controller]]@[[closeRequested]] is *true*, return *false*.
+  1. If IsReadableByteStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty, return *true*.
+  1. Let _desiredSize_ be GetReadableByteStreamDesiredSize(_stream_).
+  1. ReturnIfAbrupt(_desiredSize_).
+  1. If _desiredSize_ > 0, return *true*.
+  1. Return *false*.
 </pre>
 
 <h4 id="sync-readable-byte-stream-reader-state-with-owner" aoid="SyncReadableByteStreamReaderStateWithOwner">SyncReadableByteStreamReaderStateWithOwner ( stream )</h4>
