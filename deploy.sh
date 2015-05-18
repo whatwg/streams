@@ -48,7 +48,7 @@ echo ""
 # Commit snapshot
 COMMIT_DIR=$WEB_ROOT/$COMMITS_DIR/$SHA
 mkdir -p $COMMIT_DIR
-curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F md-status=LS-COMMIT \
+curl https://api.csswg.org/bikeshed/ -f -F file=@index.bs -F md-status=LS-COMMIT \
      -F md-warning="Commit $SHA $COMMIT_URL_BASE$SHA replaced by $LS_URL" \
      -F md-title="Streams Standard (Commit Snapshot $SHA)" \
      -F md-Text-Macro="SNAPSHOT-LINK $BACK_TO_LS_LINK" \
@@ -61,7 +61,7 @@ if [ $BRANCH != "master" ] ; then
     # Branch snapshot, if not master
     BRANCH_DIR=$WEB_ROOT/$BRANCHES_DIR/$BRANCH
     mkdir -p $BRANCH_DIR
-    curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F md-status=LS-BRANCH \
+    curl https://api.csswg.org/bikeshed/ -f -F file=@index.bs -F md-status=LS-BRANCH \
          -F md-warning="Branch $BRANCH $BRANCH_URL_BASE$BRANCH replaced by $LS_URL" \
          -F md-title="Streams Standard (Branch Snapshot $BRANCH)" \
          -F md-Text-Macro="SNAPSHOT-LINK $SNAPSHOT_LINK" \
@@ -71,7 +71,7 @@ if [ $BRANCH != "master" ] ; then
     echo "Branch snapshot output to $WEB_ROOT/$BRANCHES_DIR/$BRANCH"
 else
     # Living standard, if master
-    curl https://api.csswg.org/bikeshed/ -F file=@index.bs \
+    curl https://api.csswg.org/bikeshed/ -f -F file=@index.bs \
          -F md-Text-Macro="SNAPSHOT-LINK $SNAPSHOT_LINK" \
          > $WEB_ROOT/index.html
     npm run ecmarkupify $WEB_ROOT/index.html $WEB_ROOT/index.html
