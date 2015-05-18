@@ -20,11 +20,12 @@ test('ReadableStream can\'t be constructed with garbage', t => {
 
 test('ReadableStream instances should have the correct list of properties', t => {
   const methods = ['cancel', 'constructor', 'getReader', 'pipeThrough', 'pipeTo', 'tee'];
+  const properties = methods.concat(['locked']).sort();
 
   const rs = new ReadableStream();
   const proto = Object.getPrototypeOf(rs);
 
-  t.deepEqual(Object.getOwnPropertyNames(proto).sort(), methods, 'should have all the correct methods');
+  t.deepEqual(Object.getOwnPropertyNames(proto).sort(), properties, 'should have all the correct properties');
 
   for (let m of methods) {
     const propDesc = Object.getOwnPropertyDescriptor(proto, m);
@@ -33,6 +34,13 @@ test('ReadableStream instances should have the correct list of properties', t =>
     t.equal(propDesc.writable, true, `${m} should be writable`);
     t.equal(typeof rs[m], 'function', `should have a ${m} method`);
   }
+
+  const lockedPropDesc = Object.getOwnPropertyDescriptor(proto, 'locked');
+  t.equal(lockedPropDesc.enumerable, false, 'locked should be non-enumerable');
+  t.equal(lockedPropDesc.writable, undefined, 'locked should not be a data property');
+  t.equal(typeof lockedPropDesc.get, 'function', 'locked should have a getter');
+  t.equal(lockedPropDesc.set, undefined, 'locked should not have a setter');
+  t.equal(lockedPropDesc.configurable, true, 'locked should be configurable');
 
   t.equal(rs.cancel.length, 1, 'cancel should have 1 parameter');
   t.equal(rs.constructor.length, 0, 'constructor should have no parameters');

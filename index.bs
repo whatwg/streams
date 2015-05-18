@@ -264,6 +264,8 @@ would look like
   class ReadableStream {
     constructor(underlyingSource = {}, { size, highWaterMark = 1 } = {})
 
+    get locked()
+
     cancel(reason)
     getReader()
     pipeThrough({ writable, readable }, options)
@@ -395,6 +397,17 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </pre>
 
 <h4 id="rs-prototype">Properties of the <code>ReadableStream</code> Prototype</h4>
+
+<h5 id="rs-locked">get locked</h5>
+
+<div class="note">
+  The <code>locked</code> getter returns whether or not the readable stream is <a>locked to a reader</a>.
+</div>
+
+<pre is="emu-alg">
+  1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
+  1. Return IsReadableStreamLocked(*this*).
+</pre>
 
 <h5 id="rs-cancel">cancel(reason)</h5>
 
@@ -2921,6 +2934,7 @@ itself will evolve in these ways.
 
 The editor would like to thank
 Anne van Kesteren,
+Ben Kelly,
 Brian di Palma,
 Calvin Metcalf,
 Dominic Tarr,

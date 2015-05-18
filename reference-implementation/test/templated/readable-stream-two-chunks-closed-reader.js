@@ -34,13 +34,18 @@ export default (label, factory, chunks) => {
     .catch(e => t.error(e));
   });
 
-  test('draining the stream via read() should cause the reader closed promise to fulfill', t => {
-    t.plan(1);
+  test('draining the stream via read() should cause the reader closed promise to fulfill and locked to be false', t => {
+    t.plan(3);
 
-    const { reader } = factory();
+    const { stream, reader } = factory();
+
+    t.equal(stream.locked, true, 'stream should start locked');
 
     reader.closed.then(
-      v => t.equal(v, undefined, 'reader closed should fulfill with undefined'),
+      v => {
+        t.equal(v, undefined, 'reader closed should fulfill with undefined');
+        t.equal(stream.locked, false, 'stream should no longer be locked');
+      },
       () => t.fail('reader closed should not reject')
     );
 

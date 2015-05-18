@@ -18,6 +18,13 @@ export default (label, factory) => {
     t.end();
   });
 
+  test('locked should be true', t => {
+    t.plan(1);
+    const { stream } = factory();
+
+    t.equal(stream.locked, true, 'locked getter should return true');
+  });
+
   test('read() should never settle', t => {
     const { reader } = factory();
 
@@ -103,6 +110,14 @@ export default (label, factory) => {
     reader.releaseLock();
 
     reader.closed.then(v => t.equal(v, undefined, 'reader.closed got after release should fulfill with undefined'));
+  });
+
+  test('releasing the lock should cause locked to become false', t => {
+    t.plan(1);
+    const { stream, reader } = factory();
+
+    reader.releaseLock();
+    t.equal(stream.locked, false, 'locked getter should return false');
   });
 
   test('canceling via the reader should cause the reader to act closed', t => {

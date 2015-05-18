@@ -17,6 +17,13 @@ export default (label, factory) => {
     t.notEqual(cancelPromise1, cancelPromise2, 'cancel() calls should return distinct promises');
   });
 
+  test('locked should be false', t => {
+    t.plan(1);
+    const rs = factory();
+
+    t.equal(rs.locked, false, 'locked getter should return false');
+  });
+
   test('getReader() should be OK', t => {
     t.plan(1);
     const rs = factory();

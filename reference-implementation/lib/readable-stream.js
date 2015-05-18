@@ -37,6 +37,14 @@ export default class ReadableStream {
     .catch(rethrowAssertionErrorRejection);
   }
 
+  get locked() {
+    if (IsReadableStream(this) === false) {
+      throw new TypeError('ReadableStream.prototype.locked can only be used on a ReadableStream');
+    }
+
+    return IsReadableStreamLocked(this);
+  }
+
   cancel(reason) {
     if (IsReadableStream(this) === false) {
       return Promise.reject(new TypeError('ReadableStream.prototype.cancel can only be used on a ReadableStream'));
