@@ -2140,7 +2140,7 @@ table:
   1. If *this*@[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. Set *this*@[[closeRequested]] to *true*.
   1. If *this*@[[queue]] is empty,
-    1. If *this*@[[filledBytesOfPendingViewsHead]] is not equal to *0*, throw a *RangeError* exception.
+    1. If *this*@[[filledBytesOfPendingViewsHead]] is not equal to *0*, throw a *TypeError* exception.
     1. CloseReadableByteStream(_stream_).
   1. Return *undefined*.
 </pre>
@@ -2627,7 +2627,7 @@ stream byob reader</a> for a given stream.
     1. DequeueValue(_queue_).
     1. Set _controller_@[[consumedBytesOfQueueHead]] to *0*.
     1. If _queue_ is empty and _controller_@[[closeRequested]] is *true*,
-      1. If _controller_@[[filledBytesOfPendingViewsHead]] is not equal to *0*, throw a *RangeError* exception.
+      1. If _controller_@[[filledBytesOfPendingViewsHead]] is not equal to *0*, throw a *TypeError* exception.
       1. CloseReadableByteStream(_stream_).
   1. Otherwise, set _controller_@[[consumedBytesOfQueueHead]] to _chunkBytesAlreadyConsumed_.
 </pre>
@@ -2643,7 +2643,7 @@ stream byob reader</a> for a given stream.
         1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _pullIntoResult_.[[value]]).
     1. Otherwise,
       1. Append _view_ as the last element of _controller_@[[pendingViews]].
-    1. Call-with-rethrow RequestReadableByteStreamPull(_stream_).
+      1. Call-with-rethrow RequestReadableByteStreamPull(_stream_).
     1. Return *undefined*.
   1. Append _view_ as the last element of _stream_@[[controller]]@[[pendingViews]].
   1. Let _respondResult_ be MaybeRespondToReadIntoRequestFromQueue(_stream_).
