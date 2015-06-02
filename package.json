@@ -6,7 +6,7 @@
     "local-watch": "traceur-runner ./local-watch.js"
   },
   "devDependencies": {
-    "ecmarkup": "domenic/ecmarkup#jsdom-update",
+    "ecmarkup": "^1.3.0",
     "jsdom": "^5.0.1",
     "promise-debounce": "^1.0.0",
     "traceur": "0.0.88",
