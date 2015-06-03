@@ -574,7 +574,9 @@ function PullFromReadableByteStream(stream) {
     try {
       controller._underlyingByteSource.pull();
     } catch (e) {
-      ErrorReadableByteStream(stream, e);
+      if (stream._state === 'readable') {
+        ErrorReadableByteStream(stream, e);
+      }
     }
     return undefined;
   }
@@ -602,9 +604,11 @@ function PullFromReadableByteStreamInto(stream, view) {
     try {
       controller._underlyingByteSource.pullInto(view);
     } catch (e) {
-      ErrorReadableByteStream(stream, e);
-      return undefined;
+      if (stream._state === 'readable') {
+        ErrorReadableByteStream(stream, e);
+      }
     }
+    return undefined;
   }
 
   controller._pendingViews.push(view);
