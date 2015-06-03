@@ -572,7 +572,7 @@ function PullFromReadableByteStream(stream) {
   const queue = controller._queue;
   if (queue.length === 0) {
     try {
-      const pullResult = controller._underlyingByteSource.pull();
+      controller._underlyingByteSource.pull();
     } catch (e) {
       ErrorReadableByteStream(stream, e);
     }
@@ -600,7 +600,7 @@ function PullFromReadableByteStreamInto(stream, view) {
   const queue = controller._queue;
   if (queue.length === 0) {
     try {
-      const pullIntoResult = controller._underlyingByteSource.pullInto(view);
+      controller._underlyingByteSource.pullInto(view);
     } catch (e) {
       ErrorReadableByteStream(stream, e);
       return undefined;
