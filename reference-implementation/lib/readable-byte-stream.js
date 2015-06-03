@@ -380,7 +380,7 @@ function CancelReadableByteStream(stream, reason) {
   return sourceCancelPromise.then(() => undefined);
 }
 
-function CloseReadableStream(stream) {
+function CloseReadableByteStream(stream) {
   assert(IsReadableByteStream(stream) === true);
   assert(stream._state === 'readable');
 
@@ -612,14 +612,7 @@ function PullFromReadableByteStreamInto(stream, view) {
   }
 
   controller._pendingViews.push(view);
-  try {
-    MaybeRespondToReadIntoRequestFromQueue(stream);
-  } catch (e) {
-    if (stream._state === 'readable') {
-      ErrorReadableByteStream(stream, e);
-      return undefined;
-    }
-  }
+  MaybeRespondToReadIntoRequestFromQueue(stream);
 
   return undefined;
 }
