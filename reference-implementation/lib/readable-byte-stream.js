@@ -43,32 +43,33 @@ export default class ReadableByteStream {
 }
 
 class ReadableByteStreamController {
-  constructor(stream, underlyingByteSource) {
-    if (IsReadableByteStream(stream) === false) {
+  constructor(controlledReadableByteStream, underlyingByteSource) {
+    if (IsReadableByteStream(controlledReadableByteStream) === false) {
       throw new TypeError('ReadableByteStreamController can only be constructed with a ReadableByteStream instance');
     }
 
-    if (stream._controller !== undefined) {
+    if (controlledReadableByteStream._controller !== undefined) {
       throw new TypeError(
           'ReadableByteStreamController instances can only be created by the ReadableByteStream constructor');
     }
 
-    const pull = underlyingByteSource['pull'];
-    if (pull !== undefined && typeof pull !== 'function') {
+    const pullFunction = underlyingByteSource['pull'];
+    if (pullFunction !== undefined && typeof pullFunction !== 'function') {
       throw new TypeError('pull property of an underlying byte source must be a function');
     }
 
-    const pullInto = underlyingByteSource['pullInto'];
-    if (pullInto !== undefined && typeof pullInto !== 'function') {
+    const pullIntoFunction = underlyingByteSource['pullInto'];
+    if (pullIntoFunction !== undefined && typeof pullIntoFunction !== 'function') {
       throw new TypeError('pullInto property of an underlying byte source must be a function');
     }
 
     this._consumedBytesOfQueueHead = 0;
     this._filledBytesOfPendingViewHead = 0;
-    this._controlledReadableByteStream = stream;
+    this._controlledReadableByteStream = controlledReadableByteStream;
     this._pendingViews = [];
     this._queue = [];
     this._underlyingByteSource = underlyingByteSource;
+
     InvokeOrNoop(underlyingByteSource, 'start', [this]);
   }
 
@@ -566,31 +567,6 @@ function PopBytesFromQueue(controller) {
   return chunk;
 }
 
-function PullFromReadableByteStreamInto(stream, view) {
-  const controller  = stream._controller;
-  const queue = controller._queue;
-  if (queue.length === 0) {
-    try {
-      const pullIntoResult = controller._underlyingByteSource.pullInto(view);
-    } catch (e) {
-      ErrorReadableByteStream(stream, e);
-      return undefined;
-    }
-  }
-
-  controller._pendingViews.push(view);
-  try {
-    MaybeRespondToReadIntoRequestFromQueue(stream);
-  } catch (e) {
-    if (stream._state === 'readable') {
-      ErrorReadableByteStream(stream, e);
-      return undefined;
-    }
-  }
-
-  return undefined;
-}
-
 function PullFromReadableByteStream(stream) {
   const controller  = stream._controller;
   const queue = controller._queue;
@@ -614,6 +590,31 @@ function PullFromReadableByteStream(stream) {
   RespondToReadableByteStreamReaderReadRequest(stream, chunk);
   if (queue.length === 0 && controller._closeRequested === true) {
     CloseReadableByteStream(stream);
+  }
+
+  return undefined;
+}
+
+function PullFromReadableByteStreamInto(stream, view) {
+  const controller  = stream._controller;
+  const queue = controller._queue;
+  if (queue.length === 0) {
+    try {
+      const pullIntoResult = controller._underlyingByteSource.pullInto(view);
+    } catch (e) {
+      ErrorReadableByteStream(stream, e);
+      return undefined;
+    }
+  }
+
+  controller._pendingViews.push(view);
+  try {
+    MaybeRespondToReadIntoRequestFromQueue(stream);
+  } catch (e) {
+    if (stream._state === 'readable') {
+      ErrorReadableByteStream(stream, e);
+      return undefined;
+    }
   }
 
   return undefined;
