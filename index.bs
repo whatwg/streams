@@ -2667,17 +2667,13 @@ stream reader</a> for a given stream.
 
 <pre is="emu-alg">
   1. Let _controller_ be _stream_@[[controller]].
-  1. Let _queue_ be _controller_@[[queue]].
-  1. If _queue_ is empty,
+  1. If _controller_@[[queue]] is empty,
     1. Let _pullIntoResult_ be Invoke(_controller_@[[underlyingByteSource]], "pullInto", «_view_»).
     1. If _pullIntoResult_ is an abrupt completion,
       1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _pullIntoResult_.[[value]]).
     1. Return *undefined*.
   1. Append _view_ as the last element of _controller_@[[pendingViews]].
-  1. Let _respondResult_ be MaybeRespondToReadIntoRequestFromQueue(_stream_).
-  1. If _respondResult_ is an abrupt completion,
-    1. If _stream_@[[state]] is "readable", ErrorReadableByteStream(_stream_, _respondResult_.[[value]]).
-    1. Return *undefined*.
+  1. MaybeRespondToReadIntoRequestFromQueue(_stream_).
   1. Return *undefined*.
 </pre>
 

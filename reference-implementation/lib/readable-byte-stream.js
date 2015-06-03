@@ -599,8 +599,7 @@ function PullFromReadableByteStream(stream) {
 
 function PullFromReadableByteStreamInto(stream, view) {
   const controller  = stream._controller;
-  const queue = controller._queue;
-  if (queue.length === 0) {
+  if (controller._queue.length === 0) {
     try {
       controller._underlyingByteSource.pullInto(view);
     } catch (e) {
