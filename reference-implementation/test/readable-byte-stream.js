@@ -90,7 +90,7 @@ test('enqueue and readInto from ReadableByteStream', t => {
   });
 });
 
-test.only('readInto and enqueue from ReadableByteStream', t => {
+test('readInto and enqueue from ReadableByteStream', t => {
   let controller;
   const rbs = new ReadableByteStream({
     start(c) {

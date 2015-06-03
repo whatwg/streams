@@ -625,9 +625,8 @@ function ReadFromReadableByteStreamByobReader(reader, view) {
     if (reader._state === 'closed') {
       return Promise.resolve(CreateIterResultObject(view, true));
     }
-    if (reader._state === 'errored') {
-      return Promise.reject(CreateIterResultObject(reader._storedError, view));
-    }
+    assert(reader._state === 'errored');
+    return Promise.reject(reader._storedError);
   }
 
   const readRequestPromise = new Promise((resolve, reject) => {

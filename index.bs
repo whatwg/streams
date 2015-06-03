@@ -2686,7 +2686,8 @@ stream reader</a> for a given stream.
 <pre is="emu-alg">
   1. If _reader_@[[ownerReadableByteStream]] is *undefined*,
     1. If _reader_@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(_view_, *true*).
-    1. If _reader_@[[state]] is "errored", return a new promise rejected with CreateIterResultObject(_reader_@[[storedError]], _view_).
+    1. Assert: _reader_@[[state]] is "errored".
+    1. Return a new promise rejected with _reader_@[[storedError]].
   1. Let _readRequestPromise_ be a new promise.
   1. Append _readRequestPromise_ as the last element of _reader_@[[readIntoRequests]].
   1. PullFromReadableByteStreamInto(_reader_@[[ownerReadableByteStream]], _view_).
