@@ -149,12 +149,8 @@ test('ReadableByteStream: enqueue(), then read(view) with a bigger view', t => {
       t.end();
     },
     pullInto(buffer, offset, length) {
-      t.equals(buffer.constructor, ArrayBuffer, 'buffer is ArrayBuffer');
-      t.equals(buffer.byteLength, 24, 'byteLength is 24');
-      t.equals(offset, 16, 'offset is 16');
-      t.equals(length, 8, 'length is 8');
-      (new Uint8Array(buffer))[23] = 111;
-      controller.respond(8);
+      t.fail();
+      t.end();
     }
   });
 
@@ -163,9 +159,8 @@ test('ReadableByteStream: enqueue(), then read(view) with a bigger view', t => {
   reader.read(new Uint8Array(24)).then(view => {
     t.equals(view.done, false, 'done is false');
     t.equals(view.value.byteOffset, 0, 'byteOffset is 0');
-    t.equals(view.value.byteLength, 24, 'byteLength is 24');
+    t.equals(view.value.byteLength, 16, 'byteLength is 16');
     t.equals(view.value[15], 123, 'Contents are set from the chunk by start()');
-    t.equals(view.value[23], 111, 'Contents are set from the chunk by pullInto()');
     t.end();
   }).catch(e => {
     t.fail(e);
@@ -206,6 +201,35 @@ test('ReadableByteStream: enqueue() 1 byte, then read(view) with Uint16Array', t
     t.end();
   }).catch(e => {
     t.fail(e);
+    t.end();
+  });
+});
+
+test.only('ReadableByteStream: enqueue() 1 byte, close(), then read(view) with Uint16Array', t => {
+  let controller;
+  const rbs = new ReadableByteStream({
+    start(c) {
+      const view = new Uint8Array(1);
+      view[0] = 0xff;
+      c.enqueue(view);
+      c.close();
+    },
+    pull() {
+      t.fail();
+      t.end();
+    },
+    pullInto(buffer, offset, length) {
+      t.fail();
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint16Array(1)).then(view => {
+    t.fail('read(view) must fail');
+    t.end();
+  }).catch(e => {
     t.end();
   });
 });

@@ -185,40 +185,14 @@ class ReadableByteStreamController {
       throw new TypeError('No pending read');
     }
 
-    const pendingView = this._pendingViews.shift();
-    const type = pendingView.type;
-    let chunk;
+    const descriptor = this._pendingViews.shift();
     if (buffer === undefined) {
-      buffer = pendingView.buffer;
+      buffer = descriptor.buffer;
     }
-    const byteOffset = pendingView.byteOffset;
-    const bytesFilled = pendingView.bytesAlreadyFilled + bytesWritten;
-    if (type === 'DataView') {
-    } else if (type === 'Int8Array') {
-      chunk = new Int8Array(buffer, byteOffset, bytesFilled);
-    } else if (type === 'Uint8Array') {
-      chunk = new Uint8Array(buffer, byteOffset, bytesFilled);
-    } else if (type === 'Int16Array') {
-      const elementSize = 2;
-      chunk = new Int16Array(buffer, byteOffset, Math.floor((bytesFilled + elementSize - 1) / elementSize));
-    } else if (type === 'Uint16Array') {
-      const elementSize = 2;
-      chunk = new Uint16Array(buffer, byteOffset, Math.floor((bytesFilled + elementSize - 1) / elementSize));
-    } else if (type === 'Int32Array') {
-      const elementSize = 4;
-      chunk = new Int16Array(buffer, byteOffset, Math.floor((bytesFilled + elementSize - 1) / elementSize));
-    } else if (type === 'Uint32Array') {
-      const elementSize = 4;
-      chunk = new Uint16Array(buffer, byteOffset, Math.floor((bytesFilled + elementSize - 1) / elementSize));
-    } else if (type === 'Float32Array') {
-      const elementSize = 4;
-      chunk = new Int16Array(buffer, byteOffset, Math.floor((bytesFilled + elementSize - 1) / elementSize));
-    } else if (type === 'Float64Array') {
-      const elementSize = 8;
-      chunk = new Uint16Array(buffer, byteOffset, Math.floor((bytesFilled + elementSize - 1) / elementSize));
-    } else {
-      throw new TypeError('pendingViews is broken');
-    }
+    const viewType = descriptor.type
+    const byteOffset = descriptor.byteOffset;
+    const byteLength = descriptor.bytesAlreadyFilled + bytesWritten;
+    const chunk = CreateView(viewType, buffer, byteOffset, byteLength);
     RespondToReadableByteStreamReaderReadIntoRequest(stream, chunk);
     return undefined;
   }
@@ -383,7 +357,8 @@ class ReadableByteStreamByobReader {
   read(view) {
     if (IsReadableByteStreamByobReader(this) === false) {
       return Promise.reject(
-        new TypeError('ReadableByteStreamByobReader.prototype.read can only be used on a ReadableByteStreamByobReader'));
+        new TypeError(
+            'ReadableByteStreamByobReader.prototype.read can only be used on a ReadableByteStreamByobReader'));
     }
 
     if (this._ownerReadableByteStream === undefined) {
@@ -456,6 +431,54 @@ function CloseReadableByteStream(stream) {
 
   ReleaseReadableByteStreamReader(stream);
   return undefined;
+}
+
+function CreateView(type, buffer, byteOffset, byteLength) {
+  if (type === 'DataView') {
+    return new DataView(buffer, byteOffset, byteLength);
+  } else if (type === 'Int8Array') {
+    return new Int8Array(buffer, byteOffset, byteLength);
+  } else if (type === 'Uint8Array') {
+    return new Uint8Array(buffer, byteOffset, byteLength);
+  } else if (type === 'Int16Array') {
+    const elementSize = 2;
+    if (byteLength % elementSize !== 0) {
+      throw new TypeError('Not aligned');
+    }
+    return new Int16Array(buffer, byteOffset, byteLength / elementSize);
+  } else if (type === 'Uint16Array') {
+    const elementSize = 2;
+    if (byteLength % elementSize !== 0) {
+      throw new TypeError('Not aligned');
+    }
+    return new Uint16Array(buffer, byteOffset, byteLength / elementSize);
+  } else if (type === 'Int32Array') {
+    const elementSize = 4;
+    if (byteLength % elementSize !== 0) {
+      throw new TypeError('Not aligned');
+    }
+    return new Int32Array(buffer, byteOffset, byteLength / elementSize);
+  } else if (type === 'Uint32Array') {
+    const elementSize = 4;
+    if (byteLength % elementSize !== 0) {
+      throw new TypeError('Not aligned');
+    }
+    return new Uint32Array(buffer, byteOffset, byteLength / elementSize);
+  } else if (type === 'Float32Array') {
+    const elementSize = 4;
+    if (byteLength % elementSize !== 0) {
+      throw new TypeError('Not aligned');
+    }
+    return new Float32Array(buffer, byteOffset, byteLength / elementSize);
+  } else if (type === 'Float64Array') {
+    const elementSize = 8;
+    if (byteLength % elementSize !== 0) {
+      throw new TypeError('Not aligned');
+    }
+    return new Float64Array(buffer, byteOffset, byteLength / elementSize);
+  } else {
+    throw new TypeError('Descriptor is broken');
+  }
 }
 
 function DetachReadableByteStreamReader(stream) {
@@ -682,8 +705,10 @@ function PullFromReadableByteStreamInto(stream, view) {
     return undefined;
   }
 
-  if (destBytesFilled === destByteLength) {
-    RespondToReadableByteStreamReaderReadIntoRequest(stream, view);
+  if (destBytesFilled % elementSize === 0) {
+    const newView = CreateView(type, destBuffer, destByteOffset, destBytesFilled);
+
+    RespondToReadableByteStreamReaderReadIntoRequest(stream, newView);
 
     if (queue.length === 0 && controller._closeRequested === true) {
       CloseReadableByteStream(stream);
@@ -691,10 +716,8 @@ function PullFromReadableByteStreamInto(stream, view) {
 
     return undefined;
   } else if (queue.length === 0 && controller._closeRequested === true) {
-    RespondToReadableByteStreamReaderReadIntoRequest(
-        stream, view.subarray(0, Math.floor((destBytesFilled + (elementSize - 1)) / elementSize)));
+    ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
 
-    CloseReadableByteStream(stream);
     return undefined;
   }
 
