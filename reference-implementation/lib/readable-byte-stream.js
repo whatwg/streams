@@ -18,7 +18,7 @@ export default class ReadableByteStream {
           new TypeError('ReadableByteStream.prototype.cancel can only be used on a ReadableByteStream'));
     }
 
-    if (IsReadableByteStreamLocked(this) === true) {
+    if (IsReadableByteStreamLocked(this)) {
       return Promise.reject(new TypeError('Cannot cancel a stream that already has a reader'));
     }
 
@@ -115,25 +115,34 @@ class ReadableByteStreamController {
       throw new TypeError('The stream is not in the readable state and cannot be enqueued to');
     }
 
+    if (!IsReadableByteStreamLocked(stream)) {
+      EnqueueInReadableByteStreamController(this, chunk);
+
+      return undefined;
+    }
+
     const reader = stream._reader;
-    if (reader === undefined) {
+
+    if (IsReadableByteStreamReader(reader)) {
+      if (reader._readRequests.length === 0) {
+        EnqueueInReadableByteStreamController(this, chunk);
+
+        return undefined;
+      }
+
+      assert(this._queue.length === 0);
+
+      RespondToReadableByteStreamReaderReadRequest(reader, chunk);
+
+      return undefined;
+    }
+
+    assert(IsReadableByteStreamByobReader(reader));
+
+    if (reader._readIntoRequest.length === 0) {
       EnqueueInReadableByteStreamController(this, chunk);
     } else {
-      if (Object.prototype.hasOwnProperty.call(reader, '_readRequests')) {
-        if (reader._readRequests.length === 0) {
-          EnqueueInReadableByteStreamController(this, chunk);
-        } else {
-          assert(this._queue.length === 0);
-          RespondToReadableByteStreamReaderReadRequest(stream, chunk);
-        }
-      } else {
-        assert(Object.prototype.hasOwnProperty.call(reader, '_readIntoRequest'));
-        if (reader._readIntoRequest.length === 0) {
-          EnqueueInReadableByteStreamController(this, chunk);
-        } else {
-          throw new TypeError('pullInto must not be responded by enqueue');
-        }
-      }
+      throw new TypeError('pullInto must not be responded by enqueue');
     }
 
     return undefined;
@@ -165,17 +174,17 @@ class ReadableByteStreamController {
 
     const stream = this._controlledReadableByteStream;
 
-    const reader = stream._reader;
-
-    if (reader === undefined) {
+    if (!IsReadableByteStreamLocked(stream)) {
       throw new TypeError('No active reader');
     }
 
-    if (Object.prototype.hasOwnProperty.call(reader, '_readRequests')) {
+    const reader = stream._reader;
+
+    if (IsReadableByteStreamReader(reader)) {
       throw new TypeError('The active reader is not ReadableByteStreamByobReader');
     }
 
-    assert(Object.prototype.hasOwnProperty.call(reader, '_readIntoRequests'));
+    assert(IsReadableByteStreamByobReader(reader));
 
     if (reader._readIntoRequests.length === 0) {
       throw new TypeError('No pending read');
@@ -186,14 +195,17 @@ class ReadableByteStreamController {
     }
 
     const descriptor = this._pendingViews.shift();
+
     if (buffer === undefined) {
       buffer = descriptor.buffer;
     }
     const viewType = descriptor.type
     const byteOffset = descriptor.byteOffset;
     const byteLength = descriptor.bytesAlreadyFilled + bytesWritten;
+
     const chunk = CreateView(viewType, buffer, byteOffset, byteLength);
-    RespondToReadableByteStreamReaderReadIntoRequest(stream, chunk);
+    RespondToReadableByteStreamByobReaderReadIntoRequest(reader, chunk);
+
     return undefined;
   }
 }
@@ -203,7 +215,7 @@ class ReadableByteStreamReader {
     if (IsReadableByteStream(stream) === false) {
       throw new TypeError('ReadableByteStreamReader can only be constructed with a ReadableByteStream instance');
     }
-    if (IsReadableByteStreamLocked(stream) === true) {
+    if (IsReadableByteStreamLocked(stream)) {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
@@ -292,7 +304,7 @@ class ReadableByteStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    SyncReadableByteStreamReaderStateWithOwner(this._ownerReadableByteStream);
+    SyncReadableByteStreamReaderStateWithOwner(this._ownerReadableByteStream, this);
     DetachReadableByteStreamReader(this);
     return undefined;
   }
@@ -393,7 +405,7 @@ class ReadableByteStreamByobReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    SyncReadableByteStreamReaderStateWithOwner(this._ownerReadableByteStream);
+    SyncReadableByteStreamReaderStateWithOwner(this._ownerReadableByteStream, this);
     DetachReadableByteStreamReader(this);
     return undefined;
   }
@@ -507,34 +519,10 @@ function ErrorReadableByteStream(stream, e) {
   return undefined;
 }
 
-function FlushReadableByteStreamReaderReadIntoRequestsWithError(stream) {
-  assert(stream._reader !== undefined);
-  assert(stream._state === 'errored');
-
-  const reader = stream._reader;
-
-  for (const readIntoRequest of reader._readIntoRequests) {
-    readIntoRequest.reject(stream._storedError);
-  }
-
-  reader._readIntoRequests = [];
+function FlushReadableByteStreamByobReaderReadIntoRequestsWithError(reader, e) {
 }
 
 function FlushReadableByteStreamReaderReadRequests(stream) {
-  assert(stream._reader !== undefined);
-  const reader = stream._reader;
-
-  if (stream._state === 'errored') {
-    for (const { _reject } of reader._readRequests) {
-      _reject(stream._storedError);
-    }
-  } else {
-    for (const { _resolve } of reader._readRequests) {
-      _resolve(CreateIterResultObject(undefined, true));
-    }
-  }
-
-  reader._readRequests = [];
 }
 
 function IsReadableByteStream(x) {
@@ -635,7 +623,8 @@ function PullFromReadableByteStream(stream) {
     return undefined;
   }
 
-  RespondToReadableByteStreamReaderReadRequest(stream, chunk);
+  RespondToReadableByteStreamReaderReadRequest(stream._reader, chunk);
+
   if (queue.length === 0 && controller._closeRequested === true) {
     CloseReadableByteStream(stream);
   }
@@ -721,7 +710,7 @@ function PullFromReadableByteStreamInto(stream, view) {
   if (destBytesFilled > 0 && destBytesFilled % elementSize === 0) {
     const newView = CreateView(type, destBuffer, destByteOffset, destBytesFilled);
 
-    RespondToReadableByteStreamReaderReadIntoRequest(stream, newView);
+    RespondToReadableByteStreamByobReaderReadIntoRequest(stream._reader, newView);
 
     if (queue.length === 0 && controller._closeRequested === true) {
       CloseReadableByteStream(stream);
@@ -751,20 +740,41 @@ function PullFromReadableByteStreamInto(stream, view) {
 
 function ReleaseReadableByteStreamReader(stream) {
   const reader = stream._reader;
-  if (reader === undefined) {
+
+  if (!IsReadableByteStreamLocked(stream)) {
     return undefined;
   }
-  if (Object.prototype.hasOwnProperty.call(reader, '_readRequests')) {
-    SyncReadableByteStreamReaderStateWithOwner(stream);
-    FlushReadableByteStreamReaderReadRequests(stream);
+
+  if (IsReadableByteStreamReader(reader)) {
+    SyncReadableByteStreamReaderStateWithOwner(stream, reader);
+
+    if (stream._state === 'errored') {
+      for (const req of reader._readRequests) {
+        req.reject(stream._storedError);
+      }
+    } else {
+      for (const req of reader._readRequests) {
+        req.resolve(CreateIterResultObject(undefined, true));
+      }
+    }
+
+    reader._readRequests = [];
+
     DetachReadableByteStreamReader(reader);
     return undefined;
   }
 
-  assert(Object.prototype.hasOwnProperty.call(reader, '_readIntoRequests'));
-  SyncReadableByteStreamReaderStateWithOwner(stream);
+  assert(IsReadableByteStreamByobReader(reader));
+
+  SyncReadableByteStreamReaderStateWithOwner(stream, reader);
+
   if (stream._state === 'errored') {
-    FlushReadableByteStreamReaderReadIntoRequestsWithError(stream);
+    for (const readIntoRequest of reader._readIntoRequests) {
+      readIntoRequest.reject(stream._storedError);
+    }
+
+    reader._readIntoRequests = [];
+
     DetachReadableByteStreamReader(stream);
     return undefined;
   } else {
@@ -775,53 +785,59 @@ function ReleaseReadableByteStreamReader(stream) {
   }
 }
 
-function RespondToReadableByteStreamReaderReadRequest(stream, chunk) {
-  assert(stream._state === 'readable');
-  assert(stream._reader._readRequests.length !== 0);
+function RespondToReadableByteStreamReaderReadRequest(reader, chunk) {
+  assert(reader._readRequests.length > 0);
 
-  const request = stream._reader._readRequests.shift();
+  const request = reader._readRequests.shift();
   request.resolve(CreateIterResultObject(chunk, false));
   return undefined;
 }
 
-function RespondToReadableByteStreamReaderReadIntoRequest(stream, chunk) {
-  assert(stream._reader !== undefined);
-  assert(stream._reader._readIntoRequests.length !== 0);
+function RespondToReadableByteStreamByobReaderReadIntoRequest(reader, chunk) {
+  assert(reader._readIntoRequests.length !== 0);
 
-  const reader = stream._reader;
-  const request = reader._readIntoRequests.shift();
-  if (stream._state === 'readable') {
-    request.resolve(CreateIterResultObject(chunk, false));
+  const req = reader._readIntoRequests.shift();
+
+  if (reader._state === 'readable') {
+    req.resolve(CreateIterResultObject(chunk, false));
+
     return undefined;
   }
-  if (stream._state == 'closed') {
-    request.resolve(CreateIterResultObject(chunk, true));
+
+  if (reader._state == 'closed') {
+    req.resolve(CreateIterResultObject(chunk, true));
   } else {
     assert(reader._state === 'errored');
-    request.reject(stream._storedError);
+
+    req.reject(stream._storedError);
   }
+
   if (reader._readIntoRequests.length === 0) {
-    DetachReadableByteStreamReader(stream);
+    DetachReadableByteStreamReader(reader._ownerReadableByteStream);
   }
 
   return undefined;
 }
 
-function SyncReadableByteStreamReaderStateWithOwner(stream) {
-  assert(stream._reader !== undefined);
-
-  const reader = stream._reader;
-  const e = stream._storedError;
+function SyncReadableByteStreamReaderStateWithOwner(stream, reader) {
   if (stream._state === 'errored') {
     reader._state = 'errored';
-    reader._storedError = e;
-    reader._closedPromise_reject(e);
+    reader._storedError = stream._storedError;
+
+    reader._closedPromise_reject(stream._storedError);
     reader._closedPromise_resolve = undefined;
     reader._closedPromise_reject = undefined;
-  } else {
-    reader._state = 'closed';
-    reader._closedPromise_resolve(undefined);
-    reader._closedPromise_resolve = undefined;
-    reader._closedPromise_reject = undefined;
+
+    return undefined;
   }
+
+  assert(stream._state === 'closed');
+
+  reader._state = 'closed';
+
+  reader._closedPromise_resolve(undefined);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
+
+  return undefined;
 }
