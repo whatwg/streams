@@ -507,6 +507,19 @@ function ErrorReadableByteStream(stream, e) {
   return undefined;
 }
 
+function FlushReadableByteStreamReaderReadIntoRequestsWithError(stream) {
+  assert(stream._reader !== undefined);
+  assert(stream._state === 'errored');
+
+  const reader = stream._reader;
+
+  for (const readIntoRequest of reader._readIntoRequests) {
+    readIntoRequest.reject(stream._storedError);
+  }
+
+  reader._readIntoRequests = [];
+}
+
 function FlushReadableByteStreamReaderReadRequests(stream) {
   assert(stream._reader !== undefined);
   const reader = stream._reader;
@@ -705,7 +718,7 @@ function PullFromReadableByteStreamInto(stream, view) {
     return undefined;
   }
 
-  if (destBytesFilled % elementSize === 0) {
+  if (destBytesFilled > 0 && destBytesFilled % elementSize === 0) {
     const newView = CreateView(type, destBuffer, destByteOffset, destBytesFilled);
 
     RespondToReadableByteStreamReaderReadIntoRequest(stream, newView);
@@ -750,9 +763,15 @@ function ReleaseReadableByteStreamReader(stream) {
 
   assert(Object.prototype.hasOwnProperty.call(reader, '_readIntoRequests'));
   SyncReadableByteStreamReaderStateWithOwner(stream);
-  if (reader._readIntoRequests.length === 0) {
+  if (stream._state === 'errored') {
+    FlushReadableByteStreamReaderReadIntoRequestsWithError(stream);
     DetachReadableByteStreamReader(stream);
     return undefined;
+  } else {
+    if (reader._readIntoRequests.length === 0) {
+      DetachReadableByteStreamReader(stream);
+      return undefined;
+    }
   }
 }
 
@@ -797,8 +816,12 @@ function SyncReadableByteStreamReaderStateWithOwner(stream) {
     reader._state = 'errored';
     reader._storedError = e;
     reader._closedPromise_reject(e);
+    reader._closedPromise_resolve = undefined;
+    reader._closedPromise_reject = undefined;
   } else {
     reader._state = 'closed';
-    reader._closedPromise = undefined;
+    reader._closedPromise_resolve(undefined);
+    reader._closedPromise_resolve = undefined;
+    reader._closedPromise_reject = undefined;
   }
 }

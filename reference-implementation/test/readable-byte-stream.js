@@ -205,7 +205,7 @@ test('ReadableByteStream: enqueue() 1 byte, then read(view) with Uint16Array', t
   });
 });
 
-test.only('ReadableByteStream: enqueue() 1 byte, close(), then read(view) with Uint16Array', t => {
+test('ReadableByteStream: enqueue() 1 byte, close(), then read(view) with Uint16Array', t => {
   let controller;
   const rbs = new ReadableByteStream({
     start(c) {
@@ -230,11 +230,15 @@ test.only('ReadableByteStream: enqueue() 1 byte, close(), then read(view) with U
     t.fail('read(view) must fail');
     t.end();
   }).catch(e => {
-    t.end();
+    t.equals(e.constructor, TypeError);
+    reader.closed.catch(e => {
+      t.equals(e.constructor, TypeError);
+      t.end();
+    });
   });
 });
 
-test('ReadableByteStream: read(), then enqueue()', t => {
+test('ReadableByteStream: read(view), then enqueue()', t => {
   let controller;
   const rbs = new ReadableByteStream({
     start(c) {
@@ -259,7 +263,8 @@ test('ReadableByteStream: read(), then enqueue()', t => {
 
   reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, false, 'done is false');
-    t.equals(result.value.byteLength, 16, 'byteLength is 16');
+    t.equals(result.value.byteOffset, 0, 'byteOffset is 0: ' + result.value.byteOffset);
+    t.equals(result.value.byteLength, 16, 'byteLength is 16: ' + result.value.byteLength);
     t.equals(result.value[15], 123, 'Contents are set');
 
     return reader.read(new Uint8Array(16));
