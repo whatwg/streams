@@ -1,6 +1,5 @@
 const assert = require('assert');
 import { CreateIterResultObject, InvokeOrNoop, typeIsObject } from './helpers';
-import { DequeueValue, EnqueueValueWithSize, PeekQueueValue } from './queue-with-sizes';
 
 export default class ReadableByteStream {
   constructor(underlyingByteSource = {}) {
@@ -67,10 +66,11 @@ class ReadableByteStreamController {
 
     this._underlyingByteSource = underlyingByteSource;
 
-    this._pendingViews = [];
+    this._pendingPulls = [];
 
     this._queue = [];
     this._consumedBytesOfHeadOfQueue = 0;
+    this._totalBytes = 0;
 
     InvokeOrNoop(underlyingByteSource, 'start', [this]);
   }
@@ -88,6 +88,40 @@ class ReadableByteStreamController {
     }
     if (stream._state !== 'readable') {
       throw new TypeError('The stream is not in the readable state and cannot be closed');
+    }
+
+    if (!IsReadableByteStreamLocked(stream)) {
+      if (this._queue.length === 0) {
+        CloseReadableByteStream(stream);
+
+        return undefined;
+      }
+
+      this._closeRequested = true;
+
+      return undefined;
+    }
+
+    const reader = stream._reader;
+
+    if (IsReadableByteStreamReader(reader)) {
+      if (this._queue.length === 0) {
+        CloseReadableByteStream(stream);
+
+        return undefined;
+      }
+
+      this._closeRequested = true;
+
+      return undefined;
+    }
+
+    assert(IsReadableByteStreamByobReader(reader));
+
+    if (this._pendingPulls.length > 0 && this._pendingPulls[0].bytesFilled > 0) {
+      ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
+
+      return undefined;
     }
 
     if (this._queue.length === 0) {
@@ -140,13 +174,13 @@ class ReadableByteStreamController {
 
     assert(IsReadableByteStreamByobReader(reader));
 
-    if (reader._readIntoRequest.length === 0) {
-      EnqueueInReadableByteStreamController(this, chunk);
+    EnqueueInReadableByteStreamController(this, chunk);
 
-      return undefined;
+    if (this._pendingPulls.length > 0) {
+      ProcessPullRequest(stream, this._pendingPulls.shift());
     }
 
-    throw new TypeError('pullInto() must not be responded by enqueue()');
+    return undefined;
   }
 
   error(e) {
@@ -161,6 +195,7 @@ class ReadableByteStreamController {
       throw new TypeError(`The stream is ${stream._state} and so cannot be errored`);
     }
 
+    this._pendingPulls = [];
     this._queue = [];
 
     ErrorReadableByteStream(stream, e);
@@ -176,41 +211,63 @@ class ReadableByteStreamController {
 
     const stream = this._controlledReadableByteStream;
 
-    if (!IsReadableByteStreamLocked(stream)) {
-      throw new TypeError('No active reader');
+    if (this._pendingPulls.length === 0) {
+      throw new TypeError('No pending BYOB read');
     }
+
+    assert(IsReadableByteStreamLocked(stream));
 
     const reader = stream._reader;
 
-    if (IsReadableByteStreamReader(reader)) {
-      throw new TypeError('The active reader is not ReadableByteStreamByobReader');
-    }
-
     assert(IsReadableByteStreamByobReader(reader));
 
-    if (reader._readIntoRequests.length === 0) {
-      throw new TypeError('No pending read');
+    const descriptor = this._pendingPulls[0];
+
+    if (buffer !== undefined) {
+      descriptor.buffer = buffer;
     }
 
-    if (this._pendingViews.length === 0) {
-      throw new TypeError('No pending read');
+    if (stream._state === 'closed') {
+      if (bytesWritten !== 0) {
+        throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
+      }
+
+      assert(descriptor.bytesFilled === 0);
+
+      const result = CreateView(descriptor.viewType, descriptor.buffer, descriptor.byteOffset, 0);
+
+      this._pendingPulls.shift();
+
+      RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
+
+      return undefined;
     }
 
-    if (stream._state === 'closed' && bytesWritten !== 0) {
-      throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
+    descriptor.bytesFilled += bytesWritten;
+
+    const result = CreateView(descriptor.viewType, descriptor.buffer, descriptor.byteOffset, descriptor.bytesFilled);
+    if (result.bytesUsed > 0) {
+      this._pendingPulls.shift();
+
+      RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
+      if (result.bytesUsed < descriptor.bytesFilled) {
+        EnqueueInReadableByteStreamController(this, buffer.slice(result.bytesUsed, descriptor.bytesFilled));
+
+        if (this._pendingPulls.length > 0) {
+          while (ProcessPullRequest(stream, this._pendingPulls.shift())) {}
+        }
+      }
+    } else {
+      try {
+        controller._underlyingByteSource.pullInto(descriptor.buffer,
+                                                  descriptor.byteOffset + descriptor.bytesFilled,
+                                                  descriptor.byteLength - descriptor.bytesFilled);
+      } catch (e) {
+        if (stream._state === 'readable') {
+          ErrorReadableByteStream(stream, e);
+        }
+      }
     }
-
-    const descriptor = this._pendingViews.shift();
-
-    if (buffer === undefined) {
-      buffer = descriptor.buffer;
-    }
-    const viewType = descriptor.type
-    const byteOffset = descriptor.byteOffset;
-    const byteLength = descriptor.bytesAlreadyFilled + bytesWritten;
-
-    const chunk = CreateView(viewType, buffer, byteOffset, byteLength);
-    RespondToReadableByteStreamByobReaderReadIntoRequest(reader, chunk);
 
     return undefined;
   }
@@ -449,47 +506,35 @@ function CloseReadableByteStream(stream) {
 
 function CreateView(type, buffer, byteOffset, byteLength) {
   if (type === 'DataView') {
-    return new DataView(buffer, byteOffset, byteLength);
+    return {view: new DataView(buffer, byteOffset, byteLength), bytesUsed: byteLength};
   } else if (type === 'Int8Array') {
-    return new Int8Array(buffer, byteOffset, byteLength);
+    return {view: new Int8Array(buffer, byteOffset, byteLength), bytesUsed: byteLength};
   } else if (type === 'Uint8Array') {
-    return new Uint8Array(buffer, byteOffset, byteLength);
+    return {view: new Uint8Array(buffer, byteOffset, byteLength), bytesUsed: byteLength};
   } else if (type === 'Int16Array') {
     const elementSize = 2;
-    if (byteLength % elementSize !== 0) {
-      throw new TypeError('Not aligned');
-    }
-    return new Int16Array(buffer, byteOffset, byteLength / elementSize);
+    const bytesUsed = byteLength - byteLength % elementSize;
+    return {view: new Int16Array(buffer, byteOffset, byteUsed / elementSize), bytesUsed};
   } else if (type === 'Uint16Array') {
     const elementSize = 2;
-    if (byteLength % elementSize !== 0) {
-      throw new TypeError('Not aligned');
-    }
-    return new Uint16Array(buffer, byteOffset, byteLength / elementSize);
+    const bytesUsed = byteLength - byteLength % elementSize;
+    return {view: new Uint16Array(buffer, byteOffset, byteLength / elementSize), bytesUsed};
   } else if (type === 'Int32Array') {
     const elementSize = 4;
-    if (byteLength % elementSize !== 0) {
-      throw new TypeError('Not aligned');
-    }
-    return new Int32Array(buffer, byteOffset, byteLength / elementSize);
+    const bytesUsed = byteLength - byteLength % elementSize;
+    return {view: new Int32Array(buffer, byteOffset, byteLength / elementSize), bytesUsed};
   } else if (type === 'Uint32Array') {
     const elementSize = 4;
-    if (byteLength % elementSize !== 0) {
-      throw new TypeError('Not aligned');
-    }
-    return new Uint32Array(buffer, byteOffset, byteLength / elementSize);
+    const bytesUsed = byteLength - byteLength % elementSize;
+    return {view: new Uint32Array(buffer, byteOffset, byteLength / elementSize), bytesUsed};
   } else if (type === 'Float32Array') {
     const elementSize = 4;
-    if (byteLength % elementSize !== 0) {
-      throw new TypeError('Not aligned');
-    }
-    return new Float32Array(buffer, byteOffset, byteLength / elementSize);
+    const bytesUsed = byteLength - byteLength % elementSize;
+    return {view: new Float32Array(buffer, byteOffset, byteLength / elementSize), bytesUsed};
   } else if (type === 'Float64Array') {
     const elementSize = 8;
-    if (byteLength % elementSize !== 0) {
-      throw new TypeError('Not aligned');
-    }
-    return new Float64Array(buffer, byteOffset, byteLength / elementSize);
+    const bytesUsed = byteLength - byteLength % elementSize;
+    return {view: new Float64Array(buffer, byteOffset, byteLength / elementSize), bytesUsed};
   } else {
     throw new TypeError('Descriptor is broken');
   }
@@ -506,7 +551,8 @@ function DetachReadableByteStreamReader(stream) {
 
 function EnqueueInReadableByteStreamController(controller, chunk) {
   try {
-    EnqueueValueWithSize(controller._queue, chunk, chunk.byteLength);
+    controller._queue.push(chunk);
+    controller._totalBytes += chunk.byteLength;
   } catch (e) {
     ErrorReadableByteStream(controller._controlledReadableByteStream, e);
     throw e;
@@ -589,18 +635,99 @@ function IsReadableByteStreamReader(x) {
 function PopBytesFromQueue(controller) {
   const queue = controller._queue;
 
-  let chunk = PeekQueueValue(queue);
-  DequeueValue(queue);
+  let chunk = queue.shift();
   const bytesAlreadyConsumed = controller._consumedBytesOfHeadOfQueue;
-  if (bytesAlreadyConsumed !== 0) {
-    const buffer = chunk.buffer;
-    const byteLength = chunk.byteLength;
-    const byteOffset = chunk.byteOffset;
-    chunk = new Uint8Array(buffer, byteOffset + bytesAlreadyConsumed, byteLength - bytesAlreadyConsumed);
-    controller._consumedBytesOfHeadOfQueue = 0;
+  const buffer = chunk.buffer;
+  const byteOffset = chunk.byteOffset + bytesAlreadyConsumed;
+  const byteLength = chunk.byteLength - bytesAlreadyConsumed;
+
+  controller._consumedBytesOfHeadOfQueue = 0;
+  controller._totalBytes -= byteLength;
+
+  return new Uint8Array(buffer, byteOffset, byteLength);
+}
+
+function ProcessPullRequest(stream, descriptor) {
+  const controller = stream._controller;
+
+  const queue = controller._queue;
+
+  const destBuffer = descriptor.buffer;
+  const destByteOffset = descriptor.byteOffset;
+
+  const elementSize = descriptor.elementSize;
+  let maxBytesToCopy = Math.min(controller._totalBytes, descriptor.byteLength - descriptor.bytesFilled);
+  const currentNumElements = (descriptor.bytesFilled - descriptor.bytesFilled % elementSize) / elementSize;
+  const maxBytesFilled = descriptor.bytesFilled + maxBytesToCopy;
+  const maxNumElements = (maxBytesFilled - maxBytesFilled % elementSize) / elementSize;
+  let respond = false;
+  let totalBytesToCopyRemaining = maxBytesToCopy;
+  if (maxNumElements > currentNumElements) {
+    respond = true;
+    totalBytesToCopyRemaining = maxNumElements * elementSize - descriptor.bytesFilled;
   }
 
-  return chunk;
+  while (totalBytesToCopyRemaining > 0) {
+    const headOfQueue = queue[0];
+
+    const srcBuffer = headOfQueue.buffer;
+    const srcByteOffset = headOfQueue.byteOffset;
+    let srcByteLength = headOfQueue.byteLength;
+
+    let srcBytesConsumed = controller._consumedBytesOfHeadOfQueue;
+
+    const bytesToCopy = Math.min(totalBytesToCopyRemaining, srcByteLength - srcBytesConsumed);
+
+    const srcStart = srcByteOffset + srcBytesConsumed;
+    const destStart = destByteOffset + descriptor.bytesFilled;
+    new Uint8Array(destBuffer).set(new Uint8Array(srcBuffer, srcStart, bytesToCopy), destStart);
+
+    srcBytesConsumed += bytesToCopy;
+    descriptor.bytesFilled += bytesToCopy;
+
+    totalBytesToCopyRemaining -= bytesToCopy
+    controller._totalBytes -= bytesToCopy;
+
+    if (srcBytesConsumed === srcByteLength) {
+      queue.shift();
+      controller._consumedBytesOfHeadOfQueue = 0;
+    } else {
+      controller._consumedBytesOfHeadOfQueue = srcBytesConsumed;
+    }
+  }
+
+  if (respond) {
+    const result = CreateView(descriptor.viewType, destBuffer, destByteOffset, descriptor.bytesFilled);
+    assert(result.bytesUsed === descriptor.bytesFilled);
+    RespondToReadableByteStreamByobReaderReadIntoRequest(stream._reader, result.view);
+
+    if (queue.length === 0 && controller._closeRequested === true) {
+      CloseReadableByteStream(stream);
+    }
+
+    return true;
+  } else if (queue.length === 0 && controller._closeRequested === true) {
+    if (descriptor.bytesFilled === 0) {
+      CloseReadableByteStream(stream);
+    } else {
+      ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
+    }
+
+    return false;
+  }
+
+  // TODO: Detach destBuffer here.
+  controller._pendingPulls.push(descriptor);
+  try {
+    controller._underlyingByteSource.pullInto(
+        destBuffer, destByteOffset + descriptor.bytesFilled, descriptor.byteLength - descriptor.bytesFilled);
+  } catch (e) {
+    if (stream._state === 'readable') {
+      ErrorReadableByteStream(stream, e);
+    }
+  }
+
+  return false;
 }
 
 function PullFromReadableByteStream(stream) {
@@ -640,107 +767,49 @@ function PullFromReadableByteStream(stream) {
 }
 
 function PullFromReadableByteStreamInto(stream, view) {
-  const controller = stream._controller;
-
-  const queue = controller._queue;
-
-  const destBuffer = view.buffer;
-  const destByteOffset = view.byteOffset;
-  const destByteLength = view.byteLength;
-
-  let destBytesFilled = 0;
-
-  while (queue.length > 0) {
-    const headOfQueue = PeekQueueValue(queue);
-
-    const srcBuffer = headOfQueue.buffer;
-    const srcByteOffset = headOfQueue.byteOffset;
-    const srcByteLength = headOfQueue.byteLength;
-
-    let srcBytesConsumed = controller._consumedBytesOfHeadOfQueue;
-
-    let bytesToCopy = srcByteLength - srcBytesConsumed;
-    const destRemaining = destByteLength - destBytesFilled;
-    if (bytesToCopy > destRemaining) {
-      bytesToCopy = destRemaining;
-    }
-
-    const srcStart = srcByteOffset + srcBytesConsumed;
-    const destStart = destByteOffset + destBytesFilled;
-    new Uint8Array(destBuffer).set(new Uint8Array(srcBuffer, srcStart, bytesToCopy), destStart);
-
-    srcBytesConsumed += bytesToCopy;
-    destBytesFilled += bytesToCopy;
-
-    if (srcBytesConsumed < srcByteLength) {
-      controller._consumedBytesOfHeadOfQueue = srcBytesConsumed;
-      break;
-    }
-
-    DequeueValue(queue);
-    controller._consumedBytesOfHeadOfQueue = 0;
-  }
-
-  let type;
+  let viewType;
   let elementSize = 1;
   if (view.constructor === DataView) {
-    type = 'DataView';
+    viewType = 'DataView';
   } else if (view.constructor === Int8Array) {
-    type = 'Int8Array';
+    viewType = 'Int8Array';
   } else if (view.constructor === Uint8Array) {
-    type = 'Uint8Array';
+    viewType = 'Uint8Array';
   } else if (view.constructor === Uint8ClampedArray) {
-    type = 'Uint8ClampedArray';
+    viewType = 'Uint8ClampedArray';
   } else if (view.constructor === Int16Array) {
-    type = 'Int16Array';
+    viewType = 'Int16Array';
     elementSize = 2;
   } else if (view.constructor === Uint16Array) {
-    type = 'Uint16Array';
+    viewType = 'Uint16Array';
     elementSize = 2;
   } else if (view.constructor === Int32Array) {
-    type = 'Int32Array';
+    viewType = 'Int32Array';
     elementSize = 4;
   } else if (view.constructor === Uint32Array) {
-    type = 'Uint32Array';
+    viewType = 'Uint32Array';
     elementSize = 4;
   } else if (view.constructor === Float32Array) {
-    type = 'Float32Array';
+    viewType = 'Float32Array';
     elementSize = 4;
   } else if (view.constructor === Float64Array) {
-    type = 'Float64Array';
+    viewType = 'Float64Array';
     elementSize = 8;
   } else {
     ErrorReadableByteStream(stream, new TypeError('Unknown ArrayBufferView type'));
     return undefined;
   }
 
-  if (destBytesFilled > 0 && destBytesFilled % elementSize === 0) {
-    const newView = CreateView(type, destBuffer, destByteOffset, destBytesFilled);
+  const descriptor = {
+    buffer: view.buffer,
+    byteOffset: view.byteOffset,
+    byteLength: view.byteLength,
+    bytesFilled: 0,
+    viewType,
+    elementSize
+  };
 
-    RespondToReadableByteStreamByobReaderReadIntoRequest(stream._reader, newView);
-
-    if (queue.length === 0 && controller._closeRequested === true) {
-      CloseReadableByteStream(stream);
-    }
-
-    return undefined;
-  } else if (queue.length === 0 && controller._closeRequested === true) {
-    ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
-
-    return undefined;
-  }
-
-  // TODO: Detach destBuffer here.
-  controller._pendingViews.push(
-      {buffer: destBuffer, byteOffset: destByteOffset, bytesAlreadyFilled: destBytesFilled, type});
-  try {
-    controller._underlyingByteSource.pullInto(
-        destBuffer, destByteOffset + destBytesFilled, destByteLength - destBytesFilled);
-  } catch (e) {
-    if (stream._state === 'readable') {
-      ErrorReadableByteStream(stream, e);
-    }
-  }
+  ProcessPullRequest(stream, descriptor);
 
   return undefined;
 }
