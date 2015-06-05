@@ -14,7 +14,7 @@ test('ReadableByteStream can be constructed with no errors', t => {
   t.end();
 });
 
-test('ReadableByteStream: enqueue(), then read()', t => {
+test('ReadableByteStream: enqueue(), getReader(), then read()', t => {
   const rbs = new ReadableByteStream({
     start(c) {
       c.enqueue(new Uint8Array(16));
@@ -34,6 +34,80 @@ test('ReadableByteStream: enqueue(), then read()', t => {
   reader.read().then(view => {
     t.equals(view.done, false, 'done is false');
     t.equals(view.value.byteLength, 16, 'byteLength is 16');
+    t.end();
+  });
+});
+
+test('ReadableByteStream: getReader(), enqueue(), close(), then read()', t => {
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      t.fail();
+      t.end();
+    },
+    pullInto() {
+      t.fail();
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  controller.enqueue(new Uint8Array(16));
+  controller.close();
+
+  reader.read().then(view => {
+    t.equals(view.done, false, 'done is false');
+    t.equals(view.value.byteOffset, 0, 'byteOffset is 0');
+    t.equals(view.value.byteLength, 16, 'byteLength is 16');
+
+    return reader.read();
+  }).then(view => {
+    t.equals(view.done, true, 'done is true');
+    t.equals(view.value, undefined, 'value is undefined');
+
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: enqueue(), close(), getReader(), then read()', t => {
+  const rbs = new ReadableByteStream({
+    start(c) {
+      c.enqueue(new Uint8Array(16));
+      c.close();
+    },
+    pull() {
+      t.fail();
+      t.end();
+    },
+    pullInto() {
+      t.fail();
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  reader.read().then(view => {
+    t.equals(view.done, false, 'done is false');
+    t.equals(view.value.byteOffset, 0, 'byteOffset is 0');
+    t.equals(view.value.byteLength, 16, 'byteLength is 16');
+
+    return reader.read();
+  }).then(view => {
+    t.equals(view.done, true, 'done is true');
+    t.equals(view.value, undefined, 'value is undefined');
+
+    t.end();
+  }).catch(e => {
+    t.fail(e);
     t.end();
   });
 });
@@ -66,7 +140,7 @@ test('ReadableByteStream: read(), then enqueue()', t => {
   });
 });
 
-test('ReadableByteStream: enqueue(), then read(view)', t => {
+test('ReadableByteStream: enqueue(), getReader(), then read(view)', t => {
   const rbs = new ReadableByteStream({
     start(c) {
       const view = new Uint8Array(16);
@@ -97,7 +171,7 @@ test('ReadableByteStream: enqueue(), then read(view)', t => {
   });
 });
 
-test('ReadableByteStream: Multiple enqueue(), then read(view)', t => {
+test('ReadableByteStream: Multiple enqueue(), getReader(), then read(view)', t => {
   const rbs = new ReadableByteStream({
     start(c) {
       let view;
@@ -135,7 +209,7 @@ test('ReadableByteStream: Multiple enqueue(), then read(view)', t => {
   });
 });
 
-test('ReadableByteStream: enqueue(), then read(view) with a bigger view', t => {
+test('ReadableByteStream: enqueue(), getReader(), then read(view) with a bigger view', t => {
   let controller;
   const rbs = new ReadableByteStream({
     start(c) {
@@ -168,7 +242,7 @@ test('ReadableByteStream: enqueue(), then read(view) with a bigger view', t => {
   });
 });
 
-test('ReadableByteStream: enqueue() 1 byte, then read(view) with Uint16Array', t => {
+test('ReadableByteStream: enqueue() 1 byte, getReader(), then read(view) with Uint16Array', t => {
   let controller;
   const rbs = new ReadableByteStream({
     start(c) {
@@ -205,7 +279,7 @@ test('ReadableByteStream: enqueue() 1 byte, then read(view) with Uint16Array', t
   });
 });
 
-test('ReadableByteStream: enqueue() 1 byte, close(), then read(view) with Uint16Array', t => {
+test('ReadableByteStream: enqueue() 1 byte, close(), getReader(), then read(view) with Uint16Array', t => {
   let controller;
   const rbs = new ReadableByteStream({
     start(c) {
@@ -238,7 +312,7 @@ test('ReadableByteStream: enqueue() 1 byte, close(), then read(view) with Uint16
   });
 });
 
-test('ReadableByteStream: read(view), then enqueue()', t => {
+test('ReadableByteStream: read(view), respond() in pullInto(), then enqueue()', t => {
   let controller;
   const rbs = new ReadableByteStream({
     start(c) {
