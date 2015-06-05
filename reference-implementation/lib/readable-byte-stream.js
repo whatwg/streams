@@ -367,7 +367,7 @@ class ReadableByteStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    SyncReadableByteStreamReaderStateWithOwner(this._ownerReadableByteStream, this);
+    UpdateReaderForRelease(this._ownerReadableByteStream, this);
     DetachReadableByteStreamReader(this);
 
     return undefined;
@@ -470,7 +470,7 @@ class ReadableByteStreamByobReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    SyncReadableByteStreamReaderStateWithOwner(this._ownerReadableByteStream, this);
+    UpdateReaderForRelease(this._ownerReadableByteStream, this);
     DetachReadableByteStreamReader(this);
 
     return undefined;
@@ -815,14 +815,14 @@ function PullFromReadableByteStreamInto(stream, view) {
 }
 
 function ReleaseReadableByteStreamReader(stream) {
-  const reader = stream._reader;
-
   if (!IsReadableByteStreamLocked(stream)) {
     return undefined;
   }
 
+  const reader = stream._reader;
+
   if (IsReadableByteStreamReader(reader)) {
-    SyncReadableByteStreamReaderStateWithOwner(stream, reader);
+    UpdateReaderForRelease(stream, reader);
 
     if (stream._state === 'errored') {
       for (const req of reader._readRequests) {
@@ -843,11 +843,11 @@ function ReleaseReadableByteStreamReader(stream) {
 
   assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
-  SyncReadableByteStreamReaderStateWithOwner(stream, reader);
+  UpdateReaderForRelease(stream, reader);
 
   if (stream._state === 'errored') {
-    for (const readIntoRequest of reader._readIntoRequests) {
-      readIntoRequest.reject(stream._storedError);
+    for (const req of reader._readIntoRequests) {
+      req.reject(stream._storedError);
     }
 
     reader._readIntoRequests = [];
@@ -855,13 +855,13 @@ function ReleaseReadableByteStreamReader(stream) {
     DetachReadableByteStreamReader(stream);
 
     return undefined;
-  } else {
-    if (reader._readIntoRequests.length === 0) {
-      DetachReadableByteStreamReader(stream);
-
-      return undefined;
-    }
   }
+
+  if (reader._readIntoRequests.length === 0) {
+    DetachReadableByteStreamReader(stream);
+  }
+
+  return undefined;
 }
 
 function RespondToReadableByteStreamReaderReadRequest(reader, chunk) {
@@ -896,7 +896,7 @@ function RespondToReadableByteStreamByobReaderReadIntoRequest(reader, chunk) {
   return undefined;
 }
 
-function SyncReadableByteStreamReaderStateWithOwner(stream, reader) {
+function UpdateReaderForRelease(stream, reader) {
   if (stream._state === 'errored') {
     reader._state = 'errored';
     reader._storedError = stream._storedError;
@@ -907,8 +907,6 @@ function SyncReadableByteStreamReaderStateWithOwner(stream, reader) {
 
     return undefined;
   }
-
-  assert(stream._state === 'closed');
 
   reader._state = 'closed';
 
