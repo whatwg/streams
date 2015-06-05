@@ -282,21 +282,9 @@ class ReadableByteStreamReader {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
-    stream._reader = this;
-    this._ownerReadableByteStream = stream;
-    this._state = 'readable';
-    this._storedError = undefined;
+    InitializeReadableByteStreamReader(this, stream);
 
     this._readRequests = [];
-
-    this._closedPromise = new Promise((resolve, reject) => {
-      this._closedPromise_resolve = resolve;
-      this._closedPromise_reject = reject;
-    });
-
-    if (stream._state === 'closed' || stream._state === 'errored') {
-      ReleaseReadableByteStreamReader(this);
-    }
   }
 
   get closed() {
@@ -367,8 +355,11 @@ class ReadableByteStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    UpdateReaderForRelease(this._ownerReadableByteStream, this);
-    DetachReadableByteStreamReader(this);
+    if (this._ownerReadableByteStream._state === 'errored') {
+      MarkReadableByteStreamReaderErrored(this, this._ownerReadableByteStream._storedError)
+    } else {
+      CloseReadableByteStreamReader(this);
+    }
 
     return undefined;
   }
@@ -383,21 +374,9 @@ class ReadableByteStreamByobReader {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
-    stream._reader = this;
-    this._ownerReadableByteStream = stream;
-    this._state = 'readable';
-    this._storedError = undefined;
+    InitializeReadableByteStreamReader(this, stream);
 
     this._readIntoRequests = [];
-
-    this._closedPromise = new Promise((resolve, reject) => {
-      this._closedPromise_resolve = resolve;
-      this._closedPromise_reject = reject;
-    });
-
-    if (stream._state === 'closed' || stream._state === 'errored') {
-      ReleaseReadableByteStreamReader(this);
-    }
   }
 
   get closed() {
@@ -470,8 +449,11 @@ class ReadableByteStreamByobReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    UpdateReaderForRelease(this._ownerReadableByteStream, this);
-    DetachReadableByteStreamReader(this);
+    if (this._ownerReadableByteStream._state === 'errored') {
+      ErrorReadableByteStreamReader(this, this._ownerReadableByteStream._storedError)
+    } else {
+      CloseReadableByteStreamReader(this);
+    }
 
     return undefined;
   }
@@ -494,12 +476,40 @@ function CancelReadableByteStream(stream, reason) {
 }
 
 function CloseReadableByteStream(stream) {
-  assert(IsReadableByteStream(stream) === true);
+  assert(IsReadableByteStream(stream));
   assert(stream._state === 'readable');
 
   stream._state = 'closed';
 
-  ReleaseReadableByteStreamReader(stream);
+  if (IsReadableByteStreamLocked(stream)) {
+    CloseReadableByteStreamReader(stream._reader);
+  }
+
+  return undefined;
+}
+
+function CloseReadableByteStreamReader(reader) {
+  reader._state = 'closed';
+
+  reader._closedPromise_resolve(undefined);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
+
+  if (IsReadableByteStreamReader(reader)) {
+    for (const req of reader._readRequests) {
+      req.resolve(CreateIterResultObject(undefined, true));
+    }
+
+    reader._readRequests = [];
+  } else {
+    assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
+
+    if (reader._readIntoRequests.length > 0) {
+      return undefined;
+    }
+  }
+
+  DetachReadableByteStreamReader(reader);
 
   return undefined;
 }
@@ -540,11 +550,9 @@ function CreateView(type, buffer, byteOffset, byteLength) {
   }
 }
 
-function DetachReadableByteStreamReader(stream) {
-  assert(stream._reader !== undefined);
-
-  stream._reader._ownerReadableByteStream = undefined;
-  stream._reader = undefined;
+function DetachReadableByteStreamReader(reader) {
+  reader._ownerReadableByteStream._reader = undefined;
+  reader._ownerReadableByteStream = undefined;
 
   return undefined;
 }
@@ -562,15 +570,75 @@ function EnqueueInReadableByteStreamController(controller, chunk) {
 }
 
 function ErrorReadableByteStream(stream, e) {
-  assert(IsReadableByteStream(stream) === true);
+  assert(IsReadableByteStream(stream));
   assert(stream._state === 'readable');
 
-  stream._storedError = e;
   stream._state = 'errored';
+  stream._storedError = e;
 
-  ReleaseReadableByteStreamReader(stream);
+  if (IsReadableByteStreamLocked(stream)) {
+    ErrorReadableByteStreamReader(stream._reader, e)
+  }
 
   return undefined;
+}
+
+function ErrorReadableByteStreamReader(reader, e) {
+  reader._state = 'errored';
+  reader._storedError = e;
+
+  reader._closedPromise_reject(e);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
+
+  if (IsReadableByteStreamReader(reader)) {
+    for (const req of reader._readRequests) {
+      req.reject(reader._storedError);
+    }
+
+    reader._readRequests = [];
+  } else {
+    assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
+
+    for (const req of reader._readIntoRequests) {
+      req.reject(reader._storedError);
+    }
+
+    reader._readIntoRequests = [];
+  }
+
+  DetachReadableByteStreamReader(reader);
+
+  return undefined;
+}
+
+function InitializeReadableByteStreamReader(reader, stream) {
+  if (stream._state === 'readable') {
+    stream._reader = reader;
+
+    reader._ownerReadableByteStream = stream;
+    reader._state = 'readable';
+    reader._storedError = undefined;
+    reader._closedPromise = new Promise((resolve, reject) => {
+      reader._closedPromise_resolve = resolve;
+      reader._closedPromise_reject = reject;
+    });
+  } else if (stream._state === 'closed') {
+    reader._ownerReadableByteStream = undefined;
+    reader._state = 'closed';
+    reader._closedPromise = Promise.resolve(undefined);
+    reader._closedPromise_resolve = undefined;
+    reader._closedPromise_reject = undefined;
+  } else {
+    assert(stream._state === 'errored');
+
+    reader._ownerReadableByteStream = stream;
+    reader._state = 'errored';
+    reader._storedError = stream._storedError;
+    reader._closedPromise = Promise.reject(stream._storedError);
+    reader._closedPromise_resolve = undefined;
+    reader._closedPromise_reject = undefined;
+  }
 }
 
 function IsReadableByteStream(x) {
@@ -586,7 +654,7 @@ function IsReadableByteStream(x) {
 }
 
 function IsReadableByteStreamLocked(stream) {
-  assert(IsReadableByteStream(stream) === true,
+  assert(IsReadableByteStream(stream),
          'IsReadableByteStreamLocked should only be used on known readable byte streams');
 
   if (stream._reader === undefined) {
@@ -814,56 +882,6 @@ function PullFromReadableByteStreamInto(stream, view) {
   return undefined;
 }
 
-function ReleaseReadableByteStreamReader(stream) {
-  if (!IsReadableByteStreamLocked(stream)) {
-    return undefined;
-  }
-
-  const reader = stream._reader;
-
-  if (IsReadableByteStreamReader(reader)) {
-    UpdateReaderForRelease(stream, reader);
-
-    if (stream._state === 'errored') {
-      for (const req of reader._readRequests) {
-        req.reject(stream._storedError);
-      }
-    } else {
-      for (const req of reader._readRequests) {
-        req.resolve(CreateIterResultObject(undefined, true));
-      }
-    }
-
-    reader._readRequests = [];
-
-    DetachReadableByteStreamReader(stream);
-
-    return undefined;
-  }
-
-  assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
-
-  UpdateReaderForRelease(stream, reader);
-
-  if (stream._state === 'errored') {
-    for (const req of reader._readIntoRequests) {
-      req.reject(stream._storedError);
-    }
-
-    reader._readIntoRequests = [];
-
-    DetachReadableByteStreamReader(stream);
-
-    return undefined;
-  }
-
-  if (reader._readIntoRequests.length === 0) {
-    DetachReadableByteStreamReader(stream);
-  }
-
-  return undefined;
-}
-
 function RespondToReadableByteStreamReaderReadRequest(reader, chunk) {
   assert(reader._readRequests.length > 0,
          'readRequest must not be empty when calling RespondToReadableByteStreamReaderReadRequest');
@@ -890,29 +908,8 @@ function RespondToReadableByteStreamByobReaderReadIntoRequest(reader, chunk) {
   req.resolve(CreateIterResultObject(chunk, true));
 
   if (reader._readIntoRequests.length === 0) {
-    DetachReadableByteStreamReader(reader._ownerReadableByteStream);
+    DetachReadableByteStreamReader(reader);
   }
-
-  return undefined;
-}
-
-function UpdateReaderForRelease(stream, reader) {
-  if (stream._state === 'errored') {
-    reader._state = 'errored';
-    reader._storedError = stream._storedError;
-
-    reader._closedPromise_reject(stream._storedError);
-    reader._closedPromise_resolve = undefined;
-    reader._closedPromise_reject = undefined;
-
-    return undefined;
-  }
-
-  reader._state = 'closed';
-
-  reader._closedPromise_resolve(undefined);
-  reader._closedPromise_resolve = undefined;
-  reader._closedPromise_reject = undefined;
 
   return undefined;
 }
