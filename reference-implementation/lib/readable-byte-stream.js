@@ -176,7 +176,7 @@ class ReadableByteStreamController {
     EnqueueInReadableByteStreamController(this, chunk);
 
     if (this._pendingPulls.length > 0) {
-      ProcessPullRequest(stream, this._pendingPulls.shift());
+      ProcessPullRequest(stream);
     }
 
     return undefined;
@@ -253,7 +253,7 @@ class ReadableByteStreamController {
         EnqueueInReadableByteStreamController(this, buffer.slice(result.bytesUsed, descriptor.bytesFilled));
 
         if (this._pendingPulls.length > 0) {
-          while (ProcessPullRequest(stream, this._pendingPulls.shift())) {}
+          while (ProcessPullRequest(stream)) {}
         }
       }
     } else {
@@ -557,13 +557,8 @@ function DetachReadableByteStreamReader(reader) {
 }
 
 function EnqueueInReadableByteStreamController(controller, chunk) {
-  try {
-    controller._queue.push({buffer: chunk.buffer, byteOffset: chunk.byteOffset, byteLength: chunk.byteLength});
-    controller._totalQueuedBytes += chunk.byteLength;
-  } catch (e) {
-    ErrorReadableByteStream(controller._controlledReadableByteStream, e);
-    throw e;
-  }
+  controller._queue.push({buffer: chunk.buffer, byteOffset: chunk.byteOffset, byteLength: chunk.byteLength});
+  controller._totalQueuedBytes += chunk.byteLength;
 
   return undefined;
 }
@@ -700,6 +695,12 @@ function IsReadableByteStreamReader(x) {
 }
 
 function ProcessPullRequest(stream, descriptor) {
+  let detachRequired = true;
+  if (descriptor === undefined) {
+    descriptor = this._pendingPulls.shift();
+    detachRequired = false;
+  }
+
   const controller = stream._controller;
 
   const queue = controller._queue;
@@ -761,7 +762,7 @@ function ProcessPullRequest(stream, descriptor) {
     return false;
   }
 
-  // TODO: Detach destBuffer here.
+  // TODO: Detach descriptor.buffer if detachRequired is true.
   controller._pendingPulls.push(descriptor);
   try {
     controller._underlyingByteSource.pullInto(
