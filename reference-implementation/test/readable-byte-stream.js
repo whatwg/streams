@@ -351,3 +351,63 @@ test('ReadableByteStream: read(view), respond() in pullInto(), then enqueue()', 
     t.end();
   });
 });
+
+test('ReadableByteStream: Multiple read(view), close() and respond() in pullInto()', t => {
+  let count = 0;
+
+  let controller;
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      t.fail();
+      t.end();
+    },
+    pullInto(buffer, offset, length) {
+      if (count === 0) {
+        t.equals(buffer.constructor, ArrayBuffer, 'buffer is ArrayBuffer');
+        t.equals(buffer.byteLength, 16, 'byteLength is 16');
+        t.equals(offset, 0, 'offset is 0');
+        t.equals(length, 16, 'length is 16');
+      } else if (count === 1) {
+        t.equals(buffer.constructor, ArrayBuffer, 'buffer is ArrayBuffer');
+        t.equals(buffer.byteLength, 32, 'byteLength is 32');
+        t.equals(offset, 0, 'offset is 0');
+        t.equals(length, 32, 'length is 32');
+      } else {
+        t.fail();
+        t.end();
+      }
+
+      ++count;
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  const p0 = reader.read(new Uint8Array(16)).then(result => {
+    t.equals(result.done, true, '1st read: done is false');
+    t.equals(result.value.buffer.byteLength, 16, '1st read: buffer.byteLength is 16');
+    t.equals(result.value.byteOffset, 0, '1st read: byteOffset is 0');
+    t.equals(result.value.byteLength, 0, '1st read: byteLength is 0');
+  });
+
+  const p1 = reader.read(new Uint8Array(32)).then(result => {
+    t.equals(result.done, true, '2nd read: done is false');
+    t.equals(result.value.buffer.byteLength, 32, '2nd read: buffer.byteLength is 32');
+    t.equals(result.value.byteOffset, 0, '2nd read: byteOffset is 0');
+    t.equals(result.value.byteLength, 0, '2nd read: byteLength is 0');
+  });
+
+  Promise.all([p0, p1]).then(() => {
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  })
+
+  controller.close();
+  controller.respond(0);
+  controller.respond(0);
+});
