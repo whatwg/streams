@@ -149,35 +149,23 @@ class ReadableByteStreamController {
       throw new TypeError('The stream is not in the readable state and cannot be enqueued to');
     }
 
-    if (!IsReadableByteStreamLocked(stream)) {
-      EnqueueInReadableByteStreamController(this, chunk);
+    EnqueueInReadableByteStreamController(this, chunk);
 
+    if (!IsReadableByteStreamLocked(stream)) {
       return undefined;
     }
 
     const reader = stream._reader;
 
     if (IsReadableByteStreamReader(reader)) {
-      if (reader._readRequests.length === 0) {
-        EnqueueInReadableByteStreamController(this, chunk);
-
-        return undefined;
-      }
-
-      assert(this._queue.length === 0);
-
-      RespondToReadableByteStreamReaderReadRequest(reader, chunk);
+      MaybeRespondToReadableByteStreamReaderReadRequest(this, reader);
 
       return undefined;
     }
 
     assert(IsReadableByteStreamByobReader(reader));
 
-    EnqueueInReadableByteStreamController(this, chunk);
-
-    if (this._pendingPulls.length > 0) {
-      ProcessPullRequest(stream);
-    }
+    MaybeRespondToReadableByteStreamByobReaderReadIntoRequest(this, reader);
 
     return undefined;
   }
@@ -252,9 +240,7 @@ class ReadableByteStreamController {
       if (result.bytesUsed < descriptor.bytesFilled) {
         EnqueueInReadableByteStreamController(this, buffer.slice(result.bytesUsed, descriptor.bytesFilled));
 
-        if (this._pendingPulls.length > 0) {
-          while (ProcessPullRequest(stream)) {}
-        }
+        MaybeRespondToReadableByteStreamByobReaderReadIntoRequest(this, reader);
       }
     } else {
       try {
@@ -694,14 +680,12 @@ function IsReadableByteStreamReader(x) {
   return true;
 }
 
-function ProcessPullRequest(stream, descriptor) {
-  let detachRequired = true;
-  if (descriptor === undefined) {
-    descriptor = this._pendingPulls.shift();
-    detachRequired = false;
+function MaybeRespondToReadableByteStreamByobReaderReadIntoRequest(controller, reader) {
+  if (controller._pendingPulls.length === 0) {
+    return undefined;
   }
 
-  const controller = stream._controller;
+  const descriptor = controller._pendingPulls.shift();
 
   const queue = controller._queue;
 
@@ -742,10 +726,12 @@ function ProcessPullRequest(stream, descriptor) {
     totalBytesToCopyRemaining -= bytesToCopy
   }
 
+  const stream = controller._controlledReadableByteStream;
+
   if (respond) {
     const result = CreateView(descriptor.viewType, destBuffer, destByteOffset, descriptor.bytesFilled);
     assert(result.bytesUsed === descriptor.bytesFilled);
-    RespondToReadableByteStreamByobReaderReadIntoRequest(stream._reader, result.view);
+    RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
 
     if (queue.length === 0 && controller._closeRequested === true) {
       CloseReadableByteStream(stream);
@@ -764,6 +750,7 @@ function ProcessPullRequest(stream, descriptor) {
 
   // TODO: Detach descriptor.buffer if detachRequired is true.
   controller._pendingPulls.push(descriptor);
+
   try {
     controller._underlyingByteSource.pullInto(
         destBuffer, destByteOffset + descriptor.bytesFilled, descriptor.byteLength - descriptor.bytesFilled);
@@ -776,33 +763,39 @@ function ProcessPullRequest(stream, descriptor) {
   return false;
 }
 
-function PullFromReadableByteStream(stream) {
-  const controller  = stream._controller;
-
-  const queue = controller._queue;
-
-  if (queue.length === 0) {
-    try {
-      controller._underlyingByteSource.pull();
-    } catch (e) {
-      if (stream._state === 'readable') {
-        controller._queue = undefined;
-        ErrorReadableByteStream(stream, e);
-      }
-    }
-
+function MaybeRespondToReadableByteStreamReaderReadRequest(controller, reader) {
+  if (reader._readRequests.length === 0 || controller._queue.length === 0) {
     return undefined;
   }
 
-  const entry = queue.shift();
+  const entry = controller._queue.shift();
   controller._totalQueuedBytes -= entry.byteLength;
 
   const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
-  RespondToReadableByteStreamReaderReadRequest(stream._reader, view);
 
-  if (queue.length === 0 && controller._closeRequested === true) {
+  const req = reader._readRequests.shift();
+  req.resolve(CreateIterResultObject(view, false));
+
+  if (controller._queue.length === 0 && controller._closeRequested === true) {
     CloseReadableByteStream(stream);
+
+    return;
   }
+
+  try {
+    controller._underlyingByteSource.pull();
+  } catch (e) {
+    if (stream._state === 'readable') {
+      controller._queue = undefined;
+      ErrorReadableByteStream(stream, e);
+    }
+  }
+
+  return undefined;
+}
+
+function PullFromReadableByteStream(stream) {
+  MaybeRespondToReadableByteStreamReaderReadRequest(stream._controller, stream._reader);
 
   return undefined;
 }
@@ -850,17 +843,13 @@ function PullFromReadableByteStreamInto(stream, view) {
     elementSize
   };
 
-  ProcessPullRequest(stream, descriptor);
+  const controller = stream._controller;
 
-  return undefined;
-}
+  // TODO: Detach descriptor.buffer if detachRequired is true.
+  controller._pendingPulls.push(descriptor);
 
-function RespondToReadableByteStreamReaderReadRequest(reader, chunk) {
-  assert(reader._readRequests.length > 0,
-         'readRequest must not be empty when calling RespondToReadableByteStreamReaderReadRequest');
+  MaybeRespondToReadableByteStreamByobReaderReadIntoRequest(controller, stream._reader);
 
-  const req = reader._readRequests.shift();
-  req.resolve(CreateIterResultObject(chunk, false));
   return undefined;
 }
 
