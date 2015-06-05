@@ -69,8 +69,7 @@ class ReadableByteStreamController {
     this._pendingPulls = [];
 
     this._queue = [];
-    this._consumedBytesOfHeadOfQueue = 0;
-    this._totalBytes = 0;
+    this._totalQueuedBytes = 0;
 
     InvokeOrNoop(underlyingByteSource, 'start', [this]);
   }
@@ -559,8 +558,8 @@ function DetachReadableByteStreamReader(reader) {
 
 function EnqueueInReadableByteStreamController(controller, chunk) {
   try {
-    controller._queue.push(chunk);
-    controller._totalBytes += chunk.byteLength;
+    controller._queue.push({buffer: chunk.buffer, byteOffset: chunk.byteOffset, byteLength: chunk.byteLength});
+    controller._totalQueuedBytes += chunk.byteLength;
   } catch (e) {
     ErrorReadableByteStream(controller._controlledReadableByteStream, e);
     throw e;
@@ -700,21 +699,6 @@ function IsReadableByteStreamReader(x) {
   return true;
 }
 
-function PopBytesFromQueue(controller) {
-  const queue = controller._queue;
-
-  let chunk = queue.shift();
-  const bytesAlreadyConsumed = controller._consumedBytesOfHeadOfQueue;
-  const buffer = chunk.buffer;
-  const byteOffset = chunk.byteOffset + bytesAlreadyConsumed;
-  const byteLength = chunk.byteLength - bytesAlreadyConsumed;
-
-  controller._consumedBytesOfHeadOfQueue = 0;
-  controller._totalBytes -= byteLength;
-
-  return new Uint8Array(buffer, byteOffset, byteLength);
-}
-
 function ProcessPullRequest(stream, descriptor) {
   const controller = stream._controller;
 
@@ -724,7 +708,7 @@ function ProcessPullRequest(stream, descriptor) {
   const destByteOffset = descriptor.byteOffset;
 
   const elementSize = descriptor.elementSize;
-  let maxBytesToCopy = Math.min(controller._totalBytes, descriptor.byteLength - descriptor.bytesFilled);
+  let maxBytesToCopy = Math.min(controller._totalQueuedBytes, descriptor.byteLength - descriptor.bytesFilled);
   const currentNumElements = (descriptor.bytesFilled - descriptor.bytesFilled % elementSize) / elementSize;
   const maxBytesFilled = descriptor.bytesFilled + maxBytesToCopy;
   const maxNumElements = (maxBytesFilled - maxBytesFilled % elementSize) / elementSize;
@@ -738,30 +722,23 @@ function ProcessPullRequest(stream, descriptor) {
   while (totalBytesToCopyRemaining > 0) {
     const headOfQueue = queue[0];
 
-    const srcBuffer = headOfQueue.buffer;
-    const srcByteOffset = headOfQueue.byteOffset;
-    let srcByteLength = headOfQueue.byteLength;
+    const bytesToCopy = Math.min(totalBytesToCopyRemaining, headOfQueue.byteLength);
 
-    let srcBytesConsumed = controller._consumedBytesOfHeadOfQueue;
-
-    const bytesToCopy = Math.min(totalBytesToCopyRemaining, srcByteLength - srcBytesConsumed);
-
-    const srcStart = srcByteOffset + srcBytesConsumed;
     const destStart = destByteOffset + descriptor.bytesFilled;
-    new Uint8Array(destBuffer).set(new Uint8Array(srcBuffer, srcStart, bytesToCopy), destStart);
+    new Uint8Array(destBuffer).set(new Uint8Array(headOfQueue.buffer, headOfQueue.byteOffset, bytesToCopy), destStart);
 
-    srcBytesConsumed += bytesToCopy;
+    if (headOfQueue.byteLength === bytesToCopy) {
+      queue.shift();
+    } else {
+      headOfQueue.byteOffset += bytesToCopy;
+      headOfQueue.byteLength -= bytesToCopy;
+    }
+
+    controller._totalQueuedBytes -= bytesToCopy;
+
     descriptor.bytesFilled += bytesToCopy;
 
     totalBytesToCopyRemaining -= bytesToCopy
-    controller._totalBytes -= bytesToCopy;
-
-    if (srcBytesConsumed === srcByteLength) {
-      queue.shift();
-      controller._consumedBytesOfHeadOfQueue = 0;
-    } else {
-      controller._consumedBytesOfHeadOfQueue = srcBytesConsumed;
-    }
   }
 
   if (respond) {
@@ -812,20 +789,15 @@ function PullFromReadableByteStream(stream) {
         ErrorReadableByteStream(stream, e);
       }
     }
-    return undefined;
-  }
-
-  let chunk;
-  try {
-    chunk = PopBytesFromQueue(controller);
-  } catch (e) {
-    controller._queue = undefined;
-    ErrorReadableByteStream(stream, e);
 
     return undefined;
   }
 
-  RespondToReadableByteStreamReaderReadRequest(stream._reader, chunk);
+  const entry = queue.shift();
+  controller._totalQueuedBytes -= entry.byteLength;
+
+  const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
+  RespondToReadableByteStreamReaderReadRequest(stream._reader, view);
 
   if (queue.length === 0 && controller._closeRequested === true) {
     CloseReadableByteStream(stream);
