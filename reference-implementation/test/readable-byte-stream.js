@@ -20,11 +20,11 @@ test('ReadableByteStream: enqueue(), getReader(), then read()', t => {
       c.enqueue(new Uint8Array(16));
     },
     pull() {
-      t.fail();
+      t.fail('pull must not be called');
       t.end();
     },
     pullInto() {
-      t.fail();
+      t.fail('pullInto must not be called');
       t.end();
     }
   });
@@ -46,11 +46,11 @@ test('ReadableByteStream: getReader(), enqueue(), close(), then read()', t => {
       controller = c;
     },
     pull() {
-      t.fail();
+      t.fail('pull must not be called');
       t.end();
     },
     pullInto() {
-      t.fail();
+      t.fail('pullInto must not be called');
       t.end();
     }
   });
@@ -72,8 +72,7 @@ test('ReadableByteStream: getReader(), enqueue(), close(), then read()', t => {
 
     t.end();
   }).catch(e => {
-    t.fail(e);
-    t.end();
+    throw e;
   });
 });
 
@@ -84,11 +83,11 @@ test('ReadableByteStream: enqueue(), close(), getReader(), then read()', t => {
       c.close();
     },
     pull() {
-      t.fail();
+      t.fail('pull must not be called');
       t.end();
     },
     pullInto() {
-      t.fail();
+      t.fail('pullInto must not be called');
       t.end();
     }
   });
@@ -107,8 +106,7 @@ test('ReadableByteStream: enqueue(), close(), getReader(), then read()', t => {
 
     t.end();
   }).catch(e => {
-    t.fail(e);
-    t.end();
+    throw e;
   });
 });
 
@@ -123,7 +121,7 @@ test('ReadableByteStream: read(), then enqueue()', t => {
       controller.enqueue(new Uint8Array(16));
     },
     pullInto() {
-      t.fail();
+      t.fail('pullInto must not be called');
       t.end();
     }
   });
@@ -133,10 +131,10 @@ test('ReadableByteStream: read(), then enqueue()', t => {
   reader.read().then(view => {
     t.equals(view.done, false, 'done is false');
     t.equals(view.value.byteLength, 16, 'byteLength is 16');
+
     t.end();
   }).catch(e => {
-    t.fail(e);
-    t.end();
+    throw e;
   });
 });
 
@@ -148,11 +146,11 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view)', t => {
       c.enqueue(view);
     },
     pull() {
-      t.fail();
+      t.fail('pull must not be called');
       t.end();
     },
     pullInto() {
-      t.fail();
+      t.fail('pullInto must not be called');
       t.end();
     }
   });
@@ -166,8 +164,7 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view)', t => {
     t.equals(view.value[15], 123, 'Contents are set');
     t.end();
   }).catch(e => {
-    t.fail(e);
-    t.end();
+    throw e;
   });
 });
 
@@ -185,11 +182,11 @@ test('ReadableByteStream: Multiple enqueue(), getReader(), then read(view)', t =
       c.enqueue(view);
     },
     pull() {
-      t.fail();
+      t.fail('pull must not be called');
       t.end();
     },
     pullInto() {
-      t.fail();
+      t.fail('pullInto must not be called');
       t.end();
     }
   });
@@ -204,8 +201,7 @@ test('ReadableByteStream: Multiple enqueue(), getReader(), then read(view)', t =
     t.equals(view.value[23], 111, 'Contents are set from the second chunk');
     t.end();
   }).catch(e => {
-    t.fail(e);
-    t.end();
+    throw e;
   });
 });
 
@@ -219,11 +215,11 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view) with a bigger 
       controller = c;
     },
     pull() {
-      t.fail();
+      t.fail('pull must not be called');
       t.end();
     },
-    pullInto(buffer, offset, length) {
-      t.fail();
+    pullInto() {
+      t.fail('pullInto must not be called');
       t.end();
     }
   });
@@ -237,8 +233,7 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view) with a bigger 
     t.equals(view.value[15], 123, 'Contents are set from the chunk by start()');
     t.end();
   }).catch(e => {
-    t.fail(e);
-    t.end();
+    throw e;
   });
 });
 
@@ -274,8 +269,7 @@ test('ReadableByteStream: enqueue() 1 byte, getReader(), then read(view) with Ui
     t.equals(view.value[0], 0xaaff, 'Contents are set');
     t.end();
   }).catch(e => {
-    t.fail(e);
-    t.end();
+    throw e;
   });
 });
 
@@ -347,8 +341,7 @@ test('ReadableByteStream: read(view), respond() in pullInto(), then enqueue()', 
     t.equals(result.value.byteLength, 16, 'byteLength is 16');
     t.end();
   }).catch(e => {
-    t.fail(e);
-    t.end();
+    throw e;
   });
 });
 
@@ -388,23 +381,24 @@ test('ReadableByteStream: Multiple read(view), close() and respond() in pullInto
 
   const p0 = reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, true, '1st read: done is false');
-    t.equals(result.value.buffer.byteLength, 16, '1st read: buffer.byteLength is 16');
-    t.equals(result.value.byteOffset, 0, '1st read: byteOffset is 0');
-    t.equals(result.value.byteLength, 0, '1st read: byteLength is 0');
+    const view = result.value;
+    t.equals(view.buffer.byteLength, 16, '1st read: buffer.byteLength is 16');
+    t.equals(view.byteOffset, 0, '1st read: byteOffset is 0');
+    t.equals(view.byteLength, 0, '1st read: byteLength is 0');
   });
 
   const p1 = reader.read(new Uint8Array(32)).then(result => {
     t.equals(result.done, true, '2nd read: done is false');
-    t.equals(result.value.buffer.byteLength, 32, '2nd read: buffer.byteLength is 32');
-    t.equals(result.value.byteOffset, 0, '2nd read: byteOffset is 0');
-    t.equals(result.value.byteLength, 0, '2nd read: byteLength is 0');
+    const view = result.value;
+    t.equals(view.buffer.byteLength, 32, '2nd read: buffer.byteLength is 32');
+    t.equals(view.byteOffset, 0, '2nd read: byteOffset is 0');
+    t.equals(view.byteLength, 0, '2nd read: byteLength is 0');
   });
 
   Promise.all([p0, p1]).then(() => {
     t.end();
   }).catch(e => {
-    t.fail(e);
-    t.end();
+    throw e;
   })
 
   controller.close();
