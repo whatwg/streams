@@ -14,6 +14,55 @@ test('ReadableByteStream can be constructed with no errors', t => {
   t.end();
 });
 
+test('ReadableByteStream: getReader(), then releaseLock()', t => {
+  const rbs = new ReadableByteStream({
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+  reader.releaseLock();
+
+  t.end();
+});
+
+test('ReadableByteStream: getReader(), read(), then releaseLock()', t => {
+  let pullCount = 0;
+
+  const rbs = new ReadableByteStream({
+    pull() {
+      ++pullCount;
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+  reader.read();
+  try {
+    reader.releaseLock();
+  } catch(e) {
+    t.equals(e.constructor, TypeError);
+
+    t.equals(pullCount, 1);
+
+    t.end();
+
+    return;
+  }
+
+  t.fail('reader.releaseLock() didn\'t throw');
+  t.end();
+});
+
 test('ReadableByteStream: enqueue(), getReader(), then read()', t => {
   const rbs = new ReadableByteStream({
     start(c) {
@@ -32,17 +81,19 @@ test('ReadableByteStream: enqueue(), getReader(), then read()', t => {
   const reader = rbs.getReader();
 
   reader.read().then(result => {
-    t.equals(result.done, false, 'done');
-    t.equals(result.value.constructor, Uint8Array, 'value.constructor');
-    t.equals(result.value.buffer.byteLength, 16, 'value.buffer.byteLength');
-    t.equals(result.value.byteOffset, 0, 'value.byteOffset');
-    t.equals(result.value.byteLength, 16, 'value.byteLength');
+    t.equals(result.done, false);
+
+    const view = result.value;
+    t.equals(view.constructor, Uint8Array);
+    t.equals(view.buffer.byteLength, 16);
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 16);
 
     t.end();
   });
 });
 
-test('ReadableByteStream: enqueue(), getReader(), then read()', t => {
+test('ReadableByteStream: enqueue() with Uint16Array, getReader(), then read()', t => {
   const rbs = new ReadableByteStream({
     start(c) {
       c.enqueue(new Uint16Array(16));
@@ -60,11 +111,13 @@ test('ReadableByteStream: enqueue(), getReader(), then read()', t => {
   const reader = rbs.getReader();
 
   reader.read().then(result => {
-    t.equals(result.done, false, 'done');
-    t.equals(result.value.constructor, Uint8Array, 'value.constructor');
-    t.equals(result.value.buffer.byteLength, 32, 'value.buffer.byteLength');
-    t.equals(result.value.byteOffset, 0, 'value.byteOffset');
-    t.equals(result.value.byteLength, 32, 'value.byteLength');
+    t.equals(result.done, false);
+
+    const view = result.value;
+    t.equals(view.constructor, Uint8Array);
+    t.equals(view.buffer.byteLength, 32);
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 32);
 
     t.end();
   });
@@ -92,23 +145,28 @@ test('ReadableByteStream: enqueue(), read(view) partially, then read()', t => {
 
   byobReader.read(new Uint8Array(8)).then(result => {
     t.equals(result.done, false, 'done');
-    t.equals(result.value.constructor, Uint8Array, 'value.constructor');
-    t.equals(result.value.buffer.byteLength, 8, 'value.buffer.byteLength');
-    t.equals(result.value.byteOffset, 0, 'value.byteOffset');
-    t.equals(result.value.byteLength, 8, 'value.byteLength');
-    t.equals(result.value[0], 0x01);
+
+    const view = result.value;
+    t.equals(view.constructor, Uint8Array, 'value.constructor');
+    t.equals(view.buffer.byteLength, 8, 'value.buffer.byteLength');
+    t.equals(view.byteOffset, 0, 'value.byteOffset');
+    t.equals(view.byteLength, 8, 'value.byteLength');
+    t.equals(view[0], 0x01);
 
     byobReader.releaseLock();
 
     const reader = rbs.getReader();
+
     return reader.read();
   }).then(result => {
     t.equals(result.done, false, 'done');
-    t.equals(result.value.constructor, Uint8Array, 'value.constructor');
-    t.equals(result.value.buffer.byteLength, 16, 'value.buffer.byteLength');
-    t.equals(result.value.byteOffset, 8, 'value.byteOffset');
-    t.equals(result.value.byteLength, 8, 'value.byteLength');
-    t.equals(result.value[0], 0x02);
+
+    const view = result.value;
+    t.equals(view.constructor, Uint8Array, 'value.constructor');
+    t.equals(view.buffer.byteLength, 16, 'value.buffer.byteLength');
+    t.equals(view.byteOffset, 8, 'value.byteOffset');
+    t.equals(view.byteLength, 8, 'value.byteLength');
+    t.equals(view[0], 0x02);
 
     t.end();
   }).catch(e => {
@@ -139,14 +197,16 @@ test('ReadableByteStream: getReader(), enqueue(), close(), then read()', t => {
   controller.close();
 
   reader.read().then(result => {
-    t.equals(result.done, false, 'done is false');
-    t.equals(result.value.byteOffset, 0, 'byteOffset is 0');
-    t.equals(result.value.byteLength, 16, 'byteLength is 16');
+    t.equals(result.done, false, 'done');
+
+    const view = result.value;
+    t.equals(view.byteOffset, 0, 'byteOffset');
+    t.equals(view.byteLength, 16, 'byteLength');
 
     return reader.read();
   }).then(result => {
-    t.equals(result.done, true, 'done is true');
-    t.equals(result.value, undefined, 'value is undefined');
+    t.equals(result.done, true, 'done');
+    t.equals(result.value, undefined, 'value');
 
     t.end();
   }).catch(e => {
@@ -173,14 +233,16 @@ test('ReadableByteStream: enqueue(), close(), getReader(), then read()', t => {
   const reader = rbs.getReader();
 
   reader.read().then(result => {
-    t.equals(result.done, false, 'done is false');
-    t.equals(result.value.byteOffset, 0, 'byteOffset is 0');
-    t.equals(result.value.byteLength, 16, 'byteLength is 16');
+    t.equals(result.done, false, 'done');
+
+    const view = result.value;
+    t.equals(view.byteOffset, 0, 'byteOffset');
+    t.equals(view.byteLength, 16, 'byteLength');
 
     return reader.read();
   }).then(result => {
-    t.equals(result.done, true, 'done is true');
-    t.equals(result.value, undefined, 'value is undefined');
+    t.equals(result.done, true, 'done');
+    t.equals(result.value, undefined, 'value');
 
     t.end();
   }).catch(e => {
@@ -207,11 +269,44 @@ test('ReadableByteStream: read(), then enqueue()', t => {
   const reader = rbs.getReader();
 
   reader.read().then(result => {
-    t.equals(result.done, false, 'done is false');
-    t.equals(result.value.byteLength, 16, 'byteLength is 16');
+    t.equals(result.done, false, 'done');
+    t.equals(result.value.byteLength, 16, 'byteLength');
 
     t.end();
   }).catch(e => {
+    throw e;
+  });
+});
+
+test('ReadableByteStream: read(), then respond()', t => {
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      try {
+        controller.respond(1);
+      } catch(e) {
+        t.equals(e.constructor, TypeError);
+
+        t.end();
+        return;
+      }
+
+      t.fail('respond() didn\'t throw');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  reader.read().catch(e => {
     throw e;
   });
 });
@@ -220,7 +315,7 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view)', t => {
   const rbs = new ReadableByteStream({
     start(c) {
       const view = new Uint8Array(16);
-      view[15] = 123;
+      view[15] = 0x01;
       c.enqueue(view);
     },
     pull() {
@@ -236,10 +331,50 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view)', t => {
   const reader = rbs.getByobReader();
 
   reader.read(new Uint8Array(16)).then(result => {
-    t.equals(result.done, false, 'done is false');
-    t.equals(result.value.byteOffset, 0, 'byteOffset is 0');
-    t.equals(result.value.byteLength, 16, 'byteLength is 16');
-    t.equals(result.value[15], 123, 'Contents are set');
+    t.equals(result.done, false);
+
+    const view = result.value;
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 16);
+    t.equals(view[15], 0x01);
+
+    t.end();
+  }).catch(e => {
+    throw e;
+  });
+});
+
+test('ReadableByteStream: enqueue(), getReader(), then read(view) where view.buffer is not fully covered by view', t => {
+  const rbs = new ReadableByteStream({
+    start(c) {
+      const view = new Uint8Array(8);
+      view[7] = 0x01;
+      c.enqueue(view);
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  const buffer = new ArrayBuffer(16);
+
+  reader.read(new Uint8Array(buffer, 8, 8)).then(result => {
+    t.equals(result.done, false);
+
+    const view = result.value;
+    t.equals(view.constructor, Uint8Array);
+    t.equals(view.buffer.byteLength, 16)
+    t.equals(view.byteOffset, 8);
+    t.equals(view.byteLength, 8);
+    t.equals(view[7], 0x01);
+
     t.end();
   }).catch(e => {
     throw e;
@@ -272,11 +407,13 @@ test('ReadableByteStream: Multiple enqueue(), getReader(), then read(view)', t =
   const reader = rbs.getByobReader();
 
   reader.read(new Uint8Array(24)).then(result => {
-    t.equals(result.done, false, 'done is false');
-    t.equals(result.value.byteOffset, 0, 'byteOffset is 0');
-    t.equals(result.value.byteLength, 24, 'byteLength is 0');
-    t.equals(result.value[15], 123, 'Contents are set from the first chunk');
-    t.equals(result.value[23], 111, 'Contents are set from the second chunk');
+    t.equals(result.done, false, 'done');
+
+    const view = result.value;
+    t.equals(view.byteOffset, 0, 'byteOffset');
+    t.equals(view.byteLength, 24, 'byteLength');
+    t.equals(view[15], 123, 'Contents are set from the first chunk');
+    t.equals(view[23], 111, 'Contents are set from the second chunk');
 
     t.end();
   }).catch(e => {
@@ -285,13 +422,11 @@ test('ReadableByteStream: Multiple enqueue(), getReader(), then read(view)', t =
 });
 
 test('ReadableByteStream: enqueue(), getReader(), then read(view) with a bigger view', t => {
-  let controller;
   const rbs = new ReadableByteStream({
     start(c) {
       const view = new Uint8Array(16);
-      view[15] = 123;
+      view[15] = 0x01;
       c.enqueue(view);
-      controller = c;
     },
     pull() {
       t.fail('pull must not be called');
@@ -306,10 +441,55 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view) with a bigger 
   const reader = rbs.getByobReader();
 
   reader.read(new Uint8Array(24)).then(result => {
-    t.equals(result.done, false, 'done is false');
-    t.equals(result.value.byteOffset, 0, 'byteOffset is 0');
-    t.equals(result.value.byteLength, 16, 'byteLength is 16');
-    t.equals(result.value[15], 123, 'Contents are set from the chunk by start()');
+    t.equals(result.done, false);
+
+    const view = result.value;
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 16);
+    t.equals(view[15], 0x01);
+
+    t.end();
+  }).catch(e => {
+    throw e;
+  });
+});
+
+test('ReadableByteStream: enqueue(), getReader(), then read(view) with a smaller views', t => {
+  const rbs = new ReadableByteStream({
+    start(c) {
+      const view = new Uint8Array(16);
+      view[7] = 0x01;
+      view[15] = 0x02;
+      c.enqueue(view);
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint8Array(8)).then(result => {
+    t.equals(result.done, false, 'done');
+
+    const view = result.value;
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 8);
+    t.equals(view[7], 0x01);
+
+    return reader.read(new Uint8Array(8));
+  }).then(result => {
+    t.equals(result.done, false, 'done');
+
+    const view = result.value;
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 8);
+    t.equals(view[7], 0x02);
 
     t.end();
   }).catch(e => {
@@ -319,11 +499,13 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view) with a bigger 
 
 test('ReadableByteStream: enqueue() 1 byte, getReader(), then read(view) with Uint16Array', t => {
   let controller;
+
   const rbs = new ReadableByteStream({
     start(c) {
       const view = new Uint8Array(1);
       view[0] = 0xff;
       c.enqueue(view);
+
       controller = c;
     },
     pull() {
@@ -331,10 +513,12 @@ test('ReadableByteStream: enqueue() 1 byte, getReader(), then read(view) with Ui
       t.end();
     },
     pullInto(buffer, offset, length) {
-      t.equals(buffer.constructor, ArrayBuffer, 'buffer is ArrayBuffer');
-      t.equals(buffer.byteLength, 2, 'byteLength is 2');
-      t.equals(offset, 1, 'offset is 1');
-      t.equals(length, 1, 'length is 1');
+      t.equals(buffer.constructor, ArrayBuffer);
+      t.equals(buffer.byteLength, 2);
+
+      t.equals(offset, 1);
+      t.equals(length, 1);
+
       (new Uint8Array(buffer))[1] = 0xaa;
       controller.respond(1);
     }
@@ -343,10 +527,12 @@ test('ReadableByteStream: enqueue() 1 byte, getReader(), then read(view) with Ui
   const reader = rbs.getByobReader();
 
   reader.read(new Uint16Array(1)).then(result => {
-    t.equals(result.done, false, 'done is false');
-    t.equals(result.value.byteOffset, 0, 'byteOffset is 0');
-    t.equals(result.value.byteLength, 2, 'byteLength is 24');
-    t.equals(result.value[0], 0xaaff, 'Contents are set');
+    t.equals(result.done, false);
+
+    const view = result.value;
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 2);
+    t.equals(view[0], 0xaaff);
 
     t.end();
   }).catch(e => {
@@ -358,12 +544,14 @@ test('ReadableByteStream: enqueue() 3 byte, getReader(), then read(view) with 2-
   let pullIntoCount = 0;
 
   let controller;
+
   const rbs = new ReadableByteStream({
     start(c) {
       const view = new Uint8Array(3);
       view[0] = 0x01;
       view[2] = 0x02;
       c.enqueue(view);
+
       controller = c;
     },
     pull() {
@@ -372,16 +560,19 @@ test('ReadableByteStream: enqueue() 3 byte, getReader(), then read(view) with 2-
     },
     pullInto(buffer, offset, length) {
       if (pullIntoCount === 0) {
-        t.equals(buffer.constructor, ArrayBuffer, 'buffer is ArrayBuffer');
-        t.equals(buffer.byteLength, 2, 'byteLength');
-        t.equals(offset, 1, 'offset');
-        t.equals(length, 1, 'length');
+        t.equals(buffer.constructor, ArrayBuffer);
+        t.equals(buffer.byteLength, 2);
+        t.equals(offset, 1);
+        t.equals(length, 1);
+
         (new Uint8Array(buffer, 1, 1))[0] = 0x03;
         controller.respond(1);
       } else {
-        t.fail('Too many pullInto call');
+        t.fail('Too many pullInto calls');
         t.end();
       }
+
+      ++pullIntoCount;
     }
   });
 
@@ -389,28 +580,37 @@ test('ReadableByteStream: enqueue() 3 byte, getReader(), then read(view) with 2-
 
   reader.read(new Uint16Array(2)).then(result => {
     t.equals(result.done, false, 'done');
-    t.equals(result.value.constructor, Uint16Array, 'constructor');
-    t.equals(result.value.buffer.byteLength, 4, 'buffer.byteLength' + result.value.buffer.byteLength);
-    t.equals(result.value.byteOffset, 0, 'byteOffset');
-    t.equals(result.value.byteLength, 2, 'byteLength');
-    t.equals(result.value[0], 0x0001, 'Contents are set');
 
-    return reader.read(new Uint16Array(1));
+    const view = result.value;
+    t.equals(view.constructor, Uint16Array, 'constructor');
+    t.equals(view.buffer.byteLength, 4, 'buffer.byteLength');
+    t.equals(view.byteOffset, 0, 'byteOffset');
+    t.equals(view.byteLength, 2, 'byteLength');
+    t.equals(view[0], 0x0001, 'Contents are set');
+
+    const p = reader.read(new Uint16Array(1));
+
+    t.equals(pullIntoCount, 1);
+
+    return p;
   }).then(result => {
     t.equals(result.done, false, 'done');
-    t.equals(result.value.buffer.byteLength, 2, 'buffer.byteLength');
-    t.equals(result.value.byteOffset, 0, 'byteOffset');
-    t.equals(result.value.byteLength, 2, 'byteLength');
-    t.equals(result.value[0], 0x0302, 'Contents are set');
+
+    const view = result.value;
+    t.equals(view.buffer.byteLength, 2, 'buffer.byteLength');
+    t.equals(view.byteOffset, 0, 'byteOffset');
+    t.equals(view.byteLength, 2, 'byteLength');
+    t.equals(view[0], 0x0302, 'Contents are set');
 
     t.end();
   }).catch(e => {
     throw e;
   });
+
+  t.equals(pullIntoCount, 0);
 });
 
 test('ReadableByteStream: enqueue() 1 byte, close(), getReader(), then read(view) with Uint16Array', t => {
-  let controller;
   const rbs = new ReadableByteStream({
     start(c) {
       const view = new Uint8Array(1);
@@ -442,8 +642,72 @@ test('ReadableByteStream: enqueue() 1 byte, close(), getReader(), then read(view
   });
 });
 
-test('ReadableByteStream: read(view), respond() in pullInto(), then enqueue()', t => {
+test('ReadableByteStream: enqueue() 1 byte, read(view) with Uint16Array, then close()', t => {
+  let pullIntoCount = 0;
+
   let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      const view = new Uint8Array(1);
+      view[0] = 0xff;
+      c.enqueue(view);
+
+      controller = c;
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto(buffer, offset, length) {
+      if (pullIntoCount === 0) {
+        t.equals(buffer.constructor, ArrayBuffer);
+        t.equals(buffer.byteLength, 2);
+
+        t.equals(offset, 1);
+        t.equals(length, 1);
+      } else {
+        t.fail('Too many pullInto calls');
+        t.end();
+        return;
+      }
+
+      ++pullIntoCount;
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint16Array(1)).then(result => {
+    t.fail('read(view) must fail');
+    t.end();
+  }).catch(e => {
+    t.equals(e.constructor, TypeError);
+    reader.closed.catch(e => {
+      t.equals(e.constructor, TypeError);
+
+      t.equals(pullIntoCount, 1);
+
+      t.end();
+    });
+  });
+
+  t.equals(pullIntoCount, 1);
+
+  try {
+    controller.close();
+  } catch(e) {
+    t.equals(e.constructor, TypeError);
+    return;
+  }
+
+  t.fail('controller.close() didn\'t throw');
+  t.end();
+});
+
+test('ReadableByteStream: read(view), then respond() and close() in pullInto()', t => {
+  let controller;
+
   const rbs = new ReadableByteStream({
     start(c) {
       controller = c;
@@ -453,11 +717,13 @@ test('ReadableByteStream: read(view), respond() in pullInto(), then enqueue()', 
       t.end();
     },
     pullInto(buffer, offset, length) {
-      t.equals(buffer.constructor, ArrayBuffer, 'buffer is ArrayBuffer');
-      t.equals(buffer.byteLength, 16, 'byteLength is 16');
-      t.equals(offset, 0, 'offset is 0');
-      t.equals(length, 16, 'length is 16');
-      (new Uint8Array(buffer))[15] = 123;
+      t.equals(buffer.constructor, ArrayBuffer);
+      t.equals(buffer.byteLength, 16);
+
+      t.equals(offset, 0);
+      t.equals(length, 16);
+
+      (new Uint8Array(buffer))[15] = 0x01;
       controller.respond(16);
       controller.close();
     }
@@ -466,25 +732,32 @@ test('ReadableByteStream: read(view), respond() in pullInto(), then enqueue()', 
   const reader = rbs.getByobReader();
 
   reader.read(new Uint8Array(16)).then(result => {
-    t.equals(result.done, false, 'done is false');
-    t.equals(result.value.byteOffset, 0, 'byteOffset is 0: ' + result.value.byteOffset);
-    t.equals(result.value.byteLength, 16, 'byteLength is 16: ' + result.value.byteLength);
-    t.equals(result.value[15], 123, 'Contents are set');
+    t.equals(result.done, false);
+
+    const view = result.value;
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 16);
+    t.equals(view[15], 0x01);
 
     return reader.read(new Uint8Array(16));
   }).then(result => {
-    t.equals(result.done, true, 'done is true');
-    t.equals(result.value.byteLength, 16, 'byteLength is 16');
+    t.equals(result.done, true);
+
+    const view = result.value;
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 0);
+
     t.end();
   }).catch(e => {
     throw e;
   });
 });
 
-test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
-  let count = 0;
+test('ReadableByteStream: read(view) with Uint32Array, then fill it by multiple respond() calls', t => {
+  let pullIntoCount = 0;
 
   let controller;
+
   const rbs = new ReadableByteStream({
     start(c) {
       controller = c;
@@ -494,39 +767,158 @@ test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
       t.end();
     },
     pullInto(buffer, offset, length) {
-      if (count === 0) {
-        t.equals(buffer.constructor, ArrayBuffer, 'buffer is ArrayBuffer');
-        t.equals(buffer.byteLength, 16, 'byteLength is 16');
-        t.equals(offset, 0, 'offset is 0');
-        t.equals(length, 16, 'length is 16');
+      if (pullIntoCount < 4) {
+        t.equals(buffer.constructor, ArrayBuffer);
+        t.equals(buffer.byteLength, 4);
+
+        t.equals(offset, 0);
+        t.equals(length, 4 - pullIntoCount);
+
+        (new Uint8Array(buffer))[0] = 0x01;
+        controller.respond(1);
       } else {
-        t.fail();
+        t.fail('Too many pullInto() calls');
         t.end();
       }
 
-      ++count;
+      ++pullIntoCount;
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint32Array(1)).then(result => {
+    t.equals(result.done, false);
+
+    const view = result.value;
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 8);
+    t.equals(view[0], 0x01010101);
+
+    t.end();
+  }).catch(e => {
+    throw e;
+  });
+});
+
+test('ReadableByteStream: read() twice, then enqueue() twice', t => {
+  let pullCount = 0;
+
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      if (pullCount > 3) {
+        t.fail('Too many pullInto calls');
+        t.end();
+      }
+
+      ++pullCount;
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  const p0 = reader.read().then(result => {
+    t.equals(pullCount, 3);
+
+    controller.enqueue(new Uint8Array(2));
+
+    t.equals(pullCount, 3);
+
+    t.equals(result.done, false);
+
+    const view = result.value;
+    t.equals(view.constructor, Uint8Array);
+    t.equals(view.buffer.byteLength, 1);
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 1);
+  });
+
+  t.equals(pullCount, 1);
+
+  const p1 = reader.read().then(result => {
+    t.equals(result.done, false);
+
+    const view = result.value;
+    t.equals(view.constructor, Uint8Array);
+    t.equals(view.buffer.byteLength, 2);
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 2);
+  });
+
+  Promise.all([p0, p1]).then(() => {
+    t.end();
+  }).catch(e => {
+    throw e;
+  })
+
+  t.equals(pullCount, 2);
+
+  controller.enqueue(new Uint8Array(1));
+
+  t.equals(pullCount, 3);
+});
+
+test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
+  let pullIntoCount = 0;
+
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto(buffer, offset, length) {
+      if (pullIntoCount === 0) {
+        t.equals(buffer.constructor, ArrayBuffer, 'buffer.constructor');
+        t.equals(buffer.byteLength, 16, 'byteLength');
+
+        t.equals(offset, 0, 'offset');
+        t.equals(length, 16, 'length');
+      } else {
+        t.fail('Too many pullInto calls');
+        t.end();
+      }
+
+      ++pullIntoCount;
     }
   });
 
   const reader = rbs.getByobReader();
 
   const p0 = reader.read(new Uint8Array(16)).then(result => {
-    t.equals(result.done, true, '1st read: done is true');
+    t.equals(result.done, true, '1st read: done');
 
     const view = result.value;
-    t.equals(view.buffer.byteLength, 16, '1st read: buffer.byteLength is 16');
-    t.equals(view.byteOffset, 0, '1st read: byteOffset is 0');
-    t.equals(view.byteLength, 0, '1st read: byteLength is 0');
+    t.equals(view.buffer.byteLength, 16, '1st read: buffer.byteLength');
+    t.equals(view.byteOffset, 0, '1st read: byteOffset');
+    t.equals(view.byteLength, 0, '1st read: byteLength');
   });
+
+  t.equals(pullIntoCount, 1);
 
   const p1 = reader.read(new Uint8Array(32)).then(result => {
-    t.equals(result.done, true, '2nd read: done is true');
+    t.equals(result.done, true, '2nd read: done');
 
     const view = result.value;
-    t.equals(view.buffer.byteLength, 32, '2nd read: buffer.byteLength is 32');
-    t.equals(view.byteOffset, 0, '2nd read: byteOffset is 0');
-    t.equals(view.byteLength, 0, '2nd read: byteLength is 0');
+    t.equals(view.buffer.byteLength, 32, '2nd read: buffer.byteLength');
+    t.equals(view.byteOffset, 0, '2nd read: byteOffset');
+    t.equals(view.byteLength, 0, '2nd read: byteLength');
   });
+
+  t.equals(pullIntoCount, 1);
 
   Promise.all([p0, p1]).then(() => {
     t.end();
@@ -539,9 +931,10 @@ test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
 });
 
 test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
-  let count = 0;
+  let pullIntoCount = 0;
 
   let controller;
+
   const rbs = new ReadableByteStream({
     start(c) {
       controller = c;
@@ -551,17 +944,18 @@ test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
       t.end();
     },
     pullInto(buffer, offset, length) {
-      if (count === 0) {
-        t.equals(buffer.constructor, ArrayBuffer, 'buffer is ArrayBuffer');
-        t.equals(buffer.byteLength, 16, 'byteLength is 16');
-        t.equals(offset, 0, 'offset is 0');
-        t.equals(length, 16, 'length is 16');
+      if (pullIntoCount === 0) {
+        t.equals(buffer.constructor, ArrayBuffer);
+        t.equals(buffer.byteLength, 16);
+
+        t.equals(offset, 0);
+        t.equals(length, 16);
       } else {
         t.fail();
         t.end();
       }
 
-      ++count;
+      ++pullIntoCount;
     }
   });
 
@@ -576,6 +970,8 @@ test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
     t.equals(view.byteLength, 16, '1st read: byteLength');
   });
 
+  t.equals(pullIntoCount, 1);
+
   const p1 = reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, false, '2nd read: done');
 
@@ -585,6 +981,8 @@ test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
     t.equals(view.byteLength, 8, '2nd read: byteLength');
   });
 
+  t.equals(pullIntoCount, 1);
+
   Promise.all([p0, p1]).then(() => {
     t.end();
   }).catch(e => {
@@ -592,4 +990,6 @@ test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
   })
 
   controller.enqueue(new Uint8Array(24));
+
+  t.equals(pullIntoCount, 1);
 });

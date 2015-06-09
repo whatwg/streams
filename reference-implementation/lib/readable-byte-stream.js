@@ -66,6 +66,8 @@ class ReadableByteStreamController {
 
     this._underlyingByteSource = underlyingByteSource;
 
+    this._insideUnderlyingByteSource = false;
+
     this._pendingPulls = [];
 
     this._queue = [];
@@ -113,9 +115,10 @@ class ReadableByteStreamController {
 
     if (this._pendingPulls.length > 0 && this._pendingPulls[0].bytesFilled > 0) {
       DestroyReadableByteStreamController(this);
-      ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
+      const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
+      ErrorReadableByteStream(stream, e);
 
-      return undefined;
+      throw e;
     }
 
     CloseReadableByteStream(stream);
@@ -239,15 +242,19 @@ class ReadableByteStreamController {
 
       ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(this, reader);
     } else {
-      try {
-        controller._underlyingByteSource.pullInto(pullDescriptor.buffer,
-                                                  pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
-                                                  pullDescriptor.byteLength - pullDescriptor.bytesFilled);
-      } catch (e) {
-        DestroyReadableByteStreamController(this);
-        if (stream._state === 'readable') {
-          ErrorReadableByteStream(stream, e);
+      if (!controller._insideUnderlyingByteSource) {
+        controller._insideUnderlyingByteSource = true;
+        try {
+          controller._underlyingByteSource.pullInto(pullDescriptor.buffer,
+                                                    pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
+                                                    pullDescriptor.byteLength - pullDescriptor.bytesFilled);
+        } catch (e) {
+          DestroyReadableByteStreamController(this);
+          if (stream._state === 'readable') {
+            ErrorReadableByteStream(stream, e);
+          }
         }
+        controller._insideUnderlyingByteSource = false;
       }
     }
 
@@ -405,7 +412,7 @@ class ReadableByteStreamByobReader {
     }
 
     if (this._state === 'closed' && this._ownerReadableByteStream === undefined) {
-      return Promise.resolve(CreateIterResultObject(view, true));
+      return Promise.resolve(CreateIterResultObject(new view.constructor(view.buffer, view.byteOffset, 0), true));
     }
 
     const promise = new Promise((resolve, reject) => {
@@ -746,15 +753,19 @@ function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, 
 
       // TODO: Detach pullDescriptor.buffer if detachRequired is true.
 
-      try {
-        controller._underlyingByteSource.pullInto(pullDescriptor.buffer,
-                                                  pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
-                                                  pullDescriptor.byteLength - pullDescriptor.bytesFilled);
-      } catch (e) {
-        DestroyReadableByteStreamController(controller);
-        if (stream._state === 'readable') {
-          ErrorReadableByteStream(stream, e);
+      if (!controller._insideUnderlyingByteSource) {
+        controller._insideUnderlyingByteSource = true;
+        try {
+          controller._underlyingByteSource.pullInto(pullDescriptor.buffer,
+                                                    pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
+                                                    pullDescriptor.byteLength - pullDescriptor.bytesFilled);
+        } catch (e) {
+          DestroyReadableByteStreamController(controller);
+          if (stream._state === 'readable') {
+            ErrorReadableByteStream(stream, e);
+          }
         }
+        controller._insideUnderlyingByteSource = false;
       }
 
       return undefined;
@@ -800,13 +811,17 @@ function MaybeRespondToReadableByteStreamReaderReadRequest(controller, reader) {
     return undefined;
   }
 
-  try {
-    controller._underlyingByteSource.pull();
-  } catch (e) {
-    DestoryReadableByteStreamController(controller);
-    if (stream._state === 'readable') {
-      ErrorReadableByteStream(stream, e);
+  if (!controller._insideUnderlyingByteSource) {
+    controller._insideUnderlyingByteSource = true;
+    try {
+      controller._underlyingByteSource.pull();
+    } catch (e) {
+      DestoryReadableByteStreamController(controller);
+      if (stream._state === 'readable') {
+        ErrorReadableByteStream(stream, e);
+      }
     }
+    controller._insideUnderlyingByteSource = false;
   }
 
   return undefined;
