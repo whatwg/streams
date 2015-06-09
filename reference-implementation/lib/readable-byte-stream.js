@@ -208,11 +208,20 @@ class ReadableByteStreamController {
 
       assert(pullDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
 
-      const result = CreateView(pullDescriptor);
-
       this._pendingPulls.shift();
 
-      RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
+      const firstResult = CreateView(pullDescriptor);
+      const firstReq = reader._readIntoRequests.shift();
+      firstReq.resolve(CreateIterResultObject(firstResult.view, true));
+
+      while (reader._readIntoRequests.length > 0) {
+        const descriptor = this._pendingPulls.shift();
+        const result = CreateView(descriptor);
+        const req = reader._readIntoRequests.shift();
+        req.resolve(CreateIterResultObject(result.view, true));
+      }
+
+      DetachReadableByteStreamReader(reader);
 
       return undefined;
     }
@@ -395,7 +404,7 @@ class ReadableByteStreamByobReader {
     }
 
     if (this._state === 'errored') {
-      assert(this._ownerReadableByteStream === undefined);
+      assert(this._ownerReadableByteStream === undefined, 'This reader must be detached');
 
       return Promise.reject(this._storedError);
     }
@@ -454,8 +463,8 @@ function CancelReadableByteStream(stream, reason) {
 }
 
 function CloseReadableByteStream(stream) {
-  assert(IsReadableByteStream(stream));
-  assert(stream._state === 'readable');
+  assert(IsReadableByteStream(stream), 'stream must be ReadableByteStream');
+  assert(stream._state === 'readable', 'state must be readable');
 
   stream._state = 'closed';
 
@@ -553,8 +562,8 @@ function EnqueueInReadableByteStreamController(controller, chunk) {
 }
 
 function ErrorReadableByteStream(stream, e) {
-  assert(IsReadableByteStream(stream));
-  assert(stream._state === 'readable');
+  assert(IsReadableByteStream(stream), 'stream must be ReadableByteStream');
+  assert(stream._state === 'readable', 'state must be readable');
 
   stream._state = 'errored';
   stream._storedError = e;
@@ -613,7 +622,7 @@ function InitializeReadableByteStreamReader(reader, stream) {
     reader._closedPromise_resolve = undefined;
     reader._closedPromise_reject = undefined;
   } else {
-    assert(stream._state === 'errored');
+    assert(stream._state === 'errored', 'state must be errored');
 
     reader._ownerReadableByteStream = stream;
     reader._state = 'errored';
@@ -764,11 +773,11 @@ function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, 
       controller._pendingPulls.shift();
 
       const result = CreateView(pullDescriptor);
-      assert(result.bytesUsed === pullDescriptor.bytesFilled);
+      assert(result.bytesUsed === pullDescriptor.bytesFilled, 'All filled bytes must be used');
 
       RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
     } else {
-      assert(controller._totalQueuedBytes === 0);
+      assert(controller._totalQueuedBytes === 0, 'queue must be empty');
     }
   }
 
@@ -880,19 +889,9 @@ function RespondToReadableByteStreamByobReaderReadIntoRequest(reader, chunk) {
 
   const req = reader._readIntoRequests.shift();
 
-  if (reader._state === 'readable') {
-    req.resolve(CreateIterResultObject(chunk, false));
+  assert(reader._state === 'readable', 'state must be readable');
 
-    return undefined;
-  }
-
-  assert(reader._state == 'closed');
-
-  req.resolve(CreateIterResultObject(chunk, true));
-
-  if (reader._readIntoRequests.length === 0) {
-    DetachReadableByteStreamReader(reader);
-  }
+  req.resolve(CreateIterResultObject(chunk, false));
 
   return undefined;
 }
