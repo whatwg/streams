@@ -694,10 +694,13 @@ function IsReadableByteStreamReader(x) {
 
 function FillPendingPullFromQueue(controller, descriptor) {
   const elementSize = descriptor.elementSize;
-  const maxBytesToCopy = Math.min(controller._totalQueuedBytes, descriptor.byteLength - descriptor.bytesFilled);
+
   const currentNumElements = (descriptor.bytesFilled - descriptor.bytesFilled % elementSize) / elementSize;
+
+  const maxBytesToCopy = Math.min(controller._totalQueuedBytes, descriptor.byteLength - descriptor.bytesFilled);
   const maxBytesFilled = descriptor.bytesFilled + maxBytesToCopy;
   const maxNumElements = (maxBytesFilled - maxBytesFilled % elementSize) / elementSize;
+
   let totalBytesToCopyRemaining = maxBytesToCopy;
   let ready = false;
   if (maxNumElements > currentNumElements) {
@@ -733,52 +736,54 @@ function FillPendingPullFromQueue(controller, descriptor) {
   return ready;
 }
 
+function ReadableByteStreamControllerCallPullInto(controller) {
+  assert(controller._pendingPulls.length > 0);
+
+  const pullDescriptor = controller._pendingPulls[0];
+
+  if (!controller._insideUnderlyingByteSource) {
+    controller._insideUnderlyingByteSource = true;
+    try {
+      controller._underlyingByteSource.pullInto(pullDescriptor.buffer,
+                                                pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
+                                                pullDescriptor.byteLength - pullDescriptor.bytesFilled);
+    } catch (e) {
+      DestroyReadableByteStreamController(controller);
+      if (stream._state === 'readable') {
+        ErrorReadableByteStream(stream, e);
+      }
+    }
+    controller._insideUnderlyingByteSource = false;
+
+    // if (controller._pullIntoLater) {
+    //   continue;
+    // }
+  } else {
+    controller._pullIntoLater = true;
+  }
+}
+
 function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, reader) {
+  assert(!controller._closeRequested);
+
   const stream = controller._controlledReadableByteStream;
 
   while (controller._pendingPulls.length > 0) {
-    const pullDescriptor = controller._pendingPulls[0];
-
     if (controller._totalQueuedBytes === 0) {
-      if (controller._closeRequested === true) {
-        if (pullDescriptor.bytesFilled > 0) {
-          DestroyReadableByteStreamController(controller);
-          ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
-        } else {
-          CloseReadableByteStream(stream);
-        }
-
-        return undefined;
-      }
-
-      // TODO: Detach pullDescriptor.buffer if detachRequired is true.
-
-      if (!controller._insideUnderlyingByteSource) {
-        controller._insideUnderlyingByteSource = true;
-        try {
-          controller._underlyingByteSource.pullInto(pullDescriptor.buffer,
-                                                    pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
-                                                    pullDescriptor.byteLength - pullDescriptor.bytesFilled);
-        } catch (e) {
-          DestroyReadableByteStreamController(controller);
-          if (stream._state === 'readable') {
-            ErrorReadableByteStream(stream, e);
-          }
-        }
-        controller._insideUnderlyingByteSource = false;
-      }
+      ReadableByteStreamControllerCallPullInto(this);
 
       return undefined;
     }
 
-    const readyToRespond = FillPendingPullFromQueue(controller, pullDescriptor);
+    const pullDescriptor = controller._pendingPulls[0];
 
-    if (readyToRespond) {
+    const ready = FillPendingPullFromQueue(controller, pullDescriptor);
+
+    if (ready) {
       controller._pendingPulls.shift();
 
       const result = CreateView(pullDescriptor);
       assert(result.bytesUsed === pullDescriptor.bytesFilled, 'All filled bytes must be used');
-
       RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
     } else {
       assert(controller._totalQueuedBytes === 0, 'queue must be empty');
@@ -879,14 +884,47 @@ function PullFromReadableByteStreamInto(stream, view) {
 
   const controller = stream._controller;
 
-  // TODO: Detach pullDescriptor.buffer if detachRequired is true.
-  controller._pendingPulls.push(pullDescriptor);
-
   if (controller._pendingPulls.length > 1) {
+    // TODO: Detach pullDescriptor.buffer if detachRequired is true.
+    controller._pendingPulls.push(pullDescriptor);
+
     return undefined;
   }
 
-  ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, stream._reader);
+  if (controller._totalQueuedBytes === 0) {
+    // TODO: Detach pullDescriptor.buffer if detachRequired is true.
+    controller._pendingPulls.push(pullDescriptor);
+
+    ReadableByteStreamControllerCallPullInto(controller);
+
+    return undefined;
+  }
+
+  const ready = FillPendingPullFromQueue(controller, pullDescriptor);
+
+  if (ready) {
+    const result = CreateView(pullDescriptor);
+    assert(result.bytesUsed === pullDescriptor.bytesFilled, 'All filled bytes must be used');
+    RespondToReadableByteStreamByobReaderReadIntoRequest(stream._reader, result.view);
+
+    return undefined;
+  }
+
+  assert(controller._totalQueuedBytes === 0, 'queue must be empty');
+  assert(pullDescriptor.bytesFilled > 0);
+  assert(pullDescriptor.bytesFilled < elementSize);
+
+  if (!controller._closeRequested) {
+    // TODO: Detach pullDescriptor.buffer if detachRequired is true.
+    controller._pendingPulls.push(pullDescriptor);
+
+    ReadableByteStreamControllerCallPullInto(controller);
+
+    return undefined;
+  }
+
+  DestroyReadableByteStreamController(controller);
+  ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
 
   return undefined;
 }
