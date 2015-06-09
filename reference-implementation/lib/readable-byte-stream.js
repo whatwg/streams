@@ -89,14 +89,14 @@ class ReadableByteStreamController {
       throw new TypeError('The stream is not in the readable state and cannot be closed');
     }
 
-    if (!IsReadableByteStreamLocked(stream)) {
-      if (this._queue.length === 0) {
-        CloseReadableByteStream(stream);
-
-        return undefined;
-      }
-
+    if (this._totalQueuedBytes > 0) {
       this._closeRequested = true;
+
+      return undefined;
+    }
+
+    if (!IsReadableByteStreamLocked(stream)) {
+      CloseReadableByteStream(stream);
 
       return undefined;
     }
@@ -104,13 +104,7 @@ class ReadableByteStreamController {
     const reader = stream._reader;
 
     if (IsReadableByteStreamReader(reader)) {
-      if (this._queue.length === 0) {
-        CloseReadableByteStream(stream);
-
-        return undefined;
-      }
-
-      this._closeRequested = true;
+      CloseReadableByteStream(stream);
 
       return undefined;
     }
@@ -118,18 +112,13 @@ class ReadableByteStreamController {
     assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
     if (this._pendingPulls.length > 0 && this._pendingPulls[0].bytesFilled > 0) {
+      DestroyReadableByteStreamController(this);
       ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
 
       return undefined;
     }
 
-    if (this._queue.length === 0) {
-      CloseReadableByteStream(stream);
-
-      return undefined;
-    }
-
-    this._closeRequested = true;
+    CloseReadableByteStream(stream);
 
     return undefined;
   }
@@ -182,9 +171,7 @@ class ReadableByteStreamController {
       throw new TypeError(`The stream is ${stream._state} and so cannot be errored`);
     }
 
-    this._pendingPulls = [];
-    this._queue = [];
-
+    DestroyReadableByteStreamController(this);
     ErrorReadableByteStream(stream, e);
 
     return undefined;
@@ -221,7 +208,6 @@ class ReadableByteStreamController {
 
       assert(pullDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
 
-      console.error(pullDescriptor);
       const result = CreateView(pullDescriptor);
 
       this._pendingPulls.shift();
@@ -547,6 +533,11 @@ function CreateView(descriptor) {
   }
 }
 
+function DestroyReadableByteStreamController(controller) {
+  controller._pendingPulls = []
+  controller._queue = [];
+}
+
 function DetachReadableByteStreamReader(reader) {
   reader._ownerReadableByteStream._reader = undefined;
   reader._ownerReadableByteStream = undefined;
@@ -742,6 +733,7 @@ function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, 
     if (controller._totalQueuedBytes === 0) {
       if (controller._closeRequested === true) {
         if (pullDescriptor.bytesFilled > 0) {
+          DestroyReadableByteStreamController(controller);
           ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
         } else {
           CloseReadableByteStream(stream);
@@ -757,6 +749,7 @@ function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, 
                                                   pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
                                                   pullDescriptor.byteLength - pullDescriptor.bytesFilled);
       } catch (e) {
+        DestroyReadableByteStreamController(controller);
         if (stream._state === 'readable') {
           ErrorReadableByteStream(stream, e);
         }
@@ -794,7 +787,7 @@ function MaybeRespondToReadableByteStreamReaderReadRequest(controller, reader) {
     const req = reader._readRequests.shift();
     req.resolve(CreateIterResultObject(view, false));
 
-    if (controller._queue.length === 0 && controller._closeRequested === true) {
+    if (controller._totalQueuedBytes === 0 && controller._closeRequested === true) {
       CloseReadableByteStream(stream);
 
       return undefined;
@@ -808,8 +801,8 @@ function MaybeRespondToReadableByteStreamReaderReadRequest(controller, reader) {
   try {
     controller._underlyingByteSource.pull();
   } catch (e) {
+    DestoryReadableByteStreamController(controller);
     if (stream._state === 'readable') {
-      controller._queue = undefined;
       ErrorReadableByteStream(stream, e);
     }
   }
@@ -853,6 +846,7 @@ function PullFromReadableByteStreamInto(stream, view) {
     viewType = 'Float64Array';
     elementSize = 8;
   } else {
+    DestroyReadableByteStreamController(stream._controller);
     ErrorReadableByteStream(stream, new TypeError('Unknown ArrayBufferView type'));
     return undefined;
   }
