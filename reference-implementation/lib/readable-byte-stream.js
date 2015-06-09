@@ -208,12 +208,6 @@ class ReadableByteStreamController {
 
       assert(pullDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
 
-      this._pendingPulls.shift();
-
-      const firstResult = CreateView(pullDescriptor);
-      const firstReq = reader._readIntoRequests.shift();
-      firstReq.resolve(CreateIterResultObject(firstResult.view, true));
-
       while (reader._readIntoRequests.length > 0) {
         const descriptor = this._pendingPulls.shift();
         const result = CreateView(descriptor);
@@ -250,6 +244,7 @@ class ReadableByteStreamController {
                                                   pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
                                                   pullDescriptor.byteLength - pullDescriptor.bytesFilled);
       } catch (e) {
+        DestroyReadableByteStreamController(this);
         if (stream._state === 'readable') {
           ErrorReadableByteStream(stream, e);
         }
@@ -436,9 +431,7 @@ class ReadableByteStreamByobReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    if (this._ownerReadableByteStream._state === 'errored') {
-      ErrorReadableByteStreamReader(this, this._ownerReadableByteStream._storedError)
-    } else {
+    if (this._ownerReadableByteStream._state === 'readable') {
       CloseReadableByteStreamReader(this);
     }
 
