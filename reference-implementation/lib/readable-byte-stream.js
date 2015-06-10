@@ -170,15 +170,15 @@ class ReadableByteStreamController {
       }
 
       if (reader._readRequests.length > 0) {
-        if (controller._insideUnderlyingByteSource) {
-          controller._considerReissueUnderlyingByteSourcePull = false;
+        if (this._insideUnderlyingByteSource) {
+          this._considerReissueUnderlyingByteSourcePull = true;
 
           return undefined;
         }
 
         ReadableByteStreamControllerCallPull(this);
 
-        Promise.resolve().then(MaybeCallPullOrPullIntoRepeatedly.bind(this));
+        Promise.resolve().then(MaybeCallPullOrPullIntoRepeatedly.bind(undefined, this));
       }
 
       return undefined;
@@ -276,36 +276,15 @@ class ReadableByteStreamController {
     }
 
     if (this._insideUnderlyingByteSource) {
+      this._considerReissueUnderlyingByteSourcePull = true;
+
       return undefined;
     }
 
-    this._considerReissueUnderlyingByteSourcePull = true;
-
-    Promise.resolve().then(CallPullInto.bind(controller));
+    Promise.resolve().then(MaybeCallPullOrPullIntoRepeatedly.bind(undefined, controller));
 
     return undefined;
   }
-}
-
-function CallPullInto(controller) {
-  if (!controller._considerReissueUnderlyingByteSourcePull) {
-    return undefined;
-  }
-
-  const pullDescriptor = controller._pendingPulls[0];
-
-  controller._insideUnderlyingByteSource = true;
-  try {
-    controller._underlyingByteSource.pullInto(pullDescriptor.buffer,
-                                              pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
-                                              pullDescriptor.byteLength - pullDescriptor.bytesFilled);
-  } catch (e) {
-    DestroyReadableByteStreamController(controller);
-    if (stream._state === 'readable') {
-      ErrorReadableByteStream(stream, e);
-    }
-  }
-  controller._insideUnderlyingByteSource = false;
 }
 
 class ReadableByteStreamReader {
@@ -562,7 +541,7 @@ function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, 
 
       ReadableByteStreamControllerCallPullInto(controller);
 
-      Promise.resolve().then(MaybeCallPullOrPullIntoRepeatedly.bind(controller));
+      Promise.resolve().then(MaybeCallPullOrPullIntoRepeatedly.bind(undefined, controller));
 
       return undefined;
     }
@@ -861,14 +840,14 @@ function ReadableByteStreamControllerCallPull(controller) {
 }
 
 function MaybeCallPullOrPullIntoRepeatedly(controller) {
-  const stream = controller._ownerReadableByteStream;
+  const stream = controller._controlledReadableByteStream;
 
   while (true) {
     if (!controller._considerReissueUnderlyingByteSourcePull) {
       return undefined;
     }
 
-    if (stream._closeRequested) {
+    if (controller._closeRequested) {
       return undefined;
     }
     if (stream._state !== 'readable') {
@@ -942,6 +921,8 @@ function PullFromReadableByteStream(stream) {
 }
 
 function PullFromReadableByteStreamInto(stream, view) {
+  const controller = stream._controller;
+
   let viewType;
   let elementSize = 1;
   if (view.constructor === DataView) {
@@ -971,7 +952,7 @@ function PullFromReadableByteStreamInto(stream, view) {
     viewType = 'Float64Array';
     elementSize = 8;
   } else {
-    DestroyReadableByteStreamController(stream._controller);
+    DestroyReadableByteStreamController(controller);
     ErrorReadableByteStream(stream, new TypeError('Unknown ArrayBufferView type'));
     return undefined;
   }
@@ -985,9 +966,7 @@ function PullFromReadableByteStreamInto(stream, view) {
     elementSize
   };
 
-  const controller = stream._controller;
-
-  if (controller._pendingPulls.length > 1) {
+  if (controller._pendingPulls.length > 0) {
     // TODO: Detach pullDescriptor.buffer if detachRequired is true.
     controller._pendingPulls.push(pullDescriptor);
 

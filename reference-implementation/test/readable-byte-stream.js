@@ -771,10 +771,10 @@ test('ReadableByteStream: read(view) with Uint32Array, then fill it by multiple 
         t.equals(buffer.constructor, ArrayBuffer);
         t.equals(buffer.byteLength, 4);
 
-        t.equals(offset, 0);
+        t.equals(offset, pullIntoCount);
         t.equals(length, 4 - pullIntoCount);
 
-        (new Uint8Array(buffer))[0] = 0x01;
+        (new Uint8Array(buffer, offset, length))[0] = 0x01;
         controller.respond(1);
       } else {
         t.fail('Too many pullInto() calls');
@@ -792,7 +792,7 @@ test('ReadableByteStream: read(view) with Uint32Array, then fill it by multiple 
 
     const view = result.value;
     t.equals(view.byteOffset, 0);
-    t.equals(view.byteLength, 8);
+    t.equals(view.byteLength, 4);
     t.equals(view[0], 0x01010101);
 
     t.end();
@@ -827,11 +827,11 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
   const reader = rbs.getReader();
 
   const p0 = reader.read().then(result => {
-    t.equals(pullCount, 3);
+    t.equals(pullCount, 2);
 
     controller.enqueue(new Uint8Array(2));
 
-    t.equals(pullCount, 3);
+    t.equals(pullCount, 2);
 
     t.equals(result.done, false);
 
@@ -860,11 +860,11 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
     throw e;
   })
 
-  t.equals(pullCount, 2);
+  t.equals(pullCount, 1);
 
   controller.enqueue(new Uint8Array(1));
 
-  t.equals(pullCount, 3);
+  t.equals(pullCount, 2);
 });
 
 test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
@@ -882,11 +882,11 @@ test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
     },
     pullInto(buffer, offset, length) {
       if (pullIntoCount === 0) {
-        t.equals(buffer.constructor, ArrayBuffer, 'buffer.constructor');
-        t.equals(buffer.byteLength, 16, 'byteLength');
+        t.equals(buffer.constructor, ArrayBuffer);
+        t.equals(buffer.byteLength, 16);
 
-        t.equals(offset, 0, 'offset');
-        t.equals(length, 16, 'length');
+        t.equals(offset, 0);
+        t.equals(length, 16);
       } else {
         t.fail('Too many pullInto calls');
         t.end();
