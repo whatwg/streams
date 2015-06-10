@@ -66,6 +66,7 @@ class ReadableByteStreamController {
 
     this._underlyingByteSource = underlyingByteSource;
 
+    this._considerReissueUnderlyingByteSourcePull = false;
     this._insideUnderlyingByteSource = false;
 
     this._pendingPulls = [];
@@ -84,7 +85,7 @@ class ReadableByteStreamController {
 
     const stream = this._controlledReadableByteStream;
 
-    if (stream._closeRequested === true) {
+    if (stream._closeRequested) {
       throw new TypeError('The stream has already been closed; do not close it again!');
     }
     if (stream._state !== 'readable') {
@@ -134,7 +135,7 @@ class ReadableByteStreamController {
 
     const stream = this._controlledReadableByteStream;
 
-    if (stream._closeRequested === true) {
+    if (stream._closeRequested) {
       throw new TypeError('stream is closed or draining');
     }
     if (stream._state !== 'readable') {
@@ -169,7 +170,15 @@ class ReadableByteStreamController {
       }
 
       if (reader._readRequests.length > 0) {
-        CallPull(this);
+        if (controller._insideUnderlyingByteSource) {
+          controller._considerReissueUnderlyingByteSourcePull = false;
+
+          return undefined;
+        }
+
+        ReadableByteStreamControllerCallPull(this);
+
+        Promise.resolve().then(MaybeCallPullOrPullIntoRepeatedly.bind(this));
       }
 
       return undefined;
@@ -262,25 +271,41 @@ class ReadableByteStreamController {
       }
 
       ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(this, reader);
-    } else {
-      if (!this._insideUnderlyingByteSource) {
-        this._insideUnderlyingByteSource = true;
-        try {
-          this._underlyingByteSource.pullInto(pullDescriptor.buffer,
-                                                    pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
-                                                    pullDescriptor.byteLength - pullDescriptor.bytesFilled);
-        } catch (e) {
-          DestroyReadableByteStreamController(this);
-          if (stream._state === 'readable') {
-            ErrorReadableByteStream(stream, e);
-          }
-        }
-        this._insideUnderlyingByteSource = false;
-      }
+
+      return undefined;
     }
+
+    if (this._insideUnderlyingByteSource) {
+      return undefined;
+    }
+
+    this._considerReissueUnderlyingByteSourcePull = true;
+
+    Promise.resolve().then(CallPullInto.bind(controller));
 
     return undefined;
   }
+}
+
+function CallPullInto(controller) {
+  if (!controller._considerReissueUnderlyingByteSourcePull) {
+    return undefined;
+  }
+
+  const pullDescriptor = controller._pendingPulls[0];
+
+  controller._insideUnderlyingByteSource = true;
+  try {
+    controller._underlyingByteSource.pullInto(pullDescriptor.buffer,
+                                              pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
+                                              pullDescriptor.byteLength - pullDescriptor.bytesFilled);
+  } catch (e) {
+    DestroyReadableByteStreamController(controller);
+    if (stream._state === 'readable') {
+      ErrorReadableByteStream(stream, e);
+    }
+  }
+  controller._insideUnderlyingByteSource = false;
 }
 
 class ReadableByteStreamReader {
@@ -522,6 +547,44 @@ function CloseReadableByteStreamReader(reader) {
   return undefined;
 }
 
+function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, reader) {
+  assert(!controller._closeRequested);
+
+  const stream = controller._controlledReadableByteStream;
+
+  while (controller._pendingPulls.length > 0) {
+    if (controller._totalQueuedBytes === 0) {
+      if (controller._insideUnderlyingByteSource) {
+        controller._considerReissueUnderlyingByteSourcePull = true;
+
+        return undefined;
+      }
+
+      ReadableByteStreamControllerCallPullInto(controller);
+
+      Promise.resolve().then(MaybeCallPullOrPullIntoRepeatedly.bind(controller));
+
+      return undefined;
+    }
+
+    const pullDescriptor = controller._pendingPulls[0];
+
+    const ready = FillPendingPullFromQueue(controller, pullDescriptor);
+
+    if (ready) {
+      controller._pendingPulls.shift();
+
+      const result = CreateView(pullDescriptor);
+      assert(result.bytesUsed === pullDescriptor.bytesFilled, 'All filled bytes must be used');
+      RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
+    } else {
+      assert(controller._totalQueuedBytes === 0, 'queue must be empty');
+    }
+  }
+
+  return undefined;
+}
+
 function CreateView(descriptor) {
   const type = descriptor.viewType;
   const buffer = descriptor.buffer;
@@ -758,98 +821,110 @@ function FillPendingPullFromQueue(controller, descriptor) {
 }
 
 function ReadableByteStreamControllerCallPullInto(controller) {
-  assert(controller._pendingPulls.length > 0);
-
-  const pullDescriptor = controller._pendingPulls[0];
-
-  if (controller._insideUnderlyingByteSource) {
-    controller._pullIntoLater = true;
-
-    return undefined;
-  }
+  controller._considerReissueUnderlyingByteSourcePull = false;
 
   controller._insideUnderlyingByteSource = true;
+
+  assert(controller._pendingPulls.length > 0);
+  const pullDescriptor = controller._pendingPulls[0];
+
   try {
     controller._underlyingByteSource.pullInto(pullDescriptor.buffer,
                                               pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
                                               pullDescriptor.byteLength - pullDescriptor.bytesFilled);
   } catch (e) {
     DestroyReadableByteStreamController(controller);
-    if (stream._state === 'readable') {
+    if (controller._ownerReadableByteStream._state === 'readable') {
       ErrorReadableByteStream(stream, e);
     }
   }
   controller._insideUnderlyingByteSource = false;
 
-  // if (controller._pullIntoLater) {
-  //   continue;
-  // }
+  return undefined;
 }
 
-function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, reader) {
-  assert(!controller._closeRequested);
+function ReadableByteStreamControllerCallPull(controller) {
+  controller._considerReissueUnderlyingByteSourcePull = false;
 
-  const stream = controller._controlledReadableByteStream;
+  controller._insideUnderlyingByteSource = true;
+  try {
+    controller._underlyingByteSource.pull();
+  } catch (e) {
+    DestoryReadableByteStreamController(controller);
+    if (controller._ownerReadableByteStream._state === 'readable') {
+      ErrorReadableByteStream(stream, e);
+    }
+  }
+  controller._insideUnderlyingByteSource = false;
 
-  while (controller._pendingPulls.length > 0) {
-    if (controller._totalQueuedBytes === 0) {
-      ReadableByteStreamControllerCallPullInto(this);
+  return undefined;
+}
 
+function MaybeCallPullOrPullIntoRepeatedly(controller) {
+  const stream = controller._ownerReadableByteStream;
+
+  while (true) {
+    if (!controller._considerReissueUnderlyingByteSourcePull) {
       return undefined;
     }
 
-    const pullDescriptor = controller._pendingPulls[0];
-
-    const ready = FillPendingPullFromQueue(controller, pullDescriptor);
-
-    if (ready) {
-      controller._pendingPulls.shift();
-
-      const result = CreateView(pullDescriptor);
-      assert(result.bytesUsed === pullDescriptor.bytesFilled, 'All filled bytes must be used');
-      RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
-    } else {
-      assert(controller._totalQueuedBytes === 0, 'queue must be empty');
+    if (stream._closeRequested) {
+      return undefined;
     }
-  }
+    if (stream._state !== 'readable') {
+      return undefined;
+    }
 
-  return undefined;
-}
+    const reader = stream._reader;
 
-function CallPull(controller) {
-  const stream = controller._ownerReadableByteStream;
+    if (reader === undefined) {
+      return undefined;
+    }
 
-  if (!controller._insideUnderlyingByteSource) {
-    controller._insideUnderlyingByteSource = true;
-    try {
-      controller._underlyingByteSource.pull();
-    } catch (e) {
-      DestoryReadableByteStreamController(controller);
-      if (stream._state === 'readable') {
-        ErrorReadableByteStream(stream, e);
+    if (IsReadableByteStreamReader(reader)) {
+      if (reader._readRequests.length === 0) {
+        return undefined;
       }
+
+      ReadableByteStreamControllerCallPull(controller);
+    } else {
+      assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
+
+      if (reader._readIntoRequests.length === 0) {
+        return undefined;
+      }
+
+      ReadableByteStreamControllerCallPullInto(controller);
     }
-    controller._insideUnderlyingByteSource = false;
   }
 
   return undefined;
-}
-
-function MaybeRespondToReadableByteStreamReaderReadRequest(controller, reader) {
 }
 
 function PullFromReadableByteStream(stream) {
   const controller = stream._controller;
 
-  if (controller._queue.length === 0) {
-    CallPull(controller);
+  const reader = stream._reader;
 
+  if (reader._readRequests.length > 1) {
     return undefined;
   }
 
-  const reader = stream._reader;
-
   assert(reader._readRequests.length === 1);
+
+  if (controller._totalQueuedBytes === 0) {
+    if (controller._insideUnderlyingByteSource) {
+      controller._considerReissueUnderlyingByteSourcePull = true;
+
+      return undefined;
+    }
+
+    ReadableByteStreamControllerCallPull(controller);
+
+    MaybeCallPullOrPullIntoRepeatedly(controller);
+
+    return undefined;
+  }
 
   const entry = controller._queue.shift();
   controller._totalQueuedBytes -= entry.byteLength;
@@ -861,8 +936,6 @@ function PullFromReadableByteStream(stream) {
 
   if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
     CloseReadableByteStream(stream);
-
-    return undefined;
   }
 
   return undefined;
@@ -925,7 +998,15 @@ function PullFromReadableByteStreamInto(stream, view) {
     // TODO: Detach pullDescriptor.buffer if detachRequired is true.
     controller._pendingPulls.push(pullDescriptor);
 
+    if (controller._insideUnderlyingByteSource) {
+      controller._considerReissueUnderlyingByteSourcePull = true;
+
+      return undefined;
+    }
+
     ReadableByteStreamControllerCallPullInto(controller);
+
+    MaybeCallPullOrPullIntoRepeatedly(controller);
 
     return undefined;
   }
@@ -948,7 +1029,15 @@ function PullFromReadableByteStreamInto(stream, view) {
     // TODO: Detach pullDescriptor.buffer if detachRequired is true.
     controller._pendingPulls.push(pullDescriptor);
 
+    if (controller._insideUnderlyingByteSource) {
+      controller._considerReissueUnderlyingByteSourcePull = true;
+
+      return undefined;
+    }
+
     ReadableByteStreamControllerCallPullInto(controller);
+
+    MaybeCallPullOrPullIntoRepeatedly(controller);
 
     return undefined;
   }
