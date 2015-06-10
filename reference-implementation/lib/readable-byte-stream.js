@@ -69,7 +69,7 @@ class ReadableByteStreamController {
     this._considerReissueUnderlyingByteSourcePull = false;
     this._insideUnderlyingByteSource = false;
 
-    this._pendingPulls = [];
+    this._pendingPullIntos = [];
 
     this._queue = [];
     this._totalQueuedBytes = 0;
@@ -114,7 +114,7 @@ class ReadableByteStreamController {
 
     assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
-    if (this._pendingPulls.length > 0 && this._pendingPulls[0].bytesFilled > 0) {
+    if (this._pendingPullIntos.length > 0 && this._pendingPullIntos[0].bytesFilled > 0) {
       DestroyReadableByteStreamController(this);
       const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
       ErrorReadableByteStream(stream, e);
@@ -218,7 +218,7 @@ class ReadableByteStreamController {
 
     const stream = this._controlledReadableByteStream;
 
-    if (this._pendingPulls.length === 0) {
+    if (this._pendingPullIntos.length === 0) {
       throw new TypeError('No pending BYOB read');
     }
 
@@ -228,10 +228,10 @@ class ReadableByteStreamController {
 
     assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
-    const pullDescriptor = this._pendingPulls[0];
+    const pullIntoDescriptor = this._pendingPullIntos[0];
 
     if (buffer !== undefined) {
-      pullDescriptor.buffer = buffer;
+      pullIntoDescriptor.buffer = buffer;
     }
 
     if (stream._state === 'closed') {
@@ -239,11 +239,11 @@ class ReadableByteStreamController {
         throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
       }
 
-      assert(pullDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
+      assert(pullIntoDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
 
       while (reader._readIntoRequests.length > 0) {
-        const descriptor = this._pendingPulls.shift();
-        const result = CreateView(descriptor);
+        const descriptor = this._pendingPullIntos.shift();
+        const result = CreateArrayBufferViewFromPullIntoDescriptor(descriptor);
         const req = reader._readIntoRequests.shift();
         req.resolve(CreateIterResultObject(result.view, true));
       }
@@ -253,15 +253,15 @@ class ReadableByteStreamController {
       return undefined;
     }
 
-    pullDescriptor.bytesFilled += bytesWritten;
+    pullIntoDescriptor.bytesFilled += bytesWritten;
 
-    const result = CreateView(pullDescriptor);
+    const result = CreateArrayBufferViewFromPullIntoDescriptor(pullIntoDescriptor);
     if (result.bytesUsed > 0) {
-      this._pendingPulls.shift();
+      this._pendingPullIntos.shift();
 
       let remainder;
-      if (result.bytesUsed < pullDescriptor.bytesFilled) {
-        remainder = buffer.slice(result.bytesUsed, pullDescriptor.bytesFilled);
+      if (result.bytesUsed < pullIntoDescriptor.bytesFilled) {
+        remainder = buffer.slice(result.bytesUsed, pullIntoDescriptor.bytesFilled);
       }
 
       RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
@@ -531,7 +531,7 @@ function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, 
 
   const stream = controller._controlledReadableByteStream;
 
-  while (controller._pendingPulls.length > 0) {
+  while (controller._pendingPullIntos.length > 0) {
     if (controller._totalQueuedBytes === 0) {
       if (controller._insideUnderlyingByteSource) {
         controller._considerReissueUnderlyingByteSourcePull = true;
@@ -546,15 +546,15 @@ function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, 
       return undefined;
     }
 
-    const pullDescriptor = controller._pendingPulls[0];
+    const pullIntoDescriptor = controller._pendingPullIntos[0];
 
-    const ready = FillPendingPullFromQueue(controller, pullDescriptor);
+    const ready = FillPendingPullFromQueue(controller, pullIntoDescriptor);
 
     if (ready) {
-      controller._pendingPulls.shift();
+      controller._pendingPullIntos.shift();
 
-      const result = CreateView(pullDescriptor);
-      assert(result.bytesUsed === pullDescriptor.bytesFilled, 'All filled bytes must be used');
+      const result = CreateArrayBufferViewFromPullIntoDescriptor(pullIntoDescriptor);
+      assert(result.bytesUsed === pullIntoDescriptor.bytesFilled, 'All filled bytes must be used');
       RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
     } else {
       assert(controller._totalQueuedBytes === 0, 'queue must be empty');
@@ -564,7 +564,7 @@ function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, 
   return undefined;
 }
 
-function CreateView(descriptor) {
+function CreateArrayBufferViewFromPullIntoDescriptor(descriptor) {
   const type = descriptor.viewType;
   const buffer = descriptor.buffer;
   const byteOffset = descriptor.byteOffset;
@@ -606,7 +606,7 @@ function CreateView(descriptor) {
 }
 
 function DestroyReadableByteStreamController(controller) {
-  controller._pendingPulls = []
+  controller._pendingPullIntos = []
   controller._queue = [];
 }
 
@@ -804,13 +804,13 @@ function ReadableByteStreamControllerCallPullInto(controller) {
 
   controller._insideUnderlyingByteSource = true;
 
-  assert(controller._pendingPulls.length > 0);
-  const pullDescriptor = controller._pendingPulls[0];
+  assert(controller._pendingPullIntos.length > 0);
+  const pullIntoDescriptor = controller._pendingPullIntos[0];
 
   try {
-    controller._underlyingByteSource.pullInto(pullDescriptor.buffer,
-                                              pullDescriptor.byteOffset + pullDescriptor.bytesFilled,
-                                              pullDescriptor.byteLength - pullDescriptor.bytesFilled);
+    controller._underlyingByteSource.pullInto(pullIntoDescriptor.buffer,
+                                              pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled,
+                                              pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled);
   } catch (e) {
     DestroyReadableByteStreamController(controller);
     if (controller._ownerReadableByteStream._state === 'readable') {
@@ -957,7 +957,7 @@ function PullFromReadableByteStreamInto(stream, view) {
     return undefined;
   }
 
-  const pullDescriptor = {
+  const pullIntoDescriptor = {
     buffer: view.buffer,
     byteOffset: view.byteOffset,
     byteLength: view.byteLength,
@@ -966,16 +966,16 @@ function PullFromReadableByteStreamInto(stream, view) {
     elementSize
   };
 
-  if (controller._pendingPulls.length > 0) {
-    // TODO: Detach pullDescriptor.buffer if detachRequired is true.
-    controller._pendingPulls.push(pullDescriptor);
+  if (controller._pendingPullIntos.length > 0) {
+    // TODO: Detach pullIntoDescriptor.buffer if detachRequired is true.
+    controller._pendingPullIntos.push(pullIntoDescriptor);
 
     return undefined;
   }
 
   if (controller._totalQueuedBytes === 0) {
-    // TODO: Detach pullDescriptor.buffer if detachRequired is true.
-    controller._pendingPulls.push(pullDescriptor);
+    // TODO: Detach pullIntoDescriptor.buffer if detachRequired is true.
+    controller._pendingPullIntos.push(pullIntoDescriptor);
 
     if (controller._insideUnderlyingByteSource) {
       controller._considerReissueUnderlyingByteSourcePull = true;
@@ -990,23 +990,23 @@ function PullFromReadableByteStreamInto(stream, view) {
     return undefined;
   }
 
-  const ready = FillPendingPullFromQueue(controller, pullDescriptor);
+  const ready = FillPendingPullFromQueue(controller, pullIntoDescriptor);
 
   if (ready) {
-    const result = CreateView(pullDescriptor);
-    assert(result.bytesUsed === pullDescriptor.bytesFilled, 'All filled bytes must be used');
+    const result = CreateArrayBufferViewFromPullIntoDescriptor(pullIntoDescriptor);
+    assert(result.bytesUsed === pullIntoDescriptor.bytesFilled, 'All filled bytes must be used');
     RespondToReadableByteStreamByobReaderReadIntoRequest(stream._reader, result.view);
 
     return undefined;
   }
 
   assert(controller._totalQueuedBytes === 0, 'queue must be empty');
-  assert(pullDescriptor.bytesFilled > 0);
-  assert(pullDescriptor.bytesFilled < elementSize);
+  assert(pullIntoDescriptor.bytesFilled > 0);
+  assert(pullIntoDescriptor.bytesFilled < elementSize);
 
   if (!controller._closeRequested) {
-    // TODO: Detach pullDescriptor.buffer if detachRequired is true.
-    controller._pendingPulls.push(pullDescriptor);
+    // TODO: Detach pullIntoDescriptor.buffer if detachRequired is true.
+    controller._pendingPullIntos.push(pullIntoDescriptor);
 
     if (controller._insideUnderlyingByteSource) {
       controller._considerReissueUnderlyingByteSourcePull = true;
