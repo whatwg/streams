@@ -170,7 +170,8 @@ test('ReadableByteStream: enqueue(), read(view) partially, then read()', t => {
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -210,7 +211,8 @@ test('ReadableByteStream: getReader(), enqueue(), close(), then read()', t => {
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -246,7 +248,8 @@ test('ReadableByteStream: enqueue(), close(), getReader(), then read()', t => {
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -274,7 +277,8 @@ test('ReadableByteStream: read(), then enqueue()', t => {
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -307,7 +311,42 @@ test('ReadableByteStream: read(), then respond()', t => {
   const reader = rbs.getReader();
 
   reader.read().catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: read(view), then respond() with too big value', t => {
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto(buffer, offset, length) {
+      try {
+        controller.respond(2);
+      } catch(e) {
+        t.equals(e.constructor, RangeError);
+
+        t.end();
+        return;
+      }
+
+      t.fail('respond() didn\'t throw');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint8Array(1)).catch(e => {
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -340,7 +379,8 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view)', t => {
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -377,7 +417,8 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view) where view.buf
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -417,7 +458,8 @@ test('ReadableByteStream: Multiple enqueue(), getReader(), then read(view)', t =
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -450,7 +492,8 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view) with a bigger 
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -493,7 +536,8 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view) with a smaller
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -536,7 +580,8 @@ test('ReadableByteStream: enqueue() 1 byte, getReader(), then read(view) with Ui
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -604,7 +649,8 @@ test('ReadableByteStream: enqueue() 3 byte, getReader(), then read(view) with 2-
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 
   t.equals(pullIntoCount, 0);
@@ -749,7 +795,8 @@ test('ReadableByteStream: read(view), then respond() and close() in pullInto()',
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -797,7 +844,8 @@ test('ReadableByteStream: read(view) with Uint32Array, then fill it by multiple 
 
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   });
 });
 
@@ -859,7 +907,8 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
   Promise.all([p0, p1]).then(() => {
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   })
 
   t.equals(pullCount, 1);
@@ -925,7 +974,8 @@ test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
   Promise.all([p0, p1]).then(() => {
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   })
 
   controller.close();
@@ -988,12 +1038,56 @@ test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
   Promise.all([p0, p1]).then(() => {
     t.end();
   }).catch(e => {
-    throw e;
+    t.fail(e);
+    t.end();
   })
 
   controller.enqueue(new Uint8Array(24));
 
   t.equals(pullIntoCount, 1);
+});
+
+test('ReadableByteStream: Multiple read(view) and multiple enqueue()', t => {
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  let bytesRead = 0;
+
+  const pump = () => {
+    reader.read(new Uint8Array(7)).then(result => {
+      if (result.done) {
+        t.equals(bytesRead, 1024);
+        t.end();
+
+        return;
+      }
+
+      bytesRead += result.value.byteLength;
+
+      pump();
+    }).catch(e => {
+      t.fail(e);
+      t.end();
+    });
+  };
+  pump();
+
+  controller.enqueue(new Uint8Array(512));
+  controller.enqueue(new Uint8Array(512));
+  controller.close();
 });
 
 test('ReadableByteStream: read(view) with unexpected view ', t => {
