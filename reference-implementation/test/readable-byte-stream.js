@@ -811,7 +811,7 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
       controller = c;
     },
     pull() {
-      if (pullCount > 3) {
+      if (pullCount > 1) {
         t.fail('Too many pullInto calls');
         t.end();
       }
@@ -827,11 +827,11 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
   const reader = rbs.getReader();
 
   const p0 = reader.read().then(result => {
-    t.equals(pullCount, 2);
+    t.equals(pullCount, 1);
 
     controller.enqueue(new Uint8Array(2));
 
-    t.equals(pullCount, 2);
+    t.equals(pullCount, 1);
 
     t.equals(result.done, false);
 
@@ -845,6 +845,8 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
   t.equals(pullCount, 1);
 
   const p1 = reader.read().then(result => {
+    t.equals(pullCount, 1);
+
     t.equals(result.done, false);
 
     const view = result.value;
@@ -864,7 +866,7 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
 
   controller.enqueue(new Uint8Array(1));
 
-  t.equals(pullCount, 2);
+  t.equals(pullCount, 1);
 });
 
 test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
