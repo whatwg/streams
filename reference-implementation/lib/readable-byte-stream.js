@@ -185,7 +185,7 @@ class ReadableByteStreamController {
     assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
     EnqueueInReadableByteStreamController(this, chunk);
-    ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(this, reader);
+    RespondToReadableByteStreamByobReaderReadIntoRequestsFromQueue(this, reader);
   }
 
   error(e) {
@@ -264,7 +264,7 @@ class ReadableByteStreamController {
         EnqueueInReadableByteStreamController(this, remainder);
       }
 
-      ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(this, reader);
+      RespondToReadableByteStreamByobReaderReadIntoRequestsFromQueue(this, reader);
 
       return;
     }
@@ -531,7 +531,7 @@ function CloseReadableByteStreamReader(reader) {
   DetachReadableByteStreamReader(reader);
 }
 
-function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, reader) {
+function RespondToReadableByteStreamByobReaderReadIntoRequestsFromQueue(controller, reader) {
   assert(!controller._closeRequested);
 
   const stream = controller._controlledReadableByteStream;
@@ -543,8 +543,6 @@ function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, 
 
         return;
       }
-
-      ReadableByteStreamControllerCallPullInto(controller);
 
       Promise.resolve().then(MaybeCallPullOrPullIntoRepeatedly.bind(undefined, controller));
 
