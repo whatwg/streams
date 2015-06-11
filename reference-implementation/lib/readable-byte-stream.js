@@ -644,19 +644,20 @@ function ErrorReadableByteStreamReader(reader, e) {
   return undefined;
 }
 
-function FillPullIntoDescriptorFromQueue(controller, descriptor) {
-  const elementSize = descriptor.elementSize;
+function FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
+  const elementSize = pullIntoDescriptor.elementSize;
 
-  const currentNumElements = (descriptor.bytesFilled - descriptor.bytesFilled % elementSize) / elementSize;
+  const currentAlignedBytes = pullIntoDescriptor.bytesFilled - pullIntoDescriptor.bytesFilled % elementSize;
 
-  const maxBytesToCopy = Math.min(controller._totalQueuedBytes, descriptor.byteLength - descriptor.bytesFilled);
-  const maxBytesFilled = descriptor.bytesFilled + maxBytesToCopy;
-  const maxNumElements = (maxBytesFilled - maxBytesFilled % elementSize) / elementSize;
+  const maxBytesToCopy = Math.min(controller._totalQueuedBytes,
+                                  pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled);
+  const maxBytesFilled = pullIntoDescriptor.bytesFilled + maxBytesToCopy;
+  const maxAlignedBytes = maxBytesFilled - maxBytesFilled % elementSize;
 
   let totalBytesToCopyRemaining = maxBytesToCopy;
   let ready = false;
-  if (maxNumElements > currentNumElements) {
-    totalBytesToCopyRemaining = maxNumElements * elementSize - descriptor.bytesFilled;
+  if (maxAlignedBytes > currentAlignedBytes) {
+    totalBytesToCopyRemaining = maxAlignedBytes - pullIntoDescriptor.bytesFilled;
     ready = true;
   }
 
@@ -667,8 +668,8 @@ function FillPullIntoDescriptorFromQueue(controller, descriptor) {
 
     const bytesToCopy = Math.min(totalBytesToCopyRemaining, headOfQueue.byteLength);
 
-    const destStart = descriptor.byteOffset + descriptor.bytesFilled;
-    new Uint8Array(descriptor.buffer).set(
+    const destStart = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
+    new Uint8Array(pullIntoDescriptor.buffer).set(
         new Uint8Array(headOfQueue.buffer, headOfQueue.byteOffset, bytesToCopy), destStart);
 
     if (headOfQueue.byteLength === bytesToCopy) {
@@ -680,7 +681,7 @@ function FillPullIntoDescriptorFromQueue(controller, descriptor) {
 
     controller._totalQueuedBytes -= bytesToCopy;
 
-    descriptor.bytesFilled += bytesToCopy;
+    pullIntoDescriptor.bytesFilled += bytesToCopy;
 
     totalBytesToCopyRemaining -= bytesToCopy
   }
