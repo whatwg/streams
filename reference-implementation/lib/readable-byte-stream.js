@@ -1,5 +1,5 @@
 const assert = require('assert');
-import { CreateIterResultObject, InvokeOrNoop, typeIsObject } from './helpers';
+import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject } from './helpers';
 
 export default class ReadableByteStream {
   constructor(underlyingByteSource = {}) {
@@ -184,8 +184,6 @@ class ReadableByteStreamController {
 
     DestroyReadableByteStreamController(this);
     ErrorReadableByteStream(stream, e);
-
-    return;
   }
 
   respond(bytesWritten, buffer) {
@@ -399,6 +397,10 @@ class ReadableByteStreamByobReader {
             'ReadableByteStreamByobReader.prototype.read can only be used on a ReadableByteStreamByobReader'));
     }
 
+    if (view === undefined) {
+      return Promise.reject(new TypeError('Valid view must be provided'));
+    }
+
     const ctor = view.constructor;
     let elementSize = 1;
     if (ctor === Int16Array || ctor === Uint16Array) {
@@ -409,6 +411,10 @@ class ReadableByteStreamByobReader {
       elementSize = 8;
     } else if (ctor !== DataView && ctor !== Int8Array && ctor !== Uint8Array && ctor !== Uint8ClampedArray) {
       return Promise.reject(new TypeError('view is of an unsupported type'));
+    }
+
+    if (view.byteLength === 0) {
+      return Promise.reject(new TypeError('view must have non-zero byteLength'));
     }
 
     if (this._state === 'errored') {
@@ -555,9 +561,13 @@ function CancelReadableByteStream(stream, reason) {
   }
 
   CloseReadableByteStream(stream);
-  stream._controller._queue = [];
 
-  const sourceCancelPromise = PromiseInvokeOrNoop(stream._underlyingByteSource, 'cancel', [reason]);
+  const controller = stream._controller;
+
+  controller._totalQueuedBytes = 0;
+  controller._queue = [];
+
+  const sourceCancelPromise = PromiseInvokeOrNoop(controller._underlyingByteSource, 'cancel', [reason]);
   return sourceCancelPromise.then(() => undefined);
 }
 
@@ -714,7 +724,7 @@ function InitializeReadableByteStreamReader(reader, stream) {
   } else {
     assert(stream._state === 'errored', 'state must be errored');
 
-    reader._ownerReadableByteStream = stream;
+    reader._ownerReadableByteStream = undefined;
     reader._state = 'errored';
     reader._storedError = stream._storedError;
     reader._closedPromise = Promise.reject(stream._storedError);

@@ -350,7 +350,7 @@ test('ReadableByteStream: read(view), then respond() with too big value', t => {
   });
 });
 
-test('ReadableByteStream: enqueue(), getReader(), then read(view)', t => {
+test('ReadableByteStream: enqueue(), getByobReader(), then read(view)', t => {
   const rbs = new ReadableByteStream({
     start(c) {
       const view = new Uint8Array(16);
@@ -377,6 +377,153 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view)', t => {
     t.equals(view.byteLength, 16);
     t.equals(view[15], 0x01);
 
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: enqueue(), getReader(), then cancel()', t => {
+  let cancelCount = 0;
+
+  const passedReason = new TypeError('foo');
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      c.enqueue(new Uint8Array(16));
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    },
+    cancel(reason) {
+      if (cancelCount === 0) {
+        t.equals(reason, passedReason);
+      } else {
+        t.fail('Too many cancel calls');
+        t.end();
+        return;
+      }
+
+      ++cancelCount;
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  reader.cancel(passedReason).then(result => {
+    t.equals(result, undefined);
+    t.equals(cancelCount, 1);
+
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: enqueue(), getByobReader(), then cancel()', t => {
+  let cancelCount = 0;
+
+  const passedReason = new TypeError('foo');
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      c.enqueue(new Uint8Array(16));
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    },
+    cancel(reason) {
+      if (cancelCount === 0) {
+        t.equals(reason, passedReason);
+      } else {
+        t.fail('Too many cancel calls');
+        t.end();
+        return;
+      }
+
+      ++cancelCount;
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.cancel(passedReason).then(result => {
+    t.equals(result, undefined);
+    t.equals(cancelCount, 1);
+
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: getByobReader(), read(view), then cancel()', t => {
+  let pullIntoCount = 0;
+  let cancelCount = 0;
+
+  const passedReason = new TypeError('foo');
+
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      if (pullIntoCount > 0) {
+        t.fail('Too many pullInto calls');
+        t.end();
+        return;
+      }
+
+      ++pullIntoCount;
+    },
+    cancel(reason) {
+      if (cancelCount === 0) {
+        t.equals(reason, passedReason);
+
+        controller.respond(0);
+      } else {
+        t.fail('Too many cancel calls');
+        t.end();
+        return;
+      }
+
+      ++cancelCount;
+
+      return 'bar';
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  const p0 = reader.read(new Uint8Array(1)).then(result => {
+    t.equals(result.done, true);
+  });
+
+  const p1 = reader.cancel(passedReason).then(result => {
+    t.equals(result, undefined);
+    t.equals(cancelCount, 1);
+  });
+
+  Promise.all([p0, p1]).then(() => {
     t.end();
   }).catch(e => {
     t.fail(e);
@@ -1090,7 +1237,53 @@ test('ReadableByteStream: Multiple read(view) and multiple enqueue()', t => {
   controller.close();
 });
 
-test('ReadableByteStream: read(view) with unexpected view ', t => {
+test('ReadableByteStream: read(view) with undefined', t => {
+  const rbs = new ReadableByteStream({
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read().then(result => {
+    t.fail('read(view) must fail');
+    t.end();
+  }).catch(e => {
+    t.equals(e.constructor, TypeError);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: read(view) with zero-length view', t => {
+  const rbs = new ReadableByteStream({
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint8Array(0)).then(result => {
+    t.fail('read(view) must fail');
+    t.end();
+  }).catch(e => {
+    t.equals(e.constructor, TypeError);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: read(view) with unexpected view', t => {
   const rbs = new ReadableByteStream({
     pull() {
       t.fail('pull must not be called');
@@ -1107,8 +1300,116 @@ test('ReadableByteStream: read(view) with unexpected view ', t => {
   reader.read({}).then(result => {
     t.fail('read(view) must fail');
     t.end();
-  }).catch(e => {
+  }, e => {
     t.equals(e.constructor, TypeError);
     t.end();
   });
+});
+
+test('ReadableByteStream: read() on an errored stream', t => {
+  const passedError = new TypeError('foo');
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      c.error(passedError);
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  reader.read().then(result => {
+    t.fail('read() must fail');
+    t.end();
+  }, e => {
+    t.equals(e, passedError);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: read(), then error()', t => {
+  const passedError = new TypeError('foo');
+
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {},
+    pullInto() {}
+  });
+
+  const reader = rbs.getReader();
+
+  reader.read().then(result => {
+    t.fail('read() must fail');
+    t.end();
+  }, e => {
+    t.equals(e, passedError);
+    t.end();
+  });
+
+  controller.error(passedError);
+});
+
+test('ReadableByteStream: read(view) on an errored stream', t => {
+  const passedError = new TypeError('foo');
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      c.error(passedError);
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint8Array(1)).then(result => {
+    t.fail('read(view) must fail');
+    t.end();
+  }, e => {
+    t.equals(e, passedError);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: read(view), then error()', t => {
+  const passedError = new TypeError('foo');
+
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {},
+    pullInto() {}
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint8Array(1)).then(result => {
+    t.fail('read(view) must fail');
+    t.end();
+  }, e => {
+    t.equals(e, passedError);
+    t.end();
+  });
+
+  controller.error(passedError);
 });
