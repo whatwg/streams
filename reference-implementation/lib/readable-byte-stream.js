@@ -243,9 +243,7 @@ class ReadableByteStreamController {
 
       while (reader._readIntoRequests.length > 0) {
         const descriptor = this._pendingPullIntos.shift();
-        const result = CreateArrayBufferViewFromPullIntoDescriptor(descriptor);
-        const req = reader._readIntoRequests.shift();
-        req.resolve(CreateIterResultObject(result.view, true));
+        RespondToReadableByteStreamByobReaderReadIntoRequest(reader, descriptor.buffer);
       }
 
       DetachReadableByteStreamReader(reader);
@@ -255,16 +253,16 @@ class ReadableByteStreamController {
 
     pullIntoDescriptor.bytesFilled += bytesWritten;
 
-    const result = CreateArrayBufferViewFromPullIntoDescriptor(pullIntoDescriptor);
-    if (result.bytesUsed > 0) {
+    if (pullIntoDescriptor.bytesFilled >= pullIntoDescriptor.elementSize) {
       this._pendingPullIntos.shift();
 
       let remainder;
-      if (result.bytesUsed < pullIntoDescriptor.bytesFilled) {
+      if (pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize > 0) {
         remainder = buffer.slice(result.bytesUsed, pullIntoDescriptor.bytesFilled);
       }
 
-      RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
+      RespondToReadableByteStreamByobReaderReadIntoRequest(
+          reader, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
 
       if (remainder !== undefined) {
         EnqueueInReadableByteStreamController(this, remainder);
@@ -430,6 +428,18 @@ class ReadableByteStreamByobReader {
             'ReadableByteStreamByobReader.prototype.read can only be used on a ReadableByteStreamByobReader'));
     }
 
+    const ctor = view.constructor;
+    let elementSize = 1;
+    if (ctor === Int16Array || ctor === Uint16Array) {
+      elementSize = 2;
+    } else if (ctor === Int32Array || ctor === Uint32Array || ctor === Float32Array) {
+      elementSize = 4;
+    } else if (ctor === Float64Array) {
+      elementSize = 8;
+    } else if (ctor !== DataView && ctor !== Int8Array && ctor !== Uint8Array && ctor !== Uint8ClampedArray) {
+      return Promise.reject(new TypeError('view is of an unsupported type'));
+    }
+
     if (this._state === 'errored') {
       assert(this._ownerReadableByteStream === undefined, 'This reader must be detached');
 
@@ -437,14 +447,23 @@ class ReadableByteStreamByobReader {
     }
 
     if (this._state === 'closed' && this._ownerReadableByteStream === undefined) {
-      return Promise.resolve(CreateIterResultObject(new view.constructor(view.buffer, view.byteOffset, 0), true));
+      return Promise.resolve(CreateIterResultObject(new ctor(view.buffer, view.byteOffset, 0), true));
     }
 
     const promise = new Promise((resolve, reject) => {
-      this._readIntoRequests.push({resolve, reject});
+      const req = {
+        resolve,
+        reject,
+        byteOffset: view.byteOffset,
+        byteLength: view.byteLength,
+        ctor,
+        elementSize
+      };
+      this._readIntoRequests.push(req);
     });
 
-    PullFromReadableByteStreamInto(this._ownerReadableByteStream, view);
+    PullFromReadableByteStreamInto(
+        this._ownerReadableByteStream, view.buffer, view.byteOffset, view.byteLength, elementSize);
 
     return promise;
   }
@@ -553,84 +572,14 @@ function ConsumeQueueForReadableByteStreamByobReaderReadIntoRequest(controller, 
     if (ready) {
       controller._pendingPullIntos.shift();
 
-      const result = CreateArrayBufferViewFromPullIntoDescriptor(pullIntoDescriptor);
-      assert(result.bytesUsed === pullIntoDescriptor.bytesFilled, 'All filled bytes must be used');
-      RespondToReadableByteStreamByobReaderReadIntoRequest(reader, result.view);
+      RespondToReadableByteStreamByobReaderReadIntoRequest(
+          reader, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
     } else {
       assert(controller._totalQueuedBytes === 0, 'queue must be empty');
     }
   }
 
   return undefined;
-}
-
-function CreateArrayBufferViewFromPullIntoDescriptor(descriptor) {
-  const type = descriptor.viewType;
-  const buffer = descriptor.buffer;
-  const byteOffset = descriptor.byteOffset;
-  const byteLength = descriptor.bytesFilled;
-
-
-  if (type === 'DataView') {
-    return {
-      view: new DataView(buffer, byteOffset, byteLength),
-      bytesUsed: byteLength
-    };
-  } else if (type === 'Int8Array') {
-    return {
-      view: new Int8Array(buffer, byteOffset, byteLength),
-      bytesUsed: byteLength
-    };
-  } else if (type === 'Uint8Array') {
-    return {
-      view: new Uint8Array(buffer, byteOffset, byteLength),
-      bytesUsed: byteLength
-    };
-  } else if (type === 'Int16Array') {
-    const elementSize = 2;
-    const bytesUsed = byteLength - byteLength % elementSize;
-    return {
-      view: new Int16Array(buffer, byteOffset, bytesUsed / elementSize),
-      bytesUsed
-    };
-  } else if (type === 'Uint16Array') {
-    const elementSize = 2;
-    const bytesUsed = byteLength - byteLength % elementSize;
-    return {
-      view: new Uint16Array(buffer, byteOffset, bytesUsed / elementSize),
-      bytesUsed
-    };
-  } else if (type === 'Int32Array') {
-    const elementSize = 4;
-    const bytesUsed = byteLength - byteLength % elementSize;
-    return {
-      view: new Int32Array(buffer, byteOffset, bytesUsed / elementSize),
-      bytesUsed
-    };
-  } else if (type === 'Uint32Array') {
-    const elementSize = 4;
-    const bytesUsed = byteLength - byteLength % elementSize;
-    return {
-      view: new Uint32Array(buffer, byteOffset, bytesUsed / elementSize),
-      bytesUsed
-    };
-  } else if (type === 'Float32Array') {
-    const elementSize = 4;
-    const bytesUsed = byteLength - byteLength % elementSize;
-    return {
-      view: new Float32Array(buffer, byteOffset, bytesUsed / elementSize),
-      bytesUsed
-    };
-  } else if (type === 'Float64Array') {
-    const elementSize = 8;
-    const bytesUsed = byteLength - byteLength % elementSize;
-    return {
-      view: new Float64Array(buffer, byteOffset, bytesUsed / elementSize),
-      bytesUsed
-    };
-  } else {
-    throw new TypeError('Descriptor is broken');
-  }
 }
 
 function DestroyReadableByteStreamController(controller) {
@@ -908,49 +857,14 @@ function PullFromReadableByteStream(stream) {
   return undefined;
 }
 
-function PullFromReadableByteStreamInto(stream, view) {
+function PullFromReadableByteStreamInto(stream, buffer, offset, length, elementSize) {
   const controller = stream._controller;
 
-  let viewType;
-  let elementSize = 1;
-  if (view.constructor === DataView) {
-    viewType = 'DataView';
-  } else if (view.constructor === Int8Array) {
-    viewType = 'Int8Array';
-  } else if (view.constructor === Uint8Array) {
-    viewType = 'Uint8Array';
-  } else if (view.constructor === Uint8ClampedArray) {
-    viewType = 'Uint8ClampedArray';
-  } else if (view.constructor === Int16Array) {
-    viewType = 'Int16Array';
-    elementSize = 2;
-  } else if (view.constructor === Uint16Array) {
-    viewType = 'Uint16Array';
-    elementSize = 2;
-  } else if (view.constructor === Int32Array) {
-    viewType = 'Int32Array';
-    elementSize = 4;
-  } else if (view.constructor === Uint32Array) {
-    viewType = 'Uint32Array';
-    elementSize = 4;
-  } else if (view.constructor === Float32Array) {
-    viewType = 'Float32Array';
-    elementSize = 4;
-  } else if (view.constructor === Float64Array) {
-    viewType = 'Float64Array';
-    elementSize = 8;
-  } else {
-    DestroyReadableByteStreamController(controller);
-    ErrorReadableByteStream(stream, new TypeError('Unknown ArrayBufferView type'));
-    return undefined;
-  }
-
   const pullIntoDescriptor = {
-    buffer: view.buffer,
-    byteOffset: view.byteOffset,
-    byteLength: view.byteLength,
+    buffer: buffer,
+    byteOffset: offset,
+    byteLength: length,
     bytesFilled: 0,
-    viewType,
     elementSize
   };
 
@@ -981,9 +895,8 @@ function PullFromReadableByteStreamInto(stream, view) {
   const ready = FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor);
 
   if (ready) {
-    const result = CreateArrayBufferViewFromPullIntoDescriptor(pullIntoDescriptor);
-    assert(result.bytesUsed === pullIntoDescriptor.bytesFilled, 'All filled bytes must be used');
-    RespondToReadableByteStreamByobReaderReadIntoRequest(stream._reader, result.view);
+    RespondToReadableByteStreamByobReaderReadIntoRequest(
+        stream._reader, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
 
     return undefined;
   }
@@ -1017,8 +930,8 @@ function PullFromReadableByteStreamInto(stream, view) {
 
 function ReadableByteStreamControllerCallPull(controller) {
   controller._considerReissueUnderlyingByteSourcePull = false;
-
   controller._insideUnderlyingByteSource = true;
+
   try {
     controller._underlyingByteSource.pull();
   } catch (e) {
@@ -1027,14 +940,12 @@ function ReadableByteStreamControllerCallPull(controller) {
       ErrorReadableByteStream(stream, e);
     }
   }
-  controller._insideUnderlyingByteSource = false;
 
-  return undefined;
+  controller._insideUnderlyingByteSource = false;
 }
 
 function ReadableByteStreamControllerCallPullInto(controller) {
   controller._considerReissueUnderlyingByteSourcePull = false;
-
   controller._insideUnderlyingByteSource = true;
 
   assert(controller._pendingPullIntos.length > 0);
@@ -1047,23 +958,25 @@ function ReadableByteStreamControllerCallPullInto(controller) {
   } catch (e) {
     DestroyReadableByteStreamController(controller);
     if (controller._ownerReadableByteStream._state === 'readable') {
-      ErrorReadableByteStream(stream, e);
+      ErrorReadableByteStream(controller._ownerReadableByteStream, e);
     }
   }
-  controller._insideUnderlyingByteSource = false;
 
-  return undefined;
+  controller._insideUnderlyingByteSource = false;
 }
 
-function RespondToReadableByteStreamByobReaderReadIntoRequest(reader, chunk) {
+function RespondToReadableByteStreamByobReaderReadIntoRequest(reader, buffer, length) {
   assert(reader._readIntoRequests.length > 0,
          'readIntoRequest must not be empty when calling RespondToReadableByteStreamByobReaderReadIntoRequest');
+  assert(reader._state !== 'errored', 'state must not be errored');
 
   const req = reader._readIntoRequests.shift();
-
-  assert(reader._state === 'readable', 'state must be readable');
-
-  req.resolve(CreateIterResultObject(chunk, false));
-
-  return undefined;
+  if (reader._state === 'closed') {
+    assert(length === undefined);
+    const view = new req.ctor(buffer, req.byteOffset, 0);
+    req.resolve(CreateIterResultObject(view, true));
+  } else {
+    const view = new req.ctor(buffer, req.byteOffset, length / req.elementSize);
+    req.resolve(CreateIterResultObject(view, false));
+  }
 }

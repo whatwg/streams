@@ -993,3 +993,26 @@ test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
 
   t.equals(pullIntoCount, 1);
 });
+
+test('ReadableByteStream: read(view) with unexpected view ', t => {
+  const rbs = new ReadableByteStream({
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read({}).then(result => {
+    t.fail('read(view) must fail');
+    t.end();
+  }).catch(e => {
+    t.equals(e.constructor, TypeError);
+    t.end();
+  });
+});
