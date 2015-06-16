@@ -393,13 +393,11 @@ class ReadableByteStreamByobReader {
 
     const ctor = view.constructor;
     let elementSize = 1;
-    if (ctor === Int16Array || ctor === Uint16Array) {
-      elementSize = 2;
-    } else if (ctor === Int32Array || ctor === Uint32Array || ctor === Float32Array) {
-      elementSize = 4;
-    } else if (ctor === Float64Array) {
-      elementSize = 8;
-    } else if (ctor !== DataView && ctor !== Int8Array && ctor !== Uint8Array && ctor !== Uint8ClampedArray) {
+    if (ctor === Int16Array || ctor === Uint16Array || ctor === Int32Array || ctor === Uint32Array ||
+        ctor === Float32Array || ctor === Float64Array || ctor === Int8Array || ctor === Uint8Array ||
+        ctor === Uint8ClampedArray) {
+      elementSize = ctor.BYTES_PER_ELEMENT;
+    } else if (ctor !== DataView) {
       return Promise.reject(new TypeError('view is of an unsupported type'));
     }
 
