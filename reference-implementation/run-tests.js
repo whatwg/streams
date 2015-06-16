@@ -17,7 +17,7 @@ global.ReadableByteStream = ReadableByteStream;
 
 
 if (process.argv.length === 2) {
-  const tests = glob.sync(path.resolve(__dirname, 'test/readable-byte-stream.js'));
+  const tests = glob.sync(path.resolve(__dirname, 'test/*.js'));
 
   tests.forEach(require);
 } else {
