@@ -52,16 +52,6 @@ class ReadableByteStreamController {
           'ReadableByteStreamController instances can only be created by the ReadableByteStream constructor');
     }
 
-    const pullFunction = underlyingByteSource['pull'];
-    if (pullFunction !== undefined && typeof pullFunction !== 'function') {
-      throw new TypeError('pull property of an underlying byte source must be a function');
-    }
-
-    const pullIntoFunction = underlyingByteSource['pullInto'];
-    if (pullIntoFunction !== undefined && typeof pullIntoFunction !== 'function') {
-      throw new TypeError('pullInto property of an underlying byte source must be a function');
-    }
-
     this._controlledReadableByteStream = controlledReadableByteStream;
 
     this._underlyingByteSource = underlyingByteSource;
@@ -466,14 +456,28 @@ class ReadableByteStreamByobReader {
 }
 
 function CallPull(controller) {
+  const source = controller._underlyingByteSource;
+
+  const pullFunction = source['pull'];
+  if (pullFunction === undefined) {
+    return;
+  }
+
+  const stream = controller._controlledReadableByteStream;
+
+  if (typeof pullFunction !== 'function') {
+    DestroyReadableByteStreamController(controller);
+    ErrorReadableByteStream(stream, new TypeError('pull property of an underlying byte source must be a function'));
+    return;
+  }
+
   controller._callPullOrPullIntoLaterIfNeeded = false;
   controller._insideUnderlyingByteSource = true;
 
   try {
-    controller._underlyingByteSource.pull();
+    pullFunction.apply(source);
   } catch (e) {
     DestoryReadableByteStreamController(controller);
-    const stream = controller._controlledReadableByteStream;
     if (stream._state === 'readable') {
       ErrorReadableByteStream(stream, e);
     }
@@ -483,16 +487,31 @@ function CallPull(controller) {
 }
 
 function CallPullInto(controller) {
-  controller._callPullOrPullIntoLaterIfNeeded = false;
-  controller._insideUnderlyingByteSource = true;
+  const source = controller._underlyingByteSource;
+
+  const pullIntoFunction = source['pullInto'];
+  if (pullIntoFunction === undefined) {
+    return;
+  }
+
+  const stream = controller._controlledReadableByteStream;
+
+  if (typeof pullIntoFunction !== 'function') {
+    DestroyReadableByteStreamController(controller);
+    ErrorReadableByteStream(stream, new TypeError('pullInto property of an underlying byte source must be a function'));
+    return;
+  }
 
   assert(controller._pendingPullIntos.length > 0);
   const pullIntoDescriptor = controller._pendingPullIntos[0];
 
+  controller._callPullOrPullIntoLaterIfNeeded = false;
+  controller._insideUnderlyingByteSource = true;
+
   try {
-    controller._underlyingByteSource.pullInto(pullIntoDescriptor.buffer,
-                                              pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled,
-                                              pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled);
+    pullIntoFunction.apply(source, [pullIntoDescriptor.buffer,
+                                    pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled,
+                                    pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled]);
   } catch (e) {
     DestroyReadableByteStreamController(controller);
     const stream = controller._controlledReadableByteStream;
