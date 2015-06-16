@@ -1283,7 +1283,7 @@ test('ReadableByteStream: read(view) with zero-length view', t => {
   });
 });
 
-test('ReadableByteStream: read(view) with unexpected view', t => {
+test('ReadableByteStream: read(view) with passing an empty object as view', t => {
   const rbs = new ReadableByteStream({
     pull() {
       t.fail('pull must not be called');
@@ -1298,6 +1298,29 @@ test('ReadableByteStream: read(view) with unexpected view', t => {
   const reader = rbs.getByobReader();
 
   reader.read({}).then(result => {
+    t.fail('read(view) must fail');
+    t.end();
+  }, e => {
+    t.equals(e.constructor, TypeError);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: read(view) with passing ArrayBufferView like object as view', t => {
+  const rbs = new ReadableByteStream({
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read({buffer: new ArrayBuffer(10), byteOffset: 0, byteLength: 10}).then(result => {
     t.fail('read(view) must fail');
     t.end();
   }, e => {

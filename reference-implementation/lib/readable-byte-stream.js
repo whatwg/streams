@@ -387,7 +387,7 @@ class ReadableByteStreamByobReader {
             'ReadableByteStreamByobReader.prototype.read can only be used on a ReadableByteStreamByobReader'));
     }
 
-    if (view === undefined) {
+    if (view === undefined || !ArrayBuffer.isView(view)) {
       return Promise.reject(new TypeError('Valid view must be provided'));
     }
 
