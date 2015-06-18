@@ -148,13 +148,7 @@ export default class WritableStream {
       return Promise.reject(enqueueResultE);
     }
 
-    try {
-      SyncWritableStreamStateWithQueue(this);
-    } catch (syncResultE) {
-      ErrorWritableStream(this, syncResultE);
-      return promise;
-    }
-
+    SyncWritableStreamStateWithQueue(this);
     CallOrScheduleWritableStreamAdvanceQueue(this);
     return promise;
   }
@@ -285,12 +279,8 @@ function WritableStreamAdvanceQueue(stream) {
         writeRecord._resolve(undefined);
 
         DequeueValue(stream._queue);
-        try {
-          SyncWritableStreamStateWithQueue(stream);
-        } catch (syncResultE) {
-          return ErrorWritableStream(stream, syncResultE);
-        }
-        return WritableStreamAdvanceQueue(stream);
+        SyncWritableStreamStateWithQueue(stream);
+        WritableStreamAdvanceQueue(stream);
       },
       r => ErrorWritableStream(stream, r)
     )
