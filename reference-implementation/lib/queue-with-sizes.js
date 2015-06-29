@@ -8,8 +8,8 @@ export function DequeueValue(queue) {
 
 export function EnqueueValueWithSize(queue, value, size) {
   size = Number(size);
-  if (Number.isNaN(size) || size === +Infinity || size === -Infinity) {
-    throw new RangeError('Size must be a finite, non-NaN number.');
+  if (Number.isNaN(size) || size === +Infinity || size < 0) {
+    throw new RangeError('Size must be a finite, non-NaN, non-negative number.');
   }
 
   queue.push({ value: value, size: size });

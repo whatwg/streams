@@ -92,85 +92,33 @@ test('Readable stream: negative strategy.highWaterMark', t => {
   }, /RangeError/, 'construction should throw a RangeError');
 });
 
-test('Readable stream: strategy.size returning NaN', t => {
-  t.plan(2);
+test('Readable stream: invalid strategy.size return value', t => {
+  t.plan(8);
 
-  let theError;
-  const rs = new ReadableStream(
-    {
-      start(c) {
-        try {
-          c.enqueue('hi');
-          t.fail('enqueue didn\'t throw');
-        } catch (error) {
-          t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
-          theError = error;
+  for (const size of [NaN, -Infinity, +Infinity, -1]) {
+    let theError;
+    const rs = new ReadableStream(
+      {
+        start(c) {
+          try {
+            c.enqueue('hi');
+            t.fail('enqueue didn\'t throw');
+          } catch (error) {
+            t.equal(error.constructor, RangeError, `enqueue should throw a RangeError for ${size}`);
+            theError = error;
+          }
         }
-      }
-    },
-    {
-      size() {
-        return NaN;
       },
-      highWaterMark: 5
-    }
-  );
-
-  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
-});
-
-test('Readable stream: strategy.size returning -Infinity', t => {
-  t.plan(2);
-
-  let theError;
-  const rs = new ReadableStream(
-    {
-      start(c) {
-        try {
-          c.enqueue('hi');
-          t.fail('enqueue didn\'t throw');
-        } catch (error) {
-          t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
-          theError = error;
-        }
+      {
+        size() {
+          return size;
+        },
+        highWaterMark: 5
       }
-    },
-    {
-      size() {
-        return -Infinity;
-      },
-      highWaterMark: 5
-    }
-  );
+    );
 
-  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
-});
-
-test('Readable stream: strategy.size returning +Infinity', t => {
-  t.plan(2);
-
-  let theError;
-  const rs = new ReadableStream(
-    {
-      start(c) {
-        try {
-          c.enqueue('hi');
-          t.fail('enqueue didn\'t throw');
-        } catch (error) {
-          t.equal(error.constructor, RangeError, 'enqueue should throw a RangeError');
-          theError = error;
-        }
-      }
-    },
-    {
-      size() {
-        return +Infinity;
-      },
-      highWaterMark: 5
-    }
-  );
-
-  rs.getReader().closed.catch(e => t.equal(e, theError, 'closed should reject with the error'));
+    rs.getReader().closed.catch(e => t.equal(e, theError, `closed should reject with the error for ${size}`));
+  }
 });
 
 test('Writable stream: throwing strategy.size getter', t => {
@@ -211,6 +159,29 @@ test('Writable stream: throwing strategy.size method', t => {
     () => t.fail('closed should not fulfill'),
     r => t.equal(r, theError, 'closed should reject with the thrown error')
   );
+});
+
+test('Writable stream: invalid strategy.size return value', t => {
+  t.plan(8);
+
+  for (const size of [NaN, -Infinity, +Infinity, -1]) {
+    let theError;
+    const ws = new WritableStream({}, {
+      size() {
+        return size;
+      },
+      highWaterMark: 5
+    });
+
+    ws.write('a').then(
+      () => t.fail('write should not fulfill'),
+      r => {
+        t.equal(r.constructor, RangeError, `write should reject with a RangeError for ${size}`);
+        theError = r;
+      });
+
+    ws.closed.catch(e => t.equal(e, theError, `closed should reject with the error for ${size}`));
+  }
 });
 
 test('Writable stream: throwing strategy.highWaterMark getter', t => {
