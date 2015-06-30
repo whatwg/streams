@@ -7,11 +7,10 @@ export default class ReadableByteStream {
     this._reader = undefined;
     this._storedError = undefined;
 
-    this._controller = undefined;
     this._controller = new ReadableByteStreamController(this, underlyingByteSource);
   }
 
-  cacnel(reason) {
+  cancel(reason) {
     if (IsReadableByteStream(this) === false) {
       return Promise.reject(
           new TypeError('ReadableByteStream.prototype.cancel can only be used on a ReadableByteStream'));
