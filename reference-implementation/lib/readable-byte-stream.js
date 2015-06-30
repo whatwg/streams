@@ -131,37 +131,33 @@ class ReadableByteStreamController {
 
     if (reader === undefined) {
       EnqueueInReadableByteStreamController(this, chunk);
-      return;
-    }
+    } else {
+      if (IsReadableByteStreamReader(reader)) {
+        if (reader._readRequests.length === 0) {
+          EnqueueInReadableByteStreamController(this, chunk);
+        } else {
+          assert(this._queue.length === 0);
 
-    if (IsReadableByteStreamReader(reader)) {
-      if (reader._readRequests.length === 0) {
+          const req = reader._readRequests.shift();
+          // TODO: Detach chunk.
+          req.resolve(CreateIterResultObject(chunk, false));
+
+          if (this._closeRequested === true) {
+            CloseReadableByteStream(stream);
+            return;
+          }
+
+          if (reader._readRequests.length > 0) {
+            CallPullOrPullIntoLaterIfNeeded(this);
+          }
+        }
+      } else {
+        assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
+
         EnqueueInReadableByteStreamController(this, chunk);
-        return;
+        RespondToReadIntoRequestsFromQueue(this, reader);
       }
-
-      assert(this._queue.length === 0);
-
-      const req = reader._readRequests.shift();
-      // TODO: Detach chunk.
-      req.resolve(CreateIterResultObject(chunk, false));
-
-      if (this._closeRequested === true) {
-        CloseReadableByteStream(stream);
-        return;
-      }
-
-      if (reader._readRequests.length > 0) {
-        CallPullOrPullIntoLaterIfNeeded(this);
-      }
-
-      return;
     }
-
-    assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
-
-    EnqueueInReadableByteStreamController(this, chunk);
-    RespondToReadIntoRequestsFromQueue(this, reader);
   }
 
   error(e) {
