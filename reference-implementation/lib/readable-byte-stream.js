@@ -7,6 +7,9 @@ export default class ReadableByteStream {
     this._reader = undefined;
     this._storedError = undefined;
 
+    // Initialize to undefined first because the constructor of the ReadableByteStreamController checks this
+    // variable to validate the caller.
+    this._controller = undefined;
     this._controller = new ReadableByteStreamController(this, underlyingByteSource);
   }
 
