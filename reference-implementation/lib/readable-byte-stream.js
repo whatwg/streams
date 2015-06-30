@@ -66,6 +66,8 @@ class ReadableByteStreamController {
     this._queue = [];
     this._totalQueuedBytes = 0;
 
+    this._closeRequested = false;
+
     InvokeOrNoop(underlyingByteSource, 'start', [this]);
   }
 
