@@ -1500,3 +1500,125 @@ test('ReadableByteStream: read(view), then error()', t => {
 
   controller.error(passedError);
 });
+
+test('ReadableByteStream: Throwing in pull function must error the stream', t => {
+  const testError = new TypeError('foo');
+
+  const rbs = new ReadableByteStream({
+    start() {},
+    pull() {
+      throw testError;
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  reader.read().then(result => {
+    t.fail('read(view) must fail');
+    t.end();
+  }).catch(e => {
+    t.equals(e, testError);
+    reader.closed.catch(e => {
+      t.equals(e, testError);
+      t.end();
+    });
+  });
+});
+
+test('ReadableByteStream: Throwing in pull function must be ignored if the stream is errored in it', t => {
+  const passedError = new TypeError('foo');
+
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      controller.error(passedError);
+      throw new TypeError('foo');
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  reader.read().then(result => {
+    t.fail('read(view) must fail');
+    t.end();
+  }).catch(e => {
+    t.equals(e, passedError);
+    reader.closed.catch(e => {
+      t.equals(e, passedError);
+      t.end();
+    });
+  });
+});
+
+test('ReadableByteStream: Throwing in pullInto function must error the stream', t => {
+  const testError = new TypeError('foo');
+
+  const rbs = new ReadableByteStream({
+    start() {},
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      throw testError;
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint8Array(1)).then(result => {
+    t.fail('read(view) must fail');
+    t.end();
+  }).catch(e => {
+    t.equals(e, testError);
+    reader.closed.catch(e => {
+      t.equals(e, testError);
+      t.end();
+    });
+  });
+});
+
+test('ReadableByteStream: Throwing in pullInto function must be ignored if the stream is errored in it', t => {
+  const passedError = new TypeError('foo');
+
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      controller.error(passedError);
+      throw new TypeError('foo');
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint8Array(1)).then(result => {
+    t.fail('read(view) must fail');
+    t.end();
+  }).catch(e => {
+    t.equals(e, passedError);
+    reader.closed.catch(e => {
+      t.equals(e, passedError);
+      t.end();
+    });
+  });
+});

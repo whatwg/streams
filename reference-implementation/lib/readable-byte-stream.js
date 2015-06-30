@@ -479,7 +479,7 @@ function CallPull(controller) {
   try {
     pullFunction.apply(source);
   } catch (e) {
-    DestoryReadableByteStreamController(controller);
+    DestroyReadableByteStreamController(controller);
     if (stream._state === 'readable') {
       ErrorReadableByteStream(stream, e);
     }
