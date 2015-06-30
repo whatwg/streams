@@ -898,6 +898,70 @@ test('ReadableByteStream: A stream must be errored if close()-d before fulfillin
   t.end();
 });
 
+test('ReadableByteStream: Throw if close()-ed more than once', t => {
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      const view = new Uint8Array(1);
+      controller = c;
+    },
+    pull() {
+    },
+    pullInto(buffer, offset, length) {
+    }
+  });
+
+  // Enqueue a chunk so that the stream doesn't get closed. This is to check duplicate close() calls are rejected
+  // even if the stream has not yet entered the closed state.
+  const view = new Uint8Array(1);
+  controller.enqueue(view);
+  controller.close();
+
+  try {
+    controller.close();
+  } catch(e) {
+    t.equals(e.constructor, TypeError);
+    t.end();
+    return;
+  }
+
+  t.fail('controller.close() didn\'t throw');
+  t.end();
+});
+
+test('ReadableByteStream: Throw on enqueue() after close()', t => {
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      const view = new Uint8Array(1);
+      controller = c;
+    },
+    pull() {
+    },
+    pullInto(buffer, offset, length) {
+    }
+  });
+
+  // Enqueue a chunk so that the stream doesn't get closed. This is to check enqueue() after close() is  rejected
+  // even if the stream has not yet entered the closed state.
+  const view = new Uint8Array(1);
+  controller.enqueue(view);
+  controller.close();
+
+  try {
+    controller.enqueue(view);
+  } catch(e) {
+    t.equals(e.constructor, TypeError);
+    t.end();
+    return;
+  }
+
+  t.fail('controller.close() didn\'t throw');
+  t.end();
+});
+
 test('ReadableByteStream: read(view), then respond() and close() in pullInto()', t => {
   let controller;
 

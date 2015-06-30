@@ -77,7 +77,7 @@ class ReadableByteStreamController {
 
     const stream = this._controlledReadableByteStream;
 
-    if (stream._closeRequested) {
+    if (this._closeRequested) {
       throw new TypeError('The stream has already been closed; do not close it again!');
     }
     if (stream._state !== 'readable') {
@@ -118,7 +118,7 @@ class ReadableByteStreamController {
 
     const stream = this._controlledReadableByteStream;
 
-    if (stream._closeRequested) {
+    if (this._closeRequested) {
       throw new TypeError('stream is closed or draining');
     }
     if (stream._state !== 'readable') {
