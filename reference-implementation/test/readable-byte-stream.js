@@ -60,6 +60,116 @@ test('ReadableByteStream: getByobReader(), then releaseLock()', t => {
   });
 });
 
+test('ReadableByteStream: Test auto release feature. close(), getReader(), then getReader()', t => {
+  const rbs = new ReadableByteStream({
+    start(c) {
+      c.close();
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  reader.closed.then(() => {
+    rbs.getReader();
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: Test auto release feature. close(), getByobReader(), then getByobReader()', t => {
+  const rbs = new ReadableByteStream({
+    start(c) {
+      c.close();
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.closed.then(() => {
+    rbs.getByobReader();
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: Test auto release feature. error(), getReader(), then getReader()', t => {
+  const passedError = new TypeError('foo');
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      c.error(passedError);
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  reader.closed.then(() => {
+    t.fail('closed must be rejected');
+    t.end();
+  }, e => {
+    t.equals(e, passedError);
+    rbs.getReader();
+    t.end();
+  });
+});
+
+test('ReadableByteStream: Test auto release feature. close(), getByobReader(), then getByobReader()', t => {
+  const passedError = new TypeError('foo');
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      c.error(passedError);
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.closed.then(() => {
+    t.fail('closed must be rejected');
+    t.end();
+  }, e => {
+    t.equals(e, passedError);
+    rbs.getByobReader();
+    t.end();
+  });
+});
+
 test('ReadableByteStream: releaseLock() on ReadableStreamReader with pending read() must throw', t => {
   let pullCount = 0;
 
