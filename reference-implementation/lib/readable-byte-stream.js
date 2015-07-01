@@ -524,7 +524,7 @@ function ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(controller)
     return;
   }
 
-  Promise.resolve().then(ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded.bind(undefined, controller));
+  process.nextTick(ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded.bind(undefined, controller));
 }
 
 function ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller) {
