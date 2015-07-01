@@ -326,11 +326,9 @@ class ReadableByteStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    if (this._ownerReadableByteStream._state === 'errored') {
-      MarkReadableByteStreamReaderErrored(this, this._ownerReadableByteStream._storedError)
-    } else {
-      CloseReadableByteStreamReader(this);
-    }
+    assert(this._ownerReadableByteStream._state === 'readable');
+
+    CloseReadableByteStreamReader(this);
   }
 }
 
@@ -445,9 +443,9 @@ class ReadableByteStreamByobReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    if (this._ownerReadableByteStream._state === 'readable') {
-      CloseReadableByteStreamReader(this);
-    }
+    assert(this._ownerReadableByteStream._state === 'readable');
+
+    CloseReadableByteStreamReader(this);
   }
 }
 

@@ -29,7 +29,35 @@ test('ReadableByteStream: getReader(), then releaseLock()', t => {
   const reader = rbs.getReader();
   reader.releaseLock();
 
-  t.end();
+  reader.closed.then(() => {
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: getByobReader(), then releaseLock()', t => {
+  const rbs = new ReadableByteStream({
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getByobReader();
+  reader.releaseLock();
+
+  reader.closed.then(() => {
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
 });
 
 test('ReadableByteStream: releaseLock() on ReadableStreamReader with pending read() must throw', t => {
