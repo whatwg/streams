@@ -216,7 +216,7 @@ class ReadableByteStreamController {
         RespondToReadIntoRequest(reader, descriptor.buffer);
       }
 
-      DetachReadableByteStreamReader(reader);
+      DetachReadableByteStreamReaderGeneric(reader);
 
       return;
     }
@@ -253,7 +253,7 @@ class ReadableByteStreamReader {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
-    InitializeReadableByteStreamReader(this, stream);
+    InitializeReadableByteStreamReaderGeneric(this, stream);
 
     this._readRequests = [];
   }
@@ -328,7 +328,7 @@ class ReadableByteStreamReader {
 
     assert(this._ownerReadableByteStream._state === 'readable');
 
-    CloseReadableByteStreamReader(this);
+    CloseReadableByteStreamReaderGeneric(this);
   }
 }
 
@@ -341,7 +341,7 @@ class ReadableByteStreamByobReader {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
-    InitializeReadableByteStreamReader(this, stream);
+    InitializeReadableByteStreamReaderGeneric(this, stream);
 
     this._readIntoRequests = [];
   }
@@ -445,7 +445,7 @@ class ReadableByteStreamByobReader {
 
     assert(this._ownerReadableByteStream._state === 'readable');
 
-    CloseReadableByteStreamReader(this);
+    CloseReadableByteStreamReaderGeneric(this);
   }
 }
 
@@ -593,11 +593,11 @@ function CloseReadableByteStream(stream) {
   stream._state = 'closed';
 
   if (IsReadableByteStreamLocked(stream)) {
-    CloseReadableByteStreamReader(stream._reader);
+    CloseReadableByteStreamReaderGeneric(stream._reader);
   }
 }
 
-function CloseReadableByteStreamReader(reader) {
+function CloseReadableByteStreamReaderGeneric(reader) {
   reader._state = 'closed';
 
   reader._closedPromise_resolve(undefined);
@@ -618,7 +618,7 @@ function CloseReadableByteStreamReader(reader) {
     }
   }
 
-  DetachReadableByteStreamReader(reader);
+  DetachReadableByteStreamReaderGeneric(reader);
 }
 
 function DestroyReadableByteStreamController(controller) {
@@ -626,7 +626,7 @@ function DestroyReadableByteStreamController(controller) {
   controller._queue = [];
 }
 
-function DetachReadableByteStreamReader(reader) {
+function DetachReadableByteStreamReaderGeneric(reader) {
   reader._ownerReadableByteStream._reader = undefined;
   reader._ownerReadableByteStream = undefined;
 }
@@ -644,11 +644,11 @@ function ErrorReadableByteStream(stream, e) {
   stream._storedError = e;
 
   if (IsReadableByteStreamLocked(stream)) {
-    ErrorReadableByteStreamReader(stream._reader, e)
+    ErrorReadableByteStreamReaderGeneric(stream._reader, e)
   }
 }
 
-function ErrorReadableByteStreamReader(reader, e) {
+function ErrorReadableByteStreamReaderGeneric(reader, e) {
   reader._state = 'errored';
   reader._storedError = e;
 
@@ -672,7 +672,7 @@ function ErrorReadableByteStreamReader(reader, e) {
     reader._readIntoRequests = [];
   }
 
-  DetachReadableByteStreamReader(reader);
+  DetachReadableByteStreamReaderGeneric(reader);
 }
 
 function FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
@@ -719,7 +719,7 @@ function FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
   return ready;
 }
 
-function InitializeReadableByteStreamReader(reader, stream) {
+function InitializeReadableByteStreamReaderGeneric(reader, stream) {
   if (stream._state === 'readable') {
     stream._reader = reader;
 
