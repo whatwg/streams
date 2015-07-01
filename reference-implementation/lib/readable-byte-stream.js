@@ -519,8 +519,9 @@ function ReadableByteStreamControllerCallPullInto(controller) {
 }
 
 function ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(controller) {
+  controller._callPullOrPullIntoLaterIfNeeded = true;
+
   if (controller._insideUnderlyingByteSource) {
-    controller._callPullOrPullIntoLaterIfNeeded = true;
     return;
   }
 

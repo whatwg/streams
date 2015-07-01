@@ -460,6 +460,66 @@ test('ReadableByteStream: Respond to pull() by enqueue()', t => {
   });
 });
 
+test('ReadableByteStream: Respond to pull() by enqueue() asynchronously', t => {
+  let pullCount = 0;
+
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      console.error(pullCount);
+      if (pullCount === 0) {
+        // Do nothing
+      } else if (pullCount === 1) {
+        controller.enqueue(new Uint8Array(1));
+      } else if (pullCount === 2) {
+        controller.enqueue(new Uint8Array(1));
+      } else {
+        t.fail('Too many pull calls');
+        t.end();
+        return;
+      }
+
+      ++pullCount;
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  const p0 = reader.read();
+
+  t.equals(pullCount, 1);
+
+  const p1 = reader.read();
+  const p2 = reader.read();
+
+  // Respond to the first pull call.
+  controller.enqueue(new Uint8Array(1));
+
+  t.equals(pullCount, 1);
+
+  Promise.all([p0, p1, p2]).then(result => {
+    t.equals(result[0].done, false, 'done');
+    t.equals(result[0].value.byteLength, 1, 'byteLength');
+    t.equals(result[1].done, false, 'done');
+    t.equals(result[1].value.byteLength, 1, 'byteLength');
+    t.equals(result[2].done, false, 'done');
+    t.equals(result[2].value.byteLength, 1, 'byteLength');
+
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
 test('ReadableByteStream: Responding to pull() by respond() should throw and error the stream', t => {
   let controller;
 
@@ -1324,11 +1384,11 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
   const reader = rbs.getReader();
 
   const p0 = reader.read().then(result => {
-    t.equals(pullCount, 1);
+    t.equals(pullCount, 2);
 
     controller.enqueue(new Uint8Array(2));
 
-    t.equals(pullCount, 1);
+    t.equals(pullCount, 2);
 
     t.equals(result.done, false);
 
@@ -1339,10 +1399,10 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
     t.equals(view.byteLength, 1);
   });
 
-  t.equals(pullCount, 1);
+  t.equals(pullCount, 1, 'Only 1 pull() after the 1st read()');
 
   const p1 = reader.read().then(result => {
-    t.equals(pullCount, 1);
+    t.equals(pullCount, 2);
 
     t.equals(result.done, false);
 
@@ -1360,11 +1420,11 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
     t.end();
   })
 
-  t.equals(pullCount, 1);
+  t.equals(pullCount, 1, 'Only 1 pull() even after the 2nd read()');
 
   controller.enqueue(new Uint8Array(1));
 
-  t.equals(pullCount, 1);
+  t.equals(pullCount, 1, 'Only 1 pull() even after enqueue()');
 });
 
 test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
