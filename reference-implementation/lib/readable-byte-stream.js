@@ -469,7 +469,7 @@ function ReadableByteStreamControllerCallPull(controller) {
   controller._insideUnderlyingByteSource = true;
 
   try {
-    pullFunction.apply(source);
+    pullFunction.call(source);
   } catch (e) {
     DestroyReadableByteStreamController(controller);
     if (stream._state === 'readable') {
@@ -503,9 +503,10 @@ function ReadableByteStreamControllerCallPullInto(controller) {
   controller._insideUnderlyingByteSource = true;
 
   try {
-    pullIntoFunction.apply(source, [pullIntoDescriptor.buffer,
-                                    pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled,
-                                    pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled]);
+    pullIntoFunction.call(source,
+                          pullIntoDescriptor.buffer,
+                          pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled,
+                          pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled);
   } catch (e) {
     DestroyReadableByteStreamController(controller);
     const stream = controller._controlledReadableByteStream;
