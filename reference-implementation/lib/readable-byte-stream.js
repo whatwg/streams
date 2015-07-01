@@ -148,7 +148,7 @@ class ReadableByteStreamController {
           }
 
           if (reader._readRequests.length > 0) {
-            CallPullOrPullIntoLaterIfNeeded(this);
+            ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(this);
           }
         }
       } else {
@@ -240,7 +240,7 @@ class ReadableByteStreamController {
       return;
     }
 
-    CallPullOrPullIntoLaterIfNeeded(this);
+    ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(this);
   }
 }
 
@@ -449,7 +449,7 @@ class ReadableByteStreamByobReader {
   }
 }
 
-function CallPull(controller) {
+function ReadableByteStreamControllerCallPull(controller) {
   const source = controller._underlyingByteSource;
 
   const pullFunction = source['pull'];
@@ -480,7 +480,7 @@ function CallPull(controller) {
   controller._insideUnderlyingByteSource = false;
 }
 
-function CallPullInto(controller) {
+function ReadableByteStreamControllerCallPullInto(controller) {
   const source = controller._underlyingByteSource;
 
   const pullIntoFunction = source['pullInto'];
@@ -517,16 +517,16 @@ function CallPullInto(controller) {
   controller._insideUnderlyingByteSource = false;
 }
 
-function CallPullOrPullIntoLaterIfNeeded(controller) {
+function ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(controller) {
   if (controller._insideUnderlyingByteSource) {
     controller._callPullOrPullIntoLaterIfNeeded = true;
     return;
   }
 
-  Promise.resolve().then(CallPullOrPullIntoRepeatedlyIfNeeded.bind(undefined, controller));
+  Promise.resolve().then(ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded.bind(undefined, controller));
 }
 
-function CallPullOrPullIntoRepeatedlyIfNeeded(controller) {
+function ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller) {
   const stream = controller._controlledReadableByteStream;
 
   while (true) {
@@ -552,7 +552,7 @@ function CallPullOrPullIntoRepeatedlyIfNeeded(controller) {
         return;
       }
 
-      CallPull(controller);
+      ReadableByteStreamControllerCallPull(controller);
     } else {
       assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
@@ -560,7 +560,7 @@ function CallPullOrPullIntoRepeatedlyIfNeeded(controller) {
         return;
       }
 
-      CallPullInto(controller);
+      ReadableByteStreamControllerCallPullInto(controller);
     }
   }
 }
@@ -822,8 +822,8 @@ function PullFromReadableByteStream(stream) {
       return;
     }
 
-    CallPull(controller);
-    CallPullOrPullIntoRepeatedlyIfNeeded(controller);
+    ReadableByteStreamControllerCallPull(controller);
+    ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
 
     return;
   }
@@ -870,8 +870,8 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
       return;
     }
 
-    CallPullInto(controller);
-    CallPullOrPullIntoRepeatedlyIfNeeded(controller);
+    ReadableByteStreamControllerCallPullInto(controller);
+    ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
 
     return;
   }
@@ -908,8 +908,8 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
     return;
   }
 
-  CallPullInto(controller);
-  CallPullOrPullIntoRepeatedlyIfNeeded(controller);
+  ReadableByteStreamControllerCallPullInto(controller);
+  ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
 }
 
 function RespondToReadIntoRequest(reader, buffer, length) {
@@ -941,7 +941,7 @@ function RespondToReadIntoRequestsFromQueue(controller, reader) {
 
   while (controller._pendingPullIntos.length > 0) {
     if (controller._totalQueuedBytes === 0) {
-      CallPullOrPullIntoLaterIfNeeded(controller);
+      ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(controller);
       return;
     }
 
