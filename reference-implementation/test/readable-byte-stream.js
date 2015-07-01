@@ -231,6 +231,46 @@ test('ReadableByteStream: enqueue(), getReader(), then read()', t => {
   });
 });
 
+test('ReadableByteStream: pull() function is not callable', t => {
+  const rbs = new ReadableByteStream({
+    pull: 'foo',
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  reader.read().then(result => {
+    t.fail('read() must fail');
+    t.end();
+  }).catch(e => {
+    t.equals(e.constructor, TypeError);
+    t.end();
+  });
+});
+
+test('ReadableByteStream: pull() function is not callable', t => {
+  const rbs = new ReadableByteStream({
+    pull() {
+      t.fail('pullInto must not be called');
+      t.end();
+    },
+    pullInto: 'foo'
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint8Array(1)).then(result => {
+    t.fail('read() must fail');
+    t.end();
+  }).catch(e => {
+    t.equals(e.constructor, TypeError);
+    t.end();
+  });
+});
+
 test('ReadableByteStream: enqueue() with Uint16Array, getReader(), then read()', t => {
   const rbs = new ReadableByteStream({
     start(c) {
