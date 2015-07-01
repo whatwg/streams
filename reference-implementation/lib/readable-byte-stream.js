@@ -227,14 +227,16 @@ class ReadableByteStreamController {
       this._pendingPullIntos.shift();
 
       let remainder;
-      if (pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize > 0) {
-        remainder = buffer.slice(result.bytesUsed, pullIntoDescriptor.bytesFilled);
+      const remainderSize = pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize;
+      if (remainderSize > 0) {
+        const end = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
+        remainder = pullIntoDescriptor.buffer.slice(end - remainderSize, end);
       }
 
-      RespondToReadIntoRequest(reader, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
+      RespondToReadIntoRequest(reader, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled - remainderSize);
 
       if (remainder !== undefined) {
-        EnqueueInReadableByteStreamController(this, remainder);
+        EnqueueInReadableByteStreamController(this, new Uint8Array(remainder));
       }
 
       RespondToReadIntoRequestsFromQueue(this, reader);
@@ -934,6 +936,7 @@ function RespondToReadIntoRequest(reader, buffer, length) {
   }
 
   assert(length <= req.byteLength);
+  assert(length % req.elementSize === 0);
 
   const view = new ctor(buffer, byteOffset, length / req.elementSize);
   req.resolve(CreateIterResultObject(view, false));
