@@ -504,9 +504,9 @@ function ReadableByteStreamControllerCallPullInto(controller) {
 
   try {
     pullIntoFunction.call(source,
-                          pullIntoDescriptor.buffer,
-                          pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled,
-                          pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled);
+                          new Uint8Array(pullIntoDescriptor.buffer,
+                                         pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled,
+                                         pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled));
   } catch (e) {
     DestroyReadableByteStreamController(controller);
     const stream = controller._controlledReadableByteStream;

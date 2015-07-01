@@ -505,7 +505,7 @@ test('ReadableByteStream: read(view), then respond() with too big value', t => {
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto(buffer, offset, length) {
+    pullInto() {
       try {
         controller.respond(2);
       } catch(e) {
@@ -541,7 +541,7 @@ test('ReadableByteStream: respond(3) to read(view) with 2 element Uint16Array en
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto(buffer, offset, length) {
+    pullInto(view) {
       if (pullIntoCount > 1) {
         t.fail('Too many pullInt calls');
         t.end();
@@ -550,13 +550,12 @@ test('ReadableByteStream: respond(3) to read(view) with 2 element Uint16Array en
 
       ++pullIntoCount;
 
-      t.equals(buffer.constructor, ArrayBuffer);
-      t.equals(buffer.byteLength, 4);
+      t.equals(view.constructor, Uint8Array);
+      t.equals(view.buffer.byteLength, 4);
 
-      t.equals(offset, 0);
-      t.equals(length, 4);
+      t.equals(view.byteOffset, 0);
+      t.equals(view.byteLength, 4);
 
-      const view = new Uint8Array(buffer);
       view[0] = 0x01;
       view[1] = 0x02;
       view[2] = 0x03;
@@ -946,14 +945,14 @@ test('ReadableByteStream: enqueue() 1 byte, getReader(), then read(view) with Ui
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto(buffer, offset, length) {
-      t.equals(buffer.constructor, ArrayBuffer);
-      t.equals(buffer.byteLength, 2);
+    pullInto(view) {
+      t.equals(view.constructor, Uint8Array);
+      t.equals(view.buffer.byteLength, 2);
 
-      t.equals(offset, 1);
-      t.equals(length, 1);
+      t.equals(view.byteOffset, 1);
+      t.equals(view.byteLength, 1);
 
-      (new Uint8Array(buffer))[1] = 0xaa;
+      view[0] = 0xaa;
       controller.respond(1);
     }
   });
@@ -993,14 +992,14 @@ test('ReadableByteStream: enqueue() 3 byte, getReader(), then read(view) with 2-
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto(buffer, offset, length) {
+    pullInto(view) {
       if (pullIntoCount === 0) {
-        t.equals(buffer.constructor, ArrayBuffer);
-        t.equals(buffer.byteLength, 2);
-        t.equals(offset, 1);
-        t.equals(length, 1);
+        t.equals(view.constructor, Uint8Array);
+        t.equals(view.buffer.byteLength, 2);
+        t.equals(view.byteOffset, 1);
+        t.equals(view.byteLength, 1);
 
-        (new Uint8Array(buffer, 1, 1))[0] = 0x03;
+        view[0] = 0x03;
         controller.respond(1);
       } else {
         t.fail('Too many pullInto calls');
@@ -1095,13 +1094,13 @@ test('ReadableByteStream: A stream must be errored if close()-d before fulfillin
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto(buffer, offset, length) {
+    pullInto(view) {
       if (pullIntoCount === 0) {
-        t.equals(buffer.constructor, ArrayBuffer);
-        t.equals(buffer.byteLength, 2);
+        t.equals(view.constructor, Uint8Array);
+        t.equals(view.buffer.byteLength, 2);
 
-        t.equals(offset, 1);
-        t.equals(length, 1);
+        t.equals(view.byteOffset, 1);
+        t.equals(view.byteLength, 1);
       } else {
         t.fail('Too many pullInto calls');
         t.end();
@@ -1149,10 +1148,8 @@ test('ReadableByteStream: Throw if close()-ed more than once', t => {
       const view = new Uint8Array(1);
       controller = c;
     },
-    pull() {
-    },
-    pullInto(buffer, offset, length) {
-    }
+    pull() {},
+    pullInto() {}
   });
 
   // Enqueue a chunk so that the stream doesn't get closed. This is to check duplicate close() calls are rejected
@@ -1181,10 +1178,8 @@ test('ReadableByteStream: Throw on enqueue() after close()', t => {
       const view = new Uint8Array(1);
       controller = c;
     },
-    pull() {
-    },
-    pullInto(buffer, offset, length) {
-    }
+    pull() {},
+    pullInto() {}
   });
 
   // Enqueue a chunk so that the stream doesn't get closed. This is to check enqueue() after close() is  rejected
@@ -1216,14 +1211,14 @@ test('ReadableByteStream: read(view), then respond() and close() in pullInto()',
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto(buffer, offset, length) {
-      t.equals(buffer.constructor, ArrayBuffer);
-      t.equals(buffer.byteLength, 16);
+    pullInto(view) {
+      t.equals(view.constructor, Uint8Array);
+      t.equals(view.buffer.byteLength, 16);
 
-      t.equals(offset, 0);
-      t.equals(length, 16);
+      t.equals(view.byteOffset, 0);
+      t.equals(view.byteLength, 16);
 
-      (new Uint8Array(buffer))[15] = 0x01;
+      view[15] = 0x01;
       controller.respond(16);
       controller.close();
     }
@@ -1267,15 +1262,15 @@ test('ReadableByteStream: read(view) with Uint32Array, then fill it by multiple 
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto(buffer, offset, length) {
+    pullInto(view) {
       if (pullIntoCount < 4) {
-        t.equals(buffer.constructor, ArrayBuffer);
-        t.equals(buffer.byteLength, 4);
+        t.equals(view.constructor, Uint8Array);
+        t.equals(view.buffer.byteLength, 4);
 
-        t.equals(offset, pullIntoCount);
-        t.equals(length, 4 - pullIntoCount);
+        t.equals(view.byteOffset, pullIntoCount);
+        t.equals(view.byteLength, 4 - pullIntoCount);
 
-        (new Uint8Array(buffer, offset, length))[0] = 0x01;
+        view[0] = 0x01;
         controller.respond(1);
       } else {
         t.fail('Too many pullInto() calls');
@@ -1385,13 +1380,13 @@ test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto(buffer, offset, length) {
+    pullInto(view) {
       if (pullIntoCount === 0) {
-        t.equals(buffer.constructor, ArrayBuffer);
-        t.equals(buffer.byteLength, 16);
+        t.equals(view.constructor, Uint8Array);
+        t.equals(view.buffer.byteLength, 16);
 
-        t.equals(offset, 0);
-        t.equals(length, 16);
+        t.equals(view.byteOffset, 0);
+        t.equals(view.byteLength, 16);
       } else {
         t.fail('Too many pullInto calls');
         t.end();
@@ -1449,13 +1444,13 @@ test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto(buffer, offset, length) {
+    pullInto(view) {
       if (pullIntoCount === 0) {
-        t.equals(buffer.constructor, ArrayBuffer);
-        t.equals(buffer.byteLength, 16);
+        t.equals(view.constructor, Uint8Array);
+        t.equals(view.buffer.byteLength, 16);
 
-        t.equals(offset, 0);
-        t.equals(length, 16);
+        t.equals(view.byteOffset, 0);
+        t.equals(view.byteLength, 16);
       } else {
         t.fail();
         t.end();
@@ -1512,8 +1507,7 @@ test('ReadableByteStream: Multiple read(view) and multiple enqueue()', t => {
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto() {
-    }
+    pullInto() {}
   });
 
   const reader = rbs.getByobReader();
