@@ -716,6 +716,12 @@ function FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
     totalBytesToCopyRemaining -= bytesToCopy
   }
 
+  if (!ready) {
+    assert(controller._totalQueuedBytes === 0, 'queue must be empty');
+    assert(pullIntoDescriptor.bytesFilled > 0);
+    assert(pullIntoDescriptor.bytesFilled < pullIntoDescriptor.elementSize);
+  }
+
   return ready;
 }
 
@@ -890,10 +896,6 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
     return;
   }
 
-  assert(controller._totalQueuedBytes === 0, 'queue must be empty');
-  assert(pullIntoDescriptor.bytesFilled > 0);
-  assert(pullIntoDescriptor.bytesFilled < elementSize);
-
   if (controller._closeRequested) {
     DestroyReadableByteStreamController(controller);
     ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
@@ -955,10 +957,6 @@ function RespondToReadIntoRequestsFromQueue(controller, reader) {
       controller._pendingPullIntos.shift();
 
       RespondToReadIntoRequest(reader, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
-    } else {
-      assert(controller._totalQueuedBytes === 0, 'queue must be empty');
-      assert(pullIntoDescriptor.bytesFilled > 0);
-      assert(pullIntoDescriptor.bytesFilled < pullIntoDescriptor.elementSize);
     }
   }
 }
