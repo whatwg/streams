@@ -712,31 +712,35 @@ function FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
 }
 
 function InitializeReadableByteStreamReaderGeneric(reader, stream) {
+  reader._state = stream._state;
+
   if (stream._state === 'readable') {
     stream._reader = reader;
 
     reader._ownerReadableByteStream = stream;
-    reader._state = 'readable';
     reader._storedError = undefined;
     reader._closedPromise = new Promise((resolve, reject) => {
       reader._closedPromise_resolve = resolve;
       reader._closedPromise_reject = reject;
     });
-  } else if (stream._state === 'closed') {
-    reader._ownerReadableByteStream = undefined;
-    reader._state = 'closed';
-    reader._closedPromise = Promise.resolve(undefined);
-    reader._closedPromise_resolve = undefined;
-    reader._closedPromise_reject = undefined;
   } else {
-    assert(stream._state === 'errored', 'state must be errored');
-
     reader._ownerReadableByteStream = undefined;
-    reader._state = 'errored';
-    reader._storedError = stream._storedError;
-    reader._closedPromise = Promise.reject(stream._storedError);
-    reader._closedPromise_resolve = undefined;
-    reader._closedPromise_reject = undefined;
+
+    if (stream._state === 'closed') {
+      reader._storedError = undefined;
+
+      reader._closedPromise = Promise.resolve(undefined);
+      reader._closedPromise_resolve = undefined;
+      reader._closedPromise_reject = undefined;
+    } else {
+      assert(stream._state === 'errored', 'state must be errored');
+
+      reader._storedError = stream._storedError;
+
+      reader._closedPromise = Promise.reject(stream._storedError);
+      reader._closedPromise_resolve = undefined;
+      reader._closedPromise_reject = undefined;
+    }
   }
 }
 
