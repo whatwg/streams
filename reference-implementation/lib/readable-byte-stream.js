@@ -129,18 +129,21 @@ class ReadableByteStreamController {
 
     const reader = stream._reader;
 
+    const buffer = chunk.buffer;
+    const byteOffset = chunk.byteOffset;
+    const byteLength = chunk.byteLength;
+
     if (reader === undefined) {
-      EnqueueInReadableByteStreamController(this, chunk);
+      EnqueueInReadableByteStreamController(this, DetachArrayBuffer(buffer), byteOffset, byteLength);
     } else {
       if (IsReadableByteStreamReader(reader)) {
         if (reader._readRequests.length === 0) {
-          EnqueueInReadableByteStreamController(this, chunk);
+          EnqueueInReadableByteStreamController(this, DetachArrayBuffer(buffer), byteOffset, byteLength);
         } else {
           assert(this._queue.length === 0);
 
           const req = reader._readRequests.shift();
-          // TODO: Detach chunk.
-          req.resolve(CreateIterResultObject(chunk, false));
+          req.resolve(CreateIterResultObject(new Uint8Array(DetachArrayBuffer(buffer), byteOffset, byteLength), false));
 
           if (this._closeRequested === true) {
             CloseReadableByteStream(stream);
@@ -154,7 +157,8 @@ class ReadableByteStreamController {
       } else {
         assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
-        EnqueueInReadableByteStreamController(this, chunk);
+        // TODO: Ideally this detaching should happen only if the buffer is not consumed fully.
+        EnqueueInReadableByteStreamController(this, DetachArrayBuffer(buffer), byteOffset, byteLength);
         RespondToReadIntoRequestsFromQueue(this, reader);
       }
     }
@@ -205,6 +209,8 @@ class ReadableByteStreamController {
     }
 
     if (stream._state === 'closed') {
+      pullIntoDescriptor.buffer = DetachArrayBuffer(pullIntoDescriptor.buffer);
+
       if (bytesWritten !== 0) {
         throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
       }
@@ -230,15 +236,18 @@ class ReadableByteStreamController {
       if (remainderSize > 0) {
         const end = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
         const remainder = pullIntoDescriptor.buffer.slice(end - remainderSize, end);
-        EnqueueInReadableByteStreamController(this, new Uint8Array(remainder));
+        EnqueueInReadableByteStreamController(this, remainder, 0, remainder.byteLength);
       }
 
-      RespondToReadIntoRequest(reader, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled - remainderSize);
+      RespondToReadIntoRequest(
+          reader, DetachArrayBuffer(pullIntoDescriptor.buffer), pullIntoDescriptor.bytesFilled - remainderSize);
 
       RespondToReadIntoRequestsFromQueue(this, reader);
 
       return;
     }
+
+    // TODO: Figure out whether we should detach the buffer or not here.
 
     ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(this);
   }
@@ -601,14 +610,20 @@ function DestroyReadableByteStreamController(controller) {
   controller._queue = [];
 }
 
+function DetachArrayBuffer(buffer) {
+  // No-op. Just for marking places where detaching an ArrayBuffer is required.
+
+  return buffer;
+}
+
 function DetachReadableByteStreamReaderGeneric(reader) {
   reader._ownerReadableByteStream._reader = undefined;
   reader._ownerReadableByteStream = undefined;
 }
 
-function EnqueueInReadableByteStreamController(controller, chunk) {
-  controller._queue.push({buffer: chunk.buffer, byteOffset: chunk.byteOffset, byteLength: chunk.byteLength});
-  controller._totalQueuedBytes += chunk.byteLength;
+function EnqueueInReadableByteStreamController(controller, buffer, byteOffset, byteLength) {
+  controller._queue.push({buffer, byteOffset, byteLength});
+  controller._totalQueuedBytes += byteLength;
 }
 
 function ErrorReadableByteStream(stream, e) {
@@ -838,14 +853,14 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
   };
 
   if (controller._pendingPullIntos.length > 0) {
-    // TODO: Detach buffer.
+    pullIntoDescriptor.buffer = DetachArrayBuffer(pullIntoDescriptor.buffer);
     controller._pendingPullIntos.push(pullIntoDescriptor);
 
     return;
   }
 
   if (controller._totalQueuedBytes === 0) {
-    // TODO: Detach buffer.
+    pullIntoDescriptor.buffer = DetachArrayBuffer(pullIntoDescriptor.buffer);
     controller._pendingPullIntos.push(pullIntoDescriptor);
 
     if (controller._pulling) {
@@ -878,7 +893,7 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
     return;
   }
 
-  // TODO: Detach buffer.
+  pullIntoDescriptor.buffer = DetachArrayBuffer(pullIntoDescriptor.buffer);
   controller._pendingPullIntos.push(pullIntoDescriptor);
 
   if (controller._pulling) {
