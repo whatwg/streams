@@ -16,7 +16,6 @@ if (module.parent == require.main) {
 function ecmarkupify(inputFile, outputFile) {
   const inputText = fs.readFileSync(inputFile, { encoding: 'utf-8' });
   const doc = jsdom.jsdom(inputText);
-  hackEmuAlgElements(doc);
 
   const spec = new EmuSpec(inputFile, fetch, doc);
 
@@ -41,18 +40,6 @@ function fetch(path) {
       resolve(contents);
     });
   });
-}
-
-function hackEmuAlgElements(doc) {
-  // Work around https://github.com/tabatkins/bikeshed/issues/380 by authoring the .bs file with <pre is="emu-alg">
-  // (i.e. `doc` will contain <pre is="emu-alg">), which we here convert to real <emu-alg> elements.
-
-  const algs = Array.from(doc.querySelectorAll('pre[is="emu-alg"]'));
-  for (const preAlg of algs) {
-    const realAlg = doc.createElement('emu-alg');
-    realAlg.innerHTML = preAlg.innerHTML;
-    preAlg.parentNode.replaceChild(realAlg, preAlg);
-  }
 }
 
 function addAllAOIDsToBiblio(spec) {

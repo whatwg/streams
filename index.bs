@@ -21,6 +21,7 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 !Version History: [SNAPSHOT-LINK]
 !Version History: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
 
+Opaque Elements: emu-alg
 Link Defaults: html (dfn) structured clone
 </pre>
 
@@ -380,7 +381,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   behavior will be the same as a <code>CountQueuingStrategy</code> with a <a>high water mark</a> of 1.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Set *this*@[[underlyingSource]] to _underlyingSource_.
   1. Set *this*@[[queue]] to a new empty List.
   1. Set *this*@[[state]] to "readable".
@@ -397,7 +398,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
       1. Perform RequestReadableStreamPull(*this*).
     1. Upon rejection with reason _r_,
       1. If *this*@[[state]] is "readable", perform ErrorReadableStream(*this*, _r_).
-</pre>
+</emu-alg>
 
 <h4 id="rs-prototype">Properties of the <code>ReadableStream</code> Prototype</h4>
 
@@ -407,10 +408,10 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   The <code>locked</code> getter returns whether or not the readable stream is <a>locked to a reader</a>.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
   1. Return IsReadableStreamLocked(*this*).
-</pre>
+</emu-alg>
 
 <h5 id="rs-cancel">cancel(reason)</h5>
 
@@ -420,11 +421,11 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   may or may not use it.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. If IsReadableStreamLocked(*this*) is *true*, return a promise rejected with a *TypeError* exception.
   1. Return CancelReadableStream(*this*, _reason_).
-</pre>
+</emu-alg>
 
 <h5 id="rs-get-reader">getReader()</h5>
 
@@ -441,10 +442,10 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   Note that if a stream becomes closed or errored, any reader it is locked to is automatically released.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
   1. Return AcquireReadableStreamReader(*this*).
-</pre>
+</emu-alg>
 
 <div class="example">
   An example of an abstraction that might benefit from using a reader is a function like the following, which is
@@ -490,10 +491,10 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   or that its <code>readable</code> argument be a <code>ReadableStream</code> instance.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Call-with-rethrow Invoke(*this*, "pipeTo", «_writable_, _options_»).
   1. Return _readable_.
-</pre>
+</emu-alg>
 
 <div class="example">
   A typical example of constructing <a>pipe chain</a> using <code>pipeThrough</code> would look like
@@ -544,12 +545,12 @@ look for the <code>pipeTo</code> method.
   branch.)
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
   1. Let _branches_ be TeeReadableStream(*this*, *false*).
   1. ReturnIfAbrupt(_branches_).
   1. Return CreateArrayFromList(_branches_).
-</pre>
+</emu-alg>
 
 <div class="example">
   Teeing a stream is most useful when you wish to let two independent consumers read from the stream in parallel,
@@ -619,11 +620,11 @@ Instances of <code>ReadableStreamController</code> are created with the internal
   <code>ReadableStream</code> that is in the middle of being constructed.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
   1. If _stream_@[[controller]] is not *undefined*, throw a *TypeError* exception.
   1. Set *this*@[[controlledReadableStream]] to _stream_.
-</pre>
+</emu-alg>
 
 <h4 id="rs-controller-prototype">Properties of the <code>ReadableStreamController</code> Prototype</h4>
 
@@ -635,10 +636,10 @@ Instances of <code>ReadableStreamController</code> are created with the internal
   source</a> should use this information to determine when and how to apply <a>backpressure</a>.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Return GetReadableStreamDesiredSize(*this*@[[controlledReadableStream]]).
-</pre>
+</emu-alg>
 
 <h5 id="rs-controller-close">close()</h5>
 
@@ -647,14 +648,14 @@ Instances of <code>ReadableStreamController</code> are created with the internal
   any previously-enqueued <a>chunks</a> from the stream, but once those are read, the stream will become closed.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableStream]].
   1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. If _stream_@[[state]] is "errored", throw a *TypeError* exception.
   1. Perform CloseReadableStream(_stream_).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h5 id="rs-controller-enqueue">enqueue(chunk)</h5>
 
@@ -662,13 +663,13 @@ Instances of <code>ReadableStreamController</code> are created with the internal
   The <code>enqueue</code> method will enqueue a given <a>chunk</a> in the controlled readable stream.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableStream]].
   1. If _stream_@[[state]] is "errored", throw _stream_@[[storedError]].
   1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. Return EnqueueInReadableStream(_stream_, _chunk_).
-</pre>
+</emu-alg>
 
 <h5 id="rs-controller-error">error(e)</h5>
 
@@ -677,12 +678,12 @@ Instances of <code>ReadableStreamController</code> are created with the internal
   given error <var>e</var>.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*@[[controlledReadableStream]]@[[state]] is not "readable", throw a *TypeError* exception.
   1. Perform ErrorReadableStream(*this*@[[controlledReadableStream]]).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h3 id="reader-class">Class <code>ReadableStreamReader</code></h3>
 
@@ -706,7 +707,7 @@ it would look like
     read()
     releaseLock()
   }
-</code></pre>
+</code></emu-alg>
 
 <h4 id="reader-internal-slots">Internal Slots</h4>
 
@@ -753,7 +754,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   classes of readers without the <a>consumer</a> needing to know which goes with which.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
   1. If IsReadableStreamLocked(_stream_) is *true*, throw a *TypeError* exception.
   1. Set _stream_@[[reader]] to *this*.
@@ -763,7 +764,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   1. Set *this*@[[readRequests]] to a new empty List.
   1. Set *this*@[[closedPromise]] to a new promise.
   1. If _stream_@[[state]] is "closed" or "errored", perform ReleaseReadableStreamReader(*this*).
-</pre>
+</emu-alg>
 
 <h4 id="reader-prototype">Properties of the <code>ReadableStreamReader</code> Prototype</h4>
 
@@ -774,10 +775,10 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   reader's lock is <a lt="release a read lock">released</a>, or rejected if the stream ever errors.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. Return *this*@[[closedPromise]].
-</pre>
+</emu-alg>
 
 <h5 id="reader-cancel">cancel(reason)</h5>
 
@@ -786,14 +787,14 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   associated stream. When done, it automatically <a lt="release a read lock">releases the lock</a>.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. If *this*@[[state]] is "closed", return a new promise resolved with *undefined*.
   1. If *this*@[[state]] is "errored", return a new promise rejected with *this*@[[storedError]].
   1. Assert: *this*@[[ownerReadableStream]] is not *undefined*.
   1. Assert: *this*@[[ownerReadableStream]]@[[state]] is "readable".
   1. Return CancelReadableStream(*this*@[[ownerReadableStream]], _reason_).
-</pre>
+</emu-alg>
 
 <h5 id="reader-read">read()</h5>
 
@@ -812,10 +813,10 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   If reading a chunk causes the queue to become empty, more data will be pulled from the <a>underlying source</a>.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. Return ReadFromReadableStreamReader(*this*).
-</pre>
+</emu-alg>
 
 <h5 id="reader-release-lock">releaseLock()</h5>
 
@@ -830,13 +831,13 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   and leave the reader locked to the stream.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableStreamReader(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*@[[ownerReadableStream]] is *undefined*, return *undefined*.
   1. If *this*@[[readRequests]] is not empty, throw a *TypeError* exception.
   1. Perform ReleaseReadableStreamReader(*this*).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h3 id="rs-abstract-ops">Readable Stream Abstract Operations</h3>
 
@@ -845,20 +846,20 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 This abstract operation is meant to be called from other specifications that may wish to acquire an <a>readable stream
 reader</a> for a given stream.
 
-<pre is="emu-alg">
+<emu-alg>
   1. Return Construct(`ReadableStreamReader`, «‍_stream_»).
-</pre>
+</emu-alg>
 
 <h4 id="cancel-readable-stream" aoid="CancelReadableStream">CancelReadableStream ( stream, reason )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If _stream_@[[state]] is "closed", return a new promise resolved with *undefined*.
   1. If _stream_@[[state]] is "errored", return a new promise rejected with _stream_@[[storedError]].
   1. Set _stream_@[[queue]] to a new empty List.
   1. Perform FinishClosingReadableStream(_stream_).
   1. Let _sourceCancelPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "cancel", «‍_reason_»).
   1. Return the result of transforming _sourceCancelPromise_ by a fulfillment handler that returns *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="close-readable-stream" aoid="CloseReadableStream">CloseReadableStream ( stream )</h4>
 
@@ -866,14 +867,14 @@ This abstract operation can be called by other specifications that wish to close
 a developer-created stream would be closed by its associated controller object. Specifications should <em>not</em> do
 this to streams they did not create, and must ensure they have obeyed the preconditions (listed here as asserts).
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _stream_@[[closeRequested]] is *false*.
   1. Assert: _stream_@[[state]] is not "errored".
   1. If _stream_@[[state]] is "closed", return *undefined*.
   1. Set _stream_@[[closeRequested]] to *true*.
   1. If _stream_@[[queue]] is empty, perform FinishClosingReadableStream(_stream_).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <div class="note">
   The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
@@ -885,12 +886,12 @@ this to streams they did not create, and must ensure they have obeyed the precon
 
 <h4 id="finish-closing-readable-stream" aoid="FinishClosingReadableStream">FinishClosingReadableStream ( stream )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _stream_@[[state]] is "readable".
   1. Set _stream_@[[state]] to "closed".
   1. If IsReadableStreamLocked(_stream_) is *true*, perform ReleaseReadableStreamReader(_stream_@[[reader]]).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="enqueue-in-readable-stream" aoid="EnqueueInReadableStream">EnqueueInReadableStream ( stream, chunk )</h4>
 
@@ -899,7 +900,7 @@ in the same way a developer would enqueue chunks using the stream's associated c
 <em>not</em> do this to streams they did not create, and must ensure they have obeyed the preconditions (listed here as
 asserts).
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _stream_@[[closeRequested]] is *false*.
   1. Assert: _stream_@[[state]] is not "errored".
   1. If _stream_@[[state]] is "closed", return *undefined*.
@@ -921,7 +922,7 @@ asserts).
       1. Return _enqueueResult_.
   1. Perform RequestReadableStreamPull(_stream_).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <div class="note">
   The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
@@ -938,60 +939,60 @@ in the same way a developer would error a stream using its associated controller
 <em>not</em> do this to streams they did not create, and must ensure they have obeyed the precondition (listed here as
 an assert).
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _stream_@[[state]] is "readable".
   1. Let _stream_@[[queue]] be a new empty List.
   1. Set _stream_@[[storedError]] to _e_.
   1. Set _stream_@[[state]] to "errored".
   1. If IsReadableStreamLocked(_stream_) is *true*, perform ReleaseReadableStreamReader(_stream_@[[reader]]).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="get-readable-stream-desired-size" aoid="GetReadableStreamDesiredSize">GetReadableStreamDesiredSize ( stream )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _queueSize_ be GetTotalQueueSize(_stream_@[[queue]]).
   1. Return _stream_@[[strategyHWM]] − _queueSize_.
-</pre>
+</emu-alg>
 
 <h4 id="is-readable-stream" aoid="IsReadableStream">IsReadableStream ( x )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If Type(_x_) is not Object, return *false*.
   1. If _x_ does not have a [[underlyingSource]] internal slot, return *false*.
   1. Return *true*.
-</pre>
+</emu-alg>
 
 <h4 id="is-readable-stream-controller" aoid="IsReadableStreamController">IsReadableStreamController ( x )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If Type(_x_) is not Object, return *false*.
   1. If _x_ does not have a [[controlledReadableStream]] internal slot, return *false*.
   1. Return *true*.
-</pre>
+</emu-alg>
 
 <h4 id="is-readable-stream-locked" aoid="IsReadableStreamLocked">IsReadableStreamLocked ( stream )</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to query whether or not a
 readable stream is <a>locked to a reader</a>.
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: IsReadableStream(_stream_) is *true*.
   1. If _stream_@[[reader]] is *undefined*, return *false*.
   1. Return *true*.
-</pre>
+</emu-alg>
 
 <h4 id="is-readable-stream-reader" aoid="IsReadableStreamReader">IsReadableStreamReader ( x )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If Type(_x_) is not Object, return *false*.
   1. If _x_ does not have an [[ownerReadableStream]] internal slot, return *false*.
   1. Return *true*.
-</pre>
+</emu-alg>
 
 <h4 id="read-from-readable-stream-reader" aoid="ReadFromReadableStreamReader">ReadFromReadableStreamReader ( reader )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If _reader_@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
   1. If _reader_@[[state]] is "errored", return a new promise rejected with _reader_@[[storedError]].
   1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
@@ -1006,11 +1007,11 @@ readable stream is <a>locked to a reader</a>.
     1. Append _readRequestPromise_ as the last element of _reader_@[[readRequests]].
     1. Perform RequestReadableStreamPull(_reader_@[[ownerReadableStream]]).
     1. Return _readRequestPromise_.
-</pre>
+</emu-alg>
 
 <h4 id="release-readable-stream-reader" aoid="ReleaseReadableStreamReader">ReleaseReadableStreamReader ( reader )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
   1. If _reader_@[[ownerReadableStream]]@[[state]] is "errored",
     1. Set _reader_@[[state]] to "errored".
@@ -1028,11 +1029,11 @@ readable stream is <a>locked to a reader</a>.
   1. Set _reader_@[[ownerReadableStream]]@[[reader]] to *undefined*.
   1. Set _reader_@[[ownerReadableStream]] to *undefined*.
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="request-readable-stream-pull" aoid="RequestReadableStreamPull">RequestReadableStreamPull ( stream )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _shouldPull_ be ShouldReadableStreamPull(stream).
   1. If _shouldPull_ is *false*, return *undefined*.
   1. If _stream_@[[pulling]] is *true*,
@@ -1048,11 +1049,11 @@ readable stream is <a>locked to a reader</a>.
   1. Upon rejection of _pullPromise_ with reason _e_,
     1. If _stream_@[[state]] is "readable", perform ErrorReadableStream(_stream_, _e_).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="should-readable-stream-pull" aoid="ShouldReadableStreamPull">ShouldReadableStreamPull ( stream )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If _stream_@[[state]] is "closed" or _stream_@[[state]] is "errored", return *false*.
   1. If _stream_@[[closeRequested]] is *true*, return *false*.
   1. If _stream_@[[started]] is *false*, return *false*.
@@ -1060,7 +1061,7 @@ readable stream is <a>locked to a reader</a>.
   1. Let _desiredSize_ be GetReadableStreamDesiredSize(_stream_).
   1. If _desiredSize_ > 0, return *true*.
   1. Return *false*.
-</pre>
+</emu-alg>
 
 <h4 id="tee-readable-stream" aoid="TeeReadableStream">TeeReadableStream ( stream, shouldClone )</h4>
 
@@ -1069,7 +1070,7 @@ This abstract operation is meant to be called from other specifications that may
 the original stream will be <a lt="structured clone">structured cloned</a> before becoming visible in the returned
 branches.
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: IsReadableStream(_stream_) is *true*.
   1. Assert: Type(_shouldClone_) is Boolean.
   1. Let _reader_ be AcquireReadableStreamReader(_reader_).
@@ -1097,7 +1098,7 @@ branches.
     1. Perform ErrorReadableStream(_branch2_, _r_).
     1. Set _teeState_.[[closedOrErrored]] to *true*.
   1. Return «branch1, branch2».
-</pre>
+</emu-alg>
 
 <div class="note">
   The given algorithm creates two clones of each chunk, and discards the original, instead of creating one clone and
@@ -1117,7 +1118,7 @@ stream reader</a> and enqueues it into two other streams ("branches" of the asso
 pull function has \[[reader]], \[[branch1]], \[[branch2]], \[[teeState]], and \[[shouldClone]] internal slots. When a
 TeeReadableStream pull function <var>F</var> is called, it performs the following steps:
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _reader_ be _F_@[[reader]], _branch1_ be _F_@[[branch1]], _branch2_ be _F_@[[branch2]], _teeState_ be _F_@[[teeState]], and _shouldClone_ be _F_@[[shouldClone]].
   1. Return the result of transforming ReadFromReadableStreamReader(_reader_) by a fulfillment handler which takes the argument _result_ and performs the following steps:
     1. Assert: Type(_result_) is Object.
@@ -1139,14 +1140,14 @@ TeeReadableStream pull function <var>F</var> is called, it performs the followin
       1. Let _value2_ be _value_.
       1. If _shouldClone_ is *true*, set _value2_ to a <a>structured clone</a> of _value_.
       1. Call-with-rethrow EnqueueInReadableStream(_branch2_, _value2_).
-</pre>
+</emu-alg>
 
 A <dfn>TeeReadableStream branch 1 cancel function</dfn> is an anonymous built-in function that reacts to the
 cancellation of the first of the two branches of the associated tee. Each TeeReadableStream branch 1 cancel function
 has \[[stream]] and \[[teeState]] internal slots. When a TeeReadableStream branch 1 cancel function <var>F</var> is
 called with argument <var>r</var>, it performs the following steps:
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _stream_ be _F_@[[stream]] and _teeState_ be _F_@[[teeState]].
   1. Set _teeState_.[[canceled1]] to *true*.
   1. Set _teeState_.[[reason1]] to _r_.
@@ -1156,14 +1157,14 @@ called with argument <var>r</var>, it performs the following steps:
     1. ReturnIfAbrupt(_cancelResult_).
     1. Resolve _teeState_.[[promise]] with _cancelResult_.
   1. Return _teeState_.[[promise]].
-</pre>
+</emu-alg>
 
 A <dfn>TeeReadableStream branch 2 cancel function</dfn> is an anonymous built-in function that reacts to the
 cancellation of the second of the two branches of the associated tee. Each TeeReadableStream branch 2 cancel function
 has \[[stream]] and \[[teeState]] internal slots. When a TeeReadableStream branch 2 cancel function <var>F</var> is
 called with argument <var>r</var>, it performs the following steps:
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _stream_ be _F_@[[stream]] and _teeState_ be _F_@[[teeState]].
   1. Set _teeState_.[[canceled2]] to *true*.
   1. Set _teeState_.[[reason2]] to _r_.
@@ -1173,7 +1174,7 @@ called with argument <var>r</var>, it performs the following steps:
     1. ReturnIfAbrupt(_cancelResult_).
     1. Resolve _teeState_.[[promise]] with _cancelResult_.
   1. Return _teeState_.[[promise]].
-</pre>
+</emu-alg>
 
 <div class="note">
   The algorithm given here is written such that three new function objects are created for each call to to
@@ -1376,7 +1377,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   this.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Set *this*@[[underlyingSink]] to _underlyingSink_.
   1. Set *this*@[[closedPromise]] to a new promise.
   1. Set *this*@[[readyPromise]] to a new promise resolved with *undefined*.
@@ -1395,18 +1396,18 @@ Instances of <code>WritableStream</code> are created with the internal slots des
       1. Set *this*@[[started]] to *true*.
       1. Set *this*@[[startedPromise]] to *undefined*.
     1. Upon rejection with reason _r_, perform ErrorWritableStream(*this*, _r_).
-</pre>
+</emu-alg>
 
 A <dfn><code>WritableStream</code> error function</dfn> is an anonymous built-in function that is used to allow
 <a>underlying sinks</a> to error their associated writable stream. Each <code>WritableStream</code> error function has
 a \[[stream]] internal slot. When a <code>WritableStream</code> error function <var>F</var> is called with argument
 <var>e</var>, it performs the following steps:
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _stream_ be _F_@[[stream]].
   1. Perform ErrorWritableStream(_stream_, _e_).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="ws-prototype">Properties of the <code>WritableStream</code> Prototype</h4>
 
@@ -1417,10 +1418,10 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   if it ever errors.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. Return *this*@[[closedPromise]].
-</pre>
+</emu-alg>
 
 <h5 id="ws-ready">get ready</h5>
 
@@ -1433,10 +1434,10 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   or errored).
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. Return *this*@[[readyPromise]].
-</pre>
+</emu-alg>
 
 <h5 id="ws-state">get state</h5>
 
@@ -1464,10 +1465,10 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   </dl>
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsWritableStream(*this*) is *false*, throw a *TypeError* exception.
   1. Return *this*@[[state]].
-</pre>
+</emu-alg>
 
 <h5 id="ws-abort">abort(reason)</h5>
 
@@ -1477,14 +1478,14 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   any abort mechanism of the <a>underlying sink</a>.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. If *this*@[[state]] is "closed", return a new promise resolved with *undefined*.
   1. If *this*@[[state]] is "errored", return a new promise rejected with *this*@[[storedError]].
   1. Perform ErrorWritableStream(*this*, _reason_).
   1. Let _sinkAbortPromise_ be PromiseInvokeOrFallbackOrNoop(*this*@[[underlyingSink]], "abort", «_reason_», "close", «»).
   1. Return the result of transforming _sinkAbortPromise_ by a fulfillment handler that returns *undefined*.
-</pre>
+</emu-alg>
 
 <h5 id="ws-close">close()</h5>
 
@@ -1495,7 +1496,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   resources. In the meantime, the stream will be in a <code>"closing"</code> state.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. If *this*@[[state]] is "closing" or "closed", return a promise rejected with a *TypeError* exception.
   1. If *this*@[[state]] is "errored", return a promise rejected with *this*@[[storedError]].
@@ -1504,7 +1505,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Perform EnqueueValueWithSize(*this*@[[queue]], "close", *0*).
   1. Perform CallOrScheduleWritableStreamAdvanceQueue(*this*).
   1. Return *this*@[[closedPromise]].
-</pre>
+</emu-alg>
 
 <h5 id="ws-write">write(chunk)</h5>
 
@@ -1519,7 +1520,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   exert backpressure by changing its state to <code>"waiting"</code>.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. If *this*@[[state]] is "closing" or "closed", return a promise rejected with a *TypeError* exception.
   1. If *this*@[[state]] is "errored", return a promise rejected with *this*@[[storedError]].
@@ -1540,23 +1541,23 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Perform SyncWritableStreamStateWithQueue(*this*).
   1. Perform CallOrScheduleWritableStreamAdvanceQueue(*this*).
   1. Return _promise_.
-</pre>
+</emu-alg>
 
 <h3 id="ws-abstract-ops">Writable Stream Abstract Operations</h3>
 
 <h4 id="call-or-schedule-writable-stream-advance-queue" aoid="CallOrScheduleWritableStreamAdvanceQueue">CallOrScheduleWritableStreamAdvanceQueue ( stream )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If _stream_@[[started]] is *false*, then
     1. Upon fulfillment of _stream_@[[startedPromise]], perform WritableStreamAdvanceQueue(_stream_).
   1. Otherwise,
     1. Perform WritableStreamAdvanceQueue(_stream_).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="close-writable-stream" aoid="CloseWritableStream">CloseWritableStream ( stream )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _stream_@[[state]] is "closing".
   1. Let _sinkClosePromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingSink]], "close").
     1. Upon fulfillment,
@@ -1566,11 +1567,11 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
       1. Set _stream_@[[state]] to "closed".
     1. Upon rejection with reason _r_, perform ErrorWritableStream(_stream_, _r_).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="error-writable-stream" aoid="ErrorWritableStream">ErrorWritableStream ( stream, e )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If _stream_@[[state]] is "closed" or "errored", return *undefined*.
   1. Repeat while _stream_@[[queue]] is not empty:
     1. Let _writeRecord_ be DequeueValue(_stream_@[[queue]]).
@@ -1580,19 +1581,19 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Reject _stream_@[[closedPromise]] with _e_.
   1. Set _stream_@[[state]] to "errored".
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="is-writable-stream" aoid="IsWritableStream">IsWritableStream ( x )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If Type(_x_) is not Object, return *false*.
   1. If _x_ does not have a [[underlyingSink]] internal slot, return *false*.
   1. Return *true*.
-</pre>
+</emu-alg>
 
 <h4 id="sync-writable-stream-state-with-queue" aoid="SyncWritableStreamStateWithQueue">SyncWritableStreamStateWithQueue ( stream )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If _stream_@[[state]] is "closing", return *undefined*.
   1. Assert: _stream_@[[state]] is either "writable" or "waiting".
   1. Let _queueSize_ be GetTotalQueueSize(_stream_@[[queue]]).
@@ -1604,11 +1605,11 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
     1. Set _stream_@[[state]] to "writable".
     1. Resolve _stream_@[[readyPromise]] with *undefined*.
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="writable-stream-advance-queue" aoid="WritableStreamAdvanceQueue">WritableStreamAdvanceQueue ( stream )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If _stream_@[[queue]] is empty, or _stream_@[[writing]] is *true*, return *undefined*.
   1. Let _writeRecord_ be PeekQueueValue(_stream_@[[queue]]).
   1. If _writeRecord_ is "close", then
@@ -1628,7 +1629,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
     1. Perform WritableStreamAdvanceQueue(_stream_).
   1. Upon rejection of _writeResult_ with reason _r_, perform ErrorWritableStream(_stream_, _r_).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h2 id="ts">Transform Streams</h2>
 
@@ -1694,9 +1695,9 @@ Each <code>ByteLengthQueuingStrategy</code> instance will additionally have an o
   The constructor takes a nonnegative number for the high-water mark, and stores it on the object as a property.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. CreateDataProperty(*this*, "highWaterMark", _highWaterMark_).
-</pre>
+</emu-alg>
 
 <h4 id="blqs-prototype">Properties of the <code>ByteLengthQueuingStrategy</code> Prototype</h4>
 
@@ -1710,9 +1711,9 @@ Each <code>ByteLengthQueuingStrategy</code> instance will additionally have an o
   <code>ByteLengthQueuingStrategy</code> object.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Return Get(_chunk_, "byteLength").
-</pre>
+</emu-alg>
 
 <h3 id="cqs-class">Class <code>CountQueuingStrategy</code></h3>
 
@@ -1768,9 +1769,9 @@ set by its constructor.
   The constructor takes a nonnegative number for the high-water mark, and stores it on the object as a property.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. CreateDataProperty(*this*, "highWaterMark", _highWaterMark_).
-</pre>
+</emu-alg>
 
 <h4 id="cqs-prototype">Properties of the <code>CountQueuingStrategy</code> Prototype</h4>
 
@@ -1784,9 +1785,9 @@ set by its constructor.
   <code>CountQueuingStrategy</code> object.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Return *1*.
-</pre>
+</emu-alg>
 
 <h3 id="queue-with-sizes">Queue-with-Sizes Operations</h3>
 
@@ -1799,40 +1800,40 @@ throughout the rest of this standard.
 
 <h4 id="dequeue-value" aoid="DequeueValue">DequeueValue ( queue )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _queue_ is not empty.
   1. Let _pair_ be the first element of queue.
   1. Remove _pair_ from _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
   1. Return _pair_.[[value]].
-</pre>
+</emu-alg>
 
 <h4 id="enqueue-value-with-size" aoid="EnqueueValueWithSize">EnqueueValueWithSize ( queue, value, size )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _size_ be ToNumber(_size_).
   1. ReturnIfAbrupt(_size_).
   1. If _size_ is *NaN*, *+∞*, or negative, throw a *RangeError* exception.
   1. Append Record{[[value]]: _value_, [[size]]: _size_} as the last element of _queue_.
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="get-total-queue-size" aoid="GetTotalQueueSize">GetTotalQueueSize ( queue )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _totalSize_ be *0*.
   1. Repeat for each Record{[[value]], [[size]]} _pair_ that is an element of _queue_,
     1. Assert: _pair_.[[size]] is a finite, non-*NaN* number.
     1. Add _pair_.[[size]] to _totalSize_.
   1. Return _totalSize_.
-</pre>
+</emu-alg>
 
 <h4 id="peek-queue-value" aoid="PeekQueueValue">PeekQueueValue ( queue )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _queue_ is not empty.
   1. Let _pair_ be the first element of _queue_.
   1. Return _pair_.[[value]].
-</pre>
+</emu-alg>
 
 <h3 id="misc-abstract-ops">Miscellaneous Operations</h3>
 
@@ -1846,14 +1847,14 @@ A few abstract operations are used in this specification for utility purposes. W
   <b>undefined</b> when the method is not present.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _P_ is a valid property key.
   1. If _args_ was not passed, let _args_ be a new empty List.
   1. Let _method_ be GetV(_O_, _P_).
   1. ReturnIfAbrupt(_method_).
   1. If _method_ is *undefined*, return *undefined*.
   1. Return Call(_method_, _O_, _args_).
-</pre>
+</emu-alg>
 
 <h4 id="promise-invoke-or-fallback-or-noop" aoid="PromiseInvokeOrFallbackOrNoop">PromiseInvokeOrFallbackOrNoop ( O, P1, args1, P2, args2 )</h4>
 
@@ -1864,7 +1865,7 @@ A few abstract operations are used in this specification for utility purposes. W
   method is not present.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _P1_ is a valid property key.
   1. Assert: _P2_ is a valid property key.
   1. Let _method_ be GetV(_O_, _P1_).
@@ -1874,7 +1875,7 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Let _returnValue_ be Call(_method_, _O_, _args1_).
   1. If _returnValue_ is an abrupt completion, return a new promise rejected with _returnValue_.[[value]].
   1. Otherwise, return a new promise resolved with _returnValue_.[[value]].
-</pre>
+</emu-alg>
 
 <h4 id="promise-invoke-or-noop" aoid="PromiseInvokeOrNoop">PromiseInvokeOrNoop ( O, P, args )</h4>
 
@@ -1884,7 +1885,7 @@ A few abstract operations are used in this specification for utility purposes. W
   methods and returns a promise for <b>undefined</b> when the method is not present.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _P_ is a valid property key.
   1. If _args_ was not passed, let _args_ be a new empty List.
   1. Let _method_ be GetV(_O_, _P_).
@@ -1894,18 +1895,18 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Let _returnValue_ be Call(_method_, _O_, _args_).
   1. If _returnValue_ is an abrupt completion, return a new promise rejected with _returnValue_.[[value]].
   1. Otherwise, return a new promise resolved with _returnValue_.[[value]].
-</pre>
+</emu-alg>
 
 <h4 id="validate-and-normalize-queuing-strategy" aoid="ValidateAndNormalizeQueuingStrategy">ValidateAndNormalizeQueuingStrategy ( size, highWaterMark )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If _size_ is not *undefined* and IsCallable(_size_) is *false*, throw a *TypeError* exception.
   1. Set _highWaterMark_ to ToNumber(_highWaterMark_).
   1. ReturnIfAbrupt(_highWaterMark_).
   1. If _highWaterMark_ is *NaN*, throw a *TypeError* exception.
   1. If _highWaterMark_ < *0*, throw a *RangeError* exception.
   1. Return Record{[[size]]: size, [[highWaterMark]]: highWaterMark}.
-</pre>
+</emu-alg>
 
 <h2 id="rbs">Readable Byte Streams</h2>
 
@@ -1988,38 +1989,38 @@ Instances of <code>ReadableByteStream</code> are created with the internal slots
 
 <h4 id="rbs-constructor">new ReadableByteStream(underlyingByteSource = {})</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Set *this*@[[underlyingByteSource]] to _underlyingByteSource_.
   1. Set *this*@[[state]] to "readable".
   1. Set *this*@[[reader]] and *this*@[[storedError]] to *undefined*.
   1. Set *this*@[[controller]] to Construct(`ReadableByteStreamController`, «*this*»).
   1. Let _startResult_ be InvokeOrNoop(_underlyingByteSource_, "start", «*this*@[[controller]]»).
   1. ReturnIfAbrupt(startResult).
-</pre>
+</emu-alg>
 
 <h4 id="rbs-prototype">Properties of the <code>ReadableByteStream</code> Prototype</h4>
 
 <h5 id="rbs-cancel">cancel(reason)</h5>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. If IsReadableByteStreamLocked(*this*) is *true*, return a promise rejected with a *TypeError* exception.
   1. Return CancelReadableByteStream(*this*, _reason_).
-</pre>
+</emu-alg>
 
 <h5 id="rbs-get-reader">getReader()</h5>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStream(*this*) is *false*, throw a *TypeError* exception.
   1. Return AcquireReadableByteStreamReader(*this*).
-</pre>
+</emu-alg>
 
 <h5 id="rbs-pipe-through">pipeThrough({ writable, readable }, options)</h5>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Call-with-rethrow Invoke(*this*, "pipeTo", «_writable_, _options_»).
   1. Return _readable_.
-</pre>
+</emu-alg>
 
 <h5 id="rbs-pipe-to">pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})</h5>
 
@@ -2032,12 +2033,12 @@ look for the <code>pipeTo</code> method.
 
 <h5 id="rbs-tee">tee()</h5>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStream(*this*) is *false*, throw a *TypeError* exception.
   1. Let _branches_ be TeeReadableByteStream(*this*, *false*).
   1. ReturnIfAbrupt(_branches_).
   1. Return CreateArrayFromList(_branches_).
-</pre>
+</emu-alg>
 
 <h3 id="rbs-controller-class" lt="ReadableByteStreamController">Class <code>ReadableByteStreamController</code></h3>
 
@@ -2082,41 +2083,41 @@ table:
 
 <h4 id="rbs-controller-constructor">new ReadableByteStreamController(stream)</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStream(_stream_) is *false*, throw a *TypeError* exception.
   1. If _stream_@[[controller]] is not *undefined*, throw a *TypeError* exception.
   1. Set *this*@[[controlledReadableByteStream]] to _stream_.
-</pre>
+</emu-alg>
 
 <h4 id="rbs-controller-prototype">Properties of the <code>ReadableByteStreamController</code> Prototype</h4>
 
 <h5 id="rbs-controller-close">close()</h5>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableByteStream]].
   1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
   1. Return CloseReadableByteStream(_stream_).
-</pre>
+</emu-alg>
 
 <h5 id="rbs-controller-enqueue">resolve(chunk)</h5>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableByteStream]].
   1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
   1. If _stream_@[[reader]]@[[readRequests]] is empty, throw a *TypeError* exception.
   1. Return ResolveReadableByteStream(_stream_, _chunk_).
-</pre>
+</emu-alg>
 
 <h5 id="rbs-controller-error">error(e)</h5>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableByteStream]].
   1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
   1. Return ErrorReadableByteStream(_stream_).
-</pre>
+</emu-alg>
 
 <h3 id="byte-reader-class">Class <code>ReadableByteStreamReader</code></h3>
 
@@ -2184,7 +2185,7 @@ Instances of <code>ReadableByteStreamReader</code> are created with the internal
   classes of readers without the <a>consumer</a> needing to know which goes with which.
 </div>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStream(_stream_) is *false*, throw a *TypeError* exception.
   1. If IsReadableByteStreamLocked(_stream_) is *true*, throw a *TypeError* exception.
   1. Set _stream_@[[reader]] to *this*.
@@ -2194,43 +2195,43 @@ Instances of <code>ReadableByteStreamReader</code> are created with the internal
   1. Set *this*@[[readRequests]] to a new empty List.
   1. Set *this*@[[closedPromise]] to a new promise.
   1. If _stream_@[[state]] is "closed" or "errored", perform ReleaseReadableByteStreamReader(*this*).
-</pre>
+</emu-alg>
 
 <h4 id="byte-reader-prototype">Properties of the <code>ReadableByteStreamReader</code> Prototype</h4>
 
 <h5 id="byte-reader-closed">get closed</h5>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. Return *this*@[[closedPromise]].
-</pre>
+</emu-alg>
 
 <h5 id="byte-reader-cancel">cancel(reason)</h5>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. If *this*@[[state]] is "closed", return a new promise resolved with *undefined*.
   1. If *this*@[[state]] is "errored", return a new promise rejected with *this*@[[storedError]].
   1. Assert: *this*@[[ownerReadableByteStream]] is not *undefined*.
   1. Return CancelReadableByteStream(*this*@[[ownerReadableByteStream]], _reason_).
-</pre>
+</emu-alg>
 
 <h5 id="byte-reader-read">read()</h5>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. Return ReadFromReadableByteStreamReader(*this*).
-</pre>
+</emu-alg>
 
 <h5 id="byte-reader-release-lock">releaseLock()</h5>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If IsReadableByteStreamReader(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*@[[ownerReadableByteStream]] is *undefined*, return *undefined*.
   1. If *this*@[[readRequests]] is not empty, throw a *TypeError* exception.
   1. Perform ReleaseReadableByteStreamReader(*this*).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h3 id="byte-rs-abstract-ops">Readable Byte Stream Abstract Operations</h3>
 
@@ -2239,85 +2240,85 @@ Instances of <code>ReadableByteStreamReader</code> are created with the internal
 This abstract operation is meant to be called from other specifications that may wish to acquire an <a>readable byte
 stream reader</a> for a given stream.
 
-<pre is="emu-alg">
+<emu-alg>
   1. Return Construct(`ReadableByteStreamReader`, «‍_stream_»).
-</pre>
+</emu-alg>
 
 <h4 id="cancel-readable-byte-stream" aoid="CancelReadableByteStream">CancelReadableByteStream ( stream, reason )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If _stream_@[[state]] is "closed", return a new promise resolved with *undefined*.
   1. If _stream_@[[state]] is "errored", return a new promise rejected with _stream_@[[storedError]].
   1. CloseReadableByteStream(_stream_).
   1. Let _sourceCancelPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingByteSource]], "cancel", «‍_reason_»).
   1. Return the result of transforming _sourceCancelPromise_ by a fulfillment handler that returns *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="finish-closing-readable-byte-stream" aoid="CloseReadableByteStream">CloseReadableByteStream ( stream )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _stream_@[[state]] is "readable".
   1. Set _stream_@[[state]] to "closed".
   1. If IsReadableByteStreamLocked(_stream_) is *true*, perform ReleaseReadableByteStreamReader(_stream_@[[reader]]).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="resolve-readable-bytestream" aoid="ResolveReadableByteStream">ResolveReadableByteStream ( stream, chunk )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _stream_@[[state]] is "readable".
   1. Assert: _stream_@[[reader]]@[[readRequests]] is not empty,
   1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
   1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
   1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *false*).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="error-readable-byte-stream" aoid="ErrorReadableByteStream">ErrorReadableByteStream ( stream, e )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _stream_@[[state]] is "readable".
   1. Set _stream_@[[storedError]] to _e_.
   1. Set _stream_@[[state]] to "errored".
   1. If IsReadableByteStreamLocked(_stream_) is *true*, perform ReleaseReadableByteStreamReader(_stream_@[[reader]]).
   1. Return *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="is-readable-byte-stream" aoid="IsReadableByteStream">IsReadableByteStream ( x )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If Type(_x_) is not Object, return *false*.
   1. If _x_ does not have a [[underlyingByteSource]] internal slot, return *false*.
   1. Return *true*.
-</pre>
+</emu-alg>
 
 <h4 id="is-readable-byte-stream-controller" aoid="IsReadableByteStreamController">IsReadableByteStreamController ( x )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If Type(_x_) is not Object, return *false*.
   1. If _x_ does not have a [[controlledReadableByteStream]] internal slot, return *false*.
   1. Return *true*.
-</pre>
+</emu-alg>
 
 <h4 id="is-readable-byte-stream-locked" aoid="IsReadableByteStreamLocked">IsReadableByteStreamLocked ( stream )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: IsReadableByteStream(_stream_) is *true*.
   1. If _stream_@[[reader]] is *undefined*, return *false*.
   1. Return *true*.
-</pre>
+</emu-alg>
 
 <h4 id="is-readable-byte-stream-reader" aoid="IsReadableByteStreamReader">IsReadableByteStreamReader ( x )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If Type(_x_) is not Object, return *false*.
   1. If _x_ does not have an [[ownerReadableByteStream]] internal slot, return *false*.
   1. Return *true*.
-</pre>
+</emu-alg>
 
 <h4 id="read-from-readable-byte-stream-reader" aoid="ReadFromReadableByteStreamReader">ReadFromReadableByteStreamReader ( reader )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. If _reader_@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
   1. If _reader_@[[state]] is "errored", return a new promise rejected with _reader_@[[storedError]].
   1. Assert: _reader_@[[ownerReadableByteStream]] is not *undefined*.
@@ -2329,11 +2330,11 @@ stream reader</a> for a given stream.
   1. If _pullResult_ is an abrupt completion,
     1. If _owner_@[[state]] is "readable", ErrorReadableByteStream(_owner_, _pullResult_.[[value]]).
   1. Return _readRequestPromise_.
-</pre>
+</emu-alg>
 
 <h4 id="release-readable-byte-stream-reader" aoid="ReleaseReadableByteStreamReader">ReleaseReadableByteStreamReader ( reader )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: _reader_@[[ownerReadableByteStream]] is not *undefined*.
   1. If _reader_@[[ownerReadableByteStream]]@[[state]] is "errored",
     1. Set _reader_@[[state]] to "errored".
@@ -2350,7 +2351,7 @@ stream reader</a> for a given stream.
   1. Set _reader_@[[readRequests]] to a new empty List.
   1. Set _reader_@[[ownerReadableByteStream]]@[[reader]] to *undefined*.
   1. Set _reader_@[[ownerReadableByteStream]] to *undefined*.
-</pre>
+</emu-alg>
 
 <h4 id="tee-readable-byte-stream" aoid="TeeReadableByteStream">TeeReadableByteStream ( stream, shouldClone )</h4>
 
@@ -2358,7 +2359,7 @@ This abstract operation is meant to be called from other specifications that may
 stream. Its second argument governs whether or not the data from the original stream will be
 <a lt="structured clone">structured cloned</a> before becoming visible in the returned branches.
 
-<pre is="emu-alg">
+<emu-alg>
   1. Assert: IsReadableByteStream(_stream_) is *true*.
   1. Assert: Type(_shouldClone_) is Boolean.
   1. Let _reader_ be AcquireReadableByteStreamReader(_reader_).
@@ -2388,14 +2389,14 @@ stream. Its second argument governs whether or not the data from the original st
     1. If _teeState_.[[canceled1]] is *false*, ErrorReadableByteStream(_branch1_, _r_).
     1. If _teeState_.[[canceled2]] is *false*, ErrorReadableByteStream(_branch2_, _r_).
   1. Return «branch1, branch2».
-</pre>
+</emu-alg>
 
 A <dfn>TeeReadableByteStream read handler function</dfn> is an anonymous built-in function that reads data from a given
 <a>readable byte stream reader</a> and fulfills read requests of two other streams ("branches" of the associated tee).
 Each TeeReadableByteStream read handler function has \[[teeState]] internal slot. When a TeeReadableByteStream read
 handler function <var>F</var> is called with the argument _result_, it performs the following steps:
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _teeState_ be _F_@[[teeState]].
   1. Assert: Type(_result_) is Object.
   1. Let _value_ be Get(_result_, "value").
@@ -2420,13 +2421,13 @@ handler function <var>F</var> is called with the argument _result_, it performs 
       1. Set _teeState_.[[pullCount2]] to _teeState_.[[pullCount2]] - 1.
       1. Return *undefined*.
     1. Append _value2_ as the last element of _teeState_.[[queue2]].
-</pre>
+</emu-alg>
 
 A <dfn>TeeReadableByteStream branch 1 pull function</dfn> is an anonymous built-in function that pulls data from a
 given <a>readable byte stream reader</a>. Each TeeReadableByteStream branch 1 pull function has \[[teeState]] internal
 slot. When a TeeReadableByteStream branch 1 pull function <var>F</var> is called, it performs the following steps:
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _teeState_ be _F_@[[teeState]].
   1. If _teeState_.[[queue1]] is not empty,
     1. Remove _chunk_ from _teeState_@[[queue1]], shifting all other elements downward (so that the second becomes the first, and so on).
@@ -2438,13 +2439,13 @@ slot. When a TeeReadableByteStream branch 1 pull function <var>F</var> is called
     1. Let _readFunction_ be a new <a>TeeReadableByteStream read handler function</a>.
     1. Set _readFunction_@[[teeState][] to _teeState_.
     1. Return the result of transforming ReadFromReadableStreamReader(_reader_) by a fulfillment handler _readFunction_.
-</pre>
+</emu-alg>
 
 A <dfn>TeeReadableByteStream branch 2 pull function</dfn> is an anonymous built-in function that pulls data from a
 given <a>readable byte stream reader</a>. Each TeeReadableByteStream branch 2 pull function has \[[teeState]] internal
 slot. When a TeeReadableByteStream branch 2 pull function <var>F</var> is called, it performs the following steps:
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _teeState_ be _F_@[[teeState]].
   1. If _teeState_.[[queue2]] is not empty,
     1. Remove _chunk_ from _teeState_@[[queue2]], shifting all other elements downward (so that the second becomes the first, and so on).
@@ -2456,14 +2457,14 @@ slot. When a TeeReadableByteStream branch 2 pull function <var>F</var> is called
     1. Let _readFunction_ be a new <a>TeeReadableByteStream read handler function</a>.
     1. Set _readFunction_@[[teeState][] to _teeState_.
     1. Return the result of transforming ReadFromReadableStreamReader(_reader_) by a fulfillment handler _readFunction_.
-</pre>
+</emu-alg>
 
 A <dfn>TeeReadableByteStream branch 1 cancel function</dfn> is an anonymous built-in function that reacts to the
 cancellation of the first of the two branches of the associated tee. Each TeeReadableByteStream branch 1 cancel
 function has \[[teeState]] internal slot. When a TeeReadableByteStream branch 1 cancel function <var>F</var> is called
 with argument <var>r</var>, it performs the following steps:
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _teeState_ be _F_@[[teeState]].
   1. Set _teeState_.[[queue1]] to *undefined*.
   1. Set _teeState_.[[canceled1]] to *true*.
@@ -2473,14 +2474,14 @@ with argument <var>r</var>, it performs the following steps:
     1. Let _cancelResult_ be CancelReadableStream(_teeState_.[[reader]], _compositeReason_).
     1. Resolve _teeState_.[[promise]] with _cancelResult_.
   1. Return _teeState_.[[promise]].
-</pre>
+</emu-alg>
 
 A <dfn>TeeReadableByteStream branch 2 cancel function</dfn> is an anonymous built-in function that reacts to the
 cancellation of the second of the two branches of the associated tee. Each TeeReadableByteStream branch 2 cancel
 function has \[[teeState]] internal slot. When a TeeReadableStream branch 2 cancel function <var>F</var> is called with
 argument <var>r</var>, it performs the following steps:
 
-<pre is="emu-alg">
+<emu-alg>
   1. Let _teeState_ be _F_@[[teeState]].
   1. Set _teeState_.[[queue2]] to *undefined*.
   1. Set _teeState_.[[canceled2]] to *true*.
@@ -2490,7 +2491,7 @@ argument <var>r</var>, it performs the following steps:
     1. Let _cancelResult_ be CancelReadableStream(_teeState_.[[reader]], _compositeReason_).
     1. Resolve _teeState_.[[promise]] with _cancelResult_.
   1. Return _teeState_.[[promise]].
-</pre>
+</emu-alg>
 
 <h2 id="globals">Global Properties</h2>
 
