@@ -231,6 +231,32 @@ test('ReadableByteStream: enqueue(), getReader(), then read()', t => {
   });
 });
 
+test('ReadableByteStream: Push source that doesn\'t understand pull signal', t => {
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const reader = rbs.getReader();
+
+  reader.read().then(result => {
+    t.equals(result.done, false);
+
+    const view = result.value;
+    t.equals(view.constructor, Uint8Array);
+    t.equals(view.buffer.byteLength, 1);
+    t.equals(view.byteOffset, 0);
+    t.equals(view.byteLength, 1);
+
+    t.end();
+  });
+
+  controller.enqueue(new Uint8Array(1));
+});
+
 test('ReadableByteStream: pull() function is not callable', t => {
   const rbs = new ReadableByteStream({
     pull: 'foo',

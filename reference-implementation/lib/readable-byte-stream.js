@@ -450,26 +450,13 @@ class ReadableByteStreamByobReader {
 }
 
 function ReadableByteStreamControllerCallPull(controller) {
-  const source = controller._underlyingByteSource;
-
-  const pullFunction = source['pull'];
-  if (pullFunction === undefined) {
-    return;
-  }
-
   const stream = controller._controlledReadableByteStream;
-
-  if (typeof pullFunction !== 'function') {
-    DestroyReadableByteStreamController(controller);
-    ErrorReadableByteStream(stream, new TypeError('pull property of an underlying byte source must be a function'));
-    return;
-  }
 
   controller._pullAgain = false;
   controller._pulling = true;
 
   try {
-    pullFunction.call(source);
+    InvokeOrNoop(controller._underlyingByteSource, 'pull', []);
   } catch (e) {
     DestroyReadableByteStreamController(controller);
     if (stream._state === 'readable') {
@@ -481,20 +468,7 @@ function ReadableByteStreamControllerCallPull(controller) {
 }
 
 function ReadableByteStreamControllerCallPullInto(controller) {
-  const source = controller._underlyingByteSource;
-
-  const pullIntoFunction = source['pullInto'];
-  if (pullIntoFunction === undefined) {
-    return;
-  }
-
   const stream = controller._controlledReadableByteStream;
-
-  if (typeof pullIntoFunction !== 'function') {
-    DestroyReadableByteStreamController(controller);
-    ErrorReadableByteStream(stream, new TypeError('pullInto property of an underlying byte source must be a function'));
-    return;
-  }
 
   assert(controller._pendingPullIntos.length > 0);
   const pullIntoDescriptor = controller._pendingPullIntos[0];
@@ -503,10 +477,11 @@ function ReadableByteStreamControllerCallPullInto(controller) {
   controller._pulling = true;
 
   try {
-    pullIntoFunction.call(source,
-                          new Uint8Array(pullIntoDescriptor.buffer,
-                                         pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled,
-                                         pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled));
+    InvokeOrNoop(controller._underlyingByteSource,
+                 'pullInto',
+                 [new Uint8Array(pullIntoDescriptor.buffer,
+                                 pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled,
+                                 pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled)]);
   } catch (e) {
     DestroyReadableByteStreamController(controller);
     const stream = controller._controlledReadableByteStream;
