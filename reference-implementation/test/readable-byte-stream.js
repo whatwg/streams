@@ -859,6 +859,51 @@ test('ReadableByteStream: getByobReader(), read(view), then cancel()', t => {
   });
 });
 
+test('ReadableByteStream: cancel() with partially filled pending pullInto() request', t => {
+  let pullIntoCount = 0;
+
+  let controller;
+
+  const rbs = new ReadableByteStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      if (pullIntoCount === 0) {
+        controller.enqueue(new Uint8Array(1));
+      } else if (pullIntoCount === 1) {
+        // Do nothing
+      } else {
+        t.fail('Too many pullInto calls');
+        t.end();
+      }
+
+      ++pullIntoCount;
+    }
+  });
+
+  const reader = rbs.getByobReader();
+
+  reader.read(new Uint16Array(1)).then(result => {
+    t.equals(result.done, true);
+    t.equals(result.value.constructor, Uint16Array);
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+  reader.cancel();
+
+  t.equals(pullIntoCount, 2);
+
+  // Tell that the buffer given via pullInto() is returned.
+  controller.respond(0);
+});
+
 test('ReadableByteStream: enqueue(), getReader(), then read(view) where view.buffer is not fully covered by view', t => {
   const rbs = new ReadableByteStream({
     start(c) {

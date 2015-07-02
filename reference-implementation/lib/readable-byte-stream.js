@@ -562,6 +562,10 @@ function CancelReadableByteStream(stream, reason) {
 }
 
 function CancelReadableByteStreamController(controller, reason) {
+  if (controller._pendingPullIntos.length > 0) {
+    controller._pendingPullIntos[0].bytesFilled = 0;
+  }
+
   controller._queue = [];
   controller._totalQueuedBytes = 0;
 
