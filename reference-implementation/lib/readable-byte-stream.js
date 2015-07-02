@@ -557,13 +557,15 @@ function CancelReadableByteStream(stream, reason) {
 
   CloseReadableByteStream(stream);
 
-  const controller = stream._controller;
-
-  controller._totalQueuedBytes = 0;
-  controller._queue = [];
-
-  const sourceCancelPromise = PromiseInvokeOrNoop(controller._underlyingByteSource, 'cancel', [reason]);
+  const sourceCancelPromise = CancelReadableByteStreamController(stream._controller, reason);
   return sourceCancelPromise.then(() => undefined);
+}
+
+function CancelReadableByteStreamController(controller, reason) {
+  controller._queue = [];
+  controller._totalQueuedBytes = 0;
+
+  return PromiseInvokeOrNoop(controller._underlyingByteSource, 'cancel', [reason]);
 }
 
 function CloseReadableByteStream(stream) {
