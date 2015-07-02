@@ -194,58 +194,17 @@ class ReadableByteStreamController {
 
     assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
-    const pullIntoDescriptor = this._pendingPullIntos[0];
-
-    if (pullIntoDescriptor.bytesFilled + bytesWritten > pullIntoDescriptor.byteLength) {
-      throw new RangeError('bytesWritten out of range');
-    }
-
-    if (buffer !== undefined) {
-      pullIntoDescriptor.buffer = buffer;
-    }
-
     if (stream._state === 'closed') {
-      pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
-
       if (bytesWritten !== 0) {
         throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
       }
 
-      assert(pullIntoDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
+      RespondToByobReaderInClosedState(this, reader, buffer);
+    } else {
+      assert(stream._state === 'readable');
 
-      while (reader._readIntoRequests.length > 0) {
-        const descriptor = this._pendingPullIntos.shift();
-        RespondToReadIntoRequest(reader, descriptor.buffer);
-      }
-
-      DetachReadableByteStreamReaderGeneric(reader);
-
-      return;
+      RespondToByobReaderInReadableState(this, reader, bytesWritten, buffer);
     }
-
-    pullIntoDescriptor.bytesFilled += bytesWritten;
-
-    if (pullIntoDescriptor.bytesFilled >= pullIntoDescriptor.elementSize) {
-      this._pendingPullIntos.shift();
-
-      const remainderSize = pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize;
-      if (remainderSize > 0) {
-        const end = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
-        const remainder = pullIntoDescriptor.buffer.slice(end - remainderSize, end);
-        EnqueueInReadableByteStreamController(this, remainder, 0, remainder.byteLength);
-      }
-
-      RespondToReadIntoRequest(
-          reader, TransferArrayBuffer(pullIntoDescriptor.buffer), pullIntoDescriptor.bytesFilled - remainderSize);
-
-      RespondToReadIntoRequestsFromQueue(this, reader);
-
-      return;
-    }
-
-    // TODO: Figure out whether we should detach the buffer or not here.
-
-    ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(this);
   }
 }
 
@@ -894,6 +853,59 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
 
   ReadableByteStreamControllerCallPullInto(controller);
   ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
+}
+
+function RespondToByobReaderInClosedState(controller, reader, buffer) {
+  const firstDescriptor = controller._pendingPullIntos[0];
+
+  if (buffer !== undefined) {
+    firstDescriptor.buffer = buffer;
+  }
+
+  firstDescriptor.buffer = TransferArrayBuffer(firstDescriptor.buffer);
+
+  assert(firstDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
+
+  while (reader._readIntoRequests.length > 0) {
+    const descriptor = controller._pendingPullIntos.shift();
+    RespondToReadIntoRequest(reader, descriptor.buffer);
+  }
+
+  DetachReadableByteStreamReaderGeneric(reader);
+}
+
+function RespondToByobReaderInReadableState(controller, reader, bytesWritten, buffer) {
+  const pullIntoDescriptor = controller._pendingPullIntos[0];
+
+  if (pullIntoDescriptor.bytesFilled + bytesWritten > pullIntoDescriptor.byteLength) {
+    throw new RangeError('bytesWritten out of range');
+  }
+
+  if (buffer !== undefined) {
+    pullIntoDescriptor.buffer = buffer;
+  }
+
+  pullIntoDescriptor.bytesFilled += bytesWritten;
+
+  if (pullIntoDescriptor.bytesFilled < pullIntoDescriptor.elementSize) {
+    // TODO: Figure out whether we should detach the buffer or not here.
+    ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(controller);
+    return;
+  }
+
+  controller._pendingPullIntos.shift();
+
+  const remainderSize = pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize;
+  if (remainderSize > 0) {
+    const end = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
+    const remainder = pullIntoDescriptor.buffer.slice(end - remainderSize, end);
+    EnqueueInReadableByteStreamController(controller, remainder, 0, remainder.byteLength);
+  }
+
+  RespondToReadIntoRequest(
+      reader, TransferArrayBuffer(pullIntoDescriptor.buffer), pullIntoDescriptor.bytesFilled - remainderSize);
+
+  RespondToReadIntoRequestsFromQueue(controller, reader);
 }
 
 function RespondToReadIntoRequest(reader, buffer, length) {
