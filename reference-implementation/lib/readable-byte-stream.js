@@ -815,31 +815,29 @@ function PullFromReadableByteStream(stream) {
 
   assert(reader._readRequests.length === 1);
 
-  if (controller._totalQueuedBytes === 0) {
-    if (controller._pulling) {
-      controller._pullAgain = true;
-      return;
-    }
+  if (controller._totalQueuedBytes > 0) {
+    const entry = controller._queue.shift();
+    controller._totalQueuedBytes -= entry.byteLength;
 
-    ReadableByteStreamControllerCallPull(controller);
-    ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
+    const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
+
+    const req = reader._readRequests.shift();
+    req.resolve(CreateIterResultObject(view, false));
+
+    if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
+      CloseReadableByteStream(stream);
+    }
 
     return;
   }
 
-  const entry = controller._queue.shift();
-  controller._totalQueuedBytes -= entry.byteLength;
-
-  const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
-
-  const req = reader._readRequests.shift();
-  req.resolve(CreateIterResultObject(view, false));
-
-  if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
-    CloseReadableByteStream(stream);
+  if (controller._pulling) {
+    controller._pullAgain = true;
+    return;
   }
 
-  return;
+  ReadableByteStreamControllerCallPull(controller);
+  ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
 }
 
 function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, elementSize) {
@@ -886,7 +884,6 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
 
   if (controller._pulling) {
     controller._pullAgain = true;
-
     return;
   }
 
