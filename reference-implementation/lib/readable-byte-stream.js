@@ -860,38 +860,25 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
     return;
   }
 
-  if (controller._totalQueuedBytes === 0) {
-    pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
-    controller._pendingPullIntos.push(pullIntoDescriptor);
+  if (controller._totalQueuedBytes > 0) {
+    const ready = FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor);
 
-    if (controller._pulling) {
-      controller._pullAgain = true;
+    if (ready) {
+      RespondToReadIntoRequest(stream._reader, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
+
+      if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
+        CloseReadableByteStream(stream);
+      }
+
       return;
     }
 
-    ReadableByteStreamControllerCallPullInto(controller);
-    ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
+    if (controller._closeRequested) {
+      DestroyReadableByteStreamController(controller);
+      ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
 
-    return;
-  }
-
-  const ready = FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor);
-
-  if (ready) {
-    RespondToReadIntoRequest(stream._reader, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
-
-    if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
-      CloseReadableByteStream(stream);
+      return;
     }
-
-    return;
-  }
-
-  if (controller._closeRequested) {
-    DestroyReadableByteStreamController(controller);
-    ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
-
-    return;
   }
 
   pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
