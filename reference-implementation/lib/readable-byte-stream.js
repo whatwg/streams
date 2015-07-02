@@ -143,7 +143,8 @@ class ReadableByteStreamController {
           assert(this._queue.length === 0);
 
           const req = reader._readRequests.shift();
-          req.resolve(CreateIterResultObject(new Uint8Array(TransferArrayBuffer(buffer), byteOffset, byteLength), false));
+          const transferredView = new Uint8Array(TransferArrayBuffer(buffer), byteOffset, byteLength);
+          req.resolve(CreateIterResultObject(transferredView, false));
 
           if (this._closeRequested === true) {
             CloseReadableByteStream(stream);
