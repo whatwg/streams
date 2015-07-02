@@ -251,21 +251,39 @@ class ReadableStreamReader {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
-    stream._reader = this;
-    this._ownerReadableStream = stream;
-    this._state = 'readable';
-    this._storedError = undefined;
+    this._state = stream._state;
+
+    if (stream._state === 'readable') {
+      stream._reader = this;
+
+      this._ownerReadableStream = stream;
+      this._storedError = undefined;
+
+      this._closedPromise = new Promise((resolve, reject) => {
+        this._closedPromise_resolve = resolve;
+        this._closedPromise_reject = reject;
+      });
+    } else {
+      this._ownerReadableStream = undefined;
+
+      if (stream._state === 'closed') {
+        this._storedError = undefined;
+
+        this._closedPromise = Promise.resolve(undefined);
+        this._closedPromise_resolve = undefined;
+        this._closedPromise_reject = undefined;
+      } else {
+        assert(stream._state === 'errored');
+
+        this._storedError = stream._storedError;
+
+        this._closedPromise = Promise.reject(stream._storedError);
+        this._closedPromise_resolve = undefined;
+        this._closedPromise_reject = undefined;
+      }
+    }
 
     this._readRequests = [];
-
-    this._closedPromise = new Promise((resolve, reject) => {
-      this._closedPromise_resolve = resolve;
-      this._closedPromise_reject = reject;
-    });
-
-    if (stream._state === 'closed' || stream._state === 'errored') {
-      ReleaseReadableStreamReader(this);
-    }
   }
 
   get closed() {
