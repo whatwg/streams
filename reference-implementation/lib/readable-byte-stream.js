@@ -134,16 +134,16 @@ class ReadableByteStreamController {
     const byteLength = chunk.byteLength;
 
     if (reader === undefined) {
-      EnqueueInReadableByteStreamController(this, DetachArrayBuffer(buffer), byteOffset, byteLength);
+      EnqueueInReadableByteStreamController(this, TransferArrayBuffer(buffer), byteOffset, byteLength);
     } else {
       if (IsReadableByteStreamReader(reader)) {
         if (reader._readRequests.length === 0) {
-          EnqueueInReadableByteStreamController(this, DetachArrayBuffer(buffer), byteOffset, byteLength);
+          EnqueueInReadableByteStreamController(this, TransferArrayBuffer(buffer), byteOffset, byteLength);
         } else {
           assert(this._queue.length === 0);
 
           const req = reader._readRequests.shift();
-          req.resolve(CreateIterResultObject(new Uint8Array(DetachArrayBuffer(buffer), byteOffset, byteLength), false));
+          req.resolve(CreateIterResultObject(new Uint8Array(TransferArrayBuffer(buffer), byteOffset, byteLength), false));
 
           if (this._closeRequested === true) {
             CloseReadableByteStream(stream);
@@ -158,7 +158,7 @@ class ReadableByteStreamController {
         assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
         // TODO: Ideally this detaching should happen only if the buffer is not consumed fully.
-        EnqueueInReadableByteStreamController(this, DetachArrayBuffer(buffer), byteOffset, byteLength);
+        EnqueueInReadableByteStreamController(this, TransferArrayBuffer(buffer), byteOffset, byteLength);
         RespondToReadIntoRequestsFromQueue(this, reader);
       }
     }
@@ -209,7 +209,7 @@ class ReadableByteStreamController {
     }
 
     if (stream._state === 'closed') {
-      pullIntoDescriptor.buffer = DetachArrayBuffer(pullIntoDescriptor.buffer);
+      pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
 
       if (bytesWritten !== 0) {
         throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
@@ -240,7 +240,7 @@ class ReadableByteStreamController {
       }
 
       RespondToReadIntoRequest(
-          reader, DetachArrayBuffer(pullIntoDescriptor.buffer), pullIntoDescriptor.bytesFilled - remainderSize);
+          reader, TransferArrayBuffer(pullIntoDescriptor.buffer), pullIntoDescriptor.bytesFilled - remainderSize);
 
       RespondToReadIntoRequestsFromQueue(this, reader);
 
@@ -610,7 +610,7 @@ function DestroyReadableByteStreamController(controller) {
   controller._queue = [];
 }
 
-function DetachArrayBuffer(buffer) {
+function TransferArrayBuffer(buffer) {
   // No-op. Just for marking places where detaching an ArrayBuffer is required.
 
   return buffer;
@@ -853,14 +853,14 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
   };
 
   if (controller._pendingPullIntos.length > 0) {
-    pullIntoDescriptor.buffer = DetachArrayBuffer(pullIntoDescriptor.buffer);
+    pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
     controller._pendingPullIntos.push(pullIntoDescriptor);
 
     return;
   }
 
   if (controller._totalQueuedBytes === 0) {
-    pullIntoDescriptor.buffer = DetachArrayBuffer(pullIntoDescriptor.buffer);
+    pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
     controller._pendingPullIntos.push(pullIntoDescriptor);
 
     if (controller._pulling) {
@@ -893,7 +893,7 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
     return;
   }
 
-  pullIntoDescriptor.buffer = DetachArrayBuffer(pullIntoDescriptor.buffer);
+  pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
   controller._pendingPullIntos.push(pullIntoDescriptor);
 
   if (controller._pulling) {
