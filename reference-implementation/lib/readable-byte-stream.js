@@ -146,11 +146,6 @@ class ReadableByteStreamController {
           const transferredView = new Uint8Array(TransferArrayBuffer(buffer), byteOffset, byteLength);
           req.resolve(CreateIterResultObject(transferredView, false));
 
-          if (this._closeRequested === true) {
-            CloseReadableByteStream(stream);
-            return;
-          }
-
           if (reader._readRequests.length > 0) {
             ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(this);
           }
