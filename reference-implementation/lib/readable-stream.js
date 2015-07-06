@@ -431,13 +431,6 @@ function ErrorReadableStream(stream, e) {
     return undefined;
   }
 
-  reader._storedError = e;
-  reader._state = 'errored';
-
-  reader._closedPromise_reject(e);
-  reader._closedPromise_resolve = undefined;
-  reader._closedPromise_reject = undefined;
-
   for (const { _reject } of reader._readRequests) {
     _reject(e);
   }
@@ -445,17 +438,29 @@ function ErrorReadableStream(stream, e) {
 
   ReleaseReadableStreamReader(reader);
 
+  reader._storedError = e;
+  reader._state = 'errored';
+
+  reader._closedPromise_reject(e);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
+
   return undefined;
 }
 
 function CloseReadableStreamReader(reader) {
+  for (const { _resolve } of reader._readRequests) {
+    _resolve(CreateIterResultObject(undefined, true));
+  }
+  reader._readRequests = [];
+
+  ReleaseReadableStreamReader(reader);
+
   reader._state = 'closed';
 
   reader._closedPromise_resolve(undefined);
   reader._closedPromise_resolve = undefined;
   reader._closedPromise_reject = undefined;
-
-  ReleaseReadableStreamReader(reader);
 
   return undefined;
 }
@@ -467,16 +472,9 @@ function FinishClosingReadableStream(stream) {
 
   const reader = stream._reader;
 
-  if (reader === undefined) {
-    return undefined;
+  if (reader !== undefined) {
+    CloseReadableStreamReader(reader);
   }
-
-  for (const { _resolve } of reader._readRequests) {
-    _resolve(CreateIterResultObject(undefined, true));
-  }
-  reader._readRequests = [];
-
-  CloseReadableStreamReader(reader);
 
   return undefined;
 }
