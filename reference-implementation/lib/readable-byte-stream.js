@@ -537,8 +537,10 @@ function CloseReadableByteStream(stream) {
 
   stream._state = 'closed';
 
-  if (IsReadableByteStreamLocked(stream)) {
-    CloseReadableByteStreamReaderGeneric(stream._reader);
+  const reader = stream._reader;
+
+  if (reader !== undefined) {
+    CloseReadableByteStreamReaderGeneric(reader);
   }
 }
 
@@ -594,8 +596,10 @@ function ErrorReadableByteStream(stream, e) {
   stream._state = 'errored';
   stream._storedError = e;
 
-  if (IsReadableByteStreamLocked(stream)) {
-    ErrorReadableByteStreamReaderGeneric(stream._reader, e)
+  const reader = stream._reader;
+
+  if (reader !== undefined) {
+    ErrorReadableByteStreamReaderGeneric(reader, e)
   }
 }
 
