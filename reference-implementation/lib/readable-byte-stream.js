@@ -580,6 +580,9 @@ function TransferArrayBuffer(buffer) {
 }
 
 function DetachReadableByteStreamReaderGeneric(reader) {
+  assert(reader._ownerReadableByteStream._reader !== undefined);
+  assert(reader._ownerReadableByteStream !== undefined);
+
   reader._ownerReadableByteStream._reader = undefined;
   reader._ownerReadableByteStream = undefined;
 }
