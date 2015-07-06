@@ -545,27 +545,26 @@ function CloseReadableByteStream(stream) {
 }
 
 function CloseReadableByteStreamReaderGeneric(reader) {
-  reader._state = 'closed';
-
-  reader._closedPromise_resolve(undefined);
-  reader._closedPromise_resolve = undefined;
-  reader._closedPromise_reject = undefined;
-
   if (IsReadableByteStreamReader(reader)) {
     for (const req of reader._readRequests) {
       req.resolve(CreateIterResultObject(undefined, true));
     }
 
     reader._readRequests = [];
+    DetachReadableByteStreamReaderGeneric(reader);
   } else {
     assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
-    if (reader._readIntoRequests.length > 0) {
-      return;
+    if (reader._readIntoRequests.length === 0) {
+      DetachReadableByteStreamReaderGeneric(reader);
     }
   }
 
-  DetachReadableByteStreamReaderGeneric(reader);
+  reader._state = 'closed';
+
+  reader._closedPromise_resolve(undefined);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
 }
 
 function DestroyReadableByteStreamController(controller) {
@@ -605,16 +604,9 @@ function ErrorReadableByteStream(stream, e) {
     return undefined;
   }
 
-  reader._state = 'errored';
-  reader._storedError = e;
-
-  reader._closedPromise_reject(e);
-  reader._closedPromise_resolve = undefined;
-  reader._closedPromise_reject = undefined;
-
   if (IsReadableByteStreamReader(reader)) {
     for (const req of reader._readRequests) {
-      req.reject(reader._storedError);
+      req.reject(e);
     }
 
     reader._readRequests = [];
@@ -622,11 +614,18 @@ function ErrorReadableByteStream(stream, e) {
     assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
     for (const req of reader._readIntoRequests) {
-      req.reject(reader._storedError);
+      req.reject(e);
     }
 
     reader._readIntoRequests = [];
   }
+
+  reader._state = 'errored';
+  reader._storedError = e;
+
+  reader._closedPromise_reject(e);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
 
   DetachReadableByteStreamReaderGeneric(reader);
 }
