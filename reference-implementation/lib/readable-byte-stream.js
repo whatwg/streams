@@ -601,12 +601,10 @@ function ErrorReadableByteStream(stream, e) {
 
   const reader = stream._reader;
 
-  if (reader !== undefined) {
-    ErrorReadableByteStreamReaderGeneric(reader, e)
+  if (reader === undefined) {
+    return undefined;
   }
-}
 
-function ErrorReadableByteStreamReaderGeneric(reader, e) {
   reader._state = 'errored';
   reader._storedError = e;
 
