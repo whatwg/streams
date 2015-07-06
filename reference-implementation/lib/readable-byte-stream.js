@@ -620,14 +620,14 @@ function ErrorReadableByteStream(stream, e) {
     reader._readIntoRequests = [];
   }
 
+  DetachReadableByteStreamReaderGeneric(reader);
+
   reader._state = 'errored';
   reader._storedError = e;
 
   reader._closedPromise_reject(e);
   reader._closedPromise_resolve = undefined;
   reader._closedPromise_reject = undefined;
-
-  DetachReadableByteStreamReaderGeneric(reader);
 }
 
 function FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
