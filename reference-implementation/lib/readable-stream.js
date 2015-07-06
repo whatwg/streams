@@ -337,7 +337,9 @@ class ReadableStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    return ReleaseReadableStreamReader(this);
+    CloseReadableStreamReader(this);
+
+    return undefined;
   }
 }
 
@@ -423,9 +425,39 @@ function ErrorReadableStream(stream, e) {
   stream._storedError = e;
   stream._state = 'errored';
 
-  if (IsReadableStreamLocked(stream) === true) {
-    return ReleaseReadableStreamReader(stream._reader);
+  const reader = stream._reader;
+
+  if (reader === undefined) {
+    return undefined;
   }
+
+  reader._storedError = e;
+  reader._state = 'errored';
+
+  reader._closedPromise_reject(e);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
+
+  for (const { _reject } of reader._readRequests) {
+    _reject(e);
+  }
+  reader._readRequests = [];
+
+  ReleaseReadableStreamReader(reader);
+
+  return undefined;
+}
+
+function CloseReadableStreamReader(reader) {
+  reader._state = 'closed';
+
+  reader._closedPromise_resolve(undefined);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
+
+  ReleaseReadableStreamReader(reader);
+
+  return undefined;
 }
 
 function FinishClosingReadableStream(stream) {
@@ -433,9 +465,18 @@ function FinishClosingReadableStream(stream) {
 
   stream._state = 'closed';
 
-  if (IsReadableStreamLocked(stream) === true) {
-    return ReleaseReadableStreamReader(stream._reader);
+  const reader = stream._reader;
+
+  if (reader === undefined) {
+    return undefined;
   }
+
+  for (const { _resolve } of reader._readRequests) {
+    _resolve(CreateIterResultObject(undefined, true));
+  }
+  reader._readRequests = [];
+
+  CloseReadableStreamReader(reader);
 
   return undefined;
 }
@@ -529,30 +570,6 @@ function ReadFromReadableStreamReader(reader) {
 function ReleaseReadableStreamReader(reader) {
   assert(reader._ownerReadableStream !== undefined);
 
-  if (reader._ownerReadableStream._state === 'errored') {
-    reader._state = 'errored';
-
-    const e = reader._ownerReadableStream._storedError;
-    reader._storedError = e;
-    reader._closedPromise_reject(e);
-    reader._closedPromise_resolve = undefined;
-    reader._closedPromise_reject = undefined;
-
-    for (const { _reject } of reader._readRequests) {
-      _reject(e);
-    }
-  } else {
-    reader._state = 'closed';
-    reader._closedPromise_resolve(undefined);
-    reader._closedPromise_resolve = undefined;
-    reader._closedPromise_reject = undefined;
-
-    for (const { _resolve } of reader._readRequests) {
-      _resolve(CreateIterResultObject(undefined, true));
-    }
-  }
-
-  reader._readRequests = [];
   reader._ownerReadableStream._reader = undefined;
   reader._ownerReadableStream = undefined;
 }
