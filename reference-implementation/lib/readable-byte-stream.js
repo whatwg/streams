@@ -287,8 +287,8 @@ class ReadableByteStreamReader {
 
     assert(this._ownerReadableByteStream._state === 'readable');
 
-    CloseReadableByteStreamReaderGeneric(this);
     ReleaseReadableByteStreamReaderGeneric(this);
+    CloseReadableByteStreamReaderGeneric(this);
   }
 }
 
@@ -405,8 +405,8 @@ class ReadableByteStreamByobReader {
 
     assert(this._ownerReadableByteStream._state === 'readable');
 
-    CloseReadableByteStreamReaderGeneric(this);
     ReleaseReadableByteStreamReaderGeneric(this);
+    CloseReadableByteStreamReaderGeneric(this);
   }
 }
 
@@ -532,28 +532,30 @@ function CloseReadableByteStream(stream) {
   assert(IsReadableByteStream(stream), 'stream must be ReadableByteStream');
   assert(stream._state === 'readable', 'state must be readable');
 
+  stream._state = 'closed';
+
   const reader = stream._reader;
 
-  if (reader !== undefined) {
-    if (IsReadableByteStreamReader(reader)) {
-      for (const req of reader._readRequests) {
-        req.resolve(CreateIterResultObject(undefined, true));
-      }
-
-      reader._readRequests = [];
-      ReleaseReadableByteStreamReaderGeneric(reader);
-    } else {
-      assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
-
-      if (reader._readIntoRequests.length === 0) {
-        ReleaseReadableByteStreamReaderGeneric(reader);
-      }
-    }
-
-    CloseReadableByteStreamReaderGeneric(reader);
+  if (reader === undefined) {
+    return undefined;
   }
 
-  stream._state = 'closed';
+  if (IsReadableByteStreamReader(reader)) {
+    for (const req of reader._readRequests) {
+      req.resolve(CreateIterResultObject(undefined, true));
+    }
+
+    reader._readRequests = [];
+    ReleaseReadableByteStreamReaderGeneric(reader);
+  } else {
+    assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
+
+    if (reader._readIntoRequests.length === 0) {
+      ReleaseReadableByteStreamReaderGeneric(reader);
+    }
+  }
+
+  CloseReadableByteStreamReaderGeneric(reader);
 }
 
 function CloseReadableByteStreamReaderGeneric(reader) {
