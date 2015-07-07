@@ -509,6 +509,8 @@ function ReleaseReadableStreamReader(reader) {
     const e = reader._ownerReadableStream._storedError;
     reader._storedError = e;
     reader._closedPromise_reject(e);
+    reader._closedPromise_resolve = undefined;
+    reader._closedPromise_reject = undefined;
 
     for (const { _reject } of reader._readRequests) {
       _reject(e);
@@ -516,6 +518,8 @@ function ReleaseReadableStreamReader(reader) {
   } else {
     reader._state = 'closed';
     reader._closedPromise_resolve(undefined);
+    reader._closedPromise_resolve = undefined;
+    reader._closedPromise_reject = undefined;
 
     for (const { _resolve } of reader._readRequests) {
       _resolve(CreateIterResultObject(undefined, true));
