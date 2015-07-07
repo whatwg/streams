@@ -539,12 +539,12 @@ function CloseReadableByteStream(stream) {
       }
 
       reader._readRequests = [];
-      DetachReadableByteStreamReaderGeneric(reader);
+      ReleaseReadableByteStreamReaderGeneric(reader);
     } else {
       assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
 
       if (reader._readIntoRequests.length === 0) {
-        DetachReadableByteStreamReaderGeneric(reader);
+        ReleaseReadableByteStreamReaderGeneric(reader);
       }
     }
 
@@ -573,7 +573,7 @@ function TransferArrayBuffer(buffer) {
   return buffer;
 }
 
-function DetachReadableByteStreamReaderGeneric(reader) {
+function ReleaseReadableByteStreamReaderGeneric(reader) {
   assert(reader._ownerReadableByteStream._reader !== undefined);
   assert(reader._ownerReadableByteStream !== undefined);
 
@@ -615,7 +615,7 @@ function ErrorReadableByteStream(stream, e) {
     reader._readIntoRequests = [];
   }
 
-  DetachReadableByteStreamReaderGeneric(reader);
+  ReleaseReadableByteStreamReaderGeneric(reader);
 
   reader._state = 'errored';
   reader._storedError = e;
@@ -870,7 +870,7 @@ function RespondToByobReaderInClosedState(controller, reader, buffer) {
     RespondToReadIntoRequest(reader, descriptor.buffer);
   }
 
-  DetachReadableByteStreamReaderGeneric(reader);
+  ReleaseReadableByteStreamReaderGeneric(reader);
 }
 
 function RespondToByobReaderInReadableState(controller, reader, bytesWritten, buffer) {
