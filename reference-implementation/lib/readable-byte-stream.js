@@ -137,9 +137,8 @@ class ReadableByteStreamController {
         } else {
           assert(this._queue.length === 0);
 
-          const req = reader._readRequests.shift();
           const transferredView = new Uint8Array(TransferArrayBuffer(buffer), byteOffset, byteLength);
-          req.resolve(CreateIterResultObject(transferredView, false));
+          RespondToReadRequest(reader, transferredView);
 
           if (reader._readRequests.length > 0) {
             ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(this);
@@ -787,9 +786,7 @@ function PullFromReadableByteStream(stream) {
     controller._totalQueuedBytes -= entry.byteLength;
 
     const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
-
-    const req = reader._readRequests.shift();
-    req.resolve(CreateIterResultObject(view, false));
+    RespondToReadRequest(reader, view);
 
     if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
       CloseReadableByteStream(stream);
@@ -932,6 +929,11 @@ function RespondToReadIntoRequest(reader, buffer, length) {
   assert(length % req.elementSize === 0);
 
   const view = new ctor(buffer, byteOffset, length / req.elementSize);
+  req.resolve(CreateIterResultObject(view, false));
+}
+
+function RespondToReadRequest(reader, view) {
+  const req = reader._readRequests.shift();
   req.resolve(CreateIterResultObject(view, false));
 }
 
