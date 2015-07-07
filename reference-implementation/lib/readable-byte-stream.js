@@ -94,14 +94,9 @@ class ReadableByteStreamController {
 
     const reader = stream._reader;
 
-    if (reader === undefined || IsReadableByteStreamReader(reader)) {
-      CloseReadableByteStream(stream);
-      return;
-    }
-
-    assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
-
-    if (this._pendingPullIntos.length > 0 && this._pendingPullIntos[0].bytesFilled > 0) {
+    if (IsReadableByteStreamByobReader(reader) &&
+        this._pendingPullIntos.length > 0 &&
+        this._pendingPullIntos[0].bytesFilled > 0) {
       DestroyReadableByteStreamController(this);
       const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
       ErrorReadableByteStream(stream, e);
@@ -535,31 +530,31 @@ function CloseReadableByteStream(stream) {
   assert(IsReadableByteStream(stream), 'stream must be ReadableByteStream');
   assert(stream._state === 'readable', 'state must be readable');
 
-  stream._state = 'closed';
-
   const reader = stream._reader;
 
   if (reader !== undefined) {
+    if (IsReadableByteStreamReader(reader)) {
+      for (const req of reader._readRequests) {
+        req.resolve(CreateIterResultObject(undefined, true));
+      }
+
+      reader._readRequests = [];
+      DetachReadableByteStreamReaderGeneric(reader);
+    } else {
+      assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
+
+      if (reader._readIntoRequests.length === 0) {
+        DetachReadableByteStreamReaderGeneric(reader);
+      }
+    }
+
     CloseReadableByteStreamReaderGeneric(reader);
   }
+
+  stream._state = 'closed';
 }
 
 function CloseReadableByteStreamReaderGeneric(reader) {
-  if (IsReadableByteStreamReader(reader)) {
-    for (const req of reader._readRequests) {
-      req.resolve(CreateIterResultObject(undefined, true));
-    }
-
-    reader._readRequests = [];
-    DetachReadableByteStreamReaderGeneric(reader);
-  } else {
-    assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
-
-    if (reader._readIntoRequests.length === 0) {
-      DetachReadableByteStreamReaderGeneric(reader);
-    }
-  }
-
   reader._state = 'closed';
 
   reader._closedPromise_resolve(undefined);
