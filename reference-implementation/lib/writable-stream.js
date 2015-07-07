@@ -187,6 +187,8 @@ function CloseWritableStream(stream) {
       assert(stream._state === 'closing');
 
       stream._closedPromise_resolve(undefined);
+      stream._closedPromise_resolve = undefined;
+      stream._closedPromise_reject = undefined;
       stream._state = 'closed';
     },
     r => ErrorWritableStream(stream, r)
@@ -212,6 +214,8 @@ function ErrorWritableStream(stream, e) {
     stream._readyPromise_resolve(undefined);
   }
   stream._closedPromise_reject(e);
+  stream._closedPromise_resolve = undefined;
+  stream._closedPromise_reject = undefined;
   stream._state = 'errored';
 }
 
