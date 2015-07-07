@@ -288,6 +288,7 @@ class ReadableByteStreamReader {
     assert(this._ownerReadableByteStream._state === 'readable');
 
     CloseReadableByteStreamReaderGeneric(this);
+    ReleaseReadableByteStreamReaderGeneric(this);
   }
 }
 
@@ -405,6 +406,7 @@ class ReadableByteStreamByobReader {
     assert(this._ownerReadableByteStream._state === 'readable');
 
     CloseReadableByteStreamReaderGeneric(this);
+    ReleaseReadableByteStreamReaderGeneric(this);
   }
 }
 
