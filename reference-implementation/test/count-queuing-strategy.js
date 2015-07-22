@@ -15,6 +15,45 @@ test('Can construct a CountQueuingStrategy with any value as its high water mark
   t.end();
 });
 
+test('CountQueuingStrategy constructor behaves as expected with wrong arguments', t => {
+  const highWaterMark = 1;
+  const highWaterMarkObjectGetter = {
+    get highWaterMark() { return highWaterMark; },
+  };
+  const error = new Error("wow!");
+  const highWaterMarkObjectGetterThrowing = {
+    get highWaterMark() { throw error; },
+  };
+  t.throws(() => new CountQueuingStrategy(), /TypeError/, 'construction fails with undefined');
+  t.throws(() => new CountQueuingStrategy(null), /TypeError/, 'construction fails with null');
+  t.doesNotThrow(() => new CountQueuingStrategy('potato'), 'construction succeeds with a random non-object type');
+  t.doesNotThrow(() => new CountQueuingStrategy({}), 'construction succeeds with an object without hwm property');
+  t.doesNotThrow(() => new CountQueuingStrategy(highWaterMarkObjectGetter), 'construction succeeds with an object with a hwm getter');
+  t.throws(() => new CountQueuingStrategy(highWaterMarkObjectGetterThrowing), /wow/, 'construction fails with the error thrown by the getter');
+
+  t.end();
+});
+
+test('CountQueuingStrategy size behaves as expected with wrong arguments', t => {
+  const size = 1024;
+  const chunk = { byteLength: size };
+  const chunkGetter = {
+    get byteLength() { return size; },
+  }
+  const error = new Error("wow!");
+  const chunkGetterThrowing = {
+    get byteLength() { throw error; },
+  }
+  t.doesNotThrow(() => CountQueuingStrategy.prototype.size(), 'size succeeds with undefined');
+  t.doesNotThrow(() => CountQueuingStrategy.prototype.size(null), 'size succeeds with null');
+  t.doesNotThrow(() => CountQueuingStrategy.prototype.size('potato'), 'size succeeds with a random non-object type');
+  t.doesNotThrow(() => CountQueuingStrategy.prototype.size({}), 'size succeeds with an object without hwm property');
+  t.doesNotThrow(() => CountQueuingStrategy.prototype.size(chunkGetter), 'size succeeds with an object with a hwm getter');
+  t.doesNotThrow(() => CountQueuingStrategy.prototype.size(chunkGetterThrowing), 'size succeeds with a throwing the getter');
+
+  t.end();
+});
+
 test('CountQueuingStrategy instances have the correct properties', t => {
   const strategy = new CountQueuingStrategy({ highWaterMark: 4 });
 
