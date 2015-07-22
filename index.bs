@@ -707,7 +707,7 @@ it would look like
     read()
     releaseLock()
   }
-</code></emu-alg>
+</code></pre>
 
 <h4 id="reader-internal-slots">Internal Slots</h4>
 
