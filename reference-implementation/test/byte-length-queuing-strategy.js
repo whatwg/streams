@@ -15,6 +15,54 @@ test('Can construct a ByteLengthQueuingStrategy with any value as its high water
   t.end();
 });
 
+test('ByteLengthQueuingStrategy constructor behaves as expected with wrong arguments', t => {
+  const highWaterMark = 1;
+  const highWaterMarkObjectGetter = {
+    get highWaterMark() { return highWaterMark; },
+  };
+  const error = new Error('wow!');
+  const highWaterMarkObjectGetterThrowing = {
+    get highWaterMark() { throw error; },
+  };
+  t.throws(() => new ByteLengthQueuingStrategy(), /TypeError/, 'construction fails with undefined');
+  t.throws(() => new ByteLengthQueuingStrategy(null), /TypeError/, 'construction fails with null');
+  t.doesNotThrow(() => new ByteLengthQueuingStrategy('potato'), 'construction succeeds with a random non-object type');
+  t.doesNotThrow(() => new ByteLengthQueuingStrategy({}),
+    'construction succeeds with an object without a highWaterMark property');
+  t.doesNotThrow(() => new ByteLengthQueuingStrategy(highWaterMarkObjectGetter),
+    'construction succeeds with an object with a highWaterMark getter');
+  t.throws(() => new ByteLengthQueuingStrategy(highWaterMarkObjectGetterThrowing), /wow/,
+    'construction fails with an object with a throwing highWaterMark getter');
+
+  t.end();
+});
+
+test('ByteLengthQueuingStrategy size behaves as expected with wrong arguments', t => {
+  const size = 1024;
+  const chunk = { byteLength: size };
+  const chunkGetter = {
+    get byteLength() { return size; },
+  }
+  const error = new Error('wow!');
+  const chunkGetterThrowing = {
+    get byteLength() { throw error; },
+  }
+  t.throws(() => ByteLengthQueuingStrategy.prototype.size(), /TypeError/, 'size fails with undefined');
+  t.throws(() => ByteLengthQueuingStrategy.prototype.size(null), /TypeError/, 'size fails with null');
+  t.equal(ByteLengthQueuingStrategy.prototype.size('potato'), undefined,
+    'size succeeds with undefined with a random non-object type');
+  t.equal(ByteLengthQueuingStrategy.prototype.size({}), undefined,
+    'size succeeds with undefined with an object without hwm property');
+  t.equal(ByteLengthQueuingStrategy.prototype.size(chunk), size,
+    'size succeeds with the right amount with an object with a hwm');
+  t.equal(ByteLengthQueuingStrategy.prototype.size(chunkGetter), size,
+    'size succeeds with the right amount with an object with a hwm getter');
+  t.throws(() => ByteLengthQueuingStrategy.prototype.size(chunkGetterThrowing), /wow/,
+    'size fails with the error thrown by the getter');
+
+  t.end();
+});
+
 test('ByteLengthQueuingStrategy instances have the correct properties', t => {
   const strategy = new ByteLengthQueuingStrategy({ highWaterMark: 4 });
 
