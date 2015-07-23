@@ -15,6 +15,25 @@ test('Can construct a ByteLengthQueuingStrategy with any value as its high water
   t.end();
 });
 
+test('ByteLengthQueuingStrategy constructor behaves as expected with wrong arguments', t => {
+  const highWaterMark = 1;
+  const highWaterMarkObjectGetter = {
+    get highWaterMark() { return highWaterMark; },
+  };
+  const error = new Error("wow!");
+  const highWaterMarkObjectGetterThrowing = {
+    get highWaterMark() { throw error; },
+  };
+  t.throws(() => new ByteLengthQueuingStrategy(), /TypeError/, 'construction fails with undefined');
+  t.throws(() => new ByteLengthQueuingStrategy(null), /TypeError/, 'construction fails with null');
+  t.doesNotThrow(() => new ByteLengthQueuingStrategy('potato'), 'construction succeeds with a random non-object type');
+  t.doesNotThrow(() => new ByteLengthQueuingStrategy({}), 'construction succeeds with an object without hwm property');
+  t.doesNotThrow(() => new ByteLengthQueuingStrategy(highWaterMarkObjectGetter), 'construction succeeds with an object with a hwm getter');
+  t.throws(() => new ByteLengthQueuingStrategy(highWaterMarkObjectGetterThrowing), /wow/, 'construction fails with the error thrown by the getter');
+
+  t.end();
+});
+
 test('ByteLengthQueuingStrategy instances have the correct properties', t => {
   const strategy = new ByteLengthQueuingStrategy({ highWaterMark: 4 });
 
