@@ -34,6 +34,27 @@ test('ByteLengthQueuingStrategy constructor behaves as expected with wrong argum
   t.end();
 });
 
+test('ByteLengthQueuingStrategy size behaves as expected with wrong arguments', t => {
+  const size = 1024;
+  const chunk = { byteLength: size };
+  const chunkGetter = {
+    get byteLength() { return size; },
+  }
+  const error = new Error("wow!");
+  const chunkGetterThrowing = {
+    get byteLength() { throw error; },
+  }
+  t.throws(() => ByteLengthQueuingStrategy.prototype.size(), /TypeError/, 'size fails with undefined');
+  t.throws(() => ByteLengthQueuingStrategy.prototype.size(null), /TypeError/, 'size fails with null');
+  t.equal(ByteLengthQueuingStrategy.prototype.size('potato'), undefined, 'size succeeds with undefined with a random non-object type');
+  t.equal(ByteLengthQueuingStrategy.prototype.size({}), undefined, 'size succeeds with undefined with an object without hwm property');
+  t.equal(ByteLengthQueuingStrategy.prototype.size(chunk), size, 'size succeeds with the right amount with an object with a hwm');
+  t.equal(ByteLengthQueuingStrategy.prototype.size(chunkGetter), size, 'size succeeds with the right amount with an object with a hwm getter');
+  t.throws(() => ByteLengthQueuingStrategy.prototype.size(chunkGetterThrowing), /wow/, 'size fails with the error thrown by the getter');
+
+  t.end();
+});
+
 test('ByteLengthQueuingStrategy instances have the correct properties', t => {
   const strategy = new ByteLengthQueuingStrategy({ highWaterMark: 4 });
 
