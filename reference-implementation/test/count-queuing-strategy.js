@@ -34,6 +34,27 @@ test('CountQueuingStrategy constructor behaves as expected with wrong arguments'
   t.end();
 });
 
+test('CountQueuingStrategy size behaves as expected with wrong arguments', t => {
+  const size = 1024;
+  const chunk = { byteLength: size };
+  const chunkGetter = {
+    get byteLength() { return size; },
+  }
+  const error = new Error("wow!");
+  const chunkGetterThrowing = {
+    get byteLength() { throw error; },
+  }
+  t.equal(CountQueuingStrategy.prototype.size(), 1, 'size returns 1 with undefined');
+  t.equal(CountQueuingStrategy.prototype.size(null), 1, 'size returns 1 with null');
+  t.equal(CountQueuingStrategy.prototype.size('potato'), 1, 'size returns 1 with non-object type');
+  t.equal(CountQueuingStrategy.prototype.size({}), 1, 'size returns 1 with empty object');
+  t.equal(CountQueuingStrategy.prototype.size(chunk), 1, 'size returns 1 with a chunk');
+  t.equal(CountQueuingStrategy.prototype.size(chunkGetter), 1, 'size returns 1 with chunk getter');
+  t.equal(CountQueuingStrategy.prototype.size(chunkGetterThrowing), 1, 'size returns 1 with chunk getter that throws');
+
+  t.end();
+});
+
 test('CountQueuingStrategy instances have the correct properties', t => {
   const strategy = new CountQueuingStrategy({ highWaterMark: 4 });
 
