@@ -1712,7 +1712,7 @@ Each <code>ByteLengthQueuingStrategy</code> instance will additionally have an o
 </div>
 
 <emu-alg>
-  1. Return Get(_chunk_, "byteLength").
+  1. Return GetV(_chunk_, "byteLength").
 </emu-alg>
 
 <h3 id="cqs-class">Class <code>CountQueuingStrategy</code></h3>
