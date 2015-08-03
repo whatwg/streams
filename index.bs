@@ -33,6 +33,17 @@ Link Defaults: html (dfn) structured clone
   emu-alg > ol ol, emu-alg > ol ol ol ol ol { list-style-type: lower-alpha; }
   emu-alg > ol ol ol, emu-alg > ol ol ol ol ol ol { list-style-type: lower-roman; }
   emu-alg li { margin: 0; }
+
+  .heading[aoid] .annotation {
+    background-color: beige;
+    border: 1px solid black;
+    border-radius: 3px;
+    cursor: help;
+    display: inline-block;
+    font-size: 70%;
+    font-weight: normal;
+    padding: 1px 2px;
+  }
 </style>
 <script src="https://resources.whatwg.org/file-issue.js" async></script>
 <script src="https://resources.whatwg.org/commit-snapshot-shortcut-key.js" async></script>
@@ -850,7 +861,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <h3 id="rs-abstract-ops">Readable Stream Abstract Operations</h3>
 
-<h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamReader">AcquireReadableStreamReader ( stream )</h4>
+<h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamReader" throws>AcquireReadableStreamReader ( stream )</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to acquire an <a>readable stream
 reader</a> for a given stream.
@@ -859,7 +870,7 @@ reader</a> for a given stream.
   1. Return Construct(`ReadableStreamReader`, «‍_stream_»).
 </emu-alg>
 
-<h4 id="cancel-readable-stream" aoid="CancelReadableStream">CancelReadableStream ( stream, reason )</h4>
+<h4 id="cancel-readable-stream" aoid="CancelReadableStream" nothrow>CancelReadableStream ( stream, reason )</h4>
 
 <emu-alg>
   1. If _stream_@[[state]] is "closed", return a new promise resolved with *undefined*.
@@ -870,7 +881,7 @@ reader</a> for a given stream.
   1. Return the result of transforming _sourceCancelPromise_ by a fulfillment handler that returns *undefined*.
 </emu-alg>
 
-<h4 id="close-readable-stream" aoid="CloseReadableStream">CloseReadableStream ( stream )</h4>
+<h4 id="close-readable-stream" aoid="CloseReadableStream" nothrow>CloseReadableStream ( stream )</h4>
 
 This abstract operation can be called by other specifications that wish to close a readable stream, in the same way
 a developer-created stream would be closed by its associated controller object. Specifications should <em>not</em> do
@@ -893,7 +904,7 @@ this to streams they did not create, and must ensure they have obeyed the precon
   control of the underlying source.
 </div>
 
-<h4 id="close-readable-stream-reader" aoid="CloseReadableStreamReader">CloseReadableStreamReader ( reader )</h4>
+<h4 id="close-readable-stream-reader" aoid="CloseReadableStreamReader" nothrow>CloseReadableStreamReader ( reader )</h4>
 
 <emu-alg>
   1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
@@ -905,7 +916,7 @@ this to streams they did not create, and must ensure they have obeyed the precon
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="enqueue-in-readable-stream" aoid="EnqueueInReadableStream">EnqueueInReadableStream ( stream, chunk )</h4>
+<h4 id="enqueue-in-readable-stream" aoid="EnqueueInReadableStream" throws>EnqueueInReadableStream ( stream, chunk )</h4>
 
 This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in a readable stream,
 in the same way a developer would enqueue chunks using the stream's associated controller object. Specifications should
@@ -944,7 +955,7 @@ asserts).
   control of the underlying source.
 </div>
 
-<h4 id="error-readable-stream" aoid="ErrorReadableStream">ErrorReadableStream ( stream, e )</h4>
+<h4 id="error-readable-stream" aoid="ErrorReadableStream" nothrow>ErrorReadableStream ( stream, e )</h4>
 
 This abstract operation can be called by other specifications that wish to move a readable stream to an errored state,
 in the same way a developer would error a stream using its associated controller object. Specifications should
@@ -968,7 +979,7 @@ an assert).
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="finish-closing-readable-stream" aoid="FinishClosingReadableStream">FinishClosingReadableStream ( stream )</h4>
+<h4 id="finish-closing-readable-stream" aoid="FinishClosingReadableStream" nothrow>FinishClosingReadableStream ( stream )</h4>
 
 <emu-alg>
   1. Assert: _stream_@[[state]] is "readable".
@@ -978,14 +989,14 @@ an assert).
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="get-readable-stream-desired-size" aoid="GetReadableStreamDesiredSize">GetReadableStreamDesiredSize ( stream )</h4>
+<h4 id="get-readable-stream-desired-size" aoid="GetReadableStreamDesiredSize" nothrow>GetReadableStreamDesiredSize ( stream )</h4>
 
 <emu-alg>
   1. Let _queueSize_ be GetTotalQueueSize(_stream_@[[queue]]).
   1. Return _stream_@[[strategyHWM]] − _queueSize_.
 </emu-alg>
 
-<h4 id="is-readable-stream" aoid="IsReadableStream">IsReadableStream ( x )</h4>
+<h4 id="is-readable-stream" aoid="IsReadableStream" nothrow>IsReadableStream ( x )</h4>
 
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
@@ -993,7 +1004,7 @@ an assert).
   1. Return *true*.
 </emu-alg>
 
-<h4 id="is-readable-stream-controller" aoid="IsReadableStreamController">IsReadableStreamController ( x )</h4>
+<h4 id="is-readable-stream-controller" aoid="IsReadableStreamController" nothrow>IsReadableStreamController ( x )</h4>
 
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
@@ -1001,7 +1012,7 @@ an assert).
   1. Return *true*.
 </emu-alg>
 
-<h4 id="is-readable-stream-locked" aoid="IsReadableStreamLocked">IsReadableStreamLocked ( stream )</h4>
+<h4 id="is-readable-stream-locked" aoid="IsReadableStreamLocked" nothrow>IsReadableStreamLocked ( stream )</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to query whether or not a
 readable stream is <a>locked to a reader</a>.
@@ -1012,7 +1023,7 @@ readable stream is <a>locked to a reader</a>.
   1. Return *true*.
 </emu-alg>
 
-<h4 id="is-readable-stream-reader" aoid="IsReadableStreamReader">IsReadableStreamReader ( x )</h4>
+<h4 id="is-readable-stream-reader" aoid="IsReadableStreamReader" nothrow>IsReadableStreamReader ( x )</h4>
 
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
@@ -1020,7 +1031,7 @@ readable stream is <a>locked to a reader</a>.
   1. Return *true*.
 </emu-alg>
 
-<h4 id="read-from-readable-stream-reader" aoid="ReadFromReadableStreamReader">ReadFromReadableStreamReader ( reader )</h4>
+<h4 id="read-from-readable-stream-reader" aoid="ReadFromReadableStreamReader" nothrow>ReadFromReadableStreamReader ( reader )</h4>
 
 <emu-alg>
   1. If _reader_@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
@@ -1039,7 +1050,7 @@ readable stream is <a>locked to a reader</a>.
     1. Return _readRequestPromise_.
 </emu-alg>
 
-<h4 id="release-readable-stream-reader" aoid="ReleaseReadableStreamReader">ReleaseReadableStreamReader ( reader )</h4>
+<h4 id="release-readable-stream-reader" aoid="ReleaseReadableStreamReader" nothrow>ReleaseReadableStreamReader ( reader )</h4>
 
 <emu-alg>
   1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
@@ -1047,7 +1058,7 @@ readable stream is <a>locked to a reader</a>.
   1. Set _reader_@[[ownerReadableStream]] to *undefined*.
 </emu-alg>
 
-<h4 id="request-readable-stream-pull" aoid="RequestReadableStreamPull">RequestReadableStreamPull ( stream )</h4>
+<h4 id="request-readable-stream-pull" aoid="RequestReadableStreamPull" nothrow>RequestReadableStreamPull ( stream )</h4>
 
 <emu-alg>
   1. Let _shouldPull_ be ShouldReadableStreamPull(stream).
@@ -1067,7 +1078,7 @@ readable stream is <a>locked to a reader</a>.
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="should-readable-stream-pull" aoid="ShouldReadableStreamPull">ShouldReadableStreamPull ( stream )</h4>
+<h4 id="should-readable-stream-pull" aoid="ShouldReadableStreamPull" nothrow>ShouldReadableStreamPull ( stream )</h4>
 
 <emu-alg>
   1. If _stream_@[[state]] is "closed" or _stream_@[[state]] is "errored", return *false*.
@@ -1079,7 +1090,7 @@ readable stream is <a>locked to a reader</a>.
   1. Return *false*.
 </emu-alg>
 
-<h4 id="tee-readable-stream" aoid="TeeReadableStream">TeeReadableStream ( stream, shouldClone )</h4>
+<h4 id="tee-readable-stream" aoid="TeeReadableStream" throws>TeeReadableStream ( stream, shouldClone )</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to
 <a lt="tee a readable stream">tee</a> a given readable stream. Its second argument governs whether or not the data from
@@ -1561,7 +1572,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
 
 <h3 id="ws-abstract-ops">Writable Stream Abstract Operations</h3>
 
-<h4 id="call-or-schedule-writable-stream-advance-queue" aoid="CallOrScheduleWritableStreamAdvanceQueue">CallOrScheduleWritableStreamAdvanceQueue ( stream )</h4>
+<h4 id="call-or-schedule-writable-stream-advance-queue" aoid="CallOrScheduleWritableStreamAdvanceQueue" nothrow>CallOrScheduleWritableStreamAdvanceQueue ( stream )</h4>
 
 <emu-alg>
   1. If _stream_@[[started]] is *false*, then
@@ -1571,7 +1582,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="close-writable-stream" aoid="CloseWritableStream">CloseWritableStream ( stream )</h4>
+<h4 id="close-writable-stream" aoid="CloseWritableStream" nothrow>CloseWritableStream ( stream )</h4>
 
 <emu-alg>
   1. Assert: _stream_@[[state]] is "closing".
@@ -1585,7 +1596,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="error-writable-stream" aoid="ErrorWritableStream">ErrorWritableStream ( stream, e )</h4>
+<h4 id="error-writable-stream" aoid="ErrorWritableStream" nothrow>ErrorWritableStream ( stream, e )</h4>
 
 <emu-alg>
   1. If _stream_@[[state]] is "closed" or "errored", return *undefined*.
@@ -1599,7 +1610,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="is-writable-stream" aoid="IsWritableStream">IsWritableStream ( x )</h4>
+<h4 id="is-writable-stream" aoid="IsWritableStream" nothrow>IsWritableStream ( x )</h4>
 
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
@@ -1607,7 +1618,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Return *true*.
 </emu-alg>
 
-<h4 id="sync-writable-stream-state-with-queue" aoid="SyncWritableStreamStateWithQueue">SyncWritableStreamStateWithQueue ( stream )</h4>
+<h4 id="sync-writable-stream-state-with-queue" aoid="SyncWritableStreamStateWithQueue" nothrow>SyncWritableStreamStateWithQueue ( stream )</h4>
 
 <emu-alg>
   1. If _stream_@[[state]] is "closing", return *undefined*.
@@ -1623,14 +1634,14 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="writable-stream-advance-queue" aoid="WritableStreamAdvanceQueue">WritableStreamAdvanceQueue ( stream )</h4>
+<h4 id="writable-stream-advance-queue" aoid="WritableStreamAdvanceQueue" nothrow>WritableStreamAdvanceQueue ( stream )</h4>
 
 <emu-alg>
   1. If _stream_@[[queue]] is empty, or _stream_@[[writing]] is *true*, return *undefined*.
   1. Let _writeRecord_ be PeekQueueValue(_stream_@[[queue]]).
   1. If _writeRecord_ is "close", then
     1. Assert: _stream_@[[state]] is "closing".
-    1. DequeueValue(_stream_@[[queue]]).
+    1. Perform DequeueValue(_stream_@[[queue]]).
     1. Assert: _stream_@[[queue]] is now empty.
     1. Perform CloseWritableStream(_stream_).
     1. Return *undefined*.
@@ -1640,7 +1651,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
     1. If _stream_@[[state]] is "errored", return.
     1. Set _stream_@[[writing]] to *false*.
     1. Resolve _writeRecord_.[[promise]] with *undefined*.
-    1. DequeueValue(_stream_@[[queue]]).
+    1. Perform DequeueValue(_stream_@[[queue]]).
     1. Perform SyncWritableStreamStateWithQueue(_stream_).
     1. Perform WritableStreamAdvanceQueue(_stream_).
   1. Upon rejection of _writeResult_ with reason _r_, perform ErrorWritableStream(_stream_, _r_).
@@ -1814,7 +1825,7 @@ implementations it would of course be backed by a more efficient data structure)
 A number of abstract operations are specified here to make working with queues-with-sizes more pleasant, and used
 throughout the rest of this standard.
 
-<h4 id="dequeue-value" aoid="DequeueValue">DequeueValue ( queue )</h4>
+<h4 id="dequeue-value" aoid="DequeueValue" nothrow>DequeueValue ( queue )</h4>
 
 <emu-alg>
   1. Assert: _queue_ is not empty.
@@ -1823,7 +1834,7 @@ throughout the rest of this standard.
   1. Return _pair_.[[value]].
 </emu-alg>
 
-<h4 id="enqueue-value-with-size" aoid="EnqueueValueWithSize">EnqueueValueWithSize ( queue, value, size )</h4>
+<h4 id="enqueue-value-with-size" aoid="EnqueueValueWithSize" throws>EnqueueValueWithSize ( queue, value, size )</h4>
 
 <emu-alg>
   1. Let _size_ be ToNumber(_size_).
@@ -1833,7 +1844,7 @@ throughout the rest of this standard.
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="get-total-queue-size" aoid="GetTotalQueueSize">GetTotalQueueSize ( queue )</h4>
+<h4 id="get-total-queue-size" aoid="GetTotalQueueSize" nothrow>GetTotalQueueSize ( queue )</h4>
 
 <emu-alg>
   1. Let _totalSize_ be *0*.
@@ -1843,7 +1854,7 @@ throughout the rest of this standard.
   1. Return _totalSize_.
 </emu-alg>
 
-<h4 id="peek-queue-value" aoid="PeekQueueValue">PeekQueueValue ( queue )</h4>
+<h4 id="peek-queue-value" aoid="PeekQueueValue" nothrow>PeekQueueValue ( queue )</h4>
 
 <emu-alg>
   1. Assert: _queue_ is not empty.
@@ -1855,10 +1866,10 @@ throughout the rest of this standard.
 
 A few abstract operations are used in this specification for utility purposes. We define them here.
 
-<h4 id="get-viewed-array-buffer" aoid="GetViewedArrayBuffer">GetViewedArrayBuffer ( O )</h4>
+<h4 id="get-viewed-array-buffer" aoid="GetViewedArrayBuffer" throws>GetViewedArrayBuffer ( O )</h4>
 
 <pre is="emu-alg">
-  1. Return the result of calling the get accessor function of %TypedArray%.prototype.buffer on _O_ passing no arguments.
+  1. Return the result of the same algorithm as used by the get accessor function of the original value of %TypedArray%.prototype.buffer, with _O_ in place of *this*.
 </pre>
 
 <div class="note">
@@ -1866,19 +1877,19 @@ A few abstract operations are used in this specification for utility purposes. W
   defined by ECMAScript</a>.
 </div>
 
-<h4 id="get-byte-length" aoid="GetByteLength">GetByteLength ( O )</h4>
+<h4 id="get-byte-length" aoid="GetByteLength" throws>GetByteLength ( O )</h4>
 
 <pre is="emu-alg">
-  1. Return the result of calling the get accessor function of %TypedArray%.prototype.byteLength on _O_ passing no arguments.
+  1. Return the result of the same algorithm as used by the get accessor function of the original value of %TypedArray%.prototype.byteLength, with _O_ in place of *this*.
 </pre>
 
-<h4 id="get-byte-offset" aoid="GetByteOffset">GetByteOffset ( O )</h4>
+<h4 id="get-byte-offset" aoid="GetByteOffset" throws>GetByteOffset ( O )</h4>
 
 <pre is="emu-alg">
-  1. Return the result of calling the get accessor function of %TypedArray%.prototype.byteOffset on _O_ passing no arguments.
+  1. Return the result of the same algorithm as used by the get accessor function of the original value of %TypedArray%.prototype.byteOffset, with _O_ in place of *this*.
 </pre>
 
-<h4 id="invoke-or-noop" aoid="InvokeOrNoop">InvokeOrNoop ( O, P, args )</h4>
+<h4 id="invoke-or-noop" aoid="InvokeOrNoop" throws>InvokeOrNoop ( O, P, args )</h4>
 
 <div class="note">
   InvokeOrNoop is a slight modification of the [[!ECMASCRIPT]]
@@ -1895,7 +1906,7 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Return Call(_method_, _O_, _args_).
 </emu-alg>
 
-<h4 id="promise-invoke-or-fallback-or-noop" aoid="PromiseInvokeOrFallbackOrNoop">PromiseInvokeOrFallbackOrNoop ( O, P1, args1, P2, args2 )</h4>
+<h4 id="promise-invoke-or-fallback-or-noop" aoid="PromiseInvokeOrFallbackOrNoop" nothrow>PromiseInvokeOrFallbackOrNoop ( O, P1, args1, P2, args2 )</h4>
 
 <div class="note">
   PromiseInvokeOrFallbackOrNoop is a specialized version of
@@ -1916,7 +1927,7 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Otherwise, return a new promise resolved with _returnValue_.[[value]].
 </emu-alg>
 
-<h4 id="promise-invoke-or-noop" aoid="PromiseInvokeOrNoop">PromiseInvokeOrNoop ( O, P, args )</h4>
+<h4 id="promise-invoke-or-noop" aoid="PromiseInvokeOrNoop" nothrow>PromiseInvokeOrNoop ( O, P, args )</h4>
 
 <div class="note">
   PromiseInvokeOrNoop is a specialized version of
@@ -1936,7 +1947,7 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Otherwise, return a new promise resolved with _returnValue_.[[value]].
 </emu-alg>
 
-<h4 id="validate-and-normalize-queuing-strategy" aoid="ValidateAndNormalizeQueuingStrategy">ValidateAndNormalizeQueuingStrategy ( size, highWaterMark )</h4>
+<h4 id="validate-and-normalize-queuing-strategy" aoid="ValidateAndNormalizeQueuingStrategy" throws>ValidateAndNormalizeQueuingStrategy ( size, highWaterMark )</h4>
 
 <emu-alg>
   1. If _size_ is not *undefined* and IsCallable(_size_) is *false*, throw a *TypeError* exception.
