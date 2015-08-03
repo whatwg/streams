@@ -16,6 +16,8 @@ export default class ReadableStream {
     this._reader = undefined;
     this._storedError = undefined;
 
+    this._disturbed = false;
+
     const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
     this._strategySize = normalizedStrategy.size;
     this._strategyHWM = normalizedStrategy.highWaterMark;
@@ -357,6 +359,8 @@ function CancelReadableStream(stream, reason) {
     return Promise.reject(stream._storedError);
   }
 
+  stream._disturbed = true;
+
   stream._queue = [];
   FinishClosingReadableStream(stream);
 
@@ -493,6 +497,12 @@ function IsReadableStream(x) {
   return true;
 }
 
+export function IsReadableStreamDisturbed(stream) {
+  assert(IsReadableStream(stream) === true, 'IsReadableStreamDisturbed should only be used on known readable streams');
+
+  return stream._disturbed;
+}
+
 function IsReadableStreamLocked(stream) {
   assert(IsReadableStream(stream) === true, 'IsReadableStreamLocked should only be used on known readable streams');
 
@@ -538,6 +548,8 @@ function ReadFromReadableStreamReader(reader) {
 
   assert(reader._ownerReadableStream !== undefined);
   assert(reader._ownerReadableStream._state === 'readable');
+
+  reader._ownerReadableStream._disturbed = true;
 
   if (reader._ownerReadableStream._queue.length > 0) {
     const chunk = DequeueValue(reader._ownerReadableStream._queue);

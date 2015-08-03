@@ -311,6 +311,10 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
       state and queue of this stream
   </tr>
   <tr>
+    <td>\[[disturbed]]
+    <td>A boolean flag set to <b>true</b> when the stream has been read from or canceled
+  </tr>
+  <tr>
     <td>\[[pullAgain]]
     <td>A boolean flag set to <b>true</b> if the stream's mechanisms requested a call to the underlying source's
       <code>pull</code> method to pull more data, but the pull could not yet be done since a previous call is still
@@ -398,6 +402,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. Set *this*@[[state]] to "readable".
   1. Set *this*@[[started]], *this*@[[closeRequested]], *this*@[[pullAgain]], and *this*@[[pulling]] to *false*.
   1. Set *this*@[[reader]] and *this*@[[storedError]] to *undefined*.
+  1. Set *this*@[[disturbed]] to *false*.
   1. Set *this*@[[controller]] to Construct(`ReadableStreamController`, «*this*»).
   1. Let _normalizedStrategy_ be ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
   1. Set *this*@[[strategySize]] to _normalizedStrategy_.[[size]] and *this*@[[strategyHWM]] to _normalizedStrategy_.[[highWaterMark]].
@@ -875,6 +880,7 @@ reader</a> for a given stream.
 <emu-alg>
   1. If _stream_@[[state]] is "closed", return a new promise resolved with *undefined*.
   1. If _stream_@[[state]] is "errored", return a new promise rejected with _stream_@[[storedError]].
+  1. Set _stream_@[[disturbed]] to *true*.
   1. Set _stream_@[[queue]] to a new empty List.
   1. Perform FinishClosingReadableStream(_stream_).
   1. Let _sourceCancelPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "cancel", «‍_reason_»).
@@ -1010,6 +1016,16 @@ an assert).
   1. Return *true*.
 </emu-alg>
 
+<h4 id="is-readable-stream-disturbed" aoid="IsReadableStreamDisturbed" nothrow>IsReadableStreamDisturbed ( stream )</h4>
+
+This abstract operation is meant to be called from other specifications that may wish to query whether or not a
+readable stream has ever been read from or canceled.
+
+<emu-alg>
+  1. Assert: IsReadableStream(_stream_) is *true*.
+  1. Return _stream_@[[disturbed]].
+</emu-alg>
+
 <h4 id="is-readable-stream-locked" aoid="IsReadableStreamLocked" nothrow>IsReadableStreamLocked ( stream )</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to query whether or not a
@@ -1036,6 +1052,7 @@ readable stream is <a>locked to a reader</a>.
   1. If _reader_@[[state]] is "errored", return a new promise rejected with _reader_@[[storedError]].
   1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
   1. Assert: _reader_@[[ownerReadableStream]]@[[state]] is "readable".
+  1. Set _reader_@[[ownerReadableStream]]@[[disturbed]] to *true*.
   1. If _reader_@[[ownerReadableStream]]@[[queue]] is not empty,
     1. Let _chunk_ be DequeueValue(_reader_@[[ownerReadableStream]]@[[queue]]).
     1. If _reader_@[[ownerReadableStream]]@[[closeRequested]] is *true* and _reader_@[[ownerReadableStream]]@[[queue]] is now empty, perform FinishClosingReadableStream(_reader_@[[ownerReadableStream]]).
