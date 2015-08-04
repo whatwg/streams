@@ -1967,8 +1967,7 @@ Instances of <code>ReadableByteStream</code> are created with the internal slots
   <tr>
     <td>\[[controller]]
     <td>A <a href="#rbs-controller-class"><code>ReadableByteStreamController</code></a> created with the ability to
-      control the state of this stream; also used for the
-      <a href="#is-readable-byte-stream">IsReadableByteStream</a> brand check
+      control the state of this stream; also used for the IsReadableByteStream brand check
   </tr>
   <tr>
     <td>\[[reader]]
