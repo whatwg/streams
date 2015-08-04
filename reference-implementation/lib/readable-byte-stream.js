@@ -19,7 +19,7 @@ export default class ReadableByteStream {
           new TypeError('ReadableByteStream.prototype.cancel can only be used on a ReadableByteStream'));
     }
 
-    if (IsReadableByteStreamLocked(this)) {
+    if (IsReadableByteStreamLocked(this) === true) {
       return Promise.reject(new TypeError('Cannot cancel a stream that already has a reader'));
     }
 
