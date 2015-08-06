@@ -968,9 +968,9 @@ an assert).
   1. Set _stream_@[[storedError]] to _e_.
   1. Set _stream_@[[state]] to "errored".
   1. Let _reader_ be _stream_@[[reader]].
-  1. If _reader_ is *undefined*,
-    1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
-      1. Reject _readRequestPromise_ with _e_.
+  1. If _reader_ is *undefined*, return *undefined*.
+  1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
+    1. Reject _readRequestPromise_ with _e_.
   1. Set _reader_@[[readRequests]] to a new empty List.
   1. Perform ReleaseReadableStreamReader(_reader_).
   1. Set _reader_@[[storedError]] to _e_.
