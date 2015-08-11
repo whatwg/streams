@@ -303,3 +303,174 @@ test('Garbage-collecting a ReadableStreamReader should not unlock its stream', t
     'old reader should still be locking the stream even after garbage collection');
   t.end();
 });
+
+test('Reading twice on a stream that gets closed', t => {
+  t.plan(3);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+  const reader = rs.getReader();
+
+  reader.read().then(result => t.deepEqual(result, { value: undefined, done: true }, 'read() should fulfill with close'));
+  reader.read().then(result => t.deepEqual(result, { value: undefined, done: true }, 'read() should fulfill with close'));
+  reader.closed.then(() => t.pass('closed promise was fulfilled'));
+
+  controller.close();
+});
+
+test('Reading twice on a closed stream', t => {
+  t.plan(3);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  controller.close();
+
+  const reader = rs.getReader();
+
+  reader.read().then(result => t.deepEqual(result, { value: undefined, done: true }, 'read() should fulfill with close'));
+  reader.read().then(result => t.deepEqual(result, { value: undefined, done: true }, 'read() should fulfill with close'));
+  reader.closed.then(() => t.pass('closed promise was fulfilled'));
+});
+
+test('Reading twice on an errored stream', t => {
+  t.plan(3);
+
+  var controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const myError = { potato: "mashed" };
+  controller.error(myError);
+
+  const reader = rs.getReader();
+
+  reader.read().then(
+    () => t.fail('read() should reject on an errored stream'),
+    err => t.equal(err, myError, 'error is the one we passed')
+  );
+  reader.read().then(
+    () => t.fail('read() should reject on an errored stream'),
+    err => t.equal(err, myError, 'error is the one we passed')
+  );
+  reader.closed.then(
+    () => t.fail('read() should reject on an errored stream'),
+    err => t.equal(err, myError, 'error is the one we passed')
+  );
+});
+
+test('Reading twice on a stream that gets errored', t => {
+  t.plan(3);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const reader = rs.getReader();
+
+  reader.read().then(
+    () => t.fail('read() should reject on an errored stream'),
+    err => t.equal(err, myError, 'error is the one we passed')
+  );
+  reader.read().then(
+    () => t.fail('read() should reject on an errored stream'),
+    err => t.equal(err, myError, 'error is the one we passed')
+  );
+  reader.closed.then(
+    () => t.fail('read() should reject on an errored stream'),
+    err => t.equal(err, myError, 'error is the one we passed')
+  );
+
+  const myError = { potato: 'mashed' };
+  controller.error(myError);
+});
+
+test('Reading within a read promise resolve callback on a stream that gets closed', t => {
+  t.plan(1);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const reader = rs.getReader();
+
+  reader.read().then(() => reader.read().then(() => t.pass('read() succeeds')));
+  controller.close();
+});
+
+test('Erroring a ReadableStream should reject ReadableStreamReader close promise', t => {
+  t.plan(1);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  rs.getReader().closed.then(
+    () => t.fail('closed promise should not be resolved when stream is errored'),
+    err => t.equal(err, rsError, 'error is the one is passed')
+  );
+
+  const rsError = 'my error';
+  controller.error(rsError);
+});
+
+test('Erroring a ReadableStream should reject ReadableStreamReader close promise', t => {
+  t.plan(2);
+
+  let controller;
+  var rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const rsError = "my error";
+  controller.error(rsError);
+
+  rs.getReader();
+  let reader;
+  t.doesNotThrow(() => reader = rs.getReader(), 'calling getReader() twice does not throw to ensure that stream is not locked');
+
+  reader.closed.then(
+    () => t.fail('closed promise should not be resolved when stream is errored'),
+    err => t.equal(err, rsError)
+  );
+});
+
+test('ReadableStreamReader should get undefined if ReadableStream was errored like that', t => {
+  t.plan(1);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  rs.getReader().closed.then(
+    () => t.fail('closed promise should not be resolved when stream is errored'),
+    err => t.equal(err, undefined, 'passed error should be undefined as it was')
+  );
+
+  controller.error();
+});
