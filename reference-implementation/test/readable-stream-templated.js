@@ -24,7 +24,21 @@ templatedRSClosed('ReadableStream (closed via call in start)',
   })
 );
 
-templatedRSClosedReader('ReadableStream (closed via call in start) reader',
+templatedRSClosedReader('ReadableStream reader (closed before getting reader)',
+  () => {
+    let controller;
+    const stream = new ReadableStream({
+      start(c) {
+        controller = c;
+      }
+    });
+    controller.close();
+    const result = streamAndDefaultReader(stream);
+    return result;
+  }
+);
+
+templatedRSClosedReader('ReadableStream reader (closed after getting reader)',
   () => {
     let controller;
     const stream = new ReadableStream({
@@ -46,7 +60,7 @@ templatedRSClosed('ReadableStream (closed via cancel)',
   }
 );
 
-templatedRSClosedReader('ReadableStream (closed via cancel) reader',
+templatedRSClosedReader('ReadableStream reader (closed via cancel after getting reader)',
   () => {
     const stream = new ReadableStream();
     const result = streamAndDefaultReader(stream);
@@ -89,6 +103,34 @@ templatedRSErroredReader('ReadableStream (errored via returning a rejected promi
   () => streamAndDefaultReader(new ReadableStream({
     start() { return Promise.reject(theError); }
   })),
+  theError
+);
+
+templatedRSErroredReader('ReadableStream reader (errored before getting reader)',
+  () => {
+    let controller;
+    const stream = new ReadableStream({
+      start(c) {
+        controller = c;
+      }
+    });
+    controller.error(theError);
+    return streamAndDefaultReader(stream);
+  },
+  theError
+);
+
+templatedRSErroredReader('ReadableStream reader (errored after getting reader)',
+  () => {
+    let controller;
+    const result = streamAndDefaultReader(new ReadableStream({
+      start(c) {
+        controller = c;
+      }
+    }));
+    controller.error(theError);
+    return result;
+  },
   theError
 );
 

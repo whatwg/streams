@@ -15,6 +15,27 @@ export default (label, factory) => {
     );
   });
 
+  test('read() multiple times should fulfill with { value: undefined, done: true }', t => {
+    t.plan(2);
+    const { reader } = factory();
+
+    reader.read().then(
+      v => t.deepEqual(v, { value: undefined, done: true }, 'read() should fulfill correctly'),
+      () => t.fail('read() should not return a rejected promise')
+    );
+    reader.read().then(
+      v => t.deepEqual(v, { value: undefined, done: true }, 'read() should fulfill correctly'),
+      () => t.fail('read() should not return a rejected promise')
+    );
+  });
+
+  test('read() should work when used within another read() fulfill callback', t => {
+    t.plan(1);
+    const { reader } = factory();
+
+    reader.read().then(() => reader.read().then(() => t.pass('read() should fulfill')));
+  });
+
   test('closed should fulfill with undefined', t => {
     t.plan(1);
     const { reader } = factory();
