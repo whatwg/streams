@@ -1,3 +1,4 @@
+import gc from './utils/gc';
 const test = require('tape-catch');
 
 import RandomPushSource from './utils/random-push-source';
@@ -770,4 +771,53 @@ test('ReadableStream integration test: adapting an async pull source', t => {
 
     t.end();
   });
+});
+
+function garbageCollectAndDo(task)
+{
+  gc();
+  setTimeout(task, 50);
+}
+
+test('Readable stream controller methods should continue working properly when scripts are loosing reference to the readable stream', t => {
+  t.plan(2);
+
+  let controller;
+  new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  garbageCollectAndDo(() => {
+    controller.close();
+    t.throws(() => controller.close(), /TypeError/, 'close throws TypeError');
+    t.throws(() => controller.error(), /TypeError/, 'error throws TypeError');
+  });
+});
+
+test('Readable stream closed promise should resolve even if stream and reader JS references are lost', t => {
+  t.plan(1);
+
+  let controller;
+  new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  }).getReader().closed.then(() => t.pass('reader gets closed'));
+
+  garbageCollectAndDo(() => controller.close());
+});
+
+test('Readable stream closed promise should reject even if stream and reader JS references are lost', t => {
+  t.plan(1);
+
+  let controller;
+  new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  }).getReader().closed.catch(() => t.pass('closed promise gets rejected'));
+
+  garbageCollectAndDo(() => controller.error());
 });
