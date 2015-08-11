@@ -303,3 +303,21 @@ test('Garbage-collecting a ReadableStreamReader should not unlock its stream', t
     'old reader should still be locking the stream even after garbage collection');
   t.end();
 });
+
+test('ReadableStreamReader closed promise should be rejected with undefined if that is the error', t => {
+  t.plan(1);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  rs.getReader().closed.then(
+    () => t.fail('closed promise should not be fulfilled when stream is errored'),
+    err => t.equal(err, undefined, 'passed error should be undefined as it was')
+  );
+
+  controller.error();
+});

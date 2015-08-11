@@ -5,6 +5,22 @@ export default (label, factory, error) => {
     tapeTest(`${label}: ${description}`, testFn);
   }
 
+  test('should be able to obtain a second reader, with the correct closed promise', t => {
+    t.plan(2);
+    const rs = factory();
+
+    rs.getReader();
+
+    let reader;
+    t.doesNotThrow(() => reader = rs.getReader(),
+      'calling getReader() twice does not throw (the stream is not locked)');
+
+    reader.closed.then(
+      () => t.fail('closed promise should not be fulfilled when stream is errored'),
+      err => t.equal(err, error)
+    );
+  });
+
   test('cancel() should return a distinct rejected promise each time', t => {
     t.plan(3);
     const rs = factory();
