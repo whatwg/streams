@@ -770,18 +770,16 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   1. If IsReadableStreamLocked(_stream_) is *true*, throw a *TypeError* exception.
   1. Set *this*@[[state]] to _stream_@[[state]].
   1. Set *this*@[[readRequests]] to a new empty List.
+  1. Set *this*@[[ownerReadableStream]] to _stream_.
+  1. Set _stream_@[[reader]] to *this*.
   1. If _stream_@[[state]] is "readable",
-    1. Set *this*@[[ownerReadableStream]] to _stream_.
     1. Set *this*@[[storedError]] to *undefined*.
     1. Set *this*@[[closedPromise]] to a new promise.
-    1. Set _stream_@[[reader]] to *this*.
   1. Otherwise, if _stream_@[[state]] is "closed",
-    1. Set *this*@[[ownerReadableStream]] to *undefined*.
     1. Set *this*@[[storedError]] to *undefined*.
     1. Set *this*@[[closedPromise]] to a new promise resolved with *undefined*.
   1. Otherwise,
     1. Assert: _stream_@[[state]] is "errored".
-    1. Set *this*@[[ownerReadableStream]] to *undefined*.
     1. Set *this*@[[storedError]] to _stream_@[[storedError]].
     1. Set *this*@[[closedPromise]] to a new promise rejected with _stream_@[[storedError]].
 </emu-alg>
@@ -855,7 +853,9 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   1. If IsReadableStreamReader(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*@[[ownerReadableStream]] is *undefined*, return *undefined*.
   1. If *this*@[[readRequests]] is not empty, throw a *TypeError* exception.
-  1. Perform CloseReadableStreamReader(*this*).
+  1. If *this*@[[state]] is `"readable"`, perform CloseReadableStreamReader(*this*).
+  1. Set *this*@[[ownerReadableStream]]@[[reader]] to *undefined*.
+  1. Set *this*@[[ownerReadableStream]] to *undefined*.
   1. Return *undefined*.
 </emu-alg>
 
@@ -910,7 +910,6 @@ this to streams they did not create, and must ensure they have obeyed the precon
   1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
     1. Resolve _readRequestPromise_ with CreateIterResultObject(*undefined*, *true*).
   1. Set _reader_@[[readRequests]] to an empty List.
-  1. Perform ReleaseReadableStreamReader(_reader_).
   1. Set _reader_@[[state]] to "closed".
   1. Resolve _reader_@[[closedPromise]] with *undefined*.
   1. Return *undefined*.
@@ -972,7 +971,6 @@ an assert).
   1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
     1. Reject _readRequestPromise_ with _e_.
   1. Set _reader_@[[readRequests]] to a new empty List.
-  1. Perform ReleaseReadableStreamReader(_reader_).
   1. Set _reader_@[[storedError]] to _e_.
   1. Set _reader_@[[state]] to "errored".
   1. Reject _reader_@[[closedPromise]] with _e_.
@@ -1048,14 +1046,6 @@ readable stream is <a>locked to a reader</a>.
     1. Append _readRequestPromise_ as the last element of _reader_@[[readRequests]].
     1. Perform RequestReadableStreamPull(_reader_@[[ownerReadableStream]]).
     1. Return _readRequestPromise_.
-</emu-alg>
-
-<h4 id="release-readable-stream-reader" aoid="ReleaseReadableStreamReader" nothrow>ReleaseReadableStreamReader ( reader )</h4>
-
-<emu-alg>
-  1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
-  1. Set _reader_@[[ownerReadableStream]]@[[reader]] to *undefined*.
-  1. Set _reader_@[[ownerReadableStream]] to *undefined*.
 </emu-alg>
 
 <h4 id="request-readable-stream-pull" aoid="RequestReadableStreamPull" nothrow>RequestReadableStreamPull ( stream )</h4>

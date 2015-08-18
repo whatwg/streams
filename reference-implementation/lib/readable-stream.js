@@ -112,7 +112,8 @@ export default class ReadableStream {
           lastWrite = dest.write(value);
           doPipe();
         }
-      });
+      })
+      .catch(rethrowAssertionErrorRejection);
 
       // Any failures will be handled by listening to reader.closed and dest.closed above.
       // TODO: handle malicious dest.write/dest.close?
@@ -120,8 +121,8 @@ export default class ReadableStream {
 
     function cancelSource(reason) {
       if (preventCancel === false) {
-        // cancelling automatically releases the lock (and that doesn't fail, since source is then closed)
         reader.cancel(reason);
+        reader.releaseLock();
         rejectPipeToPromise(reason);
       } else {
         // If we don't cancel, we need to wait for lastRead to finish before we're allowed to release.
@@ -251,21 +252,20 @@ class ReadableStreamReader {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
+    this._ownerReadableStream = stream;
+    stream._reader = this;
+
     this._state = stream._state;
     this._readRequests = [];
 
     if (stream._state === 'readable') {
-      this._ownerReadableStream = stream;
       this._storedError = undefined;
 
       this._closedPromise = new Promise((resolve, reject) => {
         this._closedPromise_resolve = resolve;
         this._closedPromise_reject = reject;
       });
-
-      stream._reader = this;
     } else if (stream._state === 'closed') {
-      this._ownerReadableStream = undefined;
       this._storedError = undefined;
 
       this._closedPromise = Promise.resolve(undefined);
@@ -274,7 +274,6 @@ class ReadableStreamReader {
     } else {
       assert(stream._state === 'errored');
 
-      this._ownerReadableStream = undefined;
       this._storedError = stream._storedError;
 
       this._closedPromise = Promise.reject(stream._storedError);
@@ -334,7 +333,12 @@ class ReadableStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    CloseReadableStreamReader(this);
+    if (this._state === 'readable') {
+      CloseReadableStreamReader(this);
+    }
+
+    this._ownerReadableStream._reader = undefined;
+    this._ownerReadableStream = undefined;
 
     return undefined;
   }
@@ -382,8 +386,6 @@ function CloseReadableStreamReader(reader) {
     _resolve(CreateIterResultObject(undefined, true));
   }
   reader._readRequests = [];
-
-  ReleaseReadableStreamReader(reader);
 
   reader._state = 'closed';
 
@@ -449,8 +451,6 @@ function ErrorReadableStream(stream, e) {
     _reject(e);
   }
   reader._readRequests = [];
-
-  ReleaseReadableStreamReader(reader);
 
   reader._storedError = e;
   reader._state = 'errored';
@@ -560,13 +560,6 @@ function ReadFromReadableStreamReader(reader) {
     RequestReadableStreamPull(reader._ownerReadableStream);
     return readRequest.promise;
   }
-}
-
-function ReleaseReadableStreamReader(reader) {
-  assert(reader._ownerReadableStream !== undefined);
-
-  reader._ownerReadableStream._reader = undefined;
-  reader._ownerReadableStream = undefined;
 }
 
 function RequestReadableStreamPull(stream) {

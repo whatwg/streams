@@ -5,11 +5,11 @@ export default (label, factory, error) => {
     tapeTest(`${label}: ${description}`, testFn);
   }
 
-  test('should be able to obtain a second reader, with the correct closed promise', t => {
+  test('should be able to obtain a second reader after releasing the first, with the correct closed promise', t => {
     t.plan(2);
     const rs = factory();
 
-    rs.getReader();
+    rs.getReader().releaseLock();
 
     let reader;
     t.doesNotThrow(() => reader = rs.getReader(),
@@ -19,6 +19,16 @@ export default (label, factory, error) => {
       () => t.fail('closed promise should not be fulfilled when stream is errored'),
       err => t.equal(err, error)
     );
+  });
+
+  test('should not be able to obtain additional readers if we don\'t release the first lock', t => {
+    t.plan(2);
+    const rs = factory();
+
+    rs.getReader();
+
+    t.throws(() => rs.getReader(), /TypeError/, 'getting a second reader should throw a TypeError');
+    t.throws(() => rs.getReader(), /TypeError/, 'getting a third reader should throw a TypeError');
   });
 
   test('cancel() should return a distinct rejected promise each time', t => {
@@ -44,15 +54,5 @@ export default (label, factory, error) => {
     cancelPromise1.catch(e => t.equal(e, error, 'first cancel() call should reject with the error'));
     cancelPromise2.catch(e => t.equal(e, error, 'second cancel() call should reject with the error'));
     t.notEqual(cancelPromise1, cancelPromise2, 'cancel() calls should return distinct promises');
-  });
-
-  test('should be able to acquire multiple readers, since they are all auto-released', t => {
-    const rs = factory();
-
-    rs.getReader();
-
-    t.doesNotThrow(() => rs.getReader(), 'getting a second reader should not throw');
-    t.doesNotThrow(() => rs.getReader(), 'getting a third reader should not throw');
-    t.end();
   });
 };

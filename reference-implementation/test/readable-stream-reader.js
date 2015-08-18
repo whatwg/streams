@@ -136,13 +136,14 @@ test('Reading from a reader for an empty stream will wait until a chunk is avail
   controller.enqueue('a');
 });
 
-test('cancel() on a reader releases the reader before calling through', t => {
-  t.plan(3);
+test('cancel() on a reader does not release the reader', t => {
+  t.plan(4);
 
   const passedReason = new Error('it wasn\'t the right time, sorry');
   const rs = new ReadableStream({
     cancel(reason) {
-      t.doesNotThrow(() => rs.getReader(), 'should be able to get another reader without error');
+      t.equal(rs.locked, true, 'the stream should still be locked');
+      t.throws(() => rs.getReader(), /TypeError/, 'should not be able to get another reader');
       t.equal(reason, passedReason, 'the cancellation reason is passed through to the underlying source');
     }
   });
@@ -259,7 +260,7 @@ test('cancel() on a released reader is a no-op and does not pass through', t => 
   setTimeout(() => t.end(), 50);
 });
 
-test('Getting a second reader after erroring the stream should succeed', t => {
+test('Getting a second reader after erroring the stream and releasing the reader should succeed', t => {
   t.plan(5);
 
   let controller;
@@ -284,12 +285,16 @@ test('Getting a second reader after erroring the stream should succeed', t => {
 
   controller.error(theError);
 
-  rs.getReader().closed.catch(e => {
+  reader1.releaseLock();
+
+  const reader2 = rs.getReader();
+
+  reader2.closed.catch(e => {
     t.equal(e, theError, 'the second reader closed getter should be rejected with the error');
   });
 
-  rs.getReader().read().catch(e => {
-    t.equal(e, theError, 'the third reader read() should be rejected with the error');
+  reader2.read().catch(e => {
+    t.equal(e, theError, 'the second reader read() should be rejected with the error');
   });
 });
 

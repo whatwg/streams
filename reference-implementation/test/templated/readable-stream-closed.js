@@ -93,13 +93,29 @@ export default (label, factory) => {
     .catch(e => t.error(e));
   });
 
-  test('should be able to acquire multiple readers, since they are all auto-released', t => {
+  test('should be able to acquire multiple readers if they are released in succession', t => {
+    const rs = factory();
+
+    const reader = rs.getReader();
+    reader.releaseLock();
+
+    t.doesNotThrow(() => {
+      const reader = rs.getReader();
+      reader.releaseLock();
+    }, 'getting a second reader should not throw');
+
+    t.doesNotThrow(() => rs.getReader(), 'getting a third reader should not throw');
+
+    t.end();
+  });
+
+  test('should not be able to acquire a second reader if we don\'t release the first one', t => {
     const rs = factory();
 
     rs.getReader();
 
-    t.doesNotThrow(() => rs.getReader(), 'getting a second reader should not throw');
-    t.doesNotThrow(() => rs.getReader(), 'getting a third reader should not throw');
+    t.throws(() => rs.getReader(), /TypeError/, 'getting a second reader should throw');
+    t.throws(() => rs.getReader(), /TypeError/, 'getting a third reader should throw');
     t.end();
   });
 };
