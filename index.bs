@@ -812,6 +812,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <emu-alg>
   1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[ownerReadableStream]] is not *undefined*, set *this*@[[ownerReadableStream]]@[[disturbed]] to *true*.
   1. If *this*@[[state]] is "closed", return a new promise resolved with *undefined*.
   1. If *this*@[[state]] is "errored", return a new promise rejected with *this*@[[storedError]].
   1. Assert: *this*@[[ownerReadableStream]] is not *undefined*.
@@ -878,9 +879,9 @@ reader</a> for a given stream.
 <h4 id="cancel-readable-stream" aoid="CancelReadableStream" nothrow>CancelReadableStream ( stream, reason )</h4>
 
 <emu-alg>
+  1. Set _stream_@[[disturbed]] to *true*.
   1. If _stream_@[[state]] is "closed", return a new promise resolved with *undefined*.
   1. If _stream_@[[state]] is "errored", return a new promise rejected with _stream_@[[storedError]].
-  1. Set _stream_@[[disturbed]] to *true*.
   1. Set _stream_@[[queue]] to a new empty List.
   1. Perform FinishClosingReadableStream(_stream_).
   1. Let _sourceCancelPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "cancel", «‍_reason_»).
@@ -1048,11 +1049,11 @@ readable stream is <a>locked to a reader</a>.
 <h4 id="read-from-readable-stream-reader" aoid="ReadFromReadableStreamReader" nothrow>ReadFromReadableStreamReader ( reader )</h4>
 
 <emu-alg>
+  1. If *this*@[[ownerReadableStream]] is not *undefined*, set *this*@[[ownerReadableStream]]@[[disturbed]] to *true*.
   1. If _reader_@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
   1. If _reader_@[[state]] is "errored", return a new promise rejected with _reader_@[[storedError]].
   1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
   1. Assert: _reader_@[[ownerReadableStream]]@[[state]] is "readable".
-  1. Set _reader_@[[ownerReadableStream]]@[[disturbed]] to *true*.
   1. If _reader_@[[ownerReadableStream]]@[[queue]] is not empty,
     1. Let _chunk_ be DequeueValue(_reader_@[[ownerReadableStream]]@[[queue]]).
     1. If _reader_@[[ownerReadableStream]]@[[closeRequested]] is *true* and _reader_@[[ownerReadableStream]]@[[queue]] is now empty, perform FinishClosingReadableStream(_reader_@[[ownerReadableStream]]).

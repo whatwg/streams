@@ -299,6 +299,10 @@ class ReadableStreamReader {
         new TypeError('ReadableStreamReader.prototype.cancel can only be used on a ReadableStreamReader'));
     }
 
+    if (this._ownerReadableStream !== undefined) {
+      this._ownerReadableStream._disturbed = true;
+    }
+
     if (this._state === 'closed') {
       return Promise.resolve(undefined);
     }
@@ -352,14 +356,14 @@ function AcquireReadableStreamReader(stream) {
 }
 
 function CancelReadableStream(stream, reason) {
+  stream._disturbed = true;
+
   if (stream._state === 'closed') {
     return Promise.resolve(undefined);
   }
   if (stream._state === 'errored') {
     return Promise.reject(stream._storedError);
   }
-
-  stream._disturbed = true;
 
   stream._queue = [];
   FinishClosingReadableStream(stream);
@@ -538,6 +542,10 @@ function IsReadableStreamReader(x) {
 }
 
 function ReadFromReadableStreamReader(reader) {
+  if (reader._ownerReadableStream !== undefined) {
+    reader._ownerReadableStream._disturbed = true;
+  }
+
   if (reader._state === 'closed') {
     return Promise.resolve(CreateIterResultObject(undefined, true));
   }
@@ -548,8 +556,6 @@ function ReadFromReadableStreamReader(reader) {
 
   assert(reader._ownerReadableStream !== undefined);
   assert(reader._ownerReadableStream._state === 'readable');
-
-  reader._ownerReadableStream._disturbed = true;
 
   if (reader._ownerReadableStream._queue.length > 0) {
     const chunk = DequeueValue(reader._ownerReadableStream._queue);
