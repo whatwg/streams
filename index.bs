@@ -750,16 +750,6 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
     <td>A List of promises returned by calls to the reader's <code>read()</code> method that have not yet been resolved,
       due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available
   </tr>
-  <tr>
-    <td>\[[state]]
-    <td>A string containing the reader's current state, used internally; one of <code>"readable"</code>,
-      <code>"closed"</code>, or <code>"errored"</code>
-  </tr>
-  <tr>
-    <td>\[[storedError]]
-    <td>A value indicating how the reader's stream failed, to be given as a failure reason or exception when trying to
-      operate on the reader; applicable only when \[[state]] is <code>"errored"</code>
-  </tr>
 </table>
 
 <h4 id="reader-constructor">new ReadableStreamReader(stream)</h4>
@@ -773,19 +763,15 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 <emu-alg>
   1. If IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
   1. If IsReadableStreamLocked(_stream_) is *true*, throw a *TypeError* exception.
-  1. Set *this*@[[state]] to _stream_@[[state]].
   1. Set *this*@[[readRequests]] to a new empty List.
   1. Set *this*@[[ownerReadableStream]] to _stream_.
   1. Set _stream_@[[reader]] to *this*.
   1. If _stream_@[[state]] is "readable",
-    1. Set *this*@[[storedError]] to *undefined*.
     1. Set *this*@[[closedPromise]] to a new promise.
   1. Otherwise, if _stream_@[[state]] is "closed",
-    1. Set *this*@[[storedError]] to *undefined*.
     1. Set *this*@[[closedPromise]] to a new promise resolved with *undefined*.
   1. Otherwise,
     1. Assert: _stream_@[[state]] is "errored".
-    1. Set *this*@[[storedError]] to _stream_@[[storedError]].
     1. Set *this*@[[closedPromise]] to a new promise rejected with _stream_@[[storedError]].
 </emu-alg>
 
@@ -812,11 +798,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <emu-alg>
   1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If *this*@[[ownerReadableStream]] is not *undefined*, set *this*@[[ownerReadableStream]]@[[disturbed]] to *true*.
-  1. If *this*@[[state]] is "closed", return a new promise resolved with *undefined*.
-  1. If *this*@[[state]] is "errored", return a new promise rejected with *this*@[[storedError]].
-  1. Assert: *this*@[[ownerReadableStream]] is not *undefined*.
-  1. Assert: *this*@[[ownerReadableStream]]@[[state]] is "readable".
+  1. If *this*@[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
   1. Return CancelReadableStream(*this*@[[ownerReadableStream]], _reason_).
 </emu-alg>
 
@@ -839,6 +821,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <emu-alg>
   1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
   1. Return ReadFromReadableStreamReader(*this*).
 </emu-alg>
 
@@ -859,7 +842,8 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
   1. If IsReadableStreamReader(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*@[[ownerReadableStream]] is *undefined*, return *undefined*.
   1. If *this*@[[readRequests]] is not empty, throw a *TypeError* exception.
-  1. If *this*@[[state]] is `"readable"`, perform CloseReadableStreamReader(*this*).
+  1. If *this*@[[ownerReadableStream]]@[[state]] is `"readable"`, reject *this*@[[closedPromise]] with a *TypeError* exception.
+  1. Otherwise, set *this*@[[closedPromise]] be a new promise rejected with a *TypeError* exception.
   1. Set *this*@[[ownerReadableStream]]@[[reader]] to *undefined*.
   1. Set *this*@[[ownerReadableStream]] to *undefined*.
   1. Return *undefined*.
@@ -910,17 +894,6 @@ this to streams they did not create, and must ensure they have obeyed the precon
   controller's <code>close</code> method to be called and silently do nothing, since the cancelation was outside the
   control of the underlying source.
 </div>
-
-<h4 id="close-readable-stream-reader" aoid="CloseReadableStreamReader" nothrow>CloseReadableStreamReader ( reader )</h4>
-
-<emu-alg>
-  1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
-    1. Resolve _readRequestPromise_ with CreateIterResultObject(*undefined*, *true*).
-  1. Set _reader_@[[readRequests]] to an empty List.
-  1. Set _reader_@[[state]] to "closed".
-  1. Resolve _reader_@[[closedPromise]] with *undefined*.
-  1. Return *undefined*.
-</emu-alg>
 
 <h4 id="enqueue-in-readable-stream" aoid="EnqueueInReadableStream" throws>EnqueueInReadableStream ( stream, chunk )</h4>
 
@@ -978,8 +951,6 @@ an assert).
   1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
     1. Reject _readRequestPromise_ with _e_.
   1. Set _reader_@[[readRequests]] to a new empty List.
-  1. Set _reader_@[[storedError]] to _e_.
-  1. Set _reader_@[[state]] to "errored".
   1. Reject _reader_@[[closedPromise]] with _e_.
   1. Return *undefined*.
 </emu-alg>
@@ -990,7 +961,11 @@ an assert).
   1. Assert: _stream_@[[state]] is "readable".
   1. Set _stream_@[[state]] to "closed".
   1. Let _reader_ be _stream_@[[reader]].
-  1. If _reader_ is not *undefined*, perform CloseReadableStreamReader(_reader_).
+  1. If _reader_ is *undefined*, return *undefined*.
+  1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
+    1. Resolve _readRequestPromise_ with CreateIterResultObject(*undefined*, *true*).
+  1. Set _reader_@[[readRequests]] to an empty List.
+  1. Resolve _reader_@[[closedPromise]] with *undefined*.
   1. Return *undefined*.
 </emu-alg>
 
@@ -1049,10 +1024,10 @@ readable stream is <a>locked to a reader</a>.
 <h4 id="read-from-readable-stream-reader" aoid="ReadFromReadableStreamReader" nothrow>ReadFromReadableStreamReader ( reader )</h4>
 
 <emu-alg>
-  1. If *this*@[[ownerReadableStream]] is not *undefined*, set *this*@[[ownerReadableStream]]@[[disturbed]] to *true*.
-  1. If _reader_@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
-  1. If _reader_@[[state]] is "errored", return a new promise rejected with _reader_@[[storedError]].
   1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
+  1. Set _reader_@[[ownerReadableStream]]@[[disturbed]] to *true*.
+  1. If _reader_@[[ownerReadableStream]]@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
+  1. If _reader_@[[ownerReadableStream]]@[[state]] is "errored", return a new promise rejected with _reader_@[[ownerReadableStream]]@[[storedError]].
   1. Assert: _reader_@[[ownerReadableStream]]@[[state]] is "readable".
   1. If _reader_@[[ownerReadableStream]]@[[queue]] is not empty,
     1. Let _chunk_ be DequeueValue(_reader_@[[ownerReadableStream]]@[[queue]]).

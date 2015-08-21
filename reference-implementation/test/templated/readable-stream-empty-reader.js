@@ -67,7 +67,7 @@ export default (label, factory) => {
   });
 
   test('releasing the lock with pending read requests should throw but the read requests should stay pending', t => {
-    const { reader } = factory();
+    const { stream, reader } = factory();
 
     reader.read().then(
       () => t.fail('first read() should not fulfill'),
@@ -86,30 +86,31 @@ export default (label, factory) => {
 
     t.throws(() => reader.releaseLock(), /TypeError/, 'releaseLock should throw a TypeError');
 
+    t.equal(stream.locked, true, 'the stream should still be locked');
+
     setTimeout(() => t.end(), 50);
   });
 
-  test('releasing the lock should cause further read() calls to resolve as if the stream is closed', t => {
+  test('releasing the lock should cause further read() calls to reject with a TypeError', t => {
     t.plan(2);
     const { reader } = factory();
 
     reader.releaseLock();
 
-    reader.read().then(r =>
-      t.deepEqual(r, { value: undefined, done: true }, 'first read() should return closed result'));
-    reader.read().then(r =>
-      t.deepEqual(r, { value: undefined, done: true }, 'second read() should return closed result'));
+    reader.read().catch(e => t.equal(e.constructor, TypeError, 'first read() should reject with a TypeError'));
+    reader.read().catch(e => t.equal(e.constructor, TypeError, 'second read() should reject with a TypeError'));
   });
 
-  test('releasing the lock should cause closed to fulfill', t => {
+  test('releasing the lock should cause closed to reject', t => {
     t.plan(2);
     const { reader } = factory();
 
-    reader.closed.then(v => t.equal(v, undefined, 'reader.closed got before release should fulfill with undefined'));
-
+    const closedBefore = reader.closed;
     reader.releaseLock();
+    const closedAfter = reader.closed;
 
-    reader.closed.then(v => t.equal(v, undefined, 'reader.closed got after release should fulfill with undefined'));
+    t.equal(closedBefore, closedAfter, 'the closed promise should not change identity')
+    closedBefore.catch(e => t.equal(e.constructor, TypeError, 'reader.closed should reject with a TypeError'));
   });
 
   test('releasing the lock should cause locked to become false', t => {

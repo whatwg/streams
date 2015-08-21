@@ -173,7 +173,7 @@ test('closed should be fulfilled after stream is closed (.closed access before a
   controller.close();
 });
 
-test('closed should be fulfilled after reader releases its lock (multiple stream locks)', t => {
+test('closed should be rejected after reader releases its lock (multiple stream locks)', t => {
   t.plan(2);
 
   let controller;
@@ -190,8 +190,8 @@ test('closed should be fulfilled after reader releases its lock (multiple stream
   const reader2 = rs.getReader();
   controller.close();
 
-  reader1.closed.then(() => {
-    t.pass('reader1 closed should be fulfilled');
+  reader1.closed.catch(e => {
+    t.equal(e.constructor, TypeError, 'reader1 closed should be rejected with a TypeError');
   });
 
   reader2.closed.then(() => {

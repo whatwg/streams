@@ -257,27 +257,19 @@ class ReadableStreamReader {
     this._ownerReadableStream = stream;
     stream._reader = this;
 
-    this._state = stream._state;
     this._readRequests = [];
 
     if (stream._state === 'readable') {
-      this._storedError = undefined;
-
       this._closedPromise = new Promise((resolve, reject) => {
         this._closedPromise_resolve = resolve;
         this._closedPromise_reject = reject;
       });
     } else if (stream._state === 'closed') {
-      this._storedError = undefined;
-
       this._closedPromise = Promise.resolve(undefined);
       this._closedPromise_resolve = undefined;
       this._closedPromise_reject = undefined;
     } else {
       assert(stream._state === 'errored');
-
-      this._storedError = stream._storedError;
-
       this._closedPromise = Promise.reject(stream._storedError);
       this._closedPromise_resolve = undefined;
       this._closedPromise_reject = undefined;
@@ -299,20 +291,9 @@ class ReadableStreamReader {
         new TypeError('ReadableStreamReader.prototype.cancel can only be used on a ReadableStreamReader'));
     }
 
-    if (this._ownerReadableStream !== undefined) {
-      this._ownerReadableStream._disturbed = true;
+    if (this._ownerReadableStream === undefined) {
+      return Promise.reject(new TypeError('Cannot cancel a stream using a released reader'));
     }
-
-    if (this._state === 'closed') {
-      return Promise.resolve(undefined);
-    }
-
-    if (this._state === 'errored') {
-      return Promise.reject(this._storedError);
-    }
-
-    assert(this._ownerReadableStream !== undefined);
-    assert(this._ownerReadableStream._state === 'readable');
 
     return CancelReadableStream(this._ownerReadableStream, reason);
   }
@@ -321,6 +302,10 @@ class ReadableStreamReader {
     if (IsReadableStreamReader(this) === false) {
       return Promise.reject(
         new TypeError('ReadableStreamReader.prototype.read can only be used on a ReadableStreamReader'));
+    }
+
+    if (this._ownerReadableStream === undefined) {
+      return Promise.reject(new TypeError('Cannot read from a released reader'));
     }
 
     return ReadFromReadableStreamReader(this);
@@ -339,8 +324,12 @@ class ReadableStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    if (this._state === 'readable') {
-      CloseReadableStreamReader(this);
+    if (this._ownerReadableStream._state === 'readable') {
+      this._closedPromise_reject(
+        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
+    } else {
+      this._closedPromise = Promise.reject(
+        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
     }
 
     this._ownerReadableStream._reader = undefined;
@@ -387,21 +376,6 @@ function CloseReadableStream(stream) {
   if (stream._queue.length === 0) {
     return FinishClosingReadableStream(stream);
   }
-}
-
-function CloseReadableStreamReader(reader) {
-  for (const { _resolve } of reader._readRequests) {
-    _resolve(CreateIterResultObject(undefined, true));
-  }
-  reader._readRequests = [];
-
-  reader._state = 'closed';
-
-  reader._closedPromise_resolve(undefined);
-  reader._closedPromise_resolve = undefined;
-  reader._closedPromise_reject = undefined;
-
-  return undefined;
 }
 
 function EnqueueInReadableStream(stream, chunk) {
@@ -460,9 +434,6 @@ function ErrorReadableStream(stream, e) {
   }
   reader._readRequests = [];
 
-  reader._storedError = e;
-  reader._state = 'errored';
-
   reader._closedPromise_reject(e);
   reader._closedPromise_resolve = undefined;
   reader._closedPromise_reject = undefined;
@@ -477,9 +448,18 @@ function FinishClosingReadableStream(stream) {
 
   const reader = stream._reader;
 
-  if (reader !== undefined) {
-    CloseReadableStreamReader(reader);
+  if (reader === undefined) {
+    return undefined;
   }
+
+  for (const { _resolve } of reader._readRequests) {
+    _resolve(CreateIterResultObject(undefined, true));
+  }
+  reader._readRequests = [];
+
+  reader._closedPromise_resolve(undefined);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
 
   return undefined;
 }
@@ -542,19 +522,18 @@ function IsReadableStreamReader(x) {
 }
 
 function ReadFromReadableStreamReader(reader) {
-  if (reader._ownerReadableStream !== undefined) {
-    reader._ownerReadableStream._disturbed = true;
-  }
+  assert(reader._ownerReadableStream !== undefined);
 
-  if (reader._state === 'closed') {
+  reader._ownerReadableStream._disturbed = true;
+
+  if (reader._ownerReadableStream._state === 'closed') {
     return Promise.resolve(CreateIterResultObject(undefined, true));
   }
 
-  if (reader._state === 'errored') {
-    return Promise.reject(reader._storedError);
+  if (reader._ownerReadableStream._state === 'errored') {
+    return Promise.reject(reader._ownerReadableStream._storedError);
   }
 
-  assert(reader._ownerReadableStream !== undefined);
   assert(reader._ownerReadableStream._state === 'readable');
 
   if (reader._ownerReadableStream._queue.length > 0) {

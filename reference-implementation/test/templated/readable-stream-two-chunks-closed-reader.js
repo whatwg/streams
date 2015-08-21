@@ -67,18 +67,15 @@ export default (label, factory, chunks) => {
     reader.read();
   });
 
-  test('releasing the lock should cause read() to act as if the stream is closed', t => {
+  test('releasing the lock should cause further read() calls to reject with a TypeError', t => {
     t.plan(3);
     const { reader } = factory();
 
     reader.releaseLock();
 
-    reader.read().then(r =>
-      t.deepEqual(r, { value: undefined, done: true }, 'first read() should return closed result'));
-    reader.read().then(r =>
-      t.deepEqual(r, { value: undefined, done: true }, 'second read() should return closed result'));
-    reader.read().then(r =>
-      t.deepEqual(r, { value: undefined, done: true }, 'third read() should return closed result'));
+    reader.read().catch(e => t.equal(e.constructor, TypeError, 'first read() should reject with a TypeError'));
+    reader.read().catch(e => t.equal(e.constructor, TypeError, 'second read() should reject with a TypeError'));
+    reader.read().catch(e => t.equal(e.constructor, TypeError, 'third read() should reject with a TypeError'));
   });
 
   test('reader\'s closed property always returns the same promise', t => {

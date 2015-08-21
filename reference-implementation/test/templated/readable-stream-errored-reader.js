@@ -15,6 +15,27 @@ export default (label, factory, error) => {
     );
   });
 
+  test('releasing the lock should cause closed to reject and change identity', t => {
+    t.plan(3);
+    const { reader } = factory();
+
+    const closedBefore = reader.closed;
+
+    closedBefore.catch(e => {
+      t.equal(e, error, 'reader.closed acquired before release should reject with the error');
+
+      reader.releaseLock();
+      const closedAfter = reader.closed;
+
+      t.notEqual(closedBefore, closedAfter, 'the closed promise should change identity');
+
+      return closedAfter.catch(e => {
+        t.equal(e.constructor, TypeError, 'reader.closed acquired after release should reject with a TypeError');
+      });
+    })
+    .catch(e => t.error(e));
+  });
+
   test('read() should reject with the error', t => {
     t.plan(1);
     const { reader } = factory();
