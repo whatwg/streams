@@ -971,6 +971,11 @@ an assert).
 
 <h4 id="get-readable-stream-desired-size" aoid="GetReadableStreamDesiredSize" nothrow>GetReadableStreamDesiredSize ( stream )</h4>
 
+This abstract operation can be called by other specifications that wish to determine the
+<a lt="desired size to fill a stream's internal queue">desired size to fill this stream's internal queue</a>, similar
+to how a developer would consult the <code>desiredSize</code> property of the stream's associated controller object.
+Specifications should <em>not</em> use this on streams they did not create.
+
 <emu-alg>
   1. Let _queueSize_ be GetTotalQueueSize(_stream_@[[queue]]).
   1. Return _stream_@[[strategyHWM]] − _queueSize_.
