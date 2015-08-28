@@ -242,9 +242,9 @@ test('ReadableStream: should only call pull once upon starting the stream', t =>
 
   startPromise.then(() => {
     t.equal(pullCount, 1, 'pull should be called once start finishes');
+    setTimeout(() => t.equal(pullCount, 1, 'pull should be called exactly once'), 50);
   });
 
-  setTimeout(() => t.equal(pullCount, 1, 'pull should be called exactly once'), 50);
 });
 
 test('ReadableStream: should call pull when trying to read from a started, empty stream', t => {
@@ -300,11 +300,10 @@ test('ReadableStream: should only call pull once on a non-empty stream read from
   rs.getReader().read().then(r => {
     t.deepEqual(r, { value: 'a', done: false }, 'first read() should return first chunk');
     t.equal(pullCount, 1, 'pull should not have been called again');
+    setTimeout(() => t.equal(pullCount, 1, 'pull should be called exactly once'), 50);
   });
 
   t.equal(pullCount, 0, 'calling read() should not cause pull to be called yet');
-
-  setTimeout(() => t.equal(pullCount, 1, 'pull should be called exactly once'), 50);
 });
 
 test('ReadableStream: should only call pull once on a non-empty stream read from after start fulfills', t => {
@@ -529,6 +528,18 @@ test('ReadableStream: should call pull after enqueueing from inside pull (with n
     },
     pull(c) {
       c.enqueue(++timesCalled);
+
+      if (timesCalled == 4) {
+        setTimeout(() => {
+          // after start: size = 0, pull()
+          // after enqueue(1): size = 1, pull()
+          // after enqueue(2): size = 2, pull()
+          // after enqueue(3): size = 3, pull()
+          // after enqueue(4): size = 4, do not pull
+          t.equal(timesCalled, 4, 'pull() should have been called four times');
+          t.end();
+        }, 50);
+      }
     }
   },
   {
@@ -537,16 +548,6 @@ test('ReadableStream: should call pull after enqueueing from inside pull (with n
     },
     highWaterMark: 4
   });
-
-  setTimeout(() => {
-    // after start: size = 0, pull()
-    // after enqueue(1): size = 1, pull()
-    // after enqueue(2): size = 2, pull()
-    // after enqueue(3): size = 3, pull()
-    // after enqueue(4): size = 4, do not pull
-    t.equal(timesCalled, 4, 'pull() should have been called four times');
-    t.end();
-  }, 50);
 });
 
 test('ReadableStream pull should be able to close a stream', t => {
