@@ -14,13 +14,13 @@ To understand the importance of backpressure, watch [Thorsten Lorenz's LXJS 2013
 
 A _push-based_ data source is one which, while the flow is turned on, pushes data at you (e.g. via events). It may also provide a mechanism for pausing and resuming the flow of data. However, this mechanism could be advisory, i.e. you may still receive data after requesting a pause. It is important not to lose such data (it must be queued for further consumption).
 
-An example of a push-based data source is a TCP socket. (TODO: someone who knows TCP better explain exactly the way in which it pushes data, and what "pausing" means in that context and why it is advisory.)
+An example of a push-based data source is a TCP socket. The remote server pushes data to you, and while the OS will try to buffer it up to some limit, if you do not vacate that kernel-level buffer in time, data can be lost. In this context, "pausing" can be accomplished by adjusting the TCP window size.
 
 ### You must be able to efficiently adapt existing _pull_-based data sources into a uniform streaming interface.
 
 A _pull-based_ data source is one which you must request data from. The data may be available synchronously, or asynchronously. It is important not to let this [zalgo-esque](http://blog.izs.me/post/59142742143/designing-apis-for-asynchrony) implementation detail leak into the semantics of the uniform stream API, but at the same time, it is preferable not to impose a delay on consumers if the data is available synchronously.
 
-An example of a pull-based data source is a file descriptor. (TODO: someone explain how this maps to C-level APIs.)
+An example of a pull-based data source is a file descriptor. The POSIX `read(2)` API will directly "pull" the given bytes from the file on disk into a given memory location.
 
 ### You must not lose data.
 
@@ -34,7 +34,7 @@ The solution is to move the queuing logic into the stream primitive itself, remo
 
 ### You must shield the user from the complexity of queuing sequential writes.
 
-Most underlying data sinks are designed to work well with only one concurrent write. For example, while asynchronously writing to an open file descriptor, you should not perform another write until the first finishes. (TODO: give more low-level examples of e.g. how the filesystem or network barfs at you or causes out-of-order delivery.) Moreover, you generally need to make sure that the previous writes finish *successfully* before writing the next piece of data.
+Most underlying data sinks are designed to work well with only one concurrent write. For example, while asynchronously writing to an open file descriptor, you should not perform another write until the first finishes. Moreover, you generally need to make sure that the previous writes finish *successfully* before writing the next piece of data.
 
 On the other hand, incoming data, either produced manually or piped from a readable stream, has no respect for the limits of the underlying sink. If you are piping from a fast filesystem to a slow network connection, it is quite likely new data will be available from the filesystem before the network responds that it has successfully delivered the first chunk you wrote to it. Forcing users of your writable stream API to juggle this state is an undue and error-prone burden. Worse, users can sometimes get away with ignoring this concern, e.g. if they usually pipe a slow source to a fast one, there will be no problems, until one day they pipe to a network filesystem instead of a local one, and writes are suddenly delivered concurrently or out of order.
 
