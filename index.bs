@@ -242,6 +242,28 @@ I/O source, called the <dfn>underlying byte source</dfn>.
 </div>
 
 <div class="example">
+  If you simply want to be alerted of each new chunk from a readable stream, you can <a lt="piping">pipe</a> it to a
+  new <a>writable stream</a> that you custom-create for that purpose:
+
+  <pre><code class="lang-javascript">
+    readableStream.pipeTo(new WritableStream({
+      write(chunk) {
+        console.log("Chunk received", chunk);
+      },
+      close() {
+        console.log("All data successfully read!");
+      },
+      abort(r) {
+        console.error("Something went wrong!", e);
+      }
+    }));
+  </code></pre>
+
+  By returning promises from your <code>write</code> implementation, you can signal <a>backpressure</a> to the readable
+  stream.
+</div>
+
+<div class="example">
   Although readable streams will usually be used by piping them to a writable stream, you can also read them directly
   by acquiring a <a lt="readable stream reader">reader</a> and using its <code>read()</code> method to get successive
   chunks. For example, this code logs the next <a>chunk</a> in the stream, if available:
@@ -260,6 +282,9 @@ I/O source, called the <dfn>underlying byte source</dfn>.
       e => console.error("The stream became errored and cannot be read from!", e)
     );
   </code></pre>
+
+  This more manual method of reading a stream is mainly useful for library authors building new high-level operations
+  on streams, beyond the provided ones of <a>piping</a> and <a lt="tee a readable stream">teeing</a>.
 </div>
 
 <h3 id="rs-class">Class <code>ReadableStream</code></h3>
