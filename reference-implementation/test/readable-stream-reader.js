@@ -241,6 +241,8 @@ test('Cannot use an already-released reader to unlock a stream again', t => {
 });
 
 test('cancel() on a released reader is a no-op and does not pass through', t => {
+  t.plan(2);
+
   const rs = new ReadableStream({
     start(c) {
       c.enqueue('a');
@@ -252,12 +254,10 @@ test('cancel() on a released reader is a no-op and does not pass through', t => 
 
   const reader = rs.getReader();
   reader.releaseLock();
-  reader.cancel().then(v => t.equal(v, undefined, 'cancel() on the reader should fulfill with undefined'));
+  reader.cancel().catch(e => t.equal(e.constructor, TypeError, 'canceling a released reader should fail with TypeError'));
 
   const reader2 = rs.getReader();
   reader2.read().then(r => t.deepEqual(r, { value: 'a', done: false }, 'a new reader should be able to read a chunk'));
-
-  setTimeout(() => t.end(), 50);
 });
 
 test('Getting a second reader after erroring the stream and releasing the reader should succeed', t => {
