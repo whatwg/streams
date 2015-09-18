@@ -79,19 +79,6 @@ test('Readable stream: invalid strategy.highWaterMark', t => {
   }
 });
 
-test('Readable stream: negative strategy.highWaterMark', t => {
-  t.plan(1);
-
-  t.throws(() => {
-    new ReadableStream({}, {
-      size() {
-        return 1;
-      },
-      highWaterMark: -1
-    });
-  }, /RangeError/, 'construction should throw a RangeError');
-});
-
 test('Readable stream: invalid strategy.size return value', t => {
   t.plan(8);
 
@@ -225,17 +212,4 @@ test('Writable stream: invalid strategy.highWaterMark', t => {
       });
     }, /TypeError/, `construction should throw a TypeError for ${highWaterMark}`);
   }
-});
-
-test('Writable stream: negative strategy.highWaterMark', t => {
-  t.plan(1);
-
-  t.throws(() => {
-    new WritableStream({}, {
-      size() {
-        return 1;
-      },
-      highWaterMark: -1
-    });
-  }, /RangeError/, 'construction should throw a RangeError');
 });
