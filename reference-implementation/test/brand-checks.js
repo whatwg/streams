@@ -1,42 +1,5 @@
 const test = require('tape-catch');
 
-let ReadableStreamReader;
-let ReadableStreamController;
-
-test('Can get the ReadableStreamReader constructor indirectly', t => {
-  t.doesNotThrow(() => {
-    // It's not exposed globally, but we test a few of its properties here.
-    ReadableStreamReader = (new ReadableStream()).getReader().constructor;
-  });
-  t.end();
-});
-
-test('Can get the ReadableStreamController constructor indirectly', t => {
-  t.doesNotThrow(() => {
-    // It's not exposed globally, but we test a few of its properties here.
-    new ReadableStream({
-      start(c) {
-        ReadableStreamController = c.constructor;
-      }
-    });
-  });
-  t.end();
-});
-
-function fakeReadableStream() {
-  return {
-    cancel(reason) { return Promise.resolve(); },
-    getReader() { return new ReadableStream(new ReadableStream()); },
-    pipeThrough({ writable, readable }, options) { return readable; },
-    pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) { return Promise.resolve(); },
-    tee() { return [realReadableStream(), realReadableStream()]; }
-  };
-}
-
-function realReadableStream() {
-  return new ReadableStream();
-}
-
 function fakeWritableStream() {
   return {
     get closed() { return Promise.resolve(); },
@@ -52,21 +15,8 @@ function realWritableStream() {
   return new WritableStream();
 }
 
-function fakeReadableStreamReader() {
-  return {
-    get closed() { return Promise.resolve(); },
-    cancel(reason) { return Promise.resolve(); },
-    read() { return Promise.resolve({ value: undefined, done: true }); },
-    releaseLock() { return; }
-  };
-}
-
-function fakeReadableStreamController() {
-  return {
-    close() { },
-    enqueue(chunk) { },
-    error(e) { }
-  };
+function realReadableStream() {
+  return new ReadableStream();
 }
 
 function fakeByteLengthQueuingStrategy() {
@@ -125,111 +75,6 @@ function methodThrows(t, obj, methodName, target) {
   t.throws(() => method.call(target), /TypeError/, methodName + ' should throw a TypeError');
 }
 
-test('ReadableStream.prototype.cancel enforces a brand check', t => {
-  t.plan(2);
-  methodRejects(t, ReadableStream.prototype, 'cancel', fakeReadableStream());
-  methodRejects(t, ReadableStream.prototype, 'cancel', realWritableStream());
-});
-
-test('ReadableStream.prototype.getReader enforces a brand check', t => {
-  t.plan(2);
-  methodThrows(t, ReadableStream.prototype, 'getReader', fakeReadableStream());
-  methodThrows(t, ReadableStream.prototype, 'getReader', realWritableStream());
-});
-
-test('ReadableStream.prototype.pipeThrough works generically on its this and its arguments', t => {
-  t.plan(2);
-
-  let pipeToArguments;
-  const thisValue = {
-    pipeTo(...args) {
-      pipeToArguments = args;
-    }
-  };
-
-  const input = { readable: {}, writable: {} };
-  const options = {};
-  const result = ReadableStream.prototype.pipeThrough.call(thisValue, input, options);
-
-  t.deepEqual(pipeToArguments, [input.writable, options], 'correct arguments should be passed to thisValue.pipeTo');
-  t.equal(result, input.readable, 'return value should be the passed readable property');
-});
-
-test('ReadableStream.prototype.pipeTo works generically on its this and its arguments', t => {
-  t.plan(1);
-
-  // TODO: expand this with a full fake that records what happens to it?
-
-  t.doesNotThrow(() => ReadableStream.prototype.pipeTo.call(fakeReadableStream(), fakeWritableStream()));
-});
-
-test('ReadableStream.prototype.tee enforces a brand check', t => {
-  t.plan(2);
-  methodThrows(t, ReadableStream.prototype, 'tee', fakeReadableStream());
-  methodThrows(t, ReadableStream.prototype, 'tee', realWritableStream());
-});
-
-
-
-
-test('ReadableStreamReader enforces a brand check on its argument', t => {
-  t.plan(1);
-  t.throws(() => new ReadableStreamReader(fakeReadableStream()), /TypeError/, 'Constructing a ReadableStreamReader ' +
-    'should throw');
-});
-
-test('ReadableStreamReader.prototype.closed enforces a brand check', t => {
-  t.plan(2);
-  getterRejects(t, ReadableStreamReader.prototype, 'closed', fakeReadableStreamReader());
-  getterRejects(t, ReadableStreamReader.prototype, 'closed', realReadableStream());
-});
-
-test('ReadableStreamReader.prototype.cancel enforces a brand check', t => {
-  t.plan(2);
-  methodRejects(t, ReadableStreamReader.prototype, 'cancel', fakeReadableStreamReader());
-  methodRejects(t, ReadableStreamReader.prototype, 'cancel', realReadableStream());
-});
-
-test('ReadableStreamReader.prototype.read enforces a brand check', t => {
-  t.plan(2);
-  methodRejects(t, ReadableStreamReader.prototype, 'read', fakeReadableStreamReader());
-  methodRejects(t, ReadableStreamReader.prototype, 'read', realReadableStream());
-});
-
-test('ReadableStreamReader.prototype.releaseLock enforces a brand check', t => {
-  t.plan(2);
-  methodThrows(t, ReadableStreamReader.prototype, 'releaseLock', fakeReadableStreamReader());
-  methodThrows(t, ReadableStreamReader.prototype, 'releaseLock', realReadableStream());
-});
-
-
-test('ReadableStreamController enforces a brand check on its argument', t => {
-  t.plan(1);
-  t.throws(() => new ReadableStreamController(fakeReadableStream()), /TypeError/,
-    'Constructing a ReadableStreamController should throw');
-});
-
-test('ReadableStreamController can\'t be given a fully-constructed ReadableStream', t => {
-  t.plan(1);
-  t.throws(() => new ReadableStreamController(realReadableStream()), /TypeError/,
-    'Constructing a ReadableStreamController should throw');
-});
-
-test('ReadableStreamController.prototype.close enforces a brand check', t => {
-  t.plan(1);
-  methodThrows(t, ReadableStreamController.prototype, 'close', fakeReadableStreamController());
-});
-
-test('ReadableStreamController.prototype.enqueue enforces a brand check', t => {
-  t.plan(1);
-  methodThrows(t, ReadableStreamController.prototype, 'enqueue', fakeReadableStreamController());
-});
-
-test('ReadableStreamController.prototype.error enforces a brand check', t => {
-  t.plan(1);
-  methodThrows(t, ReadableStreamController.prototype, 'error', fakeReadableStreamController());
-});
-
 
 test('WritableStream.prototype.closed enforces a brand check', t => {
   t.plan(2);
@@ -265,30 +110,4 @@ test('WritableStream.prototype.close enforces a brand check', t => {
   t.plan(2);
   methodRejects(t, WritableStream.prototype, 'close', fakeWritableStream());
   methodRejects(t, WritableStream.prototype, 'close', realReadableStream());
-});
-
-
-test('ByteLengthQueuingStrategy.prototype.size should work generically on its this and its arguments', t => {
-  t.plan(1);
-  const thisValue = null;
-  const returnValue = { 'returned from': 'byteLength getter' };
-  const chunk = {
-    get byteLength() {
-      return returnValue;
-    }
-  };
-
-  t.equal(ByteLengthQueuingStrategy.prototype.size.call(thisValue, chunk), returnValue);
-});
-
-test('CountQueuingStrategy.prototype.size should work generically on its this and its arguments', t => {
-  t.plan(1);
-  const thisValue = null;
-  const chunk = {
-    get byteLength() {
-      throw new TypeError('shouldn\'t be called');
-    }
-  };
-
-  t.equal(CountQueuingStrategy.prototype.size.call(thisValue, chunk), 1);
 });

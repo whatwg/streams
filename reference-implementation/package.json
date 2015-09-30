@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "description": "Reference implementation and tests for the WHATWG Streams Standard",
   "scripts": {
-    "test": "iojs --expose_gc node_modules/traceur-runner/bin/traceur-runner.js run-tests.js | tap-spec",
+    "test": "node --expose_gc node_modules/traceur-runner/bin/traceur-runner.js run-tests.js | tap-spec && npm run wpt",
+    "wpt": "node --expose_gc node_modules/traceur-runner/bin/traceur-runner.js run-web-platform-tests.js",
     "bench": "traceur-runner bench/recording-runner.js && traceur-runner bench/recording-differ.js",
     "build-browser-tests": "traceur-runner browser-tests/build.js"
   },
@@ -34,6 +35,7 @@
     "tape-catch": "^1.0.4",
     "text-table": "^0.2.0",
     "traceur": "0.0.88",
-    "traceur-runner": "^2.0.1"
+    "traceur-runner": "^2.0.1",
+    "wpt-runner": "^1.0.0"
   }
 }

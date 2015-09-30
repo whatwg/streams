@@ -38,32 +38,4 @@ export default (label, factory, error) => {
       );
     });
   });
-
-  test('getReader() should return a reader that acts errored', t => {
-    t.plan(2);
-    const rs = factory();
-
-    const reader = rs.getReader();
-
-    reader.closed.catch(e => t.equal(e, error, 'reader.closed should reject with the error'));
-    reader.read().catch(e => t.equal(e, error, 'reader.read() should reject with the error'));
-  });
-
-  test('read() twice should give the error each time', t => {
-    t.plan(3);
-    const rs = factory();
-
-    const reader = rs.getReader();
-
-    reader.read().catch(e => t.equal(e, error, 'reader.read() should reject with the error'));
-    reader.read().catch(e => t.equal(e, error, 'reader.read() should reject with the error'));
-    reader.closed.catch(e => t.equal(e, error, 'reader.closed should reject with the error'));
-  });
-
-  test('locked should be false', t => {
-    t.plan(1);
-    const rs = factory();
-
-    t.equal(rs.locked, false, 'locked getter should return false');
-  });
 };

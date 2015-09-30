@@ -5,32 +5,6 @@ export default (label, factory) => {
     tapeTest(`${label}: ${description}`, testFn);
   }
 
-  test('cancel() should return a distinct fulfilled promise each time', t => {
-    t.plan(3);
-    const rs = factory();
-
-    const cancelPromise1 = rs.cancel();
-    const cancelPromise2 = rs.cancel();
-
-    cancelPromise1.then(v => t.equal(v, undefined, 'first cancel() call should fulfill with undefined'));
-    cancelPromise2.then(v => t.equal(v, undefined, 'second cancel() call should fulfill with undefined'));
-    t.notEqual(cancelPromise1, cancelPromise2, 'cancel() calls should return distinct promises');
-  });
-
-  test('locked should be false', t => {
-    t.plan(1);
-    const rs = factory();
-
-    t.equal(rs.locked, false, 'locked getter should return false');
-  });
-
-  test('getReader() should be OK', t => {
-    t.plan(1);
-    const rs = factory();
-
-    t.doesNotThrow(() => rs.getReader(), 'getReader() should not throw');
-  });
-
   test('piping to a WritableStream in the writable state should close the writable stream', t => {
     t.plan(4);
     const rs = factory();
@@ -91,31 +65,5 @@ export default (label, factory) => {
       });
     })
     .catch(e => t.error(e));
-  });
-
-  test('should be able to acquire multiple readers if they are released in succession', t => {
-    const rs = factory();
-
-    const reader = rs.getReader();
-    reader.releaseLock();
-
-    t.doesNotThrow(() => {
-      const reader = rs.getReader();
-      reader.releaseLock();
-    }, 'getting a second reader should not throw');
-
-    t.doesNotThrow(() => rs.getReader(), 'getting a third reader should not throw');
-
-    t.end();
-  });
-
-  test('should not be able to acquire a second reader if we don\'t release the first one', t => {
-    const rs = factory();
-
-    rs.getReader();
-
-    t.throws(() => rs.getReader(), /TypeError/, 'getting a second reader should throw');
-    t.throws(() => rs.getReader(), /TypeError/, 'getting a third reader should throw');
-    t.end();
   });
 };
