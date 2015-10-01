@@ -366,3 +366,91 @@ test('Erroring a ReadableStream before checking closed should reject ReadableStr
     err => t.equals(rsError, err, 'passed error should go through')
   );
 });
+
+test('Reading twice on a stream that gets closed', t => {
+  t.plan(3);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+  const reader = rs.getReader();
+
+  reader.read().then(result => t.deepEquals(result, { value: undefined, done: true }, 'first read() should fulfill with close'));
+  reader.read().then(result => t.deepEquals(result, { value: undefined, done: true }, 'second read() should fulfill with close'));
+  reader.closed.then(() => t.pass('reader is closed'));
+
+  controller.close();
+});
+
+test('Reading twice on an errored stream', t => {
+  t.plan(3);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const myError = { potato: "mashed" };
+  controller.error(myError);
+
+  const reader = rs.getReader();
+
+  reader.read().then(
+    () => t.fail('read() should reject on an errored stream'),
+    err => t.equals(myError, err, 'first read() should reject with the passed error')
+  );
+  reader.read().then(
+    () => t.fail('read() should reject on an errored stream'),
+    err => t.equals(myError, err, 'second read() should reject with the passed error')
+  );
+  reader.closed.then(
+    () => t.fail('closed should reject on an errored stream'),
+    err => t.equals(myError, err, 'closed should reject with the passed error')
+  );
+});
+
+test('Reading twice on a stream that gets errored', t => {
+  t.plan(3);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const reader = rs.getReader();
+
+  reader.read().then(
+    () => t.fail('read() should reject on an errored stream'),
+    err => t.equals(myError, err, 'first read() should reject with the passed error')
+  );
+  reader.read().then(
+    () => t.fail('read() should reject on an errored stream'),
+    err => t.equals(myError, err, 'second read() should reject with the passed error')
+  );
+  reader.closed.then(
+    () => t.fail('closed should reject on an errored stream'),
+    err => t.equals(myError, err, 'closed should reject with the passed error')
+  );
+
+  const myError = { potato: 'mashed' };
+  controller.error(myError);
+});
+
+test('ReadableStream: if start rejects with no parameter, it should error the stream with an undefined error', t => {
+  t.plan(1);
+
+  const rs = new ReadableStream({
+    start(c) {
+      return Promise.reject();
+    }
+  });
+
+  rs.getReader().read().catch(e => t.equals(typeof e, 'undefined', 'start rejects with no parameter, error gets undefined'));
+});
