@@ -326,3 +326,43 @@ test('ReadableStreamReader closed promise should be rejected with undefined if t
 
   controller.error();
 });
+
+test('Erroring a ReadableStream after checking closed should reject ReadableStreamReader closed promise', t => {
+  t.plan(1);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  rs.getReader().closed.then(
+    () => t.fail('closed promise should not be resolved when stream is errored'),
+    err => t.equals(rsError, err, 'passed error should go through')
+  );
+
+  const rsError = "my error";
+  controller.error(rsError);
+});
+
+test('Erroring a ReadableStream before checking closed should reject ReadableStreamReader closed promise', t => {
+  t.plan(1);
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const rsError = "my error";
+  controller.error(rsError);
+
+  // Let's call getReader twice to ensure that stream is not locked to a reader.
+  rs.getReader().releaseLock();
+  rs.getReader().closed.then(
+    () => t.fail('closed promise should not be resolved when stream is errored'),
+    err => t.equals(rsError, err, 'passed error should go through')
+  );
+});
