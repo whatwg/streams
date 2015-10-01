@@ -137,6 +137,78 @@ test('ReadableStream.prototype.getReader enforces a brand check', t => {
   methodThrows(t, ReadableStream.prototype, 'getReader', realWritableStream());
 });
 
+test('ReadableStream.prototype.pipeThrough should throw when "this" has no pipeTo method', t => {
+  t.plan(4);
+  const args = [ {
+    readable: { },
+    writable: { }
+  }, {} ];
+  methodThrows(t, ReadableStream.prototype, 'pipeThrough', undefined, args);
+  methodThrows(t, ReadableStream.prototype, 'pipeThrough', null, args);
+  methodThrows(t, ReadableStream.prototype, 'pipeThrough', 1, args);
+  methodThrows(t, ReadableStream.prototype, 'pipeThrough', { "pipeTo": "test" }, args);
+});
+
+test('ReadableStream.prototype.pipeThrough should throw when passed argument is not an object', t => {
+  t.plan(2);
+  const thisValue = {
+    pipeTo() {
+      t.fail('pipe to should not be called');
+    }
+  };
+  methodThrows(t, ReadableStream.prototype, 'pipeThrough', thisValue, [ undefined, {} ]);
+  methodThrows(t, ReadableStream.prototype, 'pipeThrough', thisValue, [ null, {} ]);
+});
+
+test('ReadableStream.prototype.pipeThrough should throw when called getters are throwing', t => {
+  t.plan(3);
+  const error = new Error("potato");
+
+  const thisWrongValue = {
+    get pipeTo() {
+      throw error;
+    }
+  };
+  t.throws(() => ReadableStream.prototype.pipeThrough.call(thisWrongValue, { readable: { }, writable: { } }, {}), /potato/, 'pipeThrough should rethrow the error thrown by pipeTo');
+
+  const thisValue = {
+    pipeTo() {
+      t.fail('pipeTo should not be called');
+    }
+  };
+  const wrongInput = {
+    readable: { },
+    get writable() {
+      throw error;
+    }
+  };
+  t.throws(() => ReadableStream.prototype.pipeThrough.call(thisValue, wrongInput, {}), /potato/, 'pipeThrough should rethrow the error thrown by the writable getter');
+
+  const wrongInput2 = {
+    get readable() {
+      throw error;
+    },
+    writable: { }
+  };
+  t.throws(() => ReadableStream.prototype.pipeThrough.call(thisValue, wrongInput2, {}), /potato/, 'pipeThrough should rethrow the error thrown by the readable getter');
+});
+
+test('ReadableStream.prototype.pipeThrough should work with missing parameters', t => {
+  t.plan(4);
+  let count = 0;
+  const thisValue = {
+    pipeTo() {
+      ++count;
+    }
+  };
+
+  t.doesNotThrow(() => ReadableStream.prototype.pipeThrough.call(thisValue, { readable: { }, writable: { } }), 'works with both readable and writable');
+  t.doesNotThrow(() => ReadableStream.prototype.pipeThrough.call(thisValue, { readable: { } }, { }), 'works with only readable');
+  t.doesNotThrow(() => ReadableStream.prototype.pipeThrough.call(thisValue, { writable: { } }, { }), 'works with only writable');
+
+  t.equals(count, 3, 'pipeTo was called 3 times');
+});
+
 test('ReadableStream.prototype.pipeThrough works generically on its this and its arguments', t => {
   t.plan(2);
 
