@@ -119,10 +119,10 @@ function getterThrows(t, obj, getterName, target) {
   t.throws(() => getter.call(target), /TypeError/, getterName + ' should throw a TypeError');
 }
 
-function methodThrows(t, obj, methodName, target) {
+function methodThrows(t, obj, methodName, target, args) {
   const method = obj[methodName];
 
-  t.throws(() => method.call(target), /TypeError/, methodName + ' should throw a TypeError');
+  t.throws(() => method.apply(target, args), /TypeError/, methodName + ' should throw a TypeError');
 }
 
 test('ReadableStream.prototype.cancel enforces a brand check', t => {
