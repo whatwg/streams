@@ -332,4 +332,46 @@ test9.step(function() {
     controller.error();
 });
 
+var test10 = async_test('Erroring a ReadableStream after checking closed should reject ReadableStreamReader closed promise');
+test10.step(function() {
+    var controller;
+    var rs = new ReadableStream({
+        start: function(c) {
+            controller = c;
+        }
+    });
+
+   rs.getReader().closed.then(test10.step_func(function() {
+        assert_unreached("closed promise should not be resolved when stream is errored");
+    }), test10.step_func(function(err) {
+        assert_equals(rsError, err);
+        test10.done();
+    }));
+
+    var rsError = "my error";
+    controller.error(rsError);
+});
+
+var test11 = async_test('Erroring a ReadableStream before checking closed should reject ReadableStreamReader closed promise');
+test11.step(function() {
+    var controller;
+    var rs = new ReadableStream({
+        start: function(c) {
+            controller = c;
+        }
+    });
+
+    var rsError = "my error";
+    controller.error(rsError);
+
+    // Let's call getReader twice to ensure that stream is not locked to a reader.
+    rs.getReader().releaseLock();
+    rs.getReader().closed.then(test11.step_func(function() {
+        assert_unreached("closed promise should not be resolved when stream is errored");
+    }), test11.step_func(function(err) {
+        assert_equals(rsError, err);
+        test11.done();
+    }));
+});
+
 done();
