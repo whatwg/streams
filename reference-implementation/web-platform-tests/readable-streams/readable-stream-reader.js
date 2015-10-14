@@ -374,4 +374,151 @@ test11.step(function() {
     }));
 });
 
+var test12 = async_test('Reading twice on a stream that gets closed');
+test12.step(function() {
+    var controller;
+    var rs = new ReadableStream({
+        start: function(c) {
+            controller = c;
+        }
+    });
+    var counter = 0;
+    var reader = rs.getReader();
+
+    reader.read().then(test12.step_func(function(result) {
+        assert_object_equals(result, { value: undefined, done: true }, 'read() should fulfill with close');
+        assert_equals(++counter, 1);
+    }));
+    reader.read().then(test12.step_func(function(result) {
+        assert_object_equals(result, { value: undefined, done: true }, 'read() should fulfill with close');
+        assert_equals(++counter, 2);
+    }));
+    reader.closed.then(test12.step_func(function() {
+        assert_equals(++counter, 3);
+        test12.done();
+    }));
+
+    controller.close();
+});
+
+var test13 = async_test('Reading twice on a closed stream');
+test13.step(function() {
+    var controller;
+    var rs = new ReadableStream({
+        start: function(c) {
+            controller = c;
+        }
+    });
+
+    controller.close();
+
+    var counter = 0;
+    var reader = rs.getReader();
+
+    reader.read().then(test13.step_func(function(result) {
+        assert_object_equals(result, { value: undefined, done: true }, 'read() should fulfill with close');
+        assert_equals(counter, 0);
+        counter++;
+    }));
+    reader.read().then(test13.step_func(function(result) {
+        assert_object_equals(result, { value: undefined, done: true }, 'read() should fulfill with close');
+        assert_equals(counter, 1);
+        counter++;
+    }));
+    reader.closed.then(test13.step_func(function() {
+        assert_equals(counter, 2);
+        counter++;
+        test13.done();
+    }));
+});
+
+var test14 = async_test('Reading twice on an errored stream');
+test14.step(function() {
+    var controller;
+    var rs = new ReadableStream({
+        start: function(c) {
+            controller = c;
+        }
+    });
+
+    var myError = { potato: "mashed" };
+    controller.error(myError);
+
+    var counter = 0;
+    var reader = rs.getReader();
+
+    reader.read().then(test14.step_func(function() {
+        assert_unreached('read() should reject on an errored stream');
+    }), test14.step_func(function(err) {
+        assert_equals(myError, err);
+        assert_equals(counter, 0);
+        counter++;
+    }));
+    reader.read().then(test14.step_func(function() {
+        assert_unreached('read() should reject on an errored stream');
+    }), test14.step_func(function(err) {
+        assert_equals(myError, err);
+        assert_equals(counter, 1);
+        counter++;
+    }));
+    reader.closed.then(test14.step_func(function() {
+        assert_unreached('read() should reject on an errored stream');
+    }), test14.step_func(function(err) {
+        assert_equals(myError, err);
+        assert_equals(counter, 2);
+        counter++;
+        test14.done();
+    }));
+});
+
+var test15 = async_test('Reading twice on a stream that gets errored');
+test15.step(function() {
+    var controller;
+    var rs = new ReadableStream({
+        start: function(c) {
+            controller = c;
+        }
+    });
+
+    var counter = 0;
+    var reader = rs.getReader();
+
+    reader.read().then(test15.step_func(function() {
+        assert_unreached('read() should reject on an errored stream');
+    }), test15.step_func(function(err) {
+        assert_equals(myError, err);
+        assert_equals(++counter, 1);
+    }));
+    reader.read().then(test15.step_func(function() {
+        assert_unreached('read() should reject on an errored stream');
+    }), test15.step_func(function(err) {
+        assert_equals(myError, err);
+        assert_equals(++counter, 2);
+    }));
+    reader.closed.then(test15.step_func(function() {
+        assert_unreached('read() should reject on an errored stream');
+    }), test15.step_func(function(err) {
+        assert_equals(myError, err);
+        assert_equals(++counter, 3);
+        test15.done();
+    }));
+
+    var myError = { potato: 'mashed' };
+    controller.error(myError);
+ });
+
+var test16 = async_test('ReadableStream: if start rejects with no parameter, it should error the stream with an undefined error');
+test16.step(function() {
+    var rs = new ReadableStream({
+        start: function(c) {
+            return Promise.reject();
+        }
+    });
+
+    rs.getReader().read().catch(test16.step_func(function(e) {
+        assert_equals(typeof e, "undefined");
+        test16.done();
+    }));
+});
+
 done();
