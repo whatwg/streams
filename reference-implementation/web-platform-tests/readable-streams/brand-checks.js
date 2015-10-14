@@ -63,22 +63,6 @@ test(function() {
 }, 'ReadableStream.prototype.getReader enforces a brand check');
 
 test(function() {
-    var pipeToArguments;
-    var thisValue = {
-        pipeTo: function() {
-            pipeToArguments = arguments;
-        }
-    };
-
-    var input = { readable: {}, writable: {} };
-    var options = {};
-    var result = ReadableStream.prototype.pipeThrough.call(thisValue, input, options);
-
-    assert_array_equals(pipeToArguments, [input.writable, options], 'correct arguments should be passed to thisValue.pipeTo');
-    assert_equals(result, input.readable, 'return value should be the passed readable property');
-}, 'ReadableStream.prototype.pipeThrough works generically on its this and its arguments');
-
-test(function() {
     methodThrows(ReadableStream.prototype, 'tee', fakeReadableStream());
 }, 'ReadableStream.prototype.tee enforces a brand check');
 

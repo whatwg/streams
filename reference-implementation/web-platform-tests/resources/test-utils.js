@@ -32,10 +32,11 @@ self.getterThrows = function (obj, getterName, target) {
     assert_throws(new TypeError(), function() { getter.call(target); }, getterName + ' should throw a TypeError');
 };
 
-self.methodThrows = function (obj, methodName, target) {
+self.methodThrows = function (obj, methodName, target, args) {
     var method = obj[methodName];
 
-    assert_throws(new TypeError(), function() { method.call(target); }, methodName + ' should throw a TypeError');
+    assert_throws(new TypeError(), function() { method.apply(target, args); },
+        methodName + ' should throw a TypeError');
 };
 
 self.garbageCollect = () => {
