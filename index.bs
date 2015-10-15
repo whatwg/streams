@@ -1113,7 +1113,7 @@ branches.
 <emu-alg>
   1. Assert: IsReadableStream(_stream_) is *true*.
   1. Assert: Type(_shouldClone_) is Boolean.
-  1. Let _reader_ be AcquireReadableStreamReader(_reader_).
+  1. Let _reader_ be AcquireReadableStreamReader(_stream_).
   1. ReturnIfAbrupt(_reader_).
   1. Let _teeState_ be Record{[[closedOrErrored]]: *false*, [[canceled1]]: *false*, [[canceled2]]: *false*, [[reason1]]: *undefined*, [[reason2]]: *undefined*, [[promise]]: a new promise}.
   1. Let _pull_ be a new <a>TeeReadableStream pull function</a>.
