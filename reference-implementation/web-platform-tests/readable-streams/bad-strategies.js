@@ -83,7 +83,7 @@ var test2 = async_test('Readable stream: invalid strategy.size return value');
 test2.step(function() {
     var numberOfCalls = 0;
     var elements = [NaN, -Infinity, +Infinity, -1];
-    var theError = [];
+    var theErrors = [];
     for (var i = 0; i < elements.length; i++) {
         var rs = new ReadableStream({
             start: function(c) {
@@ -92,7 +92,7 @@ test2.step(function() {
                     assert_unreached('enqueue didn\'t throw');
                 } catch (error) {
                     assert_equals(error.name, 'RangeError', 'enqueue should throw a RangeError for ' + elements[i]);
-                    theError[i] = error;
+                    theErrors[i] = error;
                 }
             }
         },
@@ -104,8 +104,8 @@ test2.step(function() {
         });
 
         var catchFunction = function(i, e) {
-            assert_equals(e, theError[i], 'closed should reject with the error for ' + elements[i]);
-            if (++numberOfCalls, elements.length) {
+            assert_equals(e, theErrors[i], 'closed should reject with the error for ' + elements[i]);
+            if (++numberOfCalls === elements.length) {
                 test2.done();
             }
         };
