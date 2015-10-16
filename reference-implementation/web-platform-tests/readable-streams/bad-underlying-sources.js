@@ -98,6 +98,7 @@ promise_test(t => {
       ++counter;
       if (counter === 1) {
         c.enqueue('a');
+        return;
       }
 
       throw theError;
