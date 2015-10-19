@@ -1881,9 +1881,9 @@ A few abstract operations are used in this specification for utility purposes. W
 
 <h4 id="get-viewed-array-buffer" aoid="GetViewedArrayBuffer" throws>GetViewedArrayBuffer ( O )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Return the result of the same algorithm as used by the get accessor function of the original value of %TypedArray%.prototype.buffer, with _O_ in place of *this*.
-</pre>
+</emu-alg>
 
 <div class="note">
   Ideally, this operation and its counterparts <a href="https://bugs.ecmascript.org/show_bug.cgi?id=4369">would be
@@ -1892,15 +1892,15 @@ A few abstract operations are used in this specification for utility purposes. W
 
 <h4 id="get-byte-length" aoid="GetByteLength" throws>GetByteLength ( O )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Return the result of the same algorithm as used by the get accessor function of the original value of %TypedArray%.prototype.byteLength, with _O_ in place of *this*.
-</pre>
+</emu-alg>
 
 <h4 id="get-byte-offset" aoid="GetByteOffset" throws>GetByteOffset ( O )</h4>
 
-<pre is="emu-alg">
+<emu-alg>
   1. Return the result of the same algorithm as used by the get accessor function of the original value of %TypedArray%.prototype.byteOffset, with _O_ in place of *this*.
-</pre>
+</emu-alg>
 
 <h4 id="invoke-or-noop" aoid="InvokeOrNoop" throws>InvokeOrNoop ( O, P, args )</h4>
 
