@@ -19,12 +19,12 @@ RandomPushSource.prototype = {
         }
 
         if (!this.started) {
-            this._intervalHandle = setInterval(writeChunk, 23);
+            this._intervalHandle = setInterval(writeChunk, 2);
             this.started = true;
         }
 
         if (this.paused) {
-            this._intervalHandle = setInterval(writeChunk, 23);
+            this._intervalHandle = setInterval(writeChunk, 2);
             this.paused = false;
         }
 
