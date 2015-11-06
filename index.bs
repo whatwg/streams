@@ -253,7 +253,7 @@ I/O source, called the <dfn>underlying byte source</dfn>.
       close() {
         console.log("All data successfully read!");
       },
-      abort(r) {
+      abort(e) {
         console.error("Something went wrong!", e);
       }
     }));
