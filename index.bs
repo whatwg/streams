@@ -722,7 +722,7 @@ Instances of <code>ReadableStreamController</code> are created with the internal
 <emu-alg>
   1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*@[[controlledReadableStream]]@[[state]] is not "readable", throw a *TypeError* exception.
-  1. Perform ErrorReadableStream(*this*@[[controlledReadableStream]]).
+  1. Perform ErrorReadableStream(*this*@[[controlledReadableStream]], _e_).
   1. Return *undefined*.
 </emu-alg>
 
