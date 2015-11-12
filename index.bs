@@ -878,7 +878,7 @@ Instances of <code>ReadableStreamReader</code> are created with the internal slo
 
 <h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamReader" throws>AcquireReadableStreamReader ( stream )</h4>
 
-This abstract operation is meant to be called from other specifications that may wish to acquire an <a>readable stream
+This abstract operation is meant to be called from other specifications that may wish to acquire a <a>readable stream
 reader</a> for a given stream.
 
 <emu-alg>
