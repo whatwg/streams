@@ -6,7 +6,8 @@
     "test": "node --expose_gc node_modules/traceur-runner/bin/traceur-runner.js run-tests.js | tap-spec && npm run wpt",
     "wpt": "node --expose_gc node_modules/traceur-runner/bin/traceur-runner.js run-web-platform-tests.js",
     "bench": "traceur-runner bench/recording-runner.js && traceur-runner bench/recording-differ.js",
-    "build-browser-tests": "traceur-runner browser-tests/build.js"
+    "build-browser-tests": "traceur-runner browser-tests/build.js",
+    "lint": "eslint web-platform-tests"
   },
   "repository": "whatwg/streams",
   "keywords": [
@@ -26,6 +27,7 @@
     "browserify": "^9.0.7",
     "browserify-tape-spec": "^1.1.2",
     "es6ify": "^1.6.0",
+    "eslint": "^1.10.1",
     "glob": "^5.0.3",
     "mkdirp": "^0.5.0",
     "ms": "^0.7.0",

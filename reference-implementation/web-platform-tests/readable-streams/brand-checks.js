@@ -5,118 +5,147 @@ if (self.importScripts) {
   self.importScripts('/resources/testharness.js');
 }
 
-var ReadableStreamReader;
-var ReadableStreamController;
+let ReadableStreamReader;
+let ReadableStreamController;
 
-test(function() {
-    // It's not exposed globally, but we test a few of its properties here.
-    ReadableStreamReader = (new ReadableStream()).getReader().constructor;
+test(() => {
+
+  // It's not exposed globally, but we test a few of its properties here.
+  ReadableStreamReader = (new ReadableStream()).getReader().constructor;
+
 }, 'Can get the ReadableStreamReader constructor indirectly');
 
-test(function() {
-    // It's not exposed globally, but we test a few of its properties here.
-    new ReadableStream({
-        start: function(c) {
-            ReadableStreamController = c.constructor;
-        }
-    });
+test(() => {
+
+  // It's not exposed globally, but we test a few of its properties here.
+  new ReadableStream({
+    start(c) {
+      ReadableStreamController = c.constructor;
+    }
+  });
+
 }, 'Can get the ReadableStreamController constructor indirectly');
 
 function fakeReadableStream() {
-    return {
-        cancel: function(reason) { return Promise.resolve(); },
-        getReader: function() { return new ReadableStreamReader(new ReadableStream()); },
-        pipeThrough: function(obj, options) { return obj.readable; },
-        pipeTo: function() { return Promise.resolve(); },
-        tee: function() { return [realReadableStream(), realReadableStream()]; }
-    };
+  return {
+    cancel() { return Promise.resolve(); },
+    getReader() { return new ReadableStreamReader(new ReadableStream()); },
+    pipeThrough(obj) { return obj.readable; },
+    pipeTo() { return Promise.resolve(); },
+    tee() { return [realReadableStream(), realReadableStream()]; }
+  };
 }
 
 function realReadableStream() {
-    return new ReadableStream();
+  return new ReadableStream();
 }
 
 function fakeReadableStreamReader() {
-    return {
-        get closed() { return Promise.resolve(); },
-        cancel: function(reason) { return Promise.resolve(); },
-        read: function() { return Promise.resolve({ value: undefined, done: true }); },
-        releaseLock: function() { return; }
-    };
+  return {
+    get closed() { return Promise.resolve(); },
+    cancel() { return Promise.resolve(); },
+    read() { return Promise.resolve({ value: undefined, done: true }); },
+    releaseLock() { return; }
+  };
 }
 
 function fakeReadableStreamController() {
-    return {
-        close: function() { },
-        enqueue: function(chunk) { },
-        error: function(e) { }
-    };
+  return {
+    close() { },
+    enqueue() { },
+    error() { }
+  };
 }
 
-var test1 = async_test('ReadableStream.prototype.cancel enforces a brand check');
-test1.step(function() {
-    methodRejects(test1, ReadableStream.prototype, 'cancel', fakeReadableStream(), true);
-});
+promise_test(t => {
 
-test(function() {
-    methodThrows(ReadableStream.prototype, 'getReader', fakeReadableStream());
+  return methodRejects(t, ReadableStream.prototype, 'cancel', fakeReadableStream());
+
+}, 'ReadableStream.prototype.cancel enforces a brand check');
+
+test(() => {
+
+  methodThrows(ReadableStream.prototype, 'getReader', fakeReadableStream());
+
 }, 'ReadableStream.prototype.getReader enforces a brand check');
 
-test(function() {
-    methodThrows(ReadableStream.prototype, 'tee', fakeReadableStream());
+test(() => {
+
+  methodThrows(ReadableStream.prototype, 'tee', fakeReadableStream());
+
 }, 'ReadableStream.prototype.tee enforces a brand check');
 
-test(function() {
-    assert_throws(new TypeError(), function() { new ReadableStreamReader(fakeReadableStream()); }, 'Constructing a ReadableStreamReader should throw');
+test(() => {
+
+  assert_throws(new TypeError(), () => new ReadableStreamReader(fakeReadableStream()),
+                'Constructing a ReadableStreamReader should throw');
+
 }, 'ReadableStreamReader enforces a brand check on its argument');
 
-var test2 = async_test('ReadableStreamReader.prototype.closed enforces a brand check');
-test2.step(function() {
-    getterRejects(test2, ReadableStreamReader.prototype, 'closed', fakeReadableStreamReader());
-    getterRejects(test2, ReadableStreamReader.prototype, 'closed', realReadableStream(), true);
-});
+promise_test(t => {
 
-var test3 = async_test('ReadableStreamReader.prototype.cancel enforces a brand check');
-test3.step(function() {
-    methodRejects(test3, ReadableStreamReader.prototype, 'cancel', fakeReadableStreamReader());
-    methodRejects(test3, ReadableStreamReader.prototype, 'cancel', realReadableStream(), true);
-});
+  return Promise.all([
+    getterRejects(t, ReadableStreamReader.prototype, 'closed', fakeReadableStreamReader()),
+    getterRejects(t, ReadableStreamReader.prototype, 'closed', realReadableStream())
+  ]);
 
-var test4 = async_test('ReadableStreamReader.prototype.read enforces a brand check');
-test4.step(function() {
-    methodRejects(test4, ReadableStreamReader.prototype, 'read', fakeReadableStreamReader());
-    methodRejects(test4, ReadableStreamReader.prototype, 'read', realReadableStream(), true);
-});
+}, 'ReadableStreamReader.prototype.closed enforces a brand check');
 
-var test5 = async_test('ReadableStreamReader.prototype.read enforces a brand check');
-test5.step(function() {
-    methodRejects(test5, ReadableStreamReader.prototype, 'read', fakeReadableStreamReader());
-    methodRejects(test5, ReadableStreamReader.prototype, 'read', realReadableStream(), true);
-});
+promise_test(t => {
 
-test(function() {
-    methodThrows(ReadableStreamReader.prototype, 'releaseLock', fakeReadableStreamReader());
-    methodThrows(ReadableStreamReader.prototype, 'releaseLock', realReadableStream());
+  return Promise.all([
+    methodRejects(t, ReadableStreamReader.prototype, 'cancel', fakeReadableStreamReader()),
+    methodRejects(t, ReadableStreamReader.prototype, 'cancel', realReadableStream())
+  ]);
+
+}, 'ReadableStreamReader.prototype.cancel enforces a brand check');
+
+promise_test(t => {
+
+  return Promise.all([
+    methodRejects(t, ReadableStreamReader.prototype, 'read', fakeReadableStreamReader()),
+    methodRejects(t, ReadableStreamReader.prototype, 'read', realReadableStream())
+  ]);
+
+}, 'ReadableStreamReader.prototype.read enforces a brand check');
+
+test(() => {
+
+  methodThrows(ReadableStreamReader.prototype, 'releaseLock', fakeReadableStreamReader());
+  methodThrows(ReadableStreamReader.prototype, 'releaseLock', realReadableStream());
+
 }, 'ReadableStreamReader.prototype.releaseLock enforces a brand check');
 
-test(function() {
-    assert_throws(new TypeError(), function() { new ReadableStreamController(fakeReadableStream()); }, 'Constructing a ReadableStreamController should throw');
+test(() => {
+
+  assert_throws(new TypeError(), () => new ReadableStreamController(fakeReadableStream()),
+                'Constructing a ReadableStreamController should throw');
+
 }, 'ReadableStreamController enforces a brand check on its argument');
 
-test(function() {
-    assert_throws(new TypeError(), function() { new ReadableStreamController(realReadableStream()); }, 'Constructing a ReadableStreamController should throw');
+test(() => {
+
+  assert_throws(new TypeError(), () => new ReadableStreamController(realReadableStream()),
+                'Constructing a ReadableStreamController should throw');
+
 }, 'ReadableStreamController can\'t be given a fully-constructed ReadableStream');
 
-test(function() {
+test(() => {
+
   methodThrows(ReadableStreamController.prototype, 'close', fakeReadableStreamController());
+
 }, 'ReadableStreamController.prototype.close enforces a brand check');
 
-test(function() {
+test(() => {
+
   methodThrows(ReadableStreamController.prototype, 'enqueue', fakeReadableStreamController());
+
 }, 'ReadableStreamController.prototype.enqueue enforces a brand check');
 
-test(function() {
+test(() => {
+
   methodThrows(ReadableStreamController.prototype, 'error', fakeReadableStreamController());
+
 }, 'ReadableStreamController.prototype.error enforces a brand check');
 
 done();

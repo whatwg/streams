@@ -6,6 +6,7 @@ if (self.importScripts) {
 
 
 test(() => {
+
   const theError = new Error('a unique string');
 
   assert_throws(theError, () => {
@@ -20,6 +21,7 @@ test(() => {
 
 
 test(() => {
+
   const theError = new Error('a unique string');
 
   assert_throws(theError, () => {
@@ -141,7 +143,7 @@ promise_test(t => {
 
 }, 'Underlying source cancel: throwing method');
 
-promise_test(t => {
+promise_test(() => {
 
   let controller;
   const rs = new ReadableStream({
@@ -157,7 +159,7 @@ promise_test(t => {
 
 }, 'Underlying source: calling enqueue on an empty canceled stream should not throw');
 
-promise_test(t => {
+promise_test(() => {
 
   let controller;
   const rs = new ReadableStream({
@@ -175,7 +177,7 @@ promise_test(t => {
 
 }, 'Underlying source: calling enqueue on a non-empty canceled stream should not throw');
 
-promise_test(t => {
+promise_test(() => {
 
   return new ReadableStream({
     start(c) {
@@ -200,7 +202,7 @@ promise_test(t => {
 
 }, 'Underlying source: calling enqueue on an errored stream should throw');
 
-promise_test(t => {
+promise_test(() => {
 
   return new ReadableStream({
     start(c) {
@@ -211,7 +213,7 @@ promise_test(t => {
 
 }, 'Underlying source: calling close twice on an empty stream should throw the second time');
 
-promise_test(t => {
+promise_test(() => {
 
   let startCalled = false;
   let readCalled = false;
@@ -237,7 +239,8 @@ promise_test(t => {
 
 }, 'Underlying source: calling close twice on a non-empty stream should throw the second time');
 
-promise_test(t => {
+promise_test(() => {
+
   let controller;
   let startCalled = false;
   const rs = new ReadableStream({
@@ -254,9 +257,9 @@ promise_test(t => {
     assert_true(startCalled);
   });
 
-  }, 'Underlying source: calling close on an empty canceled stream should not throw');
+}, 'Underlying source: calling close on an empty canceled stream should not throw');
 
-promise_test(t => {
+promise_test(() => {
 
   let controller;
   let startCalled = false;
@@ -277,7 +280,7 @@ promise_test(t => {
 
 }, 'Underlying source: calling close on a non-empty canceled stream should not throw');
 
-promise_test(t => {
+promise_test(() => {
 
   const theError = new Error('boo');
   let startCalled = false;
@@ -297,7 +300,7 @@ promise_test(t => {
 
 }, 'Underlying source: calling close after error should throw');
 
-promise_test(t => {
+promise_test(() => {
 
   const theError = new Error('boo');
   let startCalled = false;
@@ -317,7 +320,7 @@ promise_test(t => {
 
 }, 'Underlying source: calling error twice should throw the second time');
 
-promise_test(t => {
+promise_test(() => {
 
   let startCalled = false;
 
@@ -333,7 +336,7 @@ promise_test(t => {
 
 }, 'Underlying source: calling error after close should throw');
 
-promise_test(t => {
+promise_test(() => {
 
   let startCalled = false;
   const firstError = new Error('1');
@@ -355,7 +358,7 @@ promise_test(t => {
 }, 'Underlying source: calling error and returning a rejected promise from start should cause the stream to error ' +
    'with the first error');
 
-promise_test(t => {
+promise_test(() => {
 
   let startCalled = false;
   const firstError = new Error('1');

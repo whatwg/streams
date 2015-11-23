@@ -6,7 +6,7 @@ if (self.importScripts) {
 
 test(() => {
 
-  const strategy = new CountQueuingStrategy({ highWaterMark: 4 });
+  new CountQueuingStrategy({ highWaterMark: 4 });
 
 }, 'Can construct a CountQueuingStrategy with a valid high water mark');
 
@@ -23,11 +23,11 @@ test(() => {
 
   const highWaterMark = 1;
   const highWaterMarkObjectGetter = {
-    get highWaterMark() { return highWaterMark; },
+    get highWaterMark() { return highWaterMark; }
   };
   const error = new Error('wow!');
   const highWaterMarkObjectGetterThrowing = {
-    get highWaterMark() { throw error; },
+    get highWaterMark() { throw error; }
   };
 
   assert_throws({ name: 'TypeError' }, () => new CountQueuingStrategy(), 'construction fails with undefined');
@@ -61,12 +61,12 @@ test(() => {
   const size = 1024;
   const chunk = { byteLength: size };
   const chunkGetter = {
-    get byteLength() { return size; },
-  }
+    get byteLength() { return size; }
+  };
   const error = new Error('wow!');
   const chunkGetterThrowing = {
-    get byteLength() { throw error; },
-  }
+    get byteLength() { throw error; }
+  };
 
   assert_equals(CountQueuingStrategy.prototype.size(), 1, 'size returns 1 with undefined');
   assert_equals(CountQueuingStrategy.prototype.size(null), 1, 'size returns 1 with null');
@@ -98,8 +98,8 @@ test(() => {
   strategy.highWaterMark = 10;
   assert_equals(strategy.highWaterMark, 10);
 
-  strategy.highWaterMark = "banana";
-  assert_equals(strategy.highWaterMark, "banana");
+  strategy.highWaterMark = 'banana';
+  assert_equals(strategy.highWaterMark, 'banana');
 
 }, 'CountQueuingStrategy\'s highWaterMark property can be set to anything');
 

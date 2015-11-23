@@ -1,56 +1,43 @@
 'use strict';
 
-self.getterRejects = function(test, obj, getterName, target, endTest) {
-    var getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
+self.getterRejects = (t, obj, getterName, target) => {
+  const getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
 
-    getter.call(target).then(
-        test.step_func(function() { assert_unreached(getterName + ' should not fulfill'); }),
-        test.step_func(function(e) {
-            assert_throws(new TypeError(), function() { throw e; }, getterName + ' should reject with a TypeError');
-            if (endTest === true) {
-                test.done();
-            }
-        }));
+  return promise_rejects(t, new TypeError(), getter.call(target));
 };
 
-self.methodRejects = function (test, obj, methodName, target, endTest) {
-    var method = obj[methodName];
+self.methodRejects = (t, obj, methodName, target) => {
+  const method = obj[methodName];
 
-    method.call(target).then(
-        test.step_func(function() { assert_unreached(methodName + ' should not fulfill'); }),
-        test.step_func(function(e) {
-            assert_throws(new TypeError(), function() { throw e; }, methodName + ' should reject with a TypeError');
-            if (endTest === true) {
-                test.done();
-            }
-        }));
+  return promise_rejects(t, new TypeError(), method.call(target));
 };
 
-self.getterThrows = function (obj, getterName, target) {
-  var getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
+self.getterThrows = (obj, getterName, target) => {
+  const getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
 
-    assert_throws(new TypeError(), function() { getter.call(target); }, getterName + ' should throw a TypeError');
+  assert_throws(new TypeError(), () => getter.call(target), getterName + ' should throw a TypeError');
 };
 
-self.methodThrows = function (obj, methodName, target, args) {
-    var method = obj[methodName];
+self.methodThrows = (obj, methodName, target, args) => {
+  const method = obj[methodName];
 
-    assert_throws(new TypeError(), function() { method.apply(target, args); },
-        methodName + ' should throw a TypeError');
+  assert_throws(new TypeError(), () => method.apply(target, args), methodName + ' should throw a TypeError');
 };
 
 self.garbageCollect = () => {
-    if (self.gc) {
-        // Use --expose_gc for V8 (and Node.js)
-        // Exposed in SpiderMonkey shell as well
-        self.gc();
-    } else if (self.GCController) {
-        // Present in some WebKit development environments
-        GCController.collect();
-    } else {
-        console.warn('Tests are running without the ability to do manual garbage collection. They will still work, but ' +
-          'coverage will be suboptimal.');
-    }
+  if (self.gc) {
+    // Use --expose_gc for V8 (and Node.js)
+    // Exposed in SpiderMonkey shell as well
+    self.gc();
+  } else if (self.GCController) {
+    // Present in some WebKit development environments
+    GCController.collect();
+  } else {
+    /* eslint-disable no-console */
+    console.warn('Tests are running without the ability to do manual garbage collection. They will still work, but ' +
+      'coverage will be suboptimal.');
+    /* eslint-enable no-console */
+  }
 };
 
-self.delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+self.delay = ms => new Promise(resolve => step_timeout(resolve, ms));

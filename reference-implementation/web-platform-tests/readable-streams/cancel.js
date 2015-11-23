@@ -1,222 +1,239 @@
 'use strict';
 
 if (self.importScripts) {
+  self.importScripts('../resources/test-utils.js');
   self.importScripts('../resources/rs-utils.js');
   self.importScripts('/resources/testharness.js');
 }
 
-promise_test(t => {
-    var randomSource = new RandomPushSource();
+promise_test(() => {
 
-    var cancellationFinished = false;
-    var rs = new ReadableStream({
-        start: function(c) {
-            randomSource.ondata = c.enqueue.bind(c);
-            randomSource.onend = c.close.bind(c);
-            randomSource.onerror = c.error.bind(c);
-        },
+  const randomSource = new RandomPushSource();
 
-        pull: function() {
-            randomSource.readStart();
-        },
+  let cancellationFinished = false;
+  const rs = new ReadableStream({
+    start(c) {
+      randomSource.ondata = c.enqueue.bind(c);
+      randomSource.onend = c.close.bind(c);
+      randomSource.onerror = c.error.bind(c);
+    },
 
-        cancel: function() {
-            randomSource.readStop();
-            randomSource.onend();
+    pull() {
+      randomSource.readStart();
+    },
 
-            return new Promise(resolve => {
-                setTimeout(() => {
-                    cancellationFinished = true;
-                    resolve();
-                }, 1);
-            });
-        }
-    });
-    // We call setTimeout multiple times to avoid cancelling too early for the
-    // source to enqueue at least one chunk.
-    var cancel = new Promise(resolve => setTimeout(resolve, 5)).then(() => {
-        return new Promise(resolve => setTimeout(resolve, 5));
-    }).then(() => {
-        return new Promise(resolve => setTimeout(resolve, 5));
-    }).then(() => {
-        return reader.cancel();
-    });
+    cancel() {
+      randomSource.readStop();
+      randomSource.onend();
 
-    var reader = rs.getReader();
-    return readableStreamToArray(rs, reader).then(chunks => {
-        assert_greater_than(chunks.length, 0, 'at least one chunk should be read');
-        for (var i = 0; i < chunks.length; i++) {
-            assert_equals(chunks[i].length, 128, 'chunk ' + i + ' should have 128 bytes');
-        }
-        assert_false(cancellationFinished, 'it did not wait for the cancellation process to finish before closing');
-        return cancel;
-    }).then(() => {
-        assert_true(cancellationFinished, 'it returns a promise that is fulfilled when the cancellation finishes');
-    });
+      return new Promise(resolve => {
+        setTimeout(() => {
+          cancellationFinished = true;
+          resolve();
+        }, 1);
+      });
+    }
+  });
+
+  const reader = rs.getReader();
+
+  // We call delay multiple times to avoid cancelling too early for the
+  // source to enqueue at least one chunk.
+  const cancel = delay(5).then(() => delay(5)).then(() => delay(5)).then(() => reader.cancel());
+
+  return readableStreamToArray(rs, reader).then(chunks => {
+    assert_greater_than(chunks.length, 0, 'at least one chunk should be read');
+    for (let i = 0; i < chunks.length; i++) {
+      assert_equals(chunks[i].length, 128, 'chunk ' + i + ' should have 128 bytes');
+    }
+    assert_false(cancellationFinished, 'it did not wait for the cancellation process to finish before closing');
+    return cancel;
+  }).then(() => {
+    assert_true(cancellationFinished, 'it returns a promise that is fulfilled when the cancellation finishes');
+  });
+
 }, 'ReadableStream cancellation: integration test on an infinite stream derived from a random push source');
 
-test(function() {
-    var recordedReason;
-    var rs = new ReadableStream({
-        cancel: function(reason) {
-            recordedReason = reason;
-        }
-    });
+test(() => {
 
-    var passedReason = new Error('Sorry, it just wasn\'t meant to be.');
-    rs.cancel(passedReason);
+  let recordedReason;
+  const rs = new ReadableStream({
+    cancel(reason) {
+      recordedReason = reason;
+    }
+  });
 
-    assert_equals(recordedReason, passedReason,
-                  'the error passed to the underlying source\'s cancel method should equal the one passed to the stream\'s cancel');
+  const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
+  rs.cancel(passedReason);
+
+  assert_equals(recordedReason, passedReason,
+    'the error passed to the underlying source\'s cancel method should equal the one passed to the stream\'s cancel');
+
 }, 'ReadableStream cancellation: cancel(reason) should pass through the given reason to the underlying source');
 
-promise_test(t => {
-    var rs = new ReadableStream({
-        start: function(c) {
-            c.enqueue('a');
-            c.close();
-        },
-        cancel: function() {
-            assert_unreached('underlying source cancel() should not have been called');
-        }
-    });
+promise_test(() => {
 
-    var reader = rs.getReader();
+  const rs = new ReadableStream({
+    start(c) {
+      c.enqueue('a');
+      c.close();
+    },
+    cancel() {
+      assert_unreached('underlying source cancel() should not have been called');
+    }
+  });
 
-    return rs.cancel().then(() => {
-        assert_unreached('cancel() should be rejected');
-    }, e => {
-        assert_equals(e.name, 'TypeError', 'cancel() should be rejected with a TypeError');
-    }).then(() => {
-        return reader.read();
-    }).then(result => {
-        assert_object_equals(result, { value: 'a', done: false }, 'read() should still work after the attempted cancel');
-        return reader.closed;
-    });
+  const reader = rs.getReader();
+
+  return rs.cancel().then(() => {
+    assert_unreached('cancel() should be rejected');
+  }, e => {
+    assert_equals(e.name, 'TypeError', 'cancel() should be rejected with a TypeError');
+  }).then(() => {
+    return reader.read();
+  }).then(result => {
+    assert_object_equals(result, { value: 'a', done: false }, 'read() should still work after the attempted cancel');
+    return reader.closed;
+  });
+
 }, 'ReadableStream cancellation: cancel() on a locked stream should fail and not call the underlying source cancel');
 
-promise_test(t => {
-    var cancelReceived = false;
-    var cancelReason = new Error('I am tired of this stream, I prefer to cancel it');
-    var rs = new ReadableStream({
-        cancel: function(reason) {
-            cancelReceived = true;
-            assert_equals(reason, cancelReason, 'cancellation reason given to the underlying source should be equal to the one passed');
-        }
-    });
+promise_test(() => {
 
-    return rs.cancel(cancelReason).then(() => {
-        assert_true(cancelReceived);
-    });
+  let cancelReceived = false;
+  const cancelReason = new Error('I am tired of this stream, I prefer to cancel it');
+  const rs = new ReadableStream({
+    cancel(reason) {
+      cancelReceived = true;
+      assert_equals(reason, cancelReason, 'cancellation reason given to the underlying source should be equal to the one passed');
+    }
+  });
+
+  return rs.cancel(cancelReason).then(() => {
+    assert_true(cancelReceived);
+  });
+
 }, 'ReadableStream cancellation: should fulfill promise when cancel callback went fine');
 
-promise_test(t => {
-    var rs = new ReadableStream({
-        cancel: function(reason) {
-            return 'Hello';
-        }
-    });
+promise_test(() => {
 
-    return rs.cancel().then(v => {
-        assert_equals(v, undefined, 'cancel() return value should be fulfilled with undefined');
-    });
+  const rs = new ReadableStream({
+    cancel() {
+      return 'Hello';
+    }
+  });
+
+  return rs.cancel().then(v => {
+    assert_equals(v, undefined, 'cancel() return value should be fulfilled with undefined');
+  });
+
 }, 'ReadableStream cancellation: returning a value from the underlying source\'s cancel should not affect the fulfillment value of the promise returned by the stream\'s cancel');
 
-promise_test(t => {
-    var thrownError = new Error('test');
-    var cancelCalled = false;
+promise_test(() => {
 
-    var rs = new ReadableStream({
-        cancel: function() {
-            cancelCalled = true;
-            throw thrownError;
-        }
-    });
+  const thrownError = new Error('test');
+  let cancelCalled = false;
 
-    return rs.cancel('test').then(() => {
-      assert_unreached('cancel should reject');
-    }, e => {
-      assert_true(cancelCalled);
-      assert_equals(e, thrownError);
-    });
+  const rs = new ReadableStream({
+    cancel() {
+      cancelCalled = true;
+      throw thrownError;
+    }
+  });
+
+  return rs.cancel('test').then(() => {
+    assert_unreached('cancel should reject');
+  }, e => {
+    assert_true(cancelCalled);
+    assert_equals(e, thrownError);
+  });
+
 }, 'ReadableStream cancellation: should reject promise when cancel callback raises an exception');
 
-promise_test(t => {
-    var cancelReason = new Error('test');
+promise_test(() => {
 
-    var rs = new ReadableStream({
-        cancel: function(error) {
-            assert_equals(error, cancelReason);
-            return new Promise(resolve => setTimeout(resolve, 1));
-        }
-    });
+  const cancelReason = new Error('test');
 
-    return rs.cancel(cancelReason);
+  const rs = new ReadableStream({
+    cancel(error) {
+      assert_equals(error, cancelReason);
+      return delay(1);
+    }
+  });
+
+  return rs.cancel(cancelReason);
+
 }, 'ReadableStream cancellation: if the underlying source\'s cancel method returns a promise, the promise returned by the stream\'s cancel should fulfill when that one does (1)');
 
-promise_test(t => {
-    var resolveSourceCancelPromise;
-    var sourceCancelPromiseHasFulfilled = false;
-    var rs = new ReadableStream({
-        cancel: function() {
-            var sourceCancelPromise = new Promise(function(resolve, reject) {
-                resolveSourceCancelPromise = resolve;
-            });
-            sourceCancelPromise.then(() => {
-                sourceCancelPromiseHasFulfilled = true;
-            });
-            return sourceCancelPromise;
-        }
-    });
+promise_test(() => {
 
-    setTimeout(() => resolveSourceCancelPromise('Hello'), 1);
+  let resolveSourceCancelPromise;
+  let sourceCancelPromiseHasFulfilled = false;
 
-    return rs.cancel().then(value => {
-        assert_true(sourceCancelPromiseHasFulfilled, 'cancel() return value should be fulfilled only after the promise returned by the underlying source\'s cancel');
-        assert_equals(value, undefined, 'cancel() return value should be fulfilled with undefined');
-    });
+  const rs = new ReadableStream({
+    cancel() {
+      const sourceCancelPromise = new Promise(resolve => resolveSourceCancelPromise = resolve);
+
+      sourceCancelPromise.then(() => {
+        sourceCancelPromiseHasFulfilled = true;
+      });
+
+      return sourceCancelPromise;
+    }
+  });
+
+  setTimeout(() => resolveSourceCancelPromise('Hello'), 1);
+
+  return rs.cancel().then(value => {
+    assert_true(sourceCancelPromiseHasFulfilled, 'cancel() return value should be fulfilled only after the promise returned by the underlying source\'s cancel');
+    assert_equals(value, undefined, 'cancel() return value should be fulfilled with undefined');
+  });
+
 }, 'ReadableStream cancellation: if the underlying source\'s cancel method returns a promise, the promise returned by the stream\'s cancel should fulfill when that one does (2)');
 
-promise_test(t => {
-    var rejectSourceCancelPromise;
-    var sourceCancelPromiseHasRejected = false;
-    var rs = new ReadableStream({
-        cancel: function() {
-            var sourceCancelPromise = new Promise(function(resolve, reject) {
-                rejectSourceCancelPromise = reject;
-            });
+promise_test(() => {
 
-            sourceCancelPromise.catch(function() {
-                sourceCancelPromiseHasRejected = true;
-            });
+  let rejectSourceCancelPromise;
+  let sourceCancelPromiseHasRejected = false;
 
-            return sourceCancelPromise;
-        }
-    });
+  const rs = new ReadableStream({
+    cancel() {
+      const sourceCancelPromise = new Promise((resolve, reject) => rejectSourceCancelPromise = reject);
 
-    var errorInCancel = new Error('Sorry, it just wasn\'t meant to be.');
+      sourceCancelPromise.catch(() => {
+        sourceCancelPromiseHasRejected = true;
+      });
 
-    setTimeout(() => rejectSourceCancelPromise(errorInCancel), 1);
+      return sourceCancelPromise;
+    }
+  });
 
-    return rs.cancel().then(() => {
-        assert_unreached('cancel() return value should be rejected');
-    }, r => {
-        assert_true(sourceCancelPromiseHasRejected, 'cancel() return value should be rejected only after the promise returned by the underlying source\'s cancel');
-        assert_equals(r, errorInCancel, 'cancel() return value should be rejected with the underlying source\'s rejection reason');
-    });
+  const errorInCancel = new Error('Sorry, it just wasn\'t meant to be.');
+
+  setTimeout(() => rejectSourceCancelPromise(errorInCancel), 1);
+
+  return rs.cancel().then(() => {
+    assert_unreached('cancel() return value should be rejected');
+  }, r => {
+    assert_true(sourceCancelPromiseHasRejected, 'cancel() return value should be rejected only after the promise returned by the underlying source\'s cancel');
+    assert_equals(r, errorInCancel, 'cancel() return value should be rejected with the underlying source\'s rejection reason');
+  });
+
 }, 'ReadableStream cancellation: if the underlying source\'s cancel method returns a promise, the promise returned by the stream\'s cancel should reject when that one does');
 
-promise_test(t => {
-    var rs = new ReadableStream({
-        start: function() {
-            return new Promise(() => {});
-        },
-        pull: function() {
-            assert_unreached('pull should not have been called');
-        }
-    });
+promise_test(() => {
 
-    return Promise.all([rs.cancel(), rs.getReader().closed]);
+  const rs = new ReadableStream({
+    start() {
+      return new Promise(() => {});
+    },
+    pull() {
+      assert_unreached('pull should not have been called');
+    }
+  });
+
+  return Promise.all([rs.cancel(), rs.getReader().closed]);
+
 }, 'ReadableStream cancellation: cancelling before start finishes should prevent pull() from being called');
 
 done();

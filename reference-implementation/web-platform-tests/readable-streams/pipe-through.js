@@ -7,20 +7,20 @@ if (self.importScripts) {
 
 test(() => {
 
-    let pipeToArguments;
-    const thisValue = {
-        pipeTo() {
-            pipeToArguments = arguments;
-        }
-    };
+  let pipeToArguments;
+  const thisValue = {
+    pipeTo() {
+      pipeToArguments = arguments;
+    }
+  };
 
-    const input = { readable: {}, writable: {} };
-    const options = {};
-    const result = ReadableStream.prototype.pipeThrough.call(thisValue, input, options);
+  const input = { readable: {}, writable: {} };
+  const options = {};
+  const result = ReadableStream.prototype.pipeThrough.call(thisValue, input, options);
 
-    assert_array_equals(pipeToArguments, [input.writable, options],
-        'correct arguments should be passed to thisValue.pipeTo');
-    assert_equals(result, input.readable, 'return value should be the passed readable property');
+  assert_array_equals(pipeToArguments, [input.writable, options],
+    'correct arguments should be passed to thisValue.pipeTo');
+  assert_equals(result, input.readable, 'return value should be the passed readable property');
 
 }, 'ReadableStream.prototype.pipeThrough should work generically on its this and its arguments');
 
@@ -39,12 +39,12 @@ test(() => {
 
 test(() => {
 
-    const args = [{ readable: {}, writable: {} }, {}];
+  const args = [{ readable: {}, writable: {} }, {}];
 
-    methodThrows(ReadableStream.prototype, 'pipeThrough', undefined, args);
-    methodThrows(ReadableStream.prototype, 'pipeThrough', null, args);
-    methodThrows(ReadableStream.prototype, 'pipeThrough', 1, args);
-    methodThrows(ReadableStream.prototype, 'pipeThrough', { pipeTo: 'test' }, args);
+  methodThrows(ReadableStream.prototype, 'pipeThrough', undefined, args);
+  methodThrows(ReadableStream.prototype, 'pipeThrough', null, args);
+  methodThrows(ReadableStream.prototype, 'pipeThrough', 1, args);
+  methodThrows(ReadableStream.prototype, 'pipeThrough', { pipeTo: 'test' }, args);
 
 }, 'ReadableStream.prototype.pipeThrough should throw when "this" has no pipeTo method');
 

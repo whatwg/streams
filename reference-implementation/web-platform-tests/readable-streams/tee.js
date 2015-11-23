@@ -5,303 +5,250 @@ if (self.importScripts) {
   self.importScripts('/resources/testharness.js');
 }
 
-test(function() {
-    var rs = new ReadableStream();
+test(() => {
 
-    var result = rs.tee();
+  const rs = new ReadableStream();
+  const result = rs.tee();
 
-    assert_true(Array.isArray(result), 'return value should be an array');
-    assert_equals(result.length, 2, 'array should have length 2');
-    assert_equals(result[0].constructor, ReadableStream, '0th element should be a ReadableStream');
-    assert_equals(result[1].constructor, ReadableStream, '1st element should be a ReadableStream');
+  assert_true(Array.isArray(result), 'return value should be an array');
+  assert_equals(result.length, 2, 'array should have length 2');
+  assert_equals(result[0].constructor, ReadableStream, '0th element should be a ReadableStream');
+  assert_equals(result[1].constructor, ReadableStream, '1st element should be a ReadableStream');
+
 }, 'ReadableStream teeing: rs.tee() returns an array of two ReadableStreams');
 
-var test1 = async_test('ReadableStream teeing: should be able to read one branch to the end without affecting the other');
-test1.step(function() {
-    var readCalls = 0;
-    var rs = new ReadableStream({
-        start: function(c) {
-            c.enqueue('a');
-            c.enqueue('b');
-            c.close();
-        }
-    });
+promise_test(t => {
 
-    var branch = rs.tee();
-    var branch1 = branch[0];
-    var branch2 = branch[1];
-    var reader1 = branch1.getReader();
-    var reader2 = branch2.getReader();
+  const rs = new ReadableStream({
+    start(c) {
+      c.enqueue('a');
+      c.enqueue('b');
+      c.close();
+    }
+  });
 
-    reader1.closed.then(test1.step_func(function() {
-        assert_equals(readCalls, 4);
-        test1.done();
-    })).catch(test1.step_func(function(e) { assert_unreached(e); }));
-    reader2.closed.then(test1.step_func(function() { assert_unreached('branch2 should not be closed'); }));
+  const branch = rs.tee();
+  const branch1 = branch[0];
+  const branch2 = branch[1];
+  const reader1 = branch1.getReader();
+  const reader2 = branch2.getReader();
 
-    reader1.read().then(test1.step_func(function(r) {
-        assert_object_equals(r, { value: 'a', done: false }, 'first chunk from branch1 should be correct');
-        ++readCalls;
-    }));
-    reader1.read().then(test1.step_func(function(r) {
-        assert_object_equals(r, { value: 'b', done: false }, 'second chunk from branch1 should be correct');
-        ++readCalls;
-    }));
-    reader1.read().then(test1.step_func(function(r) {
-        assert_object_equals(r, { value: undefined, done: true }, 'third read() from branch1 should be done');
-        ++readCalls;
-    }));
+  reader2.closed.then(t.unreached_func('branch2 should not be closed'));
 
-    reader2.read().then(test1.step_func(function(r) {
-        assert_object_equals(r, { value: 'a', done: false }, 'first chunk from branch2 should be correct');
-        ++readCalls;
-    }));
-});
+  return Promise.all([
+    reader1.closed,
+    reader1.read().then(r => {
+      assert_object_equals(r, { value: 'a', done: false }, 'first chunk from branch1 should be correct');
+    }),
+    reader1.read().then(r => {
+      assert_object_equals(r, { value: 'b', done: false }, 'second chunk from branch1 should be correct');
+    }),
+    reader1.read().then(r => {
+      assert_object_equals(r, { value: undefined, done: true }, 'third read() from branch1 should be done');
+    }),
+    reader2.read().then(r => {
+      assert_object_equals(r, { value: 'a', done: false }, 'first chunk from branch2 should be correct');
+    })
+  ]);
 
-var test2 = async_test('ReadableStream teeing: values should be equal across each branch');
-test2.step(function() {
-    var theObject = { the: 'test object' };
-    var rs = new ReadableStream({
-        start: function(c) {
-            c.enqueue(theObject);
-        }
-    });
+}, 'ReadableStream teeing: should be able to read one branch to the end without affecting the other');
 
-    var branch = rs.tee();
-    var branch1 = branch[0];
-    var branch2 = branch[1];
-    var reader1 = branch1.getReader();
-    var reader2 = branch2.getReader();
+promise_test(() => {
 
-    Promise.all([reader1.read(), reader2.read()]).then(test2.step_func(function(values) {
-        assert_object_equals(values[0], values[1], 'the values should be equal');
-        test2.done();
-    }));
-});
+  const theObject = { the: 'test object' };
+  const rs = new ReadableStream({
+    start(c) {
+      c.enqueue(theObject);
+    }
+  });
 
-var test3 = async_test('ReadableStream teeing: errors in the source should propagate to both branches');
-test3.step(function() {
-    var closedRejects = 0;
-    var readCalls = 0;
-    var readRejects = 0;
-    var theError = new Error('boo!');
-    var rs = new ReadableStream({
-        start: function(c) {
-            c.enqueue('a');
-            c.enqueue('b');
-        },
-        pull: function() {
-            throw theError;
-        }
-    });
+  const branch = rs.tee();
+  const branch1 = branch[0];
+  const branch2 = branch[1];
+  const reader1 = branch1.getReader();
+  const reader2 = branch2.getReader();
 
-    var branch = rs.tee();
-    var branch1 = branch[0];
-    var branch2 = branch[1];
-    var reader1 = branch1.getReader();
-    var reader2 = branch2.getReader();
+  return Promise.all([reader1.read(), reader2.read()]).then(values => {
+    assert_object_equals(values[0], values[1], 'the values should be equal');
+  });
 
-    reader1.label = 'reader1';
-    reader2.label = 'reader2';
+}, 'ReadableStream teeing: values should be equal across each branch');
 
-    reader1.closed.catch(test3.step_func(function(e) {
-        ++closedRejects;
-        assert_equals(e, theError, 'branch1 closed promise should reject with the error');
-    }));
-    reader2.closed.catch(test3.step_func(function(e) {
-        ++closedRejects;
-        assert_equals(e, theError, 'branch2 closed promise should reject with the error');
-    }));
+promise_test(t => {
 
-    reader1.read().then(test3.step_func(function(r) {
-        ++readCalls;
-        assert_object_equals(r, { value: 'a', done: false }, 'should be able to read the first chunk in branch1');
-    }));
+  const theError = { name: 'boo!' };
+  const rs = new ReadableStream({
+    start(c) {
+      c.enqueue('a');
+      c.enqueue('b');
+    },
+    pull() {
+      throw theError;
+    }
+  });
 
-    reader1.read().then(test3.step_func(function(r) {
-        ++readCalls;
-        assert_object_equals(r, { value: 'b', done: false }, 'should be able to read the second chunk in branch1');
+  const branches = rs.tee();
+  const reader1 = branches[0].getReader();
+  const reader2 = branches[1].getReader();
 
-        return reader2.read().then(
-            test3.step_func(function() { assert_unreached('once the root stream has errored, you should not be able to read from branch2'); }),
-            test3.step_func(function(e) {
-                ++readRejects;
-                assert_equals(e, theError, 'branch2 read() promise should reject with the error');
-            }));
-    })).then(test3.step_func(function() {
-        return reader1.read().then(
-            test3.step_func(function() { assert_unreached('once the root stream has errored, you should not be able to read from branch1 either'); }),
-            test3.step_func(function(e) {
-                assert_equals(closedRejects, 2);
-                assert_equals(readCalls, 2);
-                assert_equals(++readRejects, 2);
-                assert_equals(e, theError, 'branch1 read() promise should reject with the error');
-                test3.done();
-            })
-        );
-    })).catch(test3.step_func(function(e) { assert_unreached(e); }));
-});
+  reader1.label = 'reader1';
+  reader2.label = 'reader2';
 
-var test4 = async_test('ReadableStream teeing: canceling branch1 should not impact branch2');
-test4.step(function() {
-    var branch1Read = false;
-    var rs = new ReadableStream({
-        start: function(c) {
-            c.enqueue('a');
-            c.enqueue('b');
-            c.close();
-        }
-    });
+  return Promise.all([
+    promise_rejects(t, theError, reader1.closed),
+    promise_rejects(t, theError, reader2.closed),
+    reader1.read().then(r => {
+      assert_object_equals(r, { value: 'a', done: false }, 'should be able to read the first chunk in branch1');
+    }),
+    reader1.read().then(r => {
+      assert_object_equals(r, { value: 'b', done: false }, 'should be able to read the second chunk in branch1');
 
-    var branch = rs.tee();
-    var branch1 = branch[0];
-    var branch2 = branch[1];
-    branch1.cancel();
+      return promise_rejects(t, theError, reader2.read());
+    })
+    .then(() => promise_rejects(t, theError, reader1.read()))
+  ]);
 
-    readableStreamToArray(branch1).then(test4.step_func(function(chunks) {
-        assert_array_equals(chunks, [], 'branch1 should have no chunks');
-        branch1Read = true;
-    }));
+}, 'ReadableStream teeing: errors in the source should propagate to both branches');
 
-    readableStreamToArray(branch2).then(test4.step_func(function(chunks) {
-        assert_array_equals(chunks, ['a', 'b'], 'branch2 should have two chunks');
-        assert_true(branch1Read);
-        test4.done();
-    }));
-});
+promise_test(() => {
 
-var test5 = async_test('ReadableStream teeing: canceling branch2 should not impact branch1');
-test5.step(function() {
-    var branch2Read = false;
-    var rs = new ReadableStream({
-        start: function(c) {
-            c.enqueue('a');
-            c.enqueue('b');
-            c.close();
-        }
-    });
+  const rs = new ReadableStream({
+    start(c) {
+      c.enqueue('a');
+      c.enqueue('b');
+      c.close();
+    }
+  });
 
-    var branch = rs.tee();
-    var branch1 = branch[0];
-    var branch2 = branch[1];
-    branch2.cancel();
+  const branches = rs.tee();
+  const branch1 = branches[0];
+  const branch2 = branches[1];
+  branch1.cancel();
 
-    readableStreamToArray(branch1).then(test5.step_func(function(chunks) {
-        assert_array_equals(chunks, ['a', 'b'], 'branch1 should have two chunks');
-        assert_true(branch2Read);
-        test5.done();
-    }));
-    readableStreamToArray(branch2).then(test5.step_func(function(chunks) {
-        assert_array_equals(chunks, [], 'branch2 should have no chunks');
-        branch2Read = true;
-    }));
-});
+  return Promise.all([
+    readableStreamToArray(branch1).then(chunks => {
+      assert_array_equals(chunks, [], 'branch1 should have no chunks');
+    }),
+    readableStreamToArray(branch2).then(chunks => {
+      assert_array_equals(chunks, ['a', 'b'], 'branch2 should have two chunks');
+    })
+  ]);
 
-var test6 = async_test('ReadableStream teeing: canceling both branches should aggregate the cancel reasons into an array');
-test6.step(function() {
-    var reason1 = new Error('We\'re wanted men.');
-    var reason2 = new Error('I have the death sentence on twelve systems.');
+}, 'ReadableStream teeing: canceling branch1 should not impact branch2');
 
-    var rs = new ReadableStream({
-        cancel: function(reason) {
-            assert_array_equals(reason, [reason1, reason2], 'the cancel reason should be an array containing those from the branches');
-            test6.done();
-        }
-    });
+promise_test(() => {
 
-    var branch = rs.tee();
-    var branch1 = branch[0];
-    var branch2 = branch[1];
-    branch1.cancel(reason1);
-    branch2.cancel(reason2);
-});
+  const rs = new ReadableStream({
+    start(c) {
+      c.enqueue('a');
+      c.enqueue('b');
+      c.close();
+    }
+  });
 
-var test7 = async_test('ReadableStream teeing: failing to cancel the original stream should cause cancel() to reject on branches');
-test7.step(function() {
-    var cancelRejected = false;
-    var theError = new Error('I\'ll be careful.');
-    var rs = new ReadableStream({
-        cancel: function() {
-            throw theError;
-        }
-    });
+  const branches = rs.tee();
+  const branch1 = branches[0];
+  const branch2 = branches[1];
+  branch2.cancel();
 
-    var branch = rs.tee();
-    var branch1 = branch[0];
-    var branch2 = branch[1];
-    branch1.cancel().catch(test7.step_func(function(e) {
-        assert_equals(e, theError, 'branch1.cancel() should reject with the error');
-        cancelRejected = true;
-    }));
-    branch2.cancel().catch(test7.step_func(function(e) {
-        assert_equals(e, theError, 'branch2.cancel() should reject with the error');
-        assert_true(cancelRejected);
-        test7.done();
-    }));
-});
+  return Promise.all([
+    readableStreamToArray(branch1).then(chunks => {
+      assert_array_equals(chunks, ['a', 'b'], 'branch1 should have two chunks');
+    }),
+    readableStreamToArray(branch2).then(chunks => {
+      assert_array_equals(chunks, [], 'branch2 should have no chunks');
+    })
+  ]);
 
-var test8 = async_test('ReadableStream teeing: closing the original should immediately close the branches');
-test8.step(function() {
-    var reader1Closed = false;
-    var controller;
-    var rs = new ReadableStream({
-        start: function(c) {
-            controller = c;
-        }
-    });
+}, 'ReadableStream teeing: canceling branch2 should not impact branch2');
 
-    var branch = rs.tee();
-    var branch1 = branch[0];
-    var branch2 = branch[1];
-    var reader1 = branch1.getReader();
-    var reader2 = branch2.getReader();
+promise_test(() => {
 
-    reader1.closed.then(test8.step_func(function() {
-        reader1Closed = true; //branch1 should be closed
-    })).catch(test8.step_func(function(e) { assert_unreached(e); }));
-    reader2.closed.then(test8.step_func(function() {
-        assert_true(reader1Closed);
-        test8.done('branch2 should be closed');
-    })).catch(test8.step_func(function(e) { assert_unreached(e); }));
+  const reason1 = new Error('We\'re wanted men.');
+  const reason2 = new Error('I have the death sentence on twelve systems.');
 
-    controller.close();
-});
+  let resolve;
+  const promise = new Promise(r => resolve = r);
+  const rs = new ReadableStream({
+    cancel(reason) {
+      assert_array_equals(reason, [reason1, reason2],
+                          'the cancel reason should be an array containing those from the branches');
+      resolve();
+    }
+  });
 
-var test9 = async_test('ReadableStream teeing: erroring the original should immediately error the branches');
-test9.step(function() {
-    var reader1Rejected = false;
-    var controller;
-    var rs = new ReadableStream({
-        start(c) {
-            controller = c;
-        }
-    });
+  const branch = rs.tee();
+  const branch1 = branch[0];
+  const branch2 = branch[1];
+  branch1.cancel(reason1);
+  branch2.cancel(reason2);
 
-    var branch = rs.tee();
-    var branch1 = branch[0];
-    var branch2 = branch[1];
-    var reader1 = branch1.getReader();
-    var reader2 = branch2.getReader();
+  return promise;
 
-    var theError = new Error('boo!');
+}, 'ReadableStream teeing: canceling both branches should aggregate the cancel reasons into an array');
 
-    reader1.closed.then(
-        test9.step_func(function() { assert_unreached('branch1 should not be closed'); }),
-        test9.step_func(function(e) {
-            assert_equals(e, theError, 'branch1 should be errored with the error');
-            reader1Rejected = true;
-        })
-    );
-    reader2.closed.then(
-        test9.step_func(function() { assert_unreached('branch2 should not be closed'); }),
-        test9.step_func(function(e) {
-            assert_equals(e, theError, 'branch2 should be errored with the error');
-            assert_true(reader1Rejected);
-            test9.done();
-        })
-    );
+promise_test(t => {
 
-    controller.error(theError);
-});
+  const theError = { name: 'I\'ll be careful.' };
+  const rs = new ReadableStream({
+    cancel() {
+      throw theError;
+    }
+  });
+
+  const branch = rs.tee();
+  const branch1 = branch[0];
+  const branch2 = branch[1];
+
+  return Promise.all([
+    promise_rejects(t, theError, branch1.cancel()),
+    promise_rejects(t, theError, branch2.cancel())
+  ]);
+
+}, 'ReadableStream teeing: failing to cancel the original stream should cause cancel() to reject on branches');
+
+promise_test(() => {
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const branches = rs.tee();
+  const reader1 = branches[0].getReader();
+  const reader2 = branches[1].getReader();
+
+  const promise = Promise.all([reader1.closed, reader2.closed]);
+
+  controller.close();
+  return promise;
+
+}, 'ReadableStream teeing: closing the original should immediately close the branches');
+
+promise_test(t => {
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const branches = rs.tee();
+  const reader1 = branches[0].getReader();
+  const reader2 = branches[1].getReader();
+
+  const theError = { name: 'boo!' };
+  const promise = Promise.all([
+    promise_rejects(t, theError, reader1.closed),
+    promise_rejects(t, theError, reader2.closed)
+  ]);
+
+  controller.error(theError);
+  return promise;
+
+}, 'ReadableStream teeing: erroring the original should immediately error the branches');
 
 done();

@@ -4,114 +4,119 @@ if (self.importScripts) {
   self.importScripts('/resources/testharness.js');
 }
 
-test(function() {
-    var theError = new Error('a unique string');
+test(() => {
 
-    assert_throws(theError, function() {
-        new ReadableStream({}, {
-            get size() {
-                throw theError;
-            },
-            highWaterMark: 5
-        });
-    }, 'construction should re-throw the error');
+  const theError = new Error('a unique string');
+
+  assert_throws(theError, () => {
+    new ReadableStream({}, {
+      get size() {
+        throw theError;
+      },
+      highWaterMark: 5
+    });
+  }, 'construction should re-throw the error');
+
 }, 'Readable stream: throwing strategy.size getter');
 
-var test1 = async_test('Readable stream: throwing strategy.size method');
-test1.step(function() {
-    var theError = new Error('a unique string');
-    var rs = new ReadableStream(
-        {
-            start: function(c) {
-                assert_throws(theError, function() { c.enqueue('a'); }, 'enqueue should throw the error');
-            }
-        },
-        {
-            size: function() {
-                throw theError;
-            },
-            highWaterMark: 5
-        }
-    );
+promise_test(() => {
 
-    rs.getReader().closed.catch(test1.step_func(function(e) {
-        assert_equals(e, theError, 'closed should reject with the error');
-        test1.done();
-    }))
-});
+  const theError = new Error('a unique string');
+  const rs = new ReadableStream(
+    {
+      start(c) {
+        assert_throws(theError, () => c.enqueue('a'), 'enqueue should throw the error');
+      }
+    },
+    {
+      size() {
+        throw theError;
+      },
+      highWaterMark: 5
+    }
+  );
 
-test(function() {
-    var theError = new Error('a unique string');
+  return rs.getReader().closed.catch(e => {
+    assert_equals(e, theError, 'closed should reject with the error');
+  });
 
-    assert_throws(theError, function() {
-        new ReadableStream({}, {
-            size: function() {
-                return 1;
-            },
-            get highWaterMark() {
-                throw theError;
-            }
-        });
-    }, 'construction should re-throw the error');
+}, 'Readable stream: throwing strategy.size method');
+
+test(() => {
+
+  const theError = new Error('a unique string');
+
+  assert_throws(theError, () => {
+    new ReadableStream({}, {
+      size() {
+        return 1;
+      },
+      get highWaterMark() {
+        throw theError;
+      }
+    });
+  }, 'construction should re-throw the error');
+
 }, 'Readable stream: throwing strategy.highWaterMark getter');
 
-test(function() {
-    for (var highWaterMark of [-1, -Infinity]) {
-        assert_throws(new RangeError(), function() {
-            new ReadableStream({}, {
-                size: function() {
-                    return 1;
-                },
-                highWaterMark
-            });
-        }, 'construction should throw a RangeError for ' + highWaterMark);
-    }
+test(() => {
 
-    for (var highWaterMark of [NaN, 'foo', {}]) {
-        assert_throws(new TypeError(), function() {
-            new ReadableStream({}, {
-                size: function() {
-                    return 1;
-                },
-                highWaterMark
-            });
-        }, 'construction should throw a TypeError for ' + highWaterMark);
-    }
+  for (const highWaterMark of [-1, -Infinity]) {
+    assert_throws(new RangeError(), () => {
+      new ReadableStream({}, {
+        size() {
+          return 1;
+        },
+        highWaterMark
+      });
+    }, 'construction should throw a RangeError for ' + highWaterMark);
+  }
+
+  for (const highWaterMark of [NaN, 'foo', {}]) {
+    assert_throws(new TypeError(), () => {
+      new ReadableStream({}, {
+        size() {
+          return 1;
+        },
+        highWaterMark
+      });
+    }, 'construction should throw a TypeError for ' + highWaterMark);
+  }
+
 }, 'Readable stream: invalid strategy.highWaterMark');
 
-var test2 = async_test('Readable stream: invalid strategy.size return value');
-test2.step(function() {
-    var numberOfCalls = 0;
-    var elements = [NaN, -Infinity, +Infinity, -1];
-    var theErrors = [];
-    for (var i = 0; i < elements.length; i++) {
-        var rs = new ReadableStream({
-            start: function(c) {
-                try {
-                    c.enqueue('hi');
-                    assert_unreached('enqueue didn\'t throw');
-                } catch (error) {
-                    assert_equals(error.name, 'RangeError', 'enqueue should throw a RangeError for ' + elements[i]);
-                    theErrors[i] = error;
-                }
-            }
+promise_test(() => {
+
+  const promises = [];
+  for (const size of [NaN, -Infinity, Infinity, -1]) {
+    let theError;
+    const rs = new ReadableStream(
+      {
+        start(c) {
+          try {
+            c.enqueue('hi');
+            assert_unreached('enqueue didn\'t throw');
+          } catch (error) {
+            assert_equals(error.name, 'RangeError', 'enqueue should throw a RangeError for ' + size);
+            theError = error;
+          }
+        }
+      },
+      {
+        size() {
+          return size;
         },
-        {
-            size: function() {
-                return elements[i];
-            },
-            highWaterMark: 5
-        });
+        highWaterMark: 5
+      }
+    );
 
-        var catchFunction = function(i, e) {
-            assert_equals(e, theErrors[i], 'closed should reject with the error for ' + elements[i]);
-            if (++numberOfCalls === elements.length) {
-                test2.done();
-            }
-        };
+    promises.push(rs.getReader().closed.catch(e => {
+      assert_equals(e, theError, 'closed should reject with the error for ' + size);
+    }));
+  }
 
-        rs.getReader().closed.catch(test2.step_func(catchFunction.bind(this, i)));
-    }
-});
+  return Promise.all(promises);
+
+}, 'Readable stream: invalid strategy.size return value');
 
 done();
