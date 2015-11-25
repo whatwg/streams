@@ -556,19 +556,20 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   number of passed options. It returns a promise that fulfills when the piping process completes successfully, or
   rejects if any errors were encountered.
 
-  Piping a stream will generally <a lt="locked to a reader">lock</a> it for the duration of the pipe, preventing any
-  other consumer from acquiring a reader.
-
-  This method is intentionally generic; it does not require that its <b>this</b> value be a <code>ReadableStream</code>
-  object.
+  Piping a stream will <a lt="locked to a reader">lock</a> it for the duration of the pipe, preventing any other
+  consumer from acquiring a reader.
 </div>
 
-The <code>pipeTo</code> method is one of the more complex methods, and is undergoing some revision and edge-case
-bulletproofing before we write it up in prose.
+The <code>pipeTo</code> method is still in some flux. Its design depends on the design of writable streams, which
+<a href="#ws-not-ready-yet">are still undergoing spec churn</a>.
 
-For now, please consider the reference implementation normative:
+For now, the reference implementation and tests provide a guide to what this method is generally intended to do:
 <a href="https://github.com/whatwg/streams/blob/master/reference-implementation/lib/readable-stream.js">reference-implementation/lib/readable-stream.js</a>,
-look for the <code>pipeTo</code> method.
+look for the <code>pipeTo</code> method. In addition to changing as the writable stream design changes, one major
+aspect of <code>pipeTo</code> not captured by the reference implementation is that it will not operate via the public
+readable and writable stream APIs, to better allow optimization and specialization. See <a
+href="https://github.com/whatwg/streams/issues/407">#407</a> and <a
+href="https://github.com/whatwg/streams/issues/97">#97</a> for more information.
 
 <h5 id="rs-tee">tee()</h5>
 
@@ -1225,7 +1226,7 @@ called with argument <var>r</var>, it performs the following steps:
 
 <h2 id="ws">Writable Streams</h2>
 
-<div class="warning">
+<div class="warning" id="ws-not-ready-yet">
   Although readable streams have been significantly evolved recently due to implementation progress providing feedback,
   writable streams have not yet caught up to all the discoveries in that space. As such, while the following spec will
   be the basis for a final API, it is expected to change in several important ways before being ready to ship. Please
