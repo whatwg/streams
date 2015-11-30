@@ -566,9 +566,9 @@ The <code>pipeTo</code> method is still in some flux. Its design depends on the 
 For now, the reference implementation and tests provide a guide to what this method is generally intended to do:
 <a href="https://github.com/whatwg/streams/blob/master/reference-implementation/lib/readable-stream.js">reference-implementation/lib/readable-stream.js</a>,
 look for the <code>pipeTo</code> method. In addition to changing as the writable stream design changes, one major
-aspect of <code>pipeTo</code> not captured by the reference implementation is that it will not operate via the public
-readable and writable stream APIs, to better allow optimization and specialization. See <a
-href="https://github.com/whatwg/streams/issues/407">#407</a> and <a
+aspect of <code>pipeTo</code> not captured by the reference implementation is that it will operate via unobservable
+abstract operation calls, instead of using the JavaScript-exposed readable and writable stream APIs. This will better
+allow optimization and specialization. See <a href="https://github.com/whatwg/streams/issues/407">#407</a> and <a
 href="https://github.com/whatwg/streams/issues/97">#97</a> for more information.
 
 <h5 id="rs-tee">tee()</h5>
