@@ -3,11 +3,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/service-workers/service-workers/resources/test-helpers.js"></script>
+<script src="resources/test-initializer.js"></script>
 
 <script src="byte-length-queuing-strategy.js"></script>
 <script>
 'use strict';
-fetch_tests_from_worker(new Worker('byte-length-queuing-strategy.js'));
-fetch_tests_from_worker(new SharedWorker('byte-length-queuing-strategy.js'));
-service_worker_test('byte-length-queuing-strategy.js');
+worker_test('byte-length-queuing-strategy.js');
 </script>

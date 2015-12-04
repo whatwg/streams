@@ -3,12 +3,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/service-workers/service-workers/resources/test-helpers.js"></script>
+<script src="../resources/test-initializer.js"></script>
 
 <script src="../resources/test-utils.js"></script>
 <script src="garbage-collection.js"></script>
 <script>
 'use strict';
-fetch_tests_from_worker(new Worker('garbage-collection.js'));
-fetch_tests_from_worker(new SharedWorker('garbage-collection.js'));
-service_worker_test('garbage-collection.js');
+worker_test('garbage-collection.js');
 </script>

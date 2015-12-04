@@ -3,12 +3,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/service-workers/service-workers/resources/test-helpers.js"></script>
+<script src="../resources/test-initializer.js"></script>
 
 <script src="../resources/test-utils.js"></script>
 <script src="pipe-through.js"></script>
 <script>
 'use strict';
-fetch_tests_from_worker(new Worker('pipe-through.js'));
-fetch_tests_from_worker(new SharedWorker('pipe-through.js'));
-service_worker_test('pipe-through.js');
+worker_test('pipe-through.js');
 </script>

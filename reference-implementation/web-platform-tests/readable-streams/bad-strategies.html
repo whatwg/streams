@@ -3,11 +3,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/service-workers/service-workers/resources/test-helpers.js"></script>
+<script src="../resources/test-initializer.js"></script>
 
 <script src="bad-strategies.js"></script>
 <script>
 'use strict';
-fetch_tests_from_worker(new Worker('bad-strategies.js'));
-fetch_tests_from_worker(new SharedWorker('bad-strategies.js'));
-service_worker_test('bad-strategies.js');
+worker_test('bad-strategies.js');
 </script>

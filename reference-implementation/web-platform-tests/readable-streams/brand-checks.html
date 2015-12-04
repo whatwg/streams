@@ -3,12 +3,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/service-workers/service-workers/resources/test-helpers.js"></script>
+<script src="../resources/test-initializer.js"></script>
 
 <script src="../resources/test-utils.js"></script>
 <script src="brand-checks.js"></script>
 <script>
 'use strict';
-fetch_tests_from_worker(new Worker('brand-checks.js'));
-fetch_tests_from_worker(new SharedWorker('brand-checks.js'));
-service_worker_test('brand-checks.js');
+worker_test('brand-checks.js');
 </script>
