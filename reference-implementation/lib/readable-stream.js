@@ -93,6 +93,7 @@ class ReadableStream {
     const source = this;
 
     let reader;
+    let writer;
     let lastRead;
     let lastWrite;
     let closedPurposefully = false;
@@ -105,8 +106,10 @@ class ReadableStream {
 
       reader = source.getReader();
 
+      writer = dest.getWriter();
+
       reader.closed.catch(abortDest);
-      dest.closed.then(
+      writer.closed.then(
         () => {
           if (!closedPurposefully) {
             cancelSource(new TypeError('destination is closing or closed and cannot be piped to anymore'));
@@ -120,11 +123,11 @@ class ReadableStream {
 
     function doPipe() {
       lastRead = reader.read();
-      Promise.all([lastRead, dest.ready]).then(([{ value, done }]) => {
+      Promise.all([lastRead, writer.ready]).then(([{ value, done }]) => {
         if (Boolean(done) === true) {
           closeDest();
-        } else if (dest.state === 'writable') {
-          lastWrite = dest.write(value);
+        } else if (writer.state === 'writable') {
+          lastWrite = writer.write(value);
           doPipe();
         }
       })
@@ -155,10 +158,10 @@ class ReadableStream {
 
       reader.releaseLock();
 
-      const destState = dest.state;
+      const destState = writer.state;
       if (preventClose === false && (destState === 'waiting' || destState === 'writable')) {
         closedPurposefully = true;
-        dest.close().then(resolvePipeToPromise, rejectPipeToPromise);
+        writer.close().then(resolvePipeToPromise, rejectPipeToPromise);
       } else if (lastWrite !== undefined) {
         lastWrite.then(resolvePipeToPromise, rejectPipeToPromise);
       } else {
@@ -172,7 +175,7 @@ class ReadableStream {
       reader.releaseLock();
 
       if (preventAbort === false) {
-        dest.abort(reason);
+        writer.abort(reason);
       }
       rejectPipeToPromise(reason);
     }

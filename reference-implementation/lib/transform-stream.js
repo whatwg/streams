@@ -16,8 +16,8 @@ module.exports = class TransformStream {
     let transforming = false;
     let chunkWrittenButNotYetTransformed = false;
     this.writable = new WritableStream({
-      start(error) {
-        errorWritable = error;
+      start(c) {
+        errorWritable = c.error.bind(c);
       },
       write(chunk) {
         writeChunk = chunk;
