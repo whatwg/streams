@@ -14,8 +14,6 @@ test('Piping through a duck-typed pass-through transform stream works', t => {
 });
 
 test('Piping through an identity transform stream will close the destination when the source closes', t => {
-  t.plan(1);
-
   const rs = new ReadableStream({
     start(c) {
       c.enqueue('a');
@@ -25,8 +23,13 @@ test('Piping through an identity transform stream will close the destination whe
     }
   });
 
+  let enqueue;
+
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    start(e) {
+      enqueue = e;
+    },
+    transform(chunk, done) {
       enqueue(chunk);
       done();
     }
@@ -35,7 +38,7 @@ test('Piping through an identity transform stream will close the destination whe
   const ws = new WritableStream();
 
   rs.pipeThrough(ts).pipeTo(ws).then(() => {
-    t.equal(ws.state, 'closed', 'the writable stream was closed');
+    t.end();
   })
   .catch(e => t.error(e));
 });
@@ -62,8 +65,13 @@ test.skip('Piping through a default transform stream causes backpressure to be e
     }
   });
 
+  let enqueue;
+
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    start(e) {
+      enqueue = e;
+    },
+    transform(chunk, done) {
       enqueue(chunk);
       done();
     }

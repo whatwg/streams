@@ -1,12 +1,22 @@
 'use strict';
 const tapeTest = require('tape-catch');
 
+function promise_fulfills(t, expectedValue, promise, msg) {
+  promise.then(value => {
+    t.equal(value, expectedValue, msg);
+  }, reason => {
+    t.fail(msg + ': Rejected unexpectedly with: ' + reason);
+  });
+}
+
 module.exports = (label, factory, chunks) => {
   function test(description, testFn) {
     tapeTest(`${label}: ${description}`, testFn);
   }
 
   test('piping with no options and no destination errors', t => {
+    t.plan(2);
+
     const rs = factory();
 
     const chunksWritten = [];
@@ -20,13 +30,16 @@ module.exports = (label, factory, chunks) => {
     });
 
     rs.pipeTo(ws).then(() => {
-      t.equal(ws.state, 'closed', 'destination should be closed');
+      const writer = ws.getWriter();
+      promise_fulfills(t, undefined, writer.closed, 'destination should be closed');
       t.deepEqual(chunksWritten, chunks);
-      t.end();
-    });
+    })
+    .catch(e => t.error(e));
   });
 
   test('piping with { preventClose: false } and no destination errors', t => {
+    t.plan(2);
+
     const rs = factory();
 
     const chunksWritten = [];
@@ -40,10 +53,11 @@ module.exports = (label, factory, chunks) => {
     });
 
     rs.pipeTo(ws).then(() => {
-      t.equal(ws.state, 'closed', 'destination should be closed');
+      const writer = ws.getWriter();
+      promise_fulfills(t, undefined, writer.closed, 'destination should be closed');
       t.deepEqual(chunksWritten, chunks);
-      t.end();
-    });
+    })
+    .catch(e => t.error(e));
   });
 
   test('piping with { preventClose: true } and no destination errors', t => {
@@ -63,10 +77,10 @@ module.exports = (label, factory, chunks) => {
     });
 
     rs.pipeTo(ws, { preventClose: true }).then(() => {
-      t.equal(ws.state, 'writable', 'destination should be writable');
       t.deepEqual(chunksWritten, chunks);
       t.end();
-    });
+    })
+    .catch(e => t.error(e));
   });
 
   test('piping with { preventClose: false } and a destination with that errors synchronously', t => {

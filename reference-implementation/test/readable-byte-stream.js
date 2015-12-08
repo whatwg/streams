@@ -122,15 +122,7 @@ test('ReadableStream with byte source: Test that closing a stream does not relea
   const reader = stream.getReader();
 
   reader.closed.then(() => {
-    try {
-      stream.getReader();
-    } catch(e) {
-      t.equals(e.constructor, TypeError);
-      t.end();
-      return;
-    }
-
-    t.fail('getReader() must fail');
+    t.throws(() => stream.getReader(), TypeError, 'getReader() must throw');
     t.end();
   }).catch(e => {
     t.fail(e);
@@ -153,15 +145,7 @@ test('ReadableStream with byte source: Test that closing a stream does not relea
   const reader = stream.getReader({mode: 'byob'});
 
   reader.closed.then(() => {
-    try {
-      stream.getReader({mode: 'byob'});
-    } catch(e) {
-      t.equals(e.constructor, TypeError);
-      t.end();
-      return;
-    }
-
-    t.fail('getReader() must fail');
+    t.throws(() => stream.getReader({mode: 'byob'}), TypeError, 'getReader() must throw');
     t.end();
   }).catch(e => {
     t.fail(e);
@@ -191,15 +175,7 @@ test('ReadableStream with byte source: Test that erroring a stream does not rele
   }, e => {
     t.equals(e, passedError);
 
-    try {
-      stream.getReader();
-    } catch(e) {
-      t.equals(e.constructor, TypeError);
-      t.end();
-      return;
-    }
-
-    t.fail('getReader() must fail');
+    t.throws(() => stream.getReader(), TypeError, 'getReader() must throw');
     t.end();
   });
 });
@@ -227,15 +203,7 @@ test('ReadableStream with byte source: Test that erroring a stream does not rele
   }, e => {
     t.equals(e, passedError);
 
-    try {
-      stream.getReader({mode: 'byob'});
-    } catch(e) {
-      t.equals(e.constructor, TypeError);
-      t.end();
-      return;
-    }
-
-    t.fail('getReader() must fail');
+    t.throws(() => stream.getReader({mode: 'byob'}), TypeError, 'getReader() must throw');
     t.end();
   });
 });
@@ -247,17 +215,7 @@ test('ReadableStream with byte source: releaseLock() on ReadableStreamReader wit
 
   const reader = stream.getReader();
   reader.read();
-  try {
-    reader.releaseLock();
-  } catch(e) {
-    t.equals(e.constructor, TypeError);
-
-    t.end();
-
-    return;
-  }
-
-  t.fail('reader.releaseLock() didn\'t throw');
+  t.throws(() => reader.releaseLock(), TypeError, 'reader.releaseLock() must throw');
   t.end();
 });
 
@@ -905,17 +863,9 @@ test('ReadableStream with byte source: read(view), then respond() with too big v
       if (pullCount === 0) {
         t.notEqual(controller.byobRequest, undefined, 'byobRequest is not undefined');
 
-        try {
-          controller.byobRequest.respond(2);
-        } catch(e) {
-          t.equals(e.constructor, RangeError);
-
-          t.end();
-          return;
-        }
-
-        t.fail('respond() didn\'t throw');
+        t.throws(() => controller.byobRequest.respond(2), RangeError, 'respond() must throw');
         t.end();
+        return;
       }
 
       ++pullCount;
@@ -1574,15 +1524,7 @@ test('ReadableStream with byte source: A stream must be errored if close()-d bef
     });
   });
 
-  try {
-    controller.close();
-  } catch(e) {
-    t.equals(e.constructor, TypeError);
-    return;
-  }
-
-  t.fail('controller.close() didn\'t throw');
-  t.end();
+  t.throws(() => controller.close(), TypeError, 'controller.close() must throw');
 });
 
 test('ReadableStream with byte source: Throw if close()-ed more than once', t => {
@@ -1601,15 +1543,7 @@ test('ReadableStream with byte source: Throw if close()-ed more than once', t =>
   controller.enqueue(view);
   controller.close();
 
-  try {
-    controller.close();
-  } catch(e) {
-    t.equals(e.constructor, TypeError);
-    t.end();
-    return;
-  }
-
-  t.fail('controller.close() didn\'t throw');
+  t.throws(() => controller.close(), TypeError, 'controller.close() must throw');
   t.end();
 });
 
@@ -1629,15 +1563,7 @@ test('ReadableStream with byte source: Throw on enqueue() after close()', t => {
   controller.enqueue(view);
   controller.close();
 
-  try {
-    controller.enqueue(view);
-  } catch(e) {
-    t.equals(e.constructor, TypeError);
-    t.end();
-    return;
-  }
-
-  t.fail('controller.close() didn\'t throw');
+  t.throws(() => controller.enqueue(view), TypeError, 'controller.close() must throw');
   t.end();
 });
 
