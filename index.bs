@@ -2121,11 +2121,42 @@ TBA
 
 <h4 id="rbs-controller-constructor">new ReadableByteStreamController(controlledReadableByteStream, underlyingByteSource)</h4>
 
-TBA
+<emu-alg>
+  1. If IsReadableByteStream(_controlledReadableByteStream_) is *false*, throw a *TypeError* exception.
+  1. If _controlledReadableByteStream_@[[controller]] is not *undefined*, throw a *TypeError* exception.
+  1. Set *this*@[[controlledReadableByteStream]] to _controlledReadableByteStream_.
+  1. Set *this*@[[underlyingByteSource]] to _underlyingByteSource_.
+  1. Set *this*@[[pullAgain]] to *false*.
+  1. Set *this*@[[pulling]] to *false*.
+  1. Set *this*@[[pendingPullIntos]] to a new empty List.
+  1. Set *this*@[[queue]] to a new empty List.
+  1. Set *this*@[[totalQueuedBytes]] to *0*.
+  1. Set *this*@[[closeRequested]] to *false*.
+  1. InvokeOrNoop(_underlyingByteSource_, "start", «*this*»).
+</emu-alg>
 
 <h4 id="rbs-controller-prototype">Properties of the <code>ReadableByteStreamController</code> Prototype</h4>
 
-TBA
+<h4 id="rbs-controller-close">close()</h5>
+
+<emu-alg>
+  1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _stream_ be *this*@[[controlledReadableByteStream]].
+  1. If *this*@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
+  1. If *this*@[[totalQueuedBytes]] > 0, then
+    1. Set *this*@[[closeRequested]] to *true*.
+    1. Return *undefined*.
+  1. Let _reader_ be _stream_@[[reader]].
+  1. If IsReadableByteStreamByobReader(_reader_) and *this*@[[pendingPullIntos]] is not empty,
+    1. Let _pullInto_ the first element of *this*@[[pendingPullIntos]].
+    1. If _pullInto_.[[bytesFilled]] > 0, then
+      1. Perform DestroyReadableByteStreamController(*this*).
+      1. Let _e_ be a *TypeError* exception.
+      1. Perform ErrorReadableByteStream(_stream_, _e_).
+      1. Throw _e_.
+  1. Perform CloseReadableByteStream(_stream_).
+</emu-alg>
 
 <h3 id="byte-reader-class">Class <code>ReadableByteStreamReader</code></h3>
 
@@ -2195,7 +2226,104 @@ TBA
 
 <h3 id="byte-rs-abstract-ops">Readable Byte Stream Abstract Operations</h3>
 
-TBA
+<h4 id="close-readable-byte-stream" aoid="CloseReadableByteStream" nothrow>CloseReadableByteStream ( stream )</h4>
+
+<emu-alg>
+  1. Assert: IsReadableByteStream(_stream_).
+  1. Assert: _stream_@[[state]] is "readable".
+  1. Set _stream_@[[state]] to "closed".
+  1. Let _reader_ be _stream_@[[reader]].
+  1. If _reader_ is *undefined*, return *undefined*.
+  1. If IsReadableByteStreamReader(_reader_), then
+    1. Repeat for each _req_ that is an element of _reader_@[[readRequests]],
+      1. Resolve _req_ with CreateIterResultObject(*undefined*, *true*).
+    1. Set _reader_@[[readRequests]] to an empty List.
+    1. Perform ReleaseReadableByteStreamReaderGeneric(_reader_).
+  1. Otherwise,
+    1. Assert: IsReadableByteStreamByobReader(_reader_).
+    1. If _reader_@[[readIntoRequests]] is empty, then
+      1. Perform ReleaseReadableByteStreamReaderGeneric(_reader_).
+  1. Perform CloseReadableByteStreamReaderGeneric(_reader_).
+</emu-alg>
+
+<h4 id="close-readable-byte-stream-reader-generic" aoid="CloseReadableByteStreamReaderGeneric" nothrow>CloseReadableByteStreamReaderGeneric ( reader )</h4>
+
+<emu-alg>
+  1. Set _reader_@[[state]] to "closed".
+  1. Resolve _reader_@[[closedPromise]] with *undefined*.
+</emu-alg>
+
+<h4 id="destroy-readable-byte-stream-controller" aoid="DestroyReadableByteStreamController" nothrow>DestroyReadableByteStreamController ( controller )</h4>
+
+<emu-alg>
+  1. Set _controller_@[[pendingPullIntos]] to an empty List.
+  1. Set _controller_@[[queue]] to an empty List.
+</emu-alg>
+
+<h4 id="error-readable-byte-stream" aoid="ErrorReadableByteStream" nothrow>ErrorReadableByteStream ( stream, e )</h4>
+
+<emu-alg>
+  1. Assert: IsReadableByteStream(_stream_) is *true*.
+  1. Assert: _stream_@[[state]] is "readable".
+  1. Set _stream_@[[state]] to "errored".
+  1. Set _stream_@[[storedError]] to _e_.
+  1. Let _reader_ be _stream_@[[reader]].
+  1. If _reader_ is *undefined*, return *undefined*.
+  1. If IsReadableByteStreamReader(_reader_), then
+    1. Repeat for each _req_ that is an element of _reader_@[[readRequests]],
+      1. Reject _req_ with _e_.
+    1. Set _reader_@[[readRequests]] to an empty List.
+  1. Otherwise,
+    1. Assert: IsReadableByteStreamByobReader(_reader_) is *true*.
+    1. Repeat for each _req_ that is an element of _reader_@[[readIntoRequests]],
+      1. Reject _req_ with _e_.
+    1. Set _reader_@[[readIntoRequests]] to an empty List.
+  1. Perform ReleaseReadableByteStreamReaderGeneric(_reader_).
+  1. Set _reader_@[[state]] to "errored".
+  1. Set _reader_@[[storedError]] to _e_.
+  1. Reject _reader_@[[closedPromise]] with _e_.
+</emu-alg>
+
+<h4 id="is-readable-byte-stream" aoid="IsReadableByteStream" nothrow>IsReadableByteStream ( x )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[controller]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="is-readable-byte-stream-byob-reader" aoid="IsReadableByteStreamByobReader" nothrow>IsReadableByteStreamByobReader ( x )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[readIntoRequests]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="is-readable-byte-stream-controller" aoid="IsReadableByteStreamController" nothrow>IsReadableByteStreamController ( x )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[controlledReadableByteStream]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="is-readable-byte-stream-reader" aoid="IsReadableByteStreamReader" nothrow>IsReadableByteStreamReader ( x )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[readRequests]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="release-readable-byte-stream-reader-generic" aoid="ReleaseReadableByteStreamReaderGeneric" nothrow>ReleaseReadableByteStreamReaderGeneric( reader )</h4>
+
+<emu-alg>
+  1. Assert: _reader_@[[ownerReadableByteStream]]@[[reader]] is not *undefined*.
+  1. Assert: _reader_@[[ownerReadableByteStream]] is not *undefined*.
+  1. Set _reader_@[[ownerReadableByteStream]]@[[reader]] to *undefined*.
+  1. Set _reader_@[[ownerReadableByteStream]] to *undefined*.
+</emu-alg>
 
 <h2 id="globals">Global Properties</h2>
 

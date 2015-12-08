@@ -95,13 +95,15 @@ class ReadableByteStreamController {
     const reader = stream._reader;
 
     if (IsReadableByteStreamByobReader(reader) &&
-        this._pendingPullIntos.length > 0 &&
-        this._pendingPullIntos[0].bytesFilled > 0) {
-      DestroyReadableByteStreamController(this);
-      const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
-      ErrorReadableByteStream(stream, e);
+        this._pendingPullIntos.length > 0) {
+      const pullInto = this._pendingPullIntos[0];
+      if (pullInto.bytesFilled > 0) {
+        DestroyReadableByteStreamController(this);
+        const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
+        ErrorReadableByteStream(stream, e);
 
-      throw e;
+        throw e;
+      }
     }
 
     CloseReadableByteStream(stream);
