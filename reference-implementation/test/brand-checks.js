@@ -1,23 +1,20 @@
 'use strict';
 const test = require('tape-catch');
 
-function fakeWritableStream() {
+function fakeWritableStreamDefaultWriter() {
   return {
     get closed() { return Promise.resolve(); },
+    get desiredSize() { return 1; },
     get ready() { return Promise.resolve(); },
-    get state() { return 'closed' },
     abort(reason) { return Promise.resolve(); },
     close() { return Promise.resolve(); },
     write(chunk) { return Promise.resolve(); }
   };
 }
 
-function realWritableStream() {
-  return new WritableStream();
-}
-
-function realReadableStream() {
-  return new ReadableStream();
+function realReadableStreamDefaultWriter() {
+  const rs = new ReadableStream();
+  return rs.getReader();
 }
 
 function fakeByteLengthQueuingStrategy() {
@@ -76,39 +73,42 @@ function methodThrows(t, obj, methodName, target) {
   t.throws(() => method.call(target), /TypeError/, methodName + ' should throw a TypeError');
 }
 
+const ws = new WritableStream();
+const writer = ws.getWriter();
+const WritableStreamDefaultWriter = writer.constructor;
 
-test('WritableStream.prototype.closed enforces a brand check', t => {
+test('WritableStreamDefaultWriter.prototype.closed enforces a brand check', t => {
   t.plan(2);
-  getterRejects(t, WritableStream.prototype, 'closed', fakeWritableStream());
-  getterRejects(t, WritableStream.prototype, 'closed', realReadableStream());
+  getterRejects(t, WritableStreamDefaultWriter.prototype, 'closed', fakeWritableStreamDefaultWriter());
+  getterRejects(t, WritableStreamDefaultWriter.prototype, 'closed', realReadableStreamDefaultWriter());
 });
 
-test('WritableStream.prototype.ready enforces a brand check', t => {
+test('WritableStreamDefaultWriter.prototype.desiredSize enforces a brand check', t => {
   t.plan(2);
-  getterRejects(t, WritableStream.prototype, 'ready', fakeWritableStream());
-  getterRejects(t, WritableStream.prototype, 'ready', realReadableStream());
+  getterThrows(t, WritableStreamDefaultWriter.prototype, 'desiredSize', fakeWritableStreamDefaultWriter());
+  getterThrows(t, WritableStreamDefaultWriter.prototype, 'desiredSize', realReadableStreamDefaultWriter());
 });
 
-test('WritableStream.prototype.state enforces a brand check', t => {
+test('WritableStreamDefaultWriter.prototype.ready enforces a brand check', t => {
   t.plan(2);
-  getterThrows(t, WritableStream.prototype, 'state', fakeWritableStream());
-  getterThrows(t, WritableStream.prototype, 'state', realReadableStream());
+  getterRejects(t, WritableStreamDefaultWriter.prototype, 'ready', fakeWritableStreamDefaultWriter());
+  getterRejects(t, WritableStreamDefaultWriter.prototype, 'ready', realReadableStreamDefaultWriter());
 });
 
-test('WritableStream.prototype.abort enforces a brand check', t => {
+test('WritableStreamDefaultWriter.prototype.abort enforces a brand check', t => {
   t.plan(2);
-  methodRejects(t, WritableStream.prototype, 'abort', fakeWritableStream());
-  methodRejects(t, WritableStream.prototype, 'abort', realReadableStream());
+  methodRejects(t, WritableStreamDefaultWriter.prototype, 'abort', fakeWritableStreamDefaultWriter());
+  methodRejects(t, WritableStreamDefaultWriter.prototype, 'abort', realReadableStreamDefaultWriter());
 });
 
-test('WritableStream.prototype.write enforces a brand check', t => {
+test('WritableStreamDefaultWriter.prototype.write enforces a brand check', t => {
   t.plan(2);
-  methodRejects(t, WritableStream.prototype, 'write', fakeWritableStream());
-  methodRejects(t, WritableStream.prototype, 'write', realReadableStream());
+  methodRejects(t, WritableStreamDefaultWriter.prototype, 'write', fakeWritableStreamDefaultWriter());
+  methodRejects(t, WritableStreamDefaultWriter.prototype, 'write', realReadableStreamDefaultWriter());
 });
 
-test('WritableStream.prototype.close enforces a brand check', t => {
+test('WritableStreamDefaultWriter.prototype.close enforces a brand check', t => {
   t.plan(2);
-  methodRejects(t, WritableStream.prototype, 'close', fakeWritableStream());
-  methodRejects(t, WritableStream.prototype, 'close', realReadableStream());
+  methodRejects(t, WritableStreamDefaultWriter.prototype, 'close', fakeWritableStreamDefaultWriter());
+  methodRejects(t, WritableStreamDefaultWriter.prototype, 'close', realReadableStreamDefaultWriter());
 });

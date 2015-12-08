@@ -7,7 +7,7 @@ module.exports = (label, factory, error) => {
   }
 
   test('piping to a WritableStream in the writable state should abort the writable stream', t => {
-    t.plan(4);
+    t.plan(2);
 
     const rs = factory();
 
@@ -23,18 +23,15 @@ module.exports = (label, factory, error) => {
         t.fail('Unexpected close call');
       },
       abort(reason) {
-        t.equal(reason, error);
+        t.equal(reason, error, 'abort() of the underlying source should be called with error');
       }
     });
 
     startPromise.then(() => {
-      t.equal(ws.state, 'writable');
-
       rs.pipeTo(ws).then(
         () => t.fail('pipeTo promise should not be fulfilled'),
         e => {
           t.equal(e, error, 'pipeTo promise should be rejected with the passed error');
-          t.equal(ws.state, 'errored', 'writable stream should become errored');
         }
       );
     });
