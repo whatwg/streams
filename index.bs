@@ -347,7 +347,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </tr>
   <tr>
     <td>\[[pulling]]
-    <td>A boolean flag set to <b>true</b> while the underlying source's <code>pull</code> method is executing and has
+    <td>A boolean flag set to <b>true</b> while the <a>underlying source</a>'s <code>pull</code> method is executing and has
       not yet fulfilled, used to prevent reentrant calls
   </tr>
   <tr>
@@ -1684,7 +1684,7 @@ We are waiting to validate their design before doing so. In the meantime, see
 <h3 id="blqs-class">Class <code>ByteLengthQueuingStrategy</code></h3>
 
 A common <a>queuing strategy</a> when dealing with bytes is to wait until the accumulated <code>byteLength</code>
-properties of the incoming chunks reaches a specified high-water mark. As such, this is provided as a built-in
+properties of the incoming <a>chunks</a> reaches a specified high-water mark. As such, this is provided as a built-in
 <a>queuing strategy</a> that can be used when constructing streams.
 
 <div class="example">
@@ -2117,7 +2117,52 @@ If one were to write the <code>ReadableByteStreamController</code> class in some
 
 <h4 id="rbs-controller-internal-slots">Internal Slots</h4>
 
-TBA
+Instances of <code>ReadableByteStreamController</code> are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[controlledReadableByteStream]]
+    <td>The <a href="#rbs-class"><code>ReadableByteStream</code></a> instance controlled
+  </tr>
+  <tr>
+    <td>\[[underlyingByteSource]]
+    <td>An object representation of the stream's <a>underlying byte source</a>
+  </tr>
+  <tr>
+    <td>\[[pullAgain]]
+    <td>A boolean flag set to <b>true</b> if the stream's mechanisms requested a call to the underlying source's
+      <code>pull</code> method to pull more data, but the pull could not yet be done since a previous call is still
+      executing
+  </tr>
+  <tr>
+    <td>\[[pulling]]
+    <td>A boolean flag set to <b>true</b> while the <a>underlying byte source</a>'s <code>pull</code> method is
+      executing, used to prevent reentrant calls
+  </tr>
+  <tr>
+    <td>\[[pendingPullIntos]]
+    <td>A List representing the stream's internal queue of pending pull-into-buffer operations
+  </tr>
+  <tr>
+    <td>\[[queue]]
+    <td>A List representing the stream's internal queue of <a>chunks</a>
+  </tr>
+  <tr>
+    <td>\[[totalQueuedBytes]]
+    <td>An integer representing the number of bytes queued
+  </tr>
+  <tr>
+    <td>\[[closeRequested]]
+    <td>A boolean flag indicating whether the stream has been closed by its <a>underlying byte source</a>, but still has
+      <a>chunks</a> in its internal queue that have not yet been read
+  </tr>
+</table>
 
 <h4 id="rbs-controller-constructor">new ReadableByteStreamController(controlledReadableByteStream, underlyingByteSource)</h4>
 
