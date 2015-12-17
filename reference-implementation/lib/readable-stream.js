@@ -444,6 +444,7 @@ function EnqueueInReadableStreamController(controller, chunk) {
   return undefined;
 }
 
+// Exposed to controllers.
 function ErrorReadableStream(stream, e) {
   assert(stream._state === 'readable');
 
@@ -477,6 +478,7 @@ function GetNumReadRequests(stream) {
   return stream._reader._readRequests.length;
 }
 
+// Exposed to controllers.
 function CloseReadableStream(stream) {
   assert(stream._state === 'readable');
 

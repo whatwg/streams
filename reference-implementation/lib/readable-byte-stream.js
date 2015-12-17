@@ -257,7 +257,7 @@ class ReadableByteStreamReader {
     });
 
     // Controllers must implement this.
-    PullFromReadableByteStream(this._ownerReadableByteStream);
+    PullFromReadableByteStream(this._ownerReadableByteStream._controller);
 
     return promise;
   }
@@ -376,7 +376,7 @@ class ReadableByteStreamByobReader {
 
     // Controllers must implement this.
     PullFromReadableByteStreamInto(
-        this._ownerReadableByteStream, view.buffer, view.byteOffset, view.byteLength, elementSize);
+        this._ownerReadableByteStream._controller, view.buffer, view.byteOffset, view.byteLength, elementSize);
 
     return promise;
   }
@@ -512,6 +512,7 @@ function CancelReadableByteStreamController(controller, reason) {
   return PromiseInvokeOrNoop(controller._underlyingByteSource, 'cancel', [reason]);
 }
 
+// Exposed to controllers.
 function CloseReadableByteStream(stream) {
   assert(IsReadableByteStream(stream), 'stream must be ReadableByteStream');
   assert(stream._state === 'readable', 'state must be readable');
@@ -574,6 +575,7 @@ function EnqueueInReadableByteStreamController(controller, buffer, byteOffset, b
   controller._totalQueuedBytes += byteLength;
 }
 
+// Exposed to controllers.
 function ErrorReadableByteStream(stream, e) {
   assert(IsReadableByteStream(stream), 'stream must be ReadableByteStream');
   assert(stream._state === 'readable', 'state must be readable');
@@ -766,8 +768,8 @@ function IsReadableByteStreamReader(x) {
   return true;
 }
 
-function PullFromReadableByteStream(stream) {
-  const controller = stream._controller;
+function PullFromReadableByteStream(controller) {
+  const stream = controller._controlledReadableByteStream;
 
   if (GetNumReadRequests(stream) > 1) {
     return;
@@ -798,8 +800,8 @@ function PullFromReadableByteStream(stream) {
   ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
 }
 
-function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, elementSize) {
-  const controller = stream._controller;
+function PullFromReadableByteStreamInto(controller, buffer, byteOffset, byteLength, elementSize) {
+  const stream = controller._controlledReadableByteStream;
 
   const pullIntoDescriptor = {
     buffer,
