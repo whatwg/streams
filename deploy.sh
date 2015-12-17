@@ -92,7 +92,5 @@ echo ""
 
 if [ "$1" != "--local" ]; then
     # scp the output directory up
-    sudo apt-get install sshpass
-
     sshpass -p $DEPLOY_PASSWORD scp -r -o StrictHostKeyChecking=no $WEB_ROOT $DEPLOY_USER@$SERVER:
 fi

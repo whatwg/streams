@@ -1,6 +1,11 @@
 language: node_js
-node_js:
-  - 4
+node_js: stable
+sudo: false
+
+addons:
+  apt:
+    packages:
+    - sshpass
 
 env:
   global:
