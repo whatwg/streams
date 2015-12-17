@@ -22,7 +22,13 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 !Version History: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
 
 Opaque Elements: emu-alg
-Link Defaults: html (dfn) structured clone
+</pre>
+
+<pre class="anchors">
+urlPrefix: https://html.spec.whatwg.org/multipage/
+    type: dfn
+        urlPrefix: infrastructure.html
+            text: structured clone
 </pre>
 
 <style>
@@ -118,6 +124,11 @@ Consumers can also <dfn lt="tee a readable stream">tee</dfn> a readable stream. 
 <a lt="locked to a reader">lock</a> the stream, making it no longer directly usable; however, it will create two new
 streams, called <dfn lt="branches of a readable stream tee">branches</dfn>, which can be consumed independently.
 
+For streams representing bytes, an extended version of the <a>readable stream</a> is provided to handle bytes
+efficiently, in particular by minimizing copies. The <a>underlying source</a> for such a readable stream is called
+a <dfn>underlying byte source</dfn>. A readable stream whose underlying source is an underlying byte source is sometimes
+called a <dfn>readable byte stream</dfn>.
+
 <h3 id="ws-model">Writable Streams</h3>
 
 A <dfn>writable stream</dfn> represents a destination for data, into which you can write. In other words, data goes
@@ -202,11 +213,11 @@ similarly, avoiding writes that would cause the desired size to go negative.
 
 <!-- TODO: writable streams too, probably -->
 
-A <dfn>readable stream reader</dfn> (<dfn>readable byte stream reader</dfn> for <a>readable byte stream</a>) or simply
-reader is an object that allows direct reading of <a>chunks</a> from a <a>readable stream</a>). Without a reader, a
-<a>consumer</a> can only perform high-level operations on the readable stream: waiting for the stream to become closed
-or errored, <a lt="cancel a readable stream">canceling</a> the stream, or <a>piping</a> the readable stream to a
-writable stream. Many of those high-level operations actually use a reader themselves.
+A <dfn>readable stream reader</dfn>, or simply reader, is an object that allows direct reading of <a>chunks</a> from a
+<a>readable stream</a>. Without a reader, a <a>consumer</a> can only perform high-level operations on the readable
+stream: waiting for the stream to become closed or errored, <a lt="cancel a readable stream">canceling</a> the stream,
+or <a>piping</a> the readable stream to a writable stream. Many of those high-level operations actually use a reader
+themselves.
 
 A given readable stream only has at most one reader at a time. We say in this case the stream is
 <dfn lt="locked to a reader">locked to the reader</dfn>, and that the reader is <dfn lt="active reader">active</dfn>.
@@ -216,14 +227,9 @@ longer active. At this point another reader can be acquired at will. If the stre
 result of the behavior of its <a>underlying source</a> or via <a lt="cancel a readable stream">cancellation</a>, its
 reader (if one exists) will automatically release its lock.
 
-<h3 id="byte-streams">Readable Byte Streams</h3>
-
-For streams representing bytes, an extended version of the readable stream is provided to handle bytes efficiently.
-
-A <dfn>readable byte stream</dfn> represents a source of bytes, from which you can read.
-
-Although a readable byte stream can be created with arbitrary behavior, most readable byte streams wrap a lower-level
-I/O source, called the <dfn>underlying byte source</dfn>.
+A <a>readable byte stream</a> has the ability to vend two types of readers: <dfn>default readers</dfn> and <dfn>BYOB
+readers</dfn>. BYOB ("bring your own buffer") readers allow reading into a developer-supplied buffer, thus minimizing
+copies.
 
 <h2 id="rs">Readable Streams</h2>
 
@@ -287,6 +293,40 @@ I/O source, called the <dfn>underlying byte source</dfn>.
   on streams, beyond the provided ones of <a>piping</a> and <a lt="tee a readable stream">teeing</a>.
 </div>
 
+<div class="example">
+  The above example showed using the readable stream's <a>default reader</a>. If the stream is a <a>readable byte
+  stream</a>, you can also acquire a <a>BYOB reader</a> for it, which allows more precise control over buffer
+  allocation in order to avoid copies. For example, this code reads the first 1024 bytes from the stream into a single
+  memory buffer:
+
+  <pre><code class="lang-javascript">
+    const reader = readableStream.getBYOBReader();
+
+    let startingAB = new ArrayBuffer(1024);
+    readInto(startingAB, 0)
+      .then(buffer => console.log("The first 1024 bytes:", buffer))
+      .catch(e => console.error("Something went wrong!", e));
+
+    function readInto(buffer, offset) {
+      if (offset === buffer.byteLength) {
+        return buffer;
+      }
+
+      const view = new Uint8Array(buffer, offset, buffer.byteLength - offset);
+      reader.read(view).then(newView => {
+        return readInto(newView.buffer, offset + newView.byteLength);
+      });
+    }
+  </code></pre>
+
+  An important thing to note here is that the final <code>buffer</code> value is different from the
+  <code>startingAB</code>, but it (and all intermediate buffers) shares the same backing memory allocation. At each
+  step, the buffer is transferred <!-- TODO link --> to a new <code>ArrayBuffer</code> object. The <code>newView</code>
+  is a new <code>Uint8Array</code>, with that <code>ArrayBuffer</code> object as its <code>buffer</code> property, the
+  offset that bytes were written to as its <code>byteOffset</code> property, and the number of bytes that were written
+  as its <code>byteLength</code> property.
+</div>
+
 <h3 id="rs-class">Class <code>ReadableStream</code></h3>
 
 The <code>ReadableStream</code> class is a concrete instance of the general <a>readable stream</a> concept. It is
@@ -307,6 +347,7 @@ would look like
     get locked()
 
     cancel(reason)
+    getBYOBReader()
     getReader()
     pipeThrough({ writable, readable }, options)
     pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})
@@ -326,42 +367,20 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     </tr>
   </thead>
   <tr>
-    <td>\[[closeRequested]]
-    <td>A boolean flag indicating whether the stream has been closed by its <a>underlying source</a>, but still has
-      <a>chunks</a> in its internal queue that have not yet been read
-  </tr>
-  <tr>
-    <td>\[[controller]]
-    <td>A <a href="#rs-controller-class"><code>ReadableStreamController</code></a> created with the ability to control the
-      state and queue of this stream
+    <td>\[[readableStreamController]]
+    <td>A <a href="#rs-default-controller-class"><code>ReadableStreamDefaultController</code></a> or
+      <a href="#rs-byob-controller-class"><code>ReadableStreamBYOBController</code></a> created with the ability to
+      control the state and queue of this stream; also used for the IsReadableStream brand check
   </tr>
   <tr>
     <td>\[[disturbed]]
     <td>A boolean flag set to <b>true</b> when the stream has been read from or canceled
   </tr>
   <tr>
-    <td>\[[pullAgain]]
-    <td>A boolean flag set to <b>true</b> if the stream's mechanisms requested a call to the underlying source's
-      <code>pull</code> method to pull more data, but the pull could not yet be done since a previous call is still
-      executing
-  </tr>
-  <tr>
-    <td>\[[pulling]]
-    <td>A boolean flag set to <b>true</b> while the <a>underlying source</a>'s <code>pull</code> method is executing and has
-      not yet fulfilled, used to prevent reentrant calls
-  </tr>
-  <tr>
-    <td>\[[queue]]
-    <td>A List representing the stream's internal queue of <a>chunks</a>
-  </tr>
-  <tr>
     <td>\[[reader]]
-    <td>A <a href="#reader-class"><code>ReadableStreamReader</code></a> instance, if the stream is <a>locked to a
+    <td>A <a href="#default-reader-class"><code>ReadableStreamDefaultReader</code></a> or
+      <a href="#byob-reader-class"><code>ReadableStreamBYOBReader</code></a> instance, if the stream is <a>locked to a
       reader</a>, or <b>undefined</b> if it is not
-  </tr>
-  <tr>
-    <td>\[[started]]
-    <td>A boolean flag indicating whether the <a>underlying source</a> has finished starting
   </tr>
   <tr>
     <td>\[[state]]
@@ -372,21 +391,6 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     <td>\[[storedError]]
     <td>A value indicating how the stream failed, to be given as a failure reason or exception when trying to operate
       on an errored stream
-  </tr>
-  <tr>
-    <td>\[[strategySize]]
-    <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
-      the size of enqueued <a>chunks</a>; can be <b>undefined</b> for the default behavior.
-  </tr>
-  <tr>
-    <td>\[[strategyHWM]]
-    <td>A number supplied to the constructor as part of the stream's <a>queuing strategy</a>, indicating the point at
-      which the stream will apply <a>backpressure</a> to its <a>underlying source</a>.
-  </tr>
-  <tr>
-    <td>\[[underlyingSource]]
-    <td>An object representation of the stream's <a>underlying source</a>, including its <a>queuing strategy</a>; also
-      used for the <a href="#is-readable-stream">IsReadableStream</a> brand check
   </tr>
 </table>
 
@@ -410,9 +414,22 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </ul>
 
   Both <code>start</code> and <code>pull</code> are given the ability to manipulate the stream's internal queue and
-  state via the passed <code>controller</code> object, which is an instance of
-  <a href="#rs-controller-class"><code>ReadableStreamController</code></a>. This is an example of the
+  state via the passed <code>controller</code> object. This is an example of the
   <a href="https://blog.domenic.me/the-revealing-constructor-pattern/">revealing constructor pattern</a>.
+
+  If the <var>underlyingSource</var> object contains a truthy property <code>byob</code>, this <a>readable stream</a> is
+  a <a>readable byte stream</a>, and can successfully vend <a>BYOB readers</a>. In that case, the passed
+  <code>controller</code> object will be an instance of <a
+  href="#rs-byob-controller-class"><code>ReadableStreamBYOBController</code></a>. Otherwise, it will be an instance of
+  <a href="#rs-default-controller-class"><code>ReadableStreamDefaultController</code></a>.
+
+  For <a>readable byte streams</a>, <var>underlyingSource</var> can also contain a property
+  <code>autoAllocateChunkSize</code>, which can be set to a positive integer to enable the auto-allocation feature for
+  this stream. In that case, when a <a>consumer</a> uses a <a>default reader</a>, the stream implementation will
+  automatically allocate an <code>ArrayBuffer</code> of the given size, and call the <a>underlying source</a> code
+  as if the <a>consumer</a> was using a <a>BYOB reader</a>. This can cut down on the amount of code needed when writing
+  the <a>underlying source</a> implementation, as can be seen by comparing [[#example-rbs-push]] without auto-allocation
+  to [[#example-rbs-pull]] with auto-allocation.
 
   The constructor also accepts a second argument containing the <a>queuing strategy</a> object with
   two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
@@ -422,23 +439,20 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <emu-alg>
-  1. Set *this*@[[underlyingSource]] to _underlyingSource_.
-  1. Set *this*@[[queue]] to a new empty List.
-  1. Set *this*@[[state]] to "readable".
-  1. Set *this*@[[started]], *this*@[[closeRequested]], *this*@[[pullAgain]], and *this*@[[pulling]] to *false*.
+  1. Set *this*@[[state]] to `"readable"`.
   1. Set *this*@[[reader]] and *this*@[[storedError]] to *undefined*.
   1. Set *this*@[[disturbed]] to *false*.
-  1. Set *this*@[[controller]] to Construct(`ReadableStreamController`, «*this*»).
-  1. Let _normalizedStrategy_ be ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
-  1. Set *this*@[[strategySize]] to _normalizedStrategy_.[[size]] and *this*@[[strategyHWM]] to _normalizedStrategy_.[[highWaterMark]].
-  1. Let _startResult_ be InvokeOrNoop(_underlyingSource_, "start", «*this*@[[controller]]»).
-  1. ReturnIfAbrupt(_startResult_).
-  1. Resolve _startResult_ as a promise:
-    1. Upon fulfillment,
-      1. Set *this*@[[started]] to *true*.
-      1. Perform RequestReadableStreamPull(*this*).
-    1. Upon rejection with reason _r_,
-      1. If *this*@[[state]] is "readable", perform ErrorReadableStream(*this*, _r_).
+  1. Set *this*@[[readableStreamController]] to *undefined*.
+  1. Let _byob_ be ToBoolean(GetV(_underlyingSource_, `"byob"`)).
+  1. ReturnIfAbrupt(_byob_).
+  1. If _byob_ is *true*,
+    1. If _highWaterMark_ is *undefined*,
+      1. Let _highWaterMark_ be 0.
+    1. Set *this*@[[readableStreamController]] to Construct(`ReadableStreamBYOBController`, «*this*, _underlyingSource_, _highWaterMark_»).
+  1. Otherwise,
+    1. If _highWaterMark_ is *undefined*,
+      1. Let _highWaterMark_ be 1.
+    1. Set *this*@[[readableStreamController]] to Construct(`ReadableStreamDefaultController`, «*this*, _underlyingSource_, _size_, _highWaterMark_»).
 </emu-alg>
 
 <h4 id="rs-prototype">Properties of the <code>ReadableStream</code> Prototype</h4>
@@ -465,7 +479,15 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 <emu-alg>
   1. If IsReadableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. If IsReadableStreamLocked(*this*) is *true*, return a promise rejected with a *TypeError* exception.
-  1. Return CancelReadableStream(*this*, _reason_).
+  1. Return ReadableStreamCancel(*this*, _reason_).
+</emu-alg>
+
+<h5 id="rs-get-byob-reader">getBYOBReader()</h5>
+
+<emu-alg>
+  1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
+  1. If IsReadableStreamBYOBController(*this*@[[readableStreamController]]) is *false*, throw a *TypeError* exception.
+  1. Return AcquireReadableStreamBYOBReader(*this*).
 </emu-alg>
 
 <h5 id="rs-get-reader">getReader()</h5>
@@ -485,7 +507,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 
 <emu-alg>
   1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. Return AcquireReadableStreamReader(*this*).
+  1. Return AcquireReadableStreamDefaultReader(*this*).
 </emu-alg>
 
 <div class="example">
@@ -533,7 +555,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </div>
 
 <emu-alg>
-  1. Call-with-rethrow Invoke(*this*, "pipeTo", «_writable_, _options_»).
+  1. Call-with-rethrow Invoke(*this*, `"pipeTo"`, «_writable_, _options_»).
   1. Return _readable_.
 </emu-alg>
 
@@ -589,7 +611,7 @@ href="https://github.com/whatwg/streams/issues/97">#97</a> for more information.
 
 <emu-alg>
   1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. Let _branches_ be TeeReadableStream(*this*, *false*).
+  1. Let _branches_ be ReadableStreamTee(*this*, *false*).
   1. ReturnIfAbrupt(_branches_).
   1. Return CreateArrayFromList(_branches_).
 </emu-alg>
@@ -612,414 +634,34 @@ href="https://github.com/whatwg/streams/issues/97">#97</a> for more information.
   </code></pre>
 </div>
 
+<h3 id="rs-abstract-ops">General Readable Stream Abstract Operations</h3>
 
-<h3 id="rs-controller-class" lt="ReadableStreamController">Class <code>ReadableStreamController</code></h3>
+The following abstract operations, unlike most in this specification, are meant to be generally useful by other
+specifications, instead of just being part of the implementation of this spec's classes.
 
-The <code>ReadableStreamController</code> class has methods that allow control of a <code>ReadableStream</code>'s state
-and <a>internal queue</a>. When constructing a <code>ReadableStream</code>, the <a>underlying source</a> is given a
-corresponding <code>ReadableStreamController</code> instance to manipulate.
+<h4 id="acquire-readable-stream-byob-reader" aoid="AcquireReadableStreamBYOBReader" throws>AcquireReadableStreamBYOBReader ( stream )</h4>
 
-<h4 id="rs-controller-class-definition">Class Definition</h4>
-
-<em>This section is non-normative.</em>
-
-If one were to write the <code>ReadableStreamController</code> class in something close to the syntax of [[!ECMASCRIPT]],
-it would look like
-
-<pre><code class="lang-javascript">
-  class ReadableStreamController {
-    constructor(stream)
-
-    get desiredSize()
-
-    close()
-    enqueue(chunk)
-    error(e)
-  }
-</code></pre>
-
-<h4 id="rs-controller-internal-slots">Internal Slots</h4>
-
-Instances of <code>ReadableStreamController</code> are created with the internal slots described in the following table:
-
-<table>
-  <thead>
-    <tr>
-      <th>Internal Slot</th>
-      <th>Description (<em>non-normative</em>)</th>
-    </tr>
-  </thead>
-  <tr>
-    <td>\[[controlledReadableStream]]
-    <td>The <code>ReadableStream</code> instance controlled
-  </tr>
-</table>
-
-<h4 id="rs-controller-constructor">new ReadableStreamController(stream)</h4>
-
-<div class="note">
-  The <code>ReadableStreamController</code> constructor cannot be used directly; it only works on a
-  <code>ReadableStream</code> that is in the middle of being constructed.
-</div>
+This abstract operation is meant to be called from other specifications that may wish to acquire a <a>BYOB reader</a>
+for a given stream.
 
 <emu-alg>
-  1. If IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
-  1. If _stream_@[[controller]] is not *undefined*, throw a *TypeError* exception.
-  1. Set *this*@[[controlledReadableStream]] to _stream_.
+  1. Return Construct(`ReadableStreamBYOBReader`, «_stream_»)
 </emu-alg>
 
-<h4 id="rs-controller-prototype">Properties of the <code>ReadableStreamController</code> Prototype</h4>
+<h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamDefaultReader" throws>AcquireReadableStreamDefaultReader ( stream )</h4>
 
-<h5 id="rs-controller-desired-size">get desiredSize</h5>
-
-<div class="note">
-  The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size
-  to fill the controlled stream's internal queue</a>. It can be negative, if the queue is over-full. An <a>underlying
-  source</a> should use this information to determine when and how to apply <a>backpressure</a>.
-</div>
-
-<emu-alg>
-  1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
-  1. Return GetReadableStreamDesiredSize(*this*@[[controlledReadableStream]]).
-</emu-alg>
-
-<h5 id="rs-controller-close">close()</h5>
-
-<div class="note">
-  The <code>close</code> method will close the controlled readable stream. <a>Consumers</a> will still be able to read
-  any previously-enqueued <a>chunks</a> from the stream, but once those are read, the stream will become closed.
-</div>
-
-<emu-alg>
-  1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
-  1. Let _stream_ be *this*@[[controlledReadableStream]].
-  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. If _stream_@[[state]] is "errored", throw a *TypeError* exception.
-  1. Perform CloseReadableStream(_stream_).
-  1. Return *undefined*.
-</emu-alg>
-
-<h5 id="rs-controller-enqueue">enqueue(chunk)</h5>
-
-<div class="note">
-  The <code>enqueue</code> method will enqueue a given <a>chunk</a> in the controlled readable stream.
-</div>
-
-<emu-alg>
-  1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
-  1. Let _stream_ be *this*@[[controlledReadableStream]].
-  1. If _stream_@[[state]] is "errored", throw _stream_@[[storedError]].
-  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. Return EnqueueInReadableStream(_stream_, _chunk_).
-</emu-alg>
-
-<h5 id="rs-controller-error">error(e)</h5>
-
-<div class="note">
-  The <code>error</code> method will error the readable stream, making all future interactions with it fail with the
-  given error <var>e</var>.
-</div>
-
-<emu-alg>
-  1. If IsReadableStreamController(*this*) is *false*, throw a *TypeError* exception.
-  1. If *this*@[[controlledReadableStream]]@[[state]] is not "readable", throw a *TypeError* exception.
-  1. Perform ErrorReadableStream(*this*@[[controlledReadableStream]], _e_).
-  1. Return *undefined*.
-</emu-alg>
-
-<h3 id="reader-class">Class <code>ReadableStreamReader</code></h3>
-
-The <code>ReadableStreamReader</code> class represents a <a>readable stream reader</a> designed to be vended by a
-<code>ReadableStream</code> instance.
-
-<h4 id="reader-class-definition">Class Definition</h4>
-
-<em>This section is non-normative.</em>
-
-If one were to write the <code>ReadableStreamReader</code> class in something close to the syntax of [[!ECMASCRIPT]],
-it would look like
-
-<pre><code class="lang-javascript">
-  class ReadableStreamReader {
-    constructor(stream)
-
-    get closed()
-
-    cancel(reason)
-    read()
-    releaseLock()
-  }
-</code></pre>
-
-<h4 id="reader-internal-slots">Internal Slots</h4>
-
-Instances of <code>ReadableStreamReader</code> are created with the internal slots described in the following table:
-
-<table>
-  <thead>
-    <tr>
-      <th>Internal Slot</th>
-      <th>Description (<em>non-normative</em>)</th>
-    </tr>
-  </thead>
-  <tr>
-    <td>\[[closedPromise]]
-    <td>A promise returned by the reader's <code>closed</code> getter
-  </tr>
-  <tr>
-    <td>\[[ownerReadableStream]]
-    <td>A <code>ReadableStream</code> instance that owns this reader; also used for the
-      <a href="#is-readable-stream-reader">IsReadableStreamReader</a> brand check
-  </tr>
-  <tr>
-    <td>\[[readRequests]]
-    <td>A List of promises returned by calls to the reader's <code>read()</code> method that have not yet been resolved,
-      due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available
-  </tr>
-</table>
-
-<h4 id="reader-constructor">new ReadableStreamReader(stream)</h4>
-
-<div class="note">
-  The <code>ReadableStreamReader</code> constructor is generally not meant to be used directly; instead, a stream's
-  <code>getReader()</code> method should be used. This allows different classes of readable streams to vend different
-  classes of readers without the <a>consumer</a> needing to know which goes with which.
-</div>
-
-<emu-alg>
-  1. If IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
-  1. If IsReadableStreamLocked(_stream_) is *true*, throw a *TypeError* exception.
-  1. Set *this*@[[readRequests]] to a new empty List.
-  1. Set *this*@[[ownerReadableStream]] to _stream_.
-  1. Set _stream_@[[reader]] to *this*.
-  1. If _stream_@[[state]] is "readable",
-    1. Set *this*@[[closedPromise]] to a new promise.
-  1. Otherwise, if _stream_@[[state]] is "closed",
-    1. Set *this*@[[closedPromise]] to a new promise resolved with *undefined*.
-  1. Otherwise,
-    1. Assert: _stream_@[[state]] is "errored".
-    1. Set *this*@[[closedPromise]] to a new promise rejected with _stream_@[[storedError]].
-</emu-alg>
-
-<h4 id="reader-prototype">Properties of the <code>ReadableStreamReader</code> Prototype</h4>
-
-<h5 id="reader-closed">get closed</h5>
-
-<div class="note">
-  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed or the
-  reader's lock is <a lt="release a read lock">released</a>, or rejected if the stream ever errors.
-</div>
-
-<emu-alg>
-  1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. Return *this*@[[closedPromise]].
-</emu-alg>
-
-<h5 id="reader-cancel">cancel(reason)</h5>
-
-<div class="note">
-  If the reader is <a lt="active reader">active</a>, the <code>cancel</code> method behaves the same as that for the
-  associated stream. When done, it automatically <a lt="release a read lock">releases the lock</a>.
-</div>
-
-<emu-alg>
-  1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If *this*@[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
-  1. Return CancelReadableStream(*this*@[[ownerReadableStream]], _reason_).
-</emu-alg>
-
-<h5 id="reader-read">read()</h5>
-
-<div class="note">
-  The <code>read</code> method will return a promise that allows access to the next <a>chunk</a> from the stream's
-  internal queue, if available.
-
-  <ul>
-    <li> If the chunk does become available, the promise will be fulfilled with an object of the form
-      <code>{ value: theChunk, done: false }</code>.
-    <li> If the stream becomes closed, the promise will be fulfilled with an object of the form
-      <code>{ value: undefined, done: true }</code>.
-    <li> If the stream becomes errored, the promise will be rejected with the relevant error.
-  </ul>
-
-  If reading a chunk causes the queue to become empty, more data will be pulled from the <a>underlying source</a>.
-</div>
-
-<emu-alg>
-  1. If IsReadableStreamReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If *this*@[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
-  1. Return ReadFromReadableStreamReader(*this*).
-</emu-alg>
-
-<h5 id="reader-release-lock">releaseLock()</h5>
-
-<div class="note">
-  The <code>releaseLock</code> method <a lt="release a read lock">releases the reader's lock</a> on the corresponding
-  stream. After the lock is released, the reader is no longer <a lt="active reader">active</a>. If the associated
-  stream is errored when the lock is released, the reader will appear errored in the same way from now on; otherwise,
-  the reader will appear closed.
-
-  A reader's lock cannot be released while it still has a pending read request, i.e., if a promise returned by the
-  reader's <code>read()</code> method has not yet been settled. Attempting to do so will throw a <b>TypeError</b>
-  and leave the reader locked to the stream.
-</div>
-
-<emu-alg>
-  1. If IsReadableStreamReader(*this*) is *false*, throw a *TypeError* exception.
-  1. If *this*@[[ownerReadableStream]] is *undefined*, return *undefined*.
-  1. If *this*@[[readRequests]] is not empty, throw a *TypeError* exception.
-  1. If *this*@[[ownerReadableStream]]@[[state]] is `"readable"`, reject *this*@[[closedPromise]] with a *TypeError* exception.
-  1. Otherwise, set *this*@[[closedPromise]] be a new promise rejected with a *TypeError* exception.
-  1. Set *this*@[[ownerReadableStream]]@[[reader]] to *undefined*.
-  1. Set *this*@[[ownerReadableStream]] to *undefined*.
-  1. Return *undefined*.
-</emu-alg>
-
-<h3 id="rs-abstract-ops">Readable Stream Abstract Operations</h3>
-
-<h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamReader" throws>AcquireReadableStreamReader ( stream )</h4>
-
-This abstract operation is meant to be called from other specifications that may wish to acquire a <a>readable stream
+This abstract operation is meant to be called from other specifications that may wish to acquire a <a>default
 reader</a> for a given stream.
 
 <emu-alg>
-  1. Return Construct(`ReadableStreamReader`, «‍_stream_»).
-</emu-alg>
-
-<h4 id="cancel-readable-stream" aoid="CancelReadableStream" nothrow>CancelReadableStream ( stream, reason )</h4>
-
-<emu-alg>
-  1. Set _stream_@[[disturbed]] to *true*.
-  1. If _stream_@[[state]] is "closed", return a new promise resolved with *undefined*.
-  1. If _stream_@[[state]] is "errored", return a new promise rejected with _stream_@[[storedError]].
-  1. Set _stream_@[[queue]] to a new empty List.
-  1. Perform FinishClosingReadableStream(_stream_).
-  1. Let _sourceCancelPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "cancel", «‍_reason_»).
-  1. Return the result of transforming _sourceCancelPromise_ by a fulfillment handler that returns *undefined*.
-</emu-alg>
-
-<h4 id="close-readable-stream" aoid="CloseReadableStream" nothrow>CloseReadableStream ( stream )</h4>
-
-This abstract operation can be called by other specifications that wish to close a readable stream, in the same way
-a developer-created stream would be closed by its associated controller object. Specifications should <em>not</em> do
-this to streams they did not create, and must ensure they have obeyed the preconditions (listed here as asserts).
-
-<emu-alg>
-  1. Assert: _stream_@[[closeRequested]] is *false*.
-  1. Assert: _stream_@[[state]] is not "errored".
-  1. If _stream_@[[state]] is "closed", return *undefined*.
-  1. Set _stream_@[[closeRequested]] to *true*.
-  1. If _stream_@[[queue]] is empty, perform FinishClosingReadableStream(_stream_).
-  1. Return *undefined*.
-</emu-alg>
-
-<div class="note">
-  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
-  <emu-val>false</emu-val>, will happen if the stream was closed without its controller's close method ever being
-  called: i.e., if the stream was closed by a call to <code>stream.cancel()</code>. In this case we allow the
-  controller's <code>close</code> method to be called and silently do nothing, since the cancelation was outside the
-  control of the underlying source.
-</div>
-
-<h4 id="enqueue-in-readable-stream" aoid="EnqueueInReadableStream" throws>EnqueueInReadableStream ( stream, chunk )</h4>
-
-This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in a readable stream,
-in the same way a developer would enqueue chunks using the stream's associated controller object. Specifications should
-<em>not</em> do this to streams they did not create, and must ensure they have obeyed the preconditions (listed here as
-asserts).
-
-<emu-alg>
-  1. Assert: _stream_@[[closeRequested]] is *false*.
-  1. Assert: _stream_@[[state]] is not "errored".
-  1. If _stream_@[[state]] is "closed", return *undefined*.
-  1. If IsReadableStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty,
-    1. Let _readRequestPromise_ be the first element of _stream_@[[reader]]@[[readRequests]].
-    1. Remove _readRequestPromise_ from _stream_@[[reader]]@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
-    1. Resolve _readRequestPromise_ with CreateIterResultObject(_chunk_, *false*).
-  1. Otherwise,
-    1. Let _chunkSize_ be *1*.
-    1. If _stream_@[[strategySize]] is not *undefined*,
-      1. Set _chunkSize_ to Call(_stream_@[[strategySize]], *undefined*, «‍_chunk_»).
-      1. If _chunkSize_ is an abrupt completion,
-        1. If _stream_@[[state]] is "readable", perform ErrorReadableStream(_stream_, ‍_chunkSize_.[[value]]).
-        1. Return _chunkSize_.
-      1. Let _chunkSize_ be _chunkSize_.[[value]].
-    1. Let _enqueueResult_ be EnqueueValueWithSize(_stream_@[[queue]], _chunk_, _chunkSize_).
-    1. If _enqueueResult_ is an abrupt completion,
-      1. If _stream_@[[state]] is "readable", perform ErrorReadableStream(_stream_, ‍_enqueueResult_.[[value]]).
-      1. Return _enqueueResult_.
-  1. Perform RequestReadableStreamPull(_stream_).
-  1. Return *undefined*.
-</emu-alg>
-
-<div class="note">
-  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
-  <emu-val>false</emu-val>, will happen if the stream was closed without its controller's close method ever being
-  called: i.e., if the stream was closed by a call to <code>stream.cancel()</code>. In this case we allow the
-  controller's <code>enqueue</code> method to be called and silently do nothing, since the cancelation was outside the
-  control of the underlying source.
-</div>
-
-<h4 id="error-readable-stream" aoid="ErrorReadableStream" nothrow>ErrorReadableStream ( stream, e )</h4>
-
-This abstract operation can be called by other specifications that wish to move a readable stream to an errored state,
-in the same way a developer would error a stream using its associated controller object. Specifications should
-<em>not</em> do this to streams they did not create, and must ensure they have obeyed the precondition (listed here as
-an assert).
-
-<emu-alg>
-  1. Assert: _stream_@[[state]] is "readable".
-  1. Let _stream_@[[queue]] be a new empty List.
-  1. Set _stream_@[[storedError]] to _e_.
-  1. Set _stream_@[[state]] to "errored".
-  1. Let _reader_ be _stream_@[[reader]].
-  1. If _reader_ is *undefined*, return *undefined*.
-  1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
-    1. Reject _readRequestPromise_ with _e_.
-  1. Set _reader_@[[readRequests]] to a new empty List.
-  1. Reject _reader_@[[closedPromise]] with _e_.
-  1. Return *undefined*.
-</emu-alg>
-
-<h4 id="finish-closing-readable-stream" aoid="FinishClosingReadableStream" nothrow>FinishClosingReadableStream ( stream )</h4>
-
-<emu-alg>
-  1. Assert: _stream_@[[state]] is "readable".
-  1. Set _stream_@[[state]] to "closed".
-  1. Let _reader_ be _stream_@[[reader]].
-  1. If _reader_ is *undefined*, return *undefined*.
-  1. Repeat for each _readRequestPromise_ that is an element of _reader_@[[readRequests]],
-    1. Resolve _readRequestPromise_ with CreateIterResultObject(*undefined*, *true*).
-  1. Set _reader_@[[readRequests]] to an empty List.
-  1. Resolve _reader_@[[closedPromise]] with *undefined*.
-  1. Return *undefined*.
-</emu-alg>
-
-<h4 id="get-readable-stream-desired-size" aoid="GetReadableStreamDesiredSize" nothrow>GetReadableStreamDesiredSize ( stream )</h4>
-
-This abstract operation can be called by other specifications that wish to determine the
-<a lt="desired size to fill a stream's internal queue">desired size to fill this stream's internal queue</a>, similar
-to how a developer would consult the <code>desiredSize</code> property of the stream's associated controller object.
-Specifications should <em>not</em> use this on streams they did not create.
-
-<emu-alg>
-  1. Let _queueSize_ be GetTotalQueueSize(_stream_@[[queue]]).
-  1. Return _stream_@[[strategyHWM]] − _queueSize_.
+  1. Return Construct(`ReadableStreamDefaultReader`, «‍_stream_»).
 </emu-alg>
 
 <h4 id="is-readable-stream" aoid="IsReadableStream" nothrow>IsReadableStream ( x )</h4>
 
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have a [[underlyingSource]] internal slot, return *false*.
-  1. Return *true*.
-</emu-alg>
-
-<h4 id="is-readable-stream-controller" aoid="IsReadableStreamController" nothrow>IsReadableStreamController ( x )</h4>
-
-<emu-alg>
-  1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have a [[controlledReadableStream]] internal slot, return *false*.
+  1. If _x_ does not have a [[readableStreamController]] internal slot, return *false*.
   1. Return *true*.
 </emu-alg>
 
@@ -1044,67 +686,7 @@ readable stream is <a>locked to a reader</a>.
   1. Return *true*.
 </emu-alg>
 
-<h4 id="is-readable-stream-reader" aoid="IsReadableStreamReader" nothrow>IsReadableStreamReader ( x )</h4>
-
-<emu-alg>
-  1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have an [[ownerReadableStream]] internal slot, return *false*.
-  1. Return *true*.
-</emu-alg>
-
-<h4 id="read-from-readable-stream-reader" aoid="ReadFromReadableStreamReader" nothrow>ReadFromReadableStreamReader ( reader )</h4>
-
-<emu-alg>
-  1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
-  1. Set _reader_@[[ownerReadableStream]]@[[disturbed]] to *true*.
-  1. If _reader_@[[ownerReadableStream]]@[[state]] is "closed", return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
-  1. If _reader_@[[ownerReadableStream]]@[[state]] is "errored", return a new promise rejected with _reader_@[[ownerReadableStream]]@[[storedError]].
-  1. Assert: _reader_@[[ownerReadableStream]]@[[state]] is "readable".
-  1. If _reader_@[[ownerReadableStream]]@[[queue]] is not empty,
-    1. Let _chunk_ be DequeueValue(_reader_@[[ownerReadableStream]]@[[queue]]).
-    1. If _reader_@[[ownerReadableStream]]@[[closeRequested]] is *true* and _reader_@[[ownerReadableStream]]@[[queue]] is now empty, perform FinishClosingReadableStream(_reader_@[[ownerReadableStream]]).
-    1. Otherwise, perform RequestReadableStreamPull(_reader_@[[ownerReadableStream]]).
-    1. Return a new promise resolved with CreateIterResultObject(_chunk_, *false*).
-  1. Otherwise,
-    1. Let _readRequestPromise_ be a new promise.
-    1. Append _readRequestPromise_ as the last element of _reader_@[[readRequests]].
-    1. Perform RequestReadableStreamPull(_reader_@[[ownerReadableStream]]).
-    1. Return _readRequestPromise_.
-</emu-alg>
-
-<h4 id="request-readable-stream-pull" aoid="RequestReadableStreamPull" nothrow>RequestReadableStreamPull ( stream )</h4>
-
-<emu-alg>
-  1. Let _shouldPull_ be ShouldReadableStreamPull(stream).
-  1. If _shouldPull_ is *false*, return *undefined*.
-  1. If _stream_@[[pulling]] is *true*,
-    1. Set _stream_@[[pullAgain]] to *true*.
-    1. Return *undefined*.
-  1. Set _stream_@[[pulling]] to *true*.
-  1. Let _pullPromise_ be PromiseInvokeOrNoop(_stream_@[[underlyingSource]], "pull", «‍_stream_@[[controller]]»).
-  1. Upon fulfillment of _pullPromise_,
-    1. Set _stream_@[[pulling]] to *false*.
-    1. If _stream_@[[pullAgain]] is *true*,
-      1. Set _stream_@[[pullAgain]] to *false*.
-      1. Perform RequestReadableStreamPull(_stream_).
-  1. Upon rejection of _pullPromise_ with reason _e_,
-    1. If _stream_@[[state]] is "readable", perform ErrorReadableStream(_stream_, _e_).
-  1. Return *undefined*.
-</emu-alg>
-
-<h4 id="should-readable-stream-pull" aoid="ShouldReadableStreamPull" nothrow>ShouldReadableStreamPull ( stream )</h4>
-
-<emu-alg>
-  1. If _stream_@[[state]] is "closed" or _stream_@[[state]] is "errored", return *false*.
-  1. If _stream_@[[closeRequested]] is *true*, return *false*.
-  1. If _stream_@[[started]] is *false*, return *false*.
-  1. If IsReadableStreamLocked(_stream_) is *true* and _stream_@[[reader]]@[[readRequests]] is not empty, return *true*.
-  1. Let _desiredSize_ be GetReadableStreamDesiredSize(_stream_).
-  1. If _desiredSize_ > 0, return *true*.
-  1. Return *false*.
-</emu-alg>
-
-<h4 id="tee-readable-stream" aoid="TeeReadableStream" throws>TeeReadableStream ( stream, shouldClone )</h4>
+<h4 id="readable-stream-tee" aoid="ReadableStreamTee" throws>ReadableStreamTee ( stream, shouldClone )</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to
 <a lt="tee a readable stream">tee</a> a given readable stream. Its second argument governs whether or not the data from
@@ -1114,29 +696,29 @@ branches.
 <emu-alg>
   1. Assert: IsReadableStream(_stream_) is *true*.
   1. Assert: Type(_shouldClone_) is Boolean.
-  1. Let _reader_ be AcquireReadableStreamReader(_stream_).
+  1. Let _reader_ be AcquireReadableStreamDefaultReader(_stream_).
   1. ReturnIfAbrupt(_reader_).
   1. Let _teeState_ be Record{[[closedOrErrored]]: *false*, [[canceled1]]: *false*, [[canceled2]]: *false*, [[reason1]]: *undefined*, [[reason2]]: *undefined*, [[promise]]: a new promise}.
-  1. Let _pull_ be a new <a>TeeReadableStream pull function</a>.
+  1. Let _pull_ be a new <a>ReadableStreamTee pull function</a>.
   1. Set _pull_@[[reader]] to _reader_, _pull_@[[teeState]] to _teeState_, and _pull_@[[shouldClone]] to _shouldClone_.
-  1. Let _cancel1_ be a new <a>TeeReadableStream branch 1 cancel function</a>.
+  1. Let _cancel1_ be a new <a>ReadableStreamTee branch 1 cancel function</a>.
   1. Set _cancel1_@[[stream]] to _stream_ and _cancel1_@[[teeState]] to _teeState_.
-  1. Let _cancel2_ be a new <a>TeeReadableStream branch 2 cancel function</a>.
+  1. Let _cancel2_ be a new <a>ReadableStreamTee branch 2 cancel function</a>.
   1. Set _cancel2_@[[stream]] to _stream_ and _cancel2_@[[teeState]] to _teeState_.
   1. Let _underlyingSource1_ be ObjectCreate(%ObjectPrototype%).
-  1. Perform CreateDataProperty(_underlyingSource1_, "pull", _pull_).
-  1. Perform CreateDataProperty(_underlyingSource1_, "cancel", _cancel1_).
-  1. Let _branch1_ be Construct(`ReadableStream`, _underlyingSource1_).
+  1. Perform CreateDataProperty(_underlyingSource1_, `"pull"`, _pull_).
+  1. Perform CreateDataProperty(_underlyingSource1_, `"cancel"`, _cancel1_).
+  1. Let _branch1Stream_ be Construct(`ReadableStream`, _underlyingSource1_).
   1. Let _underlyingSource2_ be ObjectCreate(%ObjectPrototype%).
-  1. Perform CreateDataProperty(_underlyingSource2_, "pull", _pull_).
-  1. Perform CreateDataProperty(_underlyingSource2_, "cancel", _cancel2_).
-  1. Let _branch2_ be Construct(`ReadableStream`, _underlyingSource2_).
-  1. Set _pull_@[[branch1]] to _branch1_.
-  1. Set _pull_@[[branch2]] to _branch2_.
+  1. Perform CreateDataProperty(_underlyingSource2_, `"pull"`, _pull_).
+  1. Perform CreateDataProperty(_underlyingSource2_, `"cancel"`, _cancel2_).
+  1. Let _branch2Stream_ be Construct(`ReadableStream`, _underlyingSource2_).
+  1. Set _pull_@[[branch1]] to _branch1Stream_@[[readableStreamController]].
+  1. Set _pull_@[[branch2]] to _branch2Stream_@[[readableStreamController]].
   1. Upon rejection of _reader_@[[closedPromise]] with reason _r_,
     1. If _teeState_.[[closedOrErrored]] is *true*, return *undefined*.
-    1. Perform ErrorReadableStream(_branch1_, _r_).
-    1. Perform ErrorReadableStream(_branch2_, _r_).
+    1. Perform ReadableStreamDefaultControllerError(_pull_@[[branch1]], _r_).
+    1. Perform ReadableStreamDefaultControllerError(_pull_@[[branch2]], _r_).
     1. Set _teeState_.[[closedOrErrored]] to *true*.
   1. Return «branch1, branch2».
 </emu-alg>
@@ -1154,64 +736,66 @@ branches.
   careful!</a>
 </div>
 
-A <dfn>TeeReadableStream pull function</dfn> is an anonymous built-in function that pulls data from a given <a>readable
-stream reader</a> and enqueues it into two other streams ("branches" of the associated tee). Each TeeReadableStream
+A <dfn>ReadableStreamTee pull function</dfn> is an anonymous built-in function that pulls data from a given <a>readable
+stream reader</a> and enqueues it into two other streams ("branches" of the associated tee). Each ReadableStreamTee
 pull function has \[[reader]], \[[branch1]], \[[branch2]], \[[teeState]], and \[[shouldClone]] internal slots. When a
-TeeReadableStream pull function <var>F</var> is called, it performs the following steps:
+ReadableStreamTee pull function <var>F</var> is called, it performs the following steps:
 
 <emu-alg>
   1. Let _reader_ be _F_@[[reader]], _branch1_ be _F_@[[branch1]], _branch2_ be _F_@[[branch2]], _teeState_ be _F_@[[teeState]], and _shouldClone_ be _F_@[[shouldClone]].
-  1. Return the result of transforming ReadFromReadableStreamReader(_reader_) by a fulfillment handler which takes the argument _result_ and performs the following steps:
+  1. Return the result of transforming ReadableStreamDefaultReaderRead(_reader_) by a fulfillment handler which takes the argument _result_ and performs the following steps:
     1. Assert: Type(_result_) is Object.
-    1. Let _value_ be Get(_result_, "value").
+    1. Let _value_ be Get(_result_, `"value"`).
     1. ReturnIfAbrupt(_value_).
-    1. Let _done_ be Get(_result_, "done").
+    1. Let _done_ be Get(_result_, `"done"`).
     1. ReturnIfAbrupt(_done_).
     1. Assert: Type(_done_) is Boolean.
     1. If _done_ is *true* and _teeState_.[[closedOrErrored]] is *false*,
-      1. Perform CloseReadableStream(_branch1_).
-      1. Perform CloseReadableStream(_branch2_).
+      1. If _teeState_.[[canceled1]] is *false*,
+        1. Perform ReadableStreamDefaultControllerClose(_branch1_).
+      1. If _teeState_.[[canceled2]] is *false*,
+        1. Perform ReadableStreamDefaultControllerClose(_branch2_).
       1. Set _teeState_.[[closedOrErrored]] to *true*.
     1. If _teeState_.[[closedOrErrored]] is *true*, return *undefined*.
     1. If _teeState_.[[canceled1]] is *false*,
       1. Let _value1_ be _value_.
-      1. If _shouldClone_ is *true*, set _value1_ to a <a>structured clone</a> of _value_.
-      1. Call-with-rethrow EnqueueInReadableStream(_branch1_, _value1_).
+      1. If _shouldClone_ is *true*, set _value1_ to <a lt="structured clone">StructuredClone</a>(_value_).
+      1. Call-with-rethrow ReadableStreamDefaultControllerEnqueue(_branch1_, _value1_).
     1. If _teeState_.[[canceled2]] is *false*,
       1. Let _value2_ be _value_.
-      1. If _shouldClone_ is *true*, set _value2_ to a <a>structured clone</a> of _value_.
-      1. Call-with-rethrow EnqueueInReadableStream(_branch2_, _value2_).
+      1. If _shouldClone_ is *true*, set _value2_ to <a lt="structured clone">StructuredClone</a>(_value_).
+      1. Call-with-rethrow ReadableStreamDefaultControllerEnqueue(_branch2_, _value2_).
 </emu-alg>
 
-A <dfn>TeeReadableStream branch 1 cancel function</dfn> is an anonymous built-in function that reacts to the
-cancellation of the first of the two branches of the associated tee. Each TeeReadableStream branch 1 cancel function
-has \[[stream]] and \[[teeState]] internal slots. When a TeeReadableStream branch 1 cancel function <var>F</var> is
-called with argument <var>r</var>, it performs the following steps:
+A <dfn>ReadableStreamTee branch 1 cancel function</dfn> is an anonymous built-in function that reacts to the
+cancellation of the first of the two branches of the associated tee. Each ReadableStreamTee branch 1 cancel function
+has \[[stream]] and \[[teeState]] internal slots. When a ReadableStreamTee branch 1 cancel function <var>F</var> is
+called with argument <var>reason</var>, it performs the following steps:
 
 <emu-alg>
   1. Let _stream_ be _F_@[[stream]] and _teeState_ be _F_@[[teeState]].
   1. Set _teeState_.[[canceled1]] to *true*.
-  1. Set _teeState_.[[reason1]] to _r_.
+  1. Set _teeState_.[[reason1]] to _reason_.
   1. If _teeState_.[[canceled2]] is *true*,
     1. Let _compositeReason_ be CreateArrayFromList(«_teeState_.[[reason1]], _teeState_.[[reason2]]»).
-    1. Let _cancelResult_ be CancelReadableStream(_stream_, _compositeReason_).
+    1. Let _cancelResult_ be ReadableStreamCancel(_stream_, _compositeReason_).
     1. ReturnIfAbrupt(_cancelResult_).
     1. Resolve _teeState_.[[promise]] with _cancelResult_.
   1. Return _teeState_.[[promise]].
 </emu-alg>
 
-A <dfn>TeeReadableStream branch 2 cancel function</dfn> is an anonymous built-in function that reacts to the
-cancellation of the second of the two branches of the associated tee. Each TeeReadableStream branch 2 cancel function
-has \[[stream]] and \[[teeState]] internal slots. When a TeeReadableStream branch 2 cancel function <var>F</var> is
-called with argument <var>r</var>, it performs the following steps:
+A <dfn>ReadableStreamTee branch 2 cancel function</dfn> is an anonymous built-in function that reacts to the
+cancellation of the second of the two branches of the associated tee. Each ReadableStreamTee branch 2 cancel function
+has \[[stream]] and \[[teeState]] internal slots. When a ReadableStreamTee branch 2 cancel function <var>F</var> is
+called with argument <var>reason</var>, it performs the following steps:
 
 <emu-alg>
   1. Let _stream_ be _F_@[[stream]] and _teeState_ be _F_@[[teeState]].
   1. Set _teeState_.[[canceled2]] to *true*.
-  1. Set _teeState_.[[reason2]] to _r_.
+  1. Set _teeState_.[[reason2]] to _reason_.
   1. If _teeState_.[[canceled1]] is *true*,
     1. Let _compositeReason_ be CreateArrayFromList(«_teeState_.[[reason1]], _teeState_.[[reason2]]»).
-    1. Let _cancelResult_ be CancelReadableStream(_stream_, _compositeReason_).
+    1. Let _cancelResult_ be ReadableStreamCancel(_stream_, _compositeReason_).
     1. ReturnIfAbrupt(_cancelResult_).
     1. Resolve _teeState_.[[promise]] with _cancelResult_.
   1. Return _teeState_.[[promise]].
@@ -1219,10 +803,1480 @@ called with argument <var>r</var>, it performs the following steps:
 
 <div class="note">
   The algorithm given here is written such that three new function objects are created for each call to to
-  TeeReadableStream. This is just a simplification, and is not actually necessary, since it is unobservable to
+  ReadableStreamTee. This is just a simplification, and is not actually necessary, since it is unobservable to
   developer code. For example, a self-hosted implementation could optimize by creating a class whose prototype contains
   methods for these functions, with the state stored as instance variables.
 </div>
+
+<h3 id="rs-abstract-ops">Readable Stream Abstract Operations Used by Controllers</h3>
+
+In terms of specification factoring, the way that the <code>ReadableStream</code> class encapsulates the behavior of
+both simple readable streams and <a>readable byte streams</a> into a single class is by centralizing most of the
+potentially-varying logic inside the two controller classes, <code>ReadableStreamDefaultController</code> and
+<code>ReadableStreamBYOBController</code>. Those classes define most of the stateful internal slots and abstract
+operations for how a stream's <a>internal queue</a> is managed and how it interfaces with its <a>underlying source</a>
+or <a>underlying byte source</a>.
+
+The abstract operations in this section are interfaces that are used by the controller implementations to affect their
+associated <code>ReadableStream</code> object, translating those internal state changes into developer-facing results
+visible through the <code>ReadableStream</code>'s public API.
+
+<h4 id="readable-stream-add-read-into-request" aoid="ReadableStreamAddReadIntoRequest" nothrow>ReadableStreamAddReadIntoRequest ( stream )</h4>
+
+<emu-alg>
+  1. Assert: IsReadableStreamBYOBReader(_stream_@[[reader]]) is *true*.
+  1. Let _promise_ be a new promise.
+  1. Let _readIntoRequest_ be Record{[[promise]]: _promise_}.
+  1. Append _readIntoRequest_ as the last element of _stream_@[[reader]]@[[readIntoRequests]].
+  1. Return _promise_.
+</emu-alg>
+
+<h4 id="readable-stream-add-read-request" aoid="ReadableStreamAddReadRequest" nothrow>ReadableStreamAddReadRequest ( stream )</h4>
+
+<emu-alg>
+  1. Assert: IsReadableStreamDefaultReader(_stream_@[[reader]]) is *true*.
+  1. Let _promise_ be a new promise.
+  1. Let _readRequest_ be Record{[[promise]]: _promise_}.
+  1. Append _readRequest_ as the last element of _stream_@[[reader]]@[[readRequests]].
+  1. Return _promise_.
+</emu-alg>
+
+<h4 id="readable-stream-cancel" aoid="ReadableStreamCancel" nothrow>ReadableStreamCancel ( stream, reason )</h4>
+
+<emu-alg>
+  1. Assert: _stream_ is not *undefined*.
+  1. Set _stream_@[[disturbed]] to *true*.
+  1. If _stream_@[[state]] is `"closed"`, return a new promise resolved with *undefined*.
+  1. If _stream_@[[state]] is `"errored"`, return a new promise rejected with _stream_@[[storedError]].
+  1. Perform ReadableStreamClose(_stream_).
+  1. Let _sourceCancelPromise_ be _stream_@[[readableStreamController]].[[Cancel]](_reason_).
+  1. Return the result of transforming _sourceCancelPromise_ by a fulfillment handler that returns *undefined*.
+</emu-alg>
+
+<h4 id="readable-stream-close" aoid="ReadableStreamClose" nothrow>ReadableStreamClose ( stream )</h4>
+
+This abstract operation can be called by other specifications that wish to close a readable stream, in the same way
+a developer-created stream would be closed by its associated controller object. Specifications should <em>not</em> do
+this to streams they did not create, and must ensure they have obeyed the preconditions (listed here as asserts).
+
+<emu-alg>
+  1. Assert: _stream_@[[state]] is `"readable"`.
+  1. Set _stream_@[[state]] to `"closed"`.
+  1. Let _reader_ be _stream_@[[reader]].
+  1. If _reader_ is *undefined*, return *undefined*.
+  1. If IsReadableStreamDefaultReader(_reader_) is *true*,
+    1. Repeat for each _readRequest_ that is an element of _reader_@[[readRequests]],
+      1. Resolve _readRequest_.[[promise]] with CreateIterResultObject(*undefined*, *true*).
+    1. Set _reader_@[[readRequests]] to an empty List.
+  1. Resolve _reader_@[[closedPromise]] with *undefined*.
+  1. Return *undefined*.
+</emu-alg>
+
+<div class="note">
+  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
+  <emu-val>false</emu-val>, will happen if the stream was closed without its controller's close method ever being
+  called: i.e., if the stream was closed by a call to <code>stream.cancel()</code>. In this case we allow the
+  controller's <code>close</code> method to be called and silently do nothing, since the cancelation was outside the
+  control of the underlying source.
+</div>
+
+<h4 id="readable-stream-error" aoid="ReadableStreamError" nothrow>ReadableStreamError ( stream, e )</h4>
+
+This abstract operation can be called by other specifications that wish to move a readable stream to an errored state,
+in the same way a developer would error a stream using its associated controller object. Specifications should
+<em>not</em> do this to streams they did not create, and must ensure they have obeyed the precondition (listed here as
+an assert).
+
+<emu-alg>
+  1. Assert: IsReadableStream(_stream_) is *true*.
+  1. Assert: _stream_@[[state]] is `"readable"`.
+  1. Set _stream_@[[state]] to `"errored"`.
+  1. Set _stream_@[[storedError]] to _e_.
+  1. Let _reader_ be _stream_@[[reader]].
+  1. If _reader_ is *undefined*, return *undefined*.
+  1. If IsReadableStreamDefaultReader(_reader_) is *true*,
+    1. Repeat for each _readRequest_ that is an element of _reader_@[[readRequests]],
+      1. Reject _readRequest_.[[promise]] with _e_.
+    1. Set _reader_@[[readRequests]] to a new empty List.
+  1. Otherwise,
+    1. Assert: IsReadableStreamBYOBReader(_reader_).
+    1. Repeat for each _readIntoRequest_ that is an element of _reader_@[[readIntoRequests]],
+      1. Reject _readIntoRequest_.[[promise]] with _e_.
+    1. Set _reader_@[[readIntoRequests]] to a new empty List.
+  1. Reject _reader_@[[closedPromise]] with _e_.
+</emu-alg>
+
+<h4 id="readable-stream-fulfill-read-into-request" aoid="ReadableStreamFulfillReadIntoRequest" nothrow>ReadableStreamFulfillReadIntoRequest ( stream, chunk, done )</h4>
+
+<emu-alg>
+  1. Let _reader_ be _stream_@[[reader]].
+  1. Let _readIntoRequest_ be the first element of _reader_@[[readIntoRequests]].
+  1. Remove _readIntoRequest_ from _reader_@[[readIntoRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
+  1. Resolve _readIntoRequest_.[[promise]] with CreateIterResultObject(_chunk_, _done_).
+</emu-alg>
+
+<h4 id="readable-stream-fulfill-read-request" aoid="ReadableStreamFulfillReadRequest" nothrow>ReadableStreamFulfillReadRequest ( stream, chunk, done )</h4>
+
+<emu-alg>
+  1. Let _reader_ be _stream_@[[reader]].
+  1. Let _readRequest_ be the first element of _reader_@[[readRequests]].
+  1. Remove _readRequest_ from _reader_@[[readRequests]], shifting all other elements downward (so that the second becomes the first, and so on).
+  1. Resolve _readRequest_.[[promise]] with CreateIterResultObject(_chunk_, _done_).
+</emu-alg>
+
+<h4 id="readable-stream-get-num-read-into-requests" aoid="ReadableStreamGetNumReadIntoRequests" nothrow>ReadableStreamGetNumReadIntoRequests ( stream )</h4>
+
+<emu-alg>
+  1. Return the number of elements in _stream_@[[reader]]@[[readIntoRequests]].
+</emu-alg>
+
+<h4 id="readable-stream-get-num-read-requests" aoid="ReadableStreamGetNumReadRequests" nothrow>ReadableStreamGetNumReadRequests ( stream )</h4>
+
+<emu-alg>
+  1. Return the number of elements in _stream_@[[reader]]@[[readRequests]].
+</emu-alg>
+
+<h4 id="readable-stream-has-byob-reader" aoid="ReadableStreamHasBYOBReader" nothrow>ReadableStreamHasBYOBReader ( stream )</h4>
+
+<emu-alg>
+  1. Let _reader_ be _stream_@[[reader]].
+  1. If _reader_ is *undefined*, return *false*.
+  1. If IsReadableStreamBYOBReader(_reader_) is *false*, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="readable-stream-has-reader" aoid="ReadableStreamHasReader" nothrow>ReadableStreamHasReader ( stream )</h4>
+
+<emu-alg>
+  1. Let _reader_ be _stream_@[[reader]].
+  1. If _reader_ is *undefined*, return *false*.
+  1. If IsReadableStreamDefaultReader(_reader_) is *false*, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h3 id="default-reader-class">Class <code>ReadableStreamDefaultReader</code></h3>
+
+The <code>ReadableStreamDefaultReader</code> class represents a <a>default reader</a> designed to be vended by a
+<code>ReadableStream</code> instance.
+
+<h4 id="default-reader-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>ReadableStreamDefaultReader</code> class in something close to the syntax of [[!ECMASCRIPT]],
+it would look like
+
+<pre><code class="lang-javascript">
+  class ReadableStreamDefaultReader {
+    constructor(stream)
+
+    get closed()
+
+    cancel(reason)
+    read()
+    releaseLock()
+  }
+</code></pre>
+
+<h4 id="default-reader-internal-slots">Internal Slots</h4>
+
+Instances of <code>ReadableStreamDefaultReader</code> are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[closedPromise]]
+    <td>A promise returned by the reader's <code>closed</code> getter
+  </tr>
+  <tr>
+    <td>\[[ownerReadableStream]]
+    <td>A <code>ReadableStream</code> instance that owns this reader
+  </tr>
+  <tr>
+    <td>\[[readRequests]]
+    <td>A List of promises returned by calls to the reader's <code>read()</code> method that have not yet been resolved,
+      due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available; also used for the
+      <a href="#is-readable-stream-reader">IsReadableStreamDefaultReader</a> brand check
+  </tr>
+</table>
+
+<h4 id="default-reader-constructor">new ReadableStreamDefaultReader(stream)</h4>
+
+<div class="note">
+  The <code>ReadableStreamDefaultReader</code> constructor is generally not meant to be used directly; instead, a stream's
+  <code>getReader()</code> method should be used. This allows different classes of readable streams to vend different
+  classes of readers without the <a>consumer</a> needing to know which goes with which.
+</div>
+
+<emu-alg>
+  1. If IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If IsReadableStreamLocked(_stream_) is *true*, throw a *TypeError* exception.
+  1. Perform ReadableStreamReaderGenericInitialize(*this*, _stream_).
+  1. Set *this*@[[readRequests]] to a new empty List.
+</emu-alg>
+
+<h4 id="default-reader-prototype">Properties of the <code>ReadableStreamDefaultReader</code> Prototype</h4>
+
+<h5 id="default-reader-closed">get closed</h5>
+
+<div class="note">
+  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed or the
+  reader's lock is <a lt="release a read lock">released</a>, or rejected if the stream ever errors.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamDefaultReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Return *this*@[[closedPromise]].
+</emu-alg>
+
+<h5 id="default-reader-cancel">cancel(reason)</h5>
+
+<div class="note">
+  If the reader is <a lt="active reader">active</a>, the <code>cancel</code> method behaves the same as that for the
+  associated stream. When done, it automatically <a lt="release a read lock">releases the lock</a>.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamDefaultReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
+  1. Return ReadableStreamCancel(*this*@[[ownerReadableStream]], _reason_).
+</emu-alg>
+
+<h5 id="default-reader-read">read()</h5>
+
+<div class="note">
+  The <code>read</code> method will return a promise that allows access to the next <a>chunk</a> from the stream's
+  internal queue, if available.
+
+  <ul>
+    <li> If the chunk does become available, the promise will be fulfilled with an object of the form
+      <code>{ value: theChunk, done: false }</code>.
+    <li> If the stream becomes closed, the promise will be fulfilled with an object of the form
+      <code>{ value: undefined, done: true }</code>.
+    <li> If the stream becomes errored, the promise will be rejected with the relevant error.
+  </ul>
+
+  If reading a chunk causes the queue to become empty, more data will be pulled from the <a>underlying source</a>.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamDefaultReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
+  1. Return ReadableStreamDefaultReaderRead(*this*).
+</emu-alg>
+
+<h5 id="default-reader-release-lock">releaseLock()</h5>
+
+<div class="note">
+  The <code>releaseLock</code> method <a lt="release a read lock">releases the reader's lock</a> on the corresponding
+  stream. After the lock is released, the reader is no longer <a lt="active reader">active</a>. If the associated
+  stream is errored when the lock is released, the reader will appear errored in the same way from now on; otherwise,
+  the reader will appear closed.
+
+  A reader's lock cannot be released while it still has a pending read request, i.e., if a promise returned by the
+  reader's <code>read()</code> method has not yet been settled. Attempting to do so will throw a <b>TypeError</b>
+  and leave the reader locked to the stream.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamDefaultReader(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*@[[ownerReadableStream]] is *undefined*, return *undefined*.
+  1. If *this*@[[readRequests]] is not empty, throw a *TypeError* exception.
+  1. Perform ReadableStreamReaderGenericRelease(*this*).
+</emu-alg>
+
+<h3 id="byob-reader-class">Class <code>ReadableStreamBYOBReader</code></h3>
+
+The <code>ReadableStreamBYOBReader</code> class represents a <a>BYOB reader</a> designed to be vended by
+a <code>ReadableStream</code> instance.
+
+<h4 id="byob-reader-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>ReadableStreamBYOBReader</code> class in something close to the syntax of
+[[!ECMASCRIPT]], it would look like
+
+<pre><code class="lang-javascript">
+  class ReadableStreamBYOBReader {
+    constructor(stream)
+
+    get closed()
+
+    cancel(reason)
+    read(view)
+    releaseLock()
+  }
+</code></pre>
+
+<h4 id="byob-reader-internal-slots">Internal Slots</h4>
+
+Instances of <code>ReadableStreamBYOBReader</code> are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[closedPromise]]
+    <td>A promise returned by the reader's <code>closed</code> getter
+  </tr>
+  <tr>
+    <td>\[[ownerReadableStream]]
+    <td>A <code>ReadableStream</code> instance that owns this reader
+  </tr>
+  <tr>
+    <td>\[[readIntoRequests]]
+    <td>A List of promises returned by calls to the reader's <code>read()</code> method that have not yet been resolved,
+      due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available; also used for the
+      <a href="#is-readable-stream-byob-reader">IsReadableStreamBYOBReader</a> brand check
+  </tr>
+</table>
+
+<h4 id="byob-reader-constructor">new ReadableStreamBYOBReader(stream)</h4>
+
+<div class="note">
+  The <code>ReadableStreamBYOBReader</code> constructor is generally not meant to be used directly; instead, a stream's
+  <code>getReader()</code> method should be used. This allows different classes of readable streams to vend different
+  classes of readers without the <a>consumer</a> needing to know which goes with which.
+</div>
+
+<emu-alg>
+  1. If IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If IsReadableStreamLocked(_stream_) is *true*, throw a *TypeError* exception.
+  1. Perform ReadableStreamReaderGenericInitialize(*this*, _stream_).
+  1. Set *this*@[[readIntoRequests]] to a new empty List.
+</emu-alg>
+
+<h4 id="byob-reader-prototype">Properties of the <code>ReadableStreamBYOBReader</code> Prototype</h4>
+
+<h5 id="byob-reader-closed">get closed</h5>
+
+<div class="note">
+  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed or the
+  reader's lock is <a lt="release a read lock">released</a>, or rejected if the stream ever errors.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Return *this*@[[closedPromise]].
+</emu-alg>
+
+<h5 id="byob-reader-cancel">cancel(reason)</h5>
+
+<div class="note">
+  If the reader is <a lt="active reader">active</a>, the <code>cancel</code> method behaves the same as that for the
+  associated stream. When done, it automatically <a lt="release a read lock">releases the lock</a>.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
+  1. Return ReadableStreamCancel(*this*@[[ownerReadableStream]], _reason_).
+</emu-alg>
+
+<h5 id="byob-reader-read">read(view)</h5>
+
+<div class="note">
+  The <code>read</code> method will write read bytes into <code>view</code> and return a promise resolved with a
+  possibly transferred buffer as described below.
+
+  <ul>
+    <li> If the chunk does become available, the promise will be fulfilled with an object of the form
+      <code>{ value: theChunk, done: false }</code>.
+    <li> If the stream becomes closed, the promise will be fulfilled with an object of the form
+      <code>{ value: undefined, done: true }</code>.
+    <li> If the stream becomes errored, the promise will be rejected with the relevant error.
+  </ul>
+
+  If reading a chunk causes the queue to become empty, more data will be pulled from the <a>underlying byte source</a>.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*@[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
+  1. If Type(_view_) is not Object, return a promise rejected with a *TypeError* exception.
+  1. If _view_ does not have a [[ViewedArrayBuffer]] internal slot, return a promise rejected with a *TypeError* exception.
+  1. If _view_@[[ByteLength]] is 0, return a promise rejected with a *TypeError* exception.
+  1. Return ReadableStreamBYOBReaderRead(*this*, _view_).
+</emu-alg>
+
+<h5 id="byob-reader-release-lock">releaseLock()</h5>
+
+<div class="note">
+  The <code>releaseLock</code> method <a lt="release a read lock">releases the reader's lock</a> on the corresponding
+  stream. After the lock is released, the reader is no longer <a lt="active reader">active</a>. If the associated
+  stream is errored when the lock is released, the reader will appear errored in the same way from now on; otherwise,
+  the reader will appear closed.
+
+  A reader's lock cannot be released while it still has a pending read request, i.e., if a promise returned by the
+  reader's <code>read()</code> method has not yet been settled. Attempting to do so will throw a <b>TypeError</b>
+  and leave the reader locked to the stream.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBReader(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*@[[ownerReadableStream]] is *undefined*, return *undefined*.
+  1. If *this*@[[readIntoRequests]] is not empty, throw a *TypeError* exception.
+  1. Perform ReadableStreamReaderGenericRelease(*this*).
+</emu-alg>
+
+<h3 id="rs-reader-abstract-ops">Readable Stream Reader Abstract Operations</h3>
+
+<h4 id="is-readable-stream-reader" aoid="IsReadableStreamDefaultReader" nothrow>IsReadableStreamDefaultReader ( x )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[readRequests]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="is-readable-stream-byob-reader" aoid="IsReadableStreamBYOBReader" nothrow>IsReadableStreamBYOBReader ( x )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[readIntoRequests]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="readable-stream-reader-release" aoid="ReadableStreamReaderGenericCancel" throws>ReadableStreamReaderGenericCancel ( reader, reason )</h4>
+
+<emu-alg>
+  1. Return ReadableStreamCancel(_reader_@[[ownerReadableStream]], _reason_).
+</emu-alg>
+
+<h4 id="readable-stream-reader-generic-initialize" aoid="ReadableStreamReaderGenericInitialize" nothrow>ReadableStreamReaderGenericInitialize ( reader, stream )</h4>
+
+<emu-alg>
+  1. Set _reader_@[[ownerReadableStream]] to _stream_.
+  1. Set _stream_@[[reader]] to _reader_.
+  1. If _stream_@[[state]] is `"readable"`,
+    1. Set _reader_@[[closedPromise]] to a new promise.
+  1. Otherwise,
+    1. If _stream_@[[state]] is `"closed"`,
+      1. Set _reader_@[[closedPromise]] to a new promise resolved with *undefined*.
+    1. Otherwise,
+      1. Assert: _stream_@[[state]] is `"errored"`.
+      1. Set _reader_@[[closedPromise]] to a new promise rejected with _stream_@[[storedError]].
+</emu-alg>
+
+<h4 id="readable-stream-reader-release" aoid="ReadableStreamReaderGenericRelease" throws>ReadableStreamReaderGenericRelease ( reader )</h4>
+
+<emu-alg>
+  1. Assert: _reader_@[[ownerReadableStream]]@[[reader]] is not *undefined*.
+  1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
+  1. If _reader_@[[ownerReadableStream]]@[[state]] is `"readable"`, reject _reader_@[[closedPromise]] with a *TypeError* exception.
+  1. Otherwise, set _reader_@[[closedPromise]] to a new promise rejected with a *TypeError* exception.
+  1. Set _reader_@[[ownerReadableStream]]@[[reader]] to *undefined*.
+  1. Set _reader_@[[ownerReadableStream]] to *undefined*.
+</emu-alg>
+
+<h4 id="readable-stream-byob-reader-read" aoid="ReadableStreamBYOBReaderRead" nothrow>ReadableStreamBYOBReaderRead ( reader, view )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _reader_@[[ownerReadableStream]].
+  1. Assert: _stream_ is not *undefined*.
+  1. Set _stream_@[[disturbed]] to *true*.
+  1. If _stream_@[[state]] is `"errored"`, return a promise rejected with _stream_@[[storedError]].
+  1. Return ReadableStreamBYOBControllerPullInto(_stream_@[[readableStreamController]], _view_).
+</emu-alg>
+
+<h4 id="readable-stream-default-reader-read" aoid="ReadableStreamDefaultReaderRead" nothrow>ReadableStreamDefaultReaderRead ( reader )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _reader_@[[ownerReadableStream]].
+  1. Assert: _stream_ is not *undefined*.
+  1. Set _stream_@[[disturbed]] to *true*.
+  1. If _stream_@[[state]] is `"closed"`, return a new promise resolved with CreateIterResultObject(*undefined*, *true*).
+  1. If _stream_@[[state]] is `"errored"`, return a new promise rejected with _stream_@[[storedError]].
+  1. Assert: _stream_@[[state]] is `"readable"`.
+  1. Return _stream_@[[readableStreamController]].[[Pull]]().
+</emu-alg>
+
+<h3 id="rs-default-controller-class" lt="ReadableStreamDefaultController">Class <code>ReadableStreamDefaultController</code></h3>
+
+The <code>ReadableStreamDefaultController</code> class has methods that allow control of a <code>ReadableStream</code>'s
+state and <a>internal queue</a>. When constructing a <code>ReadableStream</code> that is not a <a>readable byte
+stream</a>, the <a>underlying source</a> is given a corresponding <code>ReadableStreamDefaultController</code> instance
+to manipulate.
+
+<h4 id="rs-default-controller-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>ReadableStreamDefaultController</code> class in something close to the syntax of [[!ECMASCRIPT]],
+it would look like
+
+<pre><code class="lang-javascript">
+  class ReadableStreamDefaultController {
+    constructor(stream, underlyingSource, size, highWaterMark)
+
+    get desiredSize()
+
+    close()
+    enqueue(chunk)
+    error(e)
+  }
+</code></pre>
+
+<h4 id="rs-default-controller-internal-slots">Internal Slots</h4>
+
+Instances of <code>ReadableStreamDefaultController</code> are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[closeRequested]]
+    <td>A boolean flag indicating whether the stream has been closed by its <a>underlying source</a>, but still has
+      <a>chunks</a> in its internal queue that have not yet been read
+  </tr>
+  <tr>
+    <td>\[[controlledReadableStream]]
+    <td>The <code>ReadableStream</code> instance controlled
+  </tr>
+  <tr>
+    <td>\[[pullAgain]]
+    <td>A boolean flag set to <b>true</b> if the stream's mechanisms requested a call to the underlying source's
+      <code>pull</code> method to pull more data, but the pull could not yet be done since a previous call is still
+      executing
+  </tr>
+  <tr>
+    <td>\[[pulling]]
+    <td>A boolean flag set to <b>true</b> while the <a>underlying source</a>'s <code>pull</code> method is executing and has
+      not yet fulfilled, used to prevent reentrant calls
+  </tr>
+  <tr>
+    <td>\[[queue]]
+    <td>A List representing the stream's internal queue of <a>chunks</a>
+  </tr>
+  <tr>
+    <td>\[[started]]
+    <td>A boolean flag indicating whether the <a>underlying source</a> has finished starting
+  </tr>
+  <tr>
+    <td>\[[strategyHWM]]
+    <td>A number supplied to the constructor as part of the stream's <a>queuing strategy</a>, indicating the point at
+      which the stream will apply <a>backpressure</a> to its <a>underlying source</a>.
+  </tr>
+  <tr>
+    <td>\[[strategySize]]
+    <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
+      the size of enqueued <a>chunks</a>; can be <b>undefined</b> for the default behavior.
+  </tr>
+  <tr>
+    <td>\[[underlyingSource]]
+    <td>An object representation of the stream's <a>underlying source</a>, including its <a>queuing strategy</a>; also
+      used for the <a href="#is-readable-stream">IsReadableStream</a> brand check
+  </tr>
+</table>
+
+<h4 id="rs-default-controller-constructor">new ReadableStreamDefaultController(stream, underlyingSource, size, highWaterMark)</h4>
+
+<div class="note">
+  The <code>ReadableStreamDefaultController</code> constructor cannot be used directly; it only works on a
+  <code>ReadableStream</code> that is in the middle of being constructed.
+</div>
+
+<emu-alg>
+  1. If IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If _stream_@[[readableStreamController]] is not *undefined*, throw a *TypeError* exception.
+  1. Set *this*@[[controlledReadableStream]] to _stream_.
+  1. Set *this*@[[underlyingSource]] to _underlyingSource_.
+  1. Set *this*@[[queue]] to a new empty List.
+  1. Set *this*@[[started]], *this*@[[closeRequested]], *this*@[[pullAgain]], and *this*@[[pulling]] to *false*.
+  1. Let _normalizedStrategy_ be ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
+  1. Set *this*@[[strategySize]] to _normalizedStrategy_.[[size]] and *this*@[[strategyHWM]] to _normalizedStrategy_.[[highWaterMark]].
+  1. Let _controller_ be *this*.
+  1. Let _startResult_ be InvokeOrNoop(_underlyingSource_, `"start"`, «*this*»).
+  1. ReturnIfAbrupt(_startResult_).
+  1. Resolve _startResult_ as a promise:
+    1. Upon fulfillment,
+      1. Set _controller_@[[started]] to *true*.
+      1. Perform ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
+    1. Upon rejection with reason _r_,
+      1. If *this*@[[state]] is `"readable"`, perform ReadableStreamDefaultControllerError(_controller_, _r_).
+</emu-alg>
+
+<h4 id="rs-default-controller-prototype">Properties of the <code>ReadableStreamDefaultController</code> Prototype</h4>
+
+<h5 id="rs-default-controller-desired-size">get desiredSize</h5>
+
+<div class="note">
+  The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size
+  to fill the controlled stream's internal queue</a>. It can be negative, if the queue is over-full. An <a>underlying
+  source</a> should use this information to determine when and how to apply <a>backpressure</a>.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. Return ReadableStreamDefaultControllerGetDesiredSize(*this*).
+</emu-alg>
+
+<h5 id="rs-default-controller-close">close()</h5>
+
+<div class="note">
+  The <code>close</code> method will close the controlled readable stream. <a>Consumers</a> will still be able to read
+  any previously-enqueued <a>chunks</a> from the stream, but once those are read, the stream will become closed.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. Let _stream_ be *this*@[[controlledReadableStream]].
+  1. If _stream_@[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. Perform ReadableStreamDefaultControllerClose(*this*).
+</emu-alg>
+
+<h5 id="rs-default-controller-enqueue">enqueue(chunk)</h5>
+
+<div class="note">
+  The <code>enqueue</code> method will enqueue a given <a>chunk</a> in the controlled readable stream.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. Let _stream_ be *this*@[[controlledReadableStream]].
+  1. If _stream_@[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. Return ReadableStreamDefaultControllerEnqueue(*this*, _chunk_).
+</emu-alg>
+
+<h5 id="rs-default-controller-error">error(e)</h5>
+
+<div class="note">
+  The <code>error</code> method will error the readable stream, making all future interactions with it fail with the
+  given error <var>e</var>.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _stream_ be *this*@[[controlledReadableStream]].
+  1. If _stream_@[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. Perform ReadableStreamDefaultControllerError(*this*, _e_).
+</emu-alg>
+
+<h4 id="rs-default-controller-internal-methods">Readable Stream Default Controller Internal Methods</h4>
+
+The following are additional internal methods implemented by each <code>ReadableStreamDefaultController</code> instance.
+They are similar to the supporting abstract operations in the following section, but are in method form to allow
+polymorphic dispatch from the readable stream implementation to either these or their counterparts for BYOB controllers.
+
+<h5 id="rs-default-controller-private-cancel">\[[Cancel]](reason)</h5>
+
+<emu-alg>
+  1. Set *this*@[[queue]] to a new empty List.
+  1. Return PromiseInvokeOrNoop(*this*@[[underlyingSource]], `"cancel"`, «_reason_»)
+</emu-alg>
+
+<h5 id="rs-default-controller-private-pull">\[[Pull]]()</h5>
+
+<emu-alg>
+  1. Let _stream_ be *this*@[[controlledReadableStream]].
+  1. If *this*[[queue]] is not empty,
+    1. Let _chunk_ be DequeueValue(*this*@[[queue]]).
+    1. If *this*@[[closeRequested]] is *true* and *this*@[[queue]] is empty, perform ReadableStreamClose(_stream_).
+    1. Otherwise, perform ReadableStreamDefaultControllerCallPullIfNeeded(*this*).
+    1. Return a promise resolved with CreateIterResultObject(_chunk_, *false*).
+  1. Let _pendingPromise_ be ReadableStreamAddReadRequest(_stream_).
+  1. Perform ReadableStreamDefaultControllerCallPullIfNeeded(*this*).
+  1. Return _pendingPromise_.
+</emu-alg>
+
+<h3 id="rs-default-controller-abstract-ops">Readable Stream Default Controller Abstract Operations</h3>
+
+<h4 id="is-readable-stream-default-controller" aoid="IsReadableStreamDefaultController" nothrow>IsReadableStreamDefaultController ( x )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have an [[underlyingSource]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="readable-stream-default-controller-call-pull-if-needed" aoid="ReadableStreamDefaultControllerCallPullIfNeeded" nothrow>ReadableStreamDefaultControllerCallPullIfNeeded ( controller )</h4>
+
+<emu-alg>
+  1. Let _shouldPull_ be ReadableStreamDefaultControllerShouldCallPull(_controller_).
+  1. If _shouldPull_ is *false*, return *undefined*.
+  1. If _controller_@[[pulling]] is *true*,
+    1. Set _controller_@[[pullAgain]] to *true*.
+    1. Return *undefined*.
+  1. Set _controller_@[[pulling]] to *true*.
+  1. Let _pullPromise_ be PromiseInvokeOrNoop(_controller_@[[underlyingSource]], `"pull"`, «_controller_»).
+  1. Upon fulfillment of _pullPromise_,
+    1. Set _controller_@[[pulling]] to *false*.
+    1. If _controller_@[[pullAgain]] is *true*,
+      1. Set _controller_@[[pullAgain]] to *false*.
+      1. Perform ReadableStreamDefaultControllerCallPullIfNeeded(_stream_).
+  1. Upon rejection of _pullPromise_ with reason _e_,
+    1. If _stream_@[[state]] is `"readable"`, perform ReadableStreamDefaultControllerError(_controller_, _e_).
+  1. Return *undefined*.
+</emu-alg>
+
+<h4 id="should-pull-readable-stream-default-controller" aoid="ReadableStreamDefaultControllerShouldCallPull" nothrow>ReadableStreamDefaultControllerShouldCallPull ( controller )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _controller_@[[controlledReadableStream]].
+  1. If _stream_@[[state]] is `"closed"` or _stream_@[[state]] is `"errored"`, return *false*.
+  1. If _controller_@[[closeRequested]] is *true*, return *false*.
+  1. If _controller_@[[started]] is *false*, return *false*.
+  1. If IsReadableStreamLocked(_stream_) is *true* and ReadableStreamGetNumReadRequests(_stream_) > 0, return *true*.
+  1. Let _desiredSize_ be ReadableStreamDefaultControllerGetDesiredSize(_controller_).
+  1. If _desiredSize_ > 0, return *true*.
+  1. Return *false*.
+</emu-alg>
+
+<h4 id="close-readable-stream-default-controller" aoid="ReadableStreamDefaultControllerClose" nothrow>ReadableStreamDefaultControllerClose ( controller )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _controller_@[[controlledReadableStream]].
+  1. Assert: _controller_@[[closeRequested]] is *false*.
+  1. Assert: _stream_@[[state]] is `"readable"`.
+  1. Set _controller_@[[closeRequested]] to *true*.
+  1. If _controller_@[[queue]] is empty, perform ReadableStreamClose(_stream_).
+</emu-alg>
+
+<h4 id="enqueue-in-readable-stream" aoid="ReadableStreamDefaultControllerEnqueue" nothrow>ReadableStreamDefaultControllerEnqueue ( controller, chunk )</h4>
+
+This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in a readable stream,
+in the same way a developer would enqueue chunks using the stream's associated controller object. Specifications should
+<em>not</em> do this to streams they did not create, and must ensure they have obeyed the preconditions (listed here as
+asserts).
+
+<emu-alg>
+  1. Let _stream_ be _controller_@[[controlledReadableStream]].
+  1. Assert: _controller_@[[closeRequested]] is *false*.
+  1. Assert: _stream_@[[state]] is `"readable"`.
+  1. If IsReadableStreamLocked(_stream_) is *true* and ReadableStreamGetNumReadRequests(_stream_) > 0, perform ReadableStreamFulfillReadRequest(_stream_, _chunk_, *false*).
+  1. Otherwise,
+    1. Let _chunkSize_ be *1*.
+    1. If _controller_@[[strategySize]] is not *undefined*,
+      1. Set _chunkSize_ to Call(_stream_@[[strategySize]], *undefined*, «‍_chunk_»).
+      1. If _chunkSize_ is an abrupt completion,
+        1. If _stream_@[[state]] is `"readable"`, perform ReadableStreamDefaultControllerError(_controller_, ‍_chunkSize_.[[value]]).
+        1. Return _chunkSize_.
+      1. Let _chunkSize_ be _chunkSize_.[[value]].
+    1. Let _enqueueResult_ be EnqueueValueWithSize(_controller_@[[queue]], _chunk_, _chunkSize_).
+    1. If _enqueueResult_ is an abrupt completion,
+      1. If _stream_@[[state]] is `"readable"`, perform ReadableStreamDefaultControllerError(_controller_, ‍_enqueueResult_.[[value]]).
+      1. Return _enqueueResult_.
+  1. Perform ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
+  1. Return *undefined*.
+</emu-alg>
+
+<div class="note">
+  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
+  <emu-val>false</emu-val>, will happen if the stream was closed without its controller's close method ever being
+  called: i.e., if the stream was closed by a call to <code>stream.cancel()</code>. In this case we allow the
+  controller's <code>enqueue</code> method to be called and silently do nothing, since the cancelation was outside the
+  control of the underlying source.
+</div>
+
+<h4 id="readable-stream-default-controller-error" aoid="ReadableStreamDefaultControllerError" nothrow>ReadableStreamDefaultControllerError ( controller, e )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _controller_@[[controlledReadableStream]].
+  1. Assert: _stream_@[[state]] is `"readable"`.
+  1. Set _controller_@[[queue]] to a new empty List.
+  1. Perform ReadableStreamError(_stream_, _e_).
+</emu-alg>
+
+<h4 id="readable-stream-default-controller-get-desired-size" aoid="ReadableStreamDefaultControllerGetDesiredSize" nothrow>ReadableStreamDefaultControllerGetDesiredSize ( controller )</h4>
+
+This abstract operation can be called by other specifications that wish to determine the
+<a lt="desired size to fill a stream's internal queue">desired size to fill this stream's internal queue</a>, similar
+to how a developer would consult the <code>desiredSize</code> property of the stream's associated controller object.
+Specifications should <em>not</em> use this on streams they did not create.
+
+<emu-alg>
+  1. Let _queueSize_ be GetTotalQueueSize(_controller_@[[queue]]).
+  1. Return _controller_@[[strategyHWM]] − _queueSize_.
+</emu-alg>
+
+<h3 id="rs-byob-controller-class" lt="ReadableStreamBYOBController">Class <code>ReadableStreamBYOBController</code></h3>
+
+The <code>ReadableStreamBYOBController</code> class has methods that allow control of a <code>ReadableStream</code>'s
+state and <a>internal queue</a>. When constructing a <code>ReadableStream</code>, the <a>underlying byte source</a> is
+given a corresponding <code>ReadableStreamBYOBController</code> instance to manipulate.
+
+<h4 id="rs-byob-controller-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>ReadableStreamBYOBController</code> class in something close to the syntax of
+[[!ECMASCRIPT]], it would look like
+
+<pre><code class="lang-javascript">
+  class ReadableStreamBYOBController {
+    constructor(stream)
+
+    get byobRequest()
+    get desiredSize()
+
+    close()
+    enqueue(chunk)
+    error(e)
+  }
+</code></pre>
+
+<h4 id="rs-byob-controller-internal-slots">Internal Slots</h4>
+
+Instances of <code>ReadableStreamBYOBController</code> are created with the internal slots described in the following
+table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[autoAllocateChunkSize]]
+    <td>A non negative integer when the automatic buffer allocation feature is enabled. In that case, this value
+      specifies the size of buffer to allocate. <b>undefined</b> otherwise.
+  </tr>
+  <tr>
+    <td>\[[closeRequested]]
+    <td>A boolean flag indicating whether the stream has been closed by its <a>underlying byte source</a>, but still has
+      <a>chunks</a> in its internal queue that have not yet been read
+  </tr>
+  <tr>
+    <td>\[[controlledReadableStream]]
+    <td>The <code>ReadableStream</code> instance controlled
+  </tr>
+  <tr>
+    <td>\[[pullAgain]]
+    <td>A boolean flag set to <b>true</b> if the stream's mechanisms requested a call to the
+      <a>underlying byte source</a>'s <code>pull</code> method to pull more data, but the pull could not yet be done
+      since a previous call is still executing
+  </tr>
+  <tr>
+    <td>\[[pulling]]
+    <td>A boolean flag set to <b>true</b> while the <a>underlying byte source</a>'s <code>pull</code> method is
+      executing and has not yet fulfilled, used to prevent reentrant calls
+  </tr>
+  <tr>
+    <td>\[[byobRequest]]
+    <td>A ReadableStreamBYOBRequest instance representing the current BYOB pull request.
+  </tr>
+  <tr>
+    <td>\[[pendingPullIntos]]
+    <td>A List of descriptors representing pending BYOB pull requests.
+  </tr>
+  <tr>
+    <td>\[[queue]]
+    <td>A List representing the stream's internal queue of <a>chunks</a>
+  </tr>
+  <tr>
+    <td>\[[started]]
+    <td>A boolean flag indicating whether the <a>underlying source</a> has finished starting
+  </tr>
+  <tr>
+    <td>\[[strategyHWM]]
+    <td>A number supplied to the constructor as part of the stream's <a>queuing strategy</a>, indicating the point at
+      which the stream will apply <a>backpressure</a> to its <a>underlying byte source</a>.
+  </tr>
+  <tr>
+    <td>\[[strategySize]]
+    <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
+      the size of enqueued <a>chunks</a>; can be <b>undefined</b> for the default behavior.
+  </tr>
+  <tr>
+    <td>\[[totalQueuedBytes]]
+    <td>The number of bytes stored in \[[queue]]
+  </tr>
+  <tr>
+    <td>\[[underlyingByteSource]]
+    <td>An object representation of the stream's <a>underlying byte source</a>, including its <a>queuing strategy</a>;
+      also used for the <a href="#is-readable-stream">IsReadableStream</a> brand check
+  </tr>
+</table>
+
+<h4 id="rs-byob-controller-constructor">new ReadableStreamBYOBController(controlledReadableStream, underlyingByteSource, highWaterMark)</h4>
+
+<div class="note">
+  The <code>ReadableStreamBYOBController</code> constructor cannot be used directly; it only works on a
+  <code>ReadableStream</code> that is in the middle of being constructed.
+</div>
+
+<emu-alg>
+  1. If IsReadableStream(_controlledReadableStream_) is *false*, throw a *TypeError* exception.
+  1. If _controlledReadableStream_@[[readableStreamController]] is not *undefined*, throw a *TypeError* exception.
+  1. Set *this*@[[controlledReadableStream]] to _controlledReadableStream_.
+  1. Set *this*@[[underlyingByteSource]] to _underlyingByteSource_.
+  1. Set *this*@[[pullAgain]], and *this*@[[pulling]] to *false*.
+  1. Perform ReadableStreamBYOBControllerClearPendingPullIntos(*this*).
+  1. Set *this*@[[queue]] to a new empty List.
+  1. Set *this*@[[totalQueuedBytes]] to *0*.
+  1. Set *this*@[[started]], and *this*@[[closeRequested]] to *false*.
+  1. Set *this*@[[strategyHWM]] to ValidateAndNormalizeHighWaterMark(_highWaterMark_).
+  1. Let _autoAllocateChunkSize_ be GetV(_underlyingByteSource_, `"autoAllocateChunkSize"`).
+  1. If _autoAllocateChunkSize_ is not *undefined*,
+    1. Set _autoAllocateChunkSize_ to ToInteger(_autoAllocateChunkSize_).
+    1. ReturnIfAbrupt(_autoAllocateChunkSize_).
+    1. If _autoAllocateChunkSize_ ≤ 0, or if _autoAllocateChunkSize_ is **+∞** or **-∞**, throw a **RangeError** exception.
+  1. Set *this*@[[autoAllocateChunkSize]] to _autoAllocateChunkSize_.
+  1. Set *this*@[[pendingPullIntos]] to a new empty List.
+  1. Let _controller_ be *this*.
+  1. Let _startResult_ be InvokeOrNoop(_underlyingByteSource_, `"start"`, «*this*»).
+  1. ReturnIfAbrupt(_startResult_).
+  1. Resolve _startResult_ as a promise:
+    1. Upon fulfillment,
+      1. Set _controller_@[[started]] to *true*.
+      1. Assert: _controller_@[[pulling]] is *false*.
+      1. Assert: _controller_@[[pullAgain]] is *false*.
+      1. Perform ReadableStreamBYOBControllerCallPullIfNeeded(_controller_).
+    1. Upon rejection with reason _r_,
+      1. If *this*@[[state]] is `"readable"`, perform ReadableStreamBYOBControllerError(_controller_, _r_).
+</emu-alg>
+
+<h4 id="rs-byob-controller-prototype">Properties of the <code>ReadableStreamBYOBController</code> Prototype</h4>
+
+<h5 id="rs-byob-controller-byob-request">get byobRequest</h5>
+
+<div class="note">
+  The <code>byobRequest</code> getter returns the current BYOB pull request.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBController(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*@[[byobRequest]] is *undefined* and *this*@[[pendingPullIntos]] is not empty,
+    1. Let _firstDescriptor_ be the first element of *this*@[[pendingPullIntos]].
+    1. Let _view_ be Construct(`Uint8Array`, «_firstDescriptor_.[[buffer]], _firstDescriptor_.[[byteOffset]] + _firstDescriptor_.[[bytesFilled]], _firstDescriptor_.[[byteLength]] - _firstDescriptor_.[[bytesFilled]]»).
+    1. Set *this*@[[byobRequest]] to Construct(`ReadableStreamBYOBRequest`, «*this*, _view_»).
+  1. Return *this*@[[byobRequest]].
+</emu-alg>
+
+<h5 id="rs-byob-controller-desired-size">get desiredSize</h5>
+
+<div class="note">
+  The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size
+  to fill the controlled stream's internal queue</a>. It can be negative, if the queue is over-full. An <a>underlying
+  source</a> should use this information to determine when and how to apply <a>backpressure</a>.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBController(*this*) is *false*, throw a *TypeError* exception.
+  1. Return ReadableStreamBYOBControllerGetDesiredSize(*this*).
+</emu-alg>
+
+<h5 id="rs-byob-controller-close">close()</h5>
+
+<div class="note">
+  The <code>close</code> method will close the controlled readable stream. <a>Consumers</a> will still be able to read
+  any previously-enqueued <a>chunks</a> from the stream, but once those are read, the stream will become closed.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBController(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. If *this*@[[controlledReadableStream]]@[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. Perform ReadableStreamBYOBControllerClose(*this*).
+</emu-alg>
+
+<h5 id="rs-byob-controller-enqueue">enqueue(chunk)</h5>
+
+<div class="note">
+  The <code>enqueue</code> method will enqueue a given <a>chunk</a> in the controlled readable stream.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBController(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. If *this*@[[controlledReadableStream]]@[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. If Type(_chunk_) is not Object, throw a *TypeError* exception.
+  1. If _chunk_ does not have a [[ViewedArrayBuffer]] internal slot, throw a *TypeError* exception.
+  1. Return ReadableStreamBYOBControllerEnqueue(*this*, _chunk_).
+</emu-alg>
+
+<h5 id="rs-byob-controller-error">error(e)</h5>
+
+<div class="note">
+  The <code>error</code> method will error the readable stream, making all future interactions with it fail with the
+  given error <var>e</var>.
+</div>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBController(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _stream_ be *this*@[[controlledReadableStream]].
+  1. If _stream_@[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. Perform ReadableStreamBYOBControllerError(*this*, _e_).
+</emu-alg>
+
+<h4 id="rs-byob-controller-internal-methods">Readable Stream BYOB Controller Internal Methods</h4>
+
+The following are additional internal methods implemented by each <code>ReadableStreamBYOBController</code> instance.
+They are similar to the supporting abstract operations in the following section, but are in method form to allow
+polymorphic dispatch from the readable stream implementation to either these or their counterparts for default
+controllers.
+
+<h5 id="rs-byob-controller-private-cancel">\[[Cancel]](reason)</h5>
+
+<emu-alg>
+  1. If *this*@[[pendingPullIntos]] is not empty,
+    1. Let _firstDescriptor_ be the first element of *this*@[[pendingPullIntos]].
+    1. Set _firstDescriptor_.[[bytesFilled]] to 0.
+  1. Set *this*@[[queue]] to a new empty List.
+  1. Set *this*@[[totalQueuedBytes]] to 0.
+  1. Return PromiseInvokeOrNoop(*this*@[[underlyingByteSource]], `"cancel"`, «_reason_»)
+</emu-alg>
+
+<h5 id="rs-byob-controller-private-pull">\[[Pull]]()</h5>
+
+<emu-alg>
+  1. Let _stream_ be *this*@[[controlledReadableStream]].
+  1. If ReadableStreamGetNumReadRequests(_stream_) is 0,
+    1. If *this*[[totalQueuedBytes]] &gt; 0,
+      1. Let _entry_ be the first element of *this*@[[queue]].
+      1. Remove _entry_ from *this*@[[queue]], shifting all other elements downward (so that the second becomes the first, and so on).
+      1. Subtract _entry_.[[byteLength]] from *this*@[[totalQueuedBytes]].
+      1. Perform ReadableStreamBYOBControllerHandleQueueDrain(*this*).
+      1. Let _view_ be Construct(%Uint8Array%, «_entry_.[[buffer]], _entry_.[[byteOffset]], _entry_.[[byteLength]]»).
+      1. Return a promise resolved with CreateIterResultObject(_view_, *false*).
+    1. Let _autoAllocateChunkSize_ be *this*@[[autoAllocateChunkSize]].
+    1. If _autoAllocateChunkSize_ is not *undefined*,
+      1. Let _buffer_ be Construct(%ArrayBuffer%, «_autoAllocateChunkSize_»).
+      1. Let _pullIntoDescriptor_ be Record{[[buffer]]: _buffer_, [[byteOffset]]: 0, [[byteLength]]: _autoAllocateChunkSize_, [[bytesFilled]]: 0, [[elementSize]]: 1, [[ctor]]: %Uint8Array%, [[readerType]]: `"default"`}.
+      1. Append _pullIntoDescriptor_ as the last element of *this*@[[pendingPullIntos]].
+  1. Otherwise,
+    1. Assert: *this*@[[autoAllocateChunkSize]] is *undefined*.
+  1. Let _promise_ be ReadableStreamAddReadRequest(_stream_).
+  1. Perform ReadableStreamDefaultControllerCallPullIfNeeded(*this*).
+  1. Return _promise_.
+</emu-alg>
+
+<h3 id="rs-byob-request-class" lt="ReadableStreamBYOBRequest">Class <code>ReadableStreamBYOBRequest</code></h3>
+
+The <code>ReadableStreamBYOBRequest</code> class represents a pull into request in a
+<code>ReadableStreamBYOBController</code>.
+
+<h4 id="rs-byob-request-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the <code>ReadableStreamBYOBController</code> class in something close to the syntax of
+[[!ECMASCRIPT]], it would look like
+
+<pre><code class="lang-javascript">
+  class ReadableStreamBYOBRequest {
+    constructor(controller, descriptor)
+
+    get view()
+
+    respond(bytesWritten)
+    respondWithNewView(view)
+  }
+</code></pre>
+
+<h4 id="rs-byob-request-internal-slots">Internal Slots</h4>
+
+Instances of <code>ReadableStreamBYOBRequest</code> are created with the internal slots described in the following
+table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[associatedReadableStreamBYOBController]]
+    <td>The parent ReadableStreamBYOBController instance
+  </tr>
+  <tr>
+    <td>\[[view]]
+    <td>A Typed Array representing the destination region to which the controller may write generated data
+  </tr>
+</table>
+
+<h4 id="rs-byob-request-constructor">new ReadableStreamBYOBRequest(controller, view)</h4>
+
+<emu-alg>
+  1. Set *this*@[[associatedReadableStreamBYOBController]] to _controller_.
+  1. Set *this*@[[view]] to _view_.
+</emu-alg>
+
+<h4 id="rs-byob-request-prototype">Properties of the <code>ReadableStreamBYOBRequest</code> Prototype</h4>
+
+<h5 id="rs-byob-request-view">get view</h5>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBRequest(*this*) is *false*, throw a *TypeError* exception.
+  1. Return *this*@[[view]].
+</emu-alg>
+
+<h5 id="rs-byob-request-respond">respond(bytesWritten)</h5>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBRequest(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*@[[associatedReadableStreamBYOBController]] is *undefined*, throw a *TypeError* exception.
+  1. Return ReadableStreamBYOBControllerRespond(*this*@[[associatedReadableStreamBYOBController]], _bytesWritten_).
+</emu-alg>
+
+<h5 id="rs-byob-request-respond-with-new-view">respondWithNewView(view)</h5>
+
+<emu-alg>
+  1. If IsReadableStreamBYOBRequest(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*@[[associatedReadableStreamBYOBController]] is *undefined*, throw a *TypeError* exception.
+  1. If Type(_chunk_) is not Object, throw a *TypeError* exception.
+  1. If _view_ does not have a [[ViewedArrayBuffer]] internal slot, throw a *TypeError* exception.
+  1. Return ReadableStreamBYOBControllerRespondWithNewView(*this*@[[associatedReadableStreamBYOBController]], _view_).
+</emu-alg>
+
+<h3 id="rs-byob-controller-abstract-ops">Readable Stream BYOB Controller Abstract Operations</h3>
+
+<h4 id="is-readable-stream-byob-request" aoid="IsReadableStreamBYOBRequest" nothrow>IsReadableStreamBYOBRequest ( x )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have an [[associatedReadableStreamBYOBController]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+
+<h4 id="is-readable-stream-byob-controller" aoid="IsReadableStreamBYOBController" nothrow>IsReadableStreamBYOBController ( x )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have an [[underlyingByteSource]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-call-pull-if-needed" aoid="ReadableStreamBYOBControllerCallPullIfNeeded" nothrow>ReadableStreamBYOBControllerCallPullIfNeeded ( controller )</h4>
+
+<emu-alg>
+  1. Let _shouldPull_ be ReadableStreamBYOBControllerShouldCallPull(_controller_).
+  1. If _shouldPull_ is *false*, return *undefined*.
+  1. If _controller_@[[pulling]] is *true*,
+    1. Set _controller_@[[pullAgain]] to *true*.
+    1. Return *undefined*.
+  1. Set _controller_@[[pullAgain]] to *false*.
+  1. Set _controller_@[[pulling]] to *true*.
+  1. Let _pullPromise_ be PromiseInvokeOrNoop(_controller_@[[underlyingByteSource]], `"pull"`, «‍_controller_»).
+  1. Upon fulfillment of _pullPromise_,
+    1. Set _controller_@[[pulling]] to *false*.
+    1. If _controller_@[[pullAgain]] is *true*,
+      1. Set _controller_@[[pullAgain]] to *false*.
+      1. Perform ReadableStreamBYOBControllerCallPullIfNeeded(_controller_).
+  1. Upon rejection of _pullPromise_ with reason _e_,
+    1. If _controller_@[[controlledReadableStream]]@[[state]] is `"readable"`, perform ReadableStreamBYOBControllerError(_controller_, _e_).
+  1. Return *undefined*.
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-clear-pending-pull-intos" aoid="ReadableStreamBYOBControllerClearPendingPullIntos" nothrow>ReadableStreamBYOBControllerClearPendingPullIntos ( controller )</h4>
+
+<emu-alg>
+  1. If _controller_@[[byobRequest]] is not *undefined*,
+    1. Perform ReadableStreamBYOBRequestInvalidate(_controller_@[[byobRequest]]).
+    1. Set _controller_@[[byobRequest]] to *undefined*.
+  1. Set _controller_@[[pendingPullIntos]] to a new empty List.
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-close" aoid="ReadableStreamBYOBControllerClose" nothrow>ReadableStreamBYOBControllerClose ( controller )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _controller_@[[controlledReadableStream]].
+  1. Assert: _controller_@[[closeRequested]] is *false*.
+  1. Assert: _stream_@[[state]] is `"readable"`.
+  1. If _controller_@[[totalQueuedBytes]] &gt; 0,
+    1. Set _controller_@[[closeRequested]] to *true*.
+    1. Return.
+  1. Let _firstPendingPullInto_ be the first element of _controller_@[[pendingPullIntos]].
+  1. If ReadableStreamHasBYOBReader(_stream_) is *true* and _controller_@[[pendingPullIntos]] is not empty and _firstPendingPullInto_.[[bytesFilled]] &gt; 0.
+    1. Let _e_ be a *TypeError* exception.
+    1. Perform ReadableStreamBYOBControllerError(_controller_, _e_).
+    1. Throw _e_.
+  1. Perform ReadableStreamClose(_stream_).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-commit-pull-into-descriptor" aoid="ReadableStreamBYOBControllerCommitPullIntoDescriptor" nothrow>ReadableStreamBYOBControllerCommitPullIntoDescriptor ( stream, pullIntoDescriptor )</h4>
+
+<emu-alg>
+  1. Assert: _stream_@[[state]] is not `"errored"`.
+  1. Let _byteOffset_ be _readIntoRequest_.[[byteOffset]].
+  1. Let _done_ be *false*.
+  1. If _stream_@[[state]] is `"closed"`,
+    1. Assert: _pullIntoDescriptor_.[[bytesFilled]] is not 0.
+    1. Let _done_ be *true*.
+  1. Let _filledView_ be ReadableStreamBYOBControllerConvertPullIntoDescriptor(_pullIntoDescriptor_).
+  1. If _pullIntoDescriptor_.[[readerType]] is `"default"`,
+    1. ReadableStreamFulfillReadRequest(_stream_, _filledView_, _done_).
+  1. Otherwise,
+    1. Assert: _pullIntoDescriptor_.[[readerType]] is `"byob"`,
+    1. ReadableStreamFulfillReadIntoRequest(_stream_, _filledView_, _done_).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-convert-pull-into-descriptor" aoid="ReadableStreamBYOBControllerConvertPullIntoDescriptor" nothrow>ReadableStreamBYOBControllerConvertPullIntoDescriptor ( pullIntoDescriptor )</h4>
+
+<emu-alg>
+  1. Let _bytesFilled_ be _pullIntoDescriptor_.[[bytesFilled]].
+  1. Let _elementSize_ be _pullIntoDescriptor_.[[elementSize]].
+  1. Assert: _bytesFilled_ ≤ _pullIntoDescriptor_.[[byteLength]].
+  1. Assert: _bytesFilled_ mod _elementSize_ is 0.
+  1. Return Construct(_pullIntoDescriptor_.[[ctor]], «_pullIntoDescriptor_.[[buffer]], _pullIntoDescriptor_.[[byteOffset]], _bytesFilled_ / _elementSize_»).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-enqueue" aoid="ReadableStreamBYOBControllerEnqueue" throws>ReadableStreamBYOBControllerEnqueue ( controller, chunk )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _controller_@[[controlledReadableStream]].
+  1. Assert: _controller_@[[closeRequested]] is *false*.
+  1. Assert: _controller_@[[state]] is `"readable"`.
+  1. Let _buffer_ be _chunk_@[[ViewedArrayBuffer]].
+  1. Let _byteOffset_ be _chunk_@[[ByteOffset]].
+  1. Let _byteLength_ be _chunk_@[[ByteLength]].
+  1. If ReadableStreamHasReader(_stream_) is *true*
+    1. If ReadableStreamGetNumReadRequests(_stream_) is 0,
+      1. Transfer _buffer_ and let _transferredBuffer_ be the result.
+      1. Perform ReadableStreamBYOBControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_, _byteLength_).
+    1. Otherwise,
+      1. Assert: _controller_@[[queue]] is empty.
+      1. Transfer _buffer_ and let _transferredBuffer_ be the result.
+      1. Let _transferredView_ be Construct(%Uint8Array%, «_transferredBuffer_, _byteOffset_, _byteLength_»).
+      1. Perform ReadableStreamFulfillReadRequest(_stream_, _transferredView_, *false*).
+  1. Otherwise,
+    1. If ReadableStreamHasBYOBReader(_stream_) is *true*,
+      1. Transfer _buffer_ and let _transferredBuffer_ be the result.
+      1. Perform ReadableStreamBYOBControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_, _byteLength_).
+      1. Perform ReadableStreamBYOBControllerProcessPullIntoDescriptorsUsingQueue(_controller_).
+    1. Otherwise,
+      1. Assert: IsReadableStreamLocked(_stream_) is *false*.
+      1. Transfer _buffer_ and let _transferredBuffer_ be the result.
+      1. Perform ReadableStreamBYOBControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_, _byteLength_).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-enqueue-chunk-to-queue" aoid="ReadableStreamBYOBControllerEnqueueChunkToQueue" nothrow>ReadableStreamBYOBControllerEnqueueChunkToQueue ( controller, buffer, byteOffset, byteLength )</h4>
+
+<emu-alg>
+  1. Append Record{[[buffer]]: _buffer_, [[byteOffset]]: _byteOffset_, [[byteLength]]: _byteLength_} as the last element of _controller_@[[queue]].
+  1. Add _byteLength_ to _controller_@[[totalQueuedBytes]].
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-error" aoid="ReadableStreamBYOBControllerError" nothrow>ReadableStreamBYOBControllerError ( controller, e )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _controller_@[[controlledReadableStream]].
+  1. Assert: _stream_@[[state]] is `"readable"`.
+  1. Perform ReadableStreamBYOBControllerClearPendingPullIntos(_controller_).
+  1. Let _controller_@[[queue]] be a new empty List.
+  1. Perform ReadableStreamError(_stream_, _e_).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-fill-head-pull-into-descriptor" aoid="ReadableStreamBYOBControllerFillHeadPullIntoDescriptor" nothrow>ReadableStreamBYOBControllerFillHeadPullIntoDescriptor ( controller, size, pullIntoDescriptor )</h4>
+
+<emu-alg>
+  1. Assert: _controller_@[[pendingPullIntos]] is empty or the first element of _controller_@[[pendingPullIntos]] is _pullIntoDescriptor_.
+  1. If _controller_@[[byobRequest]] is not *undefined*,
+    1. Perform ReadableStreamBYOBRequestInvalidate(_controller_@[[byobRequest]]).
+    1. Set _controller_@[[byobRequest]] to *undefined*.
+  1. Add _size_ to _pullIntoDescriptor_.[[bytesFilled]].
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-fill-pull-into-descriptor-from-queue" aoid="ReadableStreamBYOBControllerFillPullIntoDescriptorFromQueue" nothrow>ReadableStreamBYOBControllerFillPullIntoDescriptorFromQueue ( controller, pullIntoDescriptor )</h4>
+
+<emu-alg>
+  1. Let _elementSize_ be _pullIntoDescriptor_.[[elementSize]].
+  1. Let _currentAlignedBytes_ be _pullIntoDescriptor_.[[bytesFilled]] - _pullIntoDescriptor_.[[bytesFilled]] mod _elementSize_.
+  1. Let _maxBytesToCopy_ be the minimum of _controller_@[[totalQueuedBytes]] and _pullIntoDescriptor_.[[byteLength]] - _pullIntoDescriptor_.[[bytesFilled]].
+  1. Let _maxBytesFilled_ be _pullIntoDescriptor_.[[bytesFilled]] + _maxBytesToCopy_.
+  1. Let _maxAlignedBytes_ be _maxBytesFilled_ - _maxBytesFilled_ mod _elementSize_.
+  1. Let _totalBytesToCopyRemaining_ be _maxBytesToCopy_.
+  1. Let _ready_ be *false*.
+  1. If _maxAlignedBytes_ &gt; _currentAlignedBytes_,
+    1. Let _totalBytesToCopyRemaining_ be _maxAlignedBytes_ - _pullIntoDescriptor_.[[bytesFilled]].
+    1. Let _ready_ be *true*.
+  1. Let _queue_ be _controller_@[[queue]].
+  1. Repeat the following steps while _totalBytesToCopyRemaining_ &gt; 0,
+    1. Let _headOfQueue_ be the first element of _queue_.
+    1. Let _bytesToCopy_ be the minimum of _totalBytesToCopyRemaining_ and _headOfQueue_.[[byteLength]].
+    1. Let _destStart_ be _pullIntoDescriptor_.[[byteOffset]] + _pullIntoDescriptor_.[[bytesFilled]].
+    1. Set the _bytesToCopy_ bytes of _headOfQueue_.[[buffer]] at offset _headOfQueue_.[[byteOffset]] to the _bytesToCopy_ bytes of _pullIntoDescriptor_.[[buffer]] at offset _destStart_.
+    1. If _headOfQueue_.[[byteLength]] is _bytesToCopy_,
+      1. Remove the first element of _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
+    1. Otherwise,
+      1. Add _bytesToCopy_ to _headOfQueue_.[[byteOffset]].
+      1. Subtract _bytesToCopy_ from _headOfQueue_.[[byteLength]].
+    1. Subtract _bytesToCopy_ from _controller_@[[totalQueuedBytes]].
+    1. Perform ReadableStreamBYOBControllerFillHeadPullIntoDescriptor(_controller_, _bytesToCopy_, _pullIntoDescriptor_).
+    1. Subtract _bytesToCopy_ from _totalBytesToCopyRemaining_.
+  1. If _ready_ is *false*,
+    1. Assert: _controller_@[[totalQueuedBytes]] is 0.
+    1. Assert: _pullIntoDescriptor_@[[bytesFilled]] &gt; 0.
+    1. Assert: _pullIntoDescriptor_@[[bytesFilled]] &lt; _pullIntoDescriptor_.[[elementSize]].
+  1. Return _ready_.
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-get-desired-size" aoid="ReadableStreamBYOBControllerGetDesiredSize" nothrow>ReadableStreamBYOBControllerGetDesiredSize ( controller )</h4>
+
+<emu-alg>
+  1. Return _controller_@[[strategyHWM]] - _controller_@[[totalQueuedBytes]].
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-handle-queue-drain" aoid="ReadableStreamBYOBControllerHandleQueueDrain" nothrow>ReadableStreamBYOBControllerHandleQueueDrain ( controller )</h4>
+
+<emu-alg>
+  1. Assert: _controller_@[[controlledReadableStream]]@[[state]] is `"readable"`.
+  1. If _controller_@[[totalQueuedBytes]] is 0 and _controller_@[[closeRequested]] is *true*,
+    1. Perform ReadableStreamClose(_controller_@[[controlledReadableStream]]).
+  1. Otherwise,
+    1. Perform ReadableStreamBYOBControllerCallPullIfNeeded(_controller_).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-process-pull-into-descriptors-using-queue" aoid="ReadableStreamBYOBControllerProcessPullIntoDescriptorsUsingQueue" nothrow>ReadableStreamBYOBControllerProcessPullIntoDescriptorsUsingQueue ( controller )</h4>
+
+<emu-alg>
+  1. Assert: _controller_@[[closeRequested]] is *false*.
+  1. Repeat the following steps while _controller_@[[pendingPullIntos]] is not empty,
+    1. If _controller_@[[totalQueuedBytes]] is 0, return.
+    1. Let _pullIntoDescriptor_ be the first element of _controller_@[[pendingPullIntos]].
+    1. If ReadableStreamBYOBControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
+      1. Perform ReadableStreamBYOBControllerShiftPendingPullInto(_controller_).
+      1. Perform ReadableStreamBYOBControllerCommitPullIntoDescriptor(_controller_@[[controlledReadableStream]], _pullIntoDescriptor_).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-pull-into" aoid="ReadableStreamBYOBControllerPullInto" nothrow>ReadableStreamBYOBControllerPullInto ( controller, view )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _controller_@[[controlledReadableStream]].
+  1. Let _elementSize_ be 1.
+  1. If _view_ has a [[TypedArrayName]] internal slot (i.e., it is not a `DataView`), set _elementSize_ to the element size specified in <a href="https://tc39.github.io/ecma262/#table-49">The TypedArray Constructors table</a> for _view_@[[TypedArrayName]].
+  1. Let _ctor_ be %DataView%.
+  1. If _view_ has a [[TypedArrayName]] internal slot (i.e., it is not a `DataView`), set _ctor_ to the constructor specified in <a href="https://tc39.github.io/ecma262/#table-49">The TypedArray Constructors table</a> for _view_@[[TypedArrayName]].
+  1. Let _pullIntoDescriptor_ be Record{[[buffer]]: _view_.[[buffer]], [[byteOffset]]: _view_.[[byteOffset]], [[byteLength]]: _view_.[[byteLength]], [[bytesFilled]]: 0, [[elementSize]]: _elementSize_, [[ctor]]: _ctor_, [[readerType]]: `"byob"`}.
+  1. If _controller_@[[pendingPullIntos]] is not empty,
+    1. Transfer _pullIntoDescriptor_.[[buffer]] and set _pullIntoDescriptor_.[[buffer]] to the result.
+    1. Append _pullIntoDescriptor_ as the last element of _controller_@[[pendingPullIntos]].
+    1. Return ReadableStreamAddReadIntoRequest(_stream_).
+  1. If _stream_@[[state]] is `"closed"`,
+    1. Let _emptyView_ be Construct(_ctor_, «_view_.[[buffer]], _view_.[[byteOffset]], 0»).
+    1. Return a promise resolved with CreateIterResultObject(_emptyView_, *true*).
+  1. If _controller_@[[totalQueuedBytes]] &gt; 0,
+    1. If ReadableStreamBYOBControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
+      1. Let _filledView_ be ReadableStreamBYOBControllerConvertPullIntoDescriptor(_pullIntoDescriptor_).
+      1. Perform ReadableStreamBYOBControllerHandleQueueDrain(_controller_).
+      1. Return a promise resolved with CreateIterResultObject(_filledView_, *false*).
+    1. If _controller_@[[closeRequested]] is *true*,
+      1. Let _e_ be a *TypeError* exception.
+      1. Perform ReadableStreamBYOBControllerError(_controller_, _e_).
+      1. Return a promise rejected with _e_.
+  1. Transfer _pullIntoDescriptor_.[[buffer]] and set _pullIntoDescriptor_.[[buffer]] to the result.
+  1. Append _pullIntoDescriptor_ as the last element of _controller_@[[pendingPullIntos]].
+  1. Let _promise_ be ReadableStreamAddReadIntoRequest(_stream_).
+  1. Perform ReadableStreamBYOBControllerCallPullIfNeeded(_controller_).
+  1. Return _promise_.
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-respond" aoid="ReadableStreamBYOBControllerRespond" throws>ReadableStreamBYOBControllerRespond ( controller, bytesWritten )</h4>
+
+<emu-alg>
+  1. Let _bytesWritten_ be ToNumber(_bytesWritten_).
+  1. If IsFiniteNonNegativeNumber(_bytesWritten_) is *false*,
+    1. Throw a *RangeError* exception.
+  1. Assert: _controller_@[[pendingPullIntos]] is not empty.
+  1. Return ReadableStreamBYOBControllerRespondInternal(_controller_, _bytesWritten_).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-respond-in-closed-state" aoid="ReadableStreamBYOBControllerRespondInClosedState" nothrow>ReadableStreamBYOBControllerRespondInClosedState ( controller, firstDescriptor )</h4>
+
+<emu-alg>
+  1. Transfer _firstDescriptor_.[[buffer]] and set _firstDescriptor_.[[buffer]] to the result.
+  1. Assert: _firstDescriptor_.[[bytesFilled]] is 0.
+  1. Let _stream_ be _controller_@[[controlledReadableStream]].
+  1. Repeat the following steps while ReadableStreamGetNumReadIntoRequests(_stream_) &gt; 0,
+    1. Let _pullIntoDescriptor_ be ReadableStreamBYOBControllerShiftPendingPullInto(_controller_).
+    1. Perform ReadableStreamBYOBControllerCommitPullIntoDescriptor(_stream_, _pullIntoDescriptor_).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-respond-in-readable-state" aoid="ReadableStreamBYOBControllerRespondInReadableState" nothrow>ReadableStreamBYOBControllerRespondInReadableState ( controller, bytesWritten, pullIntoDescriptor )</h4>
+
+<emu-alg>
+  1. If _pullIntoDescriptor_.[[bytesFilled]] + _bytesWritten_ &gt; _pullIntoDescriptor_.[[byteLength]], throw a *RangeError* exception.
+  1. Perform ReadableStreamBYOBControllerFillHeadPullIntoDescriptor(_controller_, _bytesWritten_, _pullIntoDescriptor_).
+  1. If _pullIntoDescriptor_.[[bytesFilled]] &lt; _pullIntoDescriptor_.[[elementSize]], return.
+  1. Perform ReadableStreamBYOBControllerShiftPendingPullInto(_controller_).
+  1. Let _remainderSize_ be _pullIntoDescriptor_.[[bytesFilled]] mod _pullIntoDescriptor_.[[elementSize]].
+  1. If _remainderSize_ &gt; 0,
+    1. Let _end_ be _pullIntoDescriptor_.[[byteOffset]] + _pullIntoDescriptor_.[[bytesFilled]].
+    1. Let _remainder_ be a new ArrayBuffer containing the _remainderSize_ bytes of _pullIntoDescriptor_.[[buffer]] at offset _end_ - _remainderSize_.
+    1. Perform ReadableStreamBYOBControllerEnqueueChunkToQueue(_controller_, _remainder_, 0, _remainder_@[[ByteLength]]).
+  1. Transfer _pullIntoDescriptor_.[[buffer]] and set _pullIntoDescriptor_.[[buffer]] to the result.
+  1. Let _pullIntoDescriptor_.[[bytesFilled]] be _pullIntoDescriptor_.[[bytesFilled]] - _remainderSize_.
+  1. Perform ReadableStreamBYOBControllerCommitPullIntoDescriptor(_controller_@[[controlledReadableStream]], _pullIntoDescriptor_).
+  1. Perform ReadableStreamBYOBControllerProcessPullIntoDescriptorsUsingQueue(_controller_).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-respond-internal" aoid="ReadableStreamBYOBControllerRespondInternal" throws>ReadableStreamBYOBControllerRespondInternal ( controller, bytesWritten )</h4>
+
+<emu-alg>
+  1. Let _firstDescriptor_ be the first element of _controller_@[[pendingPullIntos]].
+  1. Let _stream_ be _controller_@[[controlledReadableStream]].
+  1. If _stream_@[[state]] is `"closed"`,
+    1. If _bytesWritten_ is not 0,
+      1. Throw a *TypeError* exception.
+    1. Perform ReadableStreamBYOBControllerRespondInClosedState(_controller_, _firstDescriptor_).
+  1. Otherwise,
+    1. Assert: _stream_@[[state]] is `"readable"`.
+    1. Perform ReadableStreamBYOBControllerRespondInReadableState(_controller_, _bytesWritten_, _firstDescriptor_).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-respond-with-new-view" aoid="ReadableStreamBYOBControllerRespondWithNewView" throws>ReadableStreamBYOBControllerRespondWithNewView ( controller, view )</h4>
+
+<emu-alg>
+  1. Assert: _controller_@[[pendingPullIntos]] is not empty.
+  1. Let _firstDescriptor_ be the first element of _controller_@[[pendingPullIntos]].
+  1. If _firstDescriptor_.[[byteOffset]] + _firstDescriptor_.[[bytesFilled]] is not _view_@[[ByteOffset]],
+    1. Throw a *RangeError* exception.
+  1. If _firstDescriptor_.[[byteLength]] is not _view_@[[ByteOffset]],
+    1. Throw a *RangeError* exception.
+  1. Set _firstDescriptor_.[[buffer]] to _view_@[[ViewedArrayBuffer]].
+  1. Return ReadableStreamBYOBControllerRespondInternal(_controller_, _view_@[[ByteLength]]).
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-shift-pending-pull-into" aoid="ReadableStreamBYOBControllerShiftPendingPullInto" nothrow>ReadableStreamBYOBControllerShiftPendingPullInto ( controller )</h4>
+
+<emu-alg>
+  1. Let _descriptor_ be the first element of _controller_@[[pendingPullIntos]].
+  1. Remove _descriptor_ from _controller_@[[pendingPullIntos]], shifting all other elements downward (so that the second becomes the first, and so on).
+  1. If _controller_@[[byobRequest]] is not *undefined*,
+    1. Perform ReadableStreamBYOBRequestInvalidate(_controller_@[[byobRequest]]).
+    1. Set _controller_@[[byobRequest]] to *undefined*.
+  1. Return _descriptor_.
+</emu-alg>
+
+<h4 id="readable-stream-byob-controller-should-call-pull" aoid="ReadableStreamBYOBControllerShouldCallPull" nothrow>ReadableStreamBYOBControllerShouldCallPull ( controller )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _controller_@[[controlledReadableStream]].
+  1. If _stream_@[[state]] is not `"readable"`, return *false*.
+  1. If _controller_@[[closeRequested]] is *true*, return *false*.
+  1. If _controller_@[[started]] is *false*, return *false*.
+  1. If ReadableStreamHasReader(_stream_) is *true* and ReadableStreamGetNumReadRequests(_stream_) > 0, return *true*.
+  1. If ReadableStreamHasBYOBReader(_stream_) is *true* and ReadableStreamGetNumReadIntoRequests(_stream_) > 0, return *true*.
+  1. Let _desiredSize_ be ReadableStreamBYOBControllerGetDesiredSize(_controller_).
+  1. If _desiredSize_ > 0, return *true*.
+  1. Return *false*.
+</emu-alg>
+
+<h4 id="readable-stream-byob-request-invalidate" aoid="ReadableStreamBYOBRequestInvalidate" nothrow>ReadableStreamBYOBRequestInvalidate ( request )</h4>
+
+<emu-alg>
+  1. Set _request_@[[associatedReadableStreamBYOBController]] to *undefined*.
+  1. Set _request_@[[view]] to *undefined*.
+</emu-alg>
 
 <h2 id="ws">Writable Streams</h2>
 
@@ -1843,7 +2897,7 @@ throughout the rest of this standard.
 
 <emu-alg>
   1. Assert: _queue_ is not empty.
-  1. Let _pair_ be the first element of queue.
+  1. Let _pair_ be the first element of _queue_.
   1. Remove _pair_ from _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
   1. Return _pair_.[[value]].
 </emu-alg>
@@ -1880,27 +2934,13 @@ throughout the rest of this standard.
 
 A few abstract operations are used in this specification for utility purposes. We define them here.
 
-<h4 id="get-viewed-array-buffer" aoid="GetViewedArrayBuffer" throws>GetViewedArrayBuffer ( O )</h4>
+<h4 id="is-finite-non-negative-number" aoid="IsFiniteNonNegativeNumber" nothrow>IsFiniteNonNegativeNumber ( v )</h4>
 
 <emu-alg>
-  1. Return the result of the same algorithm as used by the get accessor function of the original value of %TypedArray%.prototype.buffer, with _O_ in place of *this*.
-</emu-alg>
-
-<div class="note">
-  Ideally, this operation and its counterparts <a href="https://bugs.ecmascript.org/show_bug.cgi?id=4369">would be
-  defined by ECMAScript</a>.
-</div>
-
-<h4 id="get-byte-length" aoid="GetByteLength" throws>GetByteLength ( O )</h4>
-
-<emu-alg>
-  1. Return the result of the same algorithm as used by the get accessor function of the original value of %TypedArray%.prototype.byteLength, with _O_ in place of *this*.
-</emu-alg>
-
-<h4 id="get-byte-offset" aoid="GetByteOffset" throws>GetByteOffset ( O )</h4>
-
-<emu-alg>
-  1. Return the result of the same algorithm as used by the get accessor function of the original value of %TypedArray%.prototype.byteOffset, with _O_ in place of *this*.
+  1. If _v_ is *NaN*, return *false*.
+  1. If _v_ is *+∞*, return *false*.
+  1. If _v_ &lt; 0, return *false*.
+  1. Return *true*.
 </emu-alg>
 
 <h4 id="invoke-or-noop" aoid="InvokeOrNoop" throws>InvokeOrNoop ( O, P, args )</h4>
@@ -1961,413 +3001,23 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Otherwise, return a new promise resolved with _returnValue_.[[value]].
 </emu-alg>
 
-<h4 id="validate-and-normalize-queuing-strategy" aoid="ValidateAndNormalizeQueuingStrategy" throws>ValidateAndNormalizeQueuingStrategy ( size, highWaterMark )</h4>
+<h4 id="validate-and-normalize-high-water-mark" aoid="ValidateAndNormalizeHighWaterMark" throws>ValidateAndNormalizeHighWaterMark ( highWaterMark )</h4>
 
 <emu-alg>
-  1. If _size_ is not *undefined* and IsCallable(_size_) is *false*, throw a *TypeError* exception.
   1. Set _highWaterMark_ to ToNumber(_highWaterMark_).
   1. ReturnIfAbrupt(_highWaterMark_).
   1. If _highWaterMark_ is *NaN*, throw a *TypeError* exception.
   1. If _highWaterMark_ < *0*, throw a *RangeError* exception.
-  1. Return Record{[[size]]: size, [[highWaterMark]]: highWaterMark}.
+  1. Return _highWaterMark_.
 </emu-alg>
 
-<h2 id="rbs">Readable Byte Streams</h2>
-
-<div class="warning">
-  Readable byte streams are still a work in progress. We are currently trying to ensure that their public API is stable,
-  as well as any operations needed to interface with them from other specifications. However, we're much less sure
-  about the details of their internal algorithms, as well as the APIs necessary to construct readable byte streams
-  (viz. the underlying byte source API and the controller API). Please follow along in
-  <a href="https://github.com/whatwg/streams/issues/300">the tracking issue</a>, as well as other issues under the
-  <a href="https://github.com/whatwg/streams/labels/byte%20streams">byte streams issues label</a>.
-</div>
-
-<h3 id="rbs-intro">Using Readable Byte Streams</h3>
-
-<div class="note">
-  Unlike the readable stream, the readable byte stream provides multiple different kinds of readers. One is the
-  <code>ReadableByteStreamReader</code>. It has the same methods as the <code>ReadableStreamReader</code>, and can be
-  read in the same manner as the <code>ReadableStreamReader</code>. Other readers dedicated for the readable byte stream
-  are to be introduced into this spec.
-</div>
-
-<h3 id="rbs-class">Class <code>ReadableByteStream</code></h3>
-
-<h4 id="rbs-class-definition">Class Definition</h4>
-
-<em>This section is non-normative.</em>
-
-If one were to write the <code>ReadableByteStream</code> class in something close to the syntax of [[!ECMASCRIPT]], it
-would look like
-
-<pre><code class="lang-javascript">
-  class ReadableByteStream {
-    constructor(underlyingByteSource = {})
-
-    cancel(reason)
-    getByobReader()
-    getReader()
-    pipeThrough({ writable, readable }, options)
-    pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})
-    tee()
-  }
-</code></pre>
-
-<h4 id="rbs-internal-slots">Internal Slots</h4>
-
-Instances of <code>ReadableByteStream</code> are created with the internal slots described in the following table:
-
-<table>
-  <thead>
-    <tr>
-      <th>Internal Slot</th>
-      <th>Description (<em>non-normative</em>)</th>
-    </tr>
-  </thead>
-  <tr>
-    <td>\[[controller]]
-    <td>A <a href="#rbs-controller-class"><code>ReadableByteStreamController</code></a> created with the ability to
-      control the state of this stream; also used for the IsReadableByteStream brand check
-  </tr>
-  <tr>
-    <td>\[[reader]]
-    <td>A <a href="#byte-reader-class"><code>ReadableByteStreamReader</code></a> instance, if the stream is <a>locked to
-      a reader</a>, or <b>undefined</b> if it is not
-  </tr>
-  <tr>
-    <td>\[[state]]
-    <td>A string containing the stream's current state, used internally; one of <code>"readable"</code>,
-      <code>"closed"</code>, or <code>"errored"</code>
-  </tr>
-  <tr>
-    <td>\[[storedError]]
-    <td>A value indicating how the stream failed, to be given as a failure reason or exception when trying to operate
-      on an errored stream
-  </tr>
-</table>
-
-<h4 id="rbs-constructor">new ReadableByteStream(underlyingByteSource = {})</h4>
+<h4 id="validate-and-normalize-queuing-strategy" aoid="ValidateAndNormalizeQueuingStrategy" throws>ValidateAndNormalizeQueuingStrategy ( size, highWaterMark )</h4>
 
 <emu-alg>
-  1. Set *this*@[[state]] to "readable".
-  1. Set *this*@[[reader]], *this*@[[storedError]] and *this*@[[controller]] to *undefined
-  1. Set *this*@[[controller]] to Construct(`ReadableByteStreamController`, «*this*, _underlyingByteSource_»).
-</emu-alg>
-
-<h4 id="rbs-prototype">Properties of the <code>ReadableByteStream</code> Prototype</h4>
-
-<h5 id="rbs-cancel">cancel(reason)</h5>
-
-<emu-alg>
-  1. If IsReadableByteStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If IsReadableByteStreamLocked(*this*) is *true*, return a promise rejected with a *TypeError* exception.
-  1. Return CancelReadableByteStream(*this*, _reason_).
-</emu-alg>
-
-<h5 id="rbs-get-byob-reader">getByobReader()</h5>
-
-<emu-alg>
-  1. If IsReadableByteStream(*this*) is *false*, throw a *TypeError* exception.
-  1. Return Construct(`ReadableByteStreamByobReader`, «*this*»).
-</emu-alg>
-
-<h5 id="rbs-get-reader">getReader()</h5>
-
-<emu-alg>
-  1. If IsReadableByteStream(*this*) is *false*, throw a *TypeError* exception.
-  1. Return Construct(`ReadableByteStreamReader`, «*this*»).
-</emu-alg>
-
-<h5 id="rbs-pipe-through">pipeThrough({ writable, readable }, options)</h5>
-
-TBA
-
-<h5 id="rbs-pipe-to">pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})</h5>
-
-TBA
-
-<h5 id="rbs-tee">tee()</h5>
-
-TBA
-
-<h3 id="rbs-controller-class" lt="ReadableByteStreamController">Class <code>ReadableByteStreamController</code></h3>
-
-The <code>ReadableByteStreamController</code> class has methods that allow control of a
-<code>ReadableByteStream</code>'s state. When constructing a <code>ReadableByteStream</code>, the
-<a>underlying byte source</a> is given a corresponding <code>ReadableByteStreamController</code> instance to manipulate.
-
-<h4 id="rbs-controller-class-definition">Class Definition</h4>
-
-<em>This section is non-normative.</em>
-
-If one were to write the <code>ReadableByteStreamController</code> class in something close to the syntax of
-[[!ECMASCRIPT]], it would look like
-
-<pre><code class="lang-javascript">
-  class ReadableStreamController {
-    constructor(controlledReadableByteStream, underlyingByteSource)
-
-    close()
-    enqueue(chunk)
-    error(e)
-    respond(bytesWritten, buffer)
-  }
-</code></pre>
-
-<h4 id="rbs-controller-internal-slots">Internal Slots</h4>
-
-Instances of <code>ReadableByteStreamController</code> are created with the internal slots described in the following table:
-
-<table>
-  <thead>
-    <tr>
-      <th>Internal Slot</th>
-      <th>Description (<em>non-normative</em>)</th>
-    </tr>
-  </thead>
-  <tr>
-    <td>\[[controlledReadableByteStream]]
-    <td>The <a href="#rbs-class"><code>ReadableByteStream</code></a> instance controlled
-  </tr>
-  <tr>
-    <td>\[[underlyingByteSource]]
-    <td>An object representation of the stream's <a>underlying byte source</a>
-  </tr>
-  <tr>
-    <td>\[[pullAgain]]
-    <td>A boolean flag set to <b>true</b> if the stream's mechanisms requested a call to the underlying source's
-      <code>pull</code> method to pull more data, but the pull could not yet be done since a previous call is still
-      executing
-  </tr>
-  <tr>
-    <td>\[[pulling]]
-    <td>A boolean flag set to <b>true</b> while the <a>underlying byte source</a>'s <code>pull</code> method is
-      executing, used to prevent reentrant calls
-  </tr>
-  <tr>
-    <td>\[[pendingPullIntos]]
-    <td>A List representing the stream's internal queue of pending pull-into-buffer operations
-  </tr>
-  <tr>
-    <td>\[[queue]]
-    <td>A List representing the stream's internal queue of <a>chunks</a>
-  </tr>
-  <tr>
-    <td>\[[totalQueuedBytes]]
-    <td>An integer representing the number of bytes queued
-  </tr>
-  <tr>
-    <td>\[[closeRequested]]
-    <td>A boolean flag indicating whether the stream has been closed by its <a>underlying byte source</a>, but still has
-      <a>chunks</a> in its internal queue that have not yet been read
-  </tr>
-</table>
-
-<h4 id="rbs-controller-constructor">new ReadableByteStreamController(controlledReadableByteStream, underlyingByteSource)</h4>
-
-<emu-alg>
-  1. If IsReadableByteStream(_controlledReadableByteStream_) is *false*, throw a *TypeError* exception.
-  1. If _controlledReadableByteStream_@[[controller]] is not *undefined*, throw a *TypeError* exception.
-  1. Set *this*@[[controlledReadableByteStream]] to _controlledReadableByteStream_.
-  1. Set *this*@[[underlyingByteSource]] to _underlyingByteSource_.
-  1. Set *this*@[[pullAgain]] to *false*.
-  1. Set *this*@[[pulling]] to *false*.
-  1. Set *this*@[[pendingPullIntos]] to a new empty List.
-  1. Set *this*@[[queue]] to a new empty List.
-  1. Set *this*@[[totalQueuedBytes]] to *0*.
-  1. Set *this*@[[closeRequested]] to *false*.
-  1. InvokeOrNoop(_underlyingByteSource_, "start", «*this*»).
-</emu-alg>
-
-<h4 id="rbs-controller-prototype">Properties of the <code>ReadableByteStreamController</code> Prototype</h4>
-
-<h4 id="rbs-controller-close">close()</h5>
-
-<emu-alg>
-  1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
-  1. Let _stream_ be *this*@[[controlledReadableByteStream]].
-  1. If *this*@[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. If _stream_@[[state]] is not "readable", throw a *TypeError* exception.
-  1. If *this*@[[totalQueuedBytes]] > 0, then
-    1. Set *this*@[[closeRequested]] to *true*.
-    1. Return *undefined*.
-  1. Let _reader_ be _stream_@[[reader]].
-  1. If IsReadableByteStreamByobReader(_reader_) and *this*@[[pendingPullIntos]] is not empty,
-    1. Let _pullInto_ the first element of *this*@[[pendingPullIntos]].
-    1. If _pullInto_.[[bytesFilled]] > 0, then
-      1. Perform DestroyReadableByteStreamController(*this*).
-      1. Let _e_ be a *TypeError* exception.
-      1. Perform ErrorReadableByteStream(_stream_, _e_).
-      1. Throw _e_.
-  1. Perform CloseReadableByteStream(_stream_).
-</emu-alg>
-
-<h3 id="byte-reader-class">Class <code>ReadableByteStreamReader</code></h3>
-
-<h4 id="byte-reader-class-definition">Class Definition</h4>
-
-<em>This section is non-normative.</em>
-
-If one were to write the <code>ReadableByteStreamReader</code> class in something close to the syntax of [[!ECMASCRIPT]],
-it would look like
-
-<pre><code class="lang-javascript">
-  class ReadableByteStreamReader {
-    constructor(stream)
-
-    get closed()
-
-    cancel(reason)
-    read()
-    releaseLock()
-  }
-</code></pre>
-
-<h4 id="byte-reader-internal-slots">Internal Slots</h4>
-
-TBA
-
-<h4 id="byte-reader-constructor">new ReadableByteStreamReader(stream)</h4>
-
-TBA
-
-<h4 id="byte-reader-prototype">Properties of the <code>ReadableByteStreamReader</code> Prototype</h4>
-
-TBA
-
-<h3 id="byte-byob-reader-class">Class <code>ReadableByteStreamByobReader</code></h3>
-
-<h4 id="byte-byob-reader-class-definition">Class Definition</h4>
-
-<em>This section is non-normative.</em>
-
-If one were to write the <code>ReadableByteStreamByobReader</code> class in something close to the syntax of
-[[!ECMASCRIPT]], it would look like
-
-<pre><code class="lang-javascript">
-  class ReadableByteStreamByobReader {
-    constructor(stream)
-
-    get closed()
-
-    cancel(reason)
-    read(view)
-    releaseLock()
-  }
-</code></pre>
-
-<h4 id="byte-byob-reader-internal-slots">Internal Slots</h4>
-
-TBA
-
-<h4 id="byte-byob-reader-constructor">new ReadableByteStreamByobReader(stream)</h4>
-
-TBA
-
-<h4 id="byte-byob-reader-prototype">Properties of the <code>ReadableByteStreamByobReader</code> Prototype</h4>
-
-TBA
-
-<h3 id="byte-rs-abstract-ops">Readable Byte Stream Abstract Operations</h3>
-
-<h4 id="close-readable-byte-stream" aoid="CloseReadableByteStream" nothrow>CloseReadableByteStream ( stream )</h4>
-
-<emu-alg>
-  1. Assert: IsReadableByteStream(_stream_).
-  1. Assert: _stream_@[[state]] is "readable".
-  1. Set _stream_@[[state]] to "closed".
-  1. Let _reader_ be _stream_@[[reader]].
-  1. If _reader_ is *undefined*, return *undefined*.
-  1. If IsReadableByteStreamReader(_reader_), then
-    1. Repeat for each _req_ that is an element of _reader_@[[readRequests]],
-      1. Resolve _req_ with CreateIterResultObject(*undefined*, *true*).
-    1. Set _reader_@[[readRequests]] to an empty List.
-    1. Perform ReleaseReadableByteStreamReaderGeneric(_reader_).
-  1. Otherwise,
-    1. Assert: IsReadableByteStreamByobReader(_reader_).
-    1. If _reader_@[[readIntoRequests]] is empty, then
-      1. Perform ReleaseReadableByteStreamReaderGeneric(_reader_).
-  1. Perform CloseReadableByteStreamReaderGeneric(_reader_).
-</emu-alg>
-
-<h4 id="close-readable-byte-stream-reader-generic" aoid="CloseReadableByteStreamReaderGeneric" nothrow>CloseReadableByteStreamReaderGeneric ( reader )</h4>
-
-<emu-alg>
-  1. Set _reader_@[[state]] to "closed".
-  1. Resolve _reader_@[[closedPromise]] with *undefined*.
-</emu-alg>
-
-<h4 id="destroy-readable-byte-stream-controller" aoid="DestroyReadableByteStreamController" nothrow>DestroyReadableByteStreamController ( controller )</h4>
-
-<emu-alg>
-  1. Set _controller_@[[pendingPullIntos]] to an empty List.
-  1. Set _controller_@[[queue]] to an empty List.
-</emu-alg>
-
-<h4 id="error-readable-byte-stream" aoid="ErrorReadableByteStream" nothrow>ErrorReadableByteStream ( stream, e )</h4>
-
-<emu-alg>
-  1. Assert: IsReadableByteStream(_stream_) is *true*.
-  1. Assert: _stream_@[[state]] is "readable".
-  1. Set _stream_@[[state]] to "errored".
-  1. Set _stream_@[[storedError]] to _e_.
-  1. Let _reader_ be _stream_@[[reader]].
-  1. If _reader_ is *undefined*, return *undefined*.
-  1. If IsReadableByteStreamReader(_reader_), then
-    1. Repeat for each _req_ that is an element of _reader_@[[readRequests]],
-      1. Reject _req_ with _e_.
-    1. Set _reader_@[[readRequests]] to an empty List.
-  1. Otherwise,
-    1. Assert: IsReadableByteStreamByobReader(_reader_) is *true*.
-    1. Repeat for each _req_ that is an element of _reader_@[[readIntoRequests]],
-      1. Reject _req_ with _e_.
-    1. Set _reader_@[[readIntoRequests]] to an empty List.
-  1. Perform ReleaseReadableByteStreamReaderGeneric(_reader_).
-  1. Set _reader_@[[state]] to "errored".
-  1. Set _reader_@[[storedError]] to _e_.
-  1. Reject _reader_@[[closedPromise]] with _e_.
-</emu-alg>
-
-<h4 id="is-readable-byte-stream" aoid="IsReadableByteStream" nothrow>IsReadableByteStream ( x )</h4>
-
-<emu-alg>
-  1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have a [[controller]] internal slot, return *false*.
-  1. Return *true*.
-</emu-alg>
-
-<h4 id="is-readable-byte-stream-byob-reader" aoid="IsReadableByteStreamByobReader" nothrow>IsReadableByteStreamByobReader ( x )</h4>
-
-<emu-alg>
-  1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have a [[readIntoRequests]] internal slot, return *false*.
-  1. Return *true*.
-</emu-alg>
-
-<h4 id="is-readable-byte-stream-controller" aoid="IsReadableByteStreamController" nothrow>IsReadableByteStreamController ( x )</h4>
-
-<emu-alg>
-  1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have a [[controlledReadableByteStream]] internal slot, return *false*.
-  1. Return *true*.
-</emu-alg>
-
-<h4 id="is-readable-byte-stream-reader" aoid="IsReadableByteStreamReader" nothrow>IsReadableByteStreamReader ( x )</h4>
-
-<emu-alg>
-  1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have a [[readRequests]] internal slot, return *false*.
-  1. Return *true*.
-</emu-alg>
-
-<h4 id="release-readable-byte-stream-reader-generic" aoid="ReleaseReadableByteStreamReaderGeneric" nothrow>ReleaseReadableByteStreamReaderGeneric( reader )</h4>
-
-<emu-alg>
-  1. Assert: _reader_@[[ownerReadableByteStream]]@[[reader]] is not *undefined*.
-  1. Assert: _reader_@[[ownerReadableByteStream]] is not *undefined*.
-  1. Set _reader_@[[ownerReadableByteStream]]@[[reader]] to *undefined*.
-  1. Set _reader_@[[ownerReadableByteStream]] to *undefined*.
+  1. If _size_ is not *undefined* and IsCallable(_size_) is *false*, throw a *TypeError* exception.
+  1. Let _highWaterMark_ be ValidateAndNormalizeHighWaterMark(_highWaterMark_).
+  1. ReturnIfAbrupt(_highWaterMark_).
+  1. Return Record{[[size]]: _size_, [[highWaterMark]]: _highWaterMark_}.
 </emu-alg>
 
 <h2 id="globals">Global Properties</h2>
@@ -2378,7 +3028,6 @@ flux, in the meantime the following properties must be exposed on the global obj
 
 <ul>
   <li> <code>ReadableStream</code>
-  <li> <code>ReadableByteStream</code>
   <li> <code>WritableStream</code>
   <li> <code>ByteLengthQueuingStrategy</code>
   <li> <code>CountQueuingStrategy</code>
@@ -2389,9 +3038,9 @@ standard, and other attributes { \[[Writable]]: <b>true</b>, \[[Enumerable]]: <b
 <b>true</b> }.
 
 <div class="note">
-  The <code>ReadableStreamReader</code> class is specifically <em>not</em> exposed, as while it does have a
+  The <code>ReadableStreamDefaultReader</code> class is specifically <em>not</em> exposed, as while it does have a
   functioning constructor, instances should instead be created through the <code>getReader</code> method of a
-  <code>ReadableStream</code> instance. Similarly, the <code>ReadableStreamController</code> class is not exposed,
+  <code>ReadableStream</code> instance. Similarly, the <code>ReadableStreamDefaultController</code> class is not exposed,
   since its constructor is not independently useful outside of the <code>ReadableStream</code> implementation.
 </div>
 
@@ -2409,13 +3058,6 @@ to be the only manifestations of the corresponding <a>readable stream</a> and <a
 explicitly meant to cooperate with other stream instances that behave similarly. Those instances could be e.g.
 platform- or developer-created subclasses of these classes, or they could be anything else that obeys the same public
 API contract.
-
-For example, we are already prototyping and planning an additional <code>ReadableByteStream</code> class, which will be
-a <a>readable stream</a> while not being a subclass of <code>ReadableStream</code>. It will have the same set of
-methods as a baseline <code>ReadableStream</code>, and can be used in the same way by most <a>consumers</a>, who will
-be agnostic to which type of readable stream they are using. However, specialized consumers who know they are dealing
-with a <code>ReadableByteStream</code> will be able to take advantage of extra APIs it provides for extremely efficient
-"bring-your-own-buffer" memory management.
 
 This kind of ecosystem is largely enabled by the genericness of the <code>pipeTo</code> method. Any object which has
 the appropriate public writable stream APIs will work with <code>ReadableStream.prototype.pipeTo</code>. We strongly
@@ -2519,10 +3161,74 @@ sockets. This time, however, when we pipe to a destination that cannot accept da
 it, or if we leave the stream alone without reading from it for some time, a backpressure signal will be sent to the
 socket.
 
+<h3 id="example-rbs-push">A readable byte stream with an underlying push source and backpressure support</h3>
+
+The following function returns <a>readable byte streams</a> that allow efficient direct reading of TCP sockets, based on
+a hypothetical JavaScript translation of the POSIX socket API (the main innovation of which is translating
+<code>select(2)</code> into an <code>EventTarget</code> emitting a <code>readable</code> event).
+
+This setup allows zero-copy reading directly into developer-supplied buffers. Additionally, it ensures that when data is
+available from the socket but not yet requested by the developer, it is enqueued in the stream's <a>internal queue</a>,
+to avoid overflowing the kernel-space queue. In this case, an additional copy will potentially be necessary when using a
+BYOB reader, to move the data from the stream's internal queue to the developer-supplied buffer. If this occurs,
+<a>backpressure</a> will immediately be applied downstream on the socket, by adjusting the TCP window size.
+
+<pre><code class="lang-javascript">
+  function makeReadableBackpressureByteSocketStream(host, port) {
+    const socket = createHypotheticalSelect2Socket(host, port);
+
+    return new ReadableStream({
+      byob: true,
+
+      start(controller) {
+        socket.setTCPWindowSize(Math.max(0, controller.desiredSize));
+
+        socket.onreadable = () => {
+          // Since onreadable can happen even when there's no pending BYOB
+          // requests, we need to handle both cases.
+          if (controller.byobRequest) {
+            const v = controller.byobRequest.view;
+            const bytesRead = socket.readInto(v.buffer, v.byteOffset, v.byteLength);
+            controller.byobRequest.respond(bytesRead);
+          } else {
+            const buffer = new ArrayBuffer(DEFAULT_WINDOW_SIZE);
+            const bytesRead = socket.readInto(buffer, 0, DEFAULT_WINDOW_SIZE);
+            controller.enqueue(new Uint8Array(buffer, 0, bytesRead));
+          }
+
+          // The internal queue size has changed, so propagate
+          // the backpressure signal to the underlying source.
+          socket.setTCPWindowSize(Math.max(0, controller.desiredSize));
+        };
+
+        socket.onend = () => controller.close();
+        socket.onerror = () => controller.error(new Error("The socket errored!"));
+      },
+
+      pull(controller) {
+        // This is called when the internal queue has been drained, and the
+        // stream's consumer can accept more data. Reflect the up-to-date
+        // backpressure level by setting the TCP receive window of the socket
+        // to desiredSize.
+        socket.setTCPWindowSize(Math.max(0, controller.desiredSize));
+      },
+
+      cancel() {
+        socket.close();
+      }
+    }, {
+      highWaterMark: 65536
+    });
+  }
+</code></pre>
+
+<code>ReadableStream</code> instances returned from this function can now vend <a>BYOB readers</a>, with all of the
+aforementioned benefits and caveats.
+
 <h3 id="example-rs-pull">A readable stream with an underlying pull source</h3>
 
 The following function returns <a>readable streams</a> that wrap portions of the
-<a href="https://iojs.org/api/fs.html">io.js file system API</a> (which themselves map fairly directly to C's
+<a href="https://nodejs.org/api/fs.html">Node.js file system API</a> (which themselves map fairly directly to C's
 <code>fopen</code>, <code>fread</code>, and <code>fclose</code> trio). Files are a typical example of <a>pull
 sources</a>. Note how in contrast to the examples with push sources, most of the work here happens on-demand in the
 <code>pull</code> function, and not at startup time in the <code>start</code> function.
@@ -2550,7 +3256,7 @@ sources</a>. Note how in contrast to the examples with push sources, most of the
             return fs.close(fd).then(() => controller.close());
           } else {
             position += bytesRead;
-            controller.enqueue(buffer);
+            controller.enqueue(new Uint8Array(buffer, 0, bytesRead));
           }
         });
       },
@@ -2563,6 +3269,60 @@ sources</a>. Note how in contrast to the examples with push sources, most of the
 </code></pre>
 
 We can then create and use readable streams for files just as we could before for sockets.
+
+<h3 id="example-rbs-pull">A readable byte stream with an underlying pull source</h3>
+
+The following function returns <a>readable byte streams</a> that allow efficient zero-copy reading of files, again
+using the <a href="https://nodejs.org/api/fs.html">Node.js file system API</a>. Instead of using a predetermined chunk
+size of 1024, it attempts to fill the developer-supplied buffer, allowing full control.
+
+<pre><code class="lang-javascript">
+  const fs = require("pr/fs"); // https://github.com/jden/pr
+  const DEFAULT_CHUNK_SIZE = 1024;
+
+  function makeReadableByteFileStream(filename) {
+    let fd;
+    let position = 0;
+
+    return new ReadableStream({
+      byob: true,
+
+      start() {
+        return fs.open(filename, "r").then(result => {
+          fd = result;
+        });
+      },
+
+      pull(controller) {
+        // Even when the consumer is using the default reader, the auto-allocation
+        // feature allocates a buffer and passes it to us via byobRequest.
+        const v = controller.byobRequest.view;
+
+        return fs.read(fd, v.buffer, v.byteOffset, v.byteLength, position).then(bytesRead => {
+          if (bytesRead === 0) {
+            return fs.close(fd).then(() => controller.close());
+          } else {
+            position += bytesRead;
+            controller.byobRequest.respond(bytesRead);
+          }
+        });
+      },
+
+      cancel() {
+        return fs.close(fd);
+      },
+
+      autoAllocateChunkSize: DEFAULT_CHUNK_SIZE
+    });
+  }
+</code></pre>
+
+With this in hand, we can create and use <a>BYOB readers</a> for the returned <code>ReadableStream</code>. But we can
+also create <a>default readers</a>, using them in the same simple and generic manner as usual. The adaptation between
+the low-level byte tracking of the <a>underlying byte source</a> shown here, and the higher-level chunk-based
+consumption of a <a>default reader</a>, is all taken care of automatically by the streams implementation. The
+auto-allocation feature, via the <code>autoAllocateChunkSize</code> option, even allows us to write less code, compared
+to the manual branching in [[#example-rbs-push]].
 
 <h3 id="example-ws-no-backpressure">A writable stream with no backpressure or success signals</h3>
 

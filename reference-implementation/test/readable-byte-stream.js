@@ -1,196 +1,255 @@
 const test = require('tape-catch');
 
-test('ReadableByteStream can be constructed with no errors', t => {
-  new ReadableByteStream();
-
-  t.doesNotThrow(() => new ReadableByteStream(), 'ReadableByteStream constructed with no parameters');
-  t.doesNotThrow(() => new ReadableByteStream({ }),
-                 'ReadableByteStream constructed with an empty object as parameter');
-  t.doesNotThrow(() => new ReadableByteStream(undefined),
-                 'ReadableByteStream constructed with undefined as parameter');
-  let x;
-  t.doesNotThrow(() => new ReadableByteStream(x),
-                 'ReadableByteStream constructed with an undefined variable as parameter');
+test('ReadableStream with byte source can be constructed with no errors', t => {
+  t.doesNotThrow(
+      () => new ReadableStream({ byob: true }),
+      'ReadableStream with byte source constructed with an empty underlying byte source object as parameter');
   t.end();
 });
 
-test('ReadableByteStream: getReader(), then releaseLock()', t => {
-  const rbs = new ReadableByteStream({
-    pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
-  });
+test('ReadableStream with byte source: Construct and expect start and pull being called', t => {
+  let startCalled = false;
+  let controller;
 
-  const reader = rbs.getReader();
-  reader.releaseLock();
-
-  reader.closed.then(() => {
-    t.end();
-  }).catch(e => {
-    t.fail(e);
-    t.end();
-  });
-});
-
-test('ReadableByteStream: getByobReader(), then releaseLock()', t => {
-  const rbs = new ReadableByteStream({
-    pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
-  });
-
-  const reader = rbs.getByobReader();
-  reader.releaseLock();
-
-  reader.closed.then(() => {
-    t.end();
-  }).catch(e => {
-    t.fail(e);
-    t.end();
-  });
-});
-
-test('ReadableByteStream: Test auto release feature. close(), getReader(), then getReader()', t => {
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
-      c.close();
+      controller = c;
+      startCalled = true;
     },
     pull() {
-      t.fail('pull must not be called');
+      t.ok(startCalled, 'start has been called');
+      t.equals(controller.desiredSize, 256, 'desiredSize');
       t.end();
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
-  });
-
-  const reader = rbs.getReader();
-
-  reader.closed.then(() => {
-    rbs.getReader();
-    t.end();
-  }).catch(e => {
-    t.fail(e);
-    t.end();
+    byob: true
+  }, {
+    highWaterMark: 256
   });
 });
 
-test('ReadableByteStream: Test auto release feature. close(), getByobReader(), then getByobReader()', t => {
-  const rbs = new ReadableByteStream({
-    start(c) {
-      c.close();
-    },
-    pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
-  });
-
-  const reader = rbs.getByobReader();
-
-  reader.closed.then(() => {
-    rbs.getByobReader();
-    t.end();
-  }).catch(e => {
-    t.fail(e);
-    t.end();
-  });
-});
-
-test('ReadableByteStream: Test auto release feature. error(), getReader(), then getReader()', t => {
-  const passedError = new TypeError('foo');
-
-  const rbs = new ReadableByteStream({
-    start(c) {
-      c.error(passedError);
-    },
-    pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
-  });
-
-  const reader = rbs.getReader();
-
-  reader.closed.then(() => {
-    t.fail('closed must be rejected');
-    t.end();
-  }, e => {
-    t.equals(e, passedError);
-    rbs.getReader();
-    t.end();
-  });
-});
-
-test('ReadableByteStream: Test auto release feature. close(), getByobReader(), then getByobReader()', t => {
-  const passedError = new TypeError('foo');
-
-  const rbs = new ReadableByteStream({
-    start(c) {
-      c.error(passedError);
-    },
-    pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
-  });
-
-  const reader = rbs.getByobReader();
-
-  reader.closed.then(() => {
-    t.fail('closed must be rejected');
-    t.end();
-  }, e => {
-    t.equals(e, passedError);
-    rbs.getByobReader();
-    t.end();
-  });
-});
-
-test('ReadableByteStream: releaseLock() on ReadableStreamReader with pending read() must throw', t => {
+test('ReadableStream with byte source: No automatic pull call if start doesn\'t finish', t => {
   let pullCount = 0;
+  let checkedNoPull = false;
 
-  const rbs = new ReadableByteStream({
+  let resolveStartPromise;
+
+  const stream = new ReadableStream({
+    start() {
+      return new Promise((resolve) => {
+        resolveStartPromise = resolve;
+      });
+    },
     pull() {
+      if (checkedNoPull) {
+        t.end();
+      }
+
       ++pullCount;
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
+  }, {
+    highWaterMark: 256
   });
 
-  const reader = rbs.getReader();
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 0);
+    checkedNoPull = true;
+    resolveStartPromise();
+  });
+});
+
+test('ReadableStream with byte source: Construct with highWaterMark of 0', t => {
+  const stream = new ReadableStream({
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    byob: true
+  }, {
+    highWaterMark: 0
+  });
+
+  Promise.resolve().then(() => {
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: getReader(), then releaseLock()', t => {
+  const stream = new ReadableStream({
+    byob: true
+  });
+
+  const reader = stream.getReader();
+  reader.releaseLock();
+
+  reader.closed.then(() => {
+    t.fail('closed must be rejected');
+    t.end();
+  }).catch(e => {
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: getBYOBReader(), then releaseLock()', t => {
+  const stream = new ReadableStream({
+    byob: true
+  });
+
+  const reader = stream.getBYOBReader();
+  reader.releaseLock();
+
+  reader.closed.then(() => {
+    t.fail('closed must be rejected');
+    t.end();
+  }).catch(e => {
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: Test that closing a stream does not release a reader automatically', t => {
+  const stream = new ReadableStream({
+    start(c) {
+      c.close();
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    byob: true
+  });
+
+  const reader = stream.getReader();
+
+  reader.closed.then(() => {
+    try {
+      stream.getReader();
+    } catch(e) {
+      t.equals(e.constructor, TypeError);
+      t.end();
+      return;
+    }
+
+    t.fail('getReader() must fail');
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: Test that closing a stream does not release a BYOB reader automatically', t => {
+  const stream = new ReadableStream({
+    start(c) {
+      c.close();
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    byob: true
+  });
+
+  const reader = stream.getBYOBReader();
+
+  reader.closed.then(() => {
+    try {
+      stream.getBYOBReader();
+    } catch(e) {
+      t.equals(e.constructor, TypeError);
+      t.end();
+      return;
+    }
+
+    t.fail('getBYOBReader() must fail');
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: Test that erroring a stream does not release a reader automatically', t => {
+  const passedError = new TypeError('foo');
+
+  const stream = new ReadableStream({
+    start(c) {
+      c.error(passedError);
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    byob: true
+  });
+
+  const reader = stream.getReader();
+
+  reader.closed.then(() => {
+    t.fail('closed must be rejected');
+    t.end();
+  }, e => {
+    t.equals(e, passedError);
+
+    try {
+      stream.getReader();
+    } catch(e) {
+      t.equals(e.constructor, TypeError);
+      t.end();
+      return;
+    }
+
+    t.fail('getReader() must fail');
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: Test that erroring a stream does not release a BYOB reader automatically',
+     t => {
+  const passedError = new TypeError('foo');
+
+  const stream = new ReadableStream({
+    start(c) {
+      c.error(passedError);
+    },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    byob: true
+  });
+
+  const reader = stream.getBYOBReader();
+
+  reader.closed.then(() => {
+    t.fail('closed must be rejected');
+    t.end();
+  }, e => {
+    t.equals(e, passedError);
+
+    try {
+      stream.getBYOBReader();
+    } catch(e) {
+      t.equals(e.constructor, TypeError);
+      t.end();
+      return;
+    }
+
+    t.fail('getBYOBReader() must fail');
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: releaseLock() on ReadableStreamReader with pending read() must throw', t => {
+  const stream = new ReadableStream({
+    byob: true
+  });
+
+  const reader = stream.getReader();
   reader.read();
   try {
     reader.releaseLock();
   } catch(e) {
     t.equals(e.constructor, TypeError);
-
-    t.equals(pullCount, 1);
 
     t.end();
 
@@ -201,46 +260,268 @@ test('ReadableByteStream: releaseLock() on ReadableStreamReader with pending rea
   t.end();
 });
 
-test('ReadableByteStream: enqueue(), getReader(), then read()', t => {
-  const rbs = new ReadableByteStream({
-    start(c) {
-      c.enqueue(new Uint8Array(16));
-    },
+test('ReadableStream with byte source: Automatic pull() after start()', t => {
+  let pullCount = 0;
+
+  const stream = new ReadableStream({
     pull() {
-      t.fail('pull must not be called');
-      t.end();
+      ++pullCount;
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
+  }, {
+    highWaterMark: 8
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
-  reader.read().then(result => {
-    t.equals(result.done, false);
+  t.equals(pullCount, 0, 'No pull as start() just finished and is not yet reflected to the state of the stream');
 
-    const view = result.value;
-    t.equals(view.constructor, Uint8Array);
-    t.equals(view.buffer.byteLength, 16);
-    t.equals(view.byteOffset, 0);
-    t.equals(view.byteLength, 16);
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 1, 'pull must be invoked');
 
     t.end();
   });
 });
 
-test('ReadableByteStream: Push source that doesn\'t understand pull signal', t => {
-  let controller;
+test('ReadableStream with byte source: Automatic pull() after start() and read()', t => {
+  let pullCount = 0;
 
-  const rbs = new ReadableByteStream({
-    start(c) {
-      controller = c;
-    }
+  const stream = new ReadableStream({
+    pull() {
+      ++pullCount;
+    },
+    byob: true
+  }, {
+    highWaterMark: 0
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
+  reader.read();
+
+  t.equals(pullCount, 0, 'No pull as start() just finished and is not yet reflected to the state of the stream');
+
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 1, 'pull must be invoked');
+
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: autoAllocateChunkSize', t => {
+  let pullCount = 0;
+  let controller;
+
+  const stream = new ReadableStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      if (pullCount === 0) {
+        const byobRequest = controller.byobRequest;
+        t.notEqual(byobRequest, undefined, 'byobRequest must not be undefined');
+
+        const view = byobRequest.view;
+        t.notEqual(view, undefined, 'byobRequest.view must no be undefined');
+        t.equals(view.constructor, Uint8Array);
+        t.equals(view.buffer.byteLength, 16);
+        t.equals(view.byteOffset, 0);
+        t.equals(view.byteLength, 16);
+
+        view[0] = 0x01;
+        byobRequest.respond(1);
+      } else {
+        t.fail('Too many pull() calls');
+        t.end();
+      }
+
+      ++pullCount;
+    },
+    byob: true,
+    autoAllocateChunkSize: 16
+  }, {
+    highWaterMark: 0
+  });
+
+  const reader = stream.getReader();
+  const readPromise = reader.read();
+
+  t.equals(pullCount, 0, 'No pull() as start() just finished and is not yet reflected to the state of the stream');
+
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 1, 'pull() must have been invoked once');
+    return readPromise;
+  }).then(result => {
+    t.notEqual(result.value, undefined);
+    t.equals(result.value.constructor, Uint8Array);
+    t.equals(result.value.buffer.byteLength, 16);
+    t.equals(result.value.byteOffset, 0);
+    t.equals(result.value.byteLength, 1);
+    t.equals(result.value[0], 0x01);
+
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: Mix of auto allocate and BYOB', t => {
+  let pullCount = 0;
+  let controller;
+
+  const stream = new ReadableStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      if (pullCount === 0) {
+        const byobRequest = controller.byobRequest;
+        t.notEqual(byobRequest, undefined, 'byobRequest must not be undefined');
+
+        const view = byobRequest.view;
+        t.notEqual(view, undefined, 'byobRequest.view must no be undefined');
+        t.equals(view.constructor, Uint8Array);
+        t.equals(view.buffer.byteLength, 16);
+        t.equals(view.byteOffset, 0);
+        t.equals(view.byteLength, 16);
+
+        view[0] = 0x01;
+        byobRequest.respond(1);
+      } else if (pullCount === 1) {
+        const byobRequest = controller.byobRequest;
+        t.notEqual(byobRequest, undefined, 'byobRequest must not be undefined');
+
+        const view = byobRequest.view;
+        t.notEqual(view, undefined, 'byobRequest.view must no be undefined');
+        t.equals(view.constructor, Uint8Array);
+        t.equals(view.buffer.byteLength, 32);
+        t.equals(view.byteOffset, 0);
+        t.equals(view.byteLength, 32);
+
+        view[0] = 0x02;
+        view[1] = 0x03;
+        byobRequest.respond(2);
+      } else {
+        t.fail('Too many pull() calls');
+        t.end();
+      }
+
+      ++pullCount;
+    },
+    byob: true,
+    autoAllocateChunkSize: 16
+  }, {
+    highWaterMark: 0
+  });
+
+  const reader = stream.getReader();
+  reader.read().then(result => {
+    t.notEqual(result.value, undefined);
+    t.equals(result.value.constructor, Uint8Array);
+    t.equals(result.value.buffer.byteLength, 16);
+    t.equals(result.value.byteOffset, 0);
+    t.equals(result.value.byteLength, 1);
+    t.equals(result.value[0], 0x01);
+
+    reader.releaseLock();
+    const byobReader = stream.getBYOBReader();
+    return byobReader.read(new Uint8Array(32));
+  }).then(result => {
+    t.notEqual(result.value, undefined);
+    t.equals(result.value.constructor, Uint8Array);
+    t.equals(result.value.buffer.byteLength, 32);
+    t.equals(result.value.byteOffset, 0);
+    t.equals(result.value.byteLength, 2);
+    t.equals(result.value[0], 0x02);
+    t.equals(result.value[1], 0x03);
+
+    t.end();
+  }).catch(e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: Automatic pull() after start() and read(view)', t => {
+  let pullCount = 0;
+
+  const stream = new ReadableStream({
+    pull() {
+      ++pullCount;
+    },
+    byob: true
+  }, {
+    highWaterMark: 0
+  });
+
+  const reader = stream.getReader();
+  reader.read(new Uint8Array(8));
+
+  t.equals(pullCount, 0, 'No pull as start() just finished and is not yet reflected to the state of the stream');
+
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 1, 'pull must be invoked');
+
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: enqueue(), getReader(), then read()', t => {
+  let pullCount = 0;
+
+  let controller;
+
+  const stream = new ReadableStream({
+    start(c) {
+      c.enqueue(new Uint8Array(16));
+      t.equals(c.desiredSize, -8, 'desiredSize after enqueue() in start()');
+
+      controller = c;
+    },
+    pull() {
+      ++pullCount;
+
+      if (pullCount === 1) {
+        t.equals(controller.desiredSize, 8, 'desiredSize in pull()');
+      }
+    },
+    byob: true
+  }, {
+    highWaterMark: 8
+  });
+
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 0, 'No pull as the queue was filled by start()');
+
+    const reader = stream.getReader();
+
+    reader.read().then(result => {
+      t.equals(result.done, false, 'result.done');
+
+      const view = result.value;
+      t.equals(view.constructor, Uint8Array, 'view.constructor');
+      t.equals(view.buffer.byteLength, 16, 'view.buffer');
+      t.equals(view.byteOffset, 0, 'view.byteOffset');
+      t.equals(view.byteLength, 16, 'view.byteLength');
+
+      t.end();
+    });
+
+    t.equals(pullCount, 1, 'The first pull() should be made on read()');
+  });
+});
+
+test('ReadableStream with byte source: Push source that doesn\'t understand pull signal', t => {
+  let controller;
+
+  const stream = new ReadableStream({
+    start(c) {
+      controller = c;
+    },
+    byob: true
+  });
+
+  const reader = stream.getReader();
 
   reader.read().then(result => {
     t.equals(result.done, false);
@@ -257,16 +538,13 @@ test('ReadableByteStream: Push source that doesn\'t understand pull signal', t =
   controller.enqueue(new Uint8Array(1));
 });
 
-test('ReadableByteStream: pull() function is not callable', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: read(), but pull() function is not callable', t => {
+  const stream = new ReadableStream({
     pull: 'foo',
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   reader.read().then(result => {
     t.fail('read() must fail');
@@ -277,16 +555,13 @@ test('ReadableByteStream: pull() function is not callable', t => {
   });
 });
 
-test('ReadableByteStream: pull() function is not callable', t => {
-  const rbs = new ReadableByteStream({
-    pull() {
-      t.fail('pullInto must not be called');
-      t.end();
-    },
-    pullInto: 'foo'
+test('ReadableStream with byte source: read(view), but pull() function is not callable', t => {
+  const stream = new ReadableStream({
+    pull: 'foo',
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).then(result => {
     t.fail('read() must fail');
@@ -297,22 +572,15 @@ test('ReadableByteStream: pull() function is not callable', t => {
   });
 });
 
-test('ReadableByteStream: enqueue() with Uint16Array, getReader(), then read()', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: enqueue() with Uint16Array, getReader(), then read()', t => {
+  const stream = new ReadableStream({
     start(c) {
       c.enqueue(new Uint16Array(16));
     },
-    pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   reader.read().then(result => {
     t.equals(result.done, false);
@@ -327,8 +595,8 @@ test('ReadableByteStream: enqueue() with Uint16Array, getReader(), then read()',
   });
 });
 
-test('ReadableByteStream: enqueue(), read(view) partially, then read()', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: enqueue(), read(view) partially, then read()', t => {
+  const stream = new ReadableStream({
     start(c) {
       const view = new Uint8Array(16);
       view[0] = 0x01;
@@ -339,13 +607,10 @@ test('ReadableByteStream: enqueue(), read(view) partially, then read()', t => {
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const byobReader = rbs.getByobReader();
+  const byobReader = stream.getBYOBReader();
 
   byobReader.read(new Uint8Array(8)).then(result => {
     t.equals(result.done, false, 'done');
@@ -359,7 +624,7 @@ test('ReadableByteStream: enqueue(), read(view) partially, then read()', t => {
 
     byobReader.releaseLock();
 
-    const reader = rbs.getReader();
+    const reader = stream.getReader();
 
     return reader.read();
   }).then(result => {
@@ -379,10 +644,10 @@ test('ReadableByteStream: enqueue(), read(view) partially, then read()', t => {
   });
 });
 
-test('ReadableByteStream: getReader(), enqueue(), close(), then read()', t => {
+test('ReadableStream with byte source: getReader(), enqueue(), close(), then read()', t => {
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
@@ -390,13 +655,10 @@ test('ReadableByteStream: getReader(), enqueue(), close(), then read()', t => {
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   controller.enqueue(new Uint8Array(16));
   controller.close();
@@ -420,8 +682,8 @@ test('ReadableByteStream: getReader(), enqueue(), close(), then read()', t => {
   });
 });
 
-test('ReadableByteStream: enqueue(), close(), getReader(), then read()', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: enqueue(), close(), getReader(), then read()', t => {
+  const stream = new ReadableStream({
     start(c) {
       c.enqueue(new Uint8Array(16));
       c.close();
@@ -430,13 +692,10 @@ test('ReadableByteStream: enqueue(), close(), getReader(), then read()', t => {
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   reader.read().then(result => {
     t.equals(result.done, false, 'done');
@@ -457,23 +716,21 @@ test('ReadableByteStream: enqueue(), close(), getReader(), then read()', t => {
   });
 });
 
-test('ReadableByteStream: Respond to pull() by enqueue()', t => {
+test('ReadableStream with byte source: Respond to pull() by enqueue()', t => {
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
       controller.enqueue(new Uint8Array(16));
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   reader.read().then(result => {
     t.equals(result.done, false, 'done');
@@ -486,127 +743,186 @@ test('ReadableByteStream: Respond to pull() by enqueue()', t => {
   });
 });
 
-test('ReadableByteStream: Respond to pull() by enqueue() asynchronously', t => {
+test('ReadableStream with byte source: Respond to pull() by enqueue() asynchronously', t => {
   let pullCount = 0;
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
-      console.error(pullCount);
+      t.equals(controller.byobRequest, undefined, 'byobRequest is undefined');
+
       if (pullCount === 0) {
-        // Do nothing
-      } else if (pullCount === 1) {
+        t.equals(controller.desiredSize, 256, 'desiredSize on pull');
+
         controller.enqueue(new Uint8Array(1));
-      } else if (pullCount === 2) {
+        t.equals(controller.desiredSize, 256, 'desiredSize after 1st enqueue()');
+
         controller.enqueue(new Uint8Array(1));
+        t.equals(controller.desiredSize, 256, 'desiredSize after 2nd enqueue()');
       } else {
-        t.fail('Too many pull calls');
+        t.fail('Too many pull() calls');
         t.end();
         return;
       }
 
       ++pullCount;
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
+  }, {
+    highWaterMark: 256
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   const p0 = reader.read();
-
-  t.equals(pullCount, 1);
-
   const p1 = reader.read();
   const p2 = reader.read();
 
   // Respond to the first pull call.
   controller.enqueue(new Uint8Array(1));
 
-  t.equals(pullCount, 1);
+  t.equals(pullCount, 0, 'pullCount after the enqueue() outside pull');
 
   Promise.all([p0, p1, p2]).then(result => {
-    t.equals(result[0].done, false, 'done');
-    t.equals(result[0].value.byteLength, 1, 'byteLength');
-    t.equals(result[1].done, false, 'done');
-    t.equals(result[1].value.byteLength, 1, 'byteLength');
-    t.equals(result[2].done, false, 'done');
-    t.equals(result[2].value.byteLength, 1, 'byteLength');
+    t.equals(pullCount, 1, 'pullCount after completion of all read()s');
+
+    t.equals(result[0].done, false, 'result[0].done');
+    t.equals(result[0].value.byteLength, 1, 'result[0].value.byteLength');
+    t.equals(result[1].done, false, 'result[1].done');
+    t.equals(result[1].value.byteLength, 1, 'result[1].value.byteLength');
+    t.equals(result[2].done, false, 'result[2].done');
+    t.equals(result[2].value.byteLength, 1, 'result[2].value.byteLength');
 
     t.end();
   }).catch(e => {
+    t.fail('Promise.all() rejected: ' + e);
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: read(view), then respond()', t => {
+  let controller;
+
+  let pullCount = 0;
+
+  const stream = new ReadableStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      if (pullCount === 0) {
+        t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined before respond()');
+
+        const view = controller.byobRequest.view;
+        view[0] = 0x01;
+        controller.byobRequest.respond(1);
+
+        t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined after respond()');
+      } else {
+        t.fail('Too many pull() calls');
+        t.end();
+      }
+
+      ++pullCount;
+    },
+    byob: true
+  });
+
+  const reader = stream.getBYOBReader();
+
+  reader.read(new Uint8Array(1)).then(result => {
+    t.equals(result.done, false, 'result.done');
+    t.equals(result.value.byteLength, 1, 'result.value.byteLength');
+    t.equals(result.value[0], 0x01, 'result.value[0]');
+    t.end();
+  }, e => {
     t.fail(e);
     t.end();
   });
 });
 
-test('ReadableByteStream: Responding to pull() by respond() should throw and error the stream', t => {
+test('ReadableStream with byte source: read(view), then respond() with a transferred ArrayBuffer', t => {
   let controller;
 
-  const rbs = new ReadableByteStream({
+  let pullCount = 0;
+
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
-      try {
-        controller.respond(1);
-      } catch(e) {
-        t.equals(e.constructor, TypeError, 'pull() shouldn\'t responded by respond()');
+      if (pullCount === 0) {
+        t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined before respond()');
 
+        // Emulate ArrayBuffer transfer by just creating a new ArrayBuffer and pass it. By checking the result of
+        // read(view), we test that the respond()'s buffer argument is working correctly.
+        //
+        // A real implementation of the underlying byte source would transfer controller.byobRequest.view.buffer into
+        // a new ArrayBuffer, then construct a view around it and write to it.
+        const transferredView = new Uint8Array(1);
+        transferredView[0] = 0x01;
+        controller.byobRequest.respondWithNewView(transferredView);
+
+        t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined after respond()');
+      } else {
+        t.fail('Too many pull() calls');
         t.end();
-        return;
       }
 
-      t.fail('respond() didn\'t throw');
-      t.end();
+      ++pullCount;
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getBYOBReader();
 
-  reader.read().catch(e => {
+  reader.read(new Uint8Array(1)).then(result => {
+    t.equals(result.done, false, 'result.done');
+    t.equals(result.value.byteLength, 1, 'result.value.byteLength');
+    t.equals(result.value[0], 0x01, 'result.value[0]');
+    t.end();
+  }, e => {
     t.fail(e);
     t.end();
   });
 });
 
-test('ReadableByteStream: read(view), then respond() with too big value', t => {
+test('ReadableStream with byte source: read(view), then respond() with too big value', t => {
   let controller;
 
-  const rbs = new ReadableByteStream({
+  let pullCount = 0;
+
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto() {
-      try {
-        controller.respond(2);
-      } catch(e) {
-        t.equals(e.constructor, RangeError);
+      if (pullCount === 0) {
+        t.notEqual(controller.byobRequest, undefined, 'byobRequest is not undefined');
 
+        try {
+          controller.byobRequest.respond(2);
+        } catch(e) {
+          t.equals(e.constructor, RangeError);
+
+          t.end();
+          return;
+        }
+
+        t.fail('respond() didn\'t throw');
         t.end();
-        return;
       }
 
-      t.fail('respond() didn\'t throw');
-      t.end();
-    }
+      ++pullCount;
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).catch(e => {
     t.fail(e);
@@ -614,27 +930,27 @@ test('ReadableByteStream: read(view), then respond() with too big value', t => {
   });
 });
 
-test('ReadableByteStream: respond(3) to read(view) with 2 element Uint16Array enqueues the 1 byte remainder', t => {
-  let pullIntoCount = 0;
+test('ReadableStream with byte source: respond(3) to read(view) with 2 element Uint16Array enqueues the 1 byte ' +
+    'remainder', t => {
+  let pullCount = 0;
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto(view) {
-      if (pullIntoCount > 1) {
-        t.fail('Too many pullInt calls');
+      if (pullCount > 1) {
+        t.fail('Too many pull calls');
         t.end();
         return;
       }
 
-      ++pullIntoCount;
+      ++pullCount;
+
+      t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined');
+      const view = controller.byobRequest.view;
 
       t.equals(view.constructor, Uint8Array);
       t.equals(view.buffer.byteLength, 4);
@@ -646,13 +962,16 @@ test('ReadableByteStream: respond(3) to read(view) with 2 element Uint16Array en
       view[1] = 0x02;
       view[2] = 0x03;
 
-      controller.respond(3);
-    }
+      controller.byobRequest.respond(3);
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint16Array(2)).then(result => {
+    t.equals(pullCount, 1);
+
     t.equals(result.done, false, 'done');
 
     const view = result.value;
@@ -663,6 +982,8 @@ test('ReadableByteStream: respond(3) to read(view) with 2 element Uint16Array en
 
     return reader.read(new Uint8Array(1));
   }).then(result => {
+    t.equals(pullCount, 1);
+
     t.equals(result.done, false, 'done');
 
     const view = result.value;
@@ -678,24 +999,24 @@ test('ReadableByteStream: respond(3) to read(view) with 2 element Uint16Array en
   });
 });
 
-test('ReadableByteStream: enqueue(), getByobReader(), then read(view)', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: enqueue(), getBYOBReader(), then read(view)', t => {
+  let controller;
+
+  const stream = new ReadableStream({
     start(c) {
       const view = new Uint8Array(16);
       view[15] = 0x01;
       c.enqueue(view);
+
+      controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
+      t.equals(controller.byobRequest, undefined, 'byobRequest is undefined');
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, false);
@@ -712,21 +1033,17 @@ test('ReadableByteStream: enqueue(), getByobReader(), then read(view)', t => {
   });
 });
 
-test('ReadableByteStream: enqueue(), getReader(), then cancel()', t => {
+test('ReadableStream with byte source: enqueue(), getReader(), then cancel()', t => {
   let cancelCount = 0;
 
   const passedReason = new TypeError('foo');
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       c.enqueue(new Uint8Array(16));
     },
     pull() {
       t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto() {
-      t.fail('pullInto must not be called');
       t.end();
     },
     cancel(reason) {
@@ -739,10 +1056,11 @@ test('ReadableByteStream: enqueue(), getReader(), then cancel()', t => {
       }
 
       ++cancelCount;
-    }
+    },
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   reader.cancel(passedReason).then(result => {
     t.equals(result, undefined);
@@ -755,21 +1073,17 @@ test('ReadableByteStream: enqueue(), getReader(), then cancel()', t => {
   });
 });
 
-test('ReadableByteStream: enqueue(), getByobReader(), then cancel()', t => {
+test('ReadableStream with byte source: enqueue(), getBYOBReader(), then cancel()', t => {
   let cancelCount = 0;
 
   const passedReason = new TypeError('foo');
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       c.enqueue(new Uint8Array(16));
     },
     pull() {
       t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto() {
-      t.fail('pullInto must not be called');
       t.end();
     },
     cancel(reason) {
@@ -782,10 +1096,11 @@ test('ReadableByteStream: enqueue(), getByobReader(), then cancel()', t => {
       }
 
       ++cancelCount;
-    }
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.cancel(passedReason).then(result => {
     t.equals(result, undefined);
@@ -798,15 +1113,14 @@ test('ReadableByteStream: enqueue(), getByobReader(), then cancel()', t => {
   });
 });
 
-test('ReadableByteStream: getByobReader(), read(view), then cancel()', t => {
-  let pullIntoCount = 0;
+test('ReadableStream with byte source: getBYOBReader(), read(view), then cancel()', t => {
   let cancelCount = 0;
 
   const passedReason = new TypeError('foo');
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
@@ -814,20 +1128,11 @@ test('ReadableByteStream: getByobReader(), read(view), then cancel()', t => {
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto() {
-      if (pullIntoCount > 0) {
-        t.fail('Too many pullInto calls');
-        t.end();
-        return;
-      }
-
-      ++pullIntoCount;
-    },
     cancel(reason) {
       if (cancelCount === 0) {
         t.equals(reason, passedReason);
 
-        controller.respond(0);
+        controller.byobRequest.respond(0);
       } else {
         t.fail('Too many cancel calls');
         t.end();
@@ -837,21 +1142,22 @@ test('ReadableByteStream: getByobReader(), read(view), then cancel()', t => {
       ++cancelCount;
 
       return 'bar';
-    }
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
-  const p0 = reader.read(new Uint8Array(1)).then(result => {
+  const readPromise0 = reader.read(new Uint8Array(1)).then(result => {
     t.equals(result.done, true);
   });
 
-  const p1 = reader.cancel(passedReason).then(result => {
+  const readPromise1 = reader.cancel(passedReason).then(result => {
     t.equals(result, undefined);
     t.equals(cancelCount, 1);
   });
 
-  Promise.all([p0, p1]).then(() => {
+  Promise.all([readPromise0, readPromise1]).then(() => {
     t.end();
   }).catch(e => {
     t.fail(e);
@@ -859,69 +1165,74 @@ test('ReadableByteStream: getByobReader(), read(view), then cancel()', t => {
   });
 });
 
-test('ReadableByteStream: cancel() with partially filled pending pullInto() request', t => {
-  let pullIntoCount = 0;
+test('ReadableStream with byte source: cancel() with partially filled pending pull() request', t => {
+  let pullCount = 0;
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto() {
-      if (pullIntoCount === 0) {
+      t.notEqual(controller.byobRequest, undefined, 'byobRequest is undefined');
+
+      if (pullCount === 0) {
+        t.equals(controller.byobRequest.view.byteLength, 2, 'byteLength before enqueue()');
         controller.enqueue(new Uint8Array(1));
-      } else if (pullIntoCount === 1) {
-        // Do nothing
+        t.equals(controller.byobRequest.view.byteLength, 1, 'byteLength after enqueue()');
       } else {
-        t.fail('Too many pullInto calls');
+        t.fail('Too many pull calls');
         t.end();
       }
 
-      ++pullIntoCount;
-    }
+      ++pullCount;
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 0, 'No pull() as no read(view) yet');
 
-  reader.read(new Uint16Array(1)).then(result => {
-    t.equals(result.done, true);
-    t.equals(result.value.constructor, Uint16Array);
-    t.end();
-  }).catch(e => {
-    t.fail(e);
-    t.end();
+    const reader = stream.getBYOBReader();
+
+    reader.read(new Uint16Array(1)).then(result => {
+      t.equals(result.done, true, 'result.done');
+      t.equals(result.value.constructor, Uint16Array, 'result.value');
+      t.end();
+    }).catch(e => {
+      t.fail(e);
+      t.end();
+    });
+
+    t.equals(pullCount, 1, '1 pull() should have been made in response to partial fill by enqueue()');
+
+    reader.cancel();
+
+    // Tell that the buffer given via pull() is returned.
+    controller.byobRequest.respond(0);
   });
-  reader.cancel();
-
-  t.equals(pullIntoCount, 2);
-
-  // Tell that the buffer given via pullInto() is returned.
-  controller.respond(0);
 });
 
-test('ReadableByteStream: enqueue(), getReader(), then read(view) where view.buffer is not fully covered by view', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: enqueue(), getReader(), then read(view) where view.buffer is not fully ' +
+    'covered by view', t => {
+  let controller;
+
+  const stream = new ReadableStream({
     start(c) {
       const view = new Uint8Array(8);
       view[7] = 0x01;
       c.enqueue(view);
+
+      controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   const buffer = new ArrayBuffer(16);
 
@@ -942,8 +1253,10 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view) where view.buf
   });
 });
 
-test('ReadableByteStream: Multiple enqueue(), getReader(), then read(view)', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: Multiple enqueue(), getReader(), then read(view)', t => {
+  let controller;
+
+  const stream = new ReadableStream({
     start(c) {
       let view;
 
@@ -954,18 +1267,16 @@ test('ReadableByteStream: Multiple enqueue(), getReader(), then read(view)', t =
       view = new Uint8Array(8);
       view[7] = 111;
       c.enqueue(view);
+
+      controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(24)).then(result => {
     t.equals(result.done, false, 'done');
@@ -983,24 +1294,20 @@ test('ReadableByteStream: Multiple enqueue(), getReader(), then read(view)', t =
   });
 });
 
-test('ReadableByteStream: enqueue(), getReader(), then read(view) with a bigger view', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: enqueue(), getReader(), then read(view) with a bigger view', t => {
+  const stream = new ReadableStream({
     start(c) {
       const view = new Uint8Array(16);
       view[15] = 0x01;
       c.enqueue(view);
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(24)).then(result => {
     t.equals(result.done, false);
@@ -1017,8 +1324,8 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view) with a bigger 
   });
 });
 
-test('ReadableByteStream: enqueue(), getReader(), then read(view) with a smaller views', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: enqueue(), getReader(), then read(view) with a smaller views', t => {
+  const stream = new ReadableStream({
     start(c) {
       const view = new Uint8Array(16);
       view[7] = 0x01;
@@ -1026,16 +1333,12 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view) with a smaller
       c.enqueue(view);
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(8)).then(result => {
     t.equals(result.done, false, 'done');
@@ -1061,10 +1364,10 @@ test('ReadableByteStream: enqueue(), getReader(), then read(view) with a smaller
   });
 });
 
-test('ReadableByteStream: enqueue() 1 byte, getReader(), then read(view) with Uint16Array', t => {
+test('ReadableStream with byte source: enqueue() 1 byte, getReader(), then read(view) with Uint16Array', t => {
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       const view = new Uint8Array(1);
       view[0] = 0xff;
@@ -1073,10 +1376,12 @@ test('ReadableByteStream: enqueue() 1 byte, getReader(), then read(view) with Ui
       controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto(view) {
+      if (controller.byobRequest === undefined) {
+        return;
+      }
+
+      const view = controller.byobRequest.view;
+
       t.equals(view.constructor, Uint8Array);
       t.equals(view.buffer.byteLength, 2);
 
@@ -1084,11 +1389,12 @@ test('ReadableByteStream: enqueue() 1 byte, getReader(), then read(view) with Ui
       t.equals(view.byteLength, 1);
 
       view[0] = 0xaa;
-      controller.respond(1);
-    }
+      controller.byobRequest.respond(1);
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint16Array(1)).then(result => {
     t.equals(result.done, false);
@@ -1105,12 +1411,13 @@ test('ReadableByteStream: enqueue() 1 byte, getReader(), then read(view) with Ui
   });
 });
 
-test('ReadableByteStream: enqueue() 3 byte, getReader(), then read(view) with 2-element Uint16Array', t => {
-  let pullIntoCount = 0;
+test('ReadableStream with byte source: enqueue() 3 byte, getReader(), then read(view) with 2-element Uint16Array',
+     t => {
+  let pullCount = 0;
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       const view = new Uint8Array(3);
       view[0] = 0x01;
@@ -1120,64 +1427,72 @@ test('ReadableByteStream: enqueue() 3 byte, getReader(), then read(view) with 2-
       controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto(view) {
-      if (pullIntoCount === 0) {
+      t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined');
+
+      if (pullCount === 0) {
+        const view = controller.byobRequest.view;
+
         t.equals(view.constructor, Uint8Array);
         t.equals(view.buffer.byteLength, 2);
         t.equals(view.byteOffset, 1);
         t.equals(view.byteLength, 1);
 
         view[0] = 0x03;
-        controller.respond(1);
+        controller.byobRequest.respond(1);
+
+        t.equals(controller.desiredSize, 0, 'desiredSize');
       } else {
-        t.fail('Too many pullInto calls');
+        t.fail('Too many pull calls');
         t.end();
+        return;
       }
 
-      ++pullIntoCount;
-    }
+      ++pullCount;
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  // Wait for completion of the start method to be reflected.
+  Promise.resolve().then(() => {
+    const reader = stream.getBYOBReader();
 
-  reader.read(new Uint16Array(2)).then(result => {
-    t.equals(result.done, false, 'done');
+    reader.read(new Uint16Array(2)).then(result => {
+      t.equals(result.done, false, 'done');
 
-    const view = result.value;
-    t.equals(view.constructor, Uint16Array, 'constructor');
-    t.equals(view.buffer.byteLength, 4, 'buffer.byteLength');
-    t.equals(view.byteOffset, 0, 'byteOffset');
-    t.equals(view.byteLength, 2, 'byteLength');
-    t.equals(view[0], 0x0001, 'Contents are set');
+      const view = result.value;
+      t.equals(view.constructor, Uint16Array, 'constructor');
+      t.equals(view.buffer.byteLength, 4, 'buffer.byteLength');
+      t.equals(view.byteOffset, 0, 'byteOffset');
+      t.equals(view.byteLength, 2, 'byteLength');
+      t.equals(view[0], 0x0001, 'Contents are set');
 
-    const p = reader.read(new Uint16Array(1));
+      const p = reader.read(new Uint16Array(1));
 
-    t.equals(pullIntoCount, 1);
+      t.equals(pullCount, 1);
 
-    return p;
-  }).then(result => {
-    t.equals(result.done, false, 'done');
+      return p;
+    }).then(result => {
+      t.equals(result.done, false, 'done');
 
-    const view = result.value;
-    t.equals(view.buffer.byteLength, 2, 'buffer.byteLength');
-    t.equals(view.byteOffset, 0, 'byteOffset');
-    t.equals(view.byteLength, 2, 'byteLength');
-    t.equals(view[0], 0x0302, 'Contents are set');
+      const view = result.value;
+      t.equals(view.buffer.byteLength, 2, 'buffer.byteLength');
+      t.equals(view.byteOffset, 0, 'byteOffset');
+      t.equals(view.byteLength, 2, 'byteLength');
+      t.equals(view[0], 0x0302, 'Contents are set');
 
-    t.end();
-  }).catch(e => {
-    t.fail(e);
-    t.end();
+      t.end();
+    }).catch(e => {
+      t.fail(e);
+      t.end();
+    });
+
+    t.equals(pullCount, 0);
   });
-
-  t.equals(pullIntoCount, 0);
 });
 
-test('ReadableByteStream: read(view) with Uint16Array on close()-d stream with 1 byte enqueue()-d must fail', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: read(view) with Uint16Array on close()-d stream with 1 byte enqueue()-d must ' +
+    'fail', t => {
+  const stream = new ReadableStream({
     start(c) {
       const view = new Uint8Array(1);
       view[0] = 0xff;
@@ -1188,13 +1503,10 @@ test('ReadableByteStream: read(view) with Uint16Array on close()-d stream with 1
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint16Array(1)).then(result => {
     t.fail('read(view) must fail');
@@ -1208,12 +1520,13 @@ test('ReadableByteStream: read(view) with Uint16Array on close()-d stream with 1
   });
 });
 
-test('ReadableByteStream: A stream must be errored if close()-d before fulfilling read(view) with Uint16Array', t => {
-  let pullIntoCount = 0;
+test('ReadableStream with byte source: A stream must be errored if close()-d before fulfilling read(view) with ' +
+     'Uint16Array', t => {
+  let pullCount = 0;
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       const view = new Uint8Array(1);
       view[0] = 0xff;
@@ -1222,27 +1535,28 @@ test('ReadableByteStream: A stream must be errored if close()-d before fulfillin
       controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto(view) {
-      if (pullIntoCount === 0) {
+      t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined');
+
+      if (pullCount === 0) {
+        const view = controller.byobRequest.view;
+
         t.equals(view.constructor, Uint8Array);
         t.equals(view.buffer.byteLength, 2);
 
         t.equals(view.byteOffset, 1);
         t.equals(view.byteLength, 1);
       } else {
-        t.fail('Too many pullInto calls');
+        t.fail('Too many pull calls');
         t.end();
         return;
       }
 
-      ++pullIntoCount;
-    }
+      ++pullCount;
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint16Array(1)).then(result => {
     t.fail('read(view) must fail');
@@ -1252,13 +1566,12 @@ test('ReadableByteStream: A stream must be errored if close()-d before fulfillin
     reader.closed.catch(e => {
       t.equals(e.constructor, TypeError);
 
-      t.equals(pullIntoCount, 1);
+      // pull is never called since the startPromise has not yet been handled.
+      t.equals(pullCount, 0);
 
       t.end();
     });
   });
-
-  t.equals(pullIntoCount, 1);
 
   try {
     controller.close();
@@ -1271,16 +1584,14 @@ test('ReadableByteStream: A stream must be errored if close()-d before fulfillin
   t.end();
 });
 
-test('ReadableByteStream: Throw if close()-ed more than once', t => {
+test('ReadableStream with byte source: Throw if close()-ed more than once', t => {
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
-      const view = new Uint8Array(1);
       controller = c;
     },
-    pull() {},
-    pullInto() {}
+    byob: true
   });
 
   // Enqueue a chunk so that the stream doesn't get closed. This is to check duplicate close() calls are rejected
@@ -1301,16 +1612,14 @@ test('ReadableByteStream: Throw if close()-ed more than once', t => {
   t.end();
 });
 
-test('ReadableByteStream: Throw on enqueue() after close()', t => {
+test('ReadableStream with byte source: Throw on enqueue() after close()', t => {
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
-      const view = new Uint8Array(1);
       controller = c;
     },
-    pull() {},
-    pullInto() {}
+    byob: true
   });
 
   // Enqueue a chunk so that the stream doesn't get closed. This is to check enqueue() after close() is  rejected
@@ -1331,18 +1640,17 @@ test('ReadableByteStream: Throw on enqueue() after close()', t => {
   t.end();
 });
 
-test('ReadableByteStream: read(view), then respond() and close() in pullInto()', t => {
+test('ReadableStream with byte source: read(view), then respond() and close() in pull()', t => {
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto(view) {
+      t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined');
+      const view = controller.byobRequest.view;
+
       t.equals(view.constructor, Uint8Array);
       t.equals(view.buffer.byteLength, 16);
 
@@ -1350,12 +1658,13 @@ test('ReadableByteStream: read(view), then respond() and close() in pullInto()',
       t.equals(view.byteLength, 16);
 
       view[15] = 0x01;
-      controller.respond(16);
+      controller.byobRequest.respond(16);
       controller.close();
-    }
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, false);
@@ -1380,39 +1689,44 @@ test('ReadableByteStream: read(view), then respond() and close() in pullInto()',
   });
 });
 
-test('ReadableByteStream: read(view) with Uint32Array, then fill it by multiple respond() calls', t => {
-  let pullIntoCount = 0;
+test('ReadableStream with byte source: read(view) with Uint32Array, then fill it by multiple respond() calls', t => {
+  let pullCount = 0;
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto(view) {
-      if (pullIntoCount < 4) {
-        t.equals(view.constructor, Uint8Array);
-        t.equals(view.buffer.byteLength, 4);
+      if (controller.byobRequest === undefined) {
+        return;
+      }
 
-        t.equals(view.byteOffset, pullIntoCount);
-        t.equals(view.byteLength, 4 - pullIntoCount);
+      if (pullCount < 1) {
+        for (let i = 0; i < 4; ++i) {
+          const view = controller.byobRequest.view;
 
-        view[0] = 0x01;
-        controller.respond(1);
+          t.equals(view.constructor, Uint8Array);
+          t.equals(view.buffer.byteLength, 4);
+
+          t.equals(view.byteOffset, i);
+          t.equals(view.byteLength, 4 - i);
+
+          view[0] = 0x01;
+          controller.byobRequest.respond(1);
+        }
       } else {
-        t.fail('Too many pullInto() calls');
+        t.fail('Too many pull() calls');
         t.end();
       }
 
-      ++pullIntoCount;
-    }
+      ++pullCount;
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint32Array(1)).then(result => {
     t.equals(result.done, false);
@@ -1429,37 +1743,37 @@ test('ReadableByteStream: read(view) with Uint32Array, then fill it by multiple 
   });
 });
 
-test('ReadableByteStream: read() twice, then enqueue() twice', t => {
+test('ReadableStream with byte source: read() twice, then enqueue() twice', t => {
   let pullCount = 0;
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
+
       if (pullCount > 1) {
-        t.fail('Too many pullInto calls');
+        t.fail('Too many pull calls');
         t.end();
       }
 
       ++pullCount;
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   const p0 = reader.read().then(result => {
-    t.equals(pullCount, 2);
+    t.equals(pullCount, 1);
 
     controller.enqueue(new Uint8Array(2));
 
-    t.equals(pullCount, 2);
+    // Since the queue has data no less than HWM, no more pull.
+    t.equals(pullCount, 1);
 
     t.equals(result.done, false);
 
@@ -1470,10 +1784,10 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
     t.equals(view.byteLength, 1);
   });
 
-  t.equals(pullCount, 1, 'Only 1 pull() after the 1st read()');
+  t.equals(pullCount, 0, 'No pull should have been made since the startPromise has not yet been handled');
 
   const p1 = reader.read().then(result => {
-    t.equals(pullCount, 2);
+    t.equals(pullCount, 1);
 
     t.equals(result.done, false);
 
@@ -1491,43 +1805,44 @@ test('ReadableByteStream: read() twice, then enqueue() twice', t => {
     t.end();
   })
 
-  t.equals(pullCount, 1, 'Only 1 pull() even after the 2nd read()');
+  t.equals(pullCount, 0, 'No pull should have been made since the startPromise has not yet been handled');
 
   controller.enqueue(new Uint8Array(1));
 
-  t.equals(pullCount, 1, 'Only 1 pull() even after enqueue()');
+  t.equals(pullCount, 0, 'No pull should have been made since the startPromise has not yet been handled');
 });
 
-test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
-  let pullIntoCount = 0;
+test('ReadableStream with byte source: Multiple read(view), close() and respond()', t => {
+  let pullCount = 0;
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto(view) {
-      if (pullIntoCount === 0) {
+      t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined');
+
+      if (pullCount === 0) {
+        const view = controller.byobRequest.view;
+
         t.equals(view.constructor, Uint8Array);
         t.equals(view.buffer.byteLength, 16);
 
         t.equals(view.byteOffset, 0);
         t.equals(view.byteLength, 16);
       } else {
-        t.fail('Too many pullInto calls');
+        t.fail('Too many pull calls');
         t.end();
       }
 
-      ++pullIntoCount;
-    }
+      ++pullCount;
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   const p0 = reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, true, '1st read: done');
@@ -1538,8 +1853,6 @@ test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
     t.equals(view.byteLength, 0, '1st read: byteLength');
   });
 
-  t.equals(pullIntoCount, 1);
-
   const p1 = reader.read(new Uint8Array(32)).then(result => {
     t.equals(result.done, true, '2nd read: done');
 
@@ -1549,8 +1862,6 @@ test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
     t.equals(view.byteLength, 0, '2nd read: byteLength');
   });
 
-  t.equals(pullIntoCount, 1);
-
   Promise.all([p0, p1]).then(() => {
     t.end();
   }).catch(e => {
@@ -1559,24 +1870,23 @@ test('ReadableByteStream: Multiple read(view), close() and respond()', t => {
   })
 
   controller.close();
-  controller.respond(0);
+  controller.byobRequest.respond(0);
 });
 
-test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
-  let pullIntoCount = 0;
+test('ReadableStream with byte source: Multiple read(view), big enqueue()', t => {
+  let pullCount = 0;
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto(view) {
-      if (pullIntoCount === 0) {
+      if (pullCount === 0) {
+        t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined');
+        const view = controller.byobRequest.view;
+
         t.equals(view.constructor, Uint8Array);
         t.equals(view.buffer.byteLength, 16);
 
@@ -1587,11 +1897,12 @@ test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
         t.end();
       }
 
-      ++pullIntoCount;
-    }
+      ++pullCount;
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   const p0 = reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, false, '1st read: done');
@@ -1602,8 +1913,6 @@ test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
     t.equals(view.byteLength, 16, '1st read: byteLength');
   });
 
-  t.equals(pullIntoCount, 1);
-
   const p1 = reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, false, '2nd read: done');
 
@@ -1613,8 +1922,6 @@ test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
     t.equals(view.byteLength, 8, '2nd read: byteLength');
   });
 
-  t.equals(pullIntoCount, 1);
-
   Promise.all([p0, p1]).then(() => {
     t.end();
   }).catch(e => {
@@ -1623,14 +1930,12 @@ test('ReadableByteStream: Multiple read(view), big enqueue()', t => {
   })
 
   controller.enqueue(new Uint8Array(24));
-
-  t.equals(pullIntoCount, 1);
 });
 
-test('ReadableByteStream: Multiple read(view) and multiple enqueue()', t => {
+test('ReadableStream with byte source: Multiple read(view) and multiple enqueue()', t => {
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
@@ -1638,10 +1943,10 @@ test('ReadableByteStream: Multiple read(view) and multiple enqueue()', t => {
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto() {}
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   let bytesRead = 0;
 
@@ -1669,19 +1974,15 @@ test('ReadableByteStream: Multiple read(view) and multiple enqueue()', t => {
   controller.close();
 });
 
-test('ReadableByteStream: read(view) with passing undefined as view must fail', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: read(view) with passing undefined as view must fail', t => {
+  const stream = new ReadableStream({
     pull() {
-      t.fail('pull must not be called');
-      t.end();
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read().then(result => {
     t.fail('read(view) must fail');
@@ -1692,19 +1993,15 @@ test('ReadableByteStream: read(view) with passing undefined as view must fail', 
   });
 });
 
-test('ReadableByteStream: read(view) with zero-length view must fail', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: read(view) with zero-length view must fail', t => {
+  const stream = new ReadableStream({
     pull() {
-      t.fail('pull must not be called');
-      t.end();
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(0)).then(result => {
     t.fail('read(view) must fail');
@@ -1715,19 +2012,15 @@ test('ReadableByteStream: read(view) with zero-length view must fail', t => {
   });
 });
 
-test('ReadableByteStream: read(view) with passing an empty object as view must fail', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: read(view) with passing an empty object as view must fail', t => {
+  const stream = new ReadableStream({
     pull() {
-      t.fail('pull must not be called');
-      t.end();
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read({}).then(result => {
     t.fail('read(view) must fail');
@@ -1738,19 +2031,16 @@ test('ReadableByteStream: read(view) with passing an empty object as view must f
   });
 });
 
-test('ReadableByteStream: Even read(view) with passing ArrayBufferView like object as view must fail', t => {
-  const rbs = new ReadableByteStream({
+test('ReadableStream with byte source: Even read(view) with passing ArrayBufferView like object as view must fail',
+     t => {
+  const stream = new ReadableStream({
     pull() {
-      t.fail('pull must not be called');
-      t.end();
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read({buffer: new ArrayBuffer(10), byteOffset: 0, byteLength: 10}).then(result => {
     t.fail('read(view) must fail');
@@ -1761,10 +2051,10 @@ test('ReadableByteStream: Even read(view) with passing ArrayBufferView like obje
   });
 });
 
-test('ReadableByteStream: read() on an errored stream', t => {
+test('ReadableStream with byte source: read() on an errored stream', t => {
   const passedError = new TypeError('foo');
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       c.error(passedError);
     },
@@ -1772,13 +2062,10 @@ test('ReadableByteStream: read() on an errored stream', t => {
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   reader.read().then(result => {
     t.fail('read() must fail');
@@ -1789,20 +2076,19 @@ test('ReadableByteStream: read() on an errored stream', t => {
   });
 });
 
-test('ReadableByteStream: read(), then error()', t => {
+test('ReadableStream with byte source: read(), then error()', t => {
   const passedError = new TypeError('foo');
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
-    pull() {},
-    pullInto() {}
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   reader.read().then(result => {
     t.fail('read() must fail');
@@ -1815,10 +2101,10 @@ test('ReadableByteStream: read(), then error()', t => {
   controller.error(passedError);
 });
 
-test('ReadableByteStream: read(view) on an errored stream', t => {
+test('ReadableStream with byte source: read(view) on an errored stream', t => {
   const passedError = new TypeError('foo');
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       c.error(passedError);
     },
@@ -1826,13 +2112,10 @@ test('ReadableByteStream: read(view) on an errored stream', t => {
       t.fail('pull must not be called');
       t.end();
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).then(result => {
     t.fail('read(view) must fail');
@@ -1843,20 +2126,19 @@ test('ReadableByteStream: read(view) on an errored stream', t => {
   });
 });
 
-test('ReadableByteStream: read(view), then error()', t => {
+test('ReadableStream with byte source: read(view), then error()', t => {
   const passedError = new TypeError('foo');
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
-    pull() {},
-    pullInto() {}
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).then(result => {
     t.fail('read(view) must fail');
@@ -1869,21 +2151,23 @@ test('ReadableByteStream: read(view), then error()', t => {
   controller.error(passedError);
 });
 
-test('ReadableByteStream: Throwing in pull function must error the stream', t => {
+test('ReadableStream with byte source: Throwing in pull function must error the stream', t => {
+  let controller;
+
   const testError = new TypeError('foo');
 
-  const rbs = new ReadableByteStream({
-    start() {},
+  const stream = new ReadableStream({
+    start(c) {
+      controller = c;
+    },
     pull() {
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
       throw testError;
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   reader.read().then(result => {
     t.fail('read(view) must fail');
@@ -1897,26 +2181,25 @@ test('ReadableByteStream: Throwing in pull function must error the stream', t =>
   });
 });
 
-test('ReadableByteStream: Throwing in pull function must be ignored if the stream is errored in it', t => {
+test('ReadableStream with byte source: Throwing in pull in response to read() must be ignored if the stream is ' +
+    'errored in it', t => {
   const passedError = new TypeError('foo');
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
+      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
       controller.error(passedError);
       throw new TypeError('foo');
     },
-    pullInto() {
-      t.fail('pullInto must not be called');
-      t.end();
-    }
+    byob: true
   });
 
-  const reader = rbs.getReader();
+  const reader = stream.getReader();
 
   reader.read().then(result => {
     t.fail('read(view) must fail');
@@ -1930,21 +2213,24 @@ test('ReadableByteStream: Throwing in pull function must be ignored if the strea
   });
 });
 
-test('ReadableByteStream: Throwing in pullInto function must error the stream', t => {
+test('ReadableStream with byte source: Throwing in pull in response to read(view) function must error the stream',
+     t => {
+  let controller;
+
   const testError = new TypeError('foo');
 
-  const rbs = new ReadableByteStream({
-    start() {},
-    pull() {
-      t.fail('pull must not be called');
-      t.end();
+  const stream = new ReadableStream({
+    start(c) {
+      controller = c;
     },
-    pullInto() {
+    pull() {
+      t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined');
       throw testError;
-    }
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).then(result => {
     t.fail('read(view) must fail');
@@ -1958,26 +2244,25 @@ test('ReadableByteStream: Throwing in pullInto function must error the stream', 
   });
 });
 
-test('ReadableByteStream: Throwing in pullInto function must be ignored if the stream is errored in it', t => {
+test('ReadableStream with byte source: Throwing in pull in response to read(view) must be ignored if the stream is ' +
+    'errored in it', t => {
   const passedError = new TypeError('foo');
 
   let controller;
 
-  const rbs = new ReadableByteStream({
+  const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
-      t.fail('pull must not be called');
-      t.end();
-    },
-    pullInto() {
+      t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined');
       controller.error(passedError);
       throw new TypeError('foo');
-    }
+    },
+    byob: true
   });
 
-  const reader = rbs.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).then(result => {
     t.fail('read(view) must fail');

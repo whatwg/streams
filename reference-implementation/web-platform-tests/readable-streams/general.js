@@ -25,7 +25,7 @@ test(() => {
 
 test(() => {
 
-  const methods = ['cancel', 'constructor', 'getReader', 'pipeThrough', 'pipeTo', 'tee'];
+  const methods = ['cancel', 'constructor', 'getBYOBReader', 'getReader', 'pipeThrough', 'pipeTo', 'tee'];
   const properties = methods.concat(['locked']).sort();
 
   const rs = new ReadableStream();
@@ -108,7 +108,7 @@ test(() => {
       assert_true(desiredSizePropDesc.configurable, 'desiredSize should be configurable');
 
       assert_equals(controller.close.length, 0, 'close should have no parameters');
-      assert_equals(controller.constructor.length, 1, 'constructor should have 1 parameter');
+      assert_equals(controller.constructor.length, 4, 'constructor should have 4 parameter');
       assert_equals(controller.enqueue.length, 1, 'enqueue should have 1 parameter');
       assert_equals(controller.error.length, 1, 'error should have 1 parameter');
 
@@ -608,6 +608,36 @@ promise_test(() => {
 
 }, 'ReadableStream pull should be able to close a stream.');
 
+promise_test(t => {
+
+  const controllerError = { name: 'controller error' };
+
+  const rs = new ReadableStream({
+    pull(c) {
+      c.error(controllerError);
+    }
+  });
+
+  return promise_rejects(t, controllerError, rs.getReader().closed);
+
+}, 'ReadableStream pull should be able to error a stream.');
+
+promise_test(t => {
+
+  const controllerError = { name: 'controller error' };
+  const thrownError = { name: 'thrown error' };
+
+  const rs = new ReadableStream({
+    pull(c) {
+      c.error(controllerError);
+      throw thrownError;
+    }
+  });
+
+  return promise_rejects(t, controllerError, rs.getReader().closed);
+
+}, 'ReadableStream pull should be able to error a stream and throw.');
+
 test(() => {
 
   let startCalled = false;
@@ -642,24 +672,6 @@ test(() => {
   assert_true(startCalled);
 
 }, 'ReadableStream: enqueue should throw when the stream is closed');
-
-test(() => {
-
-  let startCalled = false;
-  const expectedError = new Error('i am sad');
-
-  new ReadableStream({
-    start(c) {
-      c.error(expectedError);
-
-      assert_throws(expectedError, () => c.enqueue('a'), 'enqueue after error should throw that error');
-      startCalled = true;
-    }
-  });
-
-  assert_true(startCalled);
-
-}, 'ReadableStream: enqueue should throw the stored error when the stream is errored');
 
 promise_test(() => {
 

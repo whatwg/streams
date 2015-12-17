@@ -3,21 +3,34 @@ const test = require('tape-catch');
 // Many other pipeTo-with-options tests have been templated.
 
 test('Piping with no options and a destination error', t => {
-  t.plan(2);
+  t.plan(4);
 
-  const theError = new Error('destination error');
-  const rs = new ReadableStream({
+  class DelayedEnqueuingSource {
+    constructor() {
+      this._canceled = false;
+    }
+
     start(c) {
       c.enqueue('a');
-      setTimeout(() => c.enqueue('b'), 10);
       setTimeout(() => {
-        t.doesNotThrow(() => c.enqueue('c'), 'enqueue after cancel should not throw');
+        t.notOk(this._canceled, 'the stream should not have been canceled yet');
+        c.enqueue('b');
+      }, 10);
+      setTimeout(() => {
+        t.ok(this._canceled, 'the stream should have been canceled');
+        t.throws(() => c.enqueue('c'), 'enqueue after cancel should throw');
       }, 20);
-    },
+    }
+
     cancel(r) {
       t.equal(r, theError, 'reason passed to cancel equals the source error');
+
+      this._canceled = true;
     }
-  });
+  }
+
+  const theError = new Error('destination error');
+  const rs = new ReadableStream(new DelayedEnqueuingSource());
 
   const ws = new WritableStream({
     write(chunk) {
@@ -31,21 +44,34 @@ test('Piping with no options and a destination error', t => {
 });
 
 test('Piping with { preventCancel: false } and a destination error', t => {
-  t.plan(2);
+  t.plan(4);
 
-  const theError = new Error('destination error');
-  const rs = new ReadableStream({
+  class DelayedEnqueuingSource {
+    constructor() {
+      this._canceled = false;
+    }
+
     start(c) {
       c.enqueue('a');
-      setTimeout(() => c.enqueue('b'), 10);
       setTimeout(() => {
-        t.doesNotThrow(() => c.enqueue('c'), 'enqueue after cancel should not throw');
+        t.notOk(this._canceled, 'the stream should not have been canceled yet');
+        c.enqueue('b');
+      }, 10);
+      setTimeout(() => {
+        t.ok(this._canceled, 'the stream should have been canceled');
+        t.throws(() => c.enqueue('c'), 'enqueue after cancel should throw');
       }, 20);
-    },
+    }
+
     cancel(r) {
       t.equal(r, theError, 'reason passed to cancel equals the source error');
+
+      this._canceled = true;
     }
-  });
+  }
+
+  const theError = new Error('destination error');
+  const rs = new ReadableStream(new DelayedEnqueuingSource());
 
   const ws = new WritableStream({
     write(chunk) {
@@ -59,15 +85,23 @@ test('Piping with { preventCancel: false } and a destination error', t => {
 });
 
 test('Piping with { preventCancel: true } and a destination error', t => {
+  let resolveLastEnqueuePromise;
+  const lastEnqueuePromise = new Promise((r) => {
+    resolveLastEnqueuePromise = r;
+  });
+
   const theError = new Error('destination error');
   const rs = new ReadableStream({
     start(c) {
       c.enqueue('a');
       setTimeout(() => c.enqueue('b'), 10);
       setTimeout(() => c.enqueue('c'), 20);
-      setTimeout(() => c.enqueue('d'), 30);
+      setTimeout(() => {
+        c.enqueue('d');
+        resolveLastEnqueuePromise();
+      }, 30);
     },
-    cancel(r) {
+    cancel() {
       t.fail('unexpected call to cancel');
     }
   });
@@ -90,6 +124,8 @@ test('Piping with { preventCancel: true } and a destination error', t => {
 
     return reader.read().then(result => {
       t.deepEqual(result, { value: 'd', done: false }, 'should be able to read the remaining chunk from the reader');
+      return lastEnqueuePromise;
+    }).then(() => {
       t.end();
     });
   })

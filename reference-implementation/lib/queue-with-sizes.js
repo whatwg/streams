@@ -1,4 +1,5 @@
 const assert = require('assert');
+import { IsFiniteNonNegativeNumber } from './helpers';
 
 export function DequeueValue(queue) {
   assert(queue.length > 0, 'Spec-level failure: should never dequeue from an empty queue.');
@@ -8,7 +9,7 @@ export function DequeueValue(queue) {
 
 export function EnqueueValueWithSize(queue, value, size) {
   size = Number(size);
-  if (Number.isNaN(size) || size === +Infinity || size < 0) {
+  if (!IsFiniteNonNegativeNumber(size)) {
     throw new RangeError('Size must be a finite, non-NaN, non-negative number.');
   }
 
