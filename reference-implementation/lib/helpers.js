@@ -36,12 +36,30 @@ export function createArrayFromList(elements) {
   return elements.slice();
 }
 
+export function ArrayBufferCopy(dest, destOffset, src, srcOffset, n) {
+  new Uint8Array(dest).set(new Uint8Array(src, srcOffset, n), destOffset);
+}
+
 export function CreateIterResultObject(value, done) {
   assert(typeof done === 'boolean');
   const obj = {};
   Object.defineProperty(obj, 'value', { value: value, enumerable: true, writable: true, configurable: true });
   Object.defineProperty(obj, 'done', { value: done, enumerable: true, writable: true, configurable: true });
   return obj;
+}
+
+export function IsFiniteNonNegativeNumber(v) {
+  if (Number.isNaN(v)) {
+    return false;
+  }
+  if (v === +Infinity) {
+    return false;
+  }
+  if (v < 0) {
+    return false;
+  }
+
+  return true;
 }
 
 export function InvokeOrNoop(O, P, args) {
@@ -90,11 +108,13 @@ export function PromiseInvokeOrFallbackOrNoop(O, P1, args1, P2, args2) {
   }
 }
 
-export function ValidateAndNormalizeQueuingStrategy(size, highWaterMark) {
-  if (size !== undefined && typeof size !== 'function') {
-    throw new TypeError('size property of a queuing strategy must be a function');
-  }
+export function TransferArrayBuffer(buffer) {
+  // No-op. Just for marking places where detaching an ArrayBuffer is required.
 
+  return buffer;
+}
+
+export function ValidateAndNormalizeHighWaterMark(highWaterMark) {
   highWaterMark = Number(highWaterMark);
   if (Number.isNaN(highWaterMark)) {
     throw new TypeError('highWaterMark property of a queuing strategy must be convertible to a non-NaN number');
@@ -102,6 +122,16 @@ export function ValidateAndNormalizeQueuingStrategy(size, highWaterMark) {
   if (highWaterMark < 0) {
     throw new RangeError('highWaterMark property of a queuing strategy must be nonnegative');
   }
+
+  return highWaterMark;
+}
+
+export function ValidateAndNormalizeQueuingStrategy(size, highWaterMark) {
+  if (size !== undefined && typeof size !== 'function') {
+    throw new TypeError('size property of a queuing strategy must be a function');
+  }
+
+  highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
 
   return { size, highWaterMark };
 }
