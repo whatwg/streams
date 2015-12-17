@@ -3,7 +3,9 @@ import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject
 
 export default class ReadableByteStream {
   constructor(underlyingByteSource = {}) {
+    // Exposed to controllers.
     this._state = 'readable';
+
     this._reader = undefined;
     this._storedError = undefined;
 
@@ -92,9 +94,7 @@ class ReadableByteStreamController {
       return;
     }
 
-    const reader = stream._reader;
-
-    if (IsReadableByteStreamByobReader(reader) &&
+    if (ReadableByteStreamHasByobReader(stream) &&
         this._pendingPullIntos.length > 0 &&
         this._pendingPullIntos[0].bytesFilled > 0) {
       DestroyReadableByteStreamController(this);
@@ -122,35 +122,30 @@ class ReadableByteStreamController {
       throw new TypeError('The stream is not in the readable state and cannot be enqueued to');
     }
 
-    const reader = stream._reader;
-
     const buffer = chunk.buffer;
     const byteOffset = chunk.byteOffset;
     const byteLength = chunk.byteLength;
 
-    if (reader === undefined) {
-      EnqueueInReadableByteStreamController(this, TransferArrayBuffer(buffer), byteOffset, byteLength);
-    } else {
-      if (IsReadableByteStreamReader(reader)) {
-        if (reader._readRequests.length === 0) {
-          EnqueueInReadableByteStreamController(this, TransferArrayBuffer(buffer), byteOffset, byteLength);
-        } else {
-          assert(this._queue.length === 0);
-
-          const transferredView = new Uint8Array(TransferArrayBuffer(buffer), byteOffset, byteLength);
-          RespondToReadRequest(reader, transferredView);
-
-          if (reader._readRequests.length > 0) {
-            ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(this);
-          }
-        }
-      } else {
-        assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
-
-        // TODO: Ideally this detaching should happen only if the buffer is not consumed fully.
+    if (ReadableByteStreamHasReader(stream)) {
+      if (GetNumReadRequests(stream) === 0) {
         EnqueueInReadableByteStreamController(this, TransferArrayBuffer(buffer), byteOffset, byteLength);
-        RespondToReadIntoRequestsFromQueue(this, reader);
+      } else {
+        assert(this._queue.length === 0);
+
+        const transferredView = new Uint8Array(TransferArrayBuffer(buffer), byteOffset, byteLength);
+        RespondToReadRequest(stream, transferredView);
+
+        if (GetNumReadRequests(stream) > 0) {
+          ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(this);
+        }
       }
+    } else if (ReadableByteStreamHasByobReader(stream)) {
+      // TODO: Ideally this detaching should happen only if the buffer is not consumed fully.
+      EnqueueInReadableByteStreamController(this, TransferArrayBuffer(buffer), byteOffset, byteLength);
+      RespondToReadIntoRequestsFromQueue(this);
+    } else {
+      assert(!IsReadableByteStreamLocked(stream), 'stream must not be locked');
+      EnqueueInReadableByteStreamController(this, TransferArrayBuffer(buffer), byteOffset, byteLength);
     }
   }
 
@@ -182,22 +177,18 @@ class ReadableByteStreamController {
       throw new TypeError('No pending BYOB read');
     }
 
-    assert(IsReadableByteStreamLocked(stream), 'stream must be locked');
-
-    const reader = stream._reader;
-
-    assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
+    assert(ReadableByteStreamHasByobReader(stream), 'reader must be ReadableByteStreamByobReader');
 
     if (stream._state === 'closed') {
       if (bytesWritten !== 0) {
         throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
       }
 
-      RespondToByobReaderInClosedState(this, reader, buffer);
+      RespondToByobReaderInClosedState(this, buffer);
     } else {
       assert(stream._state === 'readable');
 
-      RespondToByobReaderInReadableState(this, reader, bytesWritten, buffer);
+      RespondToByobReaderInReadableState(this, bytesWritten, buffer);
     }
   }
 }
@@ -265,7 +256,8 @@ class ReadableByteStreamReader {
       this._readRequests.push({resolve, reject});
     });
 
-    PullFromReadableByteStream(this._ownerReadableByteStream);
+    // Controllers must implement this.
+    PullFromReadableByteStream(this._ownerReadableByteStream._controller);
 
     return promise;
   }
@@ -382,8 +374,9 @@ class ReadableByteStreamByobReader {
       this._readIntoRequests.push(req);
     });
 
+    // Controllers must implement this.
     PullFromReadableByteStreamInto(
-        this._ownerReadableByteStream, view.buffer, view.byteOffset, view.byteLength, elementSize);
+        this._ownerReadableByteStream._controller, view.buffer, view.byteOffset, view.byteLength, elementSize);
 
     return promise;
   }
@@ -478,22 +471,14 @@ function ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(contro
       return;
     }
 
-    const reader = stream._reader;
-
-    if (reader === undefined) {
-      return;
-    }
-
-    if (IsReadableByteStreamReader(reader)) {
-      if (reader._readRequests.length === 0) {
+    if (ReadableByteStreamHasReader(stream)) {
+      if (GetNumReadRequests(stream) === 0) {
         return;
       }
 
       ReadableByteStreamControllerCallPull(controller);
-    } else {
-      assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
-
-      if (reader._readIntoRequests.length === 0) {
+    } else if (ReadableByteStreamHasByobReader(stream)) {
+      if (GetNumReadIntoRequests(stream) === 0) {
         return;
       }
 
@@ -527,6 +512,7 @@ function CancelReadableByteStreamController(controller, reason) {
   return PromiseInvokeOrNoop(controller._underlyingByteSource, 'cancel', [reason]);
 }
 
+// Exposed to controllers.
 function CloseReadableByteStream(stream) {
   assert(IsReadableByteStream(stream), 'stream must be ReadableByteStream');
   assert(stream._state === 'readable', 'state must be readable');
@@ -589,6 +575,7 @@ function EnqueueInReadableByteStreamController(controller, buffer, byteOffset, b
   controller._totalQueuedBytes += byteLength;
 }
 
+// Exposed to controllers.
 function ErrorReadableByteStream(stream, e) {
   assert(IsReadableByteStream(stream), 'stream must be ReadableByteStream');
   assert(stream._state === 'readable', 'state must be readable');
@@ -678,6 +665,16 @@ function FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
   return ready;
 }
 
+// Exposed to controllers.
+function GetNumReadRequests(stream) {
+  return stream._reader._readRequests.length;
+}
+
+// Exposed to controllers.
+function GetNumReadIntoRequests(stream) {
+  return stream._reader._readIntoRequests.length;
+}
+
 function InitializeReadableByteStreamReaderGeneric(reader, stream) {
   reader._state = stream._state;
 
@@ -747,6 +744,7 @@ function IsReadableByteStreamController(x) {
   return true;
 }
 
+// Exposed to controllers.
 function IsReadableByteStreamLocked(stream) {
   assert(IsReadableByteStream(stream),
          'IsReadableByteStreamLocked should only be used on known readable byte streams');
@@ -770,23 +768,21 @@ function IsReadableByteStreamReader(x) {
   return true;
 }
 
-function PullFromReadableByteStream(stream) {
-  const controller = stream._controller;
+function PullFromReadableByteStream(controller) {
+  const stream = controller._controlledReadableByteStream;
 
-  const reader = stream._reader;
-
-  if (reader._readRequests.length > 1) {
+  if (GetNumReadRequests(stream) > 1) {
     return;
   }
 
-  assert(reader._readRequests.length === 1);
+  assert(GetNumReadRequests(stream) === 1);
 
   if (controller._totalQueuedBytes > 0) {
     const entry = controller._queue.shift();
     controller._totalQueuedBytes -= entry.byteLength;
 
     const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
-    RespondToReadRequest(reader, view);
+    RespondToReadRequest(stream, view);
 
     if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
       CloseReadableByteStream(stream);
@@ -804,8 +800,8 @@ function PullFromReadableByteStream(stream) {
   ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
 }
 
-function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, elementSize) {
-  const controller = stream._controller;
+function PullFromReadableByteStreamInto(controller, buffer, byteOffset, byteLength, elementSize) {
+  const stream = controller._controlledReadableByteStream;
 
   const pullIntoDescriptor = {
     buffer,
@@ -826,7 +822,7 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
     const ready = FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor);
 
     if (ready) {
-      RespondToReadIntoRequest(stream._reader, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
+      RespondToReadIntoRequest(stream, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
 
       if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
         CloseReadableByteStream(stream);
@@ -855,7 +851,26 @@ function PullFromReadableByteStreamInto(stream, buffer, byteOffset, byteLength, 
   ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
 }
 
-function RespondToByobReaderInClosedState(controller, reader, buffer) {
+// Exposed to controllers.
+function ReadableByteStreamHasByobReader(stream) {
+  const reader = stream._reader;
+
+  return reader !== undefined && IsReadableByteStreamByobReader(reader);
+}
+
+// Exposed to controllers.
+function ReadableByteStreamHasReader(stream) {
+  const reader = stream._reader;
+
+  return reader != undefined && IsReadableByteStreamReader(reader);
+}
+
+// Exposed to controllers.
+function ReleaseReadableByteStreamReaderGenericForController(stream) {
+  ReleaseReadableByteStreamReaderGeneric(stream._reader);
+}
+
+function RespondToByobReaderInClosedState(controller, buffer) {
   const firstDescriptor = controller._pendingPullIntos[0];
 
   if (buffer !== undefined) {
@@ -866,15 +881,17 @@ function RespondToByobReaderInClosedState(controller, reader, buffer) {
 
   assert(firstDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
 
-  while (reader._readIntoRequests.length > 0) {
+  const stream = controller._controlledReadableByteStream;
+
+  while (GetNumReadIntoRequests(stream) > 0) {
     const descriptor = controller._pendingPullIntos.shift();
-    RespondToReadIntoRequest(reader, descriptor.buffer);
+    RespondToReadIntoRequest(stream, descriptor.buffer);
   }
 
-  ReleaseReadableByteStreamReaderGeneric(reader);
+  ReleaseReadableByteStreamReaderGenericForController(controller._controlledReadableByteStream);
 }
 
-function RespondToByobReaderInReadableState(controller, reader, bytesWritten, buffer) {
+function RespondToByobReaderInReadableState(controller, bytesWritten, buffer) {
   const pullIntoDescriptor = controller._pendingPullIntos[0];
 
   if (pullIntoDescriptor.bytesFilled + bytesWritten > pullIntoDescriptor.byteLength) {
@@ -903,12 +920,17 @@ function RespondToByobReaderInReadableState(controller, reader, bytesWritten, bu
   }
 
   RespondToReadIntoRequest(
-      reader, TransferArrayBuffer(pullIntoDescriptor.buffer), pullIntoDescriptor.bytesFilled - remainderSize);
+      controller._controlledReadableByteStream,
+      TransferArrayBuffer(pullIntoDescriptor.buffer),
+      pullIntoDescriptor.bytesFilled - remainderSize);
 
-  RespondToReadIntoRequestsFromQueue(controller, reader);
+  RespondToReadIntoRequestsFromQueue(controller);
 }
 
-function RespondToReadIntoRequest(reader, buffer, length) {
+// Exposed to controllers.
+function RespondToReadIntoRequest(stream, buffer, length) {
+  const reader = stream._reader;
+
   assert(reader._readIntoRequests.length > 0,
          'readIntoRequest must not be empty when calling RespondToReadIntoRequest');
   assert(reader._state !== 'errored', 'state must not be errored');
@@ -932,12 +954,13 @@ function RespondToReadIntoRequest(reader, buffer, length) {
   req.resolve(CreateIterResultObject(view, false));
 }
 
-function RespondToReadRequest(reader, view) {
-  const req = reader._readRequests.shift();
+// Exposed to controllers.
+function RespondToReadRequest(stream, view) {
+  const req = stream._reader._readRequests.shift();
   req.resolve(CreateIterResultObject(view, false));
 }
 
-function RespondToReadIntoRequestsFromQueue(controller, reader) {
+function RespondToReadIntoRequestsFromQueue(controller) {
   assert(!controller._closeRequested);
 
   while (controller._pendingPullIntos.length > 0) {
@@ -953,7 +976,7 @@ function RespondToReadIntoRequestsFromQueue(controller, reader) {
     if (ready) {
       controller._pendingPullIntos.shift();
 
-      RespondToReadIntoRequest(reader, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
+      RespondToReadIntoRequest(controller._controlledReadableByteStream, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
     }
   }
 }
