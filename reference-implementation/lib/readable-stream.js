@@ -704,27 +704,27 @@ function TeeReadableStream(stream, shouldClone) {
   const underlyingSource1 = Object.create(Object.prototype);
   createDataProperty(underlyingSource1, 'pull', pull);
   createDataProperty(underlyingSource1, 'cancel', cancel1);
-  const branch1 = new ReadableStream(underlyingSource1);
+  const branch1Stream = new ReadableStream(underlyingSource1);
 
   const underlyingSource2 = Object.create(Object.prototype);
   createDataProperty(underlyingSource2, 'pull', pull);
   createDataProperty(underlyingSource2, 'cancel', cancel2);
-  const branch2 = new ReadableStream(underlyingSource2);
+  const branch2Stream = new ReadableStream(underlyingSource2);
 
-  pull._branch1 = branch1;
-  pull._branch2 = branch2;
+  pull._branch1 = branch1Stream._controller;
+  pull._branch2 = branch2Stream._controller;
 
   reader._closedPromise.catch(r => {
     if (teeState.closedOrErrored === true) {
       return undefined;
     }
 
-    ErrorReadableStreamController(branch1, r);
-    ErrorReadableStreamController(branch2, r);
+    ErrorReadableStreamController(pull._branch1, r);
+    ErrorReadableStreamController(pull._branch2, r);
     teeState.closedOrErrored = true;
   });
 
-  return [branch1, branch2];
+  return [branch1Stream, branch2Stream];
 }
 
 function create_TeeReadableStreamPullFunction() {
@@ -756,7 +756,7 @@ function create_TeeReadableStreamPullFunction() {
 //        if (shouldClone === true) {
 //          value1 = StructuredClone(value);
 //        }
-        EnqueueInReadableStream(branch1, value1);
+        EnqueueInReadableStreamController(branch1, value1);
       }
 
       if (teeState.canceled2 === false) {
@@ -764,7 +764,7 @@ function create_TeeReadableStreamPullFunction() {
 //        if (shouldClone === true) {
 //          value2 = StructuredClone(value);
 //        }
-        EnqueueInReadableStream(branch2, value2);
+        EnqueueInReadableStreamController(branch2, value2);
       }
     });
   };
