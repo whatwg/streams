@@ -398,7 +398,9 @@ function EnqueueInReadableStream(stream, chunk) {
       try {
         chunkSize = stream._strategySize(chunk);
       } catch (chunkSizeE) {
-        ErrorReadableStream(stream, chunkSizeE);
+        if (stream._state === 'readable') {
+          ErrorReadableStream(stream, chunkSizeE);
+        }
         throw chunkSizeE;
       }
     }
@@ -406,7 +408,9 @@ function EnqueueInReadableStream(stream, chunk) {
     try {
       EnqueueValueWithSize(stream._queue, chunk, chunkSize);
     } catch (enqueueE) {
-      ErrorReadableStream(stream, enqueueE);
+      if (stream._state === 'readable') {
+        ErrorReadableStream(stream, enqueueE);
+      }
       throw enqueueE;
     }
   }
