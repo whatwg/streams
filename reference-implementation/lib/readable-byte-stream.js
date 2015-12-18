@@ -252,14 +252,8 @@ class ReadableByteStreamReader {
     assert(this._ownerReadableByteStream !== undefined, 'This reader must be attached to a stream');
     assert(this._ownerReadableByteStream._state === 'readable', 'The owner stream must be in readable state');
 
-    const promise = new Promise((resolve, reject) => {
-      this._readRequests.push({resolve, reject});
-    });
-
     // Controllers must implement this.
-    PullFromReadableByteStream(this._ownerReadableByteStream._controller);
-
-    return promise;
+    return PullFromReadableByteStream(this._ownerReadableByteStream._controller);
   }
 
   releaseLock() {
@@ -362,23 +356,9 @@ class ReadableByteStreamByobReader {
       return Promise.resolve(CreateIterResultObject(new ctor(view.buffer, view.byteOffset, 0), true));
     }
 
-    const promise = new Promise((resolve, reject) => {
-      const req = {
-        resolve,
-        reject,
-        byteOffset: view.byteOffset,
-        byteLength: view.byteLength,
-        ctor,
-        elementSize
-      };
-      this._readIntoRequests.push(req);
-    });
-
     // Controllers must implement this.
-    PullFromReadableByteStreamInto(
-        this._ownerReadableByteStream._controller, view.buffer, view.byteOffset, view.byteLength, elementSize);
-
-    return promise;
+    return PullFromReadableByteStreamInto(
+        this._ownerReadableByteStream._controller, view.buffer, view.byteOffset, view.byteLength, ctor, elementSize);
   }
 
   releaseLock() {
@@ -400,6 +380,28 @@ class ReadableByteStreamByobReader {
     ReleaseReadableByteStreamReaderGeneric(this);
     CloseReadableByteStreamReaderGeneric(this);
   }
+}
+
+// Exposed to controllers.
+function AddReadIntoRequestToReadableByteStream(stream, byteOffset, byteLength, ctor, elementSize) {
+  return new Promise((resolve, reject) => {
+    const req = {
+      resolve,
+      reject,
+      byteOffset,
+      byteLength,
+      ctor,
+      elementSize
+    };
+    stream._reader._readIntoRequests.push(req);
+  });
+}
+
+// Exposed to controllers.
+function AddReadRequestToReadableByteStream(stream) {
+  return new Promise((resolve, reject) => {
+    stream._reader._readRequests.push({resolve, reject});
+  });
 }
 
 function ReadableByteStreamControllerCallPull(controller) {
@@ -771,36 +773,39 @@ function IsReadableByteStreamReader(x) {
 function PullFromReadableByteStream(controller) {
   const stream = controller._controlledReadableByteStream;
 
-  if (GetNumReadRequests(stream) > 1) {
-    return;
+  if (GetNumReadRequests(stream) >= 1) {
+    const pendingPromise = AddReadRequestToReadableByteStream(stream);
+    return pendingPromise;
   }
-
-  assert(GetNumReadRequests(stream) === 1);
 
   if (controller._totalQueuedBytes > 0) {
     const entry = controller._queue.shift();
     controller._totalQueuedBytes -= entry.byteLength;
 
     const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
-    RespondToReadRequest(stream, view);
+    const promise = Promise.resolve(CreateIterResultObject(view, false));
 
     if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
       CloseReadableByteStream(stream);
     }
 
-    return;
+    return promise;
   }
+
+  const promise = AddReadRequestToReadableByteStream(stream);
 
   if (controller._pulling) {
     controller._pullAgain = true;
-    return;
+    return promise;
   }
 
   ReadableByteStreamControllerCallPull(controller);
   ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
+
+  return promise;
 }
 
-function PullFromReadableByteStreamInto(controller, buffer, byteOffset, byteLength, elementSize) {
+function PullFromReadableByteStreamInto(controller, buffer, byteOffset, byteLength, ctor, elementSize) {
   const stream = controller._controlledReadableByteStream;
 
   const pullIntoDescriptor = {
@@ -815,40 +820,49 @@ function PullFromReadableByteStreamInto(controller, buffer, byteOffset, byteLeng
     pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
     controller._pendingPullIntos.push(pullIntoDescriptor);
 
-    return;
+    return AddReadIntoRequestToReadableByteStream(stream, byteOffset, byteLength, ctor, elementSize);
   }
 
   if (controller._totalQueuedBytes > 0) {
     const ready = FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor);
 
     if (ready) {
-      RespondToReadIntoRequest(stream, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
+      assert(pullIntoDescriptor.bytesFilled <= byteLength);
+      assert(pullIntoDescriptor.bytesFilled % elementSize === 0);
+
+      const view = new ctor(buffer, byteOffset, pullIntoDescriptor.bytesFilled / elementSize);
+      const promise = Promise.resolve(CreateIterResultObject(view, false));
 
       if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
         CloseReadableByteStream(stream);
       }
 
-      return;
+      return promise;
     }
 
     if (controller._closeRequested) {
       DestroyReadableByteStreamController(controller);
-      ErrorReadableByteStream(stream, new TypeError('Insufficient bytes to fill elements in the given buffer'));
+      const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
+      ErrorReadableByteStream(stream, e);
 
-      return;
+      return Promise.reject(e);
     }
   }
 
   pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
   controller._pendingPullIntos.push(pullIntoDescriptor);
 
+  const promise = AddReadIntoRequestToReadableByteStream(stream, byteOffset, byteLength, ctor, elementSize);
+
   if (controller._pulling) {
     controller._pullAgain = true;
-    return;
+    return promise;
   }
 
   ReadableByteStreamControllerCallPullInto(controller);
   ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
+
+  return promise;
 }
 
 // Exposed to controllers.
