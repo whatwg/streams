@@ -559,7 +559,7 @@ function IsReadableStreamReader(x) {
   return true;
 }
 
-function PullFromReadableByteStreamController(controller) {
+function PullFromReadableStreamController(controller) {
   const stream = controller._controlledReadableStream;
 
   if (controller._queue.length > 0) {
@@ -599,7 +599,7 @@ function ReadFromReadableStreamReader(reader) {
   const controller = stream._controller;
 
   // Controllers must implement this.
-  return PullFromReadableByteStreamController(controller);
+  return PullFromReadableStreamController(controller);
 }
 
 function ReadableStreamControllerCallPullIfNeeded(controller) {
