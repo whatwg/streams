@@ -615,6 +615,9 @@ function ReadableStreamControllerCallPullIfNeeded(controller) {
   }
 
   controller._pulling = true;
+
+  const stream = controller._controlledReadableStream;
+
   const pullPromise = PromiseInvokeOrNoop(controller._underlyingSource, 'pull', [controller]);
   pullPromise.then(
     () => {

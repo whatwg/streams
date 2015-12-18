@@ -608,6 +608,51 @@ promise_test(() => {
 
 }, 'ReadableStream pull should be able to close a stream.');
 
+promise_test(() => {
+
+  let pullCalled = false;
+
+  const rs = new ReadableStream({
+    pull(c) {
+      pullCalled = true;
+      c.error();
+    }
+  });
+
+  const reader = rs.getReader();
+  return reader.closed.then(() => {
+    assert_unreached('closed should be rejected');
+  }, e => {
+    assert_true(pullCalled);
+  });
+
+}, 'ReadableStream pull should be able to error a stream.');
+
+promise_test(() => {
+
+  let pullCalled = false;
+
+  const theError = new Error('rejected!');
+  const otherError = new Error('other!');
+
+  const rs = new ReadableStream({
+    pull(c) {
+      pullCalled = true;
+      c.error(theError);
+      throw theError;
+    }
+  });
+
+  const reader = rs.getReader();
+  return reader.closed.then(() => {
+    assert_unreached('closed should be rejected');
+  }, e => {
+    assert_equals(theError, e, 'closed should be rejected with theError');
+    assert_true(pullCalled);
+  });
+
+}, 'ReadableStream pull should be able to error a stream and throw.');
+
 test(() => {
 
   let startCalled = false;
