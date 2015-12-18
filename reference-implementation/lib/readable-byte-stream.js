@@ -399,8 +399,8 @@ function AddReadIntoRequestToReadableByteStream(stream, byteOffset, byteLength, 
 
 // Exposed to controllers.
 function AddReadRequestToReadableByteStream(stream) {
-  return new Promise((resolve, reject) => {
-    stream._reader._readRequests.push({resolve, reject});
+  return new Promise((_resolve, _reject) => {
+    stream._reader._readRequests.push({_resolve, _reject});
   });
 }
 
@@ -529,7 +529,7 @@ function CloseReadableByteStream(stream) {
 
   if (IsReadableByteStreamReader(reader)) {
     for (const req of reader._readRequests) {
-      req.resolve(CreateIterResultObject(undefined, true));
+      req._resolve(CreateIterResultObject(undefined, true));
     }
 
     reader._readRequests = [];
@@ -593,7 +593,7 @@ function ErrorReadableByteStream(stream, e) {
 
   if (IsReadableByteStreamReader(reader)) {
     for (const req of reader._readRequests) {
-      req.reject(e);
+      req._reject(e);
     }
 
     reader._readRequests = [];
@@ -971,7 +971,7 @@ function RespondToReadIntoRequest(stream, buffer, length) {
 // Exposed to controllers.
 function RespondToReadRequest(stream, view) {
   const req = stream._reader._readRequests.shift();
-  req.resolve(CreateIterResultObject(view, false));
+  req._resolve(CreateIterResultObject(view, false));
 }
 
 function RespondToReadIntoRequestsFromQueue(controller) {
