@@ -212,8 +212,8 @@ class ReadableStreamController {
     if (this._closeRequested === true) {
       throw new TypeError('The stream has already been closed; do not close it again!');
     }
-    const stream = this._controlledReadableStream;
-    if (stream._state === 'errored') {
+
+    if (this._controlledReadableStream._state === 'errored') {
       throw new TypeError('The stream is in an errored state and cannot be closed');
     }
 
@@ -226,7 +226,6 @@ class ReadableStreamController {
     }
 
     const stream = this._controlledReadableStream;
-
     if (stream._state === 'errored') {
       throw stream._storedError;
     }
