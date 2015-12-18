@@ -596,10 +596,8 @@ function ReadFromReadableStreamReader(reader) {
 
   assert(stream._state === 'readable');
 
-  const controller = stream._controller;
-
   // Controllers must implement this.
-  return PullFromReadableStreamController(controller);
+  return PullFromReadableStreamController(stream._controller);
 }
 
 function ReadableStreamControllerCallPullIfNeeded(controller) {
