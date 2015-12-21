@@ -79,32 +79,14 @@ class ReadableByteStreamController {
           'ReadableByteStreamController.prototype.close can only be used on a ReadableByteStreamController');
     }
 
-    const stream = this._controlledReadableByteStream;
-
     if (this._closeRequested) {
       throw new TypeError('The stream has already been closed; do not close it again!');
     }
-    if (stream._state !== 'readable') {
+    if (this._controlledReadableByteStream._state !== 'readable') {
       throw new TypeError('The stream is not in the readable state and cannot be closed');
     }
 
-    if (this._totalQueuedBytes > 0) {
-      this._closeRequested = true;
-
-      return;
-    }
-
-    if (ReadableByteStreamHasByobReader(stream) &&
-        this._pendingPullIntos.length > 0 &&
-        this._pendingPullIntos[0].bytesFilled > 0) {
-      DestroyReadableByteStreamController(this);
-      const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
-      ErrorReadableByteStream(stream, e);
-
-      throw e;
-    }
-
-    CloseReadableByteStream(stream);
+    CloseReadableByteStreamController(this);
   }
 
   enqueue(chunk) {
@@ -113,40 +95,14 @@ class ReadableByteStreamController {
           'ReadableByteStreamController.prototype.enqueue can only be used on a ReadableByteStreamController');
     }
 
-    const stream = this._controlledReadableByteStream;
-
     if (this._closeRequested) {
       throw new TypeError('stream is closed or draining');
     }
-    if (stream._state !== 'readable') {
+    if (this._controlledReadableByteStream._state !== 'readable') {
       throw new TypeError('The stream is not in the readable state and cannot be enqueued to');
     }
 
-    const buffer = chunk.buffer;
-    const byteOffset = chunk.byteOffset;
-    const byteLength = chunk.byteLength;
-
-    if (ReadableByteStreamHasReader(stream)) {
-      if (GetNumReadRequests(stream) === 0) {
-        EnqueueInReadableByteStreamController(this, TransferArrayBuffer(buffer), byteOffset, byteLength);
-      } else {
-        assert(this._queue.length === 0);
-
-        const transferredView = new Uint8Array(TransferArrayBuffer(buffer), byteOffset, byteLength);
-        RespondToReadRequest(stream, transferredView);
-
-        if (GetNumReadRequests(stream) > 0) {
-          ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(this);
-        }
-      }
-    } else if (ReadableByteStreamHasByobReader(stream)) {
-      // TODO: Ideally this detaching should happen only if the buffer is not consumed fully.
-      EnqueueInReadableByteStreamController(this, TransferArrayBuffer(buffer), byteOffset, byteLength);
-      RespondToReadIntoRequestsFromQueue(this);
-    } else {
-      assert(!IsReadableByteStreamLocked(stream), 'stream must not be locked');
-      EnqueueInReadableByteStreamController(this, TransferArrayBuffer(buffer), byteOffset, byteLength);
-    }
+    EnqueueInReadableByteStreamController(this, chunk);
   }
 
   error(e) {
@@ -155,14 +111,11 @@ class ReadableByteStreamController {
           'ReadableByteStreamController.prototype.error can only be used on a ReadableByteStreamController');
     }
 
-    const stream = this._controlledReadableByteStream;
-
-    if (stream._state !== 'readable') {
+    if (this._controlledReadableByteStream._state !== 'readable') {
       throw new TypeError(`The stream is ${stream._state} and so cannot be errored`);
     }
 
-    DestroyReadableByteStreamController(this);
-    ErrorReadableByteStream(stream, e);
+    ErrorReadableByteStreamController(this, e);
   }
 
   respond(bytesWritten, buffer) {
@@ -171,25 +124,11 @@ class ReadableByteStreamController {
           'ReadableByteStreamController.prototype.respond can only be used on a ReadableByteStreamController');
     }
 
-    const stream = this._controlledReadableByteStream;
-
     if (this._pendingPullIntos.length === 0) {
       throw new TypeError('No pending BYOB read');
     }
 
-    assert(ReadableByteStreamHasByobReader(stream), 'reader must be ReadableByteStreamByobReader');
-
-    if (stream._state === 'closed') {
-      if (bytesWritten !== 0) {
-        throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
-      }
-
-      RespondToByobReaderInClosedState(this, buffer);
-    } else {
-      assert(stream._state === 'readable');
-
-      RespondToByobReaderInReadableState(this, bytesWritten, buffer);
-    }
+    RespondToReadableByteStreamController(this, bytesWritten, buffer);
   }
 }
 
@@ -405,17 +344,14 @@ function AddReadRequestToReadableByteStream(stream) {
 }
 
 function ReadableByteStreamControllerCallPull(controller) {
-  const stream = controller._controlledReadableByteStream;
-
   controller._pullAgain = false;
   controller._pulling = true;
 
   try {
     InvokeOrNoop(controller._underlyingByteSource, 'pull', []);
   } catch (e) {
-    DestroyReadableByteStreamController(controller);
-    if (stream._state === 'readable') {
-      ErrorReadableByteStream(stream, e);
+    if (controller._controlledReadableByteStream._state === 'readable') {
+      ErrorReadableByteStreamController(controller, e);
     }
   }
 
@@ -438,10 +374,8 @@ function ReadableByteStreamControllerCallPullInto(controller) {
                                  pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled,
                                  pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled)]);
   } catch (e) {
-    DestroyReadableByteStreamController(controller);
-    const stream = controller._controlledReadableByteStream;
-    if (stream._state === 'readable') {
-      ErrorReadableByteStream(stream, e);
+    if (controller._controlledReadableByteStream._state === 'readable') {
+      ErrorReadableByteStreamController(controller, e);
     }
   }
 
@@ -514,6 +448,28 @@ function CancelReadableByteStreamController(controller, reason) {
   return PromiseInvokeOrNoop(controller._underlyingByteSource, 'cancel', [reason]);
 }
 
+// A client of ReadableByteStreamController may use this function directly to bypass state check.
+function CloseReadableByteStreamController(controller) {
+  const stream = controller._controlledReadableByteStream;
+
+  if (controller._totalQueuedBytes > 0) {
+    controller._closeRequested = true;
+
+    return;
+  }
+
+  if (ReadableByteStreamHasByobReader(stream) &&
+      controller._pendingPullIntos.length > 0 &&
+      controller._pendingPullIntos[0].bytesFilled > 0) {
+    const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
+    ErrorReadableByteStreamController(controller, e);
+
+    throw e;
+  }
+
+  CloseReadableByteStream(stream);
+}
+
 // Exposed to controllers.
 function CloseReadableByteStream(stream) {
   assert(IsReadableByteStream(stream), 'stream must be ReadableByteStream');
@@ -553,11 +509,6 @@ function CloseReadableByteStreamReaderGeneric(reader) {
   reader._closedPromise_reject = undefined;
 }
 
-function DestroyReadableByteStreamController(controller) {
-  controller._pendingPullIntos = []
-  controller._queue = [];
-}
-
 function TransferArrayBuffer(buffer) {
   // No-op. Just for marking places where detaching an ArrayBuffer is required.
 
@@ -572,7 +523,38 @@ function ReleaseReadableByteStreamReaderGeneric(reader) {
   reader._ownerReadableByteStream = undefined;
 }
 
-function EnqueueInReadableByteStreamController(controller, buffer, byteOffset, byteLength) {
+// A client of ReadableByteStreamController may use this function directly to bypass state check.
+function EnqueueInReadableByteStreamController(controller, chunk) {
+  const stream = controller._controlledReadableByteStream;
+
+  const buffer = chunk.buffer;
+  const byteOffset = chunk.byteOffset;
+  const byteLength = chunk.byteLength;
+
+  if (ReadableByteStreamHasReader(stream)) {
+    if (GetNumReadRequests(stream) === 0) {
+      EnqueueChunkToQueueOfController(controller, TransferArrayBuffer(buffer), byteOffset, byteLength);
+    } else {
+      assert(controller._queue.length === 0);
+
+      const transferredView = new Uint8Array(TransferArrayBuffer(buffer), byteOffset, byteLength);
+      RespondToReadRequest(stream, transferredView);
+
+      if (GetNumReadRequests(stream) > 0) {
+        ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(controller);
+      }
+    }
+  } else if (ReadableByteStreamHasByobReader(stream)) {
+    // TODO: Ideally this detaching should happen only if the buffer is not consumed fully.
+    EnqueueChunkToQueueOfController(controller, TransferArrayBuffer(buffer), byteOffset, byteLength);
+    RespondToReadIntoRequestsFromQueue(controller);
+  } else {
+    assert(!IsReadableByteStreamLocked(stream), 'stream must not be locked');
+    EnqueueChunkToQueueOfController(controller, TransferArrayBuffer(buffer), byteOffset, byteLength);
+  }
+}
+
+function EnqueueChunkToQueueOfController(controller, buffer, byteOffset, byteLength) {
   controller._queue.push({buffer, byteOffset, byteLength});
   controller._totalQueuedBytes += byteLength;
 }
@@ -615,6 +597,13 @@ function ErrorReadableByteStream(stream, e) {
   reader._closedPromise_reject(e);
   reader._closedPromise_resolve = undefined;
   reader._closedPromise_reject = undefined;
+}
+
+// A client of ReadableByteStreamController may use this function directly to bypass state check.
+function ErrorReadableByteStreamController(controller, e) {
+  controller._pendingPullIntos = []
+  controller._queue = [];
+  ErrorReadableByteStream(controller._controlledReadableByteStream, e);
 }
 
 function FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
@@ -841,9 +830,8 @@ function PullFromReadableByteStreamInto(controller, buffer, byteOffset, byteLeng
     }
 
     if (controller._closeRequested) {
-      DestroyReadableByteStreamController(controller);
       const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
-      ErrorReadableByteStream(stream, e);
+      ErrorReadableByteStreamController(controller, e)
 
       return Promise.reject(e);
     }
@@ -930,7 +918,7 @@ function RespondToByobReaderInReadableState(controller, bytesWritten, buffer) {
   if (remainderSize > 0) {
     const end = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
     const remainder = pullIntoDescriptor.buffer.slice(end - remainderSize, end);
-    EnqueueInReadableByteStreamController(controller, remainder, 0, remainder.byteLength);
+    EnqueueChunkToQueueOfController(controller, remainder, 0, remainder.byteLength);
   }
 
   RespondToReadIntoRequest(
@@ -939,6 +927,25 @@ function RespondToByobReaderInReadableState(controller, bytesWritten, buffer) {
       pullIntoDescriptor.bytesFilled - remainderSize);
 
   RespondToReadIntoRequestsFromQueue(controller);
+}
+
+// A client of ReadableByteStreamController may use this function directly to bypass state check.
+function RespondToReadableByteStreamController(controller, bytesWritten, buffer) {
+  const stream = controller._controlledReadableByteStream;
+
+  assert(ReadableByteStreamHasByobReader(stream), 'reader must be ReadableByteStreamByobReader');
+
+  if (stream._state === 'closed') {
+    if (bytesWritten !== 0) {
+      throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
+    }
+
+    RespondToByobReaderInClosedState(controller, buffer);
+  } else {
+    assert(stream._state === 'readable');
+
+    RespondToByobReaderInReadableState(controller, bytesWritten, buffer);
+  }
 }
 
 // Exposed to controllers.

@@ -385,6 +385,7 @@ function CancelReadableStreamController(controller, reason) {
   return PromiseInvokeOrNoop(controller._underlyingSource, 'cancel', [reason]);
 }
 
+// A client of ReadableStreamController may use this function directly to bypass state check.
 function CloseReadableStreamController(controller) {
   const stream = controller._controlledReadableStream;
 
@@ -404,6 +405,7 @@ function CloseReadableStreamController(controller) {
   }
 }
 
+// A client of ReadableStreamController may use this function directly to bypass state check.
 function EnqueueInReadableStreamController(controller, chunk) {
   const stream = controller._controlledReadableStream;
 
@@ -466,6 +468,7 @@ function ErrorReadableStream(stream, e) {
   reader._closedPromise_reject = undefined;
 }
 
+// A client of ReadableStreamController may use this function directly to bypass state check.
 function ErrorReadableStreamController(controller, e) {
   controller._queue = [];
 
@@ -501,6 +504,7 @@ function CloseReadableStream(stream) {
   return undefined;
 }
 
+// A client of ReadableStreamController may use this function directly to bypass state check.
 function GetReadableStreamControllerDesiredSize(controller) {
   const queueSize = GetTotalQueueSize(controller._queue);
   return controller._strategyHWM - queueSize;
