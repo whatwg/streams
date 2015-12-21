@@ -941,12 +941,12 @@ asserts).
     1. If _stream_@[[strategySize]] is not *undefined*,
       1. Set _chunkSize_ to Call(_stream_@[[strategySize]], *undefined*, «‍_chunk_»).
       1. If _chunkSize_ is an abrupt completion,
-        1. Perform ErrorReadableStream(_stream_, ‍_chunkSize_.[[value]]).
+        1. If _stream_@[[state]] is "readable", perform ErrorReadableStream(_stream_, ‍_chunkSize_.[[value]]).
         1. Return _chunkSize_.
       1. Let _chunkSize_ be _chunkSize_.[[value]].
     1. Let _enqueueResult_ be EnqueueValueWithSize(_stream_@[[queue]], _chunk_, _chunkSize_).
     1. If _enqueueResult_ is an abrupt completion,
-      1. Perform ErrorReadableStream(_stream_, ‍_enqueueResult_.[[value]]).
+      1. If _stream_@[[state]] is "readable", perform ErrorReadableStream(_stream_, ‍_enqueueResult_.[[value]]).
       1. Return _enqueueResult_.
   1. Perform RequestReadableStreamPull(_stream_).
   1. Return *undefined*.
