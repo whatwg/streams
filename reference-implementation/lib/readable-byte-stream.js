@@ -9,6 +9,8 @@ export default class ReadableByteStream {
     this._reader = undefined;
     this._storedError = undefined;
 
+    this._disturbed = false;
+
     // Initialize to undefined first because the constructor of the ReadableByteStreamController checks this
     // variable to validate the caller.
     this._controller = undefined;
@@ -255,7 +257,7 @@ class ReadableByteStreamByobReader {
       return Promise.reject(this._storedError);
     }
 
-    assert(this._ownerReadableByteStream !== undefined, 'This stream must be attached to a stream');
+    assert(this._ownerReadableByteStream !== undefined, 'This reader must be attached to a stream');
 
     return CancelReadableByteStream(this._ownerReadableByteStream, reason);
   }
@@ -359,8 +361,6 @@ function ReadableByteStreamControllerCallPull(controller) {
 }
 
 function ReadableByteStreamControllerCallPullInto(controller) {
-  const stream = controller._controlledReadableByteStream;
-
   assert(controller._pendingPullIntos.length > 0);
   const pullIntoDescriptor = controller._pendingPullIntos[0];
 
@@ -424,6 +424,8 @@ function ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(contro
 }
 
 function CancelReadableByteStream(stream, reason) {
+  stream._disturbed = true;
+
   if (stream._state === 'closed') {
     return Promise.resolve(undefined);
   }
