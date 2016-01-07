@@ -427,7 +427,9 @@ function EnqueueInReadableStreamController(controller, chunk) {
       try {
         chunkSize = controller._strategySize(chunk);
       } catch (chunkSizeE) {
-        ErrorReadableStreamController(controller, chunkSizeE);
+        if (stream._state === 'readable') {
+          ErrorReadableStreamController(controller, chunkSizeE);
+        }
         throw chunkSizeE;
       }
     }
@@ -435,7 +437,9 @@ function EnqueueInReadableStreamController(controller, chunk) {
     try {
       EnqueueValueWithSize(controller._queue, chunk, chunkSize);
     } catch (enqueueE) {
-      ErrorReadableStreamController(controller, enqueueE);
+      if (stream._state === 'readable') {
+        ErrorReadableStreamController(controller, enqueueE);
+      }
       throw enqueueE;
     }
   }
