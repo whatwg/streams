@@ -182,6 +182,8 @@ class ReadableByteStreamReader {
 
     const stream = this._ownerReadableByteStream;
 
+    stream._disturbed = true;
+
     if (stream._state === 'closed') {
       return Promise.resolve(CreateIterResultObject(undefined, true));
     }
@@ -267,6 +269,8 @@ class ReadableByteStreamByobReader {
     }
 
     const stream = this._ownerReadableByteStream;
+
+    stream._disturbed = true;
 
     if (view === undefined || !ArrayBuffer.isView(view)) {
       return Promise.reject(new TypeError('Valid view must be provided'));
