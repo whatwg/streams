@@ -163,15 +163,9 @@ class ReadableByteStreamReader {
         new TypeError('ReadableByteStreamReader.prototype.cancel can only be used on a ReadableByteStreamReader'));
     }
 
-    if (this._state === 'closed') {
-      return Promise.resolve(undefined);
+    if (this._ownerReadableByteStream === undefined) {
+      return Promise.reject(new TypeError('Cannot cancel a stream using a released reader'));
     }
-
-    if (this._state === 'errored') {
-      return Promise.reject(this._storedError);
-    }
-
-    assert(this._ownerReadableByteStream !== undefined, 'This reader must be attached to a stream');
 
     return CancelReadableByteStream(this._ownerReadableByteStream, reason);
   }
@@ -182,19 +176,24 @@ class ReadableByteStreamReader {
         new TypeError('ReadableByteStreamReader.prototype.read can only be used on a ReadableByteStreamReader'));
     }
 
-    if (this._state === 'closed') {
+    if (this._ownerReadableByteStream === undefined) {
+      return Promise.reject(new TypeError('Cannot read from a released reader'));
+    }
+
+    const stream = this._ownerReadableByteStream;
+
+    if (stream._state === 'closed') {
       return Promise.resolve(CreateIterResultObject(undefined, true));
     }
 
-    if (this._state === 'errored') {
-      return Promise.reject(this._storedError);
+    if (stream._state === 'errored') {
+      return Promise.reject(stream._storedError);
     }
 
-    assert(this._ownerReadableByteStream !== undefined, 'This reader must be attached to a stream');
-    assert(this._ownerReadableByteStream._state === 'readable', 'The owner stream must be in readable state');
+    assert(stream._state === 'readable', 'The owner stream must be in readable state');
 
     // Controllers must implement this.
-    return PullFromReadableByteStream(this._ownerReadableByteStream._controller);
+    return PullFromReadableByteStream(stream._controller);
   }
 
   releaseLock() {
@@ -249,15 +248,9 @@ class ReadableByteStreamByobReader {
             'ReadableByteStreamByobReader.prototype.cancel can only be used on a ReadableByteStreamByobReader'));
     }
 
-    if (this._state === 'closed') {
-      return Promise.resolve(undefined);
+    if (this._ownerReadableByteStream === undefined) {
+      return Promise.reject(new TypeError('Cannot cancel a stream using a released reader'));
     }
-
-    if (this._state === 'errored') {
-      return Promise.reject(this._storedError);
-    }
-
-    assert(this._ownerReadableByteStream !== undefined, 'This reader must be attached to a stream');
 
     return CancelReadableByteStream(this._ownerReadableByteStream, reason);
   }
@@ -268,6 +261,12 @@ class ReadableByteStreamByobReader {
         new TypeError(
             'ReadableByteStreamByobReader.prototype.read can only be used on a ReadableByteStreamByobReader'));
     }
+
+    if (this._ownerReadableByteStream === undefined) {
+      return Promise.reject(new TypeError('Cannot read from a released reader'));
+    }
+
+    const stream = this._ownerReadableByteStream;
 
     if (view === undefined || !ArrayBuffer.isView(view)) {
       return Promise.reject(new TypeError('Valid view must be provided'));
@@ -287,19 +286,13 @@ class ReadableByteStreamByobReader {
       return Promise.reject(new TypeError('view must have non-zero byteLength'));
     }
 
-    if (this._state === 'errored') {
-      assert(this._ownerReadableByteStream === undefined, 'This reader must be detached');
-
-      return Promise.reject(this._storedError);
-    }
-
-    if (this._state === 'closed' && this._ownerReadableByteStream === undefined) {
-      return Promise.resolve(CreateIterResultObject(new ctor(view.buffer, view.byteOffset, 0), true));
+    if (stream._state === 'errored') {
+      return Promise.reject(stream._storedError);
     }
 
     // Controllers must implement this.
     return PullFromReadableByteStreamInto(
-        this._ownerReadableByteStream._controller, view.buffer, view.byteOffset, view.byteLength, ctor, elementSize);
+        stream._controller, view.buffer, view.byteOffset, view.byteLength, ctor, elementSize);
   }
 
   releaseLock() {
@@ -491,13 +484,6 @@ function CloseReadableByteStream(stream) {
     }
 
     reader._readRequests = [];
-    ReleaseReadableByteStreamReaderGeneric(reader);
-  } else {
-    assert(IsReadableByteStreamByobReader(reader), 'reader must be ReadableByteStreamByobReader');
-
-    if (reader._readIntoRequests.length === 0) {
-      ReleaseReadableByteStreamReaderGeneric(reader);
-    }
   }
 
   CloseReadableByteStreamReaderGeneric(reader);
@@ -591,11 +577,6 @@ function ErrorReadableByteStream(stream, e) {
     reader._readIntoRequests = [];
   }
 
-  ReleaseReadableByteStreamReaderGeneric(reader);
-
-  reader._state = 'errored';
-  reader._storedError = e;
-
   reader._closedPromise_reject(e);
   reader._closedPromise_resolve = undefined;
   reader._closedPromise_reject = undefined;
@@ -669,30 +650,21 @@ function GetNumReadIntoRequests(stream) {
 }
 
 function InitializeReadableByteStreamReaderGeneric(reader, stream) {
-  reader._state = stream._state;
+  reader._ownerReadableByteStream = stream;
+  stream._reader = reader;
 
   if (stream._state === 'readable') {
-    stream._reader = reader;
-
-    reader._ownerReadableByteStream = stream;
-    reader._storedError = undefined;
     reader._closedPromise = new Promise((resolve, reject) => {
       reader._closedPromise_resolve = resolve;
       reader._closedPromise_reject = reject;
     });
   } else {
-    reader._ownerReadableByteStream = undefined;
-
     if (stream._state === 'closed') {
-      reader._storedError = undefined;
-
       reader._closedPromise = Promise.resolve(undefined);
       reader._closedPromise_resolve = undefined;
       reader._closedPromise_reject = undefined;
     } else {
       assert(stream._state === 'errored', 'state must be errored');
-
-      reader._storedError = stream._storedError;
 
       reader._closedPromise = Promise.reject(stream._storedError);
       reader._closedPromise_resolve = undefined;
@@ -812,6 +784,10 @@ function PullFromReadableByteStreamInto(controller, buffer, byteOffset, byteLeng
     controller._pendingPullIntos.push(pullIntoDescriptor);
 
     return AddReadIntoRequestToReadableByteStream(stream, byteOffset, byteLength, ctor, elementSize);
+  }
+
+  if (stream._state === 'closed') {
+    return Promise.resolve(CreateIterResultObject(new ctor(buffer, byteOffset, 0), true));
   }
 
   if (controller._totalQueuedBytes > 0) {

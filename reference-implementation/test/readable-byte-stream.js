@@ -60,7 +60,7 @@ test('ReadableByteStream: getByobReader(), then releaseLock()', t => {
   });
 });
 
-test('ReadableByteStream: Test auto release feature. close(), getReader(), then getReader()', t => {
+test('ReadableByteStream: Test that closing a stream does not release a reader automatically', t => {
   const rbs = new ReadableByteStream({
     start(c) {
       c.close();
@@ -78,7 +78,15 @@ test('ReadableByteStream: Test auto release feature. close(), getReader(), then 
   const reader = rbs.getReader();
 
   reader.closed.then(() => {
-    rbs.getReader();
+    try {
+      rbs.getReader();
+    } catch(e) {
+      t.equals(e.constructor, TypeError);
+      t.end();
+      return;
+    }
+
+    t.fail('getReader() must fail');
     t.end();
   }).catch(e => {
     t.fail(e);
@@ -86,7 +94,7 @@ test('ReadableByteStream: Test auto release feature. close(), getReader(), then 
   });
 });
 
-test('ReadableByteStream: Test auto release feature. close(), getByobReader(), then getByobReader()', t => {
+test('ReadableByteStream: Test that closing a stream does not release a BYOB reader automatically', t => {
   const rbs = new ReadableByteStream({
     start(c) {
       c.close();
@@ -104,7 +112,15 @@ test('ReadableByteStream: Test auto release feature. close(), getByobReader(), t
   const reader = rbs.getByobReader();
 
   reader.closed.then(() => {
-    rbs.getByobReader();
+    try {
+      rbs.getByobReader();
+    } catch(e) {
+      t.equals(e.constructor, TypeError);
+      t.end();
+      return;
+    }
+
+    t.fail('getByobReader() must fail');
     t.end();
   }).catch(e => {
     t.fail(e);
@@ -112,7 +128,7 @@ test('ReadableByteStream: Test auto release feature. close(), getByobReader(), t
   });
 });
 
-test('ReadableByteStream: Test auto release feature. error(), getReader(), then getReader()', t => {
+test('ReadableByteStream: Test that erroring a stream does not release a reader automatically', t => {
   const passedError = new TypeError('foo');
 
   const rbs = new ReadableByteStream({
@@ -136,12 +152,21 @@ test('ReadableByteStream: Test auto release feature. error(), getReader(), then 
     t.end();
   }, e => {
     t.equals(e, passedError);
-    rbs.getReader();
+
+    try {
+      rbs.getReader();
+    } catch(e) {
+      t.equals(e.constructor, TypeError);
+      t.end();
+      return;
+    }
+
+    t.fail('getReader() must fail');
     t.end();
   });
 });
 
-test('ReadableByteStream: Test auto release feature. close(), getByobReader(), then getByobReader()', t => {
+test('ReadableByteStream: Test that erroring a stream does not release a BYOB reader automatically', t => {
   const passedError = new TypeError('foo');
 
   const rbs = new ReadableByteStream({
@@ -165,7 +190,16 @@ test('ReadableByteStream: Test auto release feature. close(), getByobReader(), t
     t.end();
   }, e => {
     t.equals(e, passedError);
-    rbs.getByobReader();
+
+    try {
+      rbs.getByobReader();
+    } catch(e) {
+      t.equals(e.constructor, TypeError);
+      t.end();
+      return;
+    }
+
+    t.fail('getByobReader() must fail');
     t.end();
   });
 });
