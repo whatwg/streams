@@ -494,8 +494,6 @@ function CloseReadableByteStream(stream) {
 }
 
 function CloseReadableByteStreamReaderGeneric(reader) {
-  reader._state = 'closed';
-
   reader._closedPromise_resolve(undefined);
   reader._closedPromise_resolve = undefined;
   reader._closedPromise_reject = undefined;
@@ -936,13 +934,13 @@ function RespondToReadIntoRequest(stream, buffer, length) {
 
   assert(reader._readIntoRequests.length > 0,
          'readIntoRequest must not be empty when calling RespondToReadIntoRequest');
-  assert(reader._state !== 'errored', 'state must not be errored');
+  assert(stream._state !== 'errored', 'state must not be errored');
 
   const req = reader._readIntoRequests.shift();
   const ctor = req.ctor;
   const byteOffset = req.byteOffset;
 
-  if (reader._state === 'closed') {
+  if (stream._state === 'closed') {
     assert(length === undefined);
     const view = new ctor(buffer, byteOffset, 0);
     req.resolve(CreateIterResultObject(view, true));
