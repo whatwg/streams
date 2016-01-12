@@ -1,5 +1,6 @@
 const assert = require('assert');
 import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject } from './helpers';
+import { CancelReadableStream, CloseReadableStream } from './readable-stream';
 
 export default class ReadableByteStream {
   constructor(underlyingByteSource = {}) {
@@ -27,7 +28,7 @@ export default class ReadableByteStream {
       return Promise.reject(new TypeError('Cannot cancel a stream that already has a reader'));
     }
 
-    return CancelReadableByteStream(this, reason);
+    return CancelReadableStream(this, reason);
   }
 
   getByobReader() {
@@ -57,6 +58,8 @@ class ReadableByteStreamController {
       throw new TypeError(
           'ReadableByteStreamController instances can only be created by the ReadableByteStream constructor');
     }
+
+    this._cancel = CancelReadableByteStreamController;
 
     this._controlledReadableByteStream = controlledReadableByteStream;
 
@@ -167,7 +170,7 @@ class ReadableByteStreamReader {
       return Promise.reject(new TypeError('Cannot cancel a stream using a released reader'));
     }
 
-    return CancelReadableByteStream(this._ownerReadableByteStream, reason);
+    return CancelReadableStream(this._ownerReadableByteStream, reason);
   }
 
   read() {
@@ -254,7 +257,7 @@ class ReadableByteStreamByobReader {
       return Promise.reject(new TypeError('Cannot cancel a stream using a released reader'));
     }
 
-    return CancelReadableByteStream(this._ownerReadableByteStream, reason);
+    return CancelReadableStream(this._ownerReadableByteStream, reason);
   }
 
   read(view) {
@@ -420,22 +423,6 @@ function ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(contro
   }
 }
 
-function CancelReadableByteStream(stream, reason) {
-  stream._disturbed = true;
-
-  if (stream._state === 'closed') {
-    return Promise.resolve(undefined);
-  }
-  if (stream._state === 'errored') {
-    return Promise.reject(stream._storedError);
-  }
-
-  CloseReadableByteStream(stream);
-
-  const sourceCancelPromise = CancelReadableByteStreamController(stream._controller, reason);
-  return sourceCancelPromise.then(() => undefined);
-}
-
 function CancelReadableByteStreamController(controller, reason) {
   if (controller._pendingPullIntos.length > 0) {
     controller._pendingPullIntos[0].bytesFilled = 0;
@@ -466,31 +453,7 @@ function CloseReadableByteStreamController(controller) {
     throw e;
   }
 
-  CloseReadableByteStream(stream);
-}
-
-// Exposed to controllers.
-function CloseReadableByteStream(stream) {
-  assert(IsReadableByteStream(stream), 'stream must be ReadableByteStream');
-  assert(stream._state === 'readable', 'state must be readable');
-
-  stream._state = 'closed';
-
-  const reader = stream._reader;
-
-  if (reader === undefined) {
-    return undefined;
-  }
-
-  if (IsReadableByteStreamReader(reader)) {
-    for (const req of reader._readRequests) {
-      req._resolve(CreateIterResultObject(undefined, true));
-    }
-
-    reader._readRequests = [];
-  }
-
-  CloseReadableByteStreamReaderGeneric(reader);
+  CloseReadableStream(stream);
 }
 
 function CloseReadableByteStreamReaderGeneric(reader) {
@@ -723,7 +686,7 @@ function IsReadableByteStreamLocked(stream) {
   return true;
 }
 
-function IsReadableByteStreamReader(x) {
+export function IsReadableByteStreamReader(x) {
   if (!typeIsObject(x)) {
     return false;
   }
@@ -751,7 +714,7 @@ function PullFromReadableByteStream(controller) {
     const promise = Promise.resolve(CreateIterResultObject(view, false));
 
     if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
-      CloseReadableByteStream(stream);
+      CloseReadableStream(stream);
     }
 
     return promise;
@@ -803,7 +766,7 @@ function PullFromReadableByteStreamInto(controller, buffer, byteOffset, byteLeng
       const promise = Promise.resolve(CreateIterResultObject(view, false));
 
       if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
-        CloseReadableByteStream(stream);
+        CloseReadableStream(stream);
       }
 
       return promise;

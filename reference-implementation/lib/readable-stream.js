@@ -164,6 +164,8 @@ class ReadableStreamController {
       throw new TypeError('ReadableStreamController instances can only be created by the ReadableStream constructor');
     }
 
+    this._cancel = CancelReadableStreamController;
+
     this._controlledReadableStream = stream;
 
     this._underlyingSource = underlyingSource;
@@ -363,7 +365,7 @@ function AddReadRequestToReadableStream(stream) {
   return promise;
 }
 
-function CancelReadableStream(stream, reason) {
+export function CancelReadableStream(stream, reason) {
   stream._disturbed = true;
 
   if (stream._state === 'closed') {
@@ -375,7 +377,7 @@ function CancelReadableStream(stream, reason) {
 
   CloseReadableStream(stream);
 
-  const sourceCancelPromise = CancelReadableStreamController(stream._controller, reason);
+  const sourceCancelPromise = stream._controller._cancel(stream._controller, reason);
   return sourceCancelPromise.then(() => undefined);
 }
 
@@ -485,7 +487,7 @@ function GetNumReadRequests(stream) {
 }
 
 // Exposed to controllers.
-function CloseReadableStream(stream) {
+export function CloseReadableStream(stream) {
   assert(stream._state === 'readable');
 
   stream._state = 'closed';
@@ -496,10 +498,12 @@ function CloseReadableStream(stream) {
     return undefined;
   }
 
-  for (const { _resolve } of reader._readRequests) {
-    _resolve(CreateIterResultObject(undefined, true));
+  if (IsReadableStreamReader(reader) || IsReadableByteStreamReader(reader)) {
+    for (const { _resolve } of reader._readRequests) {
+      _resolve(CreateIterResultObject(undefined, true));
+    }
+    reader._readRequests = [];
   }
-  reader._readRequests = [];
 
   reader._closedPromise_resolve(undefined);
   reader._closedPromise_resolve = undefined;
