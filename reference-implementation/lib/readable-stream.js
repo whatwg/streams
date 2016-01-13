@@ -165,6 +165,7 @@ class ReadableStreamController {
     }
 
     this._cancel = CancelReadableStreamController;
+    this._pull = PullFromReadableStreamController;
 
     this._controlledReadableStream = stream;
 
@@ -632,7 +633,7 @@ function ReadFromReadableStreamReader(reader) {
   assert(stream._state === 'readable');
 
   // Controllers must implement this.
-  return PullFromReadableStreamController(stream._controller);
+  return stream._controller._pull(stream._controller);
 }
 
 function ReadableStreamControllerCallPullIfNeeded(controller) {

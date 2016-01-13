@@ -61,6 +61,7 @@ class ReadableByteStreamController {
     }
 
     this._cancel = CancelReadableByteStreamController;
+    this._pull = PullFromReadableByteStreamController;
 
     this._controlledReadableByteStream = controlledReadableByteStream;
 
@@ -199,7 +200,7 @@ class ReadableByteStreamReader {
     assert(stream._state === 'readable', 'The owner stream must be in readable state');
 
     // Controllers must implement this.
-    return PullFromReadableByteStream(stream._controller);
+    return stream._controller._pull(stream._controller);
   }
 
   releaseLock() {
@@ -304,7 +305,7 @@ class ReadableByteStreamByobReader {
     }
 
     // Controllers must implement this.
-    return PullFromReadableByteStreamInto(
+    return PullFromReadableByteStreamControllerInto(
         stream._controller, view.buffer, view.byteOffset, view.byteLength, ctor, elementSize);
   }
 
@@ -655,7 +656,7 @@ function IsReadableByteStreamLocked(stream) {
   return true;
 }
 
-function PullFromReadableByteStream(controller) {
+function PullFromReadableByteStreamController(controller) {
   const stream = controller._controlledReadableByteStream;
 
   if (GetNumReadRequests(stream) >= 1) {
@@ -690,7 +691,7 @@ function PullFromReadableByteStream(controller) {
   return promise;
 }
 
-function PullFromReadableByteStreamInto(controller, buffer, byteOffset, byteLength, ctor, elementSize) {
+function PullFromReadableByteStreamControllerInto(controller, buffer, byteOffset, byteLength, ctor, elementSize) {
   const stream = controller._controlledReadableByteStream;
 
   const pullIntoDescriptor = {
