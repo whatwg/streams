@@ -216,10 +216,15 @@ class ReadableByteStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    assert(this._ownerReadableStream._state === 'readable');
+    if (this._ownerReadableStream._state === 'readable') {
+      this._closedPromise_reject(
+        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
+    } else {
+      this._closedPromise = Promise.reject(
+        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
+    }
 
     ReleaseReadableByteStreamReaderGeneric(this);
-    CloseReadableStreamReaderGeneric(this);
   }
 }
 
@@ -317,10 +322,15 @@ class ReadableByteStreamByobReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    assert(this._ownerReadableStream._state === 'readable');
+    if (this._ownerReadableStream._state === 'readable') {
+      this._closedPromise_reject(
+        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
+    } else {
+      this._closedPromise = Promise.reject(
+        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
+    }
 
     ReleaseReadableByteStreamReaderGeneric(this);
-    CloseReadableStreamReaderGeneric(this);
   }
 }
 

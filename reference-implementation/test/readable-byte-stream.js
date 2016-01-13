@@ -30,9 +30,9 @@ test('ReadableByteStream: getReader(), then releaseLock()', t => {
   reader.releaseLock();
 
   reader.closed.then(() => {
+    t.fail('closed must be rejected');
     t.end();
   }).catch(e => {
-    t.fail(e);
     t.end();
   });
 });
@@ -53,9 +53,9 @@ test('ReadableByteStream: getByobReader(), then releaseLock()', t => {
   reader.releaseLock();
 
   reader.closed.then(() => {
+    t.fail('closed must be rejected');
     t.end();
   }).catch(e => {
-    t.fail(e);
     t.end();
   });
 });
