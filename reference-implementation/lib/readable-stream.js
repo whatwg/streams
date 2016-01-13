@@ -262,26 +262,9 @@ class ReadableStreamReader {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
-    this._ownerReadableStream = stream;
-    stream._reader = this;
+    InitializeReadableStreamReaderGeneric(this, stream);
 
     this._readRequests = [];
-
-    if (stream._state === 'readable') {
-      this._closedPromise = new Promise((resolve, reject) => {
-        this._closedPromise_resolve = resolve;
-        this._closedPromise_reject = reject;
-      });
-    } else if (stream._state === 'closed') {
-      this._closedPromise = Promise.resolve(undefined);
-      this._closedPromise_resolve = undefined;
-      this._closedPromise_reject = undefined;
-    } else {
-      assert(stream._state === 'errored');
-      this._closedPromise = Promise.reject(stream._storedError);
-      this._closedPromise_resolve = undefined;
-      this._closedPromise_reject = undefined;
-    }
   }
 
   get closed() {
@@ -520,6 +503,30 @@ export function CloseReadableStreamReaderGeneric(reader) {
 function GetReadableStreamControllerDesiredSize(controller) {
   const queueSize = GetTotalQueueSize(controller._queue);
   return controller._strategyHWM - queueSize;
+}
+
+export function InitializeReadableStreamReaderGeneric(reader, stream) {
+  reader._ownerReadableStream = stream;
+  stream._reader = reader;
+
+  if (stream._state === 'readable') {
+    reader._closedPromise = new Promise((resolve, reject) => {
+      reader._closedPromise_resolve = resolve;
+      reader._closedPromise_reject = reject;
+    });
+  } else {
+    if (stream._state === 'closed') {
+      reader._closedPromise = Promise.resolve(undefined);
+      reader._closedPromise_resolve = undefined;
+      reader._closedPromise_reject = undefined;
+    } else {
+      assert(stream._state === 'errored', 'state must be errored');
+
+      reader._closedPromise = Promise.reject(stream._storedError);
+      reader._closedPromise_resolve = undefined;
+      reader._closedPromise_reject = undefined;
+    }
+  }
 }
 
 export function IsReadableByteStreamReader(x) {

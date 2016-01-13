@@ -1,7 +1,7 @@
 const assert = require('assert');
 import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject } from './helpers';
-import { CancelReadableStream, CloseReadableStream, CloseReadableStreamReaderGeneric, IsReadableStream,
-         IsReadableByteStreamReader } from './readable-stream';
+import { CancelReadableStream, CloseReadableStream, CloseReadableStreamReaderGeneric,
+         InitializeReadableStreamReaderGeneric, IsReadableStream, IsReadableByteStreamReader } from './readable-stream';
 
 export default class ReadableByteStream {
   constructor(underlyingByteSource = {}) {
@@ -147,7 +147,7 @@ class ReadableByteStreamReader {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
-    InitializeReadableByteStreamReaderGeneric(this, stream);
+    InitializeReadableStreamReaderGeneric(this, stream);
 
     this._readRequests = [];
   }
@@ -237,7 +237,7 @@ class ReadableByteStreamByobReader {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');
     }
 
-    InitializeReadableByteStreamReaderGeneric(this, stream);
+    InitializeReadableStreamReaderGeneric(this, stream);
 
     this._readIntoRequests = [];
   }
@@ -617,30 +617,6 @@ function GetNumReadRequests(stream) {
 // Exposed to controllers.
 function GetNumReadIntoRequests(stream) {
   return stream._reader._readIntoRequests.length;
-}
-
-function InitializeReadableByteStreamReaderGeneric(reader, stream) {
-  reader._ownerReadableStream = stream;
-  stream._reader = reader;
-
-  if (stream._state === 'readable') {
-    reader._closedPromise = new Promise((resolve, reject) => {
-      reader._closedPromise_resolve = resolve;
-      reader._closedPromise_reject = reject;
-    });
-  } else {
-    if (stream._state === 'closed') {
-      reader._closedPromise = Promise.resolve(undefined);
-      reader._closedPromise_resolve = undefined;
-      reader._closedPromise_reject = undefined;
-    } else {
-      assert(stream._state === 'errored', 'state must be errored');
-
-      reader._closedPromise = Promise.reject(stream._storedError);
-      reader._closedPromise_resolve = undefined;
-      reader._closedPromise_reject = undefined;
-    }
-  }
 }
 
 function IsReadableByteStreamByobReader(x) {
