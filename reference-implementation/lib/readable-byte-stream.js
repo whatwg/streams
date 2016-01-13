@@ -1,6 +1,7 @@
 const assert = require('assert');
 import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject } from './helpers';
-import { CancelReadableStream, CloseReadableStream } from './readable-stream';
+import { CancelReadableStream, CloseReadableStream, CloseReadableStreamReaderGeneric, IsReadableStream,
+         IsReadableByteStreamReader } from './readable-stream';
 
 export default class ReadableByteStream {
   constructor(underlyingByteSource = {}) {
@@ -19,7 +20,7 @@ export default class ReadableByteStream {
   }
 
   cancel(reason) {
-    if (IsReadableByteStream(this) === false) {
+    if (IsReadableStream(this) === false) {
       return Promise.reject(
           new TypeError('ReadableByteStream.prototype.cancel can only be used on a ReadableByteStream'));
     }
@@ -32,7 +33,7 @@ export default class ReadableByteStream {
   }
 
   getByobReader() {
-    if (IsReadableByteStream(this) === false) {
+    if (IsReadableStream(this) === false) {
       throw new TypeError('ReadableByteStream.prototype.getByobReader can only be used on a ReadableByteStream');
     }
 
@@ -40,7 +41,7 @@ export default class ReadableByteStream {
   }
 
   getReader() {
-    if (IsReadableByteStream(this) === false) {
+    if (IsReadableStream(this) === false) {
       throw new TypeError('ReadableByteStream.prototype.getReader can only be used on a ReadableByteStream');
     }
 
@@ -50,7 +51,7 @@ export default class ReadableByteStream {
 
 class ReadableByteStreamController {
   constructor(controlledReadableByteStream, underlyingByteSource) {
-    if (IsReadableByteStream(controlledReadableByteStream) === false) {
+    if (IsReadableStream(controlledReadableByteStream) === false) {
       throw new TypeError('ReadableByteStreamController can only be constructed with a ReadableByteStream instance');
     }
 
@@ -139,7 +140,7 @@ class ReadableByteStreamController {
 
 class ReadableByteStreamReader {
   constructor(stream) {
-    if (!IsReadableByteStream(stream)) {
+    if (!IsReadableStream(stream)) {
       throw new TypeError('ReadableByteStreamReader can only be constructed with a ReadableByteStream instance');
     }
     if (IsReadableByteStreamLocked(stream)) {
@@ -218,13 +219,13 @@ class ReadableByteStreamReader {
     assert(this._ownerReadableByteStream._state === 'readable');
 
     ReleaseReadableByteStreamReaderGeneric(this);
-    CloseReadableByteStreamReaderGeneric(this);
+    CloseReadableStreamReaderGeneric(this);
   }
 }
 
 class ReadableByteStreamByobReader {
   constructor(stream) {
-    if (!IsReadableByteStream(stream)) {
+    if (!IsReadableStream(stream)) {
       throw new TypeError('ReadableByteStreamByobReader can only be constructed with a ReadableByteStream instance');
     }
     if (IsReadableByteStreamLocked(stream)) {
@@ -319,7 +320,7 @@ class ReadableByteStreamByobReader {
     assert(this._ownerReadableByteStream._state === 'readable');
 
     ReleaseReadableByteStreamReaderGeneric(this);
-    CloseReadableByteStreamReaderGeneric(this);
+    CloseReadableStreamReaderGeneric(this);
   }
 }
 
@@ -456,12 +457,6 @@ function CloseReadableByteStreamController(controller) {
   CloseReadableStream(stream);
 }
 
-function CloseReadableByteStreamReaderGeneric(reader) {
-  reader._closedPromise_resolve(undefined);
-  reader._closedPromise_resolve = undefined;
-  reader._closedPromise_reject = undefined;
-}
-
 function TransferArrayBuffer(buffer) {
   // No-op. Just for marking places where detaching an ArrayBuffer is required.
 
@@ -514,7 +509,7 @@ function EnqueueChunkToQueueOfController(controller, buffer, byteOffset, byteLen
 
 // Exposed to controllers.
 function ErrorReadableByteStream(stream, e) {
-  assert(IsReadableByteStream(stream), 'stream must be ReadableByteStream');
+  assert(IsReadableStream(stream), 'stream must be ReadableByteStream');
   assert(stream._state === 'readable', 'state must be readable');
 
   stream._state = 'errored';
@@ -638,18 +633,6 @@ function InitializeReadableByteStreamReaderGeneric(reader, stream) {
   }
 }
 
-function IsReadableByteStream(x) {
-  if (!typeIsObject(x)) {
-    return false;
-  }
-
-  if (!Object.prototype.hasOwnProperty.call(x, '_controller')) {
-    return false;
-  }
-
-  return true;
-}
-
 function IsReadableByteStreamByobReader(x) {
   if (!typeIsObject(x)) {
     return false;
@@ -676,22 +659,10 @@ function IsReadableByteStreamController(x) {
 
 // Exposed to controllers.
 function IsReadableByteStreamLocked(stream) {
-  assert(IsReadableByteStream(stream),
+  assert(IsReadableStream(stream),
          'IsReadableByteStreamLocked should only be used on known readable byte streams');
 
   if (stream._reader === undefined) {
-    return false;
-  }
-
-  return true;
-}
-
-export function IsReadableByteStreamReader(x) {
-  if (!typeIsObject(x)) {
-    return false;
-  }
-
-  if (!Object.prototype.hasOwnProperty.call(x, '_readRequests')) {
     return false;
   }
 

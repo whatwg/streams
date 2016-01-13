@@ -505,11 +505,15 @@ export function CloseReadableStream(stream) {
     reader._readRequests = [];
   }
 
+  CloseReadableStreamReaderGeneric(reader);
+
+  return undefined;
+}
+
+export function CloseReadableStreamReaderGeneric(reader) {
   reader._closedPromise_resolve(undefined);
   reader._closedPromise_resolve = undefined;
   reader._closedPromise_reject = undefined;
-
-  return undefined;
 }
 
 // A client of ReadableStreamController may use this function directly to bypass state check.
@@ -518,7 +522,19 @@ function GetReadableStreamControllerDesiredSize(controller) {
   return controller._strategyHWM - queueSize;
 }
 
-function IsReadableStream(x) {
+export function IsReadableByteStreamReader(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_readRequests')) {
+    return false;
+  }
+
+  return true;
+}
+
+export function IsReadableStream(x) {
   if (!typeIsObject(x)) {
     return false;
   }
