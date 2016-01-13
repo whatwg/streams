@@ -498,7 +498,7 @@ export function CloseReadableStream(stream) {
     return undefined;
   }
 
-  if (IsReadableStreamReader(reader) || IsReadableByteStreamReader(reader)) {
+  if (IsReadableStreamReader(reader)) {
     for (const { _resolve } of reader._readRequests) {
       _resolve(CreateIterResultObject(undefined, true));
     }
@@ -580,7 +580,7 @@ function IsReadableStreamReader(x) {
     return false;
   }
 
-  if (!Object.prototype.hasOwnProperty.call(x, '_ownerReadableStream')) {
+  if (!Object.prototype.hasOwnProperty.call(x, '_readRequests')) {
     return false;
   }
 

@@ -167,11 +167,11 @@ class ReadableByteStreamReader {
         new TypeError('ReadableByteStreamReader.prototype.cancel can only be used on a ReadableByteStreamReader'));
     }
 
-    if (this._ownerReadableByteStream === undefined) {
+    if (this._ownerReadableStream === undefined) {
       return Promise.reject(new TypeError('Cannot cancel a stream using a released reader'));
     }
 
-    return CancelReadableStream(this._ownerReadableByteStream, reason);
+    return CancelReadableStream(this._ownerReadableStream, reason);
   }
 
   read() {
@@ -180,11 +180,11 @@ class ReadableByteStreamReader {
         new TypeError('ReadableByteStreamReader.prototype.read can only be used on a ReadableByteStreamReader'));
     }
 
-    if (this._ownerReadableByteStream === undefined) {
+    if (this._ownerReadableStream === undefined) {
       return Promise.reject(new TypeError('Cannot read from a released reader'));
     }
 
-    const stream = this._ownerReadableByteStream;
+    const stream = this._ownerReadableStream;
 
     stream._disturbed = true;
 
@@ -208,7 +208,7 @@ class ReadableByteStreamReader {
           'ReadableByteStreamReader.prototype.releaseLock can only be used on a ReadableByteStreamReader');
     }
 
-    if (this._ownerReadableByteStream === undefined) {
+    if (this._ownerReadableStream === undefined) {
       return;
     }
 
@@ -216,7 +216,7 @@ class ReadableByteStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    assert(this._ownerReadableByteStream._state === 'readable');
+    assert(this._ownerReadableStream._state === 'readable');
 
     ReleaseReadableByteStreamReaderGeneric(this);
     CloseReadableStreamReaderGeneric(this);
@@ -254,11 +254,11 @@ class ReadableByteStreamByobReader {
             'ReadableByteStreamByobReader.prototype.cancel can only be used on a ReadableByteStreamByobReader'));
     }
 
-    if (this._ownerReadableByteStream === undefined) {
+    if (this._ownerReadableStream === undefined) {
       return Promise.reject(new TypeError('Cannot cancel a stream using a released reader'));
     }
 
-    return CancelReadableStream(this._ownerReadableByteStream, reason);
+    return CancelReadableStream(this._ownerReadableStream, reason);
   }
 
   read(view) {
@@ -268,11 +268,11 @@ class ReadableByteStreamByobReader {
             'ReadableByteStreamByobReader.prototype.read can only be used on a ReadableByteStreamByobReader'));
     }
 
-    if (this._ownerReadableByteStream === undefined) {
+    if (this._ownerReadableStream === undefined) {
       return Promise.reject(new TypeError('Cannot read from a released reader'));
     }
 
-    const stream = this._ownerReadableByteStream;
+    const stream = this._ownerReadableStream;
 
     stream._disturbed = true;
 
@@ -309,7 +309,7 @@ class ReadableByteStreamByobReader {
           'ReadableByteStreamByobReader.prototype.releaseLock can only be used on a ReadableByteStreamByobReader');
     }
 
-    if (this._ownerReadableByteStream === undefined) {
+    if (this._ownerReadableStream === undefined) {
       return;
     }
 
@@ -317,7 +317,7 @@ class ReadableByteStreamByobReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    assert(this._ownerReadableByteStream._state === 'readable');
+    assert(this._ownerReadableStream._state === 'readable');
 
     ReleaseReadableByteStreamReaderGeneric(this);
     CloseReadableStreamReaderGeneric(this);
@@ -464,11 +464,11 @@ function TransferArrayBuffer(buffer) {
 }
 
 function ReleaseReadableByteStreamReaderGeneric(reader) {
-  assert(reader._ownerReadableByteStream._reader !== undefined);
-  assert(reader._ownerReadableByteStream !== undefined);
+  assert(reader._ownerReadableStream._reader !== undefined);
+  assert(reader._ownerReadableStream !== undefined);
 
-  reader._ownerReadableByteStream._reader = undefined;
-  reader._ownerReadableByteStream = undefined;
+  reader._ownerReadableStream._reader = undefined;
+  reader._ownerReadableStream = undefined;
 }
 
 // A client of ReadableByteStreamController may use this function directly to bypass state check.
@@ -610,7 +610,7 @@ function GetNumReadIntoRequests(stream) {
 }
 
 function InitializeReadableByteStreamReaderGeneric(reader, stream) {
-  reader._ownerReadableByteStream = stream;
+  reader._ownerReadableStream = stream;
   stream._reader = reader;
 
   if (stream._state === 'readable') {
