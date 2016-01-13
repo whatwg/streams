@@ -42,7 +42,7 @@ promise_test(t => {
 
   assert_throws(thrownError, () => controller.enqueue('a'), 'enqueue should re-throw the error');
 
-  return promise_rejects(t, controllerError, rs.getReader().closed);
+  return promise_rejects(t, controllerError, rs.getReader().closed, 'closed should reject with the controller error');
 
 }, 'Readable stream: strategy.size errors the stream and then throws');
 
