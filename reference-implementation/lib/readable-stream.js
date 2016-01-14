@@ -20,7 +20,7 @@ export default class ReadableStream {
     if (underlyingSource['pullInto'] == undefined) {
       this._controller = new ReadableStreamController(this, underlyingSource, size, highWaterMark);
     } else {
-      this._controller = new ReadableByteStreamController(this, underlyingSource);
+      this._controller = new ReadableByteStreamController(this, underlyingSource, size, highWaterMark);
     }
   }
 
@@ -457,7 +457,7 @@ class ReadableStreamController {
 }
 
 class ReadableByteStreamController {
-  constructor(controlledReadableStream, underlyingByteSource) {
+  constructor(controlledReadableStream, underlyingByteSource, size, highWaterMark) {
     if (IsReadableStream(controlledReadableStream) === false) {
       throw new TypeError('ReadableByteStreamController can only be constructed with a ReadableByteStream instance');
     }
@@ -484,7 +484,42 @@ class ReadableByteStreamController {
 
     this._closeRequested = false;
 
-    InvokeOrNoop(underlyingByteSource, 'start', [this]);
+    this._started = false;
+
+    highWaterMark = Number(highWaterMark);
+    if (Number.isNaN(highWaterMark)) {
+      throw new TypeError('highWaterMark property of a queuing strategy must be convertible to a non-NaN number');
+    }
+    if (highWaterMark < 0) {
+      throw new RangeError('highWaterMark property of a queuing strategy must be nonnegative');
+    }
+    this._strategyHWM = highWaterMark;
+
+    const controller = this;
+
+    const startResult = InvokeOrNoop(underlyingByteSource, 'start', [this]);
+    Promise.resolve(startResult).then(
+      () => {
+        controller._started = true;
+        controller._pullAgain = true;
+        ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
+      },
+      r => {
+        if (controlledReadableStream._state === 'readable') {
+          return ErrorReadableStreamController(controller, r);
+        }
+      }
+    )
+    .catch(rethrowAssertionErrorRejection);
+  }
+
+  get desiredSize() {
+    if (IsReadableByteStreamController(this) === false) {
+      throw new TypeError(
+        'ReadableByteStreamController.prototype.desiredSize can only be used on a ReadableByteStreamController');
+    }
+
+    return GetReadableByteStreamControllerDesiredSize(this);
   }
 
   close() {
@@ -1155,6 +1190,11 @@ function ShouldPullReadableStreamController(controller) {
 // Abstract operations for the ReadableByteStreamController.
 
 // A client of ReadableByteStreamController may use this function directly to bypass state check.
+function GetReadableByteStreamControllerDesiredSize(controller) {
+  return controller._strategyHWM - controller._totalQueuedBytes;
+}
+
+// A client of ReadableByteStreamController may use this function directly to bypass state check.
 function CloseReadableByteStreamController(controller) {
   const stream = controller._controlledReadableStream;
 
@@ -1194,13 +1234,14 @@ function EnqueueInReadableByteStreamController(controller, chunk) {
       RespondToReadRequest(stream, transferredView);
 
       if (GetNumReadRequests(stream) > 0) {
-        ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(controller);
+        return;
       }
     }
   } else if (ReadableStreamHasByobReader(stream)) {
     // TODO: Ideally this detaching should happen only if the buffer is not consumed fully.
     EnqueueChunkToQueueOfController(controller, TransferArrayBuffer(buffer), byteOffset, byteLength);
     RespondToReadIntoRequestsFromQueue(controller);
+    return;
   } else {
     assert(!IsReadableStreamLocked(stream), 'stream must not be locked');
     EnqueueChunkToQueueOfController(controller, TransferArrayBuffer(buffer), byteOffset, byteLength);
@@ -1299,11 +1340,29 @@ function FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
   return ready;
 }
 
+function ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(controller) {
+  const shouldPull = ShouldPullReadableByteStreamController(controller);
+  if (shouldPull === false) {
+    return;
+  }
+
+  if (controller._pulling) {
+    controller._pullAgain = true;
+    return;
+  }
+
+  ReadableByteStreamControllerCallPull(controller);
+  ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
+}
+
 function PullFromReadableByteStreamController(controller) {
   const stream = controller._controlledReadableStream;
 
   if (GetNumReadRequests(stream) >= 1) {
     const pendingPromise = AddReadRequestToReadableStream(stream);
+
+    ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(controller);
+
     return pendingPromise;
   }
 
@@ -1316,6 +1375,8 @@ function PullFromReadableByteStreamController(controller) {
 
     if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
       CloseReadableStream(stream);
+    } else {
+      ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(controller);
     }
 
     return promise;
@@ -1323,13 +1384,7 @@ function PullFromReadableByteStreamController(controller) {
 
   const promise = AddReadRequestToReadableStream(stream);
 
-  if (controller._pulling) {
-    controller._pullAgain = true;
-    return promise;
-  }
-
-  ReadableByteStreamControllerCallPull(controller);
-  ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
+  ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(controller);
 
   return promise;
 }
@@ -1368,6 +1423,8 @@ function PullFromReadableByteStreamControllerInto(controller, buffer, byteOffset
 
       if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
         CloseReadableStream(stream);
+      } else {
+        ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(controller);
       }
 
       return promise;
@@ -1385,6 +1442,10 @@ function PullFromReadableByteStreamControllerInto(controller, buffer, byteOffset
   controller._pendingPullIntos.push(pullIntoDescriptor);
 
   const promise = AddReadIntoRequestToReadableStream(stream, byteOffset, byteLength, ctor, elementSize);
+
+  if (controller._started === false) {
+    return promise;
+  }
 
   if (controller._pulling) {
     controller._pullAgain = true;
@@ -1435,6 +1496,10 @@ function ReadableByteStreamControllerCallPullInto(controller) {
 }
 
 function ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(controller) {
+  if (controller._started === false) {
+    return;
+  }
+
   controller._pullAgain = true;
 
   if (controller._pulling) {
@@ -1445,6 +1510,8 @@ function ReadableByteStreamControllerCallPullOrPullIntoLaterIfNeeded(controller)
 }
 
 function ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller) {
+  assert(controller._started === true);
+
   const stream = controller._controlledReadableStream;
 
   while (true) {
@@ -1459,18 +1526,18 @@ function ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(contro
       return;
     }
 
-    if (ReadableStreamHasReader(stream)) {
-      if (GetNumReadRequests(stream) === 0) {
-        return;
-      }
-
+    if (ReadableStreamHasReader(stream) && GetNumReadRequests(stream) > 0) {
       ReadableByteStreamControllerCallPull(controller);
-    } else if (ReadableStreamHasByobReader(stream)) {
-      if (GetNumReadIntoRequests(stream) === 0) {
+    } else if (ReadableStreamHasByobReader(stream) && GetNumReadIntoRequests(stream) > 0) {
+      ReadableByteStreamControllerCallPullInto(controller);
+    } else {
+      const desiredSize = GetReadableByteStreamControllerDesiredSize(controller);
+      if (desiredSize > 0) {
+        ReadableByteStreamControllerCallPull(controller);
+      } else {
+        controller._pullAgain = false;
         return;
       }
-
-      ReadableByteStreamControllerCallPullInto(controller);
     }
   }
 }
@@ -1551,6 +1618,25 @@ function RespondToReadIntoRequestsFromQueue(controller) {
       RespondToReadIntoRequest(controller._controlledReadableStream, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
     }
   }
+}
+
+function ShouldPullReadableByteStreamController(controller) {
+  const stream = controller._controlledReadableStream;
+
+  if (controller._started === false) {
+    return false;
+  }
+
+  if (ReadableStreamHasReader(stream) && GetNumReadRequests(stream) > 0) {
+    return true;
+  }
+
+  const desiredSize = GetReadableByteStreamControllerDesiredSize(controller);
+  if (desiredSize > 0) {
+    return true;
+  }
+
+  return false;
 }
 
 // Other abstract operations
