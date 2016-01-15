@@ -351,9 +351,6 @@ class ReadableStreamController {
       throw new TypeError('ReadableStreamController instances can only be created by the ReadableStream constructor');
     }
 
-    this._cancel = CancelReadableStreamController;
-    this._pull = PullFromReadableStreamController;
-
     this._controlledReadableStream = stream;
 
     this._underlyingSource = underlyingSource;
@@ -439,6 +436,32 @@ class ReadableStreamController {
 
     return ErrorReadableStreamController(this, e);
   }
+
+  _cancel(reason) {
+    this._queue = [];
+
+    return PromiseInvokeOrNoop(this._underlyingSource, 'cancel', [reason]);
+  }
+
+  _pull() {
+    const stream = this._controlledReadableStream;
+
+    if (this._queue.length > 0) {
+      const chunk = DequeueValue(this._queue);
+
+      if (this._closeRequested === true && this._queue.length === 0) {
+        CloseReadableStream(stream);
+      } else {
+        ReadableStreamControllerCallPullIfNeeded(this);
+      }
+
+      return Promise.resolve(CreateIterResultObject(chunk, false));
+    }
+
+    const pendingPromise = AddReadRequestToReadableStream(stream);
+    ReadableStreamControllerCallPullIfNeeded(this);
+    return pendingPromise;
+  }
 }
 
 class ReadableByteStreamController {
@@ -451,9 +474,6 @@ class ReadableByteStreamController {
       throw new TypeError(
           'ReadableByteStreamController instances can only be created by the ReadableByteStream constructor');
     }
-
-    this._cancel = CancelReadableByteStreamController;
-    this._pull = PullFromReadableByteStreamController;
 
     this._controlledReadableStream = controlledReadableStream;
 
@@ -556,6 +576,51 @@ class ReadableByteStreamController {
     }
 
     RespondToReadableByteStreamController(this, bytesWritten, buffer);
+  }
+
+  _cancel(reason) {
+    if (this._pendingPullIntos.length > 0) {
+      this._pendingPullIntos[0].bytesFilled = 0;
+    }
+
+    this._queue = [];
+    this._totalQueuedBytes = 0;
+
+    return PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
+  }
+
+  _pull() {
+    const stream = this._controlledReadableStream;
+
+    if (GetNumReadRequests(stream) >= 1) {
+      const pendingPromise = AddReadRequestToReadableStream(stream);
+
+      ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(this);
+
+      return pendingPromise;
+    }
+
+    if (this._totalQueuedBytes > 0) {
+      const entry = this._queue.shift();
+      this._totalQueuedBytes -= entry.byteLength;
+
+      const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
+      const promise = Promise.resolve(CreateIterResultObject(view, false));
+
+      if (this._totalQueuedBytes === 0 && this._closeRequested) {
+        CloseReadableStream(stream);
+      } else {
+        ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(this);
+      }
+
+      return promise;
+    }
+
+    const promise = AddReadRequestToReadableStream(stream);
+
+    ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(this);
+
+    return promise;
   }
 }
 
@@ -942,8 +1007,7 @@ function CancelReadableStream(stream, reason) {
 
   CloseReadableStream(stream);
 
-  const controller = stream._readableStreamController;
-  const sourceCancelPromise = controller._cancel(controller, reason);
+  const sourceCancelPromise = stream._readableStreamController._cancel(reason);
   return sourceCancelPromise.then(() => undefined);
 }
 
@@ -965,8 +1029,7 @@ function ReadFromReadableStreamReader(reader) {
 
   assert(stream._state === 'readable');
 
-  const controller = stream._readableStreamController;
-  return controller._pull(controller);
+  return stream._readableStreamController._pull();
 }
 
 function InitializeReadableStreamReaderGeneric(reader, stream) {
@@ -1090,32 +1153,6 @@ function ErrorReadableStreamController(controller, e) {
   controller._queue = [];
 
   ErrorReadableStream(stream, e);
-}
-
-function CancelReadableStreamController(controller, reason) {
-  controller._queue = [];
-
-  return PromiseInvokeOrNoop(controller._underlyingSource, 'cancel', [reason]);
-}
-
-function PullFromReadableStreamController(controller) {
-  const stream = controller._controlledReadableStream;
-
-  if (controller._queue.length > 0) {
-    const chunk = DequeueValue(controller._queue);
-
-    if (controller._closeRequested === true && controller._queue.length === 0) {
-      CloseReadableStream(stream);
-    } else {
-      ReadableStreamControllerCallPullIfNeeded(controller);
-    }
-
-    return Promise.resolve(CreateIterResultObject(chunk, false));
-  }
-
-  const pendingPromise = AddReadRequestToReadableStream(stream);
-  ReadableStreamControllerCallPullIfNeeded(controller);
-  return pendingPromise;
 }
 
 function ReadableStreamControllerCallPullIfNeeded(controller) {
@@ -1279,14 +1316,6 @@ function RespondToReadableByteStreamController(controller, bytesWritten, buffer)
 }
 
 function CancelReadableByteStreamController(controller, reason) {
-  if (controller._pendingPullIntos.length > 0) {
-    controller._pendingPullIntos[0].bytesFilled = 0;
-  }
-
-  controller._queue = [];
-  controller._totalQueuedBytes = 0;
-
-  return PromiseInvokeOrNoop(controller._underlyingByteSource, 'cancel', [reason]);
 }
 
 function EnqueueChunkToQueueOfController(controller, buffer, byteOffset, byteLength) {
@@ -1357,40 +1386,6 @@ function ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(controlle
 
   ReadableByteStreamControllerCallPull(controller);
   ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
-}
-
-function PullFromReadableByteStreamController(controller) {
-  const stream = controller._controlledReadableStream;
-
-  if (GetNumReadRequests(stream) >= 1) {
-    const pendingPromise = AddReadRequestToReadableStream(stream);
-
-    ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(controller);
-
-    return pendingPromise;
-  }
-
-  if (controller._totalQueuedBytes > 0) {
-    const entry = controller._queue.shift();
-    controller._totalQueuedBytes -= entry.byteLength;
-
-    const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
-    const promise = Promise.resolve(CreateIterResultObject(view, false));
-
-    if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
-      CloseReadableStream(stream);
-    } else {
-      ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(controller);
-    }
-
-    return promise;
-  }
-
-  const promise = AddReadRequestToReadableStream(stream);
-
-  ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(controller);
-
-  return promise;
 }
 
 function PullFromReadableByteStreamControllerInto(controller, buffer, byteOffset, byteLength, ctor, elementSize) {

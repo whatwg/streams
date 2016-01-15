@@ -85,7 +85,7 @@ test(() => {
     start(controller) {
       assert_equals(this, source, 'source is this during start');
 
-      const methods = ['close', 'enqueue', 'error', 'constructor'];
+      const methods = ['_cancel', '_pull', 'close', 'enqueue', 'error', 'constructor'];
       const properties = ['desiredSize'].concat(methods).sort();
       const proto = Object.getPrototypeOf(controller);
 
@@ -126,7 +126,7 @@ test(() => {
   let startCalled = false;
   const source = {
     start(controller) {
-      const properties = ['close', 'constructor', 'desiredSize', 'enqueue', 'error'];
+      const properties = ['_cancel', '_pull', 'close', 'constructor', 'desiredSize', 'enqueue', 'error'];
       assert_array_equals(Object.getOwnPropertyNames(Object.getPrototypeOf(controller)).sort(), properties,
         'prototype should have the right properties');
 
