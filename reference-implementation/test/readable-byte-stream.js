@@ -7,15 +7,53 @@ test('ReadableStream with byte source can be constructed with no errors', t => {
   t.end();
 });
 
-test('ReadableStream with byte source: Construct and expect pull being called', t => {
+test('ReadableStream with byte source: Construct and expect start and pull being called', t => {
+  let startCalled = false;
+
   const stream = new ReadableStream({
+    start() {
+      startCalled = true;
+    },
     pull() {
+      t.ok(startCalled);
       t.end();
     },
     pullInto() {
       t.fail('pullInto must not be called');
       t.end();
     }
+  });
+});
+
+test('ReadableStream with byte source: No automatic pull call if start doesn\'t finish', t => {
+  let pullCount = 0;
+  let checkedNoPull = false;
+
+  let resolveStartPromise;
+
+  const stream = new ReadableStream({
+    start() {
+      return new Promise((resolve) => {
+        resolveStartPromise = resolve;
+      });
+    },
+    pull() {
+      ++pullCount;
+
+      if (checkedNoPull) {
+        t.end();
+      }
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 0);
+    checkedNoPull = true;
+    resolveStartPromise();
   });
 });
 
