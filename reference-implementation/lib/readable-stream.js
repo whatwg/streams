@@ -16,11 +16,11 @@ export default class ReadableStream {
 
     // Initialize to undefined first because the constructor of the controller checks this
     // variable to validate the caller.
-    this._controller = undefined;
+    this._readableStreamController = undefined;
     if (underlyingSource['pullInto'] == undefined) {
-      this._controller = new ReadableStreamController(this, underlyingSource, size, highWaterMark);
+      this._readableStreamController = new ReadableStreamController(this, underlyingSource, size, highWaterMark);
     } else {
-      this._controller = new ReadableByteStreamController(this, underlyingSource, size, highWaterMark);
+      this._readableStreamController = new ReadableByteStreamController(this, underlyingSource, size, highWaterMark);
     }
   }
 
@@ -49,7 +49,7 @@ export default class ReadableStream {
       throw new TypeError('ReadableByteStream.prototype.getBYOBReader can only be used on a ReadableByteStream');
     }
 
-    if (IsReadableByteStreamController(this._controller) === false) {
+    if (IsReadableByteStreamController(this._readableStreamController) === false) {
       throw new TypeError('Cannot get a ReadableStreamBYOBReader for a stream not constructed with a byte source');
     }
 
@@ -325,7 +325,7 @@ class ReadableStreamBYOBReader {
 
     // Controllers must implement this.
     return PullFromReadableByteStreamControllerInto(
-        stream._controller, view.buffer, view.byteOffset, view.byteLength, ctor, elementSize);
+        stream._readableStreamController, view.buffer, view.byteOffset, view.byteLength, ctor, elementSize);
   }
 
   releaseLock() {
@@ -362,7 +362,7 @@ class ReadableStreamController {
       throw new TypeError('ReadableStreamController can only be constructed with a ReadableStream instance');
     }
 
-    if (stream._controller !== undefined) {
+    if (stream._readableStreamController !== undefined) {
       throw new TypeError('ReadableStreamController instances can only be created by the ReadableStream constructor');
     }
 
@@ -462,7 +462,7 @@ class ReadableByteStreamController {
       throw new TypeError('ReadableByteStreamController can only be constructed with a ReadableByteStream instance');
     }
 
-    if (controlledReadableStream._controller !== undefined) {
+    if (controlledReadableStream._readableStreamController !== undefined) {
       throw new TypeError(
           'ReadableByteStreamController instances can only be created by the ReadableByteStream constructor');
     }
@@ -637,8 +637,8 @@ function TeeReadableStream(stream, shouldClone) {
   createDataProperty(underlyingSource2, 'cancel', cancel2);
   const branch2Stream = new ReadableStream(underlyingSource2);
 
-  pull._branch1 = branch1Stream._controller;
-  pull._branch2 = branch2Stream._controller;
+  pull._branch1 = branch1Stream._readableStreamController;
+  pull._branch2 = branch2Stream._readableStreamController;
 
   reader._closedPromise.catch(r => {
     if (teeState.closedOrErrored === true) {
@@ -736,7 +736,7 @@ function IsReadableStream(x) {
     return false;
   }
 
-  if (!Object.prototype.hasOwnProperty.call(x, '_controller')) {
+  if (!Object.prototype.hasOwnProperty.call(x, '_readableStreamController')) {
     return false;
   }
 
@@ -962,7 +962,8 @@ function CancelReadableStream(stream, reason) {
 
   CloseReadableStream(stream);
 
-  const sourceCancelPromise = stream._controller._cancel(stream._controller, reason);
+  const controller = stream._readableStreamController;
+  const sourceCancelPromise = controller._cancel(controller, reason);
   return sourceCancelPromise.then(() => undefined);
 }
 
@@ -984,7 +985,8 @@ function ReadFromReadableStreamReader(reader) {
 
   assert(stream._state === 'readable');
 
-  return stream._controller._pull(stream._controller);
+  const controller = stream._readableStreamController;
+  return controller._pull(controller);
 }
 
 function InitializeReadableStreamReaderGeneric(reader, stream) {
