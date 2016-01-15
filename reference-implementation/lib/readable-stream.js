@@ -1,6 +1,6 @@
 const assert = require('assert');
-import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeQueuingStrategy,
-         ValidateAndNormalizeHighWaterMark } from './helpers';
+import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, TransferArrayBuffer,
+         ValidateAndNormalizeQueuingStrategy, ValidateAndNormalizeHighWaterMark } from './helpers';
 import { createArrayFromList, createDataProperty, typeIsObject } from './helpers';
 import { rethrowAssertionErrorRejection } from './utils';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
@@ -237,7 +237,7 @@ class ReadableStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    ReleaseReadableStreamReaderGeneric(this);
+    ReleaseReadableStreamReader(this);
   }
 }
 
@@ -335,7 +335,7 @@ class ReadableStreamBYOBReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    ReleaseReadableStreamReaderGeneric(this);
+    ReleaseReadableStreamReader(this);
   }
 }
 
@@ -1032,6 +1032,23 @@ function ReadFromReadableStreamReader(reader) {
   return stream._readableStreamController._pull();
 }
 
+// A client of ReadableStreamReader may use this function directly to bypass state check.
+function ReleaseReadableStreamReader(reader) {
+  assert(reader._ownerReadableStream._reader !== undefined);
+  assert(reader._ownerReadableStream !== undefined);
+
+  if (reader._ownerReadableStream._state === 'readable') {
+    reader._closedPromise_reject(
+        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
+  } else {
+    reader._closedPromise = Promise.reject(
+        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
+  }
+
+  reader._ownerReadableStream._reader = undefined;
+  reader._ownerReadableStream = undefined;
+}
+
 function InitializeReadableStreamReaderGeneric(reader, stream) {
   reader._ownerReadableStream = stream;
   stream._reader = reader;
@@ -1054,22 +1071,6 @@ function InitializeReadableStreamReaderGeneric(reader, stream) {
       reader._closedPromise_reject = undefined;
     }
   }
-}
-
-function ReleaseReadableStreamReaderGeneric(reader) {
-  assert(reader._ownerReadableStream._reader !== undefined);
-  assert(reader._ownerReadableStream !== undefined);
-
-  if (reader._ownerReadableStream._state === 'readable') {
-    reader._closedPromise_reject(
-        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
-  } else {
-    reader._closedPromise = Promise.reject(
-        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
-  }
-
-  reader._ownerReadableStream._reader = undefined;
-  reader._ownerReadableStream = undefined;
 }
 
 // Abstract operations for the ReadableStreamController.
@@ -1634,12 +1635,4 @@ function ShouldPullReadableByteStreamController(controller) {
   }
 
   return false;
-}
-
-// Other abstract operations
-
-function TransferArrayBuffer(buffer) {
-  // No-op. Just for marking places where detaching an ArrayBuffer is required.
-
-  return buffer;
 }

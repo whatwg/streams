@@ -90,6 +90,12 @@ export function PromiseInvokeOrFallbackOrNoop(O, P1, args1, P2, args2) {
   }
 }
 
+export function TransferArrayBuffer(buffer) {
+  // No-op. Just for marking places where detaching an ArrayBuffer is required.
+
+  return buffer;
+}
+
 export function ValidateAndNormalizeHighWaterMark(highWaterMark) {
   highWaterMark = Number(highWaterMark);
   if (Number.isNaN(highWaterMark)) {
