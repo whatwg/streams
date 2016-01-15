@@ -1561,8 +1561,6 @@ function RespondToBYOBReaderInClosedState(controller, buffer) {
     const descriptor = controller._pendingPullIntos.shift();
     RespondToReadIntoRequest(stream, descriptor.buffer);
   }
-
-  ReleaseReadableStreamReaderGenericForController(controller._controlledReadableStream);
 }
 
 function RespondToBYOBReaderInReadableState(controller, bytesWritten, buffer) {
