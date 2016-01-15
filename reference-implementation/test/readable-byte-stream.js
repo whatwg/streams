@@ -6,6 +6,37 @@ test('ReadableByteStream can be constructed with no errors', t => {
   t.end();
 });
 
+test('ReadableByteStream: Construct and expect pull being called', t => {
+  const stream = new ReadableStream({
+    pull() {
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  });
+});
+
+test('ReadableByteStream: Construct with highWaterMark of 0', t => {
+  const stream = new ReadableStream({
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
+    pullInto() {
+      t.fail('pullInto must not be called');
+      t.end();
+    }
+  }, {
+    highWaterMark: 0
+  });
+
+  Promise.resolve().then(() => {
+    t.end();
+  });
+});
+
 test('ReadableByteStream: getReader(), then releaseLock()', t => {
   const rbs = new ReadableStream({
     pullInto() {
