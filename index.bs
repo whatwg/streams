@@ -400,10 +400,10 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
     <li> <code>start(controller)</code> is called immediately, and is typically used to adapt a <a>push
       source</a> by setting up relevant event listeners, or to acquire access to a <a>pull source</a>. If this process
       is asynchronous, it can return a promise to signal success or failure.
-    <li> <code>pull(controller)</code> is called when the stream's internal queue of chunks is depleted, and the
-      consumer has signaled that they wish to consume more data. If <code>pull</code> returns a promise, then
-      <code>pull</code> will not be called again until that promise fulfills; if the promise rejects, the stream will
-      become errored.
+    <li> <code>pull(controller)</code> is called when the stream's <a>internal queue</a> of chunks is not full, and
+      will be called repeatedly until the queue reaches its <a>high water mark</a>. If <code>pull</code> returns a
+      promise, then <code>pull</code> will not be called again until that promise fulfills; if the promise rejects, the
+      stream will become errored.
     <li> <code>cancel(reason)</code> is called when the consumer signals that they are no longer interested in the
       stream. It should perform any actions necessary to release access to the <a>underlying source</a>. If this
       process is asynchronous, it can return a promise to signal success or failure.
@@ -2829,6 +2829,7 @@ Dominic Tarr,
 Ed Hager,
 Forbes Lindesay,
 贺师俊 (hax),
+Jake Archibald,
 Jens Nockert,
 Mangala Sadhu Sangeet Singh Khalsa,
 Marcos Caceres,
@@ -2855,7 +2856,7 @@ Jake Verbaten for his early involvement and support;
 Janessa Det for the logo;
 Will Chan for his help ensuring that the API allows high-performance network streaming;
 and
-平野裕 (Yutaka Hirano) for his help with the readable stream reader design,
+平野裕 (Yutaka Hirano) for his help with the readable stream reader design.
 
 This standard is written by <a href="https://domenic.me/">Domenic Denicola</a>
 (<a href="https://google.com">Google</a>, <a href="mailto:d@domenic.me">d@domenic.me</a>) with substantial help from
