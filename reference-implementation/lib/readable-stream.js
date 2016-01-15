@@ -236,14 +236,6 @@ class ReadableStreamReader {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
     }
 
-    if (this._ownerReadableStream._state === 'readable') {
-      this._closedPromise_reject(
-        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
-    } else {
-      this._closedPromise = Promise.reject(
-        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
-    }
-
     ReleaseReadableStreamReaderGeneric(this);
   }
 }
@@ -340,14 +332,6 @@ class ReadableStreamBYOBReader {
 
     if (this._readIntoRequests.length > 0) {
       throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
-    }
-
-    if (this._ownerReadableStream._state === 'readable') {
-      this._closedPromise_reject(
-        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
-    } else {
-      this._closedPromise = Promise.reject(
-        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
     }
 
     ReleaseReadableStreamReaderGeneric(this);
@@ -908,10 +892,6 @@ function ReadableStreamHasReader(stream) {
   return reader != undefined && IsReadableStreamReader(reader);
 }
 
-function ReleaseReadableStreamReaderGenericForController(stream) {
-  ReleaseReadableStreamReaderGeneric(stream._reader);
-}
-
 function RespondToReadIntoRequest(stream, buffer, length) {
   const reader = stream._reader;
 
@@ -1016,6 +996,14 @@ function InitializeReadableStreamReaderGeneric(reader, stream) {
 function ReleaseReadableStreamReaderGeneric(reader) {
   assert(reader._ownerReadableStream._reader !== undefined);
   assert(reader._ownerReadableStream !== undefined);
+
+  if (reader._ownerReadableStream._state === 'readable') {
+    reader._closedPromise_reject(
+        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
+  } else {
+    reader._closedPromise = Promise.reject(
+        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
+  }
 
   reader._ownerReadableStream._reader = undefined;
   reader._ownerReadableStream = undefined;
