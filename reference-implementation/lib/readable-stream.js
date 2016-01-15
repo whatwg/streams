@@ -772,6 +772,8 @@ function IsReadableByteStreamController(x) {
 // ReadableStream API exposed for controllers.
 
 function AddReadRequestToReadableStream(stream) {
+  assert(IsReadableStreamReader(stream._reader));
+
   const readRequest = {};
   const promise = new Promise((resolve, reject) => {
     readRequest._resolve = resolve;
@@ -784,6 +786,8 @@ function AddReadRequestToReadableStream(stream) {
 }
 
 function AddReadIntoRequestToReadableStream(stream, byteOffset, byteLength, ctor, elementSize) {
+  assert(IsReadableStreamBYOBReader(stream._reader));
+
   return new Promise((resolve, reject) => {
     const req = {
       resolve,
@@ -925,6 +929,8 @@ function RespondToReadRequest(stream, chunk) {
 
 // A client of ReadableStreamReader may use this function directly to bypass state check.
 function CancelReadableStream(stream, reason) {
+  assert(stream !== undefined);
+
   stream._disturbed = true;
 
   if (stream._state === 'closed') {
@@ -1077,9 +1083,13 @@ function EnqueueInReadableStreamController(controller, chunk) {
 
 // A client of ReadableStreamController may use this function directly to bypass state check.
 function ErrorReadableStreamController(controller, e) {
+  const stream = controller._controlledReadableStream;
+
+  assert(stream._state === 'readable');
+
   controller._queue = [];
 
-  ErrorReadableStream(controller._controlledReadableStream, e);
+  ErrorReadableStream(stream, e);
 }
 
 function CancelReadableStreamController(controller, reason) {
@@ -1182,6 +1192,9 @@ function GetReadableByteStreamControllerDesiredSize(controller) {
 function CloseReadableByteStreamController(controller) {
   const stream = controller._controlledReadableStream;
 
+  assert(controller._closeRequested === false);
+  assert(stream._state === 'readable');
+
   if (controller._totalQueuedBytes > 0) {
     controller._closeRequested = true;
 
@@ -1203,6 +1216,9 @@ function CloseReadableByteStreamController(controller) {
 // A client of ReadableByteStreamController may use this function directly to bypass state check.
 function EnqueueInReadableByteStreamController(controller, chunk) {
   const stream = controller._controlledReadableStream;
+
+  assert(controller._closeRequested === false);
+  assert(stream._state === 'readable');
 
   const buffer = chunk.buffer;
   const byteOffset = chunk.byteOffset;
@@ -1234,16 +1250,20 @@ function EnqueueInReadableByteStreamController(controller, chunk) {
 
 // A client of ReadableByteStreamController may use this function directly to bypass state check.
 function ErrorReadableByteStreamController(controller, e) {
+  const stream = controller._controlledReadableStream;
+
+  assert(stream._state === 'readable');
+
   controller._pendingPullIntos = []
   controller._queue = [];
-  ErrorReadableStream(controller._controlledReadableStream, e);
+  ErrorReadableStream(stream, e);
 }
 
 // A client of ReadableByteStreamController may use this function directly to bypass state check.
 function RespondToReadableByteStreamController(controller, bytesWritten, buffer) {
   const stream = controller._controlledReadableStream;
 
-  assert(ReadableStreamHasBYOBReader(stream), 'reader must be ReadableStreamBYOBReader');
+  assert(controller._pendingPullIntos.length > 0);
 
   if (stream._state === 'closed') {
     if (bytesWritten !== 0) {
