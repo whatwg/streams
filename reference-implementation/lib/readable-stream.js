@@ -1,5 +1,6 @@
 const assert = require('assert');
-import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeQueuingStrategy } from './helpers';
+import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeQueuingStrategy,
+         ValidateAndNormalizeHighWaterMark } from './helpers';
 import { createArrayFromList, createDataProperty, typeIsObject } from './helpers';
 import { rethrowAssertionErrorRejection } from './utils';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
@@ -20,7 +21,7 @@ export default class ReadableStream {
     if (underlyingSource['pullInto'] == undefined) {
       this._readableStreamController = new ReadableStreamController(this, underlyingSource, size, highWaterMark);
     } else {
-      this._readableStreamController = new ReadableByteStreamController(this, underlyingSource, size, highWaterMark);
+      this._readableStreamController = new ReadableByteStreamController(this, underlyingSource, highWaterMark);
     }
   }
 
@@ -441,7 +442,7 @@ class ReadableStreamController {
 }
 
 class ReadableByteStreamController {
-  constructor(controlledReadableStream, underlyingByteSource, size, highWaterMark) {
+  constructor(controlledReadableStream, underlyingByteSource, highWaterMark) {
     if (IsReadableStream(controlledReadableStream) === false) {
       throw new TypeError('ReadableByteStreamController can only be constructed with a ReadableByteStream instance');
     }
@@ -470,14 +471,7 @@ class ReadableByteStreamController {
 
     this._started = false;
 
-    highWaterMark = Number(highWaterMark);
-    if (Number.isNaN(highWaterMark)) {
-      throw new TypeError('highWaterMark property of a queuing strategy must be convertible to a non-NaN number');
-    }
-    if (highWaterMark < 0) {
-      throw new RangeError('highWaterMark property of a queuing strategy must be nonnegative');
-    }
-    this._strategyHWM = highWaterMark;
+    this._strategyHWM = ValidateAndNormalizeHighWaterMark(highWaterMark);
 
     const controller = this;
 

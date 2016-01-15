@@ -90,11 +90,7 @@ export function PromiseInvokeOrFallbackOrNoop(O, P1, args1, P2, args2) {
   }
 }
 
-export function ValidateAndNormalizeQueuingStrategy(size, highWaterMark) {
-  if (size !== undefined && typeof size !== 'function') {
-    throw new TypeError('size property of a queuing strategy must be a function');
-  }
-
+export function ValidateAndNormalizeHighWaterMark(highWaterMark) {
   highWaterMark = Number(highWaterMark);
   if (Number.isNaN(highWaterMark)) {
     throw new TypeError('highWaterMark property of a queuing strategy must be convertible to a non-NaN number');
@@ -102,6 +98,16 @@ export function ValidateAndNormalizeQueuingStrategy(size, highWaterMark) {
   if (highWaterMark < 0) {
     throw new RangeError('highWaterMark property of a queuing strategy must be nonnegative');
   }
+
+  return highWaterMark;
+}
+
+export function ValidateAndNormalizeQueuingStrategy(size, highWaterMark) {
+  if (size !== undefined && typeof size !== 'function') {
+    throw new TypeError('size property of a queuing strategy must be a function');
+  }
+
+  highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
 
   return { size, highWaterMark };
 }
