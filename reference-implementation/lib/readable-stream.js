@@ -698,7 +698,8 @@ function TeeReadableStream(stream, shouldClone) {
 
 function create_TeeReadableStreamPullFunction() {
   const f = () => {
-    const { _reader: reader, _branch1: branch1, _branch2: branch2, _teeState: teeState, _shouldClone: shouldClone } = f;
+    const { _reader: reader, _branch1: branch1, _branch2: branch2, _teeState: teeState,
+            _shouldClone: shouldClone } = f;
 
     return ReadFromReadableStreamReader(reader).then(result => {
       assert(typeIsObject(result));
@@ -1613,7 +1614,8 @@ function RespondToReadIntoRequestsFromQueue(controller) {
     if (ready) {
       controller._pendingPullIntos.shift();
 
-      RespondToReadIntoRequest(controller._controlledReadableStream, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
+      RespondToReadIntoRequest(
+          controller._controlledReadableStream, pullIntoDescriptor.buffer, pullIntoDescriptor.bytesFilled);
     }
   }
 }
