@@ -38,11 +38,11 @@ test('ReadableStream with byte source: No automatic pull call if start doesn\'t 
       });
     },
     pull() {
-      ++pullCount;
-
       if (checkedNoPull) {
         t.end();
       }
+
+      ++pullCount;
     },
     pullInto() {
       t.fail('pullInto must not be called');
@@ -698,6 +698,7 @@ test('ReadableStream with byte source: read(view), then respond() with too big v
 
 test('ReadableStream with byte source: respond(3) to read(view) with 2 element Uint16Array enqueues the 1 byte ' +
     'remainder', t => {
+  let pullCount = 0;
   let pullIntoCount = 0;
 
   let controller;
@@ -705,6 +706,9 @@ test('ReadableStream with byte source: respond(3) to read(view) with 2 element U
   const stream = new ReadableStream({
     start(c) {
       controller = c;
+    },
+    pull() {
+      ++pullCount;
     },
     pullInto(view) {
       if (pullIntoCount > 1) {
@@ -732,6 +736,9 @@ test('ReadableStream with byte source: respond(3) to read(view) with 2 element U
   const reader = stream.getByobReader();
 
   reader.read(new Uint16Array(2)).then(result => {
+    t.equals(pullCount, 0);
+    t.equals(pullIntoCount, 1);
+
     t.equals(result.done, false, 'done');
 
     const view = result.value;
@@ -742,6 +749,9 @@ test('ReadableStream with byte source: respond(3) to read(view) with 2 element U
 
     return reader.read(new Uint8Array(1));
   }).then(result => {
+    t.equals(pullCount, 1);
+    t.equals(pullIntoCount, 1);
+
     t.equals(result.done, false, 'done');
 
     const view = result.value;
@@ -874,7 +884,6 @@ test('ReadableStream with byte source: enqueue(), getByobReader(), then cancel()
 });
 
 test('ReadableStream with byte source: getByobReader(), read(view), then cancel()', t => {
-  let pullIntoCount = 0;
   let cancelCount = 0;
 
   const passedReason = new TypeError('foo');
@@ -890,13 +899,8 @@ test('ReadableStream with byte source: getByobReader(), read(view), then cancel(
       t.end();
     },
     pullInto() {
-      if (pullIntoCount > 0) {
-        t.fail('Too many pullInto calls');
-        t.end();
-        return;
-      }
-
-      ++pullIntoCount;
+      t.fail('Too many pullInto calls');
+      t.end();
     },
     cancel(reason) {
       if (cancelCount === 0) {
@@ -917,16 +921,16 @@ test('ReadableStream with byte source: getByobReader(), read(view), then cancel(
 
   const reader = stream.getByobReader();
 
-  const p0 = reader.read(new Uint8Array(1)).then(result => {
+  const readPromise0 = reader.read(new Uint8Array(1)).then(result => {
     t.equals(result.done, true);
   });
 
-  const p1 = reader.cancel(passedReason).then(result => {
+  const readPromise1 = reader.cancel(passedReason).then(result => {
     t.equals(result, undefined);
     t.equals(cancelCount, 1);
   });
 
-  Promise.all([p0, p1]).then(() => {
+  Promise.all([readPromise0, readPromise1]).then(() => {
     t.end();
   }).catch(e => {
     t.fail(e);
@@ -935,6 +939,7 @@ test('ReadableStream with byte source: getByobReader(), read(view), then cancel(
 });
 
 test('ReadableStream with byte source: cancel() with partially filled pending pullInto() request', t => {
+  let pullCount = 0;
   let pullIntoCount = 0;
 
   let controller;
@@ -942,6 +947,15 @@ test('ReadableStream with byte source: cancel() with partially filled pending pu
   const stream = new ReadableStream({
     start(c) {
       controller = c;
+    },
+    pull() {
+      if (pullCount > 1) {
+        t.fail('Too many pull calls');
+        t.end();
+        return;
+      }
+
+      ++pullCount;
     },
     pullInto() {
       if (pullIntoCount === 0) {
@@ -957,22 +971,29 @@ test('ReadableStream with byte source: cancel() with partially filled pending pu
     }
   });
 
-  const reader = stream.getByobReader();
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 1);
+    t.equals(pullIntoCount, 0);
 
-  reader.read(new Uint16Array(1)).then(result => {
-    t.equals(result.done, true);
-    t.equals(result.value.constructor, Uint16Array);
-    t.end();
-  }).catch(e => {
-    t.fail(e);
-    t.end();
+    const reader = stream.getByobReader();
+
+    reader.read(new Uint16Array(1)).then(result => {
+      t.equals(result.done, true);
+      t.equals(result.value.constructor, Uint16Array);
+      t.end();
+    }).catch(e => {
+      t.fail(e);
+      t.end();
+    });
+
+    t.equals(pullCount, 1);
+    t.equals(pullIntoCount, 2);
+
+    reader.cancel();
+
+    // Tell that the buffer given via pullInto() is returned.
+    controller.respond(0);
   });
-  reader.cancel();
-
-  t.equals(pullIntoCount, 0);
-
-  // Tell that the buffer given via pullInto() is returned.
-  controller.respond(0);
 });
 
 test('ReadableStream with byte source: enqueue(), getReader(), then read(view) where view.buffer is not fully ' +
@@ -1157,7 +1178,7 @@ test('ReadableStream with byte source: enqueue() 1 byte, getReader(), then read(
   });
 });
 
-test('ReadableStream with byte source: enqueue() 3 byte, getReader(), then read(view) with 2-element Uint16Array',
+test.only('ReadableStream with byte source: enqueue() 3 byte, getReader(), then read(view) with 2-element Uint16Array',
      t => {
   let pullIntoCount = 0;
 
@@ -1172,6 +1193,10 @@ test('ReadableStream with byte source: enqueue() 3 byte, getReader(), then read(
 
       controller = c;
     },
+    pull() {
+      t.fail('pull must not be called');
+      t.end();
+    },
     pullInto(view) {
       if (pullIntoCount === 0) {
         t.equals(view.constructor, Uint8Array);
@@ -1181,48 +1206,54 @@ test('ReadableStream with byte source: enqueue() 3 byte, getReader(), then read(
 
         view[0] = 0x03;
         controller.respond(1);
+
+        t.equals(controller.desiredSize, 1);
       } else {
         t.fail('Too many pullInto calls');
         t.end();
+        return;
       }
 
       ++pullIntoCount;
     }
   });
 
-  const reader = stream.getByobReader();
+  // Wait for completion of the start method to be reflected.
+  Promise.resolve().then(() => {
+    const reader = stream.getByobReader();
 
-  reader.read(new Uint16Array(2)).then(result => {
-    t.equals(result.done, false, 'done');
+    reader.read(new Uint16Array(2)).then(result => {
+      t.equals(result.done, false, 'done');
 
-    const view = result.value;
-    t.equals(view.constructor, Uint16Array, 'constructor');
-    t.equals(view.buffer.byteLength, 4, 'buffer.byteLength');
-    t.equals(view.byteOffset, 0, 'byteOffset');
-    t.equals(view.byteLength, 2, 'byteLength');
-    t.equals(view[0], 0x0001, 'Contents are set');
+      const view = result.value;
+      t.equals(view.constructor, Uint16Array, 'constructor');
+      t.equals(view.buffer.byteLength, 4, 'buffer.byteLength');
+      t.equals(view.byteOffset, 0, 'byteOffset');
+      t.equals(view.byteLength, 2, 'byteLength');
+      t.equals(view[0], 0x0001, 'Contents are set');
 
-    const p = reader.read(new Uint16Array(1));
+      const p = reader.read(new Uint16Array(1));
 
-    t.equals(pullIntoCount, 1);
+      t.equals(pullIntoCount, 1);
 
-    return p;
-  }).then(result => {
-    t.equals(result.done, false, 'done');
+      return p;
+    }).then(result => {
+      t.equals(result.done, false, 'done');
 
-    const view = result.value;
-    t.equals(view.buffer.byteLength, 2, 'buffer.byteLength');
-    t.equals(view.byteOffset, 0, 'byteOffset');
-    t.equals(view.byteLength, 2, 'byteLength');
-    t.equals(view[0], 0x0302, 'Contents are set');
+      const view = result.value;
+      t.equals(view.buffer.byteLength, 2, 'buffer.byteLength');
+      t.equals(view.byteOffset, 0, 'byteOffset');
+      t.equals(view.byteLength, 2, 'byteLength');
+      t.equals(view[0], 0x0302, 'Contents are set');
 
-    t.end();
-  }).catch(e => {
-    t.fail(e);
-    t.end();
+      t.end();
+    }).catch(e => {
+      t.fail(e);
+      t.end();
+    });
+
+    t.equals(pullIntoCount, 0);
   });
-
-  t.equals(pullIntoCount, 0);
 });
 
 test('ReadableStream with byte source: read(view) with Uint16Array on close()-d stream with 1 byte enqueue()-d must ' +
