@@ -25,7 +25,7 @@ test(() => {
 
 test(() => {
 
-  const methods = ['cancel', 'constructor', 'getByobReader', 'getReader', 'pipeThrough', 'pipeTo', 'tee'];
+  const methods = ['cancel', 'constructor', 'getBYOBReader', 'getReader', 'pipeThrough', 'pipeTo', 'tee'];
   const properties = methods.concat(['locked']).sort();
 
   const rs = new ReadableStream();

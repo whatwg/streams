@@ -95,7 +95,7 @@ test('ReadableStream with byte source: getReader(), then releaseLock()', t => {
   });
 });
 
-test('ReadableStream with byte source: getByobReader(), then releaseLock()', t => {
+test('ReadableStream with byte source: getBYOBReader(), then releaseLock()', t => {
   const stream = new ReadableStream({
     pullInto() {
       t.fail('pullInto must not be called');
@@ -103,7 +103,7 @@ test('ReadableStream with byte source: getByobReader(), then releaseLock()', t =
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
   reader.releaseLock();
 
   reader.closed.then(() => {
@@ -163,18 +163,18 @@ test('ReadableStream with byte source: Test that closing a stream does not relea
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.closed.then(() => {
     try {
-      stream.getByobReader();
+      stream.getBYOBReader();
     } catch(e) {
       t.equals(e.constructor, TypeError);
       t.end();
       return;
     }
 
-    t.fail('getByobReader() must fail');
+    t.fail('getBYOBReader() must fail');
     t.end();
   }).catch(e => {
     t.fail(e);
@@ -238,7 +238,7 @@ test('ReadableStream with byte source: Test that erroring a stream does not rele
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.closed.then(() => {
     t.fail('closed must be rejected');
@@ -247,14 +247,14 @@ test('ReadableStream with byte source: Test that erroring a stream does not rele
     t.equals(e, passedError);
 
     try {
-      stream.getByobReader();
+      stream.getBYOBReader();
     } catch(e) {
       t.equals(e.constructor, TypeError);
       t.end();
       return;
     }
 
-    t.fail('getByobReader() must fail');
+    t.fail('getBYOBReader() must fail');
     t.end();
   });
 });
@@ -366,7 +366,7 @@ test('ReadableStream with byte source: pull() function is not callable', t => {
     pullInto: 'foo'
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).then(result => {
     t.fail('read() must fail');
@@ -422,7 +422,7 @@ test('ReadableStream with byte source: enqueue(), read(view) partially, then rea
     }
   });
 
-  const byobReader = stream.getByobReader();
+  const byobReader = stream.getBYOBReader();
 
   byobReader.read(new Uint8Array(8)).then(result => {
     t.equals(result.done, false, 'done');
@@ -688,7 +688,7 @@ test('ReadableStream with byte source: read(view), then respond() with too big v
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).catch(e => {
     t.fail(e);
@@ -733,7 +733,7 @@ test('ReadableStream with byte source: respond(3) to read(view) with 2 element U
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint16Array(2)).then(result => {
     t.equals(pullCount, 0);
@@ -767,7 +767,7 @@ test('ReadableStream with byte source: respond(3) to read(view) with 2 element U
   });
 });
 
-test('ReadableStream with byte source: enqueue(), getByobReader(), then read(view)', t => {
+test('ReadableStream with byte source: enqueue(), getBYOBReader(), then read(view)', t => {
   const stream = new ReadableStream({
     start(c) {
       const view = new Uint8Array(16);
@@ -780,7 +780,7 @@ test('ReadableStream with byte source: enqueue(), getByobReader(), then read(vie
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, false);
@@ -840,7 +840,7 @@ test('ReadableStream with byte source: enqueue(), getReader(), then cancel()', t
   });
 });
 
-test('ReadableStream with byte source: enqueue(), getByobReader(), then cancel()', t => {
+test('ReadableStream with byte source: enqueue(), getBYOBReader(), then cancel()', t => {
   let cancelCount = 0;
 
   const passedReason = new TypeError('foo');
@@ -870,7 +870,7 @@ test('ReadableStream with byte source: enqueue(), getByobReader(), then cancel()
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.cancel(passedReason).then(result => {
     t.equals(result, undefined);
@@ -883,7 +883,7 @@ test('ReadableStream with byte source: enqueue(), getByobReader(), then cancel()
   });
 });
 
-test('ReadableStream with byte source: getByobReader(), read(view), then cancel()', t => {
+test('ReadableStream with byte source: getBYOBReader(), read(view), then cancel()', t => {
   let cancelCount = 0;
 
   const passedReason = new TypeError('foo');
@@ -919,7 +919,7 @@ test('ReadableStream with byte source: getByobReader(), read(view), then cancel(
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   const readPromise0 = reader.read(new Uint8Array(1)).then(result => {
     t.equals(result.done, true);
@@ -975,7 +975,7 @@ test('ReadableStream with byte source: cancel() with partially filled pending pu
     t.equals(pullCount, 1);
     t.equals(pullIntoCount, 0);
 
-    const reader = stream.getByobReader();
+    const reader = stream.getBYOBReader();
 
     reader.read(new Uint16Array(1)).then(result => {
       t.equals(result.done, true);
@@ -1010,7 +1010,7 @@ test('ReadableStream with byte source: enqueue(), getReader(), then read(view) w
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   const buffer = new ArrayBuffer(16);
 
@@ -1050,7 +1050,7 @@ test('ReadableStream with byte source: Multiple enqueue(), getReader(), then rea
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(24)).then(result => {
     t.equals(result.done, false, 'done');
@@ -1081,7 +1081,7 @@ test('ReadableStream with byte source: enqueue(), getReader(), then read(view) w
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(24)).then(result => {
     t.equals(result.done, false);
@@ -1112,7 +1112,7 @@ test('ReadableStream with byte source: enqueue(), getReader(), then read(view) w
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(8)).then(result => {
     t.equals(result.done, false, 'done');
@@ -1161,7 +1161,7 @@ test('ReadableStream with byte source: enqueue() 1 byte, getReader(), then read(
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint16Array(1)).then(result => {
     t.equals(result.done, false);
@@ -1178,7 +1178,7 @@ test('ReadableStream with byte source: enqueue() 1 byte, getReader(), then read(
   });
 });
 
-test.only('ReadableStream with byte source: enqueue() 3 byte, getReader(), then read(view) with 2-element Uint16Array',
+test('ReadableStream with byte source: enqueue() 3 byte, getReader(), then read(view) with 2-element Uint16Array',
      t => {
   let pullIntoCount = 0;
 
@@ -1220,7 +1220,7 @@ test.only('ReadableStream with byte source: enqueue() 3 byte, getReader(), then 
 
   // Wait for completion of the start method to be reflected.
   Promise.resolve().then(() => {
-    const reader = stream.getByobReader();
+    const reader = stream.getBYOBReader();
 
     reader.read(new Uint16Array(2)).then(result => {
       t.equals(result.done, false, 'done');
@@ -1275,7 +1275,7 @@ test('ReadableStream with byte source: read(view) with Uint16Array on close()-d 
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint16Array(1)).then(result => {
     t.fail('read(view) must fail');
@@ -1324,7 +1324,7 @@ test('ReadableStream with byte source: A stream must be errored if close()-d bef
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint16Array(1)).then(result => {
     t.fail('read(view) must fail');
@@ -1436,7 +1436,7 @@ test('ReadableStream with byte source: read(view), then respond() and close() in
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, false);
@@ -1489,7 +1489,7 @@ test('ReadableStream with byte source: read(view) with Uint32Array, then fill it
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint32Array(1)).then(result => {
     t.equals(result.done, false);
@@ -1605,7 +1605,7 @@ test('ReadableStream with byte source: Multiple read(view), close() and respond(
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   const p0 = reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, true, '1st read: done');
@@ -1661,7 +1661,7 @@ test('ReadableStream with byte source: Multiple read(view), big enqueue()', t =>
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   const p0 = reader.read(new Uint8Array(16)).then(result => {
     t.equals(result.done, false, '1st read: done');
@@ -1705,7 +1705,7 @@ test('ReadableStream with byte source: Multiple read(view) and multiple enqueue(
     pullInto() {}
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   let bytesRead = 0;
 
@@ -1741,7 +1741,7 @@ test('ReadableStream with byte source: read(view) with passing undefined as view
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read().then(result => {
     t.fail('read(view) must fail');
@@ -1760,7 +1760,7 @@ test('ReadableStream with byte source: read(view) with zero-length view must fai
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(0)).then(result => {
     t.fail('read(view) must fail');
@@ -1779,7 +1779,7 @@ test('ReadableStream with byte source: read(view) with passing an empty object a
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read({}).then(result => {
     t.fail('read(view) must fail');
@@ -1799,7 +1799,7 @@ test('ReadableStream with byte source: Even read(view) with passing ArrayBufferV
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read({buffer: new ArrayBuffer(10), byteOffset: 0, byteLength: 10}).then(result => {
     t.fail('read(view) must fail');
@@ -1881,7 +1881,7 @@ test('ReadableStream with byte source: read(view) on an errored stream', t => {
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).then(result => {
     t.fail('read(view) must fail');
@@ -1905,7 +1905,7 @@ test('ReadableStream with byte source: read(view), then error()', t => {
     pullInto() {}
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).then(result => {
     t.fail('read(view) must fail');
@@ -1994,7 +1994,7 @@ test('ReadableStream with byte source: Throwing in pullInto function must error 
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).then(result => {
     t.fail('read(view) must fail');
@@ -2028,7 +2028,7 @@ test('ReadableStream with byte source: Throwing in pullInto function must be ign
     }
   });
 
-  const reader = stream.getByobReader();
+  const reader = stream.getBYOBReader();
 
   reader.read(new Uint8Array(1)).then(result => {
     t.fail('read(view) must fail');
