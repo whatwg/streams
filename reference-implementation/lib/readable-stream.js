@@ -1317,9 +1317,6 @@ function RespondToReadableByteStreamController(controller, bytesWritten, buffer)
   }
 }
 
-function CancelReadableByteStreamController(controller, reason) {
-}
-
 function EnqueueChunkToQueueOfController(controller, buffer, byteOffset, byteLength) {
   controller._queue.push({buffer, byteOffset, byteLength});
   controller._totalQueuedBytes += byteLength;
