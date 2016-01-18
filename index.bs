@@ -69,7 +69,7 @@ these streams to be exposed to developers, the Streams Standard enables use case
   <li> Video effects: piping a readable video stream through a transform stream that applies effects in real time.
   <li> Decompression: piping a file stream through a transform stream that selectively decompresses files from a
     <kbd>.tgz</kbd> archive, turning them into <code>img</code> elements as the user scrolls through an image gallery.
-  <li> Image decoding: piping a HTTP response stream through a transform stream that decodes bytes into bitmap data,
+  <li> Image decoding: piping an HTTP response stream through a transform stream that decodes bytes into bitmap data,
     and then through another transform that translates bitmaps into PNGs. If installed inside the <code>fetch</code>
     hook of a service worker [[SERVICE-WORKERS]], this would allow developers to transparently polyfill new image
     formats.
@@ -146,7 +146,7 @@ Some examples of transform streams include:
 
 <ul>
   <li>A GZIP compressor, to which uncompressed bytes are written and from which compressed bytes are read;</li>
-  <li>A video decoder, to which encoded bytes are writen and from which uncompressed video frames are read;</li>
+  <li>A video decoder, to which encoded bytes are written and from which uncompressed video frames are read;</li>
   <li>A text decoder, to which bytes are written and from which strings are read;</li>
   <li>A CSV-to-JSON converter, to which strings representing lines of a CSV file are written and from which
     corresponding JavaScript objects are read.
@@ -2419,7 +2419,7 @@ with a <code>ReadableByteStream</code> will be able to take advantage of extra A
 
 This kind of ecosystem is largely enabled by the genericness of the <code>pipeTo</code> method. Any object which has
 the appropriate public writable stream APIs will work with <code>ReadableStream.prototype.pipeTo</code>. We strongly
-recommend that any readable stream classs you create maintain this property for <em>its</em> <code>pipeTo</code>
+recommend that any readable stream class you create maintain this property for <em>its</em> <code>pipeTo</code>
 method as well. Even if they use specialized algorithms when given a specific type of writable stream, they should
 always fall back to an algorithm that works with any object obeying the writable stream contract.
 
