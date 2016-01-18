@@ -6,7 +6,7 @@ import { rethrowAssertionErrorRejection } from './utils';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
 
 export default class ReadableStream {
-  constructor(underlyingSource = {}, { size, highWaterMark = 1 } = {}) {
+  constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
     // Exposed to controllers.
     this._state = 'readable';
 
@@ -19,8 +19,14 @@ export default class ReadableStream {
     // variable to validate the caller.
     this._readableStreamController = undefined;
     if (underlyingSource['pullInto'] == undefined) {
+      if (highWaterMark === undefined) {
+        highWaterMark = 1;
+      }
       this._readableStreamController = new ReadableStreamController(this, underlyingSource, size, highWaterMark);
     } else {
+      if (highWaterMark === undefined) {
+        highWaterMark = 0;
+      }
       this._readableStreamController = new ReadableByteStreamController(this, underlyingSource, highWaterMark);
     }
   }
