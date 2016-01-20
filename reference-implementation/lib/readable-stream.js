@@ -419,13 +419,14 @@ class ReadableStreamController {
       throw new TypeError('ReadableStreamController.prototype.enqueue can only be used on a ReadableStreamController');
     }
 
-    const stream = this._controlledReadableStream;
-    if (stream._state === 'errored') {
-      throw stream._storedError;
-    }
-
     if (this._closeRequested === true) {
       throw new TypeError('stream is closed or draining');
+    }
+
+    const stream = this._controlledReadableStream;
+    if (stream._state !== 'readable') {
+      throw new TypeError(
+          `The stream (in ${stream._state} state) is not in the readable state and cannot be enqueued to`);
     }
 
     return EnqueueInReadableStreamController(this, chunk);
@@ -553,6 +554,7 @@ class ReadableByteStreamController {
     if (this._closeRequested) {
       throw new TypeError('stream is closed or draining');
     }
+
     if (this._controlledReadableStream._state !== 'readable') {
       throw new TypeError('The stream is not in the readable state and cannot be enqueued to');
     }
@@ -1113,13 +1115,7 @@ function EnqueueInReadableStreamController(controller, chunk) {
   const stream = controller._controlledReadableStream;
 
   assert(controller._closeRequested === false);
-  assert(stream._state !== 'errored');
-
-  if (stream._state === 'closed') {
-    // This will happen if the stream was closed without calling its controller's close() method, i.e. if it was closed
-    // via cancellation.
-    return undefined;
-  }
+  assert(stream._state === 'readable');
 
   if (IsReadableStreamLocked(stream) === true && GetNumReadRequests(stream) > 0) {
     RespondToReadRequest(stream, chunk);

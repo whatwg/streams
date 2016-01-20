@@ -673,24 +673,6 @@ test(() => {
 
 }, 'ReadableStream: enqueue should throw when the stream is closed');
 
-test(() => {
-
-  let startCalled = false;
-  const expectedError = new Error('i am sad');
-
-  new ReadableStream({
-    start(c) {
-      c.error(expectedError);
-
-      assert_throws(expectedError, () => c.enqueue('a'), 'enqueue after error should throw that error');
-      startCalled = true;
-    }
-  });
-
-  assert_true(startCalled);
-
-}, 'ReadableStream: enqueue should throw the stored error when the stream is errored');
-
 promise_test(() => {
 
   let startCalled = 0;
