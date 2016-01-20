@@ -54,13 +54,39 @@ templatedRSTwoChunksClosed('ReadableStream (two chunks enqueued, then closed)',
 );
 
 templatedRSTwoChunksClosed('ReadableStream (two chunks enqueued async, then closed)',
-  () => new ReadableStream({
-    start(c) {
-      setTimeout(() => c.enqueue(chunks[0]), 10);
-      setTimeout(() => c.enqueue(chunks[1]), 20);
-      setTimeout(() => c.close(), 30);
+  () => {
+    class TwoChunkThenCloseSource {
+      constructor() {
+        this._canceled = false;
+      }
+
+      start(c) {
+        const source = this;
+
+        setTimeout(() => {
+          if (!source._canceled) {
+            c.enqueue(chunks[0]);
+          }
+        }, 10);
+        setTimeout(() => {
+          if (!source._canceled) {
+            c.enqueue(chunks[1]);
+          }
+        }, 20);
+        setTimeout(() => {
+          if (!source._canceled) {
+            c.close();
+          }
+        }, 30);
+      }
+
+      cancel(reason) {
+        this._canceled = true;
+      }
     }
-  }),
+
+    return new ReadableStream(new TwoChunkThenCloseSource());
+  },
   chunks
 );
 

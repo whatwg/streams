@@ -406,8 +406,9 @@ class ReadableStreamController {
       throw new TypeError('The stream has already been closed; do not close it again!');
     }
 
-    if (this._controlledReadableStream._state === 'errored') {
-      throw new TypeError('The stream is in an errored state and cannot be closed');
+    const stream = this._controlledReadableStream;
+    if (stream._state !== 'readable') {
+      throw new TypeError(`The stream (in ${stream._state} state) is not in the readable state and cannot be closed`);
     }
 
     return CloseReadableStreamController(this);
@@ -535,6 +536,7 @@ class ReadableByteStreamController {
     if (this._closeRequested) {
       throw new TypeError('The stream has already been closed; do not close it again!');
     }
+
     if (this._controlledReadableStream._state !== 'readable') {
       throw new TypeError('The stream is not in the readable state and cannot be closed');
     }
@@ -714,8 +716,12 @@ function create_TeeReadableStreamPullFunction() {
       assert(typeof done === "boolean");
 
       if (done === true && teeState.closedOrErrored === false) {
-        CloseReadableStreamController(branch1);
-        CloseReadableStreamController(branch2);
+        if (teeState.canceled1 === false) {
+          CloseReadableStreamController(branch1);
+        }
+        if (teeState.canceled2 === false) {
+          CloseReadableStreamController(branch2);
+        }
         teeState.closedOrErrored = true;
       }
 
@@ -1087,13 +1093,7 @@ function CloseReadableStreamController(controller) {
   const stream = controller._controlledReadableStream;
 
   assert(controller._closeRequested === false);
-  assert(stream._state !== 'errored');
-
-  if (stream._state === 'closed') {
-    // This will happen if the stream was closed without calling its controller's close() method, i.e. if it was closed
-    // via cancellation.
-    return undefined;
-  }
+  assert(stream._state === 'readable');
 
   controller._closeRequested = true;
 
