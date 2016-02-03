@@ -1492,7 +1492,7 @@ function PullFromReadableByteStreamControllerInto(controller, buffer, byteOffset
     return promise;
   }
 
-  ReadableByteStreamControllerCallPullInto(controller);
+  ReadableByteStreamControllerCallPull(controller);
   ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(controller);
 
   return promise;
@@ -1504,28 +1504,6 @@ function ReadableByteStreamControllerCallPull(controller) {
 
   try {
     InvokeOrNoop(controller._underlyingByteSource, 'pull', []);
-  } catch (e) {
-    if (controller._controlledReadableStream._state === 'readable') {
-      ErrorReadableByteStreamController(controller, e);
-    }
-  }
-
-  controller._pulling = false;
-}
-
-function ReadableByteStreamControllerCallPullInto(controller) {
-  assert(controller._pendingPullIntos.length > 0);
-  const pullIntoDescriptor = controller._pendingPullIntos[0];
-
-  controller._pullAgain = false;
-  controller._pulling = true;
-
-  try {
-    InvokeOrNoop(controller._underlyingByteSource,
-                 'pullInto',
-                 [new Uint8Array(pullIntoDescriptor.buffer,
-                                 pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled,
-                                 pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled)]);
   } catch (e) {
     if (controller._controlledReadableStream._state === 'readable') {
       ErrorReadableByteStreamController(controller, e);
@@ -1569,7 +1547,7 @@ function ReadableByteStreamControllerCallPullOrPullIntoRepeatedlyIfNeeded(contro
     if (ReadableStreamHasReader(stream) && GetNumReadRequests(stream) > 0) {
       ReadableByteStreamControllerCallPull(controller);
     } else if (ReadableStreamHasBYOBReader(stream) && GetNumReadIntoRequests(stream) > 0) {
-      ReadableByteStreamControllerCallPullInto(controller);
+      ReadableByteStreamControllerCallPull(controller);
     } else {
       const desiredSize = GetReadableByteStreamControllerDesiredSize(controller);
       if (desiredSize > 0) {
