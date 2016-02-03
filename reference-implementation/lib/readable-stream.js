@@ -18,16 +18,16 @@ export default class ReadableStream {
     // Initialize to undefined first because the constructor of the controller checks this
     // variable to validate the caller.
     this._readableStreamController = undefined;
-    if (underlyingSource['pullInto'] == undefined) {
-      if (highWaterMark === undefined) {
-        highWaterMark = 1;
-      }
-      this._readableStreamController = new ReadableStreamController(this, underlyingSource, size, highWaterMark);
-    } else {
+    if (underlyingSource['byob'] === true) {
       if (highWaterMark === undefined) {
         highWaterMark = 0;
       }
       this._readableStreamController = new ReadableByteStreamController(this, underlyingSource, highWaterMark);
+    } else {
+      if (highWaterMark === undefined) {
+        highWaterMark = 1;
+      }
+      this._readableStreamController = new ReadableStreamController(this, underlyingSource, size, highWaterMark);
     }
   }
 
