@@ -1527,18 +1527,13 @@ function ReadableByteStreamControllerCallPullRepeatedlyIfNeeded(controller) {
       return;
     }
 
-    if (ReadableStreamHasReader(stream) && GetNumReadRequests(stream) > 0) {
-      ReadableByteStreamControllerCallPull(controller);
-    } else if (ReadableStreamHasBYOBReader(stream) && GetNumReadIntoRequests(stream) > 0) {
+    if ((ReadableStreamHasReader(stream) && GetNumReadRequests(stream) > 0) ||
+        (ReadableStreamHasBYOBReader(stream) && GetNumReadIntoRequests(stream) > 0) ||
+        (GetReadableByteStreamControllerDesiredSize(controller) > 0)) {
       ReadableByteStreamControllerCallPull(controller);
     } else {
-      const desiredSize = GetReadableByteStreamControllerDesiredSize(controller);
-      if (desiredSize > 0) {
-        ReadableByteStreamControllerCallPull(controller);
-      } else {
-        controller._pullAgain = false;
-        return;
-      }
+      controller._pullAgain = false;
+      return;
     }
   }
 }
