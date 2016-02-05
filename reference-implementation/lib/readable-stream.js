@@ -628,15 +628,7 @@ class ReadableByteStreamController {
   _pull() {
     const stream = this._controlledReadableStream;
 
-    if (GetNumReadRequests(stream) >= 1) {
-      const pendingPromise = AddReadRequestToReadableStream(stream);
-
-      ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(this);
-
-      return pendingPromise;
-    }
-
-    if (this._totalQueuedBytes > 0) {
+    if (GetNumReadRequests(stream) === 0 && this._totalQueuedBytes > 0) {
       const entry = this._queue.shift();
       this._totalQueuedBytes -= entry.byteLength;
 
