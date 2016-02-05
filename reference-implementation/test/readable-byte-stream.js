@@ -260,6 +260,77 @@ test('ReadableStream with byte source: releaseLock() on ReadableStreamReader wit
   t.end();
 });
 
+test('ReadableStream with byte source: Automatic pull() after start()', t => {
+  let pullCount = 0;
+
+  const stream = new ReadableStream({
+    pull() {
+      ++pullCount;
+    },
+    byob: true
+  }, {
+    highWaterMark: 8
+  });
+
+  const reader = stream.getReader();
+
+  t.equals(pullCount, 0, 'No pull as start() just finished and is not yet reflected to the state of the stream');
+
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 1, 'pull must be invoked');
+
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: Automatic pull() after start() and read()', t => {
+  let pullCount = 0;
+
+  const stream = new ReadableStream({
+    pull() {
+      ++pullCount;
+    },
+    byob: true
+  }, {
+    highWaterMark: 0
+  });
+
+  const reader = stream.getReader();
+  reader.read();
+
+  t.equals(pullCount, 0, 'No pull as start() just finished and is not yet reflected to the state of the stream');
+
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 1, 'pull must be invoked');
+
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: Automatic pull() after start() and read(view)', t => {
+  let pullCount = 0;
+
+  const stream = new ReadableStream({
+    pull() {
+      ++pullCount;
+    },
+    byob: true
+  }, {
+    highWaterMark: 0
+  });
+
+  const reader = stream.getReader();
+  reader.read(new Uint8Array(8));
+
+  t.equals(pullCount, 0, 'No pull as start() just finished and is not yet reflected to the state of the stream');
+
+  Promise.resolve().then(() => {
+    t.equals(pullCount, 1, 'pull must be invoked');
+
+    t.end();
+  });
+});
+
 test('ReadableStream with byte source: enqueue(), getReader(), then read()', t => {
   let pullCount = 0;
 
@@ -887,9 +958,9 @@ test('ReadableStream with byte source: cancel() with partially filled pending pu
       t.notEqual(controller.byobRequest, undefined, 'byobRequest is undefined');
 
       if (pullCount === 0) {
+        t.equals(controller.byobRequest.view.byteLength, 2, 'byteLength before enqueue()');
         controller.enqueue(new Uint8Array(1));
-      } else if (pullCount === 1) {
-        // Do nothing
+        t.equals(controller.byobRequest.view.byteLength, 1, 'byteLength after enqueue()');
       } else {
         t.fail('Too many pull calls');
         t.end();
@@ -914,7 +985,7 @@ test('ReadableStream with byte source: cancel() with partially filled pending pu
       t.end();
     });
 
-    t.equals(pullCount, 2, '2 pull()s should have been made in response to partial fill by enqueue()');
+    t.equals(pullCount, 1, '1 pull() should have been made in response to partial fill by enqueue()');
 
     reader.cancel();
 
@@ -1412,17 +1483,19 @@ test('ReadableStream with byte source: read(view) with Uint32Array, then fill it
         return;
       }
 
-      if (pullCount < 4) {
-        const view = controller.byobRequest.view;
+      if (pullCount < 1) {
+        for (let i = 0; i < 4; ++i) {
+          const view = controller.byobRequest.view;
 
-        t.equals(view.constructor, Uint8Array);
-        t.equals(view.buffer.byteLength, 4);
+          t.equals(view.constructor, Uint8Array);
+          t.equals(view.buffer.byteLength, 4);
 
-        t.equals(view.byteOffset, pullCount);
-        t.equals(view.byteLength, 4 - pullCount);
+          t.equals(view.byteOffset, i);
+          t.equals(view.byteLength, 4 - i);
 
-        view[0] = 0x01;
-        controller.byobRequest.respond(1);
+          view[0] = 0x01;
+          controller.byobRequest.respond(1);
+        }
       } else {
         t.fail('Too many pull() calls');
         t.end();
