@@ -723,6 +723,11 @@ test('ReadableStream with byte source: read(view), then respond() with a transfe
       if (pullCount === 0) {
         t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined before respond()');
 
+        // Emulate ArrayBuffer transfer by just creating a new ArrayBuffer and pass it. By checking the result of
+        // read(view), we test that the respond()'s buffer argument is working correctly.
+        //
+        // A real implementation of the underlying byte source would transfer controller.byobRequest.view.buffer into
+        // a new ArrayBuffer, then construct a view around it and write to it.
         const transferredView = new Uint8Array(1);
         transferredView[0] = 0x01;
         controller.byobRequest.respond(1, transferredView.buffer);
