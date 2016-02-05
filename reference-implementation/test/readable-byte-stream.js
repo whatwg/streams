@@ -629,7 +629,7 @@ test('ReadableStream with byte source: Respond to pull() by enqueue() asynchrono
         controller.enqueue(new Uint8Array(1));
         t.equals(controller.desiredSize, 256, 'desiredSize after 2nd enqueue()');
       } else {
-        t.fail('Too many pull calls');
+        t.fail('Too many pull() calls');
         t.end();
         return;
       }
@@ -655,16 +655,98 @@ test('ReadableStream with byte source: Respond to pull() by enqueue() asynchrono
   Promise.all([p0, p1, p2]).then(result => {
     t.equals(pullCount, 1, 'pullCount after completion of all read()s');
 
-    t.equals(result[0].done, false, 'done', 'result[0].done');
-    t.equals(result[0].value.byteLength, 1, 'byteLength', 'result[0].value');
-    t.equals(result[1].done, false, 'done', 'result[1].done');
-    t.equals(result[1].value.byteLength, 1, 'byteLength', 'result[1].value');
-    t.equals(result[2].done, false, 'done', 'result[2].done');
-    t.equals(result[2].value.byteLength, 1, 'byteLength', 'result[2].value');
+    t.equals(result[0].done, false, 'result[0].done');
+    t.equals(result[0].value.byteLength, 1, 'result[0].value.byteLength');
+    t.equals(result[1].done, false, 'result[1].done');
+    t.equals(result[1].value.byteLength, 1, 'result[1].value.byteLength');
+    t.equals(result[2].done, false, 'result[2].done');
+    t.equals(result[2].value.byteLength, 1, 'result[2].value.byteLength');
 
     t.end();
   }).catch(e => {
     t.fail('Promise.all() rejected: ' + e);
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: read(view), then respond()', t => {
+  let controller;
+
+  let pullCount = 0;
+
+  const stream = new ReadableStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      if (pullCount === 0) {
+        t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined before respond()');
+
+        const view = controller.byobRequest.view;
+        view[0] = 0x01;
+        controller.byobRequest.respond(1);
+
+        t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined after respond()');
+      } else {
+        t.fail('Too many pull() calls');
+        t.end();
+      }
+
+      ++pullCount;
+    },
+    byob: true
+  });
+
+  const reader = stream.getBYOBReader();
+
+  reader.read(new Uint8Array(1)).then(result => {
+    t.equals(result.done, false, 'result.done');
+    t.equals(result.value.byteLength, 1, 'result.value.byteLength');
+    t.equals(result.value[0], 0x01, 'result.value[0]');
+    t.end();
+  }, e => {
+    t.fail(e);
+    t.end();
+  });
+});
+
+test('ReadableStream with byte source: read(view), then respond() with a transferred ArrayBuffer', t => {
+  let controller;
+
+  let pullCount = 0;
+
+  const stream = new ReadableStream({
+    start(c) {
+      controller = c;
+    },
+    pull() {
+      if (pullCount === 0) {
+        t.notEqual(controller.byobRequest, undefined, 'byobRequest must not be undefined before respond()');
+
+        const transferredView = new Uint8Array(1);
+        transferredView[0] = 0x01;
+        controller.byobRequest.respond(1, transferredView.buffer);
+
+        t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined after respond()');
+      } else {
+        t.fail('Too many pull() calls');
+        t.end();
+      }
+
+      ++pullCount;
+    },
+    byob: true
+  });
+
+  const reader = stream.getBYOBReader();
+
+  reader.read(new Uint8Array(1)).then(result => {
+    t.equals(result.done, false, 'result.done');
+    t.equals(result.value.byteLength, 1, 'result.value.byteLength');
+    t.equals(result.value[0], 0x01, 'result.value[0]');
+    t.end();
+  }, e => {
+    t.fail(e);
     t.end();
   });
 });
@@ -680,8 +762,6 @@ test('ReadableStream with byte source: read(view), then respond() with too big v
     },
     pull() {
       if (pullCount === 0) {
-        ++pullCount;
-
         t.notEqual(controller.byobRequest, undefined, 'byobRequest is not undefined');
 
         try {
@@ -722,7 +802,7 @@ test('ReadableStream with byte source: respond(3) to read(view) with 2 element U
     },
     pull() {
       if (pullCount > 1) {
-        t.fail('Too many pullInt calls');
+        t.fail('Too many pull calls');
         t.end();
         return;
       }
