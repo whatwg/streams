@@ -1,7 +1,7 @@
 const assert = require('assert');
 import { CreateIterResultObject, InvokeOrNoop, PromiseInvokeOrNoop, TransferArrayBuffer,
          ValidateAndNormalizeQueuingStrategy, ValidateAndNormalizeHighWaterMark } from './helpers';
-import { createArrayFromList, createDataProperty, typeIsObject } from './helpers';
+import { createArrayFromList, createDataProperty, isFiniteNonNegativeNumber, typeIsObject } from './helpers';
 import { rethrowAssertionErrorRejection } from './utils';
 import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
 
@@ -1342,6 +1342,11 @@ function ErrorReadableByteStreamController(controller, e) {
 
 // A client of ReadableByteStreamController may use this function directly to bypass state check.
 function RespondToReadableByteStreamController(controller, bytesWritten, buffer) {
+  bytesWritten = Number(bytesWritten);
+  if (!isFiniteNonNegativeNumber(bytesWritten)) {
+    throw new RangeError('bytesWritten must be a finite')
+  }
+
   const stream = controller._controlledReadableStream;
 
   assert(controller._pendingPullIntos.length > 0);

@@ -25,6 +25,10 @@ export function toInteger(v) {
   return Math.floor(Math.abs(v));
 }
 
+export function isFiniteNonNegativeNumber(v) {
+  return !Number.isNaN(v) && v !== +Infinity && v >= 0;
+}
+
 export function createDataProperty(o, p, v) {
   assert(typeIsObject(o));
   Object.defineProperty(o, p, { value: v, writable: true, enumerable: true, configurable: true });
