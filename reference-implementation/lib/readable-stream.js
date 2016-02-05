@@ -472,7 +472,7 @@ class ReadableStreamController {
   }
 }
 
-class ReadableStreamControllerBYOBRequest {
+class ReadableStreamBYOBRequest {
   constructor(controller, descriptor) {
     this._associatedReadableByteStreamController = controller;
     this._view = new Uint8Array(descriptor.buffer,
@@ -485,7 +485,7 @@ class ReadableStreamControllerBYOBRequest {
   }
 
   respond(bytesWritten, buffer) {
-    if (!IsReadableStreamControllerBYOBRequest(this)) {
+    if (!IsReadableStreamBYOBRequest(this)) {
       throw new TypeError(
           'ReadableByteStreamController.prototype.respond can only be used on a ReadableByteStreamController');
     }
@@ -552,7 +552,7 @@ class ReadableByteStreamController {
 
   get byobRequest() {
     if (this._byobRequest === undefined && this._pendingPullIntos.length > 0) {
-      this._byobRequest = new ReadableStreamControllerBYOBRequest(this, this._pendingPullIntos[0]);
+      this._byobRequest = new ReadableStreamBYOBRequest(this, this._pendingPullIntos[0]);
     }
 
     return this._byobRequest;
@@ -875,7 +875,7 @@ function IsReadableByteStreamController(x) {
   return true;
 }
 
-function IsReadableStreamControllerBYOBRequest(x) {
+function IsReadableStreamBYOBRequest(x) {
   if (!typeIsObject(x)) {
     return false;
   }
