@@ -1337,20 +1337,25 @@ function RespondToReadableByteStreamController(controller, bytesWritten, buffer)
     throw new RangeError('bytesWritten must be a finite')
   }
 
-  const stream = controller._controlledReadableStream;
-
   assert(controller._pendingPullIntos.length > 0);
+
+  const firstDescriptor = controller._pendingPullIntos[0];
+  if (buffer !== undefined) {
+    firstDescriptor.buffer = buffer;
+  }
+
+  const stream = controller._controlledReadableStream;
 
   if (stream._state === 'closed') {
     if (bytesWritten !== 0) {
       throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
     }
 
-    RespondToBYOBReaderInClosedState(controller, buffer);
+    RespondToBYOBReaderInClosedState(controller, firstDescriptor);
   } else {
     assert(stream._state === 'readable');
 
-    RespondToBYOBReaderInReadableState(controller, bytesWritten, buffer);
+    RespondToBYOBReaderInReadableState(controller, bytesWritten, firstDescriptor);
   }
 }
 
@@ -1563,13 +1568,7 @@ function ReadableByteStreamControllerShiftPendingPullInto(controller) {
   return descriptor;
 }
 
-function RespondToBYOBReaderInClosedState(controller, buffer) {
-  const firstDescriptor = controller._pendingPullIntos[0];
-
-  if (buffer !== undefined) {
-    firstDescriptor.buffer = buffer;
-  }
-
+function RespondToBYOBReaderInClosedState(controller, firstDescriptor) {
   firstDescriptor.buffer = TransferArrayBuffer(firstDescriptor.buffer);
 
   assert(firstDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
@@ -1583,15 +1582,9 @@ function RespondToBYOBReaderInClosedState(controller, buffer) {
   }
 }
 
-function RespondToBYOBReaderInReadableState(controller, bytesWritten, buffer) {
-  const pullIntoDescriptor = controller._pendingPullIntos[0];
-
+function RespondToBYOBReaderInReadableState(controller, bytesWritten, pullIntoDescriptor) {
   if (pullIntoDescriptor.bytesFilled + bytesWritten > pullIntoDescriptor.byteLength) {
     throw new RangeError('bytesWritten out of range');
-  }
-
-  if (buffer !== undefined) {
-    pullIntoDescriptor.buffer = buffer;
   }
 
   ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesWritten, pullIntoDescriptor);
