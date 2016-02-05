@@ -640,16 +640,10 @@ class ReadableByteStreamController {
       const entry = this._queue.shift();
       this._totalQueuedBytes -= entry.byteLength;
 
+      ReadableByteStreamControllerHandleQueueDrain(this);
+
       const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
-      const promise = Promise.resolve(CreateIterResultObject(view, false));
-
-      if (this._totalQueuedBytes === 0 && this._closeRequested) {
-        CloseReadableStream(stream);
-      } else {
-        ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(this);
-      }
-
-      return promise;
+      return Promise.resolve(CreateIterResultObject(view, false));
     }
 
     const promise = AddReadRequestToReadableStream(stream);
@@ -1457,22 +1451,14 @@ function PullFromReadableByteStreamControllerInto(controller, buffer, byteOffset
   }
 
   if (controller._totalQueuedBytes > 0) {
-    const ready = FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor);
-
-    if (ready) {
+    if (FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor)) {
       assert(pullIntoDescriptor.bytesFilled <= byteLength);
       assert(pullIntoDescriptor.bytesFilled % elementSize === 0);
 
+      ReadableByteStreamControllerHandleQueueDrain(controller);
+
       const view = new ctor(buffer, byteOffset, pullIntoDescriptor.bytesFilled / elementSize);
-      const promise = Promise.resolve(CreateIterResultObject(view, false));
-
-      if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
-        CloseReadableStream(stream);
-      } else {
-        ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(controller);
-      }
-
-      return promise;
+      return Promise.resolve(CreateIterResultObject(view, false));
     }
 
     if (controller._closeRequested) {
@@ -1584,6 +1570,14 @@ function ReadableByteStreamControllerClearPendingPullIntos(controller) {
   controller._pendingPullIntos = [];
 }
 
+function ReadableByteStreamControllerHandleQueueDrain(controller) {
+  if (controller._totalQueuedBytes === 0 && controller._closeRequested) {
+    CloseReadableStream(controller._controlledReadableStream);
+  } else {
+    ReadableByteStreamControllerCallPullOnceAndThenRepeatIfNeeded(controller);
+  }
+}
+
 function ReadableByteStreamControllerShiftPendingPullInto(controller) {
   const descriptor = controller._pendingPullIntos.shift();
   if (controller._byobRequest !== undefined) {
@@ -1660,9 +1654,7 @@ function RespondToReadIntoRequestsFromQueue(controller) {
 
     const pullIntoDescriptor = controller._pendingPullIntos[0];
 
-    const ready = FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor);
-
-    if (ready) {
+    if (FillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor)) {
       ReadableByteStreamControllerShiftPendingPullInto(controller);
 
       RespondToReadIntoRequest(
