@@ -441,3 +441,65 @@ test('TransformStream delays transform until there is no backpressure', t => {
     })
   }, 0);
 });
+
+test('TransformStream flow control keeps transforming until something is enqueued', t => {
+  t.plan(11);
+
+  let transformCallCount = 0, lastTransformed;
+  // Create a transformer that drops every other item passed to it, starting
+  // with the first item.
+  const ts = new TransformStream({
+    transform(chunk, enqueue, done) {
+      if (transformCallCount++ % 2 === 1) {
+        console.log('enqueueing');
+        enqueue(chunk.toUpperCase());
+      } else {
+        console.log('not queueing');
+      }
+      lastTransformed = chunk;
+      done();
+    },
+    flush(enqueue, close) {
+      close();
+    },
+    writableStrategy: new CountQueuingStrategy({ highWaterMark: 0 }),
+    readableStrategy: new CountQueuingStrategy({ highWaterMark: 1 })
+  });
+
+  ts.writable.write('a');
+  ts.writable.write('b');
+
+  const reader = ts.readable.getReader();
+  // The transform will be invoked exactly once and then encounter backpressure.
+  // (Timeouts are used to ensure the microtask queues are fully drained.  Maybe
+  // that's nonsense in the node execution model?)
+  setTimeout(() => {
+    reader.read().then(result1 => {
+      t.equal(transformCallCount, 2, 'two transforms happened');
+      t.equal(lastTransformed, 'b', 'two transforms happened');
+      t.deepEqual(result1, { value: 'B', done: false }, 'correct transformed result');
+
+      ts.writable.write('c');
+
+      let dRead = reader.read();
+      let dResolved = false;
+      dRead.then(() => { dResolved = true });
+      setTimeout(() => {
+        t.equal(lastTransformed, 'c', 'third transform happened');
+        t.equal(transformCallCount, 3, 'third transforms happened');
+        t.equal(dResolved, false, 'read did not resolve yet');
+        t.equal(ts.writable.state, 'writable', 'backpressure removed');
+        ts.writable.write('d');
+        dRead.then(result2 => {
+          t.deepEqual(result2, { value: 'D', done: false }, 'correct transformed result');
+          setTimeout(() => {
+            t.equal(lastTransformed, 'd', 'last transform happened');
+            t.equal(transformCallCount, 4, 'last transform happened');
+            t.equal(ts.writable.state, 'writable', 'backpressure still off');
+          }, 0);
+        });
+      }, 0);
+    })
+  }, 0);
+
+});
