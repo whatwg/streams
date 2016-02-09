@@ -392,3 +392,52 @@ test('Transform stream should call transformer methods as methods', t => {
     });
   }, e => t.error(e));
 });
+
+test('TransformStream delays transform until there is no backpressure', t => {
+  t.plan(10);
+
+  let lastTransformed = null;
+  const ts = new TransformStream({
+    transform(chunk, enqueue, done) {
+      lastTransformed = chunk;
+      enqueue(chunk.toUpperCase());
+      done();
+    },
+    flush(enqueue, close) {
+      close();
+    },
+    writableStrategy: new CountQueuingStrategy({ highWaterMark: 0 }),
+    readableStrategy: new CountQueuingStrategy({ highWaterMark: 1 })
+  });
+
+  ts.writable.write('a');
+  ts.writable.write('b');
+  ts.writable.write('c');
+
+  const reader = ts.readable.getReader();
+  // The transform will be invoked exactly once and then encounter backpressure.
+  // (Timeouts are used to ensure the microtask queues are fully drained.  Maybe
+  // that's nonsense in the node execution model?)
+  setTimeout(() => {
+    t.equal(lastTransformed, 'a', 'only one transform happened');
+    t.equal(ts.writable.state, 'waiting', 'backpressure active');
+    reader.read().then(result1 => {
+      t.deepEqual(result1, { value: 'A', done: false }, 'correct transformed result');
+      setTimeout(() => {
+        t.equal(lastTransformed, 'b', 'only one additional transform happened');
+        t.equal(ts.writable.state, 'waiting', 'backpressure still active');
+        reader.read().then(result2 => {
+          t.deepEqual(result2, { value: 'B', done: false }, 'correct transformed result');
+          setTimeout(() => {
+            t.equal(lastTransformed, 'c', 'last transform happened');
+            t.equal(ts.writable.state, 'writable', 'backpressure removed');
+            reader.read().then(result3 => {
+              t.deepEqual(result3, { value: 'C', done: false }, 'correct transformed result');
+              t.equal(ts.writable.state, 'writable', 'backpressure still off');
+            });
+          });
+        });
+      }, 0);
+    })
+  }, 0);
+});
