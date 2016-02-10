@@ -730,7 +730,7 @@ test('ReadableStream with byte source: read(view), then respond() with a transfe
         // a new ArrayBuffer, then construct a view around it and write to it.
         const transferredView = new Uint8Array(1);
         transferredView[0] = 0x01;
-        controller.byobRequest.respond(1, transferredView.buffer);
+        controller.byobRequest.respondWithNewView(transferredView);
 
         t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined after respond()');
       } else {

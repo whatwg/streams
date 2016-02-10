@@ -484,7 +484,7 @@ class ReadableStreamBYOBRequest {
     return this._view;
   }
 
-  respond(bytesWritten, buffer) {
+  respond(bytesWritten) {
     if (!IsReadableStreamBYOBRequest(this)) {
       throw new TypeError(
           'ReadableByteStreamController.prototype.respond can only be used on a ReadableByteStreamController');
@@ -494,7 +494,20 @@ class ReadableStreamBYOBRequest {
       throw new TypeError('This BYOB request has been invalidated');
     }
 
-    RespondToReadableByteStreamController(this._associatedReadableByteStreamController, bytesWritten, buffer);
+    RespondToReadableByteStreamController(this._associatedReadableByteStreamController, bytesWritten);
+  }
+
+  respondWithNewView(view) {
+    if (!IsReadableStreamBYOBRequest(this)) {
+      throw new TypeError(
+          'ReadableByteStreamController.prototype.respond can only be used on a ReadableByteStreamController');
+    }
+
+    if (this._associatedReadableByteStreamController === undefined) {
+      throw new TypeError('This BYOB request has been invalidated');
+    }
+
+    RespondWithNewViewToReadableByteStreamController(this._associatedReadableByteStreamController, view);
   }
 
   _invalidate() {
@@ -1331,7 +1344,7 @@ function ErrorReadableByteStreamController(controller, e) {
 }
 
 // A client of ReadableByteStreamController may use this function directly to bypass state check.
-function RespondToReadableByteStreamController(controller, bytesWritten, buffer) {
+function RespondToReadableByteStreamController(controller, bytesWritten) {
   bytesWritten = Number(bytesWritten);
   if (!isFiniteNonNegativeNumber(bytesWritten)) {
     throw new RangeError('bytesWritten must be a finite')
@@ -1339,10 +1352,28 @@ function RespondToReadableByteStreamController(controller, bytesWritten, buffer)
 
   assert(controller._pendingPullIntos.length > 0);
 
+  RespondToReadableByteStreamControllerInternal(controller, bytesWritten);
+}
+
+function RespondWithNewViewToReadableByteStreamController(controller, view) {
+  assert(controller._pendingPullIntos.length > 0);
+
   const firstDescriptor = controller._pendingPullIntos[0];
-  if (buffer !== undefined) {
-    firstDescriptor.buffer = buffer;
+
+  if (firstDescriptor.byteOffset + firstDescriptor.bytesFilled !== view.byteOffset) {
+    throw new RangeError('The region specified by view does not match byobRequest');
   }
+  if (firstDescriptor.byteLength !== view.byteLength) {
+    throw new RangeError('The buffer of view has different capacity than byobRequest');
+  }
+
+  firstDescriptor.buffer = view.buffer;
+
+  RespondToReadableByteStreamControllerInternal(controller, view.byteLength);
+}
+
+function RespondToReadableByteStreamControllerInternal(controller, bytesWritten) {
+  const firstDescriptor = controller._pendingPullIntos[0];
 
   const stream = controller._controlledReadableStream;
 
