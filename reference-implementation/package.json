@@ -1,12 +1,13 @@
 {
-  "name": "whatwg-streams",
-  "version": "0.0.0",
+  "name": "whatwg-streams-es5",
+  "version": "0.0.1",
   "description": "Reference implementation and tests for the WHATWG Streams Standard",
   "scripts": {
     "test": "node --expose_gc node_modules/traceur-runner/bin/traceur-runner.js run-tests.js | tap-spec && npm run wpt",
     "wpt": "node --expose_gc node_modules/traceur-runner/bin/traceur-runner.js run-web-platform-tests.js",
     "bench": "traceur-runner bench/recording-runner.js && traceur-runner bench/recording-differ.js",
-    "build-browser-tests": "traceur-runner browser-tests/build.js"
+    "build-browser-tests": "traceur-runner browser-tests/build.js",
+    "prepublish": "babel -d dist/lib lib && babel -d dist/test test && babel -d dist *.js"
   },
   "repository": "whatwg/streams",
   "keywords": [
@@ -21,8 +22,10 @@
     "Takeshi Yoshino <tyoshino@chromium.org>"
   ],
   "license": "CC0",
-  "traceur-runner": true,
+  "main": "dist/index",
   "devDependencies": {
+    "babel-cli": "^6.5.1",
+    "babel-preset-es2015": "^6.5.0",
     "browserify": "^9.0.7",
     "browserify-tape-spec": "^1.1.2",
     "es6ify": "^1.6.0",
