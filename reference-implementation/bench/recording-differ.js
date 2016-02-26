@@ -31,7 +31,7 @@ function comparisonTable(reference, other) {
 
   const table = Object.keys(filteredDelta).map(k => {
     const values = JSON.parse(k);
-    const { time, pauses } = filteredDelta[k];
+    let { time, pauses } = filteredDelta[k];
     [time, pauses] = [addSign(time / 1e6), addSign(pauses)];
 
     return [values, time, pauses];
