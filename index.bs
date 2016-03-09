@@ -2601,7 +2601,7 @@ immediately.
 We can then use this function to create writable streams for a web socket, and pipe an arbitrary readable stream to it:
 
 <pre><code class="lang-javascript">
-  const webSocketStream = makeWritableWebSocketStream("wss://example.com", 443);
+  const webSocketStream = makeWritableWebSocketStream("wss://example.com:443/", "protocol");
 
   readableStream.pipeTo(webSocketStream)
     .then(() => console.log("All data successfully written!"))
@@ -2735,7 +2735,7 @@ We can then use the objects created by this function to communicate with a remot
 APIs:
 
 <pre><code class="lang-javascript">
-  const streamyWS = streamifyWebSocket("wss://example.com", 443);
+  const streamyWS = streamifyWebSocket("wss://example.com:443/", "protocol");
 
   streamyWS.writable.write("Hello");
   streamyWS.writable.write("web socket!");
