@@ -2466,7 +2466,7 @@ We can then use this function to create readable streams for a web socket, and p
 writable stream:
 
 <pre><code class="lang-javascript">
-  const webSocketStream = makeReadableWebSocketStream("wss://example.com", 443);
+  const webSocketStream = makeReadableWebSocketStream("wss://example.com:443/", "protocol");
 
   webSocketStream.pipeTo(writableStream)
     .then(() => console.log("All data successfully written!"))
