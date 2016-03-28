@@ -1435,8 +1435,7 @@ Instances of <code>ReadableStreamDefaultController</code> are created with the i
 <emu-alg>
   1. If IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
   1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. Let _stream_ be *this*@[[controlledReadableStream]].
-  1. If _stream_@[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. If *this*@[[controlledReadableStream]]@[[state]] is not `"readable"`, throw a *TypeError* exception.
   1. Perform ReadableStreamDefaultControllerClose(*this*).
 </emu-alg>
 
@@ -1449,8 +1448,7 @@ Instances of <code>ReadableStreamDefaultController</code> are created with the i
 <emu-alg>
   1. If IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
   1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. Let _stream_ be *this*@[[controlledReadableStream]].
-  1. If _stream_@[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. If *this*@[[controlledReadableStream]]@[[state]] is not `"readable"`, throw a *TypeError* exception.
   1. Return ReadableStreamDefaultControllerEnqueue(*this*, _chunk_).
 </emu-alg>
 

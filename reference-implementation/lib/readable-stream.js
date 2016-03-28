@@ -829,16 +829,17 @@ class ReadableStreamDefaultController {
 
   close() {
     if (IsReadableStreamDefaultController(this) === false) {
-      throw new TypeError('ReadableStreamDefaultController.prototype.close can only be used on a ReadableStreamDefaultController');
+      throw new TypeError(
+          'ReadableStreamDefaultController.prototype.close can only be used on a ReadableStreamDefaultController');
     }
 
     if (this._closeRequested === true) {
       throw new TypeError('The stream has already been closed; do not close it again!');
     }
 
-    const stream = this._controlledReadableStream;
-    if (stream._state !== 'readable') {
-      throw new TypeError(`The stream (in ${stream._state} state) is not in the readable state and cannot be closed`);
+    const state = this._controlledReadableStream._state;
+    if (state !== 'readable') {
+      throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be closed`);
     }
 
     ReadableStreamDefaultControllerClose(this);
@@ -846,17 +847,17 @@ class ReadableStreamDefaultController {
 
   enqueue(chunk) {
     if (IsReadableStreamDefaultController(this) === false) {
-      throw new TypeError('ReadableStreamDefaultController.prototype.enqueue can only be used on a ReadableStreamDefaultController');
+      throw new TypeError(
+          'ReadableStreamDefaultController.prototype.enqueue can only be used on a ReadableStreamDefaultController');
     }
 
     if (this._closeRequested === true) {
       throw new TypeError('stream is closed or draining');
     }
 
-    const stream = this._controlledReadableStream;
-    if (stream._state !== 'readable') {
-      throw new TypeError(
-          `The stream (in ${stream._state} state) is not in the readable state and cannot be enqueued to`);
+    const state = this._controlledReadableStream._state;
+    if (state !== 'readable') {
+      throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be enqueued to`);
     }
 
     return ReadableStreamDefaultControllerEnqueue(this, chunk);
@@ -1189,8 +1190,9 @@ class ReadableStreamBYOBController {
       throw new TypeError('The stream has already been closed; do not close it again!');
     }
 
-    if (this._controlledReadableStream._state !== 'readable') {
-      throw new TypeError('The stream is not in the readable state and cannot be closed');
+    const state = this._controlledReadableStream._state;
+    if (state !== 'readable') {
+      throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be closed`);
     }
 
     ReadableStreamBYOBControllerClose(this);
@@ -1206,8 +1208,9 @@ class ReadableStreamBYOBController {
       throw new TypeError('stream is closed or draining');
     }
 
-    if (this._controlledReadableStream._state !== 'readable') {
-      throw new TypeError('The stream is not in the readable state and cannot be enqueued to');
+    const state = this._controlledReadableStream._state;
+    if (state !== 'readable') {
+      throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be enqueued to`);
     }
 
     if (!ArrayBuffer.isView(chunk)) {
