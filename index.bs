@@ -15,6 +15,7 @@ Abstract: build higher-level abstractions, such as filesystem or socket APIs, wh
 Abstract: users can use the supplied tools to build their own streams which integrate well with those
 Abstract: of the web platform.
 Logo: https://resources.whatwg.org/logo-streams.svg
+Use Dfn Panels: yes
 !Participate: <a href="https://github.com/whatwg/streams/issues/new">File an issue</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open issues</a>)
 !Participate: <a href="https://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
 !Version History: <a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a>
@@ -22,13 +23,20 @@ Logo: https://resources.whatwg.org/logo-streams.svg
 !Version History: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
 
 Opaque Elements: emu-alg
+Ignored Vars: e
 </pre>
 
 <pre class="anchors">
-urlPrefix: https://html.spec.whatwg.org/multipage/
-    type: dfn
-        urlPrefix: infrastructure.html
-            text: structured clone
+urlPrefix: https://html.spec.whatwg.org/multipage/; spec: HTML
+    text: StructuredClone; urlPrefix: infrastructure.html; type: abstract-op
+    text: WebSocket; url: comms.html#websocket; type: interface
+urlPrefix: https://tc39.github.io/; spec: ECMASCRIPT
+    text: %ArrayBuffer%; url: #sec-arraybuffer-objects; type: interface
+    text: ArrayBuffer; url: #sec-arraybuffer-objects; type: interface
+    text: %Uint8Array%; url: #sec-typedarray-objects; type: interface
+    text: Uint8Array; url: #sec-typedarray-objects; type: interface
+    text: typed array; url: #sec-typedarray-objects; type: dfn
+    text: TypeError; url: #sec-native-error-types-used-in-this-standard-typeerror; type: exception
 </pre>
 
 <style>
@@ -90,7 +98,7 @@ ride.
 
 A <dfn>chunk</dfn> is a single piece of data that is written to or read from a stream. It can be of any type; streams
 can even contain chunks of different types. A chunk will often not be the most atomic unit of data for a given stream;
-for example a byte stream might contain chunks consisting of 16 KiB <code>Uint8Array</code>s, instead of single
+for example a byte stream might contain chunks consisting of 16 KiB {{Uint8Array}}s, instead of single
 bytes.
 
 <h3 id="rs-model">Readable Streams</h3>
@@ -321,15 +329,15 @@ copies.
 
   An important thing to note here is that the final <code>buffer</code> value is different from the
   <code>startingAB</code>, but it (and all intermediate buffers) shares the same backing memory allocation. At each
-  step, the buffer is transferred <!-- TODO link --> to a new <code>ArrayBuffer</code> object. The <code>newView</code>
-  is a new <code>Uint8Array</code>, with that <code>ArrayBuffer</code> object as its <code>buffer</code> property, the
+  step, the buffer is transferred <!-- TODO link --> to a new {{ArrayBuffer}} object. The <code>newView</code>
+  is a new {{Uint8Array}}, with that {{ArrayBuffer}} object as its <code>buffer</code> property, the
   offset that bytes were written to as its <code>byteOffset</code> property, and the number of bytes that were written
   as its <code>byteLength</code> property.
 </div>
 
-<h3 id="rs-class">Class <code>ReadableStream</code></h3>
+<h3 id="rs-class" interface lt="ReadableStream">Class <code>ReadableStream</code></h3>
 
-The <code>ReadableStream</code> class is a concrete instance of the general <a>readable stream</a> concept. It is
+The {{ReadableStream}} class is a concrete instance of the general <a>readable stream</a> concept. It is
 adaptable to any <a>chunk</a> type, and maintains an internal queue to keep track of data supplied by the <a>underlying
 source</a> but not yet read by any consumer.
 
@@ -337,8 +345,8 @@ source</a> but not yet read by any consumer.
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>ReadableStream</code> class in something close to the syntax of [[!ECMASCRIPT]], it
-would look like
+If one were to write the {{ReadableStream}} class in something close to the syntax of [[!ECMASCRIPT]], it would look
+like
 
 <pre><code class="lang-javascript">
   class ReadableStream {
@@ -357,7 +365,7 @@ would look like
 
 <h4 id="rs-internal-slots">Internal Slots</h4>
 
-Instances of <code>ReadableStream</code> are created with the internal slots described in the following table:
+Instances of {{ReadableStream}} are created with the internal slots described in the following table:
 
 <table>
   <thead>
@@ -368,19 +376,17 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </thead>
   <tr>
     <td>\[[readableStreamController]]
-    <td>A <a href="#rs-default-controller-class"><code>ReadableStreamDefaultController</code></a> or
-      <a href="#rs-byob-controller-class"><code>ReadableStreamBYOBController</code></a> created with the ability to
-      control the state and queue of this stream; also used for the IsReadableStream brand check
+    <td>A {{ReadableStreamDefaultController}} or {{ReadableStreamBYOBController}} created with the ability to control
+    the state and queue of this stream; also used for the IsReadableStream brand check
   </tr>
   <tr>
     <td>\[[disturbed]]
-    <td>A boolean flag set to <b>true</b> when the stream has been read from or canceled
+    <td>A boolean flag set to <emu-val>true</emu-val> when the stream has been read from or canceled
   </tr>
   <tr>
     <td>\[[reader]]
-    <td>A <a href="#default-reader-class"><code>ReadableStreamDefaultReader</code></a> or
-      <a href="#byob-reader-class"><code>ReadableStreamBYOBReader</code></a> instance, if the stream is <a>locked to a
-      reader</a>, or <b>undefined</b> if it is not
+    <td>A {{ReadableStreamDefaultReader}} or {{ReadableStreamBYOBReader}} instance, if the stream is <a>locked to a
+      reader</a>, or <emu-val>undefined</emu-val> if it is not
   </tr>
   <tr>
     <td>\[[state]]
@@ -394,10 +400,10 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </tr>
 </table>
 
-<h4 id="rs-constructor">new ReadableStream(underlyingSource = {}, { size, highWaterMark = 1 } = {})</h4>
+<h4 id="rs-constructor" constructor for="ReadableStream" lt="ReadableStream(underlyingSource, queuingStrategy)">new ReadableStream(underlyingSource = {}, { size, highWaterMark = 1 } = {})</h4>
 
 <div class="note">
-  The <var>underlyingSource</var> object passed to the constructor can implement any of the following methods to
+  The <code>underlyingSource</code> object passed to the constructor can implement any of the following methods to
   govern how the constructed stream instance behaves:
 
   <ul>
@@ -417,16 +423,15 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   state via the passed <code>controller</code> object. This is an example of the
   <a href="https://blog.domenic.me/the-revealing-constructor-pattern/">revealing constructor pattern</a>.
 
-  If the <var>underlyingSource</var> object contains a truthy property <code>byob</code>, this <a>readable stream</a> is
+  If the <code>underlyingSource</code> object contains a truthy property <code>byob</code>, this <a>readable stream</a> is
   a <a>readable byte stream</a>, and can successfully vend <a>BYOB readers</a>. In that case, the passed
-  <code>controller</code> object will be an instance of <a
-  href="#rs-byob-controller-class"><code>ReadableStreamBYOBController</code></a>. Otherwise, it will be an instance of
-  <a href="#rs-default-controller-class"><code>ReadableStreamDefaultController</code></a>.
+  <code>controller</code> object will be an instance of {{ReadableStreamBYOBController}}. Otherwise, it will be an instance of
+  {{ReadableStreamDefaultController}}.
 
-  For <a>readable byte streams</a>, <var>underlyingSource</var> can also contain a property
+  For <a>readable byte streams</a>, <code>underlyingSource</code> can also contain a property
   <code>autoAllocateChunkSize</code>, which can be set to a positive integer to enable the auto-allocation feature for
   this stream. In that case, when a <a>consumer</a> uses a <a>default reader</a>, the stream implementation will
-  automatically allocate an <code>ArrayBuffer</code> of the given size, and call the <a>underlying source</a> code
+  automatically allocate an {{ArrayBuffer}} of the given size, and call the <a>underlying source</a> code
   as if the <a>consumer</a> was using a <a>BYOB reader</a>. This can cut down on the amount of code needed when writing
   the <a>underlying source</a> implementation, as can be seen by comparing [[#example-rbs-push]] without auto-allocation
   to [[#example-rbs-pull]] with auto-allocation.
@@ -448,16 +453,16 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. If _byob_ is *true*,
     1. If _highWaterMark_ is *undefined*,
       1. Let _highWaterMark_ be 0.
-    1. Set *this*@[[readableStreamController]] to Construct(`ReadableStreamBYOBController`, «*this*, _underlyingSource_, _highWaterMark_»).
+    1. Set *this*@[[readableStreamController]] to Construct(`<a idl>ReadableStreamBYOBController</a>`, «*this*, _underlyingSource_, _highWaterMark_»).
   1. Otherwise,
     1. If _highWaterMark_ is *undefined*,
       1. Let _highWaterMark_ be 1.
-    1. Set *this*@[[readableStreamController]] to Construct(`ReadableStreamDefaultController`, «*this*, _underlyingSource_, _size_, _highWaterMark_»).
+    1. Set *this*@[[readableStreamController]] to Construct(`<a idl>ReadableStreamDefaultController</a>`, «*this*, _underlyingSource_, _size_, _highWaterMark_»).
 </emu-alg>
 
-<h4 id="rs-prototype">Properties of the <code>ReadableStream</code> Prototype</h4>
+<h4 id="rs-prototype">Properties of the {{ReadableStream}} Prototype</h4>
 
-<h5 id="rs-locked">get locked</h5>
+<h5 id="rs-locked" attribute for="ReadableStream" lt="locked">get locked</h5>
 
 <div class="note">
   The <code>locked</code> getter returns whether or not the readable stream is <a>locked to a reader</a>.
@@ -468,11 +473,11 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. Return IsReadableStreamLocked(*this*).
 </emu-alg>
 
-<h5 id="rs-cancel">cancel(reason)</h5>
+<h5 id="rs-cancel" method for="ReadableStream">cancel(reason)</h5>
 
 <div class="note">
   The <code>cancel</code> method <a lt="cancel a readable stream">cancels</a> the stream, signaling a loss of interest
-  in the stream by a consumer. The supplied <var>reason</var> argument will be given to the underlying source, which
+  in the stream by a consumer. The supplied <code>reason</code> argument will be given to the underlying source, which
   may or may not use it.
 </div>
 
@@ -482,7 +487,22 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. Return ReadableStreamCancel(*this*, _reason_).
 </emu-alg>
 
-<h5 id="rs-get-byob-reader">getBYOBReader()</h5>
+<h5 id="rs-get-byob-reader" method for="ReadableStream">getBYOBReader()</h5>
+
+<div class="note">
+  The <code>getBYOBReader</code> method only works on <a>readable byte streams</a>, i.e. streams which were constructed
+  specifically with the ability to handle "bring your own buffer" reading. It creates a <a>BYOB reader</a> and <a
+  lt="locked to a reader">locks</a> the stream to the new reader. While the stream is locked, no other reader can be
+  acquired until this one is <a lt="release a read lock">released</a>. The returned reader provides the ability to
+  directly read individual <a>chunks</a> from the stream via the reader's {{ReadableStreamBYOBReader/read()}} method,
+  into developer-supplied buffers.
+
+  This functionality is especially useful for creating abstractions that desire the ability to consume a stream in its
+  entirety. By getting a reader for the stream, you can ensure nobody else can interleave reads with yours or cancel
+  the stream, which would interfere with your abstraction. The additional capabilities of the returned
+  {{ReadableStreamBYOBReader}}, beyond those of the simpler {{ReadableStreamDefaultReader}} returned by
+  {{ReadableStream/getReader()}}, allow more precise control over memory allocation.
+</div>
 
 <emu-alg>
   1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
@@ -490,19 +510,18 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   1. Return AcquireReadableStreamBYOBReader(*this*).
 </emu-alg>
 
-<h5 id="rs-get-reader">getReader()</h5>
+<h5 id="rs-get-reader" method for="ReadableStream">getReader()</h5>
 
 <div class="note">
-  The <code>getReader</code> method creates a <a>readable stream reader</a> and
+  The <code>getReader</code> method creates a <a>default reader</a> (an instance of {{ReadableStreamDefaultReader}}) and
   <a lt="locked to a reader">locks</a> the stream to the new reader. While the stream is locked, no other reader
   can be acquired until this one is <a lt="release a read lock">released</a>. The returned reader provides the ability
-  to directly read individual <a>chunks</a> from the stream via the reader's <code>read</code> method.
+  to directly read individual <a>chunks</a> from the stream via the reader's {{ReadableStreamDefaultReader/read()}}
+  method.
 
   This functionality is especially useful for creating abstractions that desire the ability to consume a stream in its
   entirety. By getting a reader for the stream, you can ensure nobody else can interleave reads with yours or cancel
   the stream, which would interfere with your abstraction.
-
-  Note that if a stream becomes closed or errored, any reader it is locked to is automatically released.
 </div>
 
 <emu-alg>
@@ -539,7 +558,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   <a lt="cancel a readable stream">canceling</a> the stream.
 </div>
 
-<h5 id="rs-pipe-through">pipeThrough({ writable, readable }, options)</h5>
+<h5 id="rs-pipe-through" method for="ReadableStream" lt="pipeThrough(transform, options)">pipeThrough({ writable, readable }, options)</h5>
 
 <div class="note">
   The <code>pipeThrough</code> method provides a convenient, chainable way of <a>piping</a> this <a>readable stream</a>
@@ -549,9 +568,9 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   Piping a stream will generally <a lt="locked to a reader">lock</a> it for the duration of the pipe, preventing any
   other consumer from acquiring a reader.
 
-  This method is intentionally generic; it does not require that its <b>this</b> value be a <code>ReadableStream</code>
-  object. It also does not require that its <code>writable</code> argument be a <code>WritableStream</code> instance,
-  or that its <code>readable</code> argument be a <code>ReadableStream</code> instance.
+  This method is intentionally generic; it does not require that its <emu-val>this</emu-val> value be a
+  {{ReadableStream}} object. It also does not require that its <code>writable</code> argument be a {{WritableStream}}
+  instance, or that its <code>readable</code> argument be a {{ReadableStream}} instance.
 </div>
 
 <emu-alg>
@@ -560,7 +579,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
 </emu-alg>
 
 <div class="example">
-  A typical example of constructing <a>pipe chain</a> using <code>pipeThrough</code> would look like
+  A typical example of constructing <a>pipe chain</a> using {{ReadableStream/pipeThrough(transform, options)}} would look like
 
   <pre><code class="lang-javascript">
     httpResponseBody
@@ -570,7 +589,7 @@ Instances of <code>ReadableStream</code> are created with the internal slots des
   </code></pre>
 </div>
 
-<h5 id="rs-pipe-to">pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})</h5>
+<h5 id="rs-pipe-to" method for="ReadableStream" lt="pipeTo(dest, options)">pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})</h5>
 
 <div class="note">
   The <code>pipeTo</code> method <a lt="piping">pipes</a> this <a>readable stream</a> to a given <a>writable
@@ -593,11 +612,11 @@ abstract operation calls, instead of using the JavaScript-exposed readable and w
 allow optimization and specialization. See <a href="https://github.com/whatwg/streams/issues/407">#407</a> and <a
 href="https://github.com/whatwg/streams/issues/97">#97</a> for more information.
 
-<h5 id="rs-tee">tee()</h5>
+<h5 id="rs-tee" method for="ReadableStream">tee()</h5>
 
 <div class="note">
   The <code>tee</code> method <a lt="tee a readable stream">tees</a> this readable stream, returning a two-element
-  array containing the two resulting branches as new <code>ReadableStream</code> instances.
+  array containing the two resulting branches as new {{ReadableStream}} instances.
 
   Teeing a stream will <a lt="locked to a reader">lock</a> it, preventing any other consumer from acquiring a reader.
   To <a lt="cancel a readable stream">cancel</a> the stream, cancel both of the resulting branches; a composite
@@ -605,7 +624,7 @@ href="https://github.com/whatwg/streams/issues/97">#97</a> for more information.
 
   Note that the <a>chunks</a> seen in each branch will be the same object. If the chunks are not immutable, this could
   allow interference between the two branches. (<a href="https://github.com/whatwg/streams/issues/new">Let us know</a>
-  if you think we should add an option to <code>tee</code> that creates <a>structured clones</a> of the chunks for each
+  if you think we should add an option to <code>tee</code> that creates <a lt="StructuredClone">structured clones</a> of the chunks for each
   branch.)
 </div>
 
@@ -645,7 +664,7 @@ This abstract operation is meant to be called from other specifications that may
 for a given stream.
 
 <emu-alg>
-  1. Return Construct(`ReadableStreamBYOBReader`, «_stream_»)
+  1. Return Construct(`<a idl>ReadableStreamBYOBReader</a>`, «_stream_»)
 </emu-alg>
 
 <h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamDefaultReader" throws>AcquireReadableStreamDefaultReader ( stream )</h4>
@@ -654,7 +673,7 @@ This abstract operation is meant to be called from other specifications that may
 reader</a> for a given stream.
 
 <emu-alg>
-  1. Return Construct(`ReadableStreamDefaultReader`, «‍_stream_»).
+  1. Return Construct(`<a idl>ReadableStreamDefaultReader</a>`, «‍_stream_»).
 </emu-alg>
 
 <h4 id="is-readable-stream" aoid="IsReadableStream" nothrow>IsReadableStream ( x )</h4>
@@ -690,8 +709,8 @@ readable stream is <a>locked to a reader</a>.
 
 This abstract operation is meant to be called from other specifications that may wish to
 <a lt="tee a readable stream">tee</a> a given readable stream. Its second argument governs whether or not the data from
-the original stream will be <a lt="structured clone">structured cloned</a> before becoming visible in the returned
-branches.
+the original stream will be <a lt="StructuredClone">structured cloned</a> before becoming visible in the returned
+branches. [[!HTML]]
 
 <emu-alg>
   1. Assert: IsReadableStream(_stream_) is *true*.
@@ -708,11 +727,11 @@ branches.
   1. Let _underlyingSource1_ be ObjectCreate(%ObjectPrototype%).
   1. Perform CreateDataProperty(_underlyingSource1_, `"pull"`, _pull_).
   1. Perform CreateDataProperty(_underlyingSource1_, `"cancel"`, _cancel1_).
-  1. Let _branch1Stream_ be Construct(`ReadableStream`, _underlyingSource1_).
+  1. Let _branch1Stream_ be Construct(`<a idl>ReadableStream</a>`, _underlyingSource1_).
   1. Let _underlyingSource2_ be ObjectCreate(%ObjectPrototype%).
   1. Perform CreateDataProperty(_underlyingSource2_, `"pull"`, _pull_).
   1. Perform CreateDataProperty(_underlyingSource2_, `"cancel"`, _cancel2_).
-  1. Let _branch2Stream_ be Construct(`ReadableStream`, _underlyingSource2_).
+  1. Let _branch2Stream_ be Construct(`<a idl>ReadableStream</a>`, _underlyingSource2_).
   1. Set _pull_@[[branch1]] to _branch1Stream_@[[readableStreamController]].
   1. Set _pull_@[[branch2]] to _branch2Stream_@[[readableStreamController]].
   1. Upon rejection of _reader_@[[closedPromise]] with reason _r_,
@@ -759,11 +778,11 @@ ReadableStreamTee pull function <var>F</var> is called, it performs the followin
     1. If _teeState_.[[closedOrErrored]] is *true*, return *undefined*.
     1. If _teeState_.[[canceled1]] is *false*,
       1. Let _value1_ be _value_.
-      1. If _shouldClone_ is *true*, set _value1_ to <a lt="structured clone">StructuredClone</a>(_value_).
+      1. If _shouldClone_ is *true*, set _value1_ to <a abstract-op>StructuredClone</a>(_value_).
       1. Call-with-rethrow ReadableStreamDefaultControllerEnqueue(_branch1_, _value1_).
     1. If _teeState_.[[canceled2]] is *false*,
       1. Let _value2_ be _value_.
-      1. If _shouldClone_ is *true*, set _value2_ to <a lt="structured clone">StructuredClone</a>(_value_).
+      1. If _shouldClone_ is *true*, set _value2_ to <a abstract-op>StructuredClone</a>(_value_).
       1. Call-with-rethrow ReadableStreamDefaultControllerEnqueue(_branch2_, _value2_).
 </emu-alg>
 
@@ -808,18 +827,18 @@ called with argument <var>reason</var>, it performs the following steps:
   methods for these functions, with the state stored as instance variables.
 </div>
 
-<h3 id="rs-abstract-ops">Readable Stream Abstract Operations Used by Controllers</h3>
+<h3 id="rs-abstract-ops-used-by-controllers">Readable Stream Abstract Operations Used by Controllers</h3>
 
-In terms of specification factoring, the way that the <code>ReadableStream</code> class encapsulates the behavior of
+In terms of specification factoring, the way that the {{ReadableStream}} class encapsulates the behavior of
 both simple readable streams and <a>readable byte streams</a> into a single class is by centralizing most of the
-potentially-varying logic inside the two controller classes, <code>ReadableStreamDefaultController</code> and
-<code>ReadableStreamBYOBController</code>. Those classes define most of the stateful internal slots and abstract
+potentially-varying logic inside the two controller classes, {{ReadableStreamDefaultController}} and
+{{ReadableStreamBYOBController}}. Those classes define most of the stateful internal slots and abstract
 operations for how a stream's <a>internal queue</a> is managed and how it interfaces with its <a>underlying source</a>
 or <a>underlying byte source</a>.
 
 The abstract operations in this section are interfaces that are used by the controller implementations to affect their
-associated <code>ReadableStream</code> object, translating those internal state changes into developer-facing results
-visible through the <code>ReadableStream</code>'s public API.
+associated {{ReadableStream}} object, translating those internal state changes into developer-facing results
+visible through the {{ReadableStream}}'s public API.
 
 <h4 id="readable-stream-add-read-into-request" aoid="ReadableStreamAddReadIntoRequest" nothrow>ReadableStreamAddReadIntoRequest ( stream )</h4>
 
@@ -875,7 +894,7 @@ this to streams they did not create, and must ensure they have obeyed the precon
 <div class="note">
   The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
   <emu-val>false</emu-val>, will happen if the stream was closed without its controller's close method ever being
-  called: i.e., if the stream was closed by a call to <code>stream.cancel()</code>. In this case we allow the
+  called: i.e., if the stream was closed by a call to {{ReadableStream/cancel(reason)}}. In this case we allow the
   controller's <code>close</code> method to be called and silently do nothing, since the cancelation was outside the
   control of the underlying source.
 </div>
@@ -954,17 +973,17 @@ an assert).
   1. Return *true*.
 </emu-alg>
 
-<h3 id="default-reader-class">Class <code>ReadableStreamDefaultReader</code></h3>
+<h3 id="default-reader-class" interface lt="ReadableStreamDefaultReader">Class <code>ReadableStreamDefaultReader</code></h3>
 
-The <code>ReadableStreamDefaultReader</code> class represents a <a>default reader</a> designed to be vended by a
-<code>ReadableStream</code> instance.
+The {{ReadableStreamDefaultReader}} class represents a <a>default reader</a> designed to be vended by a
+{{ReadableStream}} instance.
 
 <h4 id="default-reader-class-definition">Class Definition</h4>
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>ReadableStreamDefaultReader</code> class in something close to the syntax of [[!ECMASCRIPT]],
-it would look like
+If one were to write the {{ReadableStreamDefaultReader}} class in something close to the syntax of [[!ECMASCRIPT]], it
+would look like
 
 <pre><code class="lang-javascript">
   class ReadableStreamDefaultReader {
@@ -980,7 +999,7 @@ it would look like
 
 <h4 id="default-reader-internal-slots">Internal Slots</h4>
 
-Instances of <code>ReadableStreamDefaultReader</code> are created with the internal slots described in the following table:
+Instances of {{ReadableStreamDefaultReader}} are created with the internal slots described in the following table:
 
 <table>
   <thead>
@@ -991,26 +1010,26 @@ Instances of <code>ReadableStreamDefaultReader</code> are created with the inter
   </thead>
   <tr>
     <td>\[[closedPromise]]
-    <td>A promise returned by the reader's <code>closed</code> getter
+    <td>A promise returned by the reader's {{ReadableStreamDefaultReader/closed}} getter
   </tr>
   <tr>
     <td>\[[ownerReadableStream]]
-    <td>A <code>ReadableStream</code> instance that owns this reader
+    <td>A {{ReadableStream}} instance that owns this reader
   </tr>
   <tr>
     <td>\[[readRequests]]
-    <td>A List of promises returned by calls to the reader's <code>read()</code> method that have not yet been resolved,
-      due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available; also used for the
-      <a href="#is-readable-stream-reader">IsReadableStreamDefaultReader</a> brand check
+    <td>A List of promises returned by calls to the reader's {{ReadableStreamDefaultReader/read()}} method that have
+      not yet been resolved, due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available; also
+      used for the <a href="#is-readable-stream-reader">IsReadableStreamDefaultReader</a> brand check
   </tr>
 </table>
 
-<h4 id="default-reader-constructor">new ReadableStreamDefaultReader(stream)</h4>
+<h4 id="default-reader-constructor" constructor for="ReadableStreamDefaultReader" lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(stream)</h4>
 
 <div class="note">
-  The <code>ReadableStreamDefaultReader</code> constructor is generally not meant to be used directly; instead, a stream's
-  <code>getReader()</code> method should be used. This allows different classes of readable streams to vend different
-  classes of readers without the <a>consumer</a> needing to know which goes with which.
+  The <code>ReadableStreamDefaultReader</code> constructor is generally not meant to be used directly; instead, a
+  stream's {{ReadableStream/getReader()}} method should be used. This allows different classes of readable streams to
+  vend different classes of readers without the <a>consumer</a> needing to know which goes with which.
 </div>
 
 <emu-alg>
@@ -1020,9 +1039,9 @@ Instances of <code>ReadableStreamDefaultReader</code> are created with the inter
   1. Set *this*@[[readRequests]] to a new empty List.
 </emu-alg>
 
-<h4 id="default-reader-prototype">Properties of the <code>ReadableStreamDefaultReader</code> Prototype</h4>
+<h4 id="default-reader-prototype">Properties of the {{ReadableStreamDefaultReader}} Prototype</h4>
 
-<h5 id="default-reader-closed">get closed</h5>
+<h5 id="default-reader-closed" attribute for="ReadableStreamDefaultReader" lt="closed">get closed</h5>
 
 <div class="note">
   The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed or the
@@ -1034,11 +1053,11 @@ Instances of <code>ReadableStreamDefaultReader</code> are created with the inter
   1. Return *this*@[[closedPromise]].
 </emu-alg>
 
-<h5 id="default-reader-cancel">cancel(reason)</h5>
+<h5 id="default-reader-cancel" method for="ReadableStreamDefaultReader">cancel(reason)</h5>
 
 <div class="note">
   If the reader is <a lt="active reader">active</a>, the <code>cancel</code> method behaves the same as that for the
-  associated stream. When done, it automatically <a lt="release a read lock">releases the lock</a>.
+  associated stream.
 </div>
 
 <emu-alg>
@@ -1047,7 +1066,7 @@ Instances of <code>ReadableStreamDefaultReader</code> are created with the inter
   1. Return ReadableStreamCancel(*this*@[[ownerReadableStream]], _reason_).
 </emu-alg>
 
-<h5 id="default-reader-read">read()</h5>
+<h5 id="default-reader-read" method for="ReadableStreamDefaultReader">read()</h5>
 
 <div class="note">
   The <code>read</code> method will return a promise that allows access to the next <a>chunk</a> from the stream's
@@ -1070,7 +1089,7 @@ Instances of <code>ReadableStreamDefaultReader</code> are created with the inter
   1. Return ReadableStreamDefaultReaderRead(*this*).
 </emu-alg>
 
-<h5 id="default-reader-release-lock">releaseLock()</h5>
+<h5 id="default-reader-release-lock" method for="ReadableStreamDefaultReader">releaseLock()</h5>
 
 <div class="note">
   The <code>releaseLock</code> method <a lt="release a read lock">releases the reader's lock</a> on the corresponding
@@ -1079,8 +1098,8 @@ Instances of <code>ReadableStreamDefaultReader</code> are created with the inter
   the reader will appear closed.
 
   A reader's lock cannot be released while it still has a pending read request, i.e., if a promise returned by the
-  reader's <code>read()</code> method has not yet been settled. Attempting to do so will throw a <b>TypeError</b>
-  and leave the reader locked to the stream.
+  reader's {{ReadableStreamDefaultReader/read()}} method has not yet been settled. Attempting to do so will throw
+  a <emu-val>TypeError</emu-val> and leave the reader locked to the stream.
 </div>
 
 <emu-alg>
@@ -1090,17 +1109,17 @@ Instances of <code>ReadableStreamDefaultReader</code> are created with the inter
   1. Perform ReadableStreamReaderGenericRelease(*this*).
 </emu-alg>
 
-<h3 id="byob-reader-class">Class <code>ReadableStreamBYOBReader</code></h3>
+<h3 id="byob-reader-class" interface lt="ReadableStreamBYOBReader">Class <code>ReadableStreamBYOBReader</code></h3>
 
-The <code>ReadableStreamBYOBReader</code> class represents a <a>BYOB reader</a> designed to be vended by
-a <code>ReadableStream</code> instance.
+The {{ReadableStreamBYOBReader}} class represents a <a>BYOB reader</a> designed to be vended by a {{ReadableStream}}
+instance.
 
 <h4 id="byob-reader-class-definition">Class Definition</h4>
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>ReadableStreamBYOBReader</code> class in something close to the syntax of
-[[!ECMASCRIPT]], it would look like
+If one were to write the {{ReadableStreamBYOBReader}} class in something close to the syntax of [[!ECMASCRIPT]], it
+would look like
 
 <pre><code class="lang-javascript">
   class ReadableStreamBYOBReader {
@@ -1116,7 +1135,7 @@ If one were to write the <code>ReadableStreamBYOBReader</code> class in somethin
 
 <h4 id="byob-reader-internal-slots">Internal Slots</h4>
 
-Instances of <code>ReadableStreamBYOBReader</code> are created with the internal slots described in the following table:
+Instances of {{ReadableStreamBYOBReader}} are created with the internal slots described in the following table:
 
 <table>
   <thead>
@@ -1127,25 +1146,25 @@ Instances of <code>ReadableStreamBYOBReader</code> are created with the internal
   </thead>
   <tr>
     <td>\[[closedPromise]]
-    <td>A promise returned by the reader's <code>closed</code> getter
+    <td>A promise returned by the reader's {{ReadableStreamBYOBReader/closed}} getter
   </tr>
   <tr>
     <td>\[[ownerReadableStream]]
-    <td>A <code>ReadableStream</code> instance that owns this reader
+    <td>A {{ReadableStream}} instance that owns this reader
   </tr>
   <tr>
     <td>\[[readIntoRequests]]
-    <td>A List of promises returned by calls to the reader's <code>read()</code> method that have not yet been resolved,
-      due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available; also used for the
-      <a href="#is-readable-stream-byob-reader">IsReadableStreamBYOBReader</a> brand check
+    <td>A List of promises returned by calls to the reader's {{ReadableStreamBYOBReader/read(view)}} method that have
+      not yet been resolved, due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available; also
+      used for the <a href="#is-readable-stream-byob-reader">IsReadableStreamBYOBReader</a> brand check
   </tr>
 </table>
 
-<h4 id="byob-reader-constructor">new ReadableStreamBYOBReader(stream)</h4>
+<h4 id="byob-reader-constructor" constructor for="ReadableStreamBYOBReader" lt="ReadableStreamBYOBReader(stream)">new ReadableStreamBYOBReader(stream)</h4>
 
 <div class="note">
   The <code>ReadableStreamBYOBReader</code> constructor is generally not meant to be used directly; instead, a stream's
-  <code>getReader()</code> method should be used. This allows different classes of readable streams to vend different
+  {{ReadableStream/getBYOBReader()}} method should be used. This allows different classes of readable streams to vend different
   classes of readers without the <a>consumer</a> needing to know which goes with which.
 </div>
 
@@ -1156,9 +1175,9 @@ Instances of <code>ReadableStreamBYOBReader</code> are created with the internal
   1. Set *this*@[[readIntoRequests]] to a new empty List.
 </emu-alg>
 
-<h4 id="byob-reader-prototype">Properties of the <code>ReadableStreamBYOBReader</code> Prototype</h4>
+<h4 id="byob-reader-prototype">Properties of the {{ReadableStreamBYOBReader}} Prototype</h4>
 
-<h5 id="byob-reader-closed">get closed</h5>
+<h5 id="byob-reader-closed" attribute for="ReadableStreamBYOBReader" lt="closed">get closed</h5>
 
 <div class="note">
   The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed or the
@@ -1170,7 +1189,7 @@ Instances of <code>ReadableStreamBYOBReader</code> are created with the internal
   1. Return *this*@[[closedPromise]].
 </emu-alg>
 
-<h5 id="byob-reader-cancel">cancel(reason)</h5>
+<h5 id="byob-reader-cancel" method for="ReadableStreamBYOBReader">cancel(reason)</h5>
 
 <div class="note">
   If the reader is <a lt="active reader">active</a>, the <code>cancel</code> method behaves the same as that for the
@@ -1183,7 +1202,7 @@ Instances of <code>ReadableStreamBYOBReader</code> are created with the internal
   1. Return ReadableStreamCancel(*this*@[[ownerReadableStream]], _reason_).
 </emu-alg>
 
-<h5 id="byob-reader-read">read(view)</h5>
+<h5 id="byob-reader-read" method for="ReadableStreamBYOBReader">read(view)</h5>
 
 <div class="note">
   The <code>read</code> method will write read bytes into <code>view</code> and return a promise resolved with a
@@ -1209,7 +1228,7 @@ Instances of <code>ReadableStreamBYOBReader</code> are created with the internal
   1. Return ReadableStreamBYOBReaderRead(*this*, _view_).
 </emu-alg>
 
-<h5 id="byob-reader-release-lock">releaseLock()</h5>
+<h5 id="byob-reader-release-lock" method for="ReadableStreamBYOBReader">releaseLock()</h5>
 
 <div class="note">
   The <code>releaseLock</code> method <a lt="release a read lock">releases the reader's lock</a> on the corresponding
@@ -1218,8 +1237,8 @@ Instances of <code>ReadableStreamBYOBReader</code> are created with the internal
   the reader will appear closed.
 
   A reader's lock cannot be released while it still has a pending read request, i.e., if a promise returned by the
-  reader's <code>read()</code> method has not yet been settled. Attempting to do so will throw a <b>TypeError</b>
-  and leave the reader locked to the stream.
+  reader's {{ReadableStreamBYOBReader/read()}} method has not yet been settled. Attempting to do so will throw
+  a <emu-val>TypeError</emu-val> and leave the reader locked to the stream.
 </div>
 
 <emu-alg>
@@ -1247,7 +1266,7 @@ Instances of <code>ReadableStreamBYOBReader</code> are created with the internal
   1. Return *true*.
 </emu-alg>
 
-<h4 id="readable-stream-reader-release" aoid="ReadableStreamReaderGenericCancel" throws>ReadableStreamReaderGenericCancel ( reader, reason )</h4>
+<h4 id="readable-stream-reader-cancel" aoid="ReadableStreamReaderGenericCancel" throws>ReadableStreamReaderGenericCancel ( reader, reason )</h4>
 
 <emu-alg>
   1. Return ReadableStreamCancel(_reader_@[[ownerReadableStream]], _reason_).
@@ -1301,18 +1320,17 @@ Instances of <code>ReadableStreamBYOBReader</code> are created with the internal
   1. Return _stream_@[[readableStreamController]].[[Pull]]().
 </emu-alg>
 
-<h3 id="rs-default-controller-class" lt="ReadableStreamDefaultController">Class <code>ReadableStreamDefaultController</code></h3>
+<h3 id="rs-default-controller-class" interface lt="ReadableStreamDefaultController">Class <code>ReadableStreamDefaultController</code></h3>
 
-The <code>ReadableStreamDefaultController</code> class has methods that allow control of a <code>ReadableStream</code>'s
-state and <a>internal queue</a>. When constructing a <code>ReadableStream</code> that is not a <a>readable byte
-stream</a>, the <a>underlying source</a> is given a corresponding <code>ReadableStreamDefaultController</code> instance
-to manipulate.
+The {{ReadableStreamDefaultController}} class has methods that allow control of a {{ReadableStream}}'s state and
+<a>internal queue</a>. When constructing a {{ReadableStream}} that is not a <a>readable byte stream</a>, the
+<a>underlying source</a> is given a corresponding {{ReadableStreamDefaultController}} instance to manipulate.
 
 <h4 id="rs-default-controller-class-definition">Class Definition</h4>
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>ReadableStreamDefaultController</code> class in something close to the syntax of [[!ECMASCRIPT]],
+If one were to write the {{ReadableStreamDefaultController}} class in something close to the syntax of [[!ECMASCRIPT]],
 it would look like
 
 <pre><code class="lang-javascript">
@@ -1329,7 +1347,7 @@ it would look like
 
 <h4 id="rs-default-controller-internal-slots">Internal Slots</h4>
 
-Instances of <code>ReadableStreamDefaultController</code> are created with the internal slots described in the following table:
+Instances of {{ReadableStreamDefaultController}} are created with the internal slots described in the following table:
 
 <table>
   <thead>
@@ -1345,18 +1363,18 @@ Instances of <code>ReadableStreamDefaultController</code> are created with the i
   </tr>
   <tr>
     <td>\[[controlledReadableStream]]
-    <td>The <code>ReadableStream</code> instance controlled
+    <td>The {{ReadableStream}} instance controlled
   </tr>
   <tr>
     <td>\[[pullAgain]]
-    <td>A boolean flag set to <b>true</b> if the stream's mechanisms requested a call to the underlying source's
-      <code>pull</code> method to pull more data, but the pull could not yet be done since a previous call is still
-      executing
+    <td>A boolean flag set to <emu-val>true</emu-val> if the stream's mechanisms requested a call to the underlying
+      source's <code>pull</code> method to pull more data, but the pull could not yet be done since a previous call is
+      still executing
   </tr>
   <tr>
     <td>\[[pulling]]
-    <td>A boolean flag set to <b>true</b> while the <a>underlying source</a>'s <code>pull</code> method is executing and has
-      not yet fulfilled, used to prevent reentrant calls
+    <td>A boolean flag set to <emu-val>true</emu-val> while the <a>underlying source</a>'s <code>pull</code> method is
+      executing and has not yet fulfilled, used to prevent reentrant calls
   </tr>
   <tr>
     <td>\[[queue]]
@@ -1374,7 +1392,7 @@ Instances of <code>ReadableStreamDefaultController</code> are created with the i
   <tr>
     <td>\[[strategySize]]
     <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
-      the size of enqueued <a>chunks</a>; can be <b>undefined</b> for the default behavior.
+      the size of enqueued <a>chunks</a>; can be <emu-val>undefined</emu-val> for the default behavior.
   </tr>
   <tr>
     <td>\[[underlyingSource]]
@@ -1383,11 +1401,11 @@ Instances of <code>ReadableStreamDefaultController</code> are created with the i
   </tr>
 </table>
 
-<h4 id="rs-default-controller-constructor">new ReadableStreamDefaultController(stream, underlyingSource, size, highWaterMark)</h4>
+<h4 id="rs-default-controller-constructor" constructor for="ReadableStreamDefaultController" lt="ReadableStreamDefaultController(stream, underlyingSource, size, highWaterMark)">new ReadableStreamDefaultController(stream, underlyingSource, size, highWaterMark)</h4>
 
 <div class="note">
   The <code>ReadableStreamDefaultController</code> constructor cannot be used directly; it only works on a
-  <code>ReadableStream</code> that is in the middle of being constructed.
+  {{ReadableStream}} that is in the middle of being constructed.
 </div>
 
 <emu-alg>
@@ -1410,9 +1428,9 @@ Instances of <code>ReadableStreamDefaultController</code> are created with the i
       1. If *this*@[[state]] is `"readable"`, perform ReadableStreamDefaultControllerError(_controller_, _r_).
 </emu-alg>
 
-<h4 id="rs-default-controller-prototype">Properties of the <code>ReadableStreamDefaultController</code> Prototype</h4>
+<h4 id="rs-default-controller-prototype">Properties of the {{ReadableStreamDefaultController}} Prototype</h4>
 
-<h5 id="rs-default-controller-desired-size">get desiredSize</h5>
+<h5 id="rs-default-controller-desired-size" attribute for="ReadableStreamDefaultController" lt="desiredSize">get desiredSize</h5>
 
 <div class="note">
   The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size
@@ -1425,7 +1443,7 @@ Instances of <code>ReadableStreamDefaultController</code> are created with the i
   1. Return ReadableStreamDefaultControllerGetDesiredSize(*this*).
 </emu-alg>
 
-<h5 id="rs-default-controller-close">close()</h5>
+<h5 id="rs-default-controller-close" method for="ReadableStreamDefaultController">close()</h5>
 
 <div class="note">
   The <code>close</code> method will close the controlled readable stream. <a>Consumers</a> will still be able to read
@@ -1439,7 +1457,7 @@ Instances of <code>ReadableStreamDefaultController</code> are created with the i
   1. Perform ReadableStreamDefaultControllerClose(*this*).
 </emu-alg>
 
-<h5 id="rs-default-controller-enqueue">enqueue(chunk)</h5>
+<h5 id="rs-default-controller-enqueue" method for="ReadableStreamDefaultController">enqueue(chunk)</h5>
 
 <div class="note">
   The <code>enqueue</code> method will enqueue a given <a>chunk</a> in the controlled readable stream.
@@ -1452,11 +1470,11 @@ Instances of <code>ReadableStreamDefaultController</code> are created with the i
   1. Return ReadableStreamDefaultControllerEnqueue(*this*, _chunk_).
 </emu-alg>
 
-<h5 id="rs-default-controller-error">error(e)</h5>
+<h5 id="rs-default-controller-error" method for="ReadableStreamDefaultController">error(e)</h5>
 
 <div class="note">
   The <code>error</code> method will error the readable stream, making all future interactions with it fail with the
-  given error <var>e</var>.
+  given error <code>e</code>.
 </div>
 
 <emu-alg>
@@ -1468,7 +1486,7 @@ Instances of <code>ReadableStreamDefaultController</code> are created with the i
 
 <h4 id="rs-default-controller-internal-methods">Readable Stream Default Controller Internal Methods</h4>
 
-The following are additional internal methods implemented by each <code>ReadableStreamDefaultController</code> instance.
+The following are additional internal methods implemented by each {{ReadableStreamDefaultController}} instance.
 They are similar to the supporting abstract operations in the following section, but are in method form to allow
 polymorphic dispatch from the readable stream implementation to either these or their counterparts for BYOB controllers.
 
@@ -1575,9 +1593,9 @@ asserts).
 </emu-alg>
 
 <div class="note">
-  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]] is
-  <emu-val>false</emu-val>, will happen if the stream was closed without its controller's close method ever being
-  called: i.e., if the stream was closed by a call to <code>stream.cancel()</code>. In this case we allow the
+  The case where <var>stream</var>@\[[state]] is <code>"closed"</code>, but <var>stream</var>@\[[closeRequested]]
+  is <emu-val>false</emu-val>, will happen if the stream was closed without its controller's close method ever being
+  called: i.e., if the stream was closed by a call to {{ReadableStream/cancel(reason)}}. In this case we allow the
   controller's <code>enqueue</code> method to be called and silently do nothing, since the cancelation was outside the
   control of the underlying source.
 </div>
@@ -1595,26 +1613,26 @@ asserts).
 
 This abstract operation can be called by other specifications that wish to determine the
 <a lt="desired size to fill a stream's internal queue">desired size to fill this stream's internal queue</a>, similar
-to how a developer would consult the <code>desiredSize</code> property of the stream's associated controller object.
-Specifications should <em>not</em> use this on streams they did not create.
+to how a developer would consult the {{ReadableStreamDefaultController/desiredSize}} property of the stream's
+associated controller object. Specifications should <em>not</em> use this on streams they did not create.
 
 <emu-alg>
   1. Let _queueSize_ be GetTotalQueueSize(_controller_@[[queue]]).
   1. Return _controller_@[[strategyHWM]] − _queueSize_.
 </emu-alg>
 
-<h3 id="rs-byob-controller-class" lt="ReadableStreamBYOBController">Class <code>ReadableStreamBYOBController</code></h3>
+<h3 id="rs-byob-controller-class" interface lt="ReadableStreamBYOBController">Class <code>ReadableStreamBYOBController</code></h3>
 
-The <code>ReadableStreamBYOBController</code> class has methods that allow control of a <code>ReadableStream</code>'s
-state and <a>internal queue</a>. When constructing a <code>ReadableStream</code>, the <a>underlying byte source</a> is
-given a corresponding <code>ReadableStreamBYOBController</code> instance to manipulate.
+The {{ReadableStreamBYOBController}} class has methods that allow control of a {{ReadableStream}}'s state and
+<a>internal queue</a>. When constructing a {{ReadableStream}}, the <a>underlying byte source</a> is given a
+corresponding {{ReadableStreamBYOBController}} instance to manipulate.
 
 <h4 id="rs-byob-controller-class-definition">Class Definition</h4>
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>ReadableStreamBYOBController</code> class in something close to the syntax of
-[[!ECMASCRIPT]], it would look like
+If one were to write the {{ReadableStreamBYOBController}} class in something close to the syntax of [[!ECMASCRIPT]], it
+would look like
 
 <pre><code class="lang-javascript">
   class ReadableStreamBYOBController {
@@ -1631,8 +1649,7 @@ If one were to write the <code>ReadableStreamBYOBController</code> class in some
 
 <h4 id="rs-byob-controller-internal-slots">Internal Slots</h4>
 
-Instances of <code>ReadableStreamBYOBController</code> are created with the internal slots described in the following
-table:
+Instances of {{ReadableStreamBYOBController}} are created with the internal slots described in the following table:
 
 <table>
   <thead>
@@ -1644,7 +1661,7 @@ table:
   <tr>
     <td>\[[autoAllocateChunkSize]]
     <td>A non negative integer when the automatic buffer allocation feature is enabled. In that case, this value
-      specifies the size of buffer to allocate. <b>undefined</b> otherwise.
+      specifies the size of buffer to allocate. It is <emu-val>undefined</emu-val> otherwise.
   </tr>
   <tr>
     <td>\[[closeRequested]]
@@ -1653,22 +1670,22 @@ table:
   </tr>
   <tr>
     <td>\[[controlledReadableStream]]
-    <td>The <code>ReadableStream</code> instance controlled
+    <td>The {{ReadableStream}} instance controlled
   </tr>
   <tr>
     <td>\[[pullAgain]]
-    <td>A boolean flag set to <b>true</b> if the stream's mechanisms requested a call to the
+    <td>A boolean flag set to <emu-val>true</emu-val> if the stream's mechanisms requested a call to the
       <a>underlying byte source</a>'s <code>pull</code> method to pull more data, but the pull could not yet be done
       since a previous call is still executing
   </tr>
   <tr>
     <td>\[[pulling]]
-    <td>A boolean flag set to <b>true</b> while the <a>underlying byte source</a>'s <code>pull</code> method is
-      executing and has not yet fulfilled, used to prevent reentrant calls
+    <td>A boolean flag set to <emu-val>true</emu-val> while the <a>underlying byte source</a>'s <code>pull</code>
+      method is executing and has not yet fulfilled, used to prevent reentrant calls
   </tr>
   <tr>
     <td>\[[byobRequest]]
-    <td>A ReadableStreamBYOBRequest instance representing the current BYOB pull request.
+    <td>A {{ReadableStreamBYOBRequest}} instance representing the current BYOB pull request.
   </tr>
   <tr>
     <td>\[[pendingPullIntos]]
@@ -1690,7 +1707,7 @@ table:
   <tr>
     <td>\[[strategySize]]
     <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
-      the size of enqueued <a>chunks</a>; can be <b>undefined</b> for the default behavior.
+      the size of enqueued <a>chunks</a>; can be <emu-val>undefined</emu-val> for the default behavior.
   </tr>
   <tr>
     <td>\[[totalQueuedBytes]]
@@ -1703,17 +1720,17 @@ table:
   </tr>
 </table>
 
-<h4 id="rs-byob-controller-constructor">new ReadableStreamBYOBController(controlledReadableStream, underlyingByteSource, highWaterMark)</h4>
+<h4 id="rs-byob-controller-constructor" constructor for="ReadableStreamBYOBController" lt="ReadableStreamBYOBController(stream, underlyingByteSource, highWaterMark)">new ReadableStreamBYOBController(stream, underlyingByteSource, highWaterMark)</h4>
 
 <div class="note">
   The <code>ReadableStreamBYOBController</code> constructor cannot be used directly; it only works on a
-  <code>ReadableStream</code> that is in the middle of being constructed.
+  {{ReadableStream}} that is in the middle of being constructed.
 </div>
 
 <emu-alg>
-  1. If IsReadableStream(_controlledReadableStream_) is *false*, throw a *TypeError* exception.
-  1. If _controlledReadableStream_@[[readableStreamController]] is not *undefined*, throw a *TypeError* exception.
-  1. Set *this*@[[controlledReadableStream]] to _controlledReadableStream_.
+  1. If IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If _stream_@[[readableStreamController]] is not *undefined*, throw a *TypeError* exception.
+  1. Set *this*@[[controlledReadableStream]] to _stream_.
   1. Set *this*@[[underlyingByteSource]] to _underlyingByteSource_.
   1. Set *this*@[[pullAgain]], and *this*@[[pulling]] to *false*.
   1. Perform ReadableStreamBYOBControllerClearPendingPullIntos(*this*).
@@ -1725,7 +1742,7 @@ table:
   1. If _autoAllocateChunkSize_ is not *undefined*,
     1. Set _autoAllocateChunkSize_ to ToInteger(_autoAllocateChunkSize_).
     1. ReturnIfAbrupt(_autoAllocateChunkSize_).
-    1. If _autoAllocateChunkSize_ ≤ 0, or if _autoAllocateChunkSize_ is **+∞** or **-∞**, throw a **RangeError** exception.
+    1. If _autoAllocateChunkSize_ ≤ 0, or if _autoAllocateChunkSize_ is *+∞* or *-∞*, throw a *RangeError* exception.
   1. Set *this*@[[autoAllocateChunkSize]] to _autoAllocateChunkSize_.
   1. Set *this*@[[pendingPullIntos]] to a new empty List.
   1. Let _controller_ be *this*.
@@ -1741,9 +1758,9 @@ table:
       1. If *this*@[[state]] is `"readable"`, perform ReadableStreamBYOBControllerError(_controller_, _r_).
 </emu-alg>
 
-<h4 id="rs-byob-controller-prototype">Properties of the <code>ReadableStreamBYOBController</code> Prototype</h4>
+<h4 id="rs-byob-controller-prototype">Properties of the {{ReadableStreamBYOBController}} Prototype</h4>
 
-<h5 id="rs-byob-controller-byob-request">get byobRequest</h5>
+<h5 id="rs-byob-controller-byob-request" attribute for="ReadableStreamBYOBController" lt="byobRequest">get byobRequest</h5>
 
 <div class="note">
   The <code>byobRequest</code> getter returns the current BYOB pull request.
@@ -1753,12 +1770,12 @@ table:
   1. If IsReadableStreamBYOBController(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*@[[byobRequest]] is *undefined* and *this*@[[pendingPullIntos]] is not empty,
     1. Let _firstDescriptor_ be the first element of *this*@[[pendingPullIntos]].
-    1. Let _view_ be Construct(`Uint8Array`, «_firstDescriptor_.[[buffer]], _firstDescriptor_.[[byteOffset]] + _firstDescriptor_.[[bytesFilled]], _firstDescriptor_.[[byteLength]] - _firstDescriptor_.[[bytesFilled]]»).
-    1. Set *this*@[[byobRequest]] to Construct(`ReadableStreamBYOBRequest`, «*this*, _view_»).
+    1. Let _view_ be Construct(<a idl>%Uint8Array%</a>, «_firstDescriptor_.[[buffer]], _firstDescriptor_.[[byteOffset]] + _firstDescriptor_.[[bytesFilled]], _firstDescriptor_.[[byteLength]] - _firstDescriptor_.[[bytesFilled]]»).
+    1. Set *this*@[[byobRequest]] to Construct(`<a idl>ReadableStreamBYOBRequest</a>`, «*this*, _view_»).
   1. Return *this*@[[byobRequest]].
 </emu-alg>
 
-<h5 id="rs-byob-controller-desired-size">get desiredSize</h5>
+<h5 id="rs-byob-controller-desired-size" attribute for="ReadableStreamBYOBController" lt="desiredSize">get desiredSize</h5>
 
 <div class="note">
   The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size
@@ -1771,7 +1788,7 @@ table:
   1. Return ReadableStreamBYOBControllerGetDesiredSize(*this*).
 </emu-alg>
 
-<h5 id="rs-byob-controller-close">close()</h5>
+<h5 id="rs-byob-controller-close" method for="ReadableStreamBYOBController">close()</h5>
 
 <div class="note">
   The <code>close</code> method will close the controlled readable stream. <a>Consumers</a> will still be able to read
@@ -1785,7 +1802,7 @@ table:
   1. Perform ReadableStreamBYOBControllerClose(*this*).
 </emu-alg>
 
-<h5 id="rs-byob-controller-enqueue">enqueue(chunk)</h5>
+<h5 id="rs-byob-controller-enqueue" method for="ReadableStreamBYOBController">enqueue(chunk)</h5>
 
 <div class="note">
   The <code>enqueue</code> method will enqueue a given <a>chunk</a> in the controlled readable stream.
@@ -1800,11 +1817,11 @@ table:
   1. Return ReadableStreamBYOBControllerEnqueue(*this*, _chunk_).
 </emu-alg>
 
-<h5 id="rs-byob-controller-error">error(e)</h5>
+<h5 id="rs-byob-controller-error" method for="ReadableStreamBYOBController">error(e)</h5>
 
 <div class="note">
   The <code>error</code> method will error the readable stream, making all future interactions with it fail with the
-  given error <var>e</var>.
+  given error <code>e</code>.
 </div>
 
 <emu-alg>
@@ -1816,10 +1833,9 @@ table:
 
 <h4 id="rs-byob-controller-internal-methods">Readable Stream BYOB Controller Internal Methods</h4>
 
-The following are additional internal methods implemented by each <code>ReadableStreamBYOBController</code> instance.
-They are similar to the supporting abstract operations in the following section, but are in method form to allow
-polymorphic dispatch from the readable stream implementation to either these or their counterparts for default
-controllers.
+The following are additional internal methods implemented by each {{ReadableStreamBYOBController}} instance. They are
+similar to the supporting abstract operations in the following section, but are in method form to allow polymorphic
+dispatch from the readable stream implementation to either these or their counterparts for default controllers.
 
 <h5 id="rs-byob-controller-private-cancel">\[[Cancel]](reason)</h5>
 
@@ -1842,12 +1858,12 @@ controllers.
       1. Remove _entry_ from *this*@[[queue]], shifting all other elements downward (so that the second becomes the first, and so on).
       1. Subtract _entry_.[[byteLength]] from *this*@[[totalQueuedBytes]].
       1. Perform ReadableStreamBYOBControllerHandleQueueDrain(*this*).
-      1. Let _view_ be Construct(%Uint8Array%, «_entry_.[[buffer]], _entry_.[[byteOffset]], _entry_.[[byteLength]]»).
+      1. Let _view_ be Construct(<a idl>%Uint8Array%</a>, «_entry_.[[buffer]], _entry_.[[byteOffset]], _entry_.[[byteLength]]»).
       1. Return a promise resolved with CreateIterResultObject(_view_, *false*).
     1. Let _autoAllocateChunkSize_ be *this*@[[autoAllocateChunkSize]].
     1. If _autoAllocateChunkSize_ is not *undefined*,
-      1. Let _buffer_ be Construct(%ArrayBuffer%, «_autoAllocateChunkSize_»).
-      1. Let _pullIntoDescriptor_ be Record{[[buffer]]: _buffer_, [[byteOffset]]: 0, [[byteLength]]: _autoAllocateChunkSize_, [[bytesFilled]]: 0, [[elementSize]]: 1, [[ctor]]: %Uint8Array%, [[readerType]]: `"default"`}.
+      1. Let _buffer_ be Construct(<a idl>%ArrayBuffer%</a>, «_autoAllocateChunkSize_»).
+      1. Let _pullIntoDescriptor_ be Record{[[buffer]]: _buffer_, [[byteOffset]]: 0, [[byteLength]]: _autoAllocateChunkSize_, [[bytesFilled]]: 0, [[elementSize]]: 1, [[ctor]]: <a idl>%Uint8Array%</a>, [[readerType]]: `"default"`}.
       1. Append _pullIntoDescriptor_ as the last element of *this*@[[pendingPullIntos]].
   1. Otherwise,
     1. Assert: *this*@[[autoAllocateChunkSize]] is *undefined*.
@@ -1856,17 +1872,16 @@ controllers.
   1. Return _promise_.
 </emu-alg>
 
-<h3 id="rs-byob-request-class" lt="ReadableStreamBYOBRequest">Class <code>ReadableStreamBYOBRequest</code></h3>
+<h3 id="rs-byob-request-class" interface lt="ReadableStreamBYOBRequest">Class <code>ReadableStreamBYOBRequest</code></h3>
 
-The <code>ReadableStreamBYOBRequest</code> class represents a pull into request in a
-<code>ReadableStreamBYOBController</code>.
+The {{ReadableStreamBYOBRequest}} class represents a pull into request in a {{ReadableStreamBYOBController}}.
 
 <h4 id="rs-byob-request-class-definition">Class Definition</h4>
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>ReadableStreamBYOBController</code> class in something close to the syntax of
-[[!ECMASCRIPT]], it would look like
+If one were to write the {{ReadableStreamBYOBRequest}} class in something close to the syntax of [[!ECMASCRIPT]], it
+would look like
 
 <pre><code class="lang-javascript">
   class ReadableStreamBYOBRequest {
@@ -1881,8 +1896,7 @@ If one were to write the <code>ReadableStreamBYOBController</code> class in some
 
 <h4 id="rs-byob-request-internal-slots">Internal Slots</h4>
 
-Instances of <code>ReadableStreamBYOBRequest</code> are created with the internal slots described in the following
-table:
+Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots described in the following table:
 
 <table>
   <thead>
@@ -1893,31 +1907,31 @@ table:
   </thead>
   <tr>
     <td>\[[associatedReadableStreamBYOBController]]
-    <td>The parent ReadableStreamBYOBController instance
+    <td>The parent {{ReadableStreamBYOBController}} instance
   </tr>
   <tr>
     <td>\[[view]]
-    <td>A Typed Array representing the destination region to which the controller may write generated data
+    <td>A <a>typed array</a> representing the destination region to which the controller may write generated data
   </tr>
 </table>
 
-<h4 id="rs-byob-request-constructor">new ReadableStreamBYOBRequest(controller, view)</h4>
+<h4 id="rs-byob-request-constructor" constructor for="ReadableStreamBYOBRequest" lt="ReadableStreamBYOBRequest(controller, view)">new ReadableStreamBYOBRequest(controller, view)</h4>
 
 <emu-alg>
   1. Set *this*@[[associatedReadableStreamBYOBController]] to _controller_.
   1. Set *this*@[[view]] to _view_.
 </emu-alg>
 
-<h4 id="rs-byob-request-prototype">Properties of the <code>ReadableStreamBYOBRequest</code> Prototype</h4>
+<h4 id="rs-byob-request-prototype">Properties of the {{ReadableStreamBYOBRequest}} Prototype</h4>
 
-<h5 id="rs-byob-request-view">get view</h5>
+<h5 id="rs-byob-request-view" attribute for="ReadableStreamBYOBRequest" lt="view">get view</h5>
 
 <emu-alg>
   1. If IsReadableStreamBYOBRequest(*this*) is *false*, throw a *TypeError* exception.
   1. Return *this*@[[view]].
 </emu-alg>
 
-<h5 id="rs-byob-request-respond">respond(bytesWritten)</h5>
+<h5 id="rs-byob-request-respond" method for="ReadableStreamBYOBRequest">respond(bytesWritten)</h5>
 
 <emu-alg>
   1. If IsReadableStreamBYOBRequest(*this*) is *false*, throw a *TypeError* exception.
@@ -1925,7 +1939,7 @@ table:
   1. Return ReadableStreamBYOBControllerRespond(*this*@[[associatedReadableStreamBYOBController]], _bytesWritten_).
 </emu-alg>
 
-<h5 id="rs-byob-request-respond-with-new-view">respondWithNewView(view)</h5>
+<h5 id="rs-byob-request-respond-with-new-view" method for="ReadableStreamBYOBRequest">respondWithNewView(view)</h5>
 
 <emu-alg>
   1. If IsReadableStreamBYOBRequest(*this*) is *false*, throw a *TypeError* exception.
@@ -2044,7 +2058,7 @@ table:
     1. Otherwise,
       1. Assert: _controller_@[[queue]] is empty.
       1. Transfer _buffer_ and let _transferredBuffer_ be the result.
-      1. Let _transferredView_ be Construct(%Uint8Array%, «_transferredBuffer_, _byteOffset_, _byteLength_»).
+      1. Let _transferredView_ be Construct(<a idl>%Uint8Array%</a>, «_transferredBuffer_, _byteOffset_, _byteLength_»).
       1. Perform ReadableStreamFulfillReadRequest(_stream_, _transferredView_, *false*).
   1. Otherwise,
     1. If ReadableStreamHasBYOBReader(_stream_) is *true*,
@@ -2302,9 +2316,9 @@ table:
 </div>
 
 <div class="example">
-  You can also write directly to writable streams using their <code>write()</code> and <code>close()</code> methods.
-  Since writable streams queue any incoming writes, and take care internally to forward them to the <a>underlying
-  sink</a> in sequence, you can indiscriminately write to a writable stream without much ceremony:
+  You can also write directly to writable streams using their {{WritableStream/write()}} and {{WritableStream/close()}}
+  methods. Since writable streams queue any incoming writes, and take care internally to forward them to the
+  <a>underlying sink</a> in sequence, you can indiscriminately write to a writable stream without much ceremony:
 
   <pre><code class="lang-javascript">
     function writeArrayToStream(array, writableStream) {
@@ -2321,12 +2335,12 @@ table:
 
 <div class="example">
   In the previous example we only paid attention to the success or failure of the entire stream, by looking at the
-  promise returned by its <code>close()</code> method. That promise (which can also be accessed using the
-  <code>closed</code> getter) will reject if anything goes wrong with the stream—initializing it, writing to it, or
-  closing it. And it will fulfill once the stream is successfully closed. Often this is all you care about.
+  promise returned by its {{WritableStream/close()}} method. That promise (which can also be accessed using the
+  {{WritableStream/closed}} getter) will reject if anything goes wrong with the stream—initializing it, writing to it,
+  or closing it. And it will fulfill once the stream is successfully closed. Often this is all you care about.
 
   However, if you care about the success of writing a specific <a>chunk</a>, you can use the promise returned by the
-  stream's <code>write()</code> method:
+  stream's {{WritableStream/write()}} method:
 
   <pre><code class="lang-javascript">
     writableStream.write("i am a chunk of data")
@@ -2339,15 +2353,14 @@ table:
   chunk has been flushed to disk.
 </div>
 
-<h3 id="ws-class">Class <code>WritableStream</code></h3>
+<h3 id="ws-class" interface lt="WritableStream">Class <code>WritableStream</code></h3>
 
 <h4 id="ws-class-definition">Class Definition</h4>
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>WritableStream</code> class in something close to the syntax of [[!ECMASCRIPT]], it
-would look like
-
+If one were to write the {{WritableStream}} class in something close to the syntax of [[!ECMASCRIPT]], it would look
+like
 
 <pre><code class="lang-javascript">
   class WritableStream {
@@ -2365,7 +2378,7 @@ would look like
 
 <h4 id="ws-internal-slots">Internal Slots</h4>
 
-Instances of <code>WritableStream</code> are created with the internal slots described in the following table:
+Instances of {{WritableStream}} are created with the internal slots described in the following table:
 
 <table>
   <thead>
@@ -2377,7 +2390,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <tr>
     <td>\[[closedPromise]]
     <td>A promise that becomes fulfilled when the stream becomes <code>"closed"</code>; returned by the
-      <code>closed</code> getter
+      {{WritableStream/closed}} getter
   </tr>
   <tr>
     <td>\[[queue]]
@@ -2394,7 +2407,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </tr>
   <tr>
     <td>\[[state]]
-    <td>A string containing the stream's current state; returned by the <code>state</code> getter
+    <td>A string containing the stream's current state; returned by the {{WritableStream/state}} getter
   </tr>
   <tr>
     <td>\[[storedError]]
@@ -2404,7 +2417,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   <tr>
     <td>\[[strategySize]]
     <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
-      the size of <a>chunks</a> written; can be <b>undefined</b> for the default behavior.
+      the size of <a>chunks</a> written; can be <emu-val>undefined</emu-val> for the default behavior.
   </tr>
   <tr>
     <td>\[[strategyHWM]]
@@ -2413,7 +2426,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </tr>
   <tr>
     <td>\[[readyPromise]]
-    <td>A promise returned by the <code>ready</code> getter
+    <td>A promise returned by the {{WritableStream/ready}} getter
   </tr>
   <tr>
     <td>\[[underlyingSink]]
@@ -2427,10 +2440,10 @@ Instances of <code>WritableStream</code> are created with the internal slots des
   </tr>
 </table>
 
-<h4 id="ws-constructor">new WritableStream(underlyingSink = {}, { size, highWaterMark = 0 } = {})</h4>
+<h4 id="ws-constructor" constructor for="WritableStream" lt="WritableStream(underlyingSink, queuingStrategy)">new WritableStream(underlyingSink = {}, { size, highWaterMark = 0 } = {})</h4>
 
 <div class="note">
-  The <var>underlyingSink</var> object passed to the constructor can implement any of the following methods to govern
+  The <code>underlyingSink</code> object passed to the constructor can implement any of the following methods to govern
   how the constructed stream instance behaves:
 
   <ul>
@@ -2448,7 +2461,7 @@ Instances of <code>WritableStream</code> are created with the internal slots des
       queued-up writes have succeeded.
     <li> <code>abort(reason)</code> is called when the producer signals they wish to abruptly close the stream
       and put it in an <code>"errored"</code> state. It should clean up any held resources, much like
-      <code>close</code>, but perhaps with some custom handling. Unlike <code>close</code>, <var>abort</var> will be
+      <code>close</code>, but perhaps with some custom handling. Unlike <code>close</code>, <code>abort</code> will be
       called even if writes are queued up; those <a>chunks</a> will be thrown away. If this process is asynchronous, it
       can return a promise to signal success or failure. If no abort method is passed, by default the
       <code>close</code> method will be called instead.
@@ -2456,9 +2469,9 @@ Instances of <code>WritableStream</code> are created with the internal slots des
 
   The constructor also accepts a second argument containing the <a>queuing strategy</a> object with
   two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
-  supplied <code>strategy</code> could be an instance of the built-in <code>CountQueuingStrategy</code> or
-  <code>ByteLengthQueuingStrategy</code> classes, or it could be custom. If no strategy is supplied, the default
-  behavior will be the same as a <code>CountQueuingStrategy</code> with a <a>high water mark</a> of 0.
+  supplied <code>strategy</code> could be an instance of the built-in {{CountQueuingStrategy}} or
+  {{ByteLengthQueuingStrategy}} classes, or it could be custom. If no strategy is supplied, the default
+  behavior will be the same as a {{CountQueuingStrategy}} with a <a>high water mark</a> of 0.
 </div>
 
 <div class="note">
@@ -2491,9 +2504,9 @@ Instances of <code>WritableStream</code> are created with the internal slots des
     1. Upon rejection with reason _r_, perform ErrorWritableStream(*this*, _r_).
 </emu-alg>
 
-A <dfn><code>WritableStream</code> error function</dfn> is an anonymous built-in function that is used to allow
-<a>underlying sinks</a> to error their associated writable stream. Each <code>WritableStream</code> error function has
-a \[[stream]] internal slot. When a <code>WritableStream</code> error function <var>F</var> is called with argument
+A <dfn>{{WritableStream}} error function</dfn> is an anonymous built-in function that is used to allow
+<a>underlying sinks</a> to error their associated writable stream. Each {{WritableStream}} error function has
+a \[[stream]] internal slot. When a {{WritableStream}} error function <var>F</var> is called with argument
 <var>e</var>, it performs the following steps:
 
 <emu-alg>
@@ -2502,9 +2515,9 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="ws-prototype">Properties of the <code>WritableStream</code> Prototype</h4>
+<h4 id="ws-prototype">Properties of the {{WritableStream}} Prototype</h4>
 
-<h5 id="ws-closed">get closed</h5>
+<h5 id="ws-closed" attribute for="WritableStream" lt="closed">get closed</h5>
 
 <div class="note">
   The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected
@@ -2516,7 +2529,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Return *this*@[[closedPromise]].
 </emu-alg>
 
-<h5 id="ws-ready">get ready</h5>
+<h5 id="ws-ready" attribute for="WritableStream" lt="ready">get ready</h5>
 
 <div class="note">
   The <code>ready</code> getter returns a promise that will be fulfilled when the stream transitions away from the
@@ -2532,7 +2545,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Return *this*@[[readyPromise]].
 </emu-alg>
 
-<h5 id="ws-state">get state</h5>
+<h5 id="ws-state" attribute for="WritableStream" lt="state">get state</h5>
 
 <div class="note">
   The <code>state</code> getter returns the state of the stream, which will be one of the following:
@@ -2540,13 +2553,13 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   <dl>
     <dt><code>"waiting"</code>
     <dd>The stream's internal queue is full; that is, the stream is
-      exerting <a>backpressure</a>. Use <code>.ready</code> to be notified of when the pressure subsides.
+      exerting <a>backpressure</a>. Use {{WritableStream/ready}} to be notified of when the pressure subsides.
 
     <dt><code>"writable"</code>
-    <dd>The stream's internal queue is not full; call <code>.write()</code> until backpressure is exerted.
+    <dd>The stream's internal queue is not full; call {{WritableStream/write()}} until backpressure is exerted.
 
     <dt><code>"closing"</code>
-    <dd>The stream's <code>.close()</code> method has been called, and a command to close is in the queue or
+    <dd>The stream's {{WritableStream/close()}} method has been called, and a command to close is in the queue or
       being processed by the <a>underlying sink</a>; attempts to write will now fail.
 
     <dt><code>"closed"</code>
@@ -2563,7 +2576,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Return *this*@[[state]].
 </emu-alg>
 
-<h5 id="ws-abort">abort(reason)</h5>
+<h5 id="ws-abort" method for="WritableStream">abort(reason)</h5>
 
 <div class="note">
   The <code>abort</code> method signals that the producer can no longer successfully write to the stream and it should
@@ -2580,7 +2593,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Return the result of transforming _sinkAbortPromise_ by a fulfillment handler that returns *undefined*.
 </emu-alg>
 
-<h5 id="ws-close">close()</h5>
+<h5 id="ws-close" method for="WritableStream">close()</h5>
 
 <div class="note">
   The <code>close</code> method signals that the producer is done writing chunks to the stream and wishes to move the
@@ -2600,7 +2613,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   1. Return *this*@[[closedPromise]].
 </emu-alg>
 
-<h5 id="ws-write">write(chunk)</h5>
+<h5 id="ws-write" method for="WritableStream">write(chunk)</h5>
 
 <div class="note">
   The <code>write</code> method adds a write to the stream's internal queue, instructing the stream to
@@ -2608,7 +2621,7 @@ a \[[stream]] internal slot. When a <code>WritableStream</code> error function <
   successfully. It returns a promise that will be fulfilled or rejected depending on the success or failure of writing
   the chunk to the underlying sink.
 
-  The impact of enqueuing this chunk will be immediately reflected in the stream's <code>state</code> property; in
+  The impact of enqueuing this chunk will be immediately reflected in the stream's {{WritableStream/state}} property; in
   particular, if the internal queue is now full according to the stream's <a>queuing strategy</a>, the stream will
   exert backpressure by changing its state to <code>"waiting"</code>.
 </div>
@@ -2733,7 +2746,7 @@ We are waiting to validate their design before doing so. In the meantime, see
 
 <h2 id="other-stuff">Other Stream APIs and Operations</h2>
 
-<h3 id="blqs-class">Class <code>ByteLengthQueuingStrategy</code></h3>
+<h3 id="blqs-class" interface lt="ByteLengthQueuingStrategy">Class <code>ByteLengthQueuingStrategy</code></h3>
 
 A common <a>queuing strategy</a> when dealing with bytes is to wait until the accumulated <code>byteLength</code>
 properties of the incoming <a>chunks</a> reaches a specified high-water mark. As such, this is provided as a built-in
@@ -2769,8 +2782,8 @@ properties of the incoming <a>chunks</a> reaches a specified high-water mark. As
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>ByteLengthQueuingStrategy</code> class in something close to the syntax of
-[[!ECMASCRIPT]], it would look like
+If one were to write the {{ByteLengthQueuingStrategy}} class in something close to the syntax of [[!ECMASCRIPT]], it
+would look like
 
 <pre><code class="lang-javascript">
   class ByteLengthQueuingStrategy {
@@ -2779,10 +2792,10 @@ If one were to write the <code>ByteLengthQueuingStrategy</code> class in somethi
   }
 </code></pre>
 
-Each <code>ByteLengthQueuingStrategy</code> instance will additionally have an own data property
+Each {{ByteLengthQueuingStrategy}} instance will additionally have an own data property
 <code>highWaterMark</code> set by its constructor.
 
-<h4 id="blqs-constructor">new ByteLengthQueuingStrategy({ highWaterMark })</h4>
+<h4 id="blqs-constructor" constructor for="ByteLengthQueuingStrategy" lt="ByteLengthQueuingStrategy(options)">new ByteLengthQueuingStrategy({ highWaterMark })</h4>
 
 <div class="note">
   The constructor takes a nonnegative number for the high-water mark, and stores it on the object as a property.
@@ -2792,15 +2805,15 @@ Each <code>ByteLengthQueuingStrategy</code> instance will additionally have an o
   1. CreateDataProperty(*this*, "highWaterMark", _highWaterMark_).
 </emu-alg>
 
-<h4 id="blqs-prototype">Properties of the <code>ByteLengthQueuingStrategy</code> Prototype</h4>
+<h4 id="blqs-prototype">Properties of the {{ByteLengthQueuingStrategy}} Prototype</h4>
 
-<h5 id="blqs-size">size(chunk)</h5>
+<h5 id="blqs-size" method for="ByteLengthQueuingStrategy">size(chunk)</h5>
 
 <div class="note">
   The <code>size</code> method returns the given chunk's <code>byteLength</code> property. (If the chunk doesn't have
-  one, it will return <b>undefined</b>, causing the stream using this strategy to error.)
+  one, it will return <emu-val>undefined</emu-val>, causing the stream using this strategy to error.)
 
-  This method is intentionally generic; it does not require that its <b>this</b> value be a
+  This method is intentionally generic; it does not require that its <emu-val>this</emu-val> value be a
   <code>ByteLengthQueuingStrategy</code> object.
 </div>
 
@@ -2808,7 +2821,7 @@ Each <code>ByteLengthQueuingStrategy</code> instance will additionally have an o
   1. Return GetV(_chunk_, "byteLength").
 </emu-alg>
 
-<h3 id="cqs-class">Class <code>CountQueuingStrategy</code></h3>
+<h3 id="cqs-class" interface lt="CountQueuingStrategy">Class <code>CountQueuingStrategy</code></h3>
 
 A common <a>queuing strategy</a> when dealing with streams of generic objects is to simply count the number of chunks
 that have been accumulated so far, waiting until this number reaches a specified high-water mark. As such, this
@@ -2843,8 +2856,8 @@ strategy is also provided out of the box.
 
 <em>This section is non-normative.</em>
 
-If one were to write the <code>CountQueuingStrategy</code> class in something close to the syntax of [[!ECMASCRIPT]],
-it would look like
+If one were to write the {{CountQueuingStrategy}} class in something close to the syntax of [[!ECMASCRIPT]], it would
+look like
 
 <pre><code class="lang-javascript">
   class CountQueuingStrategy {
@@ -2853,10 +2866,10 @@ it would look like
   }
 </code></pre>
 
-Each <code>CountQueuingStrategy</code> instance will additionally have an own data property <code>highWaterMark</code>
+Each {{CountQueuingStrategy}} instance will additionally have an own data property <code>highWaterMark</code>
 set by its constructor.
 
-<h4 id="cqs-constructor">new CountQueuingStrategy({ highWaterMark })</h4>
+<h4 id="cqs-constructor" constructor for="CountQueuingStrategy" lt="CountQueuingStrategy(options)">new CountQueuingStrategy({ highWaterMark })</h4>
 
 <div class="note">
   The constructor takes a nonnegative number for the high-water mark, and stores it on the object as a property.
@@ -2866,15 +2879,15 @@ set by its constructor.
   1. CreateDataProperty(*this*, "highWaterMark", _highWaterMark_).
 </emu-alg>
 
-<h4 id="cqs-prototype">Properties of the <code>CountQueuingStrategy</code> Prototype</h4>
+<h4 id="cqs-prototype">Properties of the {{CountQueuingStrategy}} Prototype</h4>
 
-<h5 id="cqs-size">size()</h5>
+<h5 id="cqs-size" method for="CountQueuingStrategy">size()</h5>
 
 <div class="note">
   The <code>size</code> method returns one always, so that the total queue size is a count of the number of chunks in
   the queue.
 
-  This method is intentionally generic; it does not require that its <b>this</b> value be a
+  This method is intentionally generic; it does not require that its <emu-val>this</emu-val> value be a
   <code>CountQueuingStrategy</code> object.
 </div>
 
@@ -2944,9 +2957,9 @@ A few abstract operations are used in this specification for utility purposes. W
 <h4 id="invoke-or-noop" aoid="InvokeOrNoop" throws>InvokeOrNoop ( O, P, args )</h4>
 
 <div class="note">
-  InvokeOrNoop is a slight modification of the [[!ECMASCRIPT]]
-  <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-invoke">Invoke</a> abstract operation to return
-  <b>undefined</b> when the method is not present.
+  InvokeOrNoop is a slight modification of the [[!ECMASCRIPT]] <a
+  href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a> abstract operation to return
+  <emu-val>undefined</emu-val> when the method is not present.
 </div>
 
 <emu-alg>
@@ -2963,8 +2976,8 @@ A few abstract operations are used in this specification for utility purposes. W
 <div class="note">
   PromiseInvokeOrFallbackOrNoop is a specialized version of
   <a href="http://www.w3.org/2001/tag/doc/promises-guide#promise-calling">promise-calling</a> that works on methods,
-  calls a fallback method if the first method is not present, and returns a promise for <b>undefined</b> when neither
-  method is not present.
+  calls a fallback method if the first method is not present, and returns a promise for <emu-val>undefined</emu-val>
+  when neither method is not present.
 </div>
 
 <emu-alg>
@@ -2984,7 +2997,7 @@ A few abstract operations are used in this specification for utility purposes. W
 <div class="note">
   PromiseInvokeOrNoop is a specialized version of
   <a href="http://www.w3.org/2001/tag/doc/promises-guide#promise-calling">promise-calling</a> that both works on
-  methods and returns a promise for <b>undefined</b> when the method is not present.
+  methods and returns a promise for <emu-val>undefined</emu-val> when the method is not present.
 </div>
 
 <emu-alg>
@@ -3032,8 +3045,8 @@ flux, in the meantime the following properties must be exposed on the global obj
 </ul>
 
 In all cases the property must be a data property, with its value being the corresponding constructor defined in this
-standard, and other attributes { \[[Writable]]: <b>true</b>, \[[Enumerable]]: <b>false</b>, \[[Configurable]]:
-<b>true</b> }.
+standard, and other attributes { \[[Writable]]: <emu-val>true</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>,
+\[[Configurable]]: <emu-val>true</emu-val> }.
 
 <div class="note">
   The <code>ReadableStreamDefaultReader</code> class is specifically <em>not</em> exposed, as while it does have a
@@ -3075,11 +3088,11 @@ always fall back to an algorithm that works with any object obeying the writable
 <em>This section, and all its subsections, are non-normative.</em>
 
 The previous examples throughout the standard have focused on how to use streams. Here we show how to create a stream,
-using the <code>ReadableStream</code> or <code>WritableStream</code> constructors.
+using the {{ReadableStream}} or {{WritableStream}} constructors.
 
 <h3 id="example-rs-push-no-backpressure">A readable stream with an underlying push source (no backpressure support)</h3>
 
-The following function creates <a>readable streams</a> that wrap WebSockets [[HTML]], which are <a>push sources</a>
+The following function creates <a>readable streams</a> that wrap {{WebSocket}} instances [[HTML]], which are <a>push sources</a>
 that do not support backpressure signals. It illustrates how, when adapting a push source, usually most of the work
 happens in the <code>start</code> function.
 
@@ -3163,7 +3176,8 @@ socket.
 
 The following function returns <a>readable byte streams</a> that allow efficient direct reading of TCP sockets, based on
 a hypothetical JavaScript translation of the POSIX socket API (the main innovation of which is translating
-<code>select(2)</code> into an <code>EventTarget</code> emitting a <code>readable</code> event).
+<code>select(2)</code> into an <code><a idl class="non-normative">EventTarget</a></code> emitting a
+<code>readable</code> event). [[DOM]]
 
 This setup allows zero-copy reading directly into developer-supplied buffers. Additionally, it ensures that when data is
 available from the socket but not yet requested by the developer, it is enqueued in the stream's <a>internal queue</a>,
@@ -3220,7 +3234,7 @@ BYOB reader, to move the data from the stream's internal queue to the developer-
   }
 </code></pre>
 
-<code>ReadableStream</code> instances returned from this function can now vend <a>BYOB readers</a>, with all of the
+{{ReadableStream}} instances returned from this function can now vend <a>BYOB readers</a>, with all of the
 aforementioned benefits and caveats.
 
 <h3 id="example-rs-pull">A readable stream with an underlying pull source</h3>
@@ -3315,7 +3329,7 @@ size of 1024, it attempts to fill the developer-supplied buffer, allowing full c
   }
 </code></pre>
 
-With this in hand, we can create and use <a>BYOB readers</a> for the returned <code>ReadableStream</code>. But we can
+With this in hand, we can create and use <a>BYOB readers</a> for the returned {{ReadableStream}}. But we can
 also create <a>default readers</a>, using them in the same simple and generic manner as usual. The adaptation between
 the low-level byte tracking of the <a>underlying byte source</a> shown here, and the higher-level chunk-based
 consumption of a <a>default reader</a>, is all taken care of automatically by the streams implementation. The
@@ -3324,7 +3338,7 @@ to the manual branching in [[#example-rbs-push]].
 
 <h3 id="example-ws-no-backpressure">A writable stream with no backpressure or success signals</h3>
 
-The following function returns a <a>writable stream</a> that wraps a web socket [[HTML]]. Web sockets do not provide
+The following function returns a <a>writable stream</a> that wraps a {{WebSocket}} [[HTML]]. Web sockets do not provide
 any way to tell when a given chunk of data has been successfully sent, so this writable stream has no ability to
 communicate <a>backpressure</a> signals or write success/failure to its <a>producers</a>. That is, it will always be in
 the <code>"writable"</code> state, and the promise returned by its <code>write()</code> method will always fulfill
@@ -3565,7 +3579,7 @@ itself will evolve in these ways.
   <li> We similarly use the default argument notation <code>= {}</code> in a couple of cases.
   <li> We use the notation <var>x</var>@\[[y]] to refer to internal slots of an object, instead of saying "the \[[y]]
     internal slot of <var>x</var>."
-  <li> We do not alias <b>this</b> to a local variable in each algorithm, instead using it directly.
+  <li> We do not alias <emu-val>this</emu-val> to a local variable in each algorithm, instead using it directly.
   <li> We use the phrase "call-with-rethrow AbstractOperation(<var>x</var>, <var>y</var>, <var>z</var>)" as a shorthand
     for "Let <var>opResult</var> be AbstractOperation(<var>x</var>, <var>y</var>, <var>z</var>).
     ReturnIfAbrupt(<var>opResult</var>)."
