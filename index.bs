@@ -7,7 +7,7 @@ Repository: whatwg/streams
 Inline Github Issues: true
 Status: LS
 Boilerplate: omit conformance, omit feedback-header
-Editor: Domenic Denicola, Google https://www.google.com/, d@domenic.me, https://domenic.me/
+No Editor: true
 Abstract: This specification provides APIs for creating, composing, and consuming streams of data.
 Abstract: These streams are designed to map efficiently to low-level I/O primitives, and allow easy
 Abstract: composition with built-in backpressure and queuing. On top of streams, the web platform can
@@ -16,11 +16,11 @@ Abstract: users can use the supplied tools to build their own streams which inte
 Abstract: of the web platform.
 Logo: https://resources.whatwg.org/logo-streams.svg
 Use Dfn Panels: yes
-!Participate: <a href="https://github.com/whatwg/streams/issues/new">File an issue</a> (<a href="https://github.com/whatwg/streams/issues?state=open">open issues</a>)
+!Participate: <a href="https://github.com/whatwg/streams">GitHub whatwg/streams</a> (<a href="https://github.com/whatwg/streams/issues/new">new issue</a>, <a href="https://github.com/whatwg/streams/issues">open issues</a>)
 !Participate: <a href="https://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
-!Version History: <a href="https://github.com/whatwg/streams/commits">https://github.com/whatwg/streams/commits</a>
-!Version History: [SNAPSHOT-LINK]
-!Version History: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
+!Commits: <a href="https://github.com/whatwg/streams/commits">GitHub whatwg/streams/commits</a>
+!Commits: [SNAPSHOT-LINK]
+!Commits: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
 
 Opaque Elements: emu-alg
 Ignored Vars: e
