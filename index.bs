@@ -3503,47 +3503,6 @@ and similarly, closing or aborting the <code>writable</code> side will implicitl
   });
 </code></pre>
 
-
-<h2 id="state-machines">State Machine Diagrams</h2>
-
-<em>This section, and all its subsections, are non-normative.</em>
-
-As explained in excruciating detail above, both readable and writable streams have fairly complex internal state
-machines. In reaction to stimuli from various parts of the system, they transfer between several states. The public
-<code>state</code> properties of each stream give a high-level overview of how developers should interact with the
-rest of the stream's public API. However there are also a number of private flags used for tracking more subtle state
-within the stream.
-
-The diagrams in these sections aim to summarize, at least partially, the way in which readable and writable streams
-transition between their states.
-
-<h3 id="rs-state-diagram">The Readable Stream State Diagram</h3>
-
-Readable streams transition in response to both actions from the <a>consumer</a> on the stream's public API, and
-events instigated by the <a>underlying source</a> when the stream implementation calls the source's methods.
-
-<figure>
-  <img src="readable-stream.svg" width="670" alt="The readable stream state machine diagram." />
-
-  <figcaption>
-    <dl>
-      <dt><span style="font-style: normal; font-weight: normal; font-family: monospace;">monospace</span></dt>
-      <dd>Methods of the stream, called by consumers</dd>
-
-      <dt><span style="font-style: normal; font-weight: bold;">bold</span></dt>
-      <dd>Underlying source methods, called by the stream</dd>
-
-      <dt><span style="font-style: italic; font-weight: normal;">italic</span></dt>
-      <dd>Capabilities given to the underlying source, called by the underlying source methods</dd>
-    </dl>
-  </figcaption>
-</figure>
-
-<h3 id="ws-state-diagram">The Writable Stream State Diagram</h3>
-
-TODO
-
-
 <h2 id="conventions" class="no-num">Conventions</h2>
 
 This specification uses algorithm conventions very similar to those of [[!ECMASCRIPT]]. However, it deviates in the

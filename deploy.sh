@@ -53,7 +53,6 @@ curl https://api.csswg.org/bikeshed/ -f -F file=@index.bs -F md-status=LS-COMMIT
      -F md-title="Streams Standard (Commit Snapshot $SHA)" \
      -F md-Text-Macro="SNAPSHOT-LINK $BACK_TO_LS_LINK" \
      > $COMMIT_DIR/index.intermediate.html;
-cp *.svg $COMMIT_DIR
 node_modules/.bin/emu-algify --throwing-indicators < $COMMIT_DIR/index.intermediate.html > $COMMIT_DIR/index.html
 rm $COMMIT_DIR/index.intermediate.html
 echo "Commit snapshot output to $WEB_ROOT/$COMMITS_DIR/$SHA"
@@ -67,7 +66,6 @@ if [ $BRANCH != "master" ] ; then
          -F md-title="Streams Standard (Branch Snapshot $BRANCH)" \
          -F md-Text-Macro="SNAPSHOT-LINK $SNAPSHOT_LINK" \
          > $BRANCH_DIR/index.intermediate.html;
-    cp *.svg $BRANCH_DIR
     node_modules/.bin/emu-algify --throwing-indicators < $BRANCH_DIR/index.intermediate.html > $BRANCH_DIR/index.html
     rm $BRANCH_DIR/index.intermediate.html
     echo "Branch snapshot output to $WEB_ROOT/$BRANCHES_DIR/$BRANCH"
@@ -76,7 +74,6 @@ else
     curl https://api.csswg.org/bikeshed/ -f -F file=@index.bs \
          -F md-Text-Macro="SNAPSHOT-LINK $SNAPSHOT_LINK" \
          > $WEB_ROOT/index.intermediate.html
-    cp *.svg $WEB_ROOT
     node_modules/.bin/emu-algify --throwing-indicators < $WEB_ROOT/index.intermediate.html > $WEB_ROOT/index.html
     rm $WEB_ROOT/index.intermediate.html
     echo "Living standard output to $WEB_ROOT"
