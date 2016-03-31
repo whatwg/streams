@@ -3060,29 +3060,6 @@ standard, and other attributes { \[[Writable]]: <emu-val>true</emu-val>, \[[Enum
   environments, then we should reconsider this requirement.
 </div>
 
-<h2 id="other-streams">Other Stream Implementations</h2>
-
-<em>This section is non-normative.</em>
-
-The <code>ReadableStream</code> and <code>WritableStream</code> classes defined in this specification are not expected
-to be the only manifestations of the corresponding <a>readable stream</a> and <a>writable stream</a> concepts. They are
-explicitly meant to cooperate with other stream instances that behave similarly. Those instances could be e.g.
-platform- or developer-created subclasses of these classes, or they could be anything else that obeys the same public
-API contract.
-
-This kind of ecosystem is largely enabled by the genericness of the <code>pipeTo</code> method. Any object which has
-the appropriate public writable stream APIs will work with <code>ReadableStream.prototype.pipeTo</code>. We strongly
-recommend that any readable stream class you create maintain this property for <em>its</em> <code>pipeTo</code>
-method as well. Even if they use specialized algorithms when given a specific type of writable stream, they should
-always fall back to an algorithm that works with any object obeying the writable stream contract.
-
-<div class="note">
-  The keen reader may be asking for more precise definitions of the "contracts" in play here, for both readable and
-  writable streams. We're working on a test suite that should do the trick! For now, please check out our
-  <a href="https://github.com/whatwg/streams/tree/master/reference-implementation/test/templated">templated tests</a>
-  to see initial progress in that direction.
-</div>
-
 <h2 id="creating-examples">Examples of Creating Streams</h2>
 
 <em>This section, and all its subsections, are non-normative.</em>
