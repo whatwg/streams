@@ -3033,31 +3033,25 @@ A few abstract operations are used in this specification for utility purposes. W
 
 <h2 id="globals">Global Properties</h2>
 
-Ideally, this standard would add no new properties to the global object, instead relying on a standard ECMAScript
-module. However, given that the specification for and implementation of modules in a browser environment is still in
-flux, in the meantime the following properties must be exposed on the global object:
+The following constructors must be exposed on the global object as data properties of the same name:
 
-<ul>
-  <li> <code>ReadableStream</code>
-  <li> <code>WritableStream</code>
-  <li> <code>ByteLengthQueuingStrategy</code>
-  <li> <code>CountQueuingStrategy</code>
+<ul class="brief">
+  <li> {{ReadableStream}}
+  <li> {{WritableStream}}
+  <li> {{ByteLengthQueuingStrategy}}
+  <li> {{CountQueuingStrategy}}
 </ul>
 
-In all cases the property must be a data property, with its value being the corresponding constructor defined in this
-standard, and other attributes { \[[Writable]]: <emu-val>true</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>,
+The attributes of these properties must be { \[[Writable]]: <emu-val>true</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>,
 \[[Configurable]]: <emu-val>true</emu-val> }.
 
 <div class="note">
-  The <code>ReadableStreamDefaultReader</code> class is specifically <em>not</em> exposed, as while it does have a
-  functioning constructor, instances should instead be created through the <code>getReader</code> method of a
-  <code>ReadableStream</code> instance. Similarly, the <code>ReadableStreamDefaultController</code> class is not exposed,
-  since its constructor is not independently useful outside of the <code>ReadableStream</code> implementation.
-</div>
-
-<div class="note">
-  If by the time implementers begin implementing this standard, modules start becoming feasible in the relevant
-  environments, then we should reconsider this requirement.
+  The {{ReadableStreamDefaultReader}} and {{ReadableStreamBYOBReader}} classes are specifically <em>not</em> exposed,
+  as while they do have a functioning constructor, instances should instead be created through the
+  {{ReadableStream/getReader()}} and {{ReadableStream/getBYOBReader()}} methods of a {{ReadableStream}} instance.
+  Similarly, the supporting classes {{ReadableStreamDefaultController}}, {{ReadableStreamBYOBController}}, and
+  {{ReadableStreamBYOBRequest}} are not exposed, since they are not independently useful outside of the
+  {{ReadableStream}} implementation.
 </div>
 
 <h2 id="creating-examples">Examples of Creating Streams</h2>
