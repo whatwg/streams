@@ -308,7 +308,7 @@ copies.
   memory buffer:
 
   <pre><code class="lang-javascript">
-    const reader = readableStream.getBYOBReader();
+    const reader = readableStream.getReader({ mode: "byob" });
 
     let startingAB = new ArrayBuffer(1024);
     readInto(startingAB, 0)
@@ -355,7 +355,6 @@ like
     get locked()
 
     cancel(reason)
-    getBYOBReader()
     getReader()
     pipeThrough({ writable, readable }, options)
     pipeTo(dest, { preventClose, preventAbort, preventCancel } = {})
@@ -487,46 +486,37 @@ Instances of {{ReadableStream}} are created with the internal slots described in
   1. Return ReadableStreamCancel(*this*, _reason_).
 </emu-alg>
 
-<h5 id="rs-get-byob-reader" method for="ReadableStream">getBYOBReader()</h5>
+<h5 id="rs-get-reader" method for="ReadableStream">getReader(options = {})</h5>
 
 <div class="note">
-  The <code>getBYOBReader</code> method only works on <a>readable byte streams</a>, i.e. streams which were constructed
-  specifically with the ability to handle "bring your own buffer" reading. It creates a <a>BYOB reader</a> and <a
-  lt="locked to a reader">locks</a> the stream to the new reader. While the stream is locked, no other reader can be
-  acquired until this one is <a lt="release a read lock">released</a>. The returned reader provides the ability to
-  directly read individual <a>chunks</a> from the stream via the reader's {{ReadableStreamBYOBReader/read()}} method,
-  into developer-supplied buffers.
-
-  This functionality is especially useful for creating abstractions that desire the ability to consume a stream in its
-  entirety. By getting a reader for the stream, you can ensure nobody else can interleave reads with yours or cancel
-  the stream, which would interfere with your abstraction. The additional capabilities of the returned
-  {{ReadableStreamBYOBReader}}, beyond those of the simpler {{ReadableStreamDefaultReader}} returned by
-  {{ReadableStream/getReader()}}, allow more precise control over memory allocation.
-</div>
-
-<emu-alg>
-  1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. If IsReadableStreamBYOBController(*this*@[[readableStreamController]]) is *false*, throw a *TypeError* exception.
-  1. Return AcquireReadableStreamBYOBReader(*this*).
-</emu-alg>
-
-<h5 id="rs-get-reader" method for="ReadableStream">getReader()</h5>
-
-<div class="note">
-  The <code>getReader</code> method creates a <a>default reader</a> (an instance of {{ReadableStreamDefaultReader}}) and
-  <a lt="locked to a reader">locks</a> the stream to the new reader. While the stream is locked, no other reader
-  can be acquired until this one is <a lt="release a read lock">released</a>. The returned reader provides the ability
-  to directly read individual <a>chunks</a> from the stream via the reader's {{ReadableStreamDefaultReader/read()}}
-  method.
+  The <code>getReader</code> method creates a reader of the type specified by the <code>options</code> argument and
+  <a lt="locked to a reader">locks</a> the stream to the new reader. While the stream is locked, no other reader can be
+  acquired until this one is <a lt="release a read lock">released</a>.
 
   This functionality is especially useful for creating abstractions that desire the ability to consume a stream in its
   entirety. By getting a reader for the stream, you can ensure nobody else can interleave reads with yours or cancel
   the stream, which would interfere with your abstraction.
+
+  When <code>options.mode</code> is <emu-val>undefined</emu-val>, the method creates a <a>default reader</a> (an
+  instance of {{ReadableStreamDefaultReader}}). The reader provides the ability to directly read individual
+  <a>chunks</a> from the stream via the reader's {{ReadableStreamDefaultReader/read()}} method.
+
+  When <code>options.mode</code> is <code>"byob"</code>, the <code>getReader</code> method creates a <a>BYOB reader</a>
+  (an instance of {{ReadableStreamBYOBReader}}). This feature only works on <a>readable byte streams</a>, i.e. streams
+  which were constructed specifically with the ability to handle "bring your own buffer" reading. The reader provides
+  the ability to directly read individual <a>chunks</a> from the stream via the reader's
+  {{ReadableStreamBYOBReader/read()}} method, into developer-supplied buffers, allowing more precise control over
+  allocation.
 </div>
 
 <emu-alg>
   1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. Return AcquireReadableStreamDefaultReader(*this*).
+  1. Let _mode_ be GetV(_options_, `"mode"`).
+  1. If _mode_ is `"byob"`,
+    1. If IsReadableStreamBYOBController(*this*@[[readableStreamController]]) is *false*, throw a *TypeError* exception.
+    1. Return AcquireReadableStreamBYOBReader(*this*).
+  1. If _mode_ is *undefined*, return AcquireReadableStreamDefaultReader(*this*).
+  1. Throw a *RangeError* exception.
 </emu-alg>
 
 <div class="example">
@@ -664,7 +654,7 @@ This abstract operation is meant to be called from other specifications that may
 for a given stream.
 
 <emu-alg>
-  1. Return Construct(`<a idl>ReadableStreamBYOBReader</a>`, «_stream_»)
+  1. Return Construct(`<a idl>ReadableStreamBYOBReader</a>`, «_stream_»).
 </emu-alg>
 
 <h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamDefaultReader" throws>AcquireReadableStreamDefaultReader ( stream )</h4>
@@ -1028,8 +1018,7 @@ Instances of {{ReadableStreamDefaultReader}} are created with the internal slots
 
 <div class="note">
   The <code>ReadableStreamDefaultReader</code> constructor is generally not meant to be used directly; instead, a
-  stream's {{ReadableStream/getReader()}} method should be used. This allows different classes of readable streams to
-  vend different classes of readers without the <a>consumer</a> needing to know which goes with which.
+  stream's {{ReadableStream/getReader()}} method should be used.
 </div>
 
 <emu-alg>
@@ -1164,8 +1153,7 @@ Instances of {{ReadableStreamBYOBReader}} are created with the internal slots de
 
 <div class="note">
   The <code>ReadableStreamBYOBReader</code> constructor is generally not meant to be used directly; instead, a stream's
-  {{ReadableStream/getBYOBReader()}} method should be used. This allows different classes of readable streams to vend different
-  classes of readers without the <a>consumer</a> needing to know which goes with which.
+  {{ReadableStream/getReader()}} method should be used.
 </div>
 
 <emu-alg>
@@ -3048,7 +3036,7 @@ The attributes of these properties must be { \[[Writable]]: <emu-val>true</emu-v
 <div class="note">
   The {{ReadableStreamDefaultReader}} and {{ReadableStreamBYOBReader}} classes are specifically <em>not</em> exposed,
   as while they do have a functioning constructor, instances should instead be created through the
-  {{ReadableStream/getReader()}} and {{ReadableStream/getBYOBReader()}} methods of a {{ReadableStream}} instance.
+  {{ReadableStream/getReader()}} method of a {{ReadableStream}} instance.
   Similarly, the supporting classes {{ReadableStreamDefaultController}}, {{ReadableStreamBYOBController}}, and
   {{ReadableStreamBYOBRequest}} are not exposed, since they are not independently useful outside of the
   {{ReadableStream}} implementation.

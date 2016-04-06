@@ -56,25 +56,25 @@ export default class ReadableStream {
     return ReadableStreamCancel(this, reason);
   }
 
-  getBYOBReader() {
-    if (IsReadableStream(this) === false) {
-      throw new TypeError('ReadableStream.prototype.getBYOBReader can only be used on a ReadableStream constructed ' +
-          'with a byte source');
-    }
-
-    if (IsReadableStreamBYOBController(this._readableStreamController) === false) {
-      throw new TypeError('Cannot get a ReadableStreamBYOBReader for a stream not constructed with a byte source');
-    }
-
-    return AcquireReadableStreamBYOBReader(this);
-  }
-
-  getReader() {
+  getReader(options = {}) {
     if (IsReadableStream(this) === false) {
       throw new TypeError('ReadableStream.prototype.getReader can only be used on a ReadableStream');
     }
 
-    return AcquireReadableStreamDefaultReader(this);
+    const mode = options.mode;
+    if (mode === 'byob') {
+      if (IsReadableStreamBYOBController(this._readableStreamController) === false) {
+        throw new TypeError('Cannot get a ReadableStreamBYOBReader for a stream not constructed with a byte source');
+      }
+
+      return AcquireReadableStreamBYOBReader(this);
+    }
+
+    if (mode === undefined) {
+      return AcquireReadableStreamDefaultReader(this);
+    }
+
+    throw new RangeError('Invalid mode is specified');
   }
 
   pipeThrough({ writable, readable }, options) {
