@@ -10,6 +10,7 @@ test(() => {
 
   new ReadableStream(); // ReadableStream constructed with no parameters
   new ReadableStream({ }); // ReadableStream constructed with an empty object as parameter
+  new ReadableStream({ type: undefined }); // ReadableStream constructed with undefined type
   new ReadableStream(undefined); // ReadableStream constructed with undefined as parameter
 
   let x;
@@ -22,6 +23,17 @@ test(() => {
   assert_throws(new TypeError(), () => new ReadableStream(null), 'constructor should throw when the source is null');
 
 }, 'ReadableStream can\'t be constructed with garbage');
+
+test(() => {
+
+  assert_throws(new RangeError(), () => new ReadableStream({ type: null }),
+    'constructor should throw when the type is null');
+  assert_throws(new RangeError(), () => new ReadableStream({ type: '' }),
+    'constructor should throw when the type is empty string');
+  assert_throws(new RangeError(), () => new ReadableStream({ type: 'asdf' }),
+    'constructor should throw when the type is asdf');
+
+}, 'ReadableStream can\'t be constructed with an invalid type');
 
 test(() => {
 

@@ -22,17 +22,20 @@ export default class ReadableStream {
     // Initialize to undefined first because the constructor of the controller checks this
     // variable to validate the caller.
     this._readableStreamController = undefined;
-    const byob = underlyingSource['byob'];
-    if (byob === true) {
+    const type = underlyingSource.type;
+    const typeString = String(type);
+    if (typeString === 'bytes') {
       if (highWaterMark === undefined) {
         highWaterMark = 0;
       }
       this._readableStreamController = new ReadableByteStreamController(this, underlyingSource, highWaterMark);
-    } else {
+    } else if (type === undefined) {
       if (highWaterMark === undefined) {
         highWaterMark = 1;
       }
       this._readableStreamController = new ReadableStreamDefaultController(this, underlyingSource, size, highWaterMark);
+    } else {
+      throw new RangeError('Invalid type is specified');
     }
   }
 

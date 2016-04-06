@@ -422,10 +422,10 @@ Instances of {{ReadableStream}} are created with the internal slots described in
   state via the passed <code>controller</code> object. This is an example of the
   <a href="https://blog.domenic.me/the-revealing-constructor-pattern/">revealing constructor pattern</a>.
 
-  If the <code>underlyingSource</code> object contains a truthy property <code>byob</code>, this <a>readable stream</a> is
-  a <a>readable byte stream</a>, and can successfully vend <a>BYOB readers</a>. In that case, the passed
-  <code>controller</code> object will be an instance of {{ReadableByteStreamController}}. Otherwise, it will be an instance of
-  {{ReadableStreamDefaultController}}.
+  If the <code>underlyingSource</code> object contains a property <code>type</code> set to <code>"bytes"</code>, this
+  <a>readable stream</a> is a <a>readable byte stream</a>, and can successfully vend <a>BYOB readers</a>. In that case,
+  the passed <code>controller</code> object will be an instance of {{ReadableByteStreamController}}. Otherwise, it will
+  be an instance of {{ReadableStreamDefaultController}}.
 
   For <a>readable byte streams</a>, <code>underlyingSource</code> can also contain a property
   <code>autoAllocateChunkSize</code>, which can be set to a positive integer to enable the auto-allocation feature for
@@ -447,16 +447,16 @@ Instances of {{ReadableStream}} are created with the internal slots described in
   1. Set *this*@[[reader]] and *this*@[[storedError]] to *undefined*.
   1. Set *this*@[[disturbed]] to *false*.
   1. Set *this*@[[readableStreamController]] to *undefined*.
-  1. Let _byob_ be ToBoolean(GetV(_underlyingSource_, `"byob"`)).
-  1. ReturnIfAbrupt(_byob_).
-  1. If _byob_ is *true*,
-    1. If _highWaterMark_ is *undefined*,
-      1. Let _highWaterMark_ be 0.
+  1. Let _type_ be GetV(_underlyingSource_, `"type"`).
+  1. ReturnIfAbrupt(_type_).
+  1. Let _typeString_ be ToString(_type_).
+  1. If _typeString_ is `"bytes"`,
+    1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be 0.
     1. Set *this*@[[readableStreamController]] to Construct(`<a idl>ReadableByteStreamController</a>`, «*this*, _underlyingSource_, _highWaterMark_»).
-  1. Otherwise,
-    1. If _highWaterMark_ is *undefined*,
-      1. Let _highWaterMark_ be 1.
+  1. Otherwise, if _type_ is *undefined*,
+    1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be 1.
     1. Set *this*@[[readableStreamController]] to Construct(`<a idl>ReadableStreamDefaultController</a>`, «*this*, _underlyingSource_, _size_, _highWaterMark_»).
+  1. Otherwise, throw a *RangeError* exception.
 </emu-alg>
 
 <h4 id="rs-prototype">Properties of the {{ReadableStream}} Prototype</h4>
@@ -3149,7 +3149,7 @@ BYOB reader, to move the data from the stream's internal queue to the developer-
     const socket = createHypotheticalSelect2Socket(host, port);
 
     return new ReadableStream({
-      byob: true,
+      type: "bytes",
 
       start(controller) {
         socket.setTCPWindowSize(Math.max(0, controller.desiredSize));
@@ -3256,7 +3256,7 @@ size of 1024, it attempts to fill the developer-supplied buffer, allowing full c
     let position = 0;
 
     return new ReadableStream({
-      byob: true,
+      type: "bytes",
 
       start() {
         return fs.open(filename, "r").then(result => {
