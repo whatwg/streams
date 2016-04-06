@@ -375,7 +375,7 @@ Instances of {{ReadableStream}} are created with the internal slots described in
   </thead>
   <tr>
     <td>\[[readableStreamController]]
-    <td>A {{ReadableStreamDefaultController}} or {{ReadableStreamBYOBController}} created with the ability to control
+    <td>A {{ReadableStreamDefaultController}} or {{ReadableByteStreamController}} created with the ability to control
     the state and queue of this stream; also used for the IsReadableStream brand check
   </tr>
   <tr>
@@ -424,7 +424,7 @@ Instances of {{ReadableStream}} are created with the internal slots described in
 
   If the <code>underlyingSource</code> object contains a truthy property <code>byob</code>, this <a>readable stream</a> is
   a <a>readable byte stream</a>, and can successfully vend <a>BYOB readers</a>. In that case, the passed
-  <code>controller</code> object will be an instance of {{ReadableStreamBYOBController}}. Otherwise, it will be an instance of
+  <code>controller</code> object will be an instance of {{ReadableByteStreamController}}. Otherwise, it will be an instance of
   {{ReadableStreamDefaultController}}.
 
   For <a>readable byte streams</a>, <code>underlyingSource</code> can also contain a property
@@ -452,7 +452,7 @@ Instances of {{ReadableStream}} are created with the internal slots described in
   1. If _byob_ is *true*,
     1. If _highWaterMark_ is *undefined*,
       1. Let _highWaterMark_ be 0.
-    1. Set *this*@[[readableStreamController]] to Construct(`<a idl>ReadableStreamBYOBController</a>`, «*this*, _underlyingSource_, _highWaterMark_»).
+    1. Set *this*@[[readableStreamController]] to Construct(`<a idl>ReadableByteStreamController</a>`, «*this*, _underlyingSource_, _highWaterMark_»).
   1. Otherwise,
     1. If _highWaterMark_ is *undefined*,
       1. Let _highWaterMark_ be 1.
@@ -513,7 +513,7 @@ Instances of {{ReadableStream}} are created with the internal slots described in
   1. If IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
   1. Let _mode_ be GetV(_options_, `"mode"`).
   1. If _mode_ is `"byob"`,
-    1. If IsReadableStreamBYOBController(*this*@[[readableStreamController]]) is *false*, throw a *TypeError* exception.
+    1. If IsReadableByteStreamController(*this*@[[readableStreamController]]) is *false*, throw a *TypeError* exception.
     1. Return AcquireReadableStreamBYOBReader(*this*).
   1. If _mode_ is *undefined*, return AcquireReadableStreamDefaultReader(*this*).
   1. Throw a *RangeError* exception.
@@ -822,7 +822,7 @@ called with argument <var>reason</var>, it performs the following steps:
 In terms of specification factoring, the way that the {{ReadableStream}} class encapsulates the behavior of
 both simple readable streams and <a>readable byte streams</a> into a single class is by centralizing most of the
 potentially-varying logic inside the two controller classes, {{ReadableStreamDefaultController}} and
-{{ReadableStreamBYOBController}}. Those classes define most of the stateful internal slots and abstract
+{{ReadableByteStreamController}}. Those classes define most of the stateful internal slots and abstract
 operations for how a stream's <a>internal queue</a> is managed and how it interfaces with its <a>underlying source</a>
 or <a>underlying byte source</a>.
 
@@ -1293,7 +1293,7 @@ Instances of {{ReadableStreamBYOBReader}} are created with the internal slots de
   1. Assert: _stream_ is not *undefined*.
   1. Set _stream_@[[disturbed]] to *true*.
   1. If _stream_@[[state]] is `"errored"`, return a promise rejected with _stream_@[[storedError]].
-  1. Return ReadableStreamBYOBControllerPullInto(_stream_@[[readableStreamController]], _view_).
+  1. Return ReadableByteStreamControllerPullInto(_stream_@[[readableStreamController]], _view_).
 </emu-alg>
 
 <h4 id="readable-stream-default-reader-read" aoid="ReadableStreamDefaultReaderRead" nothrow>ReadableStreamDefaultReaderRead ( reader )</h4>
@@ -1609,21 +1609,21 @@ associated controller object. Specifications should <em>not</em> use this on str
   1. Return _controller_@[[strategyHWM]] − _queueSize_.
 </emu-alg>
 
-<h3 id="rs-byob-controller-class" interface lt="ReadableStreamBYOBController">Class <code>ReadableStreamBYOBController</code></h3>
+<h3 id="rbs-controller-class" interface lt="ReadableByteStreamController">Class <code>ReadableByteStreamController</code></h3>
 
-The {{ReadableStreamBYOBController}} class has methods that allow control of a {{ReadableStream}}'s state and
+The {{ReadableByteStreamController}} class has methods that allow control of a {{ReadableStream}}'s state and
 <a>internal queue</a>. When constructing a {{ReadableStream}}, the <a>underlying byte source</a> is given a
-corresponding {{ReadableStreamBYOBController}} instance to manipulate.
+corresponding {{ReadableByteStreamController}} instance to manipulate.
 
-<h4 id="rs-byob-controller-class-definition">Class Definition</h4>
+<h4 id="rbs-controller-class-definition">Class Definition</h4>
 
 <em>This section is non-normative.</em>
 
-If one were to write the {{ReadableStreamBYOBController}} class in something close to the syntax of [[!ECMASCRIPT]], it
+If one were to write the {{ReadableByteStreamController}} class in something close to the syntax of [[!ECMASCRIPT]], it
 would look like
 
 <pre><code class="lang-javascript">
-  class ReadableStreamBYOBController {
+  class ReadableByteStreamController {
     constructor(stream)
 
     get byobRequest()
@@ -1635,9 +1635,9 @@ would look like
   }
 </code></pre>
 
-<h4 id="rs-byob-controller-internal-slots">Internal Slots</h4>
+<h4 id="rbs-controller-internal-slots">Internal Slots</h4>
 
-Instances of {{ReadableStreamBYOBController}} are created with the internal slots described in the following table:
+Instances of {{ReadableByteStreamController}} are created with the internal slots described in the following table:
 
 <table>
   <thead>
@@ -1708,10 +1708,10 @@ Instances of {{ReadableStreamBYOBController}} are created with the internal slot
   </tr>
 </table>
 
-<h4 id="rs-byob-controller-constructor" constructor for="ReadableStreamBYOBController" lt="ReadableStreamBYOBController(stream, underlyingByteSource, highWaterMark)">new ReadableStreamBYOBController(stream, underlyingByteSource, highWaterMark)</h4>
+<h4 id="rbs-controller-constructor" constructor for="ReadableByteStreamController" lt="ReadableByteStreamController(stream, underlyingByteSource, highWaterMark)">new ReadableByteStreamController(stream, underlyingByteSource, highWaterMark)</h4>
 
 <div class="note">
-  The <code>ReadableStreamBYOBController</code> constructor cannot be used directly; it only works on a
+  The <code>ReadableByteStreamController</code> constructor cannot be used directly; it only works on a
   {{ReadableStream}} that is in the middle of being constructed.
 </div>
 
@@ -1721,7 +1721,7 @@ Instances of {{ReadableStreamBYOBController}} are created with the internal slot
   1. Set *this*@[[controlledReadableStream]] to _stream_.
   1. Set *this*@[[underlyingByteSource]] to _underlyingByteSource_.
   1. Set *this*@[[pullAgain]], and *this*@[[pulling]] to *false*.
-  1. Perform ReadableStreamBYOBControllerClearPendingPullIntos(*this*).
+  1. Perform ReadableByteStreamControllerClearPendingPullIntos(*this*).
   1. Set *this*@[[queue]] to a new empty List.
   1. Set *this*@[[totalQueuedBytes]] to *0*.
   1. Set *this*@[[started]], and *this*@[[closeRequested]] to *false*.
@@ -1741,21 +1741,21 @@ Instances of {{ReadableStreamBYOBController}} are created with the internal slot
       1. Set _controller_@[[started]] to *true*.
       1. Assert: _controller_@[[pulling]] is *false*.
       1. Assert: _controller_@[[pullAgain]] is *false*.
-      1. Perform ReadableStreamBYOBControllerCallPullIfNeeded(_controller_).
+      1. Perform ReadableByteStreamControllerCallPullIfNeeded(_controller_).
     1. Upon rejection with reason _r_,
-      1. If *this*@[[state]] is `"readable"`, perform ReadableStreamBYOBControllerError(_controller_, _r_).
+      1. If *this*@[[state]] is `"readable"`, perform ReadableByteStreamControllerError(_controller_, _r_).
 </emu-alg>
 
-<h4 id="rs-byob-controller-prototype">Properties of the {{ReadableStreamBYOBController}} Prototype</h4>
+<h4 id="rbs-controller-prototype">Properties of the {{ReadableByteStreamController}} Prototype</h4>
 
-<h5 id="rs-byob-controller-byob-request" attribute for="ReadableStreamBYOBController" lt="byobRequest">get byobRequest</h5>
+<h5 id="rbs-controller-byob-request" attribute for="ReadableByteStreamController" lt="byobRequest">get byobRequest</h5>
 
 <div class="note">
   The <code>byobRequest</code> getter returns the current BYOB pull request.
 </div>
 
 <emu-alg>
-  1. If IsReadableStreamBYOBController(*this*) is *false*, throw a *TypeError* exception.
+  1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*@[[byobRequest]] is *undefined* and *this*@[[pendingPullIntos]] is not empty,
     1. Let _firstDescriptor_ be the first element of *this*@[[pendingPullIntos]].
     1. Let _view_ be Construct(<a idl>%Uint8Array%</a>, «_firstDescriptor_.[[buffer]], _firstDescriptor_.[[byteOffset]] + _firstDescriptor_.[[bytesFilled]], _firstDescriptor_.[[byteLength]] - _firstDescriptor_.[[bytesFilled]]»).
@@ -1763,7 +1763,7 @@ Instances of {{ReadableStreamBYOBController}} are created with the internal slot
   1. Return *this*@[[byobRequest]].
 </emu-alg>
 
-<h5 id="rs-byob-controller-desired-size" attribute for="ReadableStreamBYOBController" lt="desiredSize">get desiredSize</h5>
+<h5 id="rbs-controller-desired-size" attribute for="ReadableByteStreamController" lt="desiredSize">get desiredSize</h5>
 
 <div class="note">
   The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size
@@ -1772,11 +1772,11 @@ Instances of {{ReadableStreamBYOBController}} are created with the internal slot
 </div>
 
 <emu-alg>
-  1. If IsReadableStreamBYOBController(*this*) is *false*, throw a *TypeError* exception.
-  1. Return ReadableStreamBYOBControllerGetDesiredSize(*this*).
+  1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
+  1. Return ReadableByteStreamControllerGetDesiredSize(*this*).
 </emu-alg>
 
-<h5 id="rs-byob-controller-close" method for="ReadableStreamBYOBController">close()</h5>
+<h5 id="rbs-controller-close" method for="ReadableByteStreamController">close()</h5>
 
 <div class="note">
   The <code>close</code> method will close the controlled readable stream. <a>Consumers</a> will still be able to read
@@ -1784,28 +1784,28 @@ Instances of {{ReadableStreamBYOBController}} are created with the internal slot
 </div>
 
 <emu-alg>
-  1. If IsReadableStreamBYOBController(*this*) is *false*, throw a *TypeError* exception.
+  1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*@[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. If *this*@[[controlledReadableStream]]@[[state]] is not `"readable"`, throw a *TypeError* exception.
-  1. Perform ReadableStreamBYOBControllerClose(*this*).
+  1. Perform ReadableByteStreamControllerClose(*this*).
 </emu-alg>
 
-<h5 id="rs-byob-controller-enqueue" method for="ReadableStreamBYOBController">enqueue(chunk)</h5>
+<h5 id="rbs-controller-enqueue" method for="ReadableByteStreamController">enqueue(chunk)</h5>
 
 <div class="note">
   The <code>enqueue</code> method will enqueue a given <a>chunk</a> in the controlled readable stream.
 </div>
 
 <emu-alg>
-  1. If IsReadableStreamBYOBController(*this*) is *false*, throw a *TypeError* exception.
+  1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*@[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. If *this*@[[controlledReadableStream]]@[[state]] is not `"readable"`, throw a *TypeError* exception.
   1. If Type(_chunk_) is not Object, throw a *TypeError* exception.
   1. If _chunk_ does not have a [[ViewedArrayBuffer]] internal slot, throw a *TypeError* exception.
-  1. Return ReadableStreamBYOBControllerEnqueue(*this*, _chunk_).
+  1. Return ReadableByteStreamControllerEnqueue(*this*, _chunk_).
 </emu-alg>
 
-<h5 id="rs-byob-controller-error" method for="ReadableStreamBYOBController">error(e)</h5>
+<h5 id="rbs-controller-error" method for="ReadableByteStreamController">error(e)</h5>
 
 <div class="note">
   The <code>error</code> method will error the readable stream, making all future interactions with it fail with the
@@ -1813,19 +1813,19 @@ Instances of {{ReadableStreamBYOBController}} are created with the internal slot
 </div>
 
 <emu-alg>
-  1. If IsReadableStreamBYOBController(*this*) is *false*, throw a *TypeError* exception.
+  1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*@[[controlledReadableStream]].
   1. If _stream_@[[state]] is not `"readable"`, throw a *TypeError* exception.
-  1. Perform ReadableStreamBYOBControllerError(*this*, _e_).
+  1. Perform ReadableByteStreamControllerError(*this*, _e_).
 </emu-alg>
 
-<h4 id="rs-byob-controller-internal-methods">Readable Stream BYOB Controller Internal Methods</h4>
+<h4 id="rbs-controller-internal-methods">Readable Stream BYOB Controller Internal Methods</h4>
 
-The following are additional internal methods implemented by each {{ReadableStreamBYOBController}} instance. They are
+The following are additional internal methods implemented by each {{ReadableByteStreamController}} instance. They are
 similar to the supporting abstract operations in the following section, but are in method form to allow polymorphic
 dispatch from the readable stream implementation to either these or their counterparts for default controllers.
 
-<h5 id="rs-byob-controller-private-cancel">\[[Cancel]](reason)</h5>
+<h5 id="rbs-controller-private-cancel">\[[Cancel]](reason)</h5>
 
 <emu-alg>
   1. If *this*@[[pendingPullIntos]] is not empty,
@@ -1836,7 +1836,7 @@ dispatch from the readable stream implementation to either these or their counte
   1. Return PromiseInvokeOrNoop(*this*@[[underlyingByteSource]], `"cancel"`, «_reason_»)
 </emu-alg>
 
-<h5 id="rs-byob-controller-private-pull">\[[Pull]]()</h5>
+<h5 id="rbs-controller-private-pull">\[[Pull]]()</h5>
 
 <emu-alg>
   1. Let _stream_ be *this*@[[controlledReadableStream]].
@@ -1845,7 +1845,7 @@ dispatch from the readable stream implementation to either these or their counte
       1. Let _entry_ be the first element of *this*@[[queue]].
       1. Remove _entry_ from *this*@[[queue]], shifting all other elements downward (so that the second becomes the first, and so on).
       1. Subtract _entry_.[[byteLength]] from *this*@[[totalQueuedBytes]].
-      1. Perform ReadableStreamBYOBControllerHandleQueueDrain(*this*).
+      1. Perform ReadableByteStreamControllerHandleQueueDrain(*this*).
       1. Let _view_ be Construct(<a idl>%Uint8Array%</a>, «_entry_.[[buffer]], _entry_.[[byteOffset]], _entry_.[[byteLength]]»).
       1. Return a promise resolved with CreateIterResultObject(_view_, *false*).
     1. Let _autoAllocateChunkSize_ be *this*@[[autoAllocateChunkSize]].
@@ -1862,7 +1862,7 @@ dispatch from the readable stream implementation to either these or their counte
 
 <h3 id="rs-byob-request-class" interface lt="ReadableStreamBYOBRequest">Class <code>ReadableStreamBYOBRequest</code></h3>
 
-The {{ReadableStreamBYOBRequest}} class represents a pull into request in a {{ReadableStreamBYOBController}}.
+The {{ReadableStreamBYOBRequest}} class represents a pull into request in a {{ReadableByteStreamController}}.
 
 <h4 id="rs-byob-request-class-definition">Class Definition</h4>
 
@@ -1894,8 +1894,8 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
     </tr>
   </thead>
   <tr>
-    <td>\[[associatedReadableStreamBYOBController]]
-    <td>The parent {{ReadableStreamBYOBController}} instance
+    <td>\[[associatedReadableByteStreamController]]
+    <td>The parent {{ReadableByteStreamController}} instance
   </tr>
   <tr>
     <td>\[[view]]
@@ -1906,7 +1906,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
 <h4 id="rs-byob-request-constructor" constructor for="ReadableStreamBYOBRequest" lt="ReadableStreamBYOBRequest(controller, view)">new ReadableStreamBYOBRequest(controller, view)</h4>
 
 <emu-alg>
-  1. Set *this*@[[associatedReadableStreamBYOBController]] to _controller_.
+  1. Set *this*@[[associatedReadableByteStreamController]] to _controller_.
   1. Set *this*@[[view]] to _view_.
 </emu-alg>
 
@@ -1923,32 +1923,32 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
 
 <emu-alg>
   1. If IsReadableStreamBYOBRequest(*this*) is *false*, throw a *TypeError* exception.
-  1. If *this*@[[associatedReadableStreamBYOBController]] is *undefined*, throw a *TypeError* exception.
-  1. Return ReadableStreamBYOBControllerRespond(*this*@[[associatedReadableStreamBYOBController]], _bytesWritten_).
+  1. If *this*@[[associatedReadableByteStreamController]] is *undefined*, throw a *TypeError* exception.
+  1. Return ReadableByteStreamControllerRespond(*this*@[[associatedReadableByteStreamController]], _bytesWritten_).
 </emu-alg>
 
 <h5 id="rs-byob-request-respond-with-new-view" method for="ReadableStreamBYOBRequest">respondWithNewView(view)</h5>
 
 <emu-alg>
   1. If IsReadableStreamBYOBRequest(*this*) is *false*, throw a *TypeError* exception.
-  1. If *this*@[[associatedReadableStreamBYOBController]] is *undefined*, throw a *TypeError* exception.
+  1. If *this*@[[associatedReadableByteStreamController]] is *undefined*, throw a *TypeError* exception.
   1. If Type(_chunk_) is not Object, throw a *TypeError* exception.
   1. If _view_ does not have a [[ViewedArrayBuffer]] internal slot, throw a *TypeError* exception.
-  1. Return ReadableStreamBYOBControllerRespondWithNewView(*this*@[[associatedReadableStreamBYOBController]], _view_).
+  1. Return ReadableByteStreamControllerRespondWithNewView(*this*@[[associatedReadableByteStreamController]], _view_).
 </emu-alg>
 
-<h3 id="rs-byob-controller-abstract-ops">Readable Stream BYOB Controller Abstract Operations</h3>
+<h3 id="rbs-controller-abstract-ops">Readable Stream BYOB Controller Abstract Operations</h3>
 
 <h4 id="is-readable-stream-byob-request" aoid="IsReadableStreamBYOBRequest" nothrow>IsReadableStreamBYOBRequest ( x )</h4>
 
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have an [[associatedReadableStreamBYOBController]] internal slot, return *false*.
+  1. If _x_ does not have an [[associatedReadableByteStreamController]] internal slot, return *false*.
   1. Return *true*.
 </emu-alg>
 
 
-<h4 id="is-readable-stream-byob-controller" aoid="IsReadableStreamBYOBController" nothrow>IsReadableStreamBYOBController ( x )</h4>
+<h4 id="is-readable-byte-stream-controller" aoid="IsReadableByteStreamController" nothrow>IsReadableByteStreamController ( x )</h4>
 
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
@@ -1956,10 +1956,10 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. Return *true*.
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-call-pull-if-needed" aoid="ReadableStreamBYOBControllerCallPullIfNeeded" nothrow>ReadableStreamBYOBControllerCallPullIfNeeded ( controller )</h4>
+<h4 id="readable-byte-stream-controller-call-pull-if-needed" aoid="ReadableByteStreamControllerCallPullIfNeeded" nothrow>ReadableByteStreamControllerCallPullIfNeeded ( controller )</h4>
 
 <emu-alg>
-  1. Let _shouldPull_ be ReadableStreamBYOBControllerShouldCallPull(_controller_).
+  1. Let _shouldPull_ be ReadableByteStreamControllerShouldCallPull(_controller_).
   1. If _shouldPull_ is *false*, return *undefined*.
   1. If _controller_@[[pulling]] is *true*,
     1. Set _controller_@[[pullAgain]] to *true*.
@@ -1971,13 +1971,13 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
     1. Set _controller_@[[pulling]] to *false*.
     1. If _controller_@[[pullAgain]] is *true*,
       1. Set _controller_@[[pullAgain]] to *false*.
-      1. Perform ReadableStreamBYOBControllerCallPullIfNeeded(_controller_).
+      1. Perform ReadableByteStreamControllerCallPullIfNeeded(_controller_).
   1. Upon rejection of _pullPromise_ with reason _e_,
-    1. If _controller_@[[controlledReadableStream]]@[[state]] is `"readable"`, perform ReadableStreamBYOBControllerError(_controller_, _e_).
+    1. If _controller_@[[controlledReadableStream]]@[[state]] is `"readable"`, perform ReadableByteStreamControllerError(_controller_, _e_).
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-clear-pending-pull-intos" aoid="ReadableStreamBYOBControllerClearPendingPullIntos" nothrow>ReadableStreamBYOBControllerClearPendingPullIntos ( controller )</h4>
+<h4 id="readable-byte-stream-controller-clear-pending-pull-intos" aoid="ReadableByteStreamControllerClearPendingPullIntos" nothrow>ReadableByteStreamControllerClearPendingPullIntos ( controller )</h4>
 
 <emu-alg>
   1. If _controller_@[[byobRequest]] is not *undefined*,
@@ -1986,7 +1986,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. Set _controller_@[[pendingPullIntos]] to a new empty List.
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-close" aoid="ReadableStreamBYOBControllerClose" nothrow>ReadableStreamBYOBControllerClose ( controller )</h4>
+<h4 id="readable-byte-stream-controller-close" aoid="ReadableByteStreamControllerClose" nothrow>ReadableByteStreamControllerClose ( controller )</h4>
 
 <emu-alg>
   1. Let _stream_ be _controller_@[[controlledReadableStream]].
@@ -1998,12 +1998,12 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. Let _firstPendingPullInto_ be the first element of _controller_@[[pendingPullIntos]].
   1. If ReadableStreamHasBYOBReader(_stream_) is *true* and _controller_@[[pendingPullIntos]] is not empty and _firstPendingPullInto_.[[bytesFilled]] &gt; 0.
     1. Let _e_ be a *TypeError* exception.
-    1. Perform ReadableStreamBYOBControllerError(_controller_, _e_).
+    1. Perform ReadableByteStreamControllerError(_controller_, _e_).
     1. Throw _e_.
   1. Perform ReadableStreamClose(_stream_).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-commit-pull-into-descriptor" aoid="ReadableStreamBYOBControllerCommitPullIntoDescriptor" nothrow>ReadableStreamBYOBControllerCommitPullIntoDescriptor ( stream, pullIntoDescriptor )</h4>
+<h4 id="readable-byte-stream-controller-commit-pull-into-descriptor" aoid="ReadableByteStreamControllerCommitPullIntoDescriptor" nothrow>ReadableByteStreamControllerCommitPullIntoDescriptor ( stream, pullIntoDescriptor )</h4>
 
 <emu-alg>
   1. Assert: _stream_@[[state]] is not `"errored"`.
@@ -2012,7 +2012,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. If _stream_@[[state]] is `"closed"`,
     1. Assert: _pullIntoDescriptor_.[[bytesFilled]] is not 0.
     1. Let _done_ be *true*.
-  1. Let _filledView_ be ReadableStreamBYOBControllerConvertPullIntoDescriptor(_pullIntoDescriptor_).
+  1. Let _filledView_ be ReadableByteStreamControllerConvertPullIntoDescriptor(_pullIntoDescriptor_).
   1. If _pullIntoDescriptor_.[[readerType]] is `"default"`,
     1. ReadableStreamFulfillReadRequest(_stream_, _filledView_, _done_).
   1. Otherwise,
@@ -2020,7 +2020,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
     1. ReadableStreamFulfillReadIntoRequest(_stream_, _filledView_, _done_).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-convert-pull-into-descriptor" aoid="ReadableStreamBYOBControllerConvertPullIntoDescriptor" nothrow>ReadableStreamBYOBControllerConvertPullIntoDescriptor ( pullIntoDescriptor )</h4>
+<h4 id="readable-byte-stream-controller-convert-pull-into-descriptor" aoid="ReadableByteStreamControllerConvertPullIntoDescriptor" nothrow>ReadableByteStreamControllerConvertPullIntoDescriptor ( pullIntoDescriptor )</h4>
 
 <emu-alg>
   1. Let _bytesFilled_ be _pullIntoDescriptor_.[[bytesFilled]].
@@ -2030,7 +2030,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. Return Construct(_pullIntoDescriptor_.[[ctor]], «_pullIntoDescriptor_.[[buffer]], _pullIntoDescriptor_.[[byteOffset]], _bytesFilled_ / _elementSize_»).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-enqueue" aoid="ReadableStreamBYOBControllerEnqueue" throws>ReadableStreamBYOBControllerEnqueue ( controller, chunk )</h4>
+<h4 id="readable-byte-stream-controller-enqueue" aoid="ReadableByteStreamControllerEnqueue" throws>ReadableByteStreamControllerEnqueue ( controller, chunk )</h4>
 
 <emu-alg>
   1. Let _stream_ be _controller_@[[controlledReadableStream]].
@@ -2042,7 +2042,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. If ReadableStreamHasReader(_stream_) is *true*
     1. If ReadableStreamGetNumReadRequests(_stream_) is 0,
       1. Transfer _buffer_ and let _transferredBuffer_ be the result.
-      1. Perform ReadableStreamBYOBControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_, _byteLength_).
+      1. Perform ReadableByteStreamControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_, _byteLength_).
     1. Otherwise,
       1. Assert: _controller_@[[queue]] is empty.
       1. Transfer _buffer_ and let _transferredBuffer_ be the result.
@@ -2051,32 +2051,32 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. Otherwise,
     1. If ReadableStreamHasBYOBReader(_stream_) is *true*,
       1. Transfer _buffer_ and let _transferredBuffer_ be the result.
-      1. Perform ReadableStreamBYOBControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_, _byteLength_).
-      1. Perform ReadableStreamBYOBControllerProcessPullIntoDescriptorsUsingQueue(_controller_).
+      1. Perform ReadableByteStreamControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_, _byteLength_).
+      1. Perform ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(_controller_).
     1. Otherwise,
       1. Assert: IsReadableStreamLocked(_stream_) is *false*.
       1. Transfer _buffer_ and let _transferredBuffer_ be the result.
-      1. Perform ReadableStreamBYOBControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_, _byteLength_).
+      1. Perform ReadableByteStreamControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_, _byteLength_).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-enqueue-chunk-to-queue" aoid="ReadableStreamBYOBControllerEnqueueChunkToQueue" nothrow>ReadableStreamBYOBControllerEnqueueChunkToQueue ( controller, buffer, byteOffset, byteLength )</h4>
+<h4 id="readable-byte-stream-controller-enqueue-chunk-to-queue" aoid="ReadableByteStreamControllerEnqueueChunkToQueue" nothrow>ReadableByteStreamControllerEnqueueChunkToQueue ( controller, buffer, byteOffset, byteLength )</h4>
 
 <emu-alg>
   1. Append Record{[[buffer]]: _buffer_, [[byteOffset]]: _byteOffset_, [[byteLength]]: _byteLength_} as the last element of _controller_@[[queue]].
   1. Add _byteLength_ to _controller_@[[totalQueuedBytes]].
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-error" aoid="ReadableStreamBYOBControllerError" nothrow>ReadableStreamBYOBControllerError ( controller, e )</h4>
+<h4 id="readable-byte-stream-controller-error" aoid="ReadableByteStreamControllerError" nothrow>ReadableByteStreamControllerError ( controller, e )</h4>
 
 <emu-alg>
   1. Let _stream_ be _controller_@[[controlledReadableStream]].
   1. Assert: _stream_@[[state]] is `"readable"`.
-  1. Perform ReadableStreamBYOBControllerClearPendingPullIntos(_controller_).
+  1. Perform ReadableByteStreamControllerClearPendingPullIntos(_controller_).
   1. Let _controller_@[[queue]] be a new empty List.
   1. Perform ReadableStreamError(_stream_, _e_).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-fill-head-pull-into-descriptor" aoid="ReadableStreamBYOBControllerFillHeadPullIntoDescriptor" nothrow>ReadableStreamBYOBControllerFillHeadPullIntoDescriptor ( controller, size, pullIntoDescriptor )</h4>
+<h4 id="readable-byte-stream-controller-fill-head-pull-into-descriptor" aoid="ReadableByteStreamControllerFillHeadPullIntoDescriptor" nothrow>ReadableByteStreamControllerFillHeadPullIntoDescriptor ( controller, size, pullIntoDescriptor )</h4>
 
 <emu-alg>
   1. Assert: _controller_@[[pendingPullIntos]] is empty or the first element of _controller_@[[pendingPullIntos]] is _pullIntoDescriptor_.
@@ -2086,7 +2086,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. Add _size_ to _pullIntoDescriptor_.[[bytesFilled]].
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-fill-pull-into-descriptor-from-queue" aoid="ReadableStreamBYOBControllerFillPullIntoDescriptorFromQueue" nothrow>ReadableStreamBYOBControllerFillPullIntoDescriptorFromQueue ( controller, pullIntoDescriptor )</h4>
+<h4 id="readable-byte-stream-controller-fill-pull-into-descriptor-from-queue" aoid="ReadableByteStreamControllerFillPullIntoDescriptorFromQueue" nothrow>ReadableByteStreamControllerFillPullIntoDescriptorFromQueue ( controller, pullIntoDescriptor )</h4>
 
 <emu-alg>
   1. Let _elementSize_ be _pullIntoDescriptor_.[[elementSize]].
@@ -2111,7 +2111,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
       1. Add _bytesToCopy_ to _headOfQueue_.[[byteOffset]].
       1. Subtract _bytesToCopy_ from _headOfQueue_.[[byteLength]].
     1. Subtract _bytesToCopy_ from _controller_@[[totalQueuedBytes]].
-    1. Perform ReadableStreamBYOBControllerFillHeadPullIntoDescriptor(_controller_, _bytesToCopy_, _pullIntoDescriptor_).
+    1. Perform ReadableByteStreamControllerFillHeadPullIntoDescriptor(_controller_, _bytesToCopy_, _pullIntoDescriptor_).
     1. Subtract _bytesToCopy_ from _totalBytesToCopyRemaining_.
   1. If _ready_ is *false*,
     1. Assert: _controller_@[[totalQueuedBytes]] is 0.
@@ -2120,35 +2120,35 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. Return _ready_.
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-get-desired-size" aoid="ReadableStreamBYOBControllerGetDesiredSize" nothrow>ReadableStreamBYOBControllerGetDesiredSize ( controller )</h4>
+<h4 id="readable-byte-stream-controller-get-desired-size" aoid="ReadableByteStreamControllerGetDesiredSize" nothrow>ReadableByteStreamControllerGetDesiredSize ( controller )</h4>
 
 <emu-alg>
   1. Return _controller_@[[strategyHWM]] - _controller_@[[totalQueuedBytes]].
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-handle-queue-drain" aoid="ReadableStreamBYOBControllerHandleQueueDrain" nothrow>ReadableStreamBYOBControllerHandleQueueDrain ( controller )</h4>
+<h4 id="readable-byte-stream-controller-handle-queue-drain" aoid="ReadableByteStreamControllerHandleQueueDrain" nothrow>ReadableByteStreamControllerHandleQueueDrain ( controller )</h4>
 
 <emu-alg>
   1. Assert: _controller_@[[controlledReadableStream]]@[[state]] is `"readable"`.
   1. If _controller_@[[totalQueuedBytes]] is 0 and _controller_@[[closeRequested]] is *true*,
     1. Perform ReadableStreamClose(_controller_@[[controlledReadableStream]]).
   1. Otherwise,
-    1. Perform ReadableStreamBYOBControllerCallPullIfNeeded(_controller_).
+    1. Perform ReadableByteStreamControllerCallPullIfNeeded(_controller_).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-process-pull-into-descriptors-using-queue" aoid="ReadableStreamBYOBControllerProcessPullIntoDescriptorsUsingQueue" nothrow>ReadableStreamBYOBControllerProcessPullIntoDescriptorsUsingQueue ( controller )</h4>
+<h4 id="readable-byte-stream-controller-process-pull-into-descriptors-using-queue" aoid="ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue" nothrow>ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue ( controller )</h4>
 
 <emu-alg>
   1. Assert: _controller_@[[closeRequested]] is *false*.
   1. Repeat the following steps while _controller_@[[pendingPullIntos]] is not empty,
     1. If _controller_@[[totalQueuedBytes]] is 0, return.
     1. Let _pullIntoDescriptor_ be the first element of _controller_@[[pendingPullIntos]].
-    1. If ReadableStreamBYOBControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
-      1. Perform ReadableStreamBYOBControllerShiftPendingPullInto(_controller_).
-      1. Perform ReadableStreamBYOBControllerCommitPullIntoDescriptor(_controller_@[[controlledReadableStream]], _pullIntoDescriptor_).
+    1. If ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
+      1. Perform ReadableByteStreamControllerShiftPendingPullInto(_controller_).
+      1. Perform ReadableByteStreamControllerCommitPullIntoDescriptor(_controller_@[[controlledReadableStream]], _pullIntoDescriptor_).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-pull-into" aoid="ReadableStreamBYOBControllerPullInto" nothrow>ReadableStreamBYOBControllerPullInto ( controller, view )</h4>
+<h4 id="readable-byte-stream-controller-pull-into" aoid="ReadableByteStreamControllerPullInto" nothrow>ReadableByteStreamControllerPullInto ( controller, view )</h4>
 
 <emu-alg>
   1. Let _stream_ be _controller_@[[controlledReadableStream]].
@@ -2165,61 +2165,61 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
     1. Let _emptyView_ be Construct(_ctor_, «_view_.[[buffer]], _view_.[[byteOffset]], 0»).
     1. Return a promise resolved with CreateIterResultObject(_emptyView_, *true*).
   1. If _controller_@[[totalQueuedBytes]] &gt; 0,
-    1. If ReadableStreamBYOBControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
-      1. Let _filledView_ be ReadableStreamBYOBControllerConvertPullIntoDescriptor(_pullIntoDescriptor_).
-      1. Perform ReadableStreamBYOBControllerHandleQueueDrain(_controller_).
+    1. If ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
+      1. Let _filledView_ be ReadableByteStreamControllerConvertPullIntoDescriptor(_pullIntoDescriptor_).
+      1. Perform ReadableByteStreamControllerHandleQueueDrain(_controller_).
       1. Return a promise resolved with CreateIterResultObject(_filledView_, *false*).
     1. If _controller_@[[closeRequested]] is *true*,
       1. Let _e_ be a *TypeError* exception.
-      1. Perform ReadableStreamBYOBControllerError(_controller_, _e_).
+      1. Perform ReadableByteStreamControllerError(_controller_, _e_).
       1. Return a promise rejected with _e_.
   1. Transfer _pullIntoDescriptor_.[[buffer]] and set _pullIntoDescriptor_.[[buffer]] to the result.
   1. Append _pullIntoDescriptor_ as the last element of _controller_@[[pendingPullIntos]].
   1. Let _promise_ be ReadableStreamAddReadIntoRequest(_stream_).
-  1. Perform ReadableStreamBYOBControllerCallPullIfNeeded(_controller_).
+  1. Perform ReadableByteStreamControllerCallPullIfNeeded(_controller_).
   1. Return _promise_.
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-respond" aoid="ReadableStreamBYOBControllerRespond" throws>ReadableStreamBYOBControllerRespond ( controller, bytesWritten )</h4>
+<h4 id="readable-byte-stream-controller-respond" aoid="ReadableByteStreamControllerRespond" throws>ReadableByteStreamControllerRespond ( controller, bytesWritten )</h4>
 
 <emu-alg>
   1. Let _bytesWritten_ be ToNumber(_bytesWritten_).
   1. If IsFiniteNonNegativeNumber(_bytesWritten_) is *false*,
     1. Throw a *RangeError* exception.
   1. Assert: _controller_@[[pendingPullIntos]] is not empty.
-  1. Return ReadableStreamBYOBControllerRespondInternal(_controller_, _bytesWritten_).
+  1. Return ReadableByteStreamControllerRespondInternal(_controller_, _bytesWritten_).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-respond-in-closed-state" aoid="ReadableStreamBYOBControllerRespondInClosedState" nothrow>ReadableStreamBYOBControllerRespondInClosedState ( controller, firstDescriptor )</h4>
+<h4 id="readable-byte-stream-controller-respond-in-closed-state" aoid="ReadableByteStreamControllerRespondInClosedState" nothrow>ReadableByteStreamControllerRespondInClosedState ( controller, firstDescriptor )</h4>
 
 <emu-alg>
   1. Transfer _firstDescriptor_.[[buffer]] and set _firstDescriptor_.[[buffer]] to the result.
   1. Assert: _firstDescriptor_.[[bytesFilled]] is 0.
   1. Let _stream_ be _controller_@[[controlledReadableStream]].
   1. Repeat the following steps while ReadableStreamGetNumReadIntoRequests(_stream_) &gt; 0,
-    1. Let _pullIntoDescriptor_ be ReadableStreamBYOBControllerShiftPendingPullInto(_controller_).
-    1. Perform ReadableStreamBYOBControllerCommitPullIntoDescriptor(_stream_, _pullIntoDescriptor_).
+    1. Let _pullIntoDescriptor_ be ReadableByteStreamControllerShiftPendingPullInto(_controller_).
+    1. Perform ReadableByteStreamControllerCommitPullIntoDescriptor(_stream_, _pullIntoDescriptor_).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-respond-in-readable-state" aoid="ReadableStreamBYOBControllerRespondInReadableState" nothrow>ReadableStreamBYOBControllerRespondInReadableState ( controller, bytesWritten, pullIntoDescriptor )</h4>
+<h4 id="readable-byte-stream-controller-respond-in-readable-state" aoid="ReadableByteStreamControllerRespondInReadableState" nothrow>ReadableByteStreamControllerRespondInReadableState ( controller, bytesWritten, pullIntoDescriptor )</h4>
 
 <emu-alg>
   1. If _pullIntoDescriptor_.[[bytesFilled]] + _bytesWritten_ &gt; _pullIntoDescriptor_.[[byteLength]], throw a *RangeError* exception.
-  1. Perform ReadableStreamBYOBControllerFillHeadPullIntoDescriptor(_controller_, _bytesWritten_, _pullIntoDescriptor_).
+  1. Perform ReadableByteStreamControllerFillHeadPullIntoDescriptor(_controller_, _bytesWritten_, _pullIntoDescriptor_).
   1. If _pullIntoDescriptor_.[[bytesFilled]] &lt; _pullIntoDescriptor_.[[elementSize]], return.
-  1. Perform ReadableStreamBYOBControllerShiftPendingPullInto(_controller_).
+  1. Perform ReadableByteStreamControllerShiftPendingPullInto(_controller_).
   1. Let _remainderSize_ be _pullIntoDescriptor_.[[bytesFilled]] mod _pullIntoDescriptor_.[[elementSize]].
   1. If _remainderSize_ &gt; 0,
     1. Let _end_ be _pullIntoDescriptor_.[[byteOffset]] + _pullIntoDescriptor_.[[bytesFilled]].
     1. Let _remainder_ be a new ArrayBuffer containing the _remainderSize_ bytes of _pullIntoDescriptor_.[[buffer]] at offset _end_ - _remainderSize_.
-    1. Perform ReadableStreamBYOBControllerEnqueueChunkToQueue(_controller_, _remainder_, 0, _remainder_@[[ByteLength]]).
+    1. Perform ReadableByteStreamControllerEnqueueChunkToQueue(_controller_, _remainder_, 0, _remainder_@[[ByteLength]]).
   1. Transfer _pullIntoDescriptor_.[[buffer]] and set _pullIntoDescriptor_.[[buffer]] to the result.
   1. Let _pullIntoDescriptor_.[[bytesFilled]] be _pullIntoDescriptor_.[[bytesFilled]] - _remainderSize_.
-  1. Perform ReadableStreamBYOBControllerCommitPullIntoDescriptor(_controller_@[[controlledReadableStream]], _pullIntoDescriptor_).
-  1. Perform ReadableStreamBYOBControllerProcessPullIntoDescriptorsUsingQueue(_controller_).
+  1. Perform ReadableByteStreamControllerCommitPullIntoDescriptor(_controller_@[[controlledReadableStream]], _pullIntoDescriptor_).
+  1. Perform ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(_controller_).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-respond-internal" aoid="ReadableStreamBYOBControllerRespondInternal" throws>ReadableStreamBYOBControllerRespondInternal ( controller, bytesWritten )</h4>
+<h4 id="readable-byte-stream-controller-respond-internal" aoid="ReadableByteStreamControllerRespondInternal" throws>ReadableByteStreamControllerRespondInternal ( controller, bytesWritten )</h4>
 
 <emu-alg>
   1. Let _firstDescriptor_ be the first element of _controller_@[[pendingPullIntos]].
@@ -2227,13 +2227,13 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. If _stream_@[[state]] is `"closed"`,
     1. If _bytesWritten_ is not 0,
       1. Throw a *TypeError* exception.
-    1. Perform ReadableStreamBYOBControllerRespondInClosedState(_controller_, _firstDescriptor_).
+    1. Perform ReadableByteStreamControllerRespondInClosedState(_controller_, _firstDescriptor_).
   1. Otherwise,
     1. Assert: _stream_@[[state]] is `"readable"`.
-    1. Perform ReadableStreamBYOBControllerRespondInReadableState(_controller_, _bytesWritten_, _firstDescriptor_).
+    1. Perform ReadableByteStreamControllerRespondInReadableState(_controller_, _bytesWritten_, _firstDescriptor_).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-respond-with-new-view" aoid="ReadableStreamBYOBControllerRespondWithNewView" throws>ReadableStreamBYOBControllerRespondWithNewView ( controller, view )</h4>
+<h4 id="readable-byte-stream-controller-respond-with-new-view" aoid="ReadableByteStreamControllerRespondWithNewView" throws>ReadableByteStreamControllerRespondWithNewView ( controller, view )</h4>
 
 <emu-alg>
   1. Assert: _controller_@[[pendingPullIntos]] is not empty.
@@ -2243,10 +2243,10 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. If _firstDescriptor_.[[byteLength]] is not _view_@[[ByteOffset]],
     1. Throw a *RangeError* exception.
   1. Set _firstDescriptor_.[[buffer]] to _view_@[[ViewedArrayBuffer]].
-  1. Return ReadableStreamBYOBControllerRespondInternal(_controller_, _view_@[[ByteLength]]).
+  1. Return ReadableByteStreamControllerRespondInternal(_controller_, _view_@[[ByteLength]]).
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-shift-pending-pull-into" aoid="ReadableStreamBYOBControllerShiftPendingPullInto" nothrow>ReadableStreamBYOBControllerShiftPendingPullInto ( controller )</h4>
+<h4 id="readable-byte-stream-controller-shift-pending-pull-into" aoid="ReadableByteStreamControllerShiftPendingPullInto" nothrow>ReadableByteStreamControllerShiftPendingPullInto ( controller )</h4>
 
 <emu-alg>
   1. Let _descriptor_ be the first element of _controller_@[[pendingPullIntos]].
@@ -2257,7 +2257,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. Return _descriptor_.
 </emu-alg>
 
-<h4 id="readable-stream-byob-controller-should-call-pull" aoid="ReadableStreamBYOBControllerShouldCallPull" nothrow>ReadableStreamBYOBControllerShouldCallPull ( controller )</h4>
+<h4 id="readable-byte-stream-controller-should-call-pull" aoid="ReadableByteStreamControllerShouldCallPull" nothrow>ReadableByteStreamControllerShouldCallPull ( controller )</h4>
 
 <emu-alg>
   1. Let _stream_ be _controller_@[[controlledReadableStream]].
@@ -2266,7 +2266,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   1. If _controller_@[[started]] is *false*, return *false*.
   1. If ReadableStreamHasReader(_stream_) is *true* and ReadableStreamGetNumReadRequests(_stream_) > 0, return *true*.
   1. If ReadableStreamHasBYOBReader(_stream_) is *true* and ReadableStreamGetNumReadIntoRequests(_stream_) > 0, return *true*.
-  1. Let _desiredSize_ be ReadableStreamBYOBControllerGetDesiredSize(_controller_).
+  1. Let _desiredSize_ be ReadableByteStreamControllerGetDesiredSize(_controller_).
   1. If _desiredSize_ > 0, return *true*.
   1. Return *false*.
 </emu-alg>
@@ -2274,7 +2274,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
 <h4 id="readable-stream-byob-request-invalidate" aoid="ReadableStreamBYOBRequestInvalidate" nothrow>ReadableStreamBYOBRequestInvalidate ( request )</h4>
 
 <emu-alg>
-  1. Set _request_@[[associatedReadableStreamBYOBController]] to *undefined*.
+  1. Set _request_@[[associatedReadableByteStreamController]] to *undefined*.
   1. Set _request_@[[view]] to *undefined*.
 </emu-alg>
 
@@ -3037,7 +3037,7 @@ The attributes of these properties must be { \[[Writable]]: <emu-val>true</emu-v
   The {{ReadableStreamDefaultReader}} and {{ReadableStreamBYOBReader}} classes are specifically <em>not</em> exposed,
   as while they do have a functioning constructor, instances should instead be created through the
   {{ReadableStream/getReader()}} method of a {{ReadableStream}} instance.
-  Similarly, the supporting classes {{ReadableStreamDefaultController}}, {{ReadableStreamBYOBController}}, and
+  Similarly, the supporting classes {{ReadableStreamDefaultController}}, {{ReadableByteStreamController}}, and
   {{ReadableStreamBYOBRequest}} are not exposed, since they are not independently useful outside of the
   {{ReadableStream}} implementation.
 </div>
