@@ -311,17 +311,17 @@ copies.
     const reader = readableStream.getReader({ mode: "byob" });
 
     let startingAB = new ArrayBuffer(1024);
-    readInto(startingAB, 0)
+    readInto(startingAB)
       .then(buffer => console.log("The first 1024 bytes:", buffer))
       .catch(e => console.error("Something went wrong!", e));
 
-    function readInto(buffer, offset) {
+    function readInto(buffer, offset = 0) {
       if (offset === buffer.byteLength) {
-        return buffer;
+        return Promise.resolve(buffer);
       }
 
       const view = new Uint8Array(buffer, offset, buffer.byteLength - offset);
-      reader.read(view).then(newView => {
+      return reader.read(view).then(newView => {
         return readInto(newView.buffer, offset + newView.byteLength);
       });
     }
@@ -437,9 +437,9 @@ Instances of {{ReadableStream}} are created with the internal slots described in
 
   The constructor also accepts a second argument containing the <a>queuing strategy</a> object with
   two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
-  supplied <code>strategy</code> could be an instance of the built-in <code>CountQueuingStrategy</code> or
-  <code>ByteLengthQueuingStrategy</code> classes, or it could be custom. If no strategy is supplied, the default
-  behavior will be the same as a <code>CountQueuingStrategy</code> with a <a>high water mark</a> of 1.
+  supplied <code>strategy</code> could be an instance of the built-in {{CountQueuingStrategy}} or
+  {{ByteLengthQueuingStrategy}} classes, or it could be custom. If no strategy is supplied, the default
+  behavior will be the same as a {{CountQueuingStrategy}} with a <a>high water mark</a> of 1.
 </div>
 
 <emu-alg>
