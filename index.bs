@@ -3141,10 +3141,12 @@ a hypothetical JavaScript translation of the POSIX socket API (the main innovati
 This setup allows zero-copy reading directly into developer-supplied buffers. Additionally, it ensures that when data is
 available from the socket but not yet requested by the developer, it is enqueued in the stream's <a>internal queue</a>,
 to avoid overflowing the kernel-space queue. In this case, an additional copy will potentially be necessary when using a
-BYOB reader, to move the data from the stream's internal queue to the developer-supplied buffer. If this occurs,
+<a>BYOB reader</a>, to move the data from the stream's internal queue to the developer-supplied buffer. If this occurs,
 <a>backpressure</a> will immediately be applied downstream on the socket, by adjusting the TCP window size.
 
 <pre><code class="lang-javascript">
+  const DEFAULT_WINDOW_SIZE = 65536;
+
   function makeReadableBackpressureByteSocketStream(host, port) {
     const socket = createHypotheticalSelect2Socket(host, port);
 
@@ -3188,7 +3190,7 @@ BYOB reader, to move the data from the stream's internal queue to the developer-
         socket.close();
       }
     }, {
-      highWaterMark: 65536
+      highWaterMark: DEFAULT_WINDOW_SIZE
     });
   }
 </code></pre>
