@@ -1278,8 +1278,8 @@ Instances of {{ReadableStreamBYOBReader}} are created with the internal slots de
 <h4 id="readable-stream-reader-release" aoid="ReadableStreamReaderGenericRelease" throws>ReadableStreamReaderGenericRelease ( reader )</h4>
 
 <emu-alg>
-  1. Assert: _reader_@[[ownerReadableStream]]@[[reader]] is not *undefined*.
   1. Assert: _reader_@[[ownerReadableStream]] is not *undefined*.
+  1. Assert: _reader_@[[ownerReadableStream]]@[[reader]] is not *undefined*.
   1. If _reader_@[[ownerReadableStream]]@[[state]] is `"readable"`, reject _reader_@[[closedPromise]] with a *TypeError* exception.
   1. Otherwise, set _reader_@[[closedPromise]] to a new promise rejected with a *TypeError* exception.
   1. Set _reader_@[[ownerReadableStream]]@[[reader]] to *undefined*.
@@ -1413,7 +1413,7 @@ Instances of {{ReadableStreamDefaultController}} are created with the internal s
       1. Set _controller_@[[started]] to *true*.
       1. Perform ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
     1. Upon rejection with reason _r_,
-      1. If *this*@[[state]] is `"readable"`, perform ReadableStreamDefaultControllerError(_controller_, _r_).
+      1. If _stream_@[[state]] is `"readable"`, perform ReadableStreamDefaultControllerError(_controller_, _r_).
 </emu-alg>
 
 <h4 id="rs-default-controller-prototype">Properties of the {{ReadableStreamDefaultController}} Prototype</h4>
@@ -1440,7 +1440,7 @@ Instances of {{ReadableStreamDefaultController}} are created with the internal s
 
 <emu-alg>
   1. If IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
-  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. If *this*@[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. If *this*@[[controlledReadableStream]]@[[state]] is not `"readable"`, throw a *TypeError* exception.
   1. Perform ReadableStreamDefaultControllerClose(*this*).
 </emu-alg>
@@ -1453,7 +1453,7 @@ Instances of {{ReadableStreamDefaultController}} are created with the internal s
 
 <emu-alg>
   1. If IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
-  1. If _stream_@[[closeRequested]] is *true*, throw a *TypeError* exception.
+  1. If *this*@[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. If *this*@[[controlledReadableStream]]@[[state]] is not `"readable"`, throw a *TypeError* exception.
   1. Return ReadableStreamDefaultControllerEnqueue(*this*, _chunk_).
 </emu-alg>
@@ -1523,9 +1523,9 @@ polymorphic dispatch from the readable stream implementation to either these or 
     1. Set _controller_@[[pulling]] to *false*.
     1. If _controller_@[[pullAgain]] is *true*,
       1. Set _controller_@[[pullAgain]] to *false*.
-      1. Perform ReadableStreamDefaultControllerCallPullIfNeeded(_stream_).
+      1. Perform ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
   1. Upon rejection of _pullPromise_ with reason _e_,
-    1. If _stream_@[[state]] is `"readable"`, perform ReadableStreamDefaultControllerError(_controller_, _e_).
+    1. If _controller_@[[controlledReadableStream]]@[[state]] is `"readable"`, perform ReadableStreamDefaultControllerError(_controller_, _e_).
   1. Return *undefined*.
 </emu-alg>
 
@@ -1624,7 +1624,7 @@ would look like
 
 <pre><code class="lang-javascript">
   class ReadableByteStreamController {
-    constructor(stream)
+    constructor(stream, underlyingByteSource, highWaterMark)
 
     get byobRequest()
     get desiredSize()
@@ -1743,7 +1743,7 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
       1. Assert: _controller_@[[pullAgain]] is *false*.
       1. Perform ReadableByteStreamControllerCallPullIfNeeded(_controller_).
     1. Upon rejection with reason _r_,
-      1. If *this*@[[state]] is `"readable"`, perform ReadableByteStreamControllerError(_controller_, _r_).
+      1. If _stream_@[[state]] is `"readable"`, perform ReadableByteStreamControllerError(_controller_, _r_).
 </emu-alg>
 
 <h4 id="rbs-controller-prototype">Properties of the {{ReadableByteStreamController}} Prototype</h4>
@@ -1856,7 +1856,7 @@ dispatch from the readable stream implementation to either these or their counte
   1. Otherwise,
     1. Assert: *this*@[[autoAllocateChunkSize]] is *undefined*.
   1. Let _promise_ be ReadableStreamAddReadRequest(_stream_).
-  1. Perform ReadableStreamDefaultControllerCallPullIfNeeded(*this*).
+  1. Perform ReadableByteStreamControllerCallPullIfNeeded(*this*).
   1. Return _promise_.
 </emu-alg>
 
@@ -1873,7 +1873,7 @@ would look like
 
 <pre><code class="lang-javascript">
   class ReadableStreamBYOBRequest {
-    constructor(controller, descriptor)
+    constructor(controller, view)
 
     get view()
 
@@ -2007,7 +2007,6 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
 
 <emu-alg>
   1. Assert: _stream_@[[state]] is not `"errored"`.
-  1. Let _byteOffset_ be _readIntoRequest_.[[byteOffset]].
   1. Let _done_ be *false*.
   1. If _stream_@[[state]] is `"closed"`,
     1. Assert: _pullIntoDescriptor_.[[bytesFilled]] is not 0.
@@ -2035,7 +2034,7 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
 <emu-alg>
   1. Let _stream_ be _controller_@[[controlledReadableStream]].
   1. Assert: _controller_@[[closeRequested]] is *false*.
-  1. Assert: _controller_@[[state]] is `"readable"`.
+  1. Assert: _stream_@[[state]] is `"readable"`.
   1. Let _buffer_ be _chunk_@[[ViewedArrayBuffer]].
   1. Let _byteOffset_ be _chunk_@[[ByteOffset]].
   1. Let _byteLength_ be _chunk_@[[ByteLength]].
