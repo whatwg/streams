@@ -728,8 +728,8 @@ function ReadableStreamReaderGenericCancel(reader, reason) {
 }
 
 function ReadableStreamReaderGenericRelease(reader) {
-  assert(reader._ownerReadableStream._reader !== undefined);
   assert(reader._ownerReadableStream !== undefined);
+  assert(reader._ownerReadableStream._reader !== undefined);
 
   if (reader._ownerReadableStream._state === 'readable') {
     reader._closedPromise_reject(
@@ -933,8 +933,6 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
 
   controller._pulling = true;
 
-  const stream = controller._controlledReadableStream;
-
   const pullPromise = PromiseInvokeOrNoop(controller._underlyingSource, 'pull', [controller]);
   pullPromise.then(
     () => {
@@ -946,7 +944,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
       }
     },
     e => {
-      if (stream._state === 'readable') {
+      if (controller._controlledReadableStream._state === 'readable') {
         return ReadableStreamDefaultControllerError(controller, e);
       }
     }
@@ -1099,19 +1097,19 @@ class ReadableStreamBYOBRequest {
 }
 
 class ReadableByteStreamController {
-  constructor(controlledReadableStream, underlyingByteSource, highWaterMark) {
-    if (IsReadableStream(controlledReadableStream) === false) {
+  constructor(stream, underlyingByteSource, highWaterMark) {
+    if (IsReadableStream(stream) === false) {
       throw new TypeError('ReadableByteStreamController can only be constructed with a ReadableStream instance given ' +
           'a byte source');
     }
 
-    if (controlledReadableStream._readableStreamController !== undefined) {
+    if (stream._readableStreamController !== undefined) {
       throw new TypeError(
           'ReadableByteStreamController instances can only be created by the ReadableStream constructor given a byte ' +
               'source');
     }
 
-    this._controlledReadableStream = controlledReadableStream;
+    this._controlledReadableStream = stream;
 
     this._underlyingByteSource = underlyingByteSource;
 
@@ -1152,7 +1150,7 @@ class ReadableByteStreamController {
         ReadableByteStreamControllerCallPullIfNeeded(controller);
       },
       r => {
-        if (controlledReadableStream._state === 'readable') {
+        if (stream._state === 'readable') {
           ReadableByteStreamControllerError(controller, r);
         }
       }
