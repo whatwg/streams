@@ -1049,11 +1049,9 @@ function ReadableStreamDefaultControllerGetDesiredSize(controller) {
 }
 
 class ReadableStreamBYOBRequest {
-  constructor(controller, descriptor) {
+  constructor(controller, view) {
     this._associatedReadableByteStreamController = controller;
-    this._view = new Uint8Array(descriptor.buffer,
-                                descriptor.byteOffset + descriptor.bytesFilled,
-                                descriptor.byteLength - descriptor.bytesFilled);
+    this._view = view;
   }
 
   get view() {
@@ -1166,7 +1164,11 @@ class ReadableByteStreamController {
 
     if (this._byobRequest === undefined && this._pendingPullIntos.length > 0) {
       const firstDescriptor = this._pendingPullIntos[0];
-      this._byobRequest = new ReadableStreamBYOBRequest(this, firstDescriptor);
+      const view = new Uint8Array(firstDescriptor.buffer,
+                                  firstDescriptor.byteOffset + firstDescriptor.bytesFilled,
+                                  firstDescriptor.byteLength - firstDescriptor.bytesFilled);
+
+      this._byobRequest = new ReadableStreamBYOBRequest(this, view);
     }
 
     return this._byobRequest;
