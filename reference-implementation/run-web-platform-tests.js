@@ -9,7 +9,7 @@ import WritableStream from "./lib/writable-stream";
 import ByteLengthQueuingStrategy from "./lib/byte-length-queuing-strategy";
 import CountQueuingStrategy from "./lib/count-queuing-strategy";
 
-const testsPath = path.resolve(__dirname, "web-platform-tests");
+const testsPath = path.resolve(__dirname, "web-platform-tests/streams");
 
 wptRunner(testsPath, setup)
   .then(failures => process.exit(failures))

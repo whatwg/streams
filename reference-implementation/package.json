@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "description": "Reference implementation and tests for the WHATWG Streams Standard",
   "scripts": {
+    "pretest": "bash ./update-web-platform-tests.sh",
     "test": "node --expose_gc node_modules/traceur-runner/bin/traceur-runner.js run-tests.js | tap-spec && npm run wpt",
     "wpt": "node --expose_gc node_modules/traceur-runner/bin/traceur-runner.js run-web-platform-tests.js",
     "bench": "traceur-runner bench/recording-runner.js && traceur-runner bench/recording-differ.js",

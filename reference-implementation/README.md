@@ -20,10 +20,20 @@ The original tests are also written in ES6, using the [tape](https://github.com/
 
 ### Web Platform Tests
 
-After we started implementing this in browsers, we realized that we should probably have written the tests in standard [web platform tests](https://github.com/w3c/web-platform-tests) format.
+After we started implementing this in browsers, we realized that we should probably have written the tests in standard [web platform tests](https://github.com/w3c/web-platform-tests) format. Fixing this has been an ongoing effort, with major help from WebKit contributors, who ported the initial set of tests from our original format.
 
-Actually, WebKit noticed this first, and [converted all the tests](https://github.com/Igalia/streams/tree/webkit-tests/reference-implementation/webkit/reference-implementation). So we're starting to take their work and port it back into this repo. While we do so, we're splitting things up a bit so it's easier for implementers to work on only certain sections of the spec at a time, e.g. readable streams first.
+The web platform tests for streams are found in the [streams directory](https://github.com/w3c/web-platform-tests/tree/master/streams) of the web platform tests repository, and maintained via pull requests to that repository.
 
-Anyway, one thing to keep an eye out for is that due to this porting work, the coding style and level of ES6 feature usage is going to vary a decent bit.
+For local development while working on the spec, you can run
 
-To run the web platform tests against the reference implementation from within Node.js, type `npm run wpt` in this folder.
+```
+bash ./update-web-platform-tests.sh
+```
+
+to clone the web platform tests repository locally, and then use
+
+```
+npm run wpt
+```
+
+to run the streams web platform tests against the reference implementation, inside a Node.js emulated-DOM environment. If you make changes to the tests locally, for example while making a spec change, please send them as a pull request to the web platform tests repository.
