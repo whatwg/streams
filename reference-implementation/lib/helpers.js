@@ -108,10 +108,10 @@ export function PromiseInvokeOrFallbackOrNoop(O, P1, args1, P2, args2) {
   }
 }
 
-export function TransferArrayBuffer(buffer) {
-  // No-op. Just for marking places where detaching an ArrayBuffer is required.
+export function SameRealmTransfer(O) {
+  // Not implemented correctly.
 
-  return buffer;
+  return O;
 }
 
 export function ValidateAndNormalizeHighWaterMark(highWaterMark) {
