@@ -37,9 +37,9 @@ A key part of allowing this flexibility in the API is the concept of a _queuing 
 
 ## What's the deal with byte streams then?
 
-That is: given that the stream APIs work great for any type of data, why is there a special `ReadableByteStream` type? (And we'll be adding `WritableByteStream`, eventually.)
+That is: given that the stream APIs work great for any type of data, why are there special APIs, like BYOB readers, for dealing specifically with byte streams?
 
-The answer is that there are certain operations, mostly around memory management, that only make sense when dealing directly with bytes. So these classes provide _extra_ APIs, on top of the normal ones, which can be used by consumers and producers that are specifically interested in working at that level. But generally, your code can ignore the difference—a `ReadableByteStream` will act exactly like a `ReadableStream`, as long as you don't use any of those extra methods.
+The answer is that there are certain operations, mostly around memory management, that only make sense when dealing directly with bytes. So the reader returned by `getReader({ mode: "byob" })`, or the controller interface provided when you give the constructor the `type: "bytes"` option, provide _extra_ APIs on top of the normal ones, which can be used by consumers and producers that are specifically interested in working at that level. But generally, your code can ignore the difference—a readable byte stream will act exactly like a normal readable stream, if you simply use `.getReader()` with no `mode` option.
 
 ## How do readable streams relate to [observables](https://github.com/zenparsing/es-observable) or EventTarget?
 
@@ -67,7 +67,7 @@ The Streams Standard specifically started with the Node.js streams model as the 
   - Removal of pause/resume for managing backpressure
   - Removal of the `unshift` method for putting chunks back into the queue after reading them
   - No "binary/string mode" vs. "object mode" switch; instead, queueing strategies allow custom chunk types
-  - No optional and only sometimes-working size parameter while reading; instead use `ReadableByteStream`
+  - No optional and only sometimes-working size parameter while reading; instead use BYOB readers
 - Writable streams:
   - No cork/uncork support, yet (this is [#27](https://github.com/whatwg/streams/issues/27))
 - Transform streams:
