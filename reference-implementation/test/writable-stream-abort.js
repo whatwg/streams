@@ -1,3 +1,4 @@
+'use strict';
 const test = require('tape-catch');
 
 test('Aborting a WritableStream immediately prevents future writes', t => {

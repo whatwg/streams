@@ -1,8 +1,9 @@
+'use strict';
 const test = require('tape-catch');
 
-import sequentialReadableStream from './utils/sequential-rs';
-import duckTypedPassThroughTransform from './utils/duck-typed-pass-through-transform';
-import readableStreamToArray from './utils/readable-stream-to-array';
+const sequentialReadableStream = require('./utils/sequential-rs.js');
+const duckTypedPassThroughTransform = require('./utils/duck-typed-pass-through-transform.js');
+const readableStreamToArray = require('./utils/readable-stream-to-array.js');
 
 test('Piping through a duck-typed pass-through transform stream works', t => {
   t.plan(1);

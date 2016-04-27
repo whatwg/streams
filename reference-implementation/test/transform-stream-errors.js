@@ -1,3 +1,4 @@
+'use strict';
 const test = require('tape-catch');
 
 test('TransformStream errors thrown in transform put the writable and readable in an errored state', t => {

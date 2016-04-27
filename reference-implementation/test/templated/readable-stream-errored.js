@@ -1,6 +1,7 @@
+'use strict';
 const tapeTest = require('tape-catch');
 
-export default (label, factory, error) => {
+module.exports = (label, factory, error) => {
   function test(description, testFn) {
     tapeTest(`${label}: ${description}`, testFn);
   }

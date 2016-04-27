@@ -1,6 +1,7 @@
+'use strict';
 const test = require('tape-catch');
 
-import sequentialReadableStream from './utils/sequential-rs';
+const sequentialReadableStream = require('./utils/sequential-rs.js');
 
 // TODO: many asserts in this file are unlabeled; we should label them.
 

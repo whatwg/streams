@@ -1,6 +1,7 @@
-import { createDataProperty } from './helpers';
+'use strict';
+const { createDataProperty } = require('./helpers.js');
 
-export default class CountQueuingStrategy {
+module.exports = class CountQueuingStrategy {
   constructor({ highWaterMark }) {
     createDataProperty(this, 'highWaterMark', highWaterMark);
   }
@@ -8,4 +9,4 @@ export default class CountQueuingStrategy {
   size(chunk) {
     return 1;
   }
-}
+};

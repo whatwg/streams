@@ -1,7 +1,8 @@
-import ReadableStream from './readable-stream';
-import WritableStream from './writable-stream';
+'use strict';
+const { ReadableStream } = require('./readable-stream.js');
+const { WritableStream } = require('./writable-stream.js');
 
-export default class TransformStream {
+module.exports = class TransformStream {
   constructor(transformer) {
     if (transformer.flush === undefined) {
       transformer.flush = (enqueue, close) => close();
@@ -70,4 +71,4 @@ export default class TransformStream {
       writeDone();
     }
   }
-}
+};

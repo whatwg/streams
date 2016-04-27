@@ -1,14 +1,16 @@
+'use strict';
 const assert = require('assert');
-import { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, PromiseInvokeOrNoop,
-         SameRealmTransfer, ValidateAndNormalizeQueuingStrategy, ValidateAndNormalizeHighWaterMark } from './helpers';
-import { createArrayFromList, createDataProperty, typeIsObject } from './helpers';
-import { rethrowAssertionErrorRejection } from './utils';
-import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } from './queue-with-sizes';
+const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, PromiseInvokeOrNoop,
+        SameRealmTransfer, ValidateAndNormalizeQueuingStrategy, ValidateAndNormalizeHighWaterMark } =
+      require('./helpers.js');
+const { createArrayFromList, createDataProperty, typeIsObject } = require('./helpers.js');
+const { rethrowAssertionErrorRejection } = require('./utils.js');
+const { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } = require('./queue-with-sizes.js');
 
-const InternalCancel = Symbol();
-const InternalPull = Symbol();
+const InternalCancel = Symbol('[[Cancel]]');
+const InternalPull = Symbol('[[Pull]]');
 
-export default class ReadableStream {
+class ReadableStream {
   constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
     // Exposed to controllers.
     this._state = 'readable';
@@ -186,6 +188,8 @@ export default class ReadableStream {
   }
 }
 
+exports.ReadableStream = ReadableStream;
+
 // Abstract operations for the ReadableStream.
 
 function AcquireReadableStreamBYOBReader(stream) {
@@ -208,11 +212,13 @@ function IsReadableStream(x) {
   return true;
 }
 
-export function IsReadableStreamDisturbed(stream) {
+function IsReadableStreamDisturbed(stream) {
   assert(IsReadableStream(stream) === true, 'IsReadableStreamDisturbed should only be used on known readable streams');
 
   return stream._disturbed;
 }
+
+exports.IsReadableStreamDisturbed = IsReadableStreamDisturbed;
 
 function IsReadableStreamLocked(stream) {
   assert(IsReadableStream(stream) === true, 'IsReadableStreamLocked should only be used on known readable streams');

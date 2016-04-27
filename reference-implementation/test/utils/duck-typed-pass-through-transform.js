@@ -1,4 +1,6 @@
-export default function duckTypedPassThroughTransform() {
+'use strict';
+
+module.exports = () => {
   let enqueueInReadable;
   let closeReadable;
 
@@ -20,4 +22,4 @@ export default function duckTypedPassThroughTransform() {
       }
     })
   };
-}
+};

@@ -1,3 +1,4 @@
+'use strict';
 const test = require('tape-catch');
 
 test('Can construct a writable stream with a valid CountQueuingStrategy', t => {

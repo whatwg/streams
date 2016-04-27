@@ -1,6 +1,7 @@
+'use strict';
 const test = require('tape-catch');
 
-import readableStreamToArray from './utils/readable-stream-to-array';
+const readableStreamToArray = require('./utils/readable-stream-to-array.js');
 
 test('TransformStream can be constructed with a transform function', t => {
   t.plan(1);

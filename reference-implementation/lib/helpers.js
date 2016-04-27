@@ -1,18 +1,17 @@
+'use strict';
 const assert = require('assert');
 
-export function promiseCall(func, ...args) {
+exports.promiseCall = (func, ...args) => {
   try {
     return Promise.resolve(func(...args));
   } catch (e) {
     return Promise.reject(e);
   }
-}
+};
 
-export function typeIsObject(x) {
-  return (typeof x === 'object' && x !== null) || typeof x === 'function';
-}
+exports.typeIsObject = x => (typeof x === 'object' && x !== null) || typeof x === 'function';
 
-export function toInteger(v) {
+exports.toInteger = v => {
   v = Number(v);
   if (isNaN(v)) {
     return 0;
@@ -23,32 +22,32 @@ export function toInteger(v) {
   }
 
   return Math.floor(Math.abs(v));
-}
+};
 
-export function createDataProperty(o, p, v) {
-  assert(typeIsObject(o));
+exports.createDataProperty = (o, p, v) => {
+  assert(exports.typeIsObject(o));
   Object.defineProperty(o, p, { value: v, writable: true, enumerable: true, configurable: true });
-}
+};
 
-export function createArrayFromList(elements) {
+exports.createArrayFromList = elements => {
   // We use arrays to represent lists, so this is basically a no-op.
   // Do a slice though just in case we happen to depend on the unique-ness.
   return elements.slice();
-}
+};
 
-export function ArrayBufferCopy(dest, destOffset, src, srcOffset, n) {
+exports.ArrayBufferCopy = (dest, destOffset, src, srcOffset, n) => {
   new Uint8Array(dest).set(new Uint8Array(src, srcOffset, n), destOffset);
-}
+};
 
-export function CreateIterResultObject(value, done) {
+exports.CreateIterResultObject = (value, done) => {
   assert(typeof done === 'boolean');
   const obj = {};
   Object.defineProperty(obj, 'value', { value: value, enumerable: true, writable: true, configurable: true });
   Object.defineProperty(obj, 'done', { value: done, enumerable: true, writable: true, configurable: true });
   return obj;
-}
+};
 
-export function IsFiniteNonNegativeNumber(v) {
+exports.IsFiniteNonNegativeNumber = v => {
   if (Number.isNaN(v)) {
     return false;
   }
@@ -60,17 +59,17 @@ export function IsFiniteNonNegativeNumber(v) {
   }
 
   return true;
-}
+};
 
-export function InvokeOrNoop(O, P, args) {
+exports.InvokeOrNoop = (O, P, args) => {
   const method = O[P];
   if (method === undefined) {
     return undefined;
   }
   return method.apply(O, args);
-}
+};
 
-export function PromiseInvokeOrNoop(O, P, args) {
+exports.PromiseInvokeOrNoop = (O, P, args) => {
   let method;
   try {
     method = O[P];
@@ -87,9 +86,9 @@ export function PromiseInvokeOrNoop(O, P, args) {
   } catch (e) {
     return Promise.reject(e);
   }
-}
+};
 
-export function PromiseInvokeOrFallbackOrNoop(O, P1, args1, P2, args2) {
+exports.PromiseInvokeOrFallbackOrNoop = (O, P1, args1, P2, args2) => {
   let method;
   try {
     method = O[P1];
@@ -98,7 +97,7 @@ export function PromiseInvokeOrFallbackOrNoop(O, P1, args1, P2, args2) {
   }
 
   if (method === undefined) {
-    return PromiseInvokeOrNoop(O, P2, args2);
+    return exports.PromiseInvokeOrNoop(O, P2, args2);
   }
 
   try {
@@ -106,15 +105,12 @@ export function PromiseInvokeOrFallbackOrNoop(O, P1, args1, P2, args2) {
   } catch (e) {
     return Promise.reject(e);
   }
-}
+};
 
-export function SameRealmTransfer(O) {
-  // Not implemented correctly.
+// Not implemented correctly
+exports.SameRealmTransfer = O => O;
 
-  return O;
-}
-
-export function ValidateAndNormalizeHighWaterMark(highWaterMark) {
+exports.ValidateAndNormalizeHighWaterMark = highWaterMark => {
   highWaterMark = Number(highWaterMark);
   if (Number.isNaN(highWaterMark)) {
     throw new TypeError('highWaterMark property of a queuing strategy must be convertible to a non-NaN number');
@@ -124,14 +120,14 @@ export function ValidateAndNormalizeHighWaterMark(highWaterMark) {
   }
 
   return highWaterMark;
-}
+};
 
-export function ValidateAndNormalizeQueuingStrategy(size, highWaterMark) {
+exports.ValidateAndNormalizeQueuingStrategy = (size, highWaterMark) => {
   if (size !== undefined && typeof size !== 'function') {
     throw new TypeError('size property of a queuing strategy must be a function');
   }
 
-  highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
+  highWaterMark = exports.ValidateAndNormalizeHighWaterMark(highWaterMark);
 
   return { size, highWaterMark };
-}
+};

@@ -1,4 +1,6 @@
-export default function readableStreamToArray(readable, reader = readable.getReader()) {
+'use strict';
+
+module.exports = (readable, reader = readable.getReader()) => {
   const chunks = [];
 
   return pump();
@@ -13,4 +15,4 @@ export default function readableStreamToArray(readable, reader = readable.getRea
       return pump();
     });
   }
-}
+};

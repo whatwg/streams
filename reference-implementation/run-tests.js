@@ -1,11 +1,12 @@
+'use strict';
 const glob = require('glob');
 const path = require('path');
 
-import ReadableStream from './lib/readable-stream';
-import WritableStream from './lib/writable-stream';
-import ByteLengthQueuingStrategy from './lib/byte-length-queuing-strategy';
-import CountQueuingStrategy from './lib/count-queuing-strategy';
-import TransformStream from './lib/transform-stream';
+const { ReadableStream } = require('./lib/readable-stream.js');
+const { WritableStream } = require('./lib/writable-stream.js');
+const ByteLengthQueuingStrategy = require('./lib/byte-length-queuing-strategy.js');
+const CountQueuingStrategy = require('./lib/count-queuing-strategy.js');
+const TransformStream = require('./lib/transform-stream.js');
 
 global.ReadableStream = ReadableStream;
 global.WritableStream = WritableStream;
@@ -13,11 +14,9 @@ global.ByteLengthQueuingStrategy = ByteLengthQueuingStrategy;
 global.CountQueuingStrategy = CountQueuingStrategy;
 global.TransformStream = TransformStream;
 
-
 if (process.argv.length === 2) {
   const tests = glob.sync(path.resolve(__dirname, 'test/*.js'));
-
   tests.forEach(require);
 } else {
-    glob.sync(path.resolve(process.argv[2])).forEach(require);
+  glob.sync(path.resolve(process.argv[2])).forEach(require);
 }

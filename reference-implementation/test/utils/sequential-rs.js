@@ -1,6 +1,7 @@
-import SequentialPullSource from './sequential-pull-source';
+'use strict';
+const SequentialPullSource = require('./sequential-pull-source.js');
 
-export default function sequentialReadableStream(limit, options) {
+module.exports = (limit, options) => {
   const sequentialSource = new SequentialPullSource(limit, options);
 
   const stream = new ReadableStream({

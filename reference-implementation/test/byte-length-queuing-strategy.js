@@ -1,3 +1,4 @@
+'use strict';
 const test = require('tape-catch');
 
 test('Closing a writable stream with in-flight writes below the high water mark delays the close call properly', t => {

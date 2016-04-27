@@ -1,4 +1,6 @@
-export default class SequentialPullSource {
+'use strict';
+
+module.exports = class SequentialPullSource {
   constructor(limit, { async = false } = {}) {
     this.current = 0;
     this.limit = limit;
@@ -34,4 +36,4 @@ export default class SequentialPullSource {
       cb();
     });
   }
-}
+};

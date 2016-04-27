@@ -1,6 +1,6 @@
+'use strict';
 const test = require('tape-catch');
-
-import { IsReadableStreamDisturbed } from '../lib/readable-stream'
+const { IsReadableStreamDisturbed } = require('../lib/readable-stream.js');
 
 test('IsReadableStreamDisturbed returns true for an empty non-closed stream on which read() has been called', t => {
   const rs = new ReadableStream();

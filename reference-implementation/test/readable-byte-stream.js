@@ -1,3 +1,4 @@
+'use strict';
 const test = require('tape-catch');
 
 test('ReadableStream with byte source can be constructed with no errors', t => {

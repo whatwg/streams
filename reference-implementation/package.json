@@ -4,11 +4,8 @@
   "description": "Reference implementation and tests for the WHATWG Streams Standard",
   "scripts": {
     "pretest": "bash ./update-web-platform-tests.sh",
-    "test": "node --expose_gc node_modules/traceur-runner/bin/traceur-runner.js run-tests.js | tap-spec && npm run wpt",
-    "wpt": "node --expose_gc node_modules/traceur-runner/bin/traceur-runner.js run-web-platform-tests.js",
-    "bench": "traceur-runner bench/recording-runner.js && traceur-runner bench/recording-differ.js",
-    "build-browser-tests": "traceur-runner browser-tests/build.js",
-    "lint": "eslint web-platform-tests"
+    "test": "node --expose_gc run-tests.js | tap-spec && npm run wpt",
+    "wpt": "node --expose_gc run-web-platform-tests.js"
   },
   "repository": "whatwg/streams",
   "keywords": [
@@ -22,23 +19,12 @@
     "Forrest L Norvell <ogd@aoaioxxysz.net>",
     "Takeshi Yoshino <tyoshino@chromium.org>"
   ],
-  "license": "CC0",
-  "traceur-runner": true,
+  "license": "(CC0-1.0 OR MIT)",
   "devDependencies": {
-    "browserify": "^9.0.7",
-    "browserify-tape-spec": "^1.1.2",
-    "es6ify": "^1.6.0",
-    "eslint": "^1.10.1",
-    "glob": "^5.0.3",
-    "mkdirp": "^0.5.0",
-    "ms": "^0.7.0",
-    "sandwich": "^0.1.1",
-    "tap-spec": "^4.0.0",
-    "tape": "^4.0.0",
-    "tape-catch": "^1.0.4",
-    "text-table": "^0.2.0",
-    "traceur": "0.0.88",
-    "traceur-runner": "^2.0.1",
+    "glob": "^7.0.3",
+    "tap-spec": "^4.1.1",
+    "tape": "^4.5.1",
+    "tape-catch": "^1.0.5",
     "wpt-runner": "^1.0.0"
   }
 }

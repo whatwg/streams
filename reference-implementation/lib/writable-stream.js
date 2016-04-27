@@ -1,11 +1,12 @@
+'use strict';
 const assert = require('assert');
-import { InvokeOrNoop, PromiseInvokeOrNoop, PromiseInvokeOrFallbackOrNoop, ValidateAndNormalizeQueuingStrategy } from './helpers';
-import { typeIsObject } from './helpers';
-import { rethrowAssertionErrorRejection } from './utils';
-import { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } from './queue-with-sizes';
-import CountQueuingStrategy from './count-queuing-strategy';
+const { InvokeOrNoop, PromiseInvokeOrNoop, PromiseInvokeOrFallbackOrNoop, ValidateAndNormalizeQueuingStrategy,
+        typeIsObject } = require('./helpers.js');
+const { rethrowAssertionErrorRejection } = require('./utils.js');
+const { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } = require('./queue-with-sizes.js');
+const CountQueuingStrategy = require('./count-queuing-strategy.js');
 
-export default class WritableStream {
+class WritableStream {
   constructor(underlyingSink = {}, { size, highWaterMark = 0 } = {}) {
     this._underlyingSink = underlyingSink;
 
@@ -154,6 +155,8 @@ export default class WritableStream {
   }
 }
 
+exports.WritableStream = WritableStream;
+
 function closure_WritableStreamErrorFunction() {
   const f = e => ErrorWritableStream(f._stream, e);
   return f;
@@ -219,7 +222,7 @@ function ErrorWritableStream(stream, e) {
   stream._state = 'errored';
 }
 
-export function IsWritableStream(x) {
+function IsWritableStream(x) {
   if (!typeIsObject(x)) {
     return false;
   }
@@ -230,6 +233,8 @@ export function IsWritableStream(x) {
 
   return true;
 }
+
+exports.IsWritableStream = IsWritableStream;
 
 function SyncWritableStreamStateWithQueue(stream) {
   if (stream._state === 'closing') {

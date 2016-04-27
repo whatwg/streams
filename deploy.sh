@@ -77,13 +77,6 @@ else
     node_modules/.bin/emu-algify --throwing-indicators < $WEB_ROOT/index.intermediate.html > $WEB_ROOT/index.html
     rm $WEB_ROOT/index.intermediate.html
     echo "Living standard output to $WEB_ROOT"
-
-    # Test suite, if master
-    cd reference-implementation
-    npm run build-browser-tests
-    cd ..
-    mkdir "$WEB_ROOT/$TESTS_DIR"
-    cp reference-implementation/browser-tests/{index.html,bundle.js} "$WEB_ROOT/$TESTS_DIR"
 fi
 
 echo ""

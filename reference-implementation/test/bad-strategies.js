@@ -1,3 +1,4 @@
+'use strict';
 const test = require('tape-catch');
 
 test('Writable stream: throwing strategy.size getter', t => {

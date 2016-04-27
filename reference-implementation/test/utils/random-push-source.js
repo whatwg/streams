@@ -1,4 +1,6 @@
-export default class RandomPushSource {
+'use strict';
+
+module.exports = class RandomPushSource {
   constructor(toPush) {
     this.pushed = 0;
     this.toPush = toPush;
@@ -58,7 +60,7 @@ export default class RandomPushSource {
       throw new Error('Can\'t pause reading an unstarted source.');
     }
   }
-}
+};
 
 // http://stackoverflow.com/questions/1349404/generate-a-string-of-5-random-characters-in-javascript
 function randomChunk(size) {

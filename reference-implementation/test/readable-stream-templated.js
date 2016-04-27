@@ -1,7 +1,8 @@
-import templatedRSClosed from './templated/readable-stream-closed';
-import templatedRSErrored from './templated/readable-stream-errored';
-import templatedRSErroredAsyncOnly from './templated/readable-stream-errored-async-only';
-import templatedRSTwoChunksClosed from './templated/readable-stream-two-chunks-closed';
+'use strict';
+const templatedRSClosed = require('./templated/readable-stream-closed.js');
+const templatedRSErrored = require('./templated/readable-stream-errored.js');
+const templatedRSErroredAsyncOnly = require('./templated/readable-stream-errored-async-only.js');
+const templatedRSTwoChunksClosed = require('./templated/readable-stream-two-chunks-closed.js');
 
 templatedRSClosed('ReadableStream (closed via call in start)',
   () => new ReadableStream({

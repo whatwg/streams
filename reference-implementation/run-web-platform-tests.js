@@ -1,15 +1,15 @@
 // This runs the web platform tests against the reference implementation, in Node.js using jsdom, for easier rapid
 // development of the reference implementation and the web platform tests.
+'use strict';
+const path = require('path');
+const wptRunner = require('wpt-runner');
 
-const path = require("path");
-const wptRunner = require("wpt-runner");
+const { ReadableStream } = require('./lib/readable-stream.js');
+const { WritableStream } = require('./lib/writable-stream.js');
+const ByteLengthQueuingStrategy = require('./lib/byte-length-queuing-strategy.js');
+const CountQueuingStrategy = require('./lib/count-queuing-strategy.js');
 
-import ReadableStream from "./lib/readable-stream";
-import WritableStream from "./lib/writable-stream";
-import ByteLengthQueuingStrategy from "./lib/byte-length-queuing-strategy";
-import CountQueuingStrategy from "./lib/count-queuing-strategy";
-
-const testsPath = path.resolve(__dirname, "web-platform-tests/streams");
+const testsPath = path.resolve(__dirname, 'web-platform-tests/streams');
 
 wptRunner(testsPath, setup)
   .then(failures => process.exit(failures))

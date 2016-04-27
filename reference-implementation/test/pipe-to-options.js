@@ -1,3 +1,4 @@
+'use strict';
 const test = require('tape-catch');
 
 // Many other pipeTo-with-options tests have been templated.

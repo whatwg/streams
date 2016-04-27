@@ -1,4 +1,6 @@
-export default () => {
+'use strict';
+
+module.exports = () => {
   if (global.gc) {
     // Use --expose_gc for V8 (and io.js)
     // Exposed in SpiderMonkey shell as well

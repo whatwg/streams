@@ -1,22 +1,23 @@
+'use strict';
 const assert = require('assert');
-import { IsFiniteNonNegativeNumber } from './helpers';
+const { IsFiniteNonNegativeNumber } = require('./helpers.js');
 
-export function DequeueValue(queue) {
+exports.DequeueValue = queue => {
   assert(queue.length > 0, 'Spec-level failure: should never dequeue from an empty queue.');
   const pair = queue.shift();
   return pair.value;
-}
+};
 
-export function EnqueueValueWithSize(queue, value, size) {
+exports.EnqueueValueWithSize = (queue, value, size) => {
   size = Number(size);
   if (!IsFiniteNonNegativeNumber(size)) {
     throw new RangeError('Size must be a finite, non-NaN, non-negative number.');
   }
 
   queue.push({ value: value, size: size });
-}
+};
 
-export function GetTotalQueueSize(queue) {
+exports.GetTotalQueueSize = queue => {
   let totalSize = 0;
 
   queue.forEach(pair => {
@@ -27,10 +28,10 @@ export function GetTotalQueueSize(queue) {
   });
 
   return totalSize;
-}
+};
 
-export function PeekQueueValue(queue) {
+exports.PeekQueueValue = queue => {
   assert(queue.length > 0, 'Spec-level failure: should never peek at an empty queue.');
   const pair = queue[0];
   return pair.value;
-}
+};

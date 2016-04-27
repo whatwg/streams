@@ -1,3 +1,4 @@
+'use strict';
 const test = require('tape-catch');
 
 test('Underlying sink: throwing start getter', t => {
