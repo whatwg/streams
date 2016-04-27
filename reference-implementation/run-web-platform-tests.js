@@ -19,6 +19,9 @@ wptRunner(testsPath, setup)
   });
 
 function setup(window) {
+  // Necessary so that we can send test-realm promises to the jsdom-realm implementation without causing assimilation.
+  window.Promise = Promise;
+
   window.ReadableStream = ReadableStream;
   window.ByteLengthQueuingStrategy = ByteLengthQueuingStrategy;
   window.CountQueuingStrategy = CountQueuingStrategy;
