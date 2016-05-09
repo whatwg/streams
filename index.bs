@@ -34,8 +34,6 @@ urlPrefix: https://html.spec.whatwg.org/multipage/; spec: HTML
     text: WebSocket; url: comms.html#websocket; type: interface
     text: transferable objects; url: infrastructure.html; type: dfn
 urlPrefix: https://tc39.github.io/; spec: ECMASCRIPT
-    text: %ArrayBuffer%; url: #sec-arraybuffer-constructor; type: constructor
-    text: %DataView%; url: #sec-dataview-constructor; type: constructor
     text: %Uint8Array%; url: #sec-typedarray-objects; type: constructor
     text: ArrayBuffer; url: #sec-arraybuffer-objects; type: interface
     text: DataView; url: #sec-dataview-objects; type: interface
@@ -1909,7 +1907,7 @@ dispatch from the readable stream implementation to either these or their counte
       1. Return a promise resolved with ! CreateIterResultObject(_view_, *false*).
     1. Let _autoAllocateChunkSize_ be *this*@[[autoAllocateChunkSize]].
     1. If _autoAllocateChunkSize_ is not *undefined*,
-      1. Let _buffer_ be Construct(<a idl>%ArrayBuffer%</a>, « _autoAllocateChunkSize_ »).
+      1. Let _buffer_ be Construct(%ArrayBuffer%, « _autoAllocateChunkSize_ »).
       1. If _buffer_ is an abrupt completion, return a promise rejected with _buffer_.[[Value]].
       1. Let _pullIntoDescriptor_ be Record {[[buffer]]: _buffer_.[[Value]], [[byteOffset]]: *0*, [[byteLength]]:
          _autoAllocateChunkSize_, [[bytesFilled]]: *0*, [[elementSize]]: *1*, [[ctor]]: <a idl>%Uint8Array%</a>,
@@ -2262,7 +2260,7 @@ nothrow>ReadableByteStreamControllerPullInto ( <var>controller</var>, <var>view<
 <emu-alg>
   1. Let _stream_ be _controller_@[[controlledReadableStream]].
   1. Let _elementSize_ be 1.
-  1. Let _ctor_ be <a idl>%DataView%</a>.
+  1. Let _ctor_ be %DataView%.
   1. If _view_ has a [[TypedArrayName]] internal slot (i.e., it is not a `<a idl>DataView</a>`),
     1. Set _elementSize_ to the element size specified in <a>the typed array constructors table</a> for
        _view_@[[TypedArrayName]].
@@ -2332,7 +2330,7 @@ aoid="ReadableByteStreamControllerRespondInReadableState" throws>ReadableByteStr
   1. If _remainderSize_ > *0*,
     1. Let _end_ be _pullIntoDescriptor_.[[byteOffset]] + _pullIntoDescriptor_.[[bytesFilled]].
     1. Let _remainder_ be ? CloneArrayBuffer(_pullIntoDescriptor_.[[buffer]], _end_ − _remainderSize_, _remainderSize_,
-       <a idl>%ArrayBuffer%</a>).
+       %ArrayBuffer%).
     1. Perform ! ReadableByteStreamControllerEnqueueChunkToQueue(_controller_, _remainder_, *0*,
        _remainder_@[[ByteLength]]).
   1. Set _pullIntoDescriptor_.[[buffer]] to ! SameRealmTransfer(_pullIntoDescriptor_.[[buffer]]).

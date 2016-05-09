@@ -5,9 +5,7 @@
     "local-watch": "node ./local-watch.js"
   },
   "devDependencies": {
-    "ecmarkup": "^2.8.3",
-    "emu-algify": "^1.0.1",
-    "jsdom": "^5.0.1",
+    "emu-algify": "^2.0.0",
     "promise-debounce": "^1.0.0"
   }
 }
