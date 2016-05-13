@@ -355,7 +355,7 @@ like
 
 <pre><code class="lang-javascript">
   class ReadableStream {
-    constructor(underlyingSource = {}, { size, highWaterMark = 1 } = {})
+    constructor(underlyingSource = {}, { size, highWaterMark } = {})
 
     get locked()
 
@@ -405,7 +405,7 @@ Instances of {{ReadableStream}} are created with the internal slots described in
 </table>
 
 <h4 id="rs-constructor" constructor for="ReadableStream" lt="ReadableStream(underlyingSource, queuingStrategy)">new
-ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWaterMark</var> = 1 } = {})</h4>
+ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWaterMark</var> } = {})</h4>
 
 <div class="note">
   The <code>underlyingSource</code> object passed to the constructor can implement any of the following methods to
