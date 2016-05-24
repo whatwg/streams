@@ -742,7 +742,7 @@ returned branches. [[!HTML]]
     1. Perform ! ReadableStreamDefaultControllerError(_pull_@[[branch1]], _r_).
     1. Perform ! ReadableStreamDefaultControllerError(_pull_@[[branch2]], _r_).
     1. Set _teeState_.[[closedOrErrored]] to *true*.
-  1. Return « branch1, branch2 ».
+  1. Return « _branch1Stream_, _branch2Stream_ ».
 </emu-alg>
 
 <div class="note">
