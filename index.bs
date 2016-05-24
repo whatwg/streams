@@ -1068,7 +1068,7 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
 <emu-alg>
   1. If ! IsReadableStreamDefaultReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. If *this*@[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
-  1. Return ! ReadableStreamCancel(*this*@[[ownerReadableStream]], _reason_).
+  1. Return ! ReadableStreamReaderGenericCancel(*this*, _reason_).
 </emu-alg>
 
 <h5 id="default-reader-read" method for="ReadableStreamDefaultReader">read()</h5>
@@ -1198,13 +1198,13 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
 
 <div class="note">
   If the reader is <a lt="active reader">active</a>, the <code>cancel</code> method behaves the same as that for the
-  associated stream. When done, it automatically <a lt="release a read lock">releases the lock</a>.
+  associated stream.
 </div>
 
 <emu-alg>
   1. If ! IsReadableStreamBYOBReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
   1. If *this*@[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
-  1. Return ! ReadableStreamCancel(*this*@[[ownerReadableStream]], _reason_).
+  1. Return ! ReadableStreamReaderGenericCancel(*this*, _reason_).
 </emu-alg>
 
 <h5 id="byob-reader-read" method for="ReadableStreamBYOBReader">read(<var>view</var>)</h5>

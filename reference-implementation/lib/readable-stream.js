@@ -925,7 +925,7 @@ function IsReadableStreamDefaultController(x) {
 }
 
 function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
-  const shouldPull = ReadableStreamDefaultControllerShouldPull(controller);
+  const shouldPull = ReadableStreamDefaultControllerShouldCallPull(controller);
   if (shouldPull === false) {
     return undefined;
   }
@@ -958,7 +958,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
   return undefined;
 }
 
-function ReadableStreamDefaultControllerShouldPull(controller) {
+function ReadableStreamDefaultControllerShouldCallPull(controller) {
   const stream = controller._controlledReadableStream;
 
   if (stream._state === 'closed' || stream._state === 'errored') {
