@@ -369,6 +369,7 @@ function create_ReadableStreamTeeBranch2CancelFunction() {
 
 function ReadableStreamAddReadIntoRequest(stream) {
   assert(IsReadableStreamBYOBReader(stream._reader) === true);
+  assert(stream._state === 'readable' || stream._state === 'closed');
 
   const promise = new Promise((resolve, reject) => {
     const readIntoRequest = {
@@ -384,6 +385,7 @@ function ReadableStreamAddReadIntoRequest(stream) {
 
 function ReadableStreamAddReadRequest(stream) {
   assert(IsReadableStreamDefaultReader(stream._reader) === true);
+  assert(stream._state === 'readable');
 
   const promise = new Promise((resolve, reject) => {
     const readRequest = {

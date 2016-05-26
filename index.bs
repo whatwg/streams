@@ -846,6 +846,7 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
 
 <emu-alg>
   1. Assert: ! IsReadableStreamBYOBReader(_stream_@[[reader]]) is *true*.
+  1. Assert: _stream_@[[state]] is `"readable"` or `"closed"`.
   1. Let _promise_ be a new promise.
   1. Let _readIntoRequest_ be Record {[[promise]]: _promise_}.
   1. Append _readIntoRequest_ as the last element of _stream_@[[reader]]@[[readIntoRequests]].
@@ -857,6 +858,7 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
 
 <emu-alg>
   1. Assert: ! IsReadableStreamDefaultReader(_stream_@[[reader]]) is *true*.
+  1. Assert: _stream_@[[state]] is `"readable"`.
   1. Let _promise_ be a new promise.
   1. Let _readRequest_ be Record {[[promise]]: _promise_}.
   1. Append _readRequest_ as the last element of _stream_@[[reader]]@[[readRequests]].
