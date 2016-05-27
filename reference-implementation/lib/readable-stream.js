@@ -398,8 +398,6 @@ function ReadableStreamAddReadRequest(stream) {
 }
 
 function ReadableStreamCancel(stream, reason) {
-  assert(stream !== undefined);
-
   stream._disturbed = true;
 
   if (stream._state === 'closed') {
@@ -728,7 +726,9 @@ function ReadableStreamReaderGenericInitialize(reader, stream) {
 // A client of ReadableStreamDefaultReader and ReadableStreamBYOBReader may use these functions directly to bypass state check.
 
 function ReadableStreamReaderGenericCancel(reader, reason) {
-  return ReadableStreamCancel(reader._ownerReadableStream, reason);
+  const stream = reader._ownerReadableStream;
+  assert(stream !== undefined);
+  return ReadableStreamCancel(stream, reason);
 }
 
 function ReadableStreamReaderGenericRelease(reader) {
