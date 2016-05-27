@@ -3106,7 +3106,7 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Otherwise, return a new promise resolved with _returnValue_.[[Value]].
 </emu-alg>
 
-<h4 id="promise-invoke-or-noop" aoid="https://twitter.com/hashtag/htmlquiz?f=tweets&vertical=default&src=hashNoop" nothrow>PromiseInvokeOrNoop ( <var>O</var>, <var>P</var>,
+<h4 id="promise-invoke-or-noop" aoid="PromiseInvokeOrNoop" nothrow>PromiseInvokeOrNoop ( <var>O</var>, <var>P</var>,
 <var>args</var> )</h4>
 
 <div class="note">
