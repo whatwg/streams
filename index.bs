@@ -867,7 +867,6 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
 <var>reason</var> )</h4>
 
 <emu-alg>
-  1. Assert: _stream_ is not *undefined*.
   1. Set _stream_@[[disturbed]] to *true*.
   1. If _stream_@[[state]] is `"closed"`, return a new promise resolved with *undefined*.
   1. If _stream_@[[state]] is `"errored"`, return a new promise rejected with _stream_@[[storedError]].
@@ -1277,7 +1276,9 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
 nothrow>ReadableStreamReaderGenericCancel ( <var>reader</var>, <var>reason</var> )</h4>
 
 <emu-alg>
-  1. Return ! ReadableStreamCancel(_reader_@[[ownerReadableStream]], _reason_).
+  1. Let _stream_ be _reader_@[[ownerReadableStream]].
+  1. Assert: _stream_ is not *undefined*.
+  1. Return ! ReadableStreamCancel(_stream_, _reason_).
 </emu-alg>
 
 <h4 id="readable-stream-reader-generic-initialize" aoid="ReadableStreamReaderGenericInitialize"
