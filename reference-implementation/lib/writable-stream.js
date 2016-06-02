@@ -29,7 +29,7 @@ class WritableStream {
 
   get locked() {
     if (IsWritableStream(this) === false) {
-      throw new TypeError('WritableStream.prototype.locked can only be used on a WritableStream');
+      throw CreateWritableStreamBrandCheckException('locked');
     }
 
     return IsWritableStreamLocked(this);
@@ -37,7 +37,7 @@ class WritableStream {
 
   abort(reason) {
     if (IsWritableStream(this) === false) {
-      return Promise.reject(new TypeError('WritableStream.prototype.abort can only be used on a WritableStream'));
+      return Promise.reject(CreateWritableStreamBrandCheckException('abort'));
     }
 
     if (IsWritableStreamLocked(this) === true) {
@@ -49,7 +49,7 @@ class WritableStream {
 
   getWriter() {
     if (IsWritableStream(this) === false) {
-      throw new TypeError('WritableStream.prototype.getWriter can only be used on a WritableStream');
+      throw CreateWritableStreamBrandCheckException('getWriter');
     }
 
     return AcquireWritableStreamDefaultWriter(this);
@@ -57,6 +57,12 @@ class WritableStream {
 }
 
 exports.WritableStream = WritableStream;
+
+// Helper functions for the WritableStream.
+
+function CreateWritableStreamBrandCheckException(name) {
+  return new TypeError('WritableStream.prototype.' + name + ' can only be used on a WritableStream')
+}
 
 // Abstract operations for the WritableStream.
 
@@ -146,9 +152,10 @@ function WritableStreamError(stream, e) {
   if (writer !== undefined) {
     WritableStreamDefaultWriterClosedPromiseReject(writer, e);
 
-    while (writer._writeRequests.length > 0) {
-      const writeRecord = writer._writeRequests.shift();
-      writeRecord._reject(reason);
+    const writeRequests = writer._writeRequests;
+    while (writeRequests.length > 0) {
+      const writeRequest = writeRequests.shift();
+      writeRequest._reject(e);
     }
 
     if (state === 'waiting') {
@@ -727,6 +734,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   const sinkWritePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'write', [chunk]);
   sinkWritePromise.then(
     () => {
+      const stream = controller._controlledWritableStream;
       const state = stream._state;
       if (state === 'errored' || state === 'closed') {
         return;
@@ -751,14 +759,9 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
 }
 
 function WritableStreamDefaultControllerUpdateBackpressure(controller) {
-  const stream = controller._controlledWritableStream;
-  const state = stream._state;
-
-  assert(state === 'writable' || state === 'waiting');
-
   const desiredSize = WritableStreamDefaultControllerGetDesiredSize(controller);
   const backpressure = desiredSize <= 0;
-  WritableStreamUpdateBackpressure(stream, backpressure);
+  WritableStreamUpdateBackpressure(controller._controlledWritableStream, backpressure);
 }
 
 // A client of WritableStreamDefaultController may use these functions directly to bypass state check.

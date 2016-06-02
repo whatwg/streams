@@ -88,7 +88,7 @@ test('Underlying sink\'s close won\'t be called until start finishes', t => {
   const writer = ws.getWriter();
 
   writer.close('a');
-  t.equal(writer.desiredSize, null, 'desiredSize should be null');
+  t.equal(writer.desiredSize, 1, 'desiredSize should be 1');
 
   // Wait and see that write won't be called.
   setTimeout(() => {
@@ -332,7 +332,7 @@ test('WritableStream transitions to waiting until write is acknowledged', t => {
 });
 
 test('WritableStream if write returns a rejected promise, queued write and close are cleared', t => {
-  t.plan(6);
+  t.plan(9);
 
   let sinkWritePromiseRejectors = [];
   const ws = new WritableStream({
@@ -345,15 +345,19 @@ test('WritableStream if write returns a rejected promise, queued write and close
   const writer = ws.getWriter();
 
   setTimeout(() => {
+    t.equals(writer.desiredSize, 1, 'desiredSize should be 1');
+
     const writePromise = writer.write('a');
     t.equals(sinkWritePromiseRejectors.length, 1, 'There should be 1 rejector');
+    t.equals(writer.desiredSize, 0, 'desiredSize should be 0');
 
     const writePromise2 = writer.write('b');
-    t.equals(sinkWritePromiseRejectors.length, 2, 'There should be 2 rejector');
+    t.equals(sinkWritePromiseRejectors.length, 1, 'There should be still 1 rejector');
+    t.equals(writer.desiredSize, -1, 'desiredSize should be -1');
 
     const closedPromise = writer.close();
 
-    t.equals(writer.desiredSize, null, 'desiredSize should be null');
+    t.equals(writer.desiredSize, -1, 'desiredSize should still be -1');
 
     const passedError = new Error('horrible things');
 
