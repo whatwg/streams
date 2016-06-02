@@ -4,7 +4,6 @@ const { InvokeOrNoop, PromiseInvokeOrNoop, PromiseInvokeOrFallbackOrNoop, Valida
         typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } = require('./queue-with-sizes.js');
-const CountQueuingStrategy = require('./count-queuing-strategy.js');
 
 class WritableStream {
   constructor(underlyingSink = {}, { size, highWaterMark } = {}) {
@@ -37,11 +36,11 @@ class WritableStream {
 
   abort(reason) {
     if (IsWritableStream(this) === false) {
-      throw Promise.reject(new TypeError('WritableStream.prototype.abort can only be used on a WritableStream'));
+      return Promise.reject(new TypeError('WritableStream.prototype.abort can only be used on a WritableStream'));
     }
 
     if (IsWritableStreamLocked(this) === true) {
-      throw Promise.reject(new TypeError('Cannot abort a stream that already has a reader'));
+      return Promise.reject(new TypeError('Cannot abort a stream that already has a reader'));
     }
 
     WritableStreamAbort(this, reason);
@@ -219,7 +218,7 @@ class WritableStreamDefaultWriter {
       } else {
         assert(state === 'errored', 'state must be errored');
 
-        WritableStreamDefaultWriterInitializeClosedPromiseAsRejected(writer, stream._storedError);
+        WritableStreamDefaultWriterInitializeClosedPromiseAsRejected(this, stream._storedError);
       }
     }
 
@@ -429,7 +428,14 @@ function WritableStreamDefaultWriterClose(writer) {
 }
 
 function WritableStreamDefaultWriterGetDesiredSize(writer) {
-  const controller = writer._ownerWritableStream._writableStreamController;
+  const stream = writer._ownerWritableStream;
+  const state = stream._state;
+
+  if (state === 'errored' || state === 'closed' || state === 'closing') {
+    return null;
+  }
+
+  const controller = stream._writableStreamController;
   return WritableStreamDefaultControllerGetDesiredSize(controller);
 }
 
@@ -656,10 +662,13 @@ function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
 
 function WritableStreamDefaultControllerUpdateBackpressure(controller) {
   const stream = controller._controlledWritableStream;
+  const state = stream._state;
 
-  if (stream._state === 'closing') {
+  if (state === 'closing') {
     return;
   }
+
+  assert(state === 'writable' || state === 'waiting');
 
   const desiredSize = WritableStreamDefaultControllerGetDesiredSize(controller);
   const backpressure = desiredSize <= 0;

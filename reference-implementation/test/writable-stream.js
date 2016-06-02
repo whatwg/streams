@@ -1,9 +1,9 @@
 'use strict';
 const test = require('tape-catch');
 
-function writeArrayToStream(array, writableStream) {
-  array.forEach(chunk => writableStream.write(chunk));
-  return writableStream.close();
+function writeArrayToStream(array, writableStreamWriter) {
+  array.forEach(chunk => writableStreamWriter.write(chunk));
+  return writableStreamWriter.close();
 }
 
 test('Controller argument is given to start method', t => {
@@ -14,14 +14,15 @@ test('Controller argument is given to start method', t => {
     }
   });
 
-  const writer = ws.getWriter();
-
   // Now error the stream after its construction.
   const passedError = new Error('horrible things');
   controller.error(passedError);
-  t.equal(writer.state, 'errored');
+
+  const writer = ws.getWriter();
+
+  t.equal(writer.desiredSize, null, 'desiredSize should be null');
   writer.closed.catch(r => {
-    t.equal(r, passedError);
+    t.equal(r, passedError, 'ws should be errored by passedError');
     t.end();
   });
 });
@@ -36,7 +37,7 @@ test('Underlying sink\'s write won\'t be called until start finishes', t => {
     },
     write(chunk) {
       if (expectWriteCall) {
-        t.equal(chunk, 'a');
+        t.equal(chunk, 'a', 'chunk should be the value passed to writer.write()');
         t.end();
       } else {
         t.fail('Unexpected write call');
@@ -51,8 +52,9 @@ test('Underlying sink\'s write won\'t be called until start finishes', t => {
 
   const writer = ws.getWriter();
 
+  t.equal(writer.desiredSize, 1, 'desiredSize should be 1');
   writer.write('a');
-  t.equal(writer.state, 'waiting', `writable stream should be waiting, not ${writer.state}`);
+  t.equal(writer.desiredSize, 0, 'desiredSize should be 0 after writer.write()');
 
   // Wait and see that write won't be called.
   setTimeout(() => {
@@ -67,8 +69,7 @@ test('Underlying sink\'s close won\'t be called until start finishes', t => {
   let resolveStartPromise;
   const ws = new WritableStream({
     start() {
-      return new Promise(
-          (resolve, reject) => { resolveStartPromise = resolve; });
+      return new Promise(resolve => { resolveStartPromise = resolve; });
     },
     write(chunk) {
       t.fail('Unexpected write call');
@@ -87,7 +88,7 @@ test('Underlying sink\'s close won\'t be called until start finishes', t => {
   const writer = ws.getWriter();
 
   writer.close('a');
-  t.equal(writer.state, 'closing');
+  t.equal(writer.desiredSize, null, 'desiredSize should be null');
 
   // Wait and see that write won't be called.
   setTimeout(() => {
@@ -134,7 +135,7 @@ test('Underlying sink\'s write or close are never invoked if start throws', t =>
       }
     });
   } catch (e) {
-    t.equal(e, passedError);
+    t.equal(e, passedError, 'Constructor should throw passedError');
     t.end();
     return;
   }
@@ -179,7 +180,7 @@ test('WritableStream instances have the correct methods and properties', t => {
   t.equal(typeof writer.abort, 'function', 'has an abort method');
   t.equal(typeof writer.close, 'function', 'has a close method');
 
-  t.equal(writer.state, 'writable', 'state starts out writable');
+  t.equal(writer.desiredSize, 1, 'desiredSize starts out 1');
 
   t.ok(writer.ready, 'has a ready property');
   t.ok(writer.ready.then, 'ready property is a thenable');
@@ -250,7 +251,7 @@ test('WritableStream is writable and ready fulfills immediately if the strategy 
 
   const writer = ws.getWriter();
 
-  t.equal(writer.state, 'writable');
+  t.equal(writer.desiredSize, Infinity, 'desiredSize should be Infinity');
 
   writer.ready.then(() => {
     t.pass('ready promise was fulfilled');
@@ -279,24 +280,53 @@ test('Fulfillment value of ws.write() call must be undefined even if the underly
 });
 
 test('WritableStream transitions to waiting until write is acknowledged', t => {
-  t.plan(3);
+  t.plan(6);
 
-  let resolveWritePromise;
+  let resolveSinkWritePromise;
   const ws = new WritableStream({
     write() {
-      return new Promise(resolve => resolveWritePromise = resolve);
+      const sinkWritePromise = new Promise(resolve => resolveSinkWritePromise = resolve);
+      return sinkWritePromise;
     }
   });
 
   const writer = ws.getWriter();
 
   setTimeout(() => {
-    t.equal(writer.state, 'writable', 'state starts writable');
-    const writePromise = writer.write('a');
-    t.equal(writer.state, 'waiting', 'state is waiting until the write finishes');
-    resolveWritePromise();
-    writePromise.then(() => {
-      t.equal(writer.state, 'writable', 'state becomes writable again after the write finishes');
+    t.equal(writer.desiredSize, 1, 'desiredSize starts 1');
+
+    writer.ready.then(() => {
+      const writePromise = writer.write('a');
+      t.notEqual(resolveSinkWritePromise, undefined, 'resolveSinkWritePromise should not be undefined');
+
+      t.equal(writer.desiredSize, 0, 'desiredSize should be 0 after writer.write()');
+
+      writePromise.then(value => {
+        if (resolveSinkWritePromise !== undefined) {
+          t.fail('writePromise fulfilled before sinkWritePromise fulfills');
+          t.end();
+          return;
+        }
+
+        t.equals(value, undefined, 'writePromise should be fulfilled with undefined');
+      });
+
+      writer.ready.then(value => {
+        if (resolveSinkWritePromise !== undefined) {
+          t.fail('writePromise fulfilled before sinkWritePromise fulfills');
+          t.end();
+          return;
+        }
+
+        t.equal(writer.desiredSize, 1, 'desiredSize should be 1 again');
+
+        t.equals(value, undefined, 'writePromise should be fulfilled with undefined');
+      });
+
+      setTimeout(() => {
+        resolveSinkWritePromise();
+        resolveSinkWritePromise = undefined;
+      }, 100);
     });
   }, 0);
 });
@@ -304,10 +334,11 @@ test('WritableStream transitions to waiting until write is acknowledged', t => {
 test('WritableStream if write returns a rejected promise, queued write and close are cleared', t => {
   t.plan(6);
 
-  let rejectWritePromise;
+  let sinkWritePromiseRejectors = [];
   const ws = new WritableStream({
     write() {
-      return new Promise((r, reject) => rejectWritePromise = reject);
+      const sinkWritePromise = new Promise((r, reject) => sinkWritePromiseRejectors.push(reject));
+      return sinkWritePromise;
     }
   });
 
@@ -315,34 +346,69 @@ test('WritableStream if write returns a rejected promise, queued write and close
 
   setTimeout(() => {
     const writePromise = writer.write('a');
-
-    t.notStrictEqual(rejectWritePromise, undefined, 'write is called so rejectWritePromise is set');
+    t.equals(sinkWritePromiseRejectors.length, 1, 'There should be 1 rejector');
 
     const writePromise2 = writer.write('b');
+    t.equals(sinkWritePromiseRejectors.length, 2, 'There should be 2 rejector');
+
     const closedPromise = writer.close();
 
-    t.equal(writer.state, 'closing', 'state is closing until the close finishes');
+    t.equals(writer.desiredSize, null, 'desiredSize should be null');
 
     const passedError = new Error('horrible things');
-    rejectWritePromise(passedError);
 
-    writePromise.then(
-      () => t.fail('writePromise is fulfilled unexpectedly'),
+    closedPromise.then(
+      () => {
+        t.fail('closedPromise is fulfilled unexpectedly');
+        t.end();
+      },
       r => {
-        t.equal(r, passedError);
-        t.equal(writer.state, 'errored', 'state is errored as the sink called error');
+        if (sinkWritePromiseRejectors.length > 0) {
+          t.fail('closedPromise rejected before sinkWritePromise rejects');
+          t.end();
+          return;
+        }
 
-        writePromise2.then(
-          () => t.fail('writePromise2 is fulfilled unexpectedly'),
-          r => t.equal(r, passedError)
-        );
-
-        closedPromise.then(
-          () => t.fail('closedPromise is fulfilled unexpectedly'),
-          r => t.equal(r, passedError)
-        );
+        t.equal(r, passedError, 'closedPromise should reject with passedError');
       }
     );
+
+    writePromise.then(
+      () => {
+        t.fail('writePromise is fulfilled unexpectedly');
+        t.end();
+      },
+      r => {
+        if (sinkWritePromiseRejectors.length > 0) {
+          t.fail('writePromise2 rejected before sinkWritePromise rejects');
+          t.end();
+          return;
+        }
+
+        t.equal(r, passedError, 'writePromise should reject with passedError');
+      }
+    );
+
+    writePromise2.then(
+      () => {
+        t.fail('writePromise2 is fulfilled unexpectedly');
+        t.end();
+      },
+      r => {
+        if (sinkWritePromiseRejectors.length > 0) {
+          t.fail('writePromise2 rejected before sinkWritePromise rejects');
+          t.end();
+          return;
+        }
+
+        t.equal(r, passedError, 'writePromise2 should reject with passedError');
+      }
+    );
+
+    setTimeout(() => {
+      sinkWritePromiseRejectors[0](passedError);
+      sinkWritePromiseRejectors = [];
+    }, 100);
   }, 0);
 });
 
@@ -442,10 +508,10 @@ test('If close is called on a WritableStream in waiting state, ready will be ful
 test('If sink rejects on a WritableStream in writable state, ready will return a fulfilled promise', t => {
   t.plan(5);
 
-  let rejectWritePromise;
+  let rejectSinkWritePromise;
   const ws = new WritableStream({
     write() {
-      return new Promise((r, reject) => rejectWritePromise = reject);
+      return new Promise((r, reject) => rejectSinkWritePromise = reject);
     }
   });
 
@@ -457,7 +523,7 @@ test('If sink rejects on a WritableStream in writable state, ready will return a
     t.equal(writer.state, 'waiting', 'state is waiting after a write');
 
     const passedError = new Error('pass me');
-    rejectWritePromise(passedError);
+    rejectSinkWritePromise(passedError);
 
     writePromise.then(
       () => t.fail('write promise was unexpectedly fulfilled'),
