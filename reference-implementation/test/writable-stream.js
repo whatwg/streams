@@ -432,21 +432,25 @@ test('If close is called on a WritableStream in writable state, ready will retur
 
   // Wait for ws to start.
   setTimeout(() => {
-    t.equal(writer.state, 'writable', 'state must be writable');
-
-    writer.close();
-    t.equal(writer.state, 'closing', 'state must become closing synchronously on close call');
-
     writer.ready.then(v => {
-      t.equal(writer.state, 'closed', 'state must be closed by the time ready fulfills (because microtasks ordering)');
-      t.equal(v, undefined, 'ready promise was fulfilled with undefined');
-      t.end();
+      t.equal(writer.desiredSize, 1, 'desiredSize should be 1');
+
+      writer.close();
+      t.equal(writer.desiredSize, 1, 'desiredSize should be still 1');
+
+      writer.ready.then(v => {
+        t.equal(v, undefined, 'ready promise was fulfilled with undefined');
+        t.end();
+      });
     });
   }, 0);
 });
 
-test('If close is called on a WritableStream in waiting state, ready will return a fulfilled promise', t => {
+test('If close is called on a WritableStream in waiting state, ready promise will fulfill', t => {
   const ws = new WritableStream({
+    write() {
+      return new Promise(() => {});
+    },
     abort() {
       t.fail('Unexpected abort call');
       t.end();
@@ -458,16 +462,26 @@ test('If close is called on a WritableStream in waiting state, ready will return
   // Wait for ws to start.
   setTimeout(() => {
     writer.write('a');
-    t.equal(writer.state, 'waiting', 'state must become waiting synchronously on write call');
 
-    writer.close();
-    t.equal(writer.state, 'closing', 'state must become closing synchronously on close call');
+    t.equal(writer.desiredSize, 0, 'desiredSize should be 0');
+
+    let closeCalled = false;
 
     writer.ready.then(v => {
-      t.equal(writer.state, 'closing', 'state must still be closing when ready fulfills');
+      if (closeCalled === false) {
+        t.fail('ready fulfilled before writer.close()');
+        t.end();
+        return;
+      }
+
       t.equal(v, undefined, 'ready promise was fulfilled with undefined');
       t.end();
     });
+
+    setTimeout(() => {
+      writer.close();
+      closeCalled = true;
+    }, 100);
   }, 0);
 });
 
