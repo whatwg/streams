@@ -629,7 +629,7 @@ function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
     return;
   }
 
-  stream._writing = true;
+  controller._writing = true;
 
   const sinkWritePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'write', [writeRecord.chunk]);
   sinkWritePromise.then(
@@ -639,7 +639,7 @@ function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
         return;
       }
 
-      stream._writing = false;
+      controller._writing = false;
 
       WritableStreamFulfillWriteRequest(stream);
 

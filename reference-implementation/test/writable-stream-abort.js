@@ -17,7 +17,7 @@ test('abort() on a released writer rejects', t => {
   });
 });
 
-test.only('Aborting a WritableStream immediately prevents future writes', t => {
+test('Aborting a WritableStream immediately prevents future writes', t => {
   const ws = new WritableStream({
     write() {
       t.fail('Unexpected write() call');
@@ -38,11 +38,23 @@ test.only('Aborting a WritableStream immediately prevents future writes', t => {
   }, 0);
 });
 
-test('Aborting a WritableStream prevents further writes after any that are in progress', t => {
-  const chunks = [];
+test.only('Aborting a WritableStream prevents further writes after any that are in progress', t => {
+  t.plan(2);
+
+  let writeCount = 0;
+
   const ws = new WritableStream({
     write(chunk) {
-      chunks.push(chunk);
+      ++writeCount;
+
+      if (writeCount > 1) {
+        t.fail('Only the single in-progress chunk gets written to the sink');
+        t.end();
+        return;
+      }
+
+      t.equals(chunk, 1, 'chunk should be 1');
+
       return new Promise(resolve => setTimeout(resolve, 50));
     }
   });
@@ -58,8 +70,7 @@ test('Aborting a WritableStream prevents further writes after any that are in pr
     writer.write(5);
 
     setTimeout(function () {
-      t.deepEqual(chunks, [1], 'only the single in-progress chunk gets written');
-      t.end();
+      t.pass('Passed 200 ms');
     }, 200);
   }, 0);
 });
