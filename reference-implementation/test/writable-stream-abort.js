@@ -1,11 +1,27 @@
 'use strict';
 const test = require('tape-catch');
 
-test('Aborting a WritableStream immediately prevents future writes', t => {
-  const chunks = [];
+test('abort() on a released writer rejects', t => {
+  const ws = new WritableStream({});
+
+  const writer = ws.getWriter();
+  writer.releaseLock();
+
+  const abortPromise = writer.abort();
+  abortPromise.then(() => {
+    t.fail('abortPromise fulfilled unexpectedly');
+    t.end();
+  },
+  r => {
+    t.end();
+  });
+});
+
+test.only('Aborting a WritableStream immediately prevents future writes', t => {
   const ws = new WritableStream({
-    write(chunk) {
-      chunks.push(chunk);
+    write() {
+      t.fail('Unexpected write() call');
+      t.end();
     }
   });
 
@@ -15,8 +31,10 @@ test('Aborting a WritableStream immediately prevents future writes', t => {
     writer.abort();
     writer.write(1);
     writer.write(2);
-    t.deepEqual(chunks, [], 'no chunks are written');
-    t.end();
+
+    setTimeout(() => {
+      t.end();
+    }, 100);
   }, 0);
 });
 
