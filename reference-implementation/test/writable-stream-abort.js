@@ -38,7 +38,7 @@ test('Aborting a WritableStream immediately prevents future writes', t => {
   }, 0);
 });
 
-test.only('Aborting a WritableStream prevents further writes after any that are in progress', t => {
+test('Aborting a WritableStream prevents further writes after any that are in progress', t => {
   t.plan(2);
 
   let writeCount = 0;
