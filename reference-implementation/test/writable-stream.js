@@ -1,6 +1,16 @@
 'use strict';
 const test = require('tape-catch');
 
+function promise_rejects(t, expectedReason, promise, name, msg) {
+  promise.then(value => {
+    t.fail(name + ' fulfilled unexpectedly');
+    t.end();
+  },
+  reason => {
+    t.equal(reason, expectedReason, msg);
+  });
+}
+
 function writeArrayToStream(array, writableStreamWriter) {
   array.forEach(chunk => writableStreamWriter.write(chunk));
   return writableStreamWriter.close();
@@ -697,16 +707,6 @@ test('WritableStream if sink\'s write throws an error inside write, the stream b
     }
   );
 });
-
-function promise_rejects(t, expectedReason, promise, name, msg) {
-  promise.then(value => {
-    t.fail(name + ' fulfilled unexpectedly');
-    t.end();
-  },
-  reason => {
-    t.equal(reason, expectedReason, msg);
-  });
-}
 
 test('WritableStream if sink\'s close throws an error while closing, the stream becomes errored', t => {
   t.plan(2);
