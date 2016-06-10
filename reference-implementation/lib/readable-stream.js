@@ -86,6 +86,8 @@ class ReadableStream {
   }
 
   pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) {
+    // brandcheck
+
     preventClose = Boolean(preventClose);
     preventAbort = Boolean(preventAbort);
     preventCancel = Boolean(preventCancel);
@@ -159,6 +161,65 @@ class ReadableStream {
       done();
     }
 
+    function cancelReader(reason) {
+      if (preventCancel === false) {
+        try {
+          const cancelResult = _reader.cancel(reason);
+          return Promise.resolve(cancelResult).then(() => undefined);
+        } catch(e) {
+          return Promise.reject(new TypeError('Failed to call cancel() on source'));
+        }
+        return Promise.resolve();
+      }
+
+      assert(_lastRead !== undefined);
+
+      // If we don't cancel, we need to wait for lastRead to finish before we're allowed to release.
+      // We don't need to handle lastRead failing because that will trigger handleReaderErrored which takes care of
+      // both of these.
+      _lastRead.then(() => resolve());
+      _savedReason = reason;
+      _state = 'waitingSource';
+    }
+
+    function abortWriter(reason) {
+      return new Promise(resolve => {
+        if (preventAbort === false) {
+          _writer.abort(reason);
+          resolve();
+          return;
+        }
+
+        if (_lastWrite === undefined) {
+          resolve();
+          return;
+        }
+
+        _lastWrite.then(() => resolve());
+        // If _lastWrite rejects, pipeToPromise will be rejected with reason regardless of how _lastWrite is fulfilled or
+        // rejected. This is done by handleWriterClosedRejection().
+        _savedReason = reason;
+        _state = 'waitingLastWriteOnReadableErrored';
+      });
+    }
+
+    function handleWriteRejection(reason) {
+      if (_state !== 'piping') {
+        return;
+      }
+
+      Promise.all([cancelReader(reason), abortWriter(reason)]).then(() => {
+        _reader.releaseLock();
+        _reader = undefined;
+        _writer.releaseLock();
+        _writer = undefined;
+
+        _rejectPipeToPromise(reason);
+
+        done();
+      });
+    }
+
     function doPipe() {
       console.log('doPipe');
 
@@ -171,6 +232,8 @@ class ReadableStream {
 
           // dest may be already errored. But proceed to write().
           _lastWrite = _writer.write(value);
+
+          _lastWrite.catch(handleWriteRejection);
 
           doPipe();
           return;
@@ -239,22 +302,9 @@ class ReadableStream {
       _reader.releaseLock();
       _reader = undefined;
 
-      if (preventAbort === false) {
-        _writer.abort(reason);
+      abortWriter(reason).then(() => {
         releaseWriterAndReject(reason);
-        return;
-      }
-
-      if (_lastWrite === undefined) {
-        releaseWriterAndReject(reason);
-        return;
-      }
-
-      _lastWrite.then(() => releaseWriterAndReject(reason));
-      // If _lastWrite rejects, pipeToPromise will be rejected with reason regardless of how _lastWrite is fulfilled or
-      // rejected. This is done by handleWriterClosedRejection().
-      _savedReason = reason;
-      _state = 'waitingLastWriteOnReadableErrored';
+      });
     }
 
     function handleUnexpectedDestClosure(reason) {
@@ -263,20 +313,9 @@ class ReadableStream {
       _writer.releaseLock();
       _writer = undefined;
 
-      if (preventCancel === false) {
-        _reader.cancel(reason);
+      cancelReader(reason).then(() => {
         releaseReaderAndReject(reason);
-        return;
-      }
-
-      assert(_lastRead !== undefined);
-
-      // If we don't cancel, we need to wait for lastRead to finish before we're allowed to release.
-      // We don't need to handle lastRead failing because that will trigger handleReaderErrored which takes care of
-      // both of these.
-      _lastRead.then(() => releaseReaderAndReject(reason));
-      _savedReason = reason;
-      _state = 'waitingSource';
+      });
     }
 
     function handleWriterClosedFulfillment() {
