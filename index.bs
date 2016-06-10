@@ -1999,7 +1999,7 @@ for="ReadableStreamBYOBRequest">respondWithNewView(<var>view</var>)</h5>
 <emu-alg>
   1. If ! IsReadableStreamBYOBRequest(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*.[[associatedReadableByteStreamController]] is *undefined*, throw a *TypeError* exception.
-  1. If Type(_chunk_) is not Object, throw a *TypeError* exception.
+  1. If Type(_view_) is not Object, throw a *TypeError* exception.
   1. If _view_ does not have a [[ViewedArrayBuffer]] internal slot, throw a *TypeError* exception.
   1. Return ? ReadableByteStreamControllerRespondWithNewView(*this*.[[associatedReadableByteStreamController]], _view_).
 </emu-alg>
