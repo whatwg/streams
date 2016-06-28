@@ -2067,12 +2067,12 @@ throws>ReadableByteStreamControllerClose ( <var>controller</var> )</h4>
   1. If _controller_.[[totalQueuedBytes]] > *0*,
     1. Set _controller_.[[closeRequested]] to *true*.
     1. Return.
-  1. Let _firstPendingPullInto_ be the first element of _controller_.[[pendingPullIntos]].
-  1. If ! ReadableStreamHasBYOBReader(_stream_) is *true*, _controller_.[[pendingPullIntos]] is not empty, and
-    _firstPendingPullInto_.[[bytesFilled]] > *0*.
-    1. Let _e_ be a new *TypeError* exception.
-    1. Perform ! ReadableByteStreamControllerError(_controller_, _e_).
-    1. Throw _e_.
+  1. If _controller_.[[pendingPullIntos]] is not empty,
+    1. Let _firstPendingPullInto_ be the first element of _controller_.[[pendingPullIntos]].
+    1. If  _firstPendingPullInto_.[[bytesFilled]] > *0*,
+      1. Let _e_ be a new *TypeError* exception.
+      1. Perform ! ReadableByteStreamControllerError(_controller_, _e_).
+      1. Throw _e_.
   1. Perform ! ReadableStreamClose(_stream_).
 </emu-alg>
 
