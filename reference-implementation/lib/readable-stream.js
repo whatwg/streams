@@ -1705,15 +1705,13 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
       const transferredView = new Uint8Array(transferredBuffer, byteOffset, byteLength);
       ReadableStreamFulfillReadRequest(stream, transferredView, false);
     }
+  } else if (ReadableStreamHasBYOBReader(stream) === true) {
+    // TODO: Ideally in this branch detaching should happen only if the buffer is not consumed fully.
+    ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
+    ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
   } else {
-    if (ReadableStreamHasBYOBReader(stream) === true) {
-      // TODO: Ideally in this branch detaching should happen only if the buffer is not consumed fully.
-      ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
-      ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
-    } else {
-      assert(IsReadableStreamLocked(stream) === false, 'stream must not be locked');
-      ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
-    }
+    assert(IsReadableStreamLocked(stream) === false, 'stream must not be locked');
+    ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
   }
 }
 

@@ -2127,15 +2127,14 @@ nothrow>ReadableByteStreamControllerEnqueue ( <var>controller</var>, <var>chunk<
       1. Let _transferredView_ be ! Construct(<a idl>%Uint8Array%</a>, « _transferredBuffer_, _byteOffset_,
          _byteLength_ »).
       1. Perform ! ReadableStreamFulfillReadRequest(_stream_, _transferredView_, *false*).
+  1. Otherwise, if ! ReadableStreamHasBYOBReader(_stream_) is *true*,
+    1. Perform ! ReadableByteStreamControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_,
+       _byteLength_).
+    1. Perform ! ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(_controller_).
   1. Otherwise,
-    1. If ! ReadableStreamHasBYOBReader(_stream_) is *true*,
-      1. Perform ! ReadableByteStreamControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_,
-         _byteLength_).
-      1. Perform ! ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(_controller_).
-    1. Otherwise,
-      1. Assert: ! IsReadableStreamLocked(_stream_) is *false*.
-      1. Perform ! ReadableByteStreamControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_,
-         _byteLength_).
+    1. Assert: ! IsReadableStreamLocked(_stream_) is *false*.
+    1. Perform ! ReadableByteStreamControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_,
+       _byteLength_).
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-enqueue-chunk-to-queue" aoid="ReadableByteStreamControllerEnqueueChunkToQueue"
