@@ -2188,7 +2188,7 @@ nothrow>ReadableByteStreamControllerFillPullIntoDescriptorFromQueue ( <var>contr
   1. Let _ready_ be *false*.
   1. If _maxAlignedBytes_ > _currentAlignedBytes_,
     1. Set _totalBytesToCopyRemaining_ to _maxAlignedBytes_ − _pullIntoDescriptor_.[[bytesFilled]].
-    1. Let _ready_ be *true*.
+    1. Set _ready_ to *true*.
   1. Let _queue_ be _controller_.[[queue]].
   1. Repeat the following steps while _totalBytesToCopyRemaining_ > *0*,
     1. Let _headOfQueue_ be the first element of _queue_.
