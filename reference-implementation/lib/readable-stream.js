@@ -735,7 +735,7 @@ function ReadableStreamReaderGenericCancel(reader, reason) {
 
 function ReadableStreamReaderGenericRelease(reader) {
   assert(reader._ownerReadableStream !== undefined);
-  assert(reader._ownerReadableStream._reader !== undefined);
+  assert(reader._ownerReadableStream._reader === reader);
 
   if (reader._ownerReadableStream._state === 'readable') {
     reader._closedPromise_reject(

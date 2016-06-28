@@ -1304,7 +1304,7 @@ nothrow>ReadableStreamReaderGenericRelease ( <var>reader</var> )</h4>
 
 <emu-alg>
   1. Assert: _reader_.[[ownerReadableStream]] is not *undefined*.
-  1. Assert: _reader_.[[ownerReadableStream]].[[reader]] is not *undefined*.
+  1. Assert: _reader_.[[ownerReadableStream]].[[reader]] is _reader_.
   1. If _reader_.[[ownerReadableStream]].[[state]] is `"readable"`, reject _reader_.[[closedPromise]] with a *TypeError*
      exception.
   1. Otherwise, set _reader_.[[closedPromise]] to a new promise rejected with a *TypeError* exception.
