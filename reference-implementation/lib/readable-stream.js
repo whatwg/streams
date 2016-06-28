@@ -1672,14 +1672,14 @@ function ReadableByteStreamControllerClose(controller) {
     return;
   }
 
-  const firstPendingPullInto = controller._pendingPullIntos[0];
-  if (ReadableStreamHasBYOBReader(stream) === true &&
-      controller._pendingPullIntos.length > 0 &&
-      firstPendingPullInto.bytesFilled > 0) {
-    const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
-    ReadableByteStreamControllerError(controller, e);
+  if (controller._pendingPullIntos.length > 0) {
+    const firstPendingPullInto = controller._pendingPullIntos[0];
+    if (firstPendingPullInto.bytesFilled > 0) {
+      const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
+      ReadableByteStreamControllerError(controller, e);
 
-    throw e;
+      throw e;
+    }
   }
 
   ReadableStreamClose(stream);
