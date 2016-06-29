@@ -33,7 +33,7 @@ urlPrefix: https://html.spec.whatwg.org/multipage/; spec: HTML
     text: StructuredCloneWithTransfer; urlPrefix: infrastructure.html; type: abstract-op
     text: WebSocket; url: comms.html#websocket; type: interface
     text: transferable objects; url: infrastructure.html; type: dfn
-urlPrefix: https://tc39.github.io/; spec: ECMASCRIPT
+urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
     text: %Uint8Array%; url: #sec-typedarray-objects; type: constructor
     text: ArrayBuffer; url: #sec-arraybuffer-objects; type: interface
     text: DataView; url: #sec-dataview-objects; type: interface
