@@ -114,7 +114,8 @@ class ReadableStream {
       _reader = _source.getReader();
       _writer = dest.getWriter();
 
-      _reader.closed.catch(handleReaderClosedRejection);
+      _reader.closed.catch(handleReaderClosedRejection)
+          .catch(rethrowAssertionErrorRejection);
       _writer.closed.then(handleWriterClosedFulfillment, handleWriterClosedRejection);
 
       doPipe();
@@ -187,6 +188,7 @@ class ReadableStream {
         if (preventAbort === false) {
           _writer.abort(reason);
           resolve();
+          _state = 'abortedDest';
           return;
         }
 
@@ -290,12 +292,12 @@ class ReadableStream {
 
       console.log('handleReaderClosedRejection');
 
-      if (state === 'waitingSource') {
+      if (_state === 'waitingSource') {
         releaseReaderAndReject(_savedReason);
         return;
       }
 
-      if (state !== 'piping') {
+      if (_state !== 'piping') {
         return;
       }
 
@@ -304,7 +306,8 @@ class ReadableStream {
 
       abortWriter(reason).then(() => {
         releaseWriterAndReject(reason);
-      });
+      })
+      .catch(rethrowAssertionErrorRejection);
     }
 
     function handleUnexpectedDestClosure(reason) {

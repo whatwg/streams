@@ -5,8 +5,7 @@ function promise_rejects(t, expectedReason, promise, name, msg) {
   promise.then(value => {
     t.fail(name + ' fulfilled unexpectedly');
     t.end();
-  },
-  reason => {
+  }, reason => {
     t.equal(reason, expectedReason, msg);
   });
 }
@@ -33,6 +32,27 @@ test('Controller argument is given to start method', t => {
   t.equal(writer.desiredSize, null, 'desiredSize should be null');
   writer.closed.catch(r => {
     t.equal(r, passedError, 'ws should be errored by passedError');
+    t.end();
+  });
+});
+
+test('highWaterMark', t => {
+  let controller;
+  const ws = new WritableStream({
+    start(c) {
+      controller = c;
+    },
+    {
+      highWaterMark: 1000,
+      size(): { return 1; }
+    }
+  });
+
+  const writer = ws.getWriter();
+
+  t.equal(writer.desiredSize, 1000, 'desiredSize should be 1000');
+  writer.ready.then(v => {
+    t.equal(v, undefined, 'ready promise should fulfill with undefined');
     t.end();
   });
 });
