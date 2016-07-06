@@ -105,11 +105,13 @@ function WritableStreamAbort(stream, reason) {
 
   const writer = stream._writer;
 
+  const error = new TypeError('Aborted');
+
   if (writer !== undefined) {
-    WritableStreamDefaultWriterClosedPromiseResolve(writer);
+    WritableStreamDefaultWriterClosedPromiseReject(writer, error);
 
     for (const writeRequest of writer._writeRequests) {
-      writeRequest._reject(new TypeError('Aborted'));
+      writeRequest._reject(error);
     }
 
     if (state === 'waiting') {
@@ -117,7 +119,8 @@ function WritableStreamAbort(stream, reason) {
     }
   }
 
-  stream._state = 'closed';
+  stream._state = 'errored';
+  stream._storedError = error;
 
   return WritableStreamDefaultControllerAbort(stream._writableStreamController, reason);
 }
