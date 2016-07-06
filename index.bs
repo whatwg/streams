@@ -3035,7 +3035,7 @@ throughout the rest of this standard.
 
 <emu-alg>
   1. Let _size_ be ? ToNumber(_size_).
-  1. If _size_ is *NaN*, *+∞*, or negative, throw a *RangeError* exception.
+  1. If ! IsFiniteNonNegativeNumber(_size_) is *false*, throw a *RangeError* exception.
   1. Append Record {[[value]]: _value_, [[size]]: _size_} as the last element of _queue_.
 </emu-alg>
 
