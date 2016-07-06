@@ -84,7 +84,7 @@ test('Writable stream: throwing strategy.highWaterMark getter', t => {
 test('Writable stream: invalid strategy.highWaterMark', t => {
   t.plan(5);
 
-  for (const highWaterMark of [-1, -Infinity]) {
+  for (const highWaterMark of [-1, -Infinity, NaN, 'foo', {}]) {
     t.throws(() => {
       new WritableStream({}, {
         size() {
@@ -93,16 +93,5 @@ test('Writable stream: invalid strategy.highWaterMark', t => {
         highWaterMark
       });
     }, /RangeError/, `construction should throw a RangeError for ${highWaterMark}`);
-  }
-
-  for (const highWaterMark of [NaN, 'foo', {}]) {
-    t.throws(() => {
-      new WritableStream({}, {
-        size() {
-          return 1;
-        },
-        highWaterMark
-      });
-    }, /TypeError/, `construction should throw a TypeError for ${highWaterMark}`);
   }
 });
