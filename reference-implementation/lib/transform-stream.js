@@ -145,7 +145,14 @@ function TransformStreamTransformIfNeeded(transformStream) {
   transformStream._chunk = undefined;
 
   try {
-    transformStream._transformer.transform(chunk, TransformStreamChunkDone.bind(undefined, transformStream));
+    if (transformStream._transformer.transform !== undefined) {
+      transformStream._transformer.transform(
+          chunk,
+          TransformStreamChunkDone.bind(undefined, transformStream),
+          transformStream._enqueueFunction,
+          transformStream._closeFunction,
+          transformStream._errorFunction);
+    }
   } catch (e) {
     if (transformStream._errored === false) {
       TransformStreamErrorInternal(transformStream, e);
@@ -154,13 +161,15 @@ function TransformStreamTransformIfNeeded(transformStream) {
 }
 
 function TransformStreamStart(transformStream) {
-  const enqueueFunction = TransformStreamEnqueueToReadable.bind(undefined, transformStream);
-  const closeFunction = TransformStreamCloseReadable.bind(undefined, transformStream);
-
-  const errorFunction = TransformStreamError.bind(undefined, transformStream);
+  if (transformStream._transformer.start === undefined) {
+    return;
+  }
 
   // Thrown exception will be handled by the constructor of TransformStream.
-  transformStream._transformer.start(enqueueFunction, closeFunction, errorFunction);
+  transformStream._transformer.start(
+      transformStream._enqueueFunction,
+      transformStream._closeFunction,
+      transformStream._errorFunction);
 }
 
 class TransformStreamSink {
@@ -224,13 +233,14 @@ class TransformStreamSink {
 
     transformStream._writableDone = true;
 
-    const flush = transformStream._transformer.flush;
-
-    if (flush === undefined) {
+    if (transformStream._transformer.flush === undefined) {
       TransformStreamCloseReadable(transformStream);
     } else {
       try {
-        flush();
+        transformStream._transformer.flush(
+            transformStream._enqueueFunction,
+            transformStream._closeFunction,
+            transformStream._errorFunction);
       } catch (e) {
         if (transformStream._errored === false) {
           TransformStreamError(transformStream, e);
@@ -269,11 +279,14 @@ class TransformStreamSource {
 
 module.exports = class TransformStream {
   constructor(transformer) {
-    if (transformer.flush !== undefined && typeof transformer.flush !== 'function') {
-      throw new TypeError('flush must be a function or undefined');
+    if (transformer.start !== undefined && typeof transformer.start !== 'function') {
+      throw new TypeError('start must be a function or undefined');
     }
     if (typeof transformer.transform !== 'function') {
       throw new TypeError('transform must be a function');
+    }
+    if (transformer.flush !== undefined && typeof transformer.flush !== 'function') {
+      throw new TypeError('flush must be a function or undefined');
     }
 
     this._transformer = transformer;
@@ -288,6 +301,10 @@ module.exports = class TransformStream {
 
     this._chunkPending = false;
     this._chunk = undefined;
+
+    this._enqueueFunction = TransformStreamEnqueueToReadable.bind(undefined, this);
+    this._closeFunction = TransformStreamCloseReadable.bind(undefined, this);
+    this._errorFunction = TransformStreamError.bind(undefined, this);
 
     const sink = new TransformStreamSink(this);
 

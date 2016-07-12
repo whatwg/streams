@@ -29,72 +29,67 @@ test('TransformStream writable starts in the writable state', t => {
   t.plan(1);
   const ts = new TransformStream({ transform() { } });
 
-  t.equal(ts.writable.state, 'writable', 'writable starts writable');
+  const writer = ts.writable.getWriter();
+  t.equal(writer.desiredSize, 1, 'writer.desiredSize should be 1');
 });
 
 test('Pass-through sync TransformStream: can read from readable what is put into writable', t => {
   t.plan(3);
 
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       enqueue(chunk);
       done();
     }
   });
 
-  ts.writable.write('a');
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  t.equal(writer.desiredSize, 0, 'writer.desiredSize should be 0 after write()');
 
-  t.equal(ts.writable.state, 'waiting', 'writable is waiting after one write');
   ts.readable.getReader().read().then(result => {
     t.deepEqual(result, { value: 'a', done: false },
       'result from reading the readable is the same as was written to writable');
 
-    return ts.writable.ready.then(() => {
-      t.equal(ts.writable.state, 'writable', 'writable becomes writable again');
+    return writer.ready.then(() => {
+      t.equal(writer.desiredSize, 1, 'desiredSize should be 1 again');
     });
   })
   .catch(e => t.error(e));
 });
 
 test('Uppercaser sync TransformStream: can read from readable transformed version of what is put into writable', t => {
-  t.plan(3);
-
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       enqueue(chunk.toUpperCase());
       done();
     }
   });
 
-  ts.writable.write('a');
-
-  t.equal(ts.writable.state, 'waiting', 'writable is waiting after one write');
+  const writer = ts.writable.getWriter();
+  writer.write('a');
 
   ts.readable.getReader().read().then(result => {
     t.deepEqual(result, { value: 'A', done: false },
       'result from reading the readable is the transformation of what was written to writable');
-
-    return ts.writable.ready.then(() => {
-      t.equal(ts.writable.state, 'writable', 'writable becomes writable again');
-    });
+    t.end();
   })
   .catch(e => t.error(e));
 });
 
 test('Uppercaser-doubler sync TransformStream: can read both chunks put into the readable', t => {
-  t.plan(4);
+  t.plan(2);
 
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       enqueue(chunk.toUpperCase());
       enqueue(chunk.toUpperCase());
       done();
     }
   });
 
-  ts.writable.write('a');
-
-  t.equal(ts.writable.state, 'waiting', 'writable is waiting after one write');
+  const writer = ts.writable.getWriter();
+  writer.write('a');
 
   const reader = ts.readable.getReader();
 
@@ -103,47 +98,38 @@ test('Uppercaser-doubler sync TransformStream: can read both chunks put into the
       'the first chunk read is the transformation of the single chunk written');
 
     return reader.read().then(result2 => {
-    t.deepEqual(result2, { value: 'A', done: false },
-      'the second chunk read is also the transformation of the single chunk written');
-
-      return ts.writable.ready.then(() => {
-        t.equal(ts.writable.state, 'writable', 'writable becomes writable again');
-      });
+      t.deepEqual(result2, { value: 'A', done: false },
+        'the second chunk read is also the transformation of the single chunk written');
     });
   })
   .catch(e => t.error(e));
 });
 
 test('Uppercaser async TransformStream: can read from readable transformed version of what is put into writable', t => {
-  t.plan(3);
+  t.plan(1);
 
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       setTimeout(() => enqueue(chunk.toUpperCase()), 10);
       setTimeout(done, 50);
     }
   });
 
-  ts.writable.write('a');
-
-  t.equal(ts.writable.state, 'waiting', 'writable is waiting after one write');
+  const writer = ts.writable.getWriter();
+  writer.write('a');
 
   ts.readable.getReader().read().then(result => {
     t.deepEqual(result, { value: 'A', done: false },
       'result from reading the readable is the transformation of what was written to writable');
-
-    return ts.writable.ready.then(() => {
-      t.equal(ts.writable.state, 'writable', 'writable becomes writable again');
-    });
   })
   .catch(e => t.error(e));
 });
 
 test('Uppercaser-doubler async TransformStream: can read both chunks put into the readable', t => {
-  t.plan(4);
+  t.plan(2);
 
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       setTimeout(() => enqueue(chunk.toUpperCase()), 10);
       setTimeout(() => enqueue(chunk.toUpperCase()), 50);
       setTimeout(done, 90);
@@ -152,52 +138,46 @@ test('Uppercaser-doubler async TransformStream: can read both chunks put into th
 
   const reader = ts.readable.getReader();
 
-  ts.writable.write('a');
+  const writer = ts.writable.getWriter();
+  writer.write('a');
 
-  t.equal(ts.writable.state, 'waiting', 'writable is waiting after one write');
   reader.read().then(result1 => {
     t.deepEqual(result1, { value: 'A', done: false },
       'the first chunk read is the transformation of the single chunk written');
 
     return reader.read().then(result2 => {
-    t.deepEqual(result2, { value: 'A', done: false },
-      'the second chunk read is also the transformation of the single chunk written');
-
-      return ts.writable.ready.then(() => {
-        t.equal(ts.writable.state, 'writable', 'writable becomes writable again');
-      });
+      t.deepEqual(result2, { value: 'A', done: false },
+        'the second chunk read is also the transformation of the single chunk written');
     });
   })
   .catch(e => t.error(e));
 });
 
 test('TransformStream: by default, closing the writable closes the readable (when there are no queued writes)', t => {
-  t.plan(3);
-
   const ts = new TransformStream({ transform() { } });
 
-  ts.writable.close();
-  t.equal(ts.writable.state, 'closing', 'writable is closing');
+  const writer = ts.writable.getWriter();
+  writer.close();
 
-  Promise.all([ts.writable.closed, ts.readable.getReader().closed]).then(() => {
+  Promise.all([writer.closed, ts.readable.getReader().closed]).then(() => {
     t.pass('both writable and readable closed promises fulfill');
-    t.equal(ts.writable.state, 'closed', 'writable state becomes closed eventually');
+    t.end();
   })
   .catch(e => t.error(e));
 });
 
 test('TransformStream: by default, closing the writable waits for transforms to finish before closing both', t => {
-  t.plan(4);
+  t.plan(2);
 
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       setTimeout(done, 50);
     }
   });
 
-  ts.writable.write('a');
-  ts.writable.close();
-  t.equal(ts.writable.state, 'closing', 'writable is closing');
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close();
 
   let rsClosed = false;
   ts.readable.getReader().closed.then(() => {
@@ -207,8 +187,8 @@ test('TransformStream: by default, closing the writable waits for transforms to 
   setTimeout(() => {
     t.equal(rsClosed, false, 'readable is not closed after a tick');
 
-    ts.writable.closed.then(() => {
-      t.equal(ts.writable.state, 'closed', 'writable becomes closed eventually');
+    writer.closed.then(() => {
+      // TODO: Is this expectation correct?
       t.equal(rsClosed, true, 'readable is closed at that point');
     })
     .catch(e => t.error(e));
@@ -216,58 +196,50 @@ test('TransformStream: by default, closing the writable waits for transforms to 
 });
 
 test('TransformStream: by default, closing the writable closes the readable after sync enqueues and async done', t => {
-  t.plan(3);
-
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       enqueue('x');
       enqueue('y');
       setTimeout(done, 50);
     }
   });
 
-  ts.writable.write('a');
-  ts.writable.close();
-  t.equal(ts.writable.state, 'closing', 'writable is closing');
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close();
 
-  ts.writable.closed.then(() => {
-    t.equal(ts.writable.state, 'closed', 'writable becomes closed eventually');
-
+  writer.closed.then(() => {
     return readableStreamToArray(ts.readable).then(chunks => {
       t.deepEqual(chunks, ['x', 'y'], 'both enqueued chunks can be read from the readable');
+      t.end();
     });
   })
   .catch(e => t.error(e));
 });
 
 test('TransformStream: by default, closing the writable closes the readable after async enqueues and async done', t => {
-  t.plan(3);
-
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       setTimeout(() => enqueue('x'), 10);
       setTimeout(() => enqueue('y'), 50);
       setTimeout(done, 90);
     }
   });
 
-  ts.writable.write('a');
-  ts.writable.close();
-  t.equal(ts.writable.state, 'closing', 'writable is closing');
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close();
 
-  ts.writable.closed.then(() => {
-    t.equal(ts.writable.state, 'closed', 'writable becomes closed eventually');
-
+  writer.closed.then(() => {
     return readableStreamToArray(ts.readable).then(chunks => {
       t.deepEqual(chunks, ['x', 'y'], 'both enqueued chunks can be read from the readable');
+      t.end();
     });
   })
   .catch(e => t.error(e));
 });
 
 test('TransformStream flush is called immediately when the writable is closed, if no writes are queued', t => {
-  t.plan(1);
-
   let flushCalled = false;
   const ts = new TransformStream({
     transform() { },
@@ -276,17 +248,16 @@ test('TransformStream flush is called immediately when the writable is closed, i
     }
   });
 
-  ts.writable.close().then(() => {
+  ts.writable.getWriter().close().then(() => {
     t.ok(flushCalled, 'closing the writable triggers the transform flush immediately');
+    t.end();
   });
 });
 
 test('TransformStream flush is called after all queued writes finish, once the writable is closed', t => {
-  t.plan(3);
-
   let flushCalled = false;
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       setTimeout(done, 10);
     },
     flush(enqueue) {
@@ -294,8 +265,9 @@ test('TransformStream flush is called after all queued writes finish, once the w
     }
   });
 
-  ts.writable.write('a');
-  ts.writable.close();
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close();
   t.notOk(flushCalled, 'closing the writable does not immediately call flush if writes are not finished');
 
   let rsClosed = false;
@@ -306,14 +278,13 @@ test('TransformStream flush is called after all queued writes finish, once the w
   setTimeout(() => {
     t.ok(flushCalled, 'flush is eventually called');
     t.equal(rsClosed, false, 'if flush does not call close, the readable does not become closed');
+    t.end();
   }, 50);
 });
 
 test('TransformStream flush gets a chance to enqueue more into the readable', t => {
-  t.plan(2);
-
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       done();
     },
     flush(enqueue) {
@@ -324,13 +295,16 @@ test('TransformStream flush gets a chance to enqueue more into the readable', t 
 
   const reader = ts.readable.getReader();
 
-  ts.writable.write('a');
-  ts.writable.close();
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close();
+
   reader.read().then(result1 => {
     t.deepEqual(result1, { value: 'x', done: false }, 'the first chunk read is the first one enqueued in flush');
 
     return reader.read().then(result2 => {
       t.deepEqual(result2, { value: 'y', done: false }, 'the second chunk read is the second one enqueued in flush');
+      t.end();
     });
   })
   .catch(e => t.error(e));
@@ -340,7 +314,7 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
   t.plan(3);
 
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       done();
     },
     flush(enqueue, close) {
@@ -352,8 +326,10 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
 
   const reader = ts.readable.getReader();
 
-  ts.writable.write('a');
-  ts.writable.close();
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close();
+
   reader.read().then(result1 => {
     t.deepEqual(result1, { value: 'x', done: false }, 'the first chunk read is the first one enqueued in flush');
 
@@ -371,10 +347,11 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
 
 test('Transform stream should call transformer methods as methods', t => {
   t.plan(1);
+
   const ts = new TransformStream({
     suffix: '-suffix',
 
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       enqueue(chunk + this.suffix);
       done();
     },
@@ -385,9 +362,11 @@ test('Transform stream should call transformer methods as methods', t => {
     }
   });
 
-  ts.writable.write('a');
-  ts.writable.close();
-  ts.writable.closed.then(() => {
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close();
+
+  writer.closed.then(() => {
     return readableStreamToArray(ts.readable).then(chunks => {
       t.deepEqual(chunks, ['a-suffix', 'flushed-suffix'], 'both enqueued chunks have suffixes');
     });
