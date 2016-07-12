@@ -42,10 +42,9 @@ test('highWaterMark', t => {
     start(c) {
       controller = c;
     },
-    {
-      highWaterMark: 1000,
-      size(): { return 1; }
-    }
+  }, {
+    highWaterMark: 1000,
+    size() { return 1; }
   });
 
   const writer = ws.getWriter();

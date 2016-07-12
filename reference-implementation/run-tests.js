@@ -15,7 +15,7 @@ global.CountQueuingStrategy = CountQueuingStrategy;
 global.TransformStream = TransformStream;
 
 if (process.argv.length === 2) {
-  const tests = glob.sync(path.resolve(__dirname, 'test/transform-stream.js'));
+  const tests = glob.sync(path.resolve(__dirname, 'test/*.js'));
   tests.forEach(require);
 } else {
   glob.sync(path.resolve(process.argv[2])).forEach(require);

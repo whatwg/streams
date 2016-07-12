@@ -243,7 +243,8 @@ class TransformStreamSink {
             transformStream._errorFunction);
       } catch (e) {
         if (transformStream._errored === false) {
-          TransformStreamError(transformStream, e);
+          TransformStreamErrorInternal(transformStream, e);
+          throw e;
         }
       }
     }
@@ -296,6 +297,9 @@ module.exports = class TransformStream {
 
     this._writableController = undefined;
     this._readableController = undefined;
+
+    this._writableDone = false;
+    this._readableClosed = false;
 
     this._resolveWrite = undefined;
 
