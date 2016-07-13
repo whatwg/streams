@@ -23,6 +23,7 @@ test('Closing a writable stream with in-flight writes below the high water mark 
     new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 16 })
   );
 
-  ws.write({ byteLength: 1024 });
-  ws.close();
+  const writer = ws.getWriter();
+  writer.write({ byteLength: 1024 });
+  writer.close();
 });

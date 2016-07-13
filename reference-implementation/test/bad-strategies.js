@@ -30,12 +30,13 @@ test('Writable stream: throwing strategy.size method', t => {
     });
   }, 'initial construction should not throw');
 
-  ws.write('a').then(
+  const writer = ws.getWriter();
+  writer.write('a').then(
     () => t.fail('write should not fulfill'),
     r => t.equal(r, theError, 'write should reject with the thrown error')
   );
 
-  ws.closed.then(
+  writer.closed.then(
     () => t.fail('closed should not fulfill'),
     r => t.equal(r, theError, 'closed should reject with the thrown error')
   );
@@ -53,14 +54,15 @@ test('Writable stream: invalid strategy.size return value', t => {
       highWaterMark: 5
     });
 
-    ws.write('a').then(
+    const writer = ws.getWriter();
+    writer.write('a').then(
       () => t.fail('write should not fulfill'),
       r => {
         t.equal(r.constructor, RangeError, `write should reject with a RangeError for ${size}`);
         theError = r;
       });
 
-    ws.closed.catch(e => t.equal(e, theError, `closed should reject with the error for ${size}`));
+    writer.closed.catch(e => t.equal(e, theError, `closed should reject with the error for ${size}`));
   }
 });
 

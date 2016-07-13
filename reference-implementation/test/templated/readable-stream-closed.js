@@ -7,7 +7,8 @@ module.exports = (label, factory) => {
   }
 
   test('piping to a WritableStream in the writable state should close the writable stream', t => {
-    t.plan(4);
+    t.plan(2);
+
     const rs = factory();
 
     const startPromise = Promise.resolve();
@@ -27,18 +28,16 @@ module.exports = (label, factory) => {
     });
 
     startPromise.then(() => {
-      t.equal(ws.state, 'writable', 'writable stream should start in writable state');
-
       return rs.pipeTo(ws).then(() => {
         t.pass('pipeTo promise should be fulfilled');
-        t.equal(ws.state, 'closed', 'writable stream should become closed');
       });
     })
     .catch(e => t.error(e));
   });
 
   test('piping to a WritableStream in the writable state with { preventClose: true } should do nothing', t => {
-    t.plan(3);
+    t.plan(1);
+
     const rs = factory();
 
     const startPromise = Promise.resolve();
@@ -58,11 +57,8 @@ module.exports = (label, factory) => {
     });
 
     startPromise.then(() => {
-      t.equal(ws.state, 'writable', 'writable stream should start in writable state');
-
       return rs.pipeTo(ws, { preventClose: true }).then(() => {
         t.pass('pipeTo promise should be fulfilled');
-        t.equal(ws.state, 'writable', 'writable stream should still be writable');
       });
     })
     .catch(e => t.error(e));

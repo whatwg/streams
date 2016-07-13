@@ -1,13 +1,11 @@
 'use strict';
 const test = require('tape-catch');
 
-function promise_rejects(t, expectedReason, promise, name, msg) {
+function promise_fulfills(t, expectedValue, promise, msg) {
   promise.then(value => {
-    t.fail(name + ' fulfilled unexpectedly');
-    t.end();
-  },
-  reason => {
-    t.equal(reason, expectedReason, msg);
+    t.equal(value, expectedValue, msg);
+  }, reason => {
+    t.fail(msg + ': Rejected unexpectedly with: ' + reason);
   });
 }
 
@@ -172,8 +170,8 @@ test('Aborting a WritableStream puts it in an errored state, with stored error e
   );
 
   writer.closed.then(
-    () => t.pass('closed should be fulfilled'),
-    r => t.fail('closed rejected unexpectedly')
+    () => t.fail('closed fulfilled unexpectedly'),
+    r => t.equal(r.constructor, TypeError, 'closed should reject with a TypeError')
   );
 });
 
@@ -206,7 +204,7 @@ test('Aborting a WritableStream causes any outstanding write() promises to be re
 
   writer.write('a').then(
     () => t.fail('writing should not succeed'),
-    r => t.equal(r, passedReason, 'writing should reject with the given reason')
+    r => t.equal(r.constructor, TypeError, 'writing should reject with a TypeError')
   );
 
   const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
@@ -214,7 +212,7 @@ test('Aborting a WritableStream causes any outstanding write() promises to be re
 });
 
 test('Closing but then immediately aborting a WritableStream causes the stream to error', t => {
-  t.plan(2);
+  t.plan(1);
 
   const ws = new WritableStream();
 
@@ -227,7 +225,7 @@ test('Closing but then immediately aborting a WritableStream causes the stream t
 
   writer.closed.then(
     () => t.fail('the stream should not close successfully'),
-    r => t.equal(r, passedReason, 'the stream should be errored with the given reason')
+    r => t.equal(r.constructor, TypeError, 'the stream should be errored with a TypeError')
   );
 });
 
@@ -251,7 +249,7 @@ test('Closing a WritableStream and aborting it while it closes causes the stream
   writer.closed.then(
     () => t.fail('the stream should not close successfully'),
     r => {
-      t.equal(r, passedReason, 'the stream should be errored with the given reason');
+      t.equal(r.constructor, TypeError, 'the stream should be errored with a TypeError');
       t.end();
     }
   );
@@ -272,7 +270,7 @@ test('Aborting a WritableStream after it is closed is a no-op', t => {
       t.error
     );
 
-    promise_rejects(t, undefined, writer.closed, 'closed', 'closed should stay rejected');
+    promise_fulfills(t, undefined, writer.closed, 'closed should still be fulfilled');
   }, 0);
 });
 
