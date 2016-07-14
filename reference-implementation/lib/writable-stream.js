@@ -578,7 +578,6 @@ class WritableStreamDefaultController {
     const startResult = InvokeOrNoop(underlyingSink, 'start', [this]);
     Promise.resolve(startResult).then(
       () => {
-        throw new assert.AssertionError('ss');
         controller._started = true;
         WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
       },

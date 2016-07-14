@@ -1558,6 +1558,7 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
   const pullPromise = PromiseInvokeOrNoop(controller._underlyingByteSource, 'pull', [controller]);
   pullPromise.then(
     () => {
+      assert(false);
       controller._pulling = false;
 
       if (controller._pullAgain === true) {
