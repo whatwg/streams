@@ -15,6 +15,22 @@ function writeArrayToStream(array, writableStreamWriter) {
   return writableStreamWriter.close();
 }
 
+test('Released writer', t => {
+  const ws = new WritableStream({});
+  const writer = ws.getWriter();
+  writer.releaseLock();
+
+  try {
+    writer.desiredSize;
+  } catch(e) {
+    t.equal(e.constructor, TypeError, 'desiredSize should throw a TypeError');
+    t.end();
+    return;
+  }
+
+  t.fail('writer.desiredSize did not throw');
+});
+
 test('Controller argument is given to start method', t => {
   let controller;
   const ws = new WritableStream({

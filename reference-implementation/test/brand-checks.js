@@ -85,8 +85,8 @@ test('WritableStreamDefaultWriter.prototype.closed enforces a brand check', t =>
 
 test('WritableStreamDefaultWriter.prototype.desiredSize enforces a brand check', t => {
   t.plan(2);
-  getterRejects(t, WritableStreamDefaultWriter.prototype, 'desiredSize', fakeWritableStreamDefaultWriter());
-  getterRejects(t, WritableStreamDefaultWriter.prototype, 'desiredSize', realReadableStreamDefaultWriter());
+  getterThrows(t, WritableStreamDefaultWriter.prototype, 'desiredSize', fakeWritableStreamDefaultWriter());
+  getterThrows(t, WritableStreamDefaultWriter.prototype, 'desiredSize', realReadableStreamDefaultWriter());
 });
 
 test('WritableStreamDefaultWriter.prototype.ready enforces a brand check', t => {

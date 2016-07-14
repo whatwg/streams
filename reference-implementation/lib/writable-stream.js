@@ -13,6 +13,8 @@ class WritableStream {
     this._writer = undefined;
     this._storedError = undefined;
 
+    this._writeRequests = [];
+
     // Initialize to undefined first because the constructor of the controller checks this
     // variable to validate the caller.
     this._writableStreamController = undefined;
@@ -107,12 +109,12 @@ function WritableStreamAbort(stream, reason) {
 
   const error = new TypeError('Aborted');
 
+  for (const writeRequest of stream._writeRequests) {
+    writeRequest._reject(error);
+  }
+
   if (writer !== undefined) {
     WritableStreamDefaultWriterClosedPromiseReject(writer, error);
-
-    for (const writeRequest of writer._writeRequests) {
-      writeRequest._reject(error);
-    }
 
     if (state === 'waiting') {
       WritableStreamDefaultWriterReadyPromiseResolve(writer, undefined);
@@ -140,7 +142,7 @@ function WritableStreamAddWriteRequest(stream) {
       _reject: reject
     };
 
-    writer._writeRequests.push(writeRequest);
+    stream._writeRequests.push(writeRequest);
   });
 
   return promise;
@@ -150,16 +152,16 @@ function WritableStreamError(stream, e) {
   const state = stream._state;
   assert(state === 'writable' || state === 'waiting' || state === 'closing');
 
+  const writeRequests = stream._writeRequests;
+  while (writeRequests.length > 0) {
+    const writeRequest = writeRequests.shift();
+    writeRequest._reject(e);
+  }
+
   const writer = stream._writer;
 
   if (writer !== undefined) {
     WritableStreamDefaultWriterClosedPromiseReject(writer, e);
-
-    const writeRequests = writer._writeRequests;
-    while (writeRequests.length > 0) {
-      const writeRequest = writeRequests.shift();
-      writeRequest._reject(e);
-    }
 
     if (state === 'waiting') {
       WritableStreamDefaultWriterReadyPromiseResolve(writer, undefined);
@@ -185,11 +187,9 @@ function WritableStreamFinishClose(stream) {
 }
 
 function WritableStreamFulfillWriteRequest(stream) {
-  const writer = stream._writer;
+  assert(stream._writeRequests.length > 0);
 
-  assert(writer._writeRequests.length > 0);
-
-  const writeRequest = writer._writeRequests.shift();
+  const writeRequest = stream._writeRequests.shift();
   writeRequest._resolve(undefined);
 }
 
@@ -259,8 +259,6 @@ class WritableStreamDefaultWriter {
     } else {
       WritableStreamDefaultWriterReadyPromiseInitializeAsResolved(this, undefined);
     }
-
-    this._writeRequests = [];
   }
 
   get closed() {
@@ -273,7 +271,11 @@ class WritableStreamDefaultWriter {
 
   get desiredSize() {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      return Promise.reject(CreateWritableStreamDefaultWriterBrandCheckException('desiredSize'));
+      throw CreateWritableStreamDefaultWriterBrandCheckException('desiredSize');
+    }
+
+    if (this._ownerWritableStream === undefined) {
+      throw CreateWritableStreamDefaultWriterLockException('desiredSize');
     }
 
     return WritableStreamDefaultWriterGetDesiredSize(this)
@@ -326,10 +328,6 @@ class WritableStreamDefaultWriter {
 
     if (stream === undefined) {
       return undefined;
-    }
-
-    if (this._writeRequests.length > 0) {
-      throw new TypeError('Tried to release a writer lock when that writer has pending write() calls un-settled');
     }
 
     assert(stream._writer !== undefined);
@@ -480,7 +478,7 @@ function IsWritableStreamDefaultWriter(x) {
     return false;
   }
 
-  if (!Object.prototype.hasOwnProperty.call(x, '_writeRequests')) {
+  if (!Object.prototype.hasOwnProperty.call(x, '_ownerWritableStream')) {
     return false;
   }
 
@@ -587,7 +585,7 @@ class WritableStreamDefaultController {
         WritableStreamDefaultControllerErrorIfNeeded(controller, r);
       }
     )
-    .catch(rethrowAssertionErrorRejection);
+    .catch(e => rethrowAssertionErrorRejection(e));
   }
 
   error(e) {
@@ -728,7 +726,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);
     }
   )
-  .catch(rethrowAssertionErrorRejection);
+  .catch(e => rethrowAssertionErrorRejection(e));
 }
 
 function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
@@ -758,7 +756,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);
     }
   )
-  .catch(rethrowAssertionErrorRejection);
+  .catch(e => rethrowAssertionErrorRejection(e));
 }
 
 function WritableStreamDefaultControllerUpdateBackpressure(controller) {
