@@ -578,6 +578,7 @@ class WritableStreamDefaultController {
     const startResult = InvokeOrNoop(underlyingSink, 'start', [this]);
     Promise.resolve(startResult).then(
       () => {
+        throw new assert.AssertionError('ss');
         controller._started = true;
         WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
       },
@@ -585,7 +586,7 @@ class WritableStreamDefaultController {
         WritableStreamDefaultControllerErrorIfNeeded(controller, r);
       }
     )
-    .catch(e => rethrowAssertionErrorRejection(e));
+    .catch(rethrowAssertionErrorRejection);
   }
 
   error(e) {
@@ -726,7 +727,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);
     }
   )
-  .catch(e => rethrowAssertionErrorRejection(e));
+  .catch(rethrowAssertionErrorRejection);
 }
 
 function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
@@ -756,7 +757,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);
     }
   )
-  .catch(e => rethrowAssertionErrorRejection(e));
+  .catch(rethrowAssertionErrorRejection);
 }
 
 function WritableStreamDefaultControllerUpdateBackpressure(controller) {

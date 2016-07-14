@@ -303,7 +303,7 @@ class ReadableStream {
           // Do nothing
         }
       )
-      .catch(e => rethrowAssertionErrorRejection(e));
+      .catch(rethrowAssertionErrorRejection);
 
       // Any failures will be handled by listening to reader.closed and dest.closed above.
       // TODO: handle malicious dest.write/dest.close?
@@ -1034,7 +1034,7 @@ class ReadableStreamDefaultController {
         }
       }
     )
-    .catch(e => rethrowAssertionErrorRejection(e));
+    .catch(rethrowAssertionErrorRejection);
   }
 
   get desiredSize() {
@@ -1165,7 +1165,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
       }
     }
   )
-  .catch(e => rethrowAssertionErrorRejection(e));
+  .catch(rethrowAssertionErrorRejection);
 
   return undefined;
 }
@@ -1364,7 +1364,7 @@ class ReadableByteStreamController {
         }
       }
     )
-    .catch(e => rethrowAssertionErrorRejection(e));
+    .catch(rethrowAssertionErrorRejection);
   }
 
   get byobRequest() {
@@ -1571,7 +1571,7 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
       }
     }
   )
-  .catch(e => rethrowAssertionErrorRejection(e));
+  .catch(rethrowAssertionErrorRejection);
 
   return undefined;
 }
