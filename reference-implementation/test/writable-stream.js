@@ -31,7 +31,7 @@ test('desiredSize on a released writer', t => {
   t.fail('writer.desiredSize did not throw');
 });
 
-test('getWriter() on a closing WritableStream', t => {
+test('ws.getWriter() on a closing WritableStream', t => {
   const ws = new WritableStream({});
 
   const writer = ws.getWriter();
@@ -41,6 +41,52 @@ test('getWriter() on a closing WritableStream', t => {
   ws.getWriter();
 
   t.end();
+});
+
+test('ws.getWriter() on a closed WritableStream', t => {
+  const ws = new WritableStream({});
+
+  const writer = ws.getWriter();
+  writer.close().then(() => {
+    writer.releaseLock();
+
+    ws.getWriter();
+
+    t.end();
+  })
+  .catch(t.error);
+});
+
+test('ws.getWriter() on an aborted WritableStream', t => {
+  const ws = new WritableStream({});
+
+  const writer = ws.getWriter();
+  writer.abort();
+  writer.releaseLock();
+
+  ws.getWriter();
+
+  t.end();
+});
+
+test('ws.getWriter() on an errored WritableStream', t => {
+  const ws = new WritableStream({
+    start(c) {
+      c.error();
+    }
+  });
+
+  const writer = ws.getWriter();
+  writer.closed.then(
+    v => t.error('writer.closed fulfilled unexpectedly with: ' + v),
+    () => {
+      writer.releaseLock();
+
+      ws.getWriter();
+
+      t.end();
+    }
+  );
 });
 
 test('Controller argument is given to start method', t => {
