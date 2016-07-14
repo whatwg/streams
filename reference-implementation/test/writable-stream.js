@@ -15,7 +15,7 @@ function writeArrayToStream(array, writableStreamWriter) {
   return writableStreamWriter.close();
 }
 
-test('Released writer', t => {
+test('desiredSize on a released writer', t => {
   const ws = new WritableStream({});
   const writer = ws.getWriter();
   writer.releaseLock();
@@ -29,6 +29,18 @@ test('Released writer', t => {
   }
 
   t.fail('writer.desiredSize did not throw');
+});
+
+test('getWriter() on a closing WritableStream', t => {
+  const ws = new WritableStream({});
+
+  const writer = ws.getWriter();
+  writer.close();
+  writer.releaseLock();
+
+  ws.getWriter();
+
+  t.end();
 });
 
 test('Controller argument is given to start method', t => {

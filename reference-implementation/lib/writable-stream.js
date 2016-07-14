@@ -241,11 +241,7 @@ class WritableStreamDefaultWriter {
 
     const state = stream._state;
 
-    // A writer cannot be released while close is ongoing. So, a writer can
-    // never be instantiated for a closing stream.
-    assert(state !== 'closing');
-
-    if (state === 'writable' || state === 'waiting') {
+    if (state === 'writable' || state === 'waiting' || state === 'closing') {
       WritableStreamDefaultWriterClosedPromiseInitialize(this);
     } else {
       if (state === 'closed') {
@@ -339,7 +335,7 @@ class WritableStreamDefaultWriter {
 
     const releasedException = new TypeError('Writer was released and can no longer be used to monitor the stream\'s closedness');
 
-    if (state === 'writable' || state === 'waiting') {
+    if (state === 'writable' || state === 'waiting' || state === 'closing') {
       WritableStreamDefaultWriterClosedPromiseReject(this, releasedException);
     } else {
       WritableStreamDefaultWriterClosedPromiseResetToRejected(this, releasedException);
