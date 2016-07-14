@@ -7,26 +7,29 @@ const { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } 
 
 class WritableStream {
   constructor(underlyingSink = {}, { size, highWaterMark } = {}) {
-    // Temporary variable. Never used. To be initialized by the controller.
+    // Temporary value. Never used. To be overwritten by the initializer code of the controller.
     this._state = 'writable';
+    this._storedError = undefined;
 
     this._writer = undefined;
-    this._storedError = undefined;
 
     this._writeRequests = [];
 
     // Initialize to undefined first because the constructor of the controller checks this
     // variable to validate the caller.
     this._writableStreamController = undefined;
+
     const type = underlyingSink.type;
-    if (type === undefined) {
-      if (highWaterMark === undefined) {
-        highWaterMark = 1;
-      }
-      this._writableStreamController = new WritableStreamDefaultController(this, underlyingSink, size, highWaterMark);
-    } else {
+
+    if (type !== undefined) {
       throw new RangeError('Invalid type is specified');
     }
+
+    if (highWaterMark === undefined) {
+      highWaterMark = 1;
+    }
+
+    this._writableStreamController = new WritableStreamDefaultController(this, underlyingSink, size, highWaterMark);
   }
 
   get locked() {
