@@ -47,7 +47,7 @@ test('Correctly governs the value of a WritableStream\'s state property (HWM = 0
         });
       });
     })
-    .catch(t.error);
+    .catch(e => t.error(e));
   }, 0);
 });
 
@@ -114,6 +114,6 @@ test('Correctly governs the value of a WritableStream\'s state property (HWM = 4
         });
       });
     })
-    .catch(t.error);
+    .catch(e => t.error(e));
   }, 0);
 });
