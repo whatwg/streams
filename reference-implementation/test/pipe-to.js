@@ -372,11 +372,11 @@ test('Piping from an empty ReadableStream to a WritableStream in the writable st
 
       promise_rejects(t, theError, ws.getWriter().closed, 'ws.closed should reject with theError');
     })
-    .catch(t.error);
+    .catch(e => t.error(e));
 
     writableController.error(theError);
   })
-  .catch(t.error);
+  .catch(e => t.error(e));
 });
 
 test('Piping from a non-empty ReadableStream to a WritableStream in the waiting state which becomes writable after a ' +
@@ -814,7 +814,7 @@ test('Piping to a stream that has been aborted passes through the error as the c
     t.equal(recordedCancelReason.constructor, TypeError, 'the recorded cancellation reason must be a TypeError');
     t.end();
   })
-  .catch(t.error);
+  .catch(e => t.error(e));
 });
 
 test('Piping to a stream that has been closed propagates a TypeError cancellation reason backward', t => {
@@ -834,9 +834,9 @@ test('Piping to a stream that has been closed propagates a TypeError cancellatio
       t.equal(recordedCancelReason.constructor, TypeError, 'the recorded cancellation reason should be a TypeError');
       t.end();
     })
-    .catch(t.error);
+    .catch(e => t.error(e));
   })
-  .catch(t.error);
+  .catch(e => t.error(e));
 });
 
 test('Piping to a stream that errors on write should pass through the error as the cancellation reason', t => {
