@@ -54,7 +54,7 @@ test('ws.getWriter() on a closed WritableStream', t => {
 
     t.end();
   })
-  .catch(t.error);
+  .catch(e => t.error(e));
 });
 
 test('ws.getWriter() on an aborted WritableStream', t => {
