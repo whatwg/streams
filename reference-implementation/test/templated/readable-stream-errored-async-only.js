@@ -7,7 +7,8 @@ module.exports = (label, factory, error) => {
   }
 
   test('piping with no options', t => {
-    t.plan(4);
+    t.plan(3);
+
     const rs = factory();
 
     const ws = new WritableStream({
@@ -17,15 +18,15 @@ module.exports = (label, factory, error) => {
     });
 
     rs.pipeTo(ws).catch(e => {
-      t.equal(ws.state, 'errored', 'destination should be errored');
       t.equal(e, error, 'rejection reason of pipeToPromise should be the source error');
-    });
 
-    ws.closed.catch(e => t.equal(e, error), 'rejection reason of dest closed should be the source error');
+      ws.getWriter().closed.catch(e => t.equal(e.constructor, TypeError), 'rejection reason of dest closed should be a TypeError');
+    });
   });
 
   test('piping with { preventAbort: false }', t => {
-    t.plan(4);
+    t.plan(3);
+
     const rs = factory();
 
     const ws = new WritableStream({
@@ -35,15 +36,15 @@ module.exports = (label, factory, error) => {
     });
 
     rs.pipeTo(ws, { preventAbort: false }).catch(e => {
-      t.equal(ws.state, 'errored', 'destination should be errored');
       t.equal(e, error, 'rejection reason of pipeToPromise should be the source error');
-    });
 
-    ws.closed.catch(e => t.equal(e, error), 'rejection reason of dest closed should be the source error');
+      ws.getWriter().closed.catch(e => t.equal(e.constructor, TypeError), 'rejection reason of dest closed should be a TypeError');
+    });
   });
 
   test('piping with { preventAbort: true }', t => {
-    t.plan(2);
+    t.plan(1);
+
     const rs = factory();
 
     const ws = new WritableStream({
@@ -53,7 +54,6 @@ module.exports = (label, factory, error) => {
     });
 
     rs.pipeTo(ws, { preventAbort: true }).catch(e => {
-      t.equal(ws.state, 'writable', 'destination should remain writable');
       t.equal(e, error, 'rejection reason of pipeToPromise should be the source error');
     });
   });

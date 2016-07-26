@@ -20,28 +20,30 @@ test('Correctly governs the value of a WritableStream\'s state property (HWM = 0
   );
 
   setTimeout(() => {
-    t.equal(ws.state, 'writable', 'After 0 writes, 0 of which finished, state should be \'writable\'');
+    const writer = ws.getWriter();
 
-    const writePromiseA = ws.write('a');
-    t.equal(ws.state, 'waiting', 'After 1 write, 0 of which finished, state should be \'waiting\'');
+    t.equal(writer.desiredSize, 0, 'desiredSize should be initially 0');
 
-    const writePromiseB = ws.write('b');
-    t.equal(ws.state, 'waiting', 'After 2 writes, 0 of which finished, state should be \'waiting\'');
+    const writePromiseA = writer.write('a');
+    t.equal(writer.desiredSize, -1, 'desiredSize should be -1 after 1st write()');
+
+    const writePromiseB = writer.write('b');
+    t.equal(writer.desiredSize, -2, 'desiredSize should be -2 after 2nd write()');
 
     dones.a();
     writePromiseA.then(() => {
-      t.equal(ws.state, 'waiting', 'After 2 writes, 1 of which finished, state should be \'waiting\'');
+      t.equal(writer.desiredSize, -1, 'desiredSize should be -1 after completing 1st write()');
 
       dones.b();
       return writePromiseB.then(() => {
-        t.equal(ws.state, 'writable', 'After 2 writes, 2 of which finished, state should be \'writable\'');
+        t.equal(writer.desiredSize, 0, 'desiredSize should be 0 after completing 2nd write()');
 
-        const writePromiseC = ws.write('c');
-        t.equal(ws.state, 'waiting', 'After 3 writes, 2 of which finished, state should be \'waiting\'');
+        const writePromiseC = writer.write('c');
+        t.equal(writer.desiredSize, -1, 'desiredSize should be -1 after 3rd write()');
 
         dones.c();
         return writePromiseC.then(() => {
-          t.equal(ws.state, 'writable', 'After 3 writes, 3 of which finished, state should be \'writable\'');
+          t.equal(writer.desiredSize, 0, 'desiredSize should be 0 after completing 3rd write()');
 
           t.end();
         });
@@ -64,50 +66,52 @@ test('Correctly governs the value of a WritableStream\'s state property (HWM = 4
   );
 
   setTimeout(() => {
-    t.equal(ws.state, 'writable', 'After 0 writes, 0 of which finished, state should be \'writable\'');
+    const writer = ws.getWriter();
 
-    const writePromiseA = ws.write('a');
-    t.equal(ws.state, 'writable', 'After 1 write, 0 of which finished, state should be \'writable\'');
+    t.equal(writer.desiredSize, 4, 'desiredSize should be initially 4');
 
-    const writePromiseB = ws.write('b');
-    t.equal(ws.state, 'writable', 'After 2 writes, 0 of which finished, state should be \'writable\'');
+    const writePromiseA = writer.write('a');
+    t.equal(writer.desiredSize, 3, 'desiredSize should be 3 after 1st write()');
 
-    const writePromiseC = ws.write('c');
-    t.equal(ws.state, 'writable', 'After 3 writes, 0 of which finished, state should be \'writable\'');
+    const writePromiseB = writer.write('b');
+    t.equal(writer.desiredSize, 2, 'desiredSize should be 2 after 2nd write()');
 
-    const writePromiseD = ws.write('d');
-    t.equal(ws.state, 'writable', 'After 4 writes, 0 of which finished, state should be \'writable\'');
+    const writePromiseC = writer.write('c');
+    t.equal(writer.desiredSize, 1, 'desiredSize should be 1 after 3rd write()');
 
-    ws.write('e');
-    t.equal(ws.state, 'waiting', 'After 5 writes, 0 of which finished, state should be \'waiting\'');
+    const writePromiseD = writer.write('d');
+    t.equal(writer.desiredSize, 0, 'desiredSize should be 0 after 4th write()');
 
-    ws.write('f');
-    t.equal(ws.state, 'waiting', 'After 6 writes, 0 of which finished, state should be \'waiting\'');
+    writer.write('e');
+    t.equal(writer.desiredSize, -1, 'desiredSize should be -1 after 5th write()');
 
-    ws.write('g');
-    t.equal(ws.state, 'waiting', 'After 7 writes, 0 of which finished, state should be \'waiting\'');
+    writer.write('f');
+    t.equal(writer.desiredSize, -2, 'desiredSize should be -2 after 6th write()');
+
+    writer.write('g');
+    t.equal(writer.desiredSize, -3, 'desiredSize should be -3 after 7th write()');
 
     dones.a();
     writePromiseA.then(() => {
-      t.equal(ws.state, 'waiting', 'After 7 writes, 1 of which finished, state should be \'waiting\'');
+      t.equal(writer.desiredSize, -2, 'desiredSize should be -2 after completing 1st write()');
 
       dones.b();
       return writePromiseB.then(() => {
-        t.equal(ws.state, 'waiting', 'After 7 writes, 2 of which finished, state should be \'waiting\'');
+        t.equal(writer.desiredSize, -1, 'desiredSize should be -1 after completing 2nd write()');
 
         dones.c();
         return writePromiseC.then(() => {
-          t.equal(ws.state, 'writable', 'After 7 writes, 3 of which finished, state should be \'writable\'');
+          t.equal(writer.desiredSize, 0, 'desiredSize should be 0 after completing 3rd write()');
 
-          ws.write('h');
-          t.equal(ws.state, 'waiting', 'After 8 writes, 3 of which finished, state should be \'waiting\'');
+          writer.write('h');
+          t.equal(writer.desiredSize, -1, 'desiredSize should be -1 after 8th write()');
 
           dones.d();
           return writePromiseD.then(() => {
-            t.equal(ws.state, 'writable', 'After 8 writes, 4 of which finished, state should be \'writable\'');
+            t.equal(writer.desiredSize, 0, 'desiredSize should be 0 after completing 4th write()');
 
-            ws.write('i');
-            t.equal(ws.state, 'waiting', 'After 9 writes, 4 of which finished, state should be \'waiting\'');
+            writer.write('i');
+            t.equal(writer.desiredSize, -1, 'desiredSize should be -1 after 9th write()');
 
             t.end();
           });

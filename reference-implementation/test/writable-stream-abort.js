@@ -1,43 +1,84 @@
 'use strict';
 const test = require('tape-catch');
 
+function promise_fulfills(t, expectedValue, promise, msg) {
+  promise.then(value => {
+    t.equal(value, expectedValue, msg);
+  }, reason => {
+    t.fail(msg + ': Rejected unexpectedly with: ' + reason);
+  });
+}
+
+test('abort() on a released writer rejects', t => {
+  const ws = new WritableStream({});
+
+  const writer = ws.getWriter();
+  writer.releaseLock();
+
+  const abortPromise = writer.abort();
+  abortPromise.then(() => {
+    t.fail('abortPromise fulfilled unexpectedly');
+    t.end();
+  },
+  r => {
+    t.end();
+  });
+});
+
 test('Aborting a WritableStream immediately prevents future writes', t => {
-  const chunks = [];
   const ws = new WritableStream({
-    write(chunk) {
-      chunks.push(chunk);
+    write() {
+      t.fail('Unexpected write() call');
+      t.end();
     }
   });
 
   setTimeout(() => {
-    ws.abort();
-    ws.write(1);
-    ws.write(2);
-    t.deepEqual(chunks, [], 'no chunks are written');
-    t.end();
+    const writer = ws.getWriter();
+
+    writer.abort();
+    writer.write(1);
+    writer.write(2);
+
+    setTimeout(() => {
+      t.end();
+    }, 100);
   }, 0);
 });
 
 test('Aborting a WritableStream prevents further writes after any that are in progress', t => {
-  const chunks = [];
+  t.plan(2);
+
+  let writeCount = 0;
+
   const ws = new WritableStream({
     write(chunk) {
-      chunks.push(chunk);
+      ++writeCount;
+
+      if (writeCount > 1) {
+        t.fail('Only the single in-progress chunk gets written to the sink');
+        t.end();
+        return;
+      }
+
+      t.equals(chunk, 1, 'chunk should be 1');
+
       return new Promise(resolve => setTimeout(resolve, 50));
     }
   });
 
   setTimeout(() => {
-    ws.write(1);
-    ws.write(2);
-    ws.write(3);
-    ws.abort();
-    ws.write(4);
-    ws.write(5);
+    const writer = ws.getWriter();
+
+    writer.write(1);
+    writer.write(2);
+    writer.write(3);
+    writer.abort();
+    writer.write(4);
+    writer.write(5);
 
     setTimeout(function () {
-      t.deepEqual(chunks, [1], 'only the single in-progress chunk gets written');
-      t.end();
+      t.pass('Passed 200 ms');
     }, 200);
   }, 0);
 });
@@ -50,7 +91,9 @@ test('Fulfillment value of ws.abort() call must be undefined even if the underly
     }
   });
 
-  const abortPromise = ws.abort('a');
+  const writer = ws.getWriter();
+
+  const abortPromise = writer.abort('a');
   abortPromise.then(value => {
     t.equal(value, undefined, 'fulfillment value must be undefined');
     t.end();
@@ -68,7 +111,9 @@ test('WritableStream if sink\'s abort throws, the promise returned by ws.abort()
     }
   });
 
-  const abortPromise = ws.abort(undefined);
+  const writer = ws.getWriter();
+
+  const abortPromise = writer.abort(undefined);
   abortPromise.then(
     () => {
       t.fail('abortPromise is fulfilled unexpectedly');
@@ -89,63 +134,65 @@ test('Aborting a WritableStream passes through the given reason', t => {
     }
   });
 
+  const writer = ws.getWriter();
+
   const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
-  ws.abort(passedReason);
+  writer.abort(passedReason);
 
   t.equal(recordedReason, passedReason);
   t.end();
 });
 
 test('Aborting a WritableStream puts it in an errored state, with stored error equal to the abort reason', t => {
-  t.plan(5);
+  t.plan(4);
 
   let recordedReason;
   const ws = new WritableStream();
 
+  const writer = ws.getWriter();
+
   const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
-  ws.abort(passedReason);
+  writer.abort(passedReason);
 
-  t.equal(ws.state, 'errored', 'state should be errored');
-
-  ws.write().then(
+  writer.write().then(
     () => t.fail('writing should not succeed'),
-    r => t.equal(r, passedReason, 'writing should reject with the given reason')
+    r => t.equal(r.constructor, TypeError, 'writing should reject with the given reason')
   );
 
-  ws.close().then(
+  writer.close().then(
     () => t.fail('closing should not succeed'),
-    r => t.equal(r, passedReason, 'closing should reject with the given reason')
+    r => t.equal(r.constructor, TypeError, 'closing should reject with the given reason')
   );
 
-  ws.abort().then(
+  writer.abort().then(
     () => t.fail('aborting a second time should not succeed'),
-    r => t.equal(r, passedReason, 'aborting a second time should reject with the given reason')
+    r => t.equal(r.constructor, TypeError, 'aborting a second time should reject with the given reason')
   );
 
-  ws.closed.then(
-    () => t.fail('closed promise should not be fulfilled'),
-    r => t.equal(r, passedReason, 'closed promise should be rejected with the given reason')
+  writer.closed.then(
+    () => t.fail('closed fulfilled unexpectedly'),
+    r => t.equal(r.constructor, TypeError, 'closed should reject with a TypeError')
   );
 });
 
 test('Aborting a WritableStream causes any outstanding ready promises to be fulfilled immediately', t => {
-  t.plan(2);
-
   let recordedReason;
   const ws = new WritableStream({
     write(chunk) {
       return new Promise(() => { }); // forever-pending, so normally .ready would not fulfill.
     }
   });
-  ws.write('a');
-  t.equal(ws.state, 'waiting', 'state should be waiting');
 
-  ws.ready.then(() => {
-    t.equal(ws.state, 'errored', 'state should now be errored');
+  const writer = ws.getWriter();
+
+  writer.write('a');
+
+  writer.ready.then(() => {
+    t.end();
   });
 
   const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
-  ws.abort(passedReason);
+  writer.abort(passedReason);
 });
 
 test('Aborting a WritableStream causes any outstanding write() promises to be rejected with the abort reason', t => {
@@ -153,87 +200,89 @@ test('Aborting a WritableStream causes any outstanding write() promises to be re
 
   const ws = new WritableStream();
 
-  ws.write('a').then(
+  const writer = ws.getWriter();
+
+  writer.write('a').then(
     () => t.fail('writing should not succeed'),
-    r => t.equal(r, passedReason, 'writing should reject with the given reason')
+    r => t.equal(r.constructor, TypeError, 'writing should reject with a TypeError')
   );
 
   const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
-  ws.abort(passedReason);
+  writer.abort(passedReason);
 });
 
 test('Closing but then immediately aborting a WritableStream causes the stream to error', t => {
-  t.plan(2);
+  t.plan(1);
 
   const ws = new WritableStream();
 
-  ws.close();
+  const writer = ws.getWriter();
+
+  writer.close();
 
   const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
-  ws.abort(passedReason);
+  writer.abort(passedReason);
 
-  t.equal(ws.state, 'errored');
-
-  ws.closed.then(
+  writer.closed.then(
     () => t.fail('the stream should not close successfully'),
-    r => t.equal(r, passedReason, 'the stream should be errored with the given reason')
+    r => t.equal(r.constructor, TypeError, 'the stream should be errored with a TypeError')
   );
 });
 
 test('Closing a WritableStream and aborting it while it closes causes the stream to error', t => {
-  t.plan(3);
-
   const ws = new WritableStream({
     close() {
       return new Promise(() => { }); // forever-pending
     }
   });
 
-  ws.close();
+  const writer = ws.getWriter();
+
+  writer.close();
 
   const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
 
   setTimeout(() => {
-    t.equal(ws.state, 'closing');
-
-    ws.abort(passedReason);
-
-    t.equal(ws.state, 'errored');
+    writer.abort(passedReason);
   }, 20);
 
-  ws.closed.then(
+  writer.closed.then(
     () => t.fail('the stream should not close successfully'),
-    r => t.equal(r, passedReason, 'the stream should be errored with the given reason')
+    r => {
+      t.equal(r.constructor, TypeError, 'the stream should be errored with a TypeError');
+      t.end();
+    }
   );
 });
 
 test('Aborting a WritableStream after it is closed is a no-op', t => {
-  t.plan(3);
+  t.plan(2);
 
   const ws = new WritableStream();
 
-  ws.close();
+  const writer = ws.getWriter();
+
+  writer.close();
 
   setTimeout(() => {
-    t.equal(ws.state, 'closed');
-
-    ws.abort().then(
+    writer.abort().then(
       v => t.equal(v, undefined, 'abort promise should fulfill with undefined'),
       t.error
     );
 
-    t.equal(ws.state, 'closed', 'state stays closed');
+    promise_fulfills(t, undefined, writer.closed, 'closed should still be fulfilled');
   }, 0);
 });
 
 test('WritableStream should call underlying sink\'s close if no abort is supplied', t => {
-  t.plan(1);
-
   const ws = new WritableStream({
     close() {
       t.equal(arguments.length, 0, 'close() was called (with no arguments)');
+      t.end();
     }
   });
 
-  ws.abort();
+  const writer = ws.getWriter();
+
+  writer.abort();
 });

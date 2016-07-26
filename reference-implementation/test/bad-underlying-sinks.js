@@ -37,12 +37,14 @@ test('Underlying sink: throwing write getter', t => {
     }
   });
 
-  ws.write('a').then(
+  const writer = ws.getWriter();
+
+  writer.write('a').then(
     () => t.fail('write should not fulfill'),
     r => t.equal(r, theError, 'write should reject with the thrown error')
   );
 
-  ws.closed.then(
+  writer.closed.then(
     () => t.fail('closed should not fulfill'),
     r => t.equal(r, theError, 'closed should reject with the thrown error')
   );
@@ -58,12 +60,14 @@ test('Underlying sink: throwing write method', t => {
     }
   });
 
-  ws.write('a').then(
+  const writer = ws.getWriter();
+
+  writer.write('a').then(
     () => t.fail('write should not fulfill'),
     r => t.equal(r, theError, 'write should reject with the thrown error')
   );
 
-  ws.closed.then(
+  writer.closed.then(
     () => t.fail('closed should not fulfill'),
     r => t.equal(r, theError, 'closed should reject with the thrown error')
   );
@@ -80,14 +84,16 @@ test('Underlying sink: throwing abort getter', t => {
     }
   });
 
-  ws.abort(abortReason).then(
+  const writer = ws.getWriter();
+
+  writer.abort(abortReason).then(
     () => t.fail('abort should not fulfill'),
     r => t.equal(r, theError, 'abort should reject with the abort reason')
   );
 
-  ws.closed.then(
+  writer.closed.then(
     () => t.fail('closed should not fulfill'),
-    r => t.equal(r, abortReason, 'closed should reject with the thrown error')
+    r => t.equal(r.constructor, TypeError, 'closed should reject with a TypeError')
   );
 });
 
@@ -102,14 +108,16 @@ test('Underlying sink: throwing abort method', t => {
     }
   });
 
-  ws.abort(abortReason).then(
+  const writer = ws.getWriter();
+
+  writer.abort(abortReason).then(
     () => t.fail('abort should not fulfill'),
     r => t.equal(r, theError, 'abort should reject with the abort reason')
   );
 
-  ws.closed.then(
+  writer.closed.then(
     () => t.fail('closed should not fulfill'),
-    r => t.equal(r, abortReason, 'closed should reject with the thrown error')
+    r => t.equal(r.constructor, TypeError, 'closed should reject with a TypeError')
   );
 });
 
@@ -123,7 +131,8 @@ test('Underlying sink: throwing close getter', t => {
     }
   });
 
-  ws.close().then(
+  const writer = ws.getWriter();
+  writer.close().then(
     () => t.fail('close should not fulfill'),
     r => t.equal(r, theError, 'close should reject with the thrown error')
   );
@@ -139,7 +148,8 @@ test('Underlying sink: throwing close method', t => {
     }
   });
 
-  ws.close().then(
+  const writer = ws.getWriter();
+  writer.close().then(
     () => t.fail('close should not fulfill'),
     r => t.equal(r, theError, 'close should reject with the thrown error')
   );

@@ -2,7 +2,7 @@
 const test = require('tape-catch');
 
 test('TransformStream errors thrown in transform put the writable and readable in an errored state', t => {
-  t.plan(5);
+  t.plan(3);
 
   const thrownError = new Error('bad things are happening!');
   const ts = new TransformStream({
@@ -10,8 +10,6 @@ test('TransformStream errors thrown in transform put the writable and readable i
       throw thrownError;
     }
   });
-
-  t.equal(ts.writable.state, 'writable', 'writable starts in writable');
 
   const reader = ts.readable.getReader();
 
@@ -25,21 +23,22 @@ test('TransformStream errors thrown in transform put the writable and readable i
     e => t.equal(e, thrownError, 'readable\'s closed should be rejected with the thrown error')
   );
 
-  ts.writable.closed.then(
+  const writer = ts.writable.getWriter();
+
+  writer.closed.then(
     () => t.fail('writable\'s closed should not be fulfilled'),
     e => t.equal(e, thrownError, 'writable\'s closed should be rejected with the thrown error')
   );
 
-  ts.writable.write('a');
-  t.equal(ts.writable.state, 'waiting', 'writable becomes waiting immediately after throw');
+  writer.write('a');
 });
 
 test('TransformStream errors thrown in flush put the writable and readable in an errored state', t => {
-  t.plan(6);
+  t.plan(3);
 
   const thrownError = new Error('bad things are happening!');
   const ts = new TransformStream({
-    transform(chunk, enqueue, done) {
+    transform(chunk, done, enqueue) {
       done();
     },
     flush() {
@@ -59,14 +58,13 @@ test('TransformStream errors thrown in flush put the writable and readable in an
     e => t.equal(e, thrownError, 'readable\'s closed should be rejected with the thrown error')
   );
 
-  ts.writable.closed.then(
+  const writer = ts.writable.getWriter();
+
+  writer.closed.then(
     () => t.fail('writable\'s closed should not be fulfilled'),
     e => t.equal(e, thrownError, 'writable\'s closed should be rejected with the thrown error')
   );
 
-  t.equal(ts.writable.state, 'writable', 'writable starts in writable');
-  ts.writable.write('a');
-  t.equal(ts.writable.state, 'waiting', 'writable becomes waiting after a write');
-  ts.writable.close();
-  t.equal(ts.writable.state, 'closing', 'writable becomes closing after the close call');
+  writer.write('a');
+  writer.close();
 });
