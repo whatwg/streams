@@ -92,7 +92,7 @@ class ReadableStream {
     preventAbort = Boolean(preventAbort);
     preventCancel = Boolean(preventCancel);
 
-    const _source = this;
+    const source = this;
 
     let _resolvePipeToPromise;
     let _rejectPipeToPromise;
@@ -110,7 +110,7 @@ class ReadableStream {
       _resolvePipeToPromise = resolve;
       _rejectPipeToPromise = reject;
 
-      _reader = _source.getReader();
+      _reader = source.getReader();
       _writer = dest.getWriter();
 
       _reader.closed.catch(handleReaderClosedRejection);
@@ -123,17 +123,24 @@ class ReadableStream {
     });
 
     function releaseReader() {
+      console.log('pipeTo(): releaseReader()');
+
       _reader.releaseLock();
       _reader = undefined;
     }
 
     function releaseWriter() {
+      console.log('pipeTo(): releaseWriter()');
+
       _writer.releaseLock();
       _writer = undefined;
     }
 
     function done() {
       console.log('pipeTo(): done()');
+
+      assert(_reader === undefined);
+      assert(_writer === undefined);
 
       _state = 'done';
 
@@ -169,9 +176,13 @@ class ReadableStream {
         return;
       }
 
+      abortWriterCancelReader(reason, preventAbort, preventCancel);
+    }
+
+    function abortWriterCancelReader(reason, skipAbort, skipCancel) {
       const promises = [];
 
-      if (preventAbort === false) {
+      if (skipAbort === false) {
         _writer.abort(reason);
 
         releaseWriter();
@@ -188,13 +199,13 @@ class ReadableStream {
         ));
       }
 
-      if (preventCancel === false) {
+      if (skipCancel === false) {
         _reader.cancel(reason);
 
         releaseReader();
+      } else if (_lastRead === undefined) {
+        releaseReader();
       } else {
-        assert(_lastRead !== undefined);
-
         promises.push(_lastRead.then(
           () => {
             releaseReader();
@@ -316,33 +327,8 @@ class ReadableStream {
         return;
       }
 
-      releaseReader();
-
-      if (preventAbort === false) {
-        _writer.abort(reason);
-
-        releaseWriter();
-        finishWithRejection(reason);
-        return;
-      }
-
-      if (_lastWrite === undefined) {
-        releaseWriter();
-        finishWithRejection(reason);
-        return;
-      }
-
-      _lastWrite.then(
-        () => {
-          releaseWriter();
-          finishWithRejection(reason);
-        },
-        () => {
-          releaseWriter();
-          finishWithRejection(reason);
-        }
-      );
-      _state = 'waitingForLastWrite';
+      _lastRead = undefined;
+      abortWriterCancelReader(reason, preventAbort, true);
     }
 
     function handleUnexpectedWriterCloseAndError(reason) {
@@ -350,29 +336,8 @@ class ReadableStream {
         return;
       }
 
-      releaseWriter();
-
-      if (preventCancel === false) {
-        _reader.cancel(reason);
-
-        releaseReader();
-        finishWithRejection(reason);
-        return;
-      }
-
-      assert(_lastRead !== undefined);
-
-      _lastRead.then(
-        () => {
-          releaseReader();
-          finishWithRejection(reason);
-        },
-        () => {
-          releaseReader();
-          finishWithRejection(reason);
-        }
-      );
-      _state = 'waitingForLastRead';
+      _lastWrite = undefined;
+      abortWriterCancelReader(reason, true, preventCancel);
     }
 
     function handleWriterClosedFulfillment() {
