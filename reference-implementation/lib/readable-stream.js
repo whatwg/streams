@@ -169,16 +169,6 @@ class ReadableStream {
       done();
     }
 
-    function handleWriteRejection(reason) {
-      console.log('pipeTo(): handleWriteRejection()');
-
-      if (_state !== 'piping') {
-        return;
-      }
-
-      abortWriterCancelReader(reason, preventAbort, preventCancel);
-    }
-
     function abortWriterCancelReader(reason, skipAbort, skipCancel) {
       const promises = [];
 
@@ -227,6 +217,16 @@ class ReadableStream {
       }
 
       finishWithRejection(reason);
+    }
+
+    function handleWriteRejection(reason) {
+      console.log('pipeTo(): handleWriteRejection()');
+
+      if (_state !== 'piping') {
+        return;
+      }
+
+      abortWriterCancelReader(reason, preventAbort, preventCancel);
     }
 
     function handleReadValue(value) {
@@ -332,6 +332,8 @@ class ReadableStream {
     }
 
     function handleUnexpectedWriterCloseAndError(reason) {
+      console.log('pipeTo(): handleUnexpectedWriterCloseAndError()');
+
       if (_state !== 'piping') {
         return;
       }
