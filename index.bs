@@ -3276,9 +3276,8 @@ socket.
 <h3 id="example-rbs-push">A readable byte stream with an underlying push source and backpressure support</h3>
 
 The following function returns <a>readable byte streams</a> that allow efficient direct reading of TCP sockets, based on
-a hypothetical JavaScript translation of the POSIX socket API (the main innovation of which is translating
-<code>select(2)</code> into an <code><a idl class="non-normative">EventTarget</a></code> emitting a
-<code>readable</code> event). [[DOM]]
+a hypothetical JavaScript socket API. The socket object is an <code><a idl class="non-normative">EventTarget</a></code> 
+which emits a <code>readable</code> event (similar to the POSIX select(2) call). [[DOM]]
 
 This setup allows zero-copy reading directly into developer-supplied buffers. Additionally, it ensures that when data is
 available from the socket but not yet requested by the developer, it is enqueued in the stream's <a>internal queue</a>,
@@ -3290,7 +3289,7 @@ to avoid overflowing the kernel-space queue. In this case, an additional copy wi
   const DEFAULT_WINDOW_SIZE = 65536;
 
   function makeReadableBackpressureByteSocketStream(host, port) {
-    const socket = createHypotheticalSelect2Socket(host, port);
+    const socket = createHypotheticalTCPSocket(host, port);
 
     return new ReadableStream({
       type: "bytes",
