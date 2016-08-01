@@ -123,21 +123,21 @@ class ReadableStream {
     });
 
     function releaseReader() {
-      console.log('pipeTo(): releaseReader()');
+      //console.log('pipeTo(): releaseReader()');
 
       _reader.releaseLock();
       _reader = undefined;
     }
 
     function releaseWriter() {
-      console.log('pipeTo(): releaseWriter()');
+      //console.log('pipeTo(): releaseWriter()');
 
       _writer.releaseLock();
       _writer = undefined;
     }
 
     function done() {
-      console.log('pipeTo(): done()');
+      //console.log('pipeTo(): done()');
 
       assert(_reader === undefined);
       assert(_writer === undefined);
@@ -150,7 +150,7 @@ class ReadableStream {
     }
 
     function finishWithFulfillment() {
-      console.log('pipeTo(): finishWithFulfillment()');
+      //console.log('pipeTo(): finishWithFulfillment()');
 
       _resolvePipeToPromise(undefined);
       _resolvePipeToPromise = undefined;
@@ -160,7 +160,7 @@ class ReadableStream {
     }
 
     function finishWithRejection(reason) {
-      console.log('pipeTo(): finishWithRejection()');
+      //console.log('pipeTo(): finishWithRejection()');
 
       _rejectPipeToPromise(reason);
       _resolvePipeToPromise = undefined;
@@ -220,7 +220,7 @@ class ReadableStream {
     }
 
     function handleWriteRejection(reason) {
-      console.log('pipeTo(): handleWriteRejection()');
+      //console.log('pipeTo(): handleWriteRejection()');
 
       if (_state !== 'piping') {
         return;
@@ -230,7 +230,7 @@ class ReadableStream {
     }
 
     function handleReadValue(value) {
-      console.log('pipeTo(): handleReadValue()');
+      //console.log('pipeTo(): handleReadValue()');
 
       _lastWrite = _writer.write(value);
       _lastWrite.catch(handleWriteRejection);
@@ -242,14 +242,14 @@ class ReadableStream {
     }
 
     function handleReadDone() {
-      console.log('pipeTo(): handleReadDone()');
+      //console.log('pipeTo(): handleReadDone()');
 
       // Does not need to wait for lastRead since it occurs only on source closed.
 
       releaseReader();
 
       if (preventClose === false) {
-        console.log('pipeTo(): Close dest');
+        //console.log('pipeTo(): Close dest');
 
         // We don't use writer.closed. We can ensure that the microtask for writer.closed is run before any
         // writer.close() call so that we can determine whether the closure was caused by the close() or ws was already
@@ -294,7 +294,7 @@ class ReadableStream {
     }
 
     function doPipe() {
-      console.log('pipeTo(): doPipe()');
+      //console.log('pipeTo(): doPipe()');
 
       _lastRead = _reader.read();
 
@@ -321,7 +321,7 @@ class ReadableStream {
     }
 
     function handleReaderClosedRejection(reason) {
-      console.log('pipeTo(): handleReaderClosedRejection()');
+      //console.log('pipeTo(): handleReaderClosedRejection()');
 
       if (_state !== 'piping') {
         return;
@@ -332,7 +332,7 @@ class ReadableStream {
     }
 
     function handleUnexpectedWriterCloseAndError(reason) {
-      console.log('pipeTo(): handleUnexpectedWriterCloseAndError()');
+      //console.log('pipeTo(): handleUnexpectedWriterCloseAndError()');
 
       if (_state !== 'piping') {
         return;
@@ -343,13 +343,13 @@ class ReadableStream {
     }
 
     function handleWriterClosedFulfillment() {
-      console.log('pipeTo(): handleWriterClosedFulfillment()');
+      //console.log('pipeTo(): handleWriterClosedFulfillment()');
 
       handleUnexpectedWriterCloseAndError(new TypeError('dest closed unexpectedly'));
     }
 
     function handleWriterClosedRejection(reason) {
-      console.log('pipeTo(): handleWriterClosedRejection()');
+      //console.log('pipeTo(): handleWriterClosedRejection()');
 
       handleUnexpectedWriterCloseAndError(reason);
     }
