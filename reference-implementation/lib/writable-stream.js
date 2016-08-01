@@ -10,7 +10,6 @@ class WritableStream {
     // Temporary value. Never used. To be overwritten by the initializer code of the controller.
     this._state = 'writable';
     this._storedError = undefined;
-    this._backpressure = false;
 
     this._writer = undefined;
 
@@ -122,14 +121,13 @@ function WritableStreamAbort(stream, reason) {
   if (writer !== undefined) {
     defaultWriterClosedPromiseReject(writer, error);
 
-    if (state === 'writable' && stream._backpressure === true) {
+    if (state === 'writable' && WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
       defaultWriterReadyPromiseResolve(writer, undefined);
     }
   }
 
   stream._state = 'errored';
   stream._storedError = error;
-  stream._backpressure = false;
 
   return WritableStreamDefaultControllerAbort(stream._writableStreamController, reason);
 }
@@ -170,14 +168,13 @@ function WritableStreamError(stream, e) {
   if (writer !== undefined) {
     defaultWriterClosedPromiseReject(writer, e);
 
-    if (state === 'writable' && stream._backpressure === true) {
+    if (state === 'writable' && WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
       defaultWriterReadyPromiseResolve(writer, undefined);
     }
   }
 
   stream._state = 'errored';
   stream._storedError = e;
-  stream._backpressure = false;
 }
 
 function WritableStreamFinishClose(stream) {
@@ -206,13 +203,7 @@ function WritableStreamUpdateBackpressure(stream, backpressure) {
 
   assert(stream._state === 'writable');
 
-  if (stream._backpressure === false) {
-    if (backpressure === false) {
-      return;
-    }
-
-    stream._backpressure = true;
-
+  if (backpressure === true) {
     if (writer !== undefined) {
       defaultWriterReadyPromiseReset(writer);
     }
@@ -220,13 +211,7 @@ function WritableStreamUpdateBackpressure(stream, backpressure) {
     return;
   }
 
-  assert(stream._backpressure === true);
-
-  if (backpressure === true) {
-    return;
-  }
-
-  stream._backpressure = false;
+  assert(backpressure === false);
 
   if (writer !== undefined) {
     defaultWriterReadyPromiseResolve(writer, undefined);
@@ -259,7 +244,7 @@ class WritableStreamDefaultWriter {
       }
     }
 
-    if (state === 'writable' && stream._backpressure === true) {
+    if (state === 'writable' && WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
       defaultWriterReadyPromiseInitialize(this);
     } else {
       defaultWriterReadyPromiseInitializeAsResolved(this, undefined);
@@ -347,7 +332,7 @@ class WritableStreamDefaultWriter {
       defaultWriterClosedPromiseResetToRejected(this, releasedException);
     }
 
-    if (state === 'writable' && stream._backpressure === true) {
+    if (state === 'writable' && WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
       defaultWriterReadyPromiseReject(this, releasedException);
     } else {
       defaultWriterReadyPromiseResetToRejected(this, releasedException);
@@ -514,7 +499,7 @@ function WritableStreamDefaultWriterClose(writer) {
 
   const promise = WritableStreamAddWriteRequest(stream);
 
-  if (stream._backpressure === true) {
+  if (WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
     defaultWriterReadyPromiseResolve(writer, undefined);
   }
 
@@ -576,7 +561,10 @@ class WritableStreamDefaultController {
     this._strategySize = normalizedStrategy.size;
     this._strategyHWM = normalizedStrategy.highWaterMark;
 
-    WritableStreamDefaultControllerUpdateBackpressure(this);
+    const backpressure = WritableStreamDefaultControllerGetBackpressure(this);
+    if (backpressure !== false) {
+      WritableStreamUpdateBackpressure(stream, backpressure);
+    }
 
     const controller = this;
 
@@ -645,6 +633,8 @@ function WritableStreamDefaultControllerWrite(controller, chunk) {
 
   const writeRecord = { chunk: chunk };
 
+  const lastBackpressure = WritableStreamDefaultControllerGetBackpressure(controller);
+
   try {
     EnqueueValueWithSize(controller._queue, writeRecord, chunkSize);
   } catch (enqueueE) {
@@ -654,7 +644,10 @@ function WritableStreamDefaultControllerWrite(controller, chunk) {
 
   const state = stream._state;
   if (state === 'writable') {
-    WritableStreamDefaultControllerUpdateBackpressure(controller);
+    const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
+    if (lastBackpressure !== backpressure) {
+      WritableStreamUpdateBackpressure(stream, backpressure);
+    }
   }
 
   WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
@@ -750,9 +743,13 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
 
       WritableStreamFulfillWriteRequest(stream);
 
+      const lastBackpressure = WritableStreamDefaultControllerGetBackpressure(controller);
       DequeueValue(controller._queue);
       if (state !== 'closing') {
-        WritableStreamDefaultControllerUpdateBackpressure(controller);
+        const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
+        if (lastBackpressure !== backpressure) {
+          WritableStreamUpdateBackpressure(controller._controlledWritableStream, backpressure);
+        }
       }
 
       WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
@@ -764,10 +761,9 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   .catch(rethrowAssertionErrorRejection);
 }
 
-function WritableStreamDefaultControllerUpdateBackpressure(controller) {
+function WritableStreamDefaultControllerGetBackpressure(controller) {
   const desiredSize = WritableStreamDefaultControllerGetDesiredSize(controller);
-  const backpressure = desiredSize <= 0;
-  WritableStreamUpdateBackpressure(controller._controlledWritableStream, backpressure);
+  return desiredSize <= 0;
 }
 
 // A client of WritableStreamDefaultController may use these functions directly to bypass state check.
@@ -778,7 +774,7 @@ function WritableStreamDefaultControllerError(controller, e) {
   const state = stream._state;
   assert(state === 'writable' || state === 'closing');
 
-  controller._queue = [];
-
   WritableStreamError(stream, e);
+
+  controller._queue = [];
 }
