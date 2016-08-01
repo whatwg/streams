@@ -1,18 +1,11 @@
 {
-  "name": "whatwg-streams",
-  "version": "0.0.0",
+  "private": true,
   "description": "Reference implementation and tests for the WHATWG Streams Standard",
   "scripts": {
     "pretest": "bash ./update-web-platform-tests.sh",
     "test": "node --expose_gc run-tests.js | tap-spec && npm run wpt",
     "wpt": "node --expose_gc run-web-platform-tests.js"
   },
-  "repository": "whatwg/streams",
-  "keywords": [
-    "streams",
-    "whatwg",
-    "polyfill"
-  ],
   "author": "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
   "contributors": [
     "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
