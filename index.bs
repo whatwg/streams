@@ -3646,6 +3646,7 @@ itself will evolve in these ways.
 <h2 id="acks" class="no-num">Acknowledgments</h2>
 
 The editor would like to thank
+Adam Rice,
 Anne van Kesteren,
 Ben Kelly,
 Brian di Palma,
