@@ -20,15 +20,9 @@ test('desiredSize on a released writer', t => {
   const writer = ws.getWriter();
   writer.releaseLock();
 
-  try {
-    writer.desiredSize;
-  } catch(e) {
-    t.equal(e.constructor, TypeError, 'desiredSize should throw a TypeError');
-    t.end();
-    return;
-  }
+  t.throws(() => writer.desiredSize, TypeError, 'desiredSize should throw a TypeError');
 
-  t.fail('writer.desiredSize did not throw');
+  t.end();
 });
 
 test('ws.getWriter() on a closing WritableStream', t => {

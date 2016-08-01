@@ -21,6 +21,7 @@ test('abort() on a released writer rejects', t => {
     t.end();
   },
   r => {
+    t.equal(r.constructor, TypeError, 'abort() should reject with a TypeError');
     t.end();
   });
 });
