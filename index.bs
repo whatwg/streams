@@ -3277,7 +3277,7 @@ socket.
 
 The following function returns <a>readable byte streams</a> that allow efficient direct reading of TCP sockets, based on
 a hypothetical JavaScript socket API. The socket object is an <code><a idl class="non-normative">EventTarget</a></code> 
-which emits a <code>readable</code> event. [[DOM]]
+which emits a <code>readable</code> event (similar to the POSIX select(2) call). [[DOM]]
 
 This setup allows zero-copy reading directly into developer-supplied buffers. Additionally, it ensures that when data is
 available from the socket but not yet requested by the developer, it is enqueued in the stream's <a>internal queue</a>,
