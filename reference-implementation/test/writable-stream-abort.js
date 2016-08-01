@@ -103,7 +103,7 @@ test('Fulfillment value of ws.abort() call must be undefined even if the underly
   });
 });
 
-test('WritableStream if sink\'s abort throws, the promise returned by ws.abort() rejects', t => {
+test('WritableStream if sink\'s abort throws, the promise returned by writer.abort() rejects', t => {
   const errorInSinkAbort = new Error('Sorry, it just wasn\'t meant to be.');
   const ws = new WritableStream({
     abort() {
@@ -114,6 +114,27 @@ test('WritableStream if sink\'s abort throws, the promise returned by ws.abort()
   const writer = ws.getWriter();
 
   const abortPromise = writer.abort(undefined);
+  abortPromise.then(
+    () => {
+      t.fail('abortPromise is fulfilled unexpectedly');
+      t.end();
+    },
+    r => {
+      t.equal(r, errorInSinkAbort, 'rejection reason of abortPromise must be errorInSinkAbort');
+      t.end();
+    }
+  );
+});
+
+test('WritableStream if sink\'s abort throws, the promise returned by ws.abort() rejects', t => {
+  const errorInSinkAbort = new Error('Sorry, it just wasn\'t meant to be.');
+  const ws = new WritableStream({
+    abort() {
+      throw errorInSinkAbort;
+    }
+  });
+
+  const abortPromise = ws.abort(undefined);
   abortPromise.then(
     () => {
       t.fail('abortPromise is fulfilled unexpectedly');

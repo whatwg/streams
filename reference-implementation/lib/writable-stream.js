@@ -13,6 +13,8 @@ class WritableStream {
 
     this._writer = undefined;
 
+    // This queue is placed here instead of the writer class in order to allow for passing a writer to the next data
+    // producer without waiting for the queued writes to finish.
     this._writeRequests = [];
 
     // Initialize to undefined first because the constructor of the controller checks this
@@ -34,7 +36,7 @@ class WritableStream {
 
   get locked() {
     if (IsWritableStream(this) === false) {
-      throw CreateWritableStreamBrandCheckException('locked');
+      throw streamBrandCheckException('locked');
     }
 
     return IsWritableStreamLocked(this);
@@ -42,19 +44,19 @@ class WritableStream {
 
   abort(reason) {
     if (IsWritableStream(this) === false) {
-      return Promise.reject(CreateWritableStreamBrandCheckException('abort'));
+      return Promise.reject(streamBrandCheckException('abort'));
     }
 
     if (IsWritableStreamLocked(this) === true) {
-      return Promise.reject(new TypeError('Cannot abort a stream that already has a reader'));
+      return Promise.reject(new TypeError('Cannot abort a stream that already has a writer'));
     }
 
-    WritableStreamAbort(this, reason);
+    return WritableStreamAbort(this, reason);
   }
 
   getWriter() {
     if (IsWritableStream(this) === false) {
-      throw CreateWritableStreamBrandCheckException('getWriter');
+      throw streamBrandCheckException('getWriter');
     }
 
     return AcquireWritableStreamDefaultWriter(this);
@@ -65,7 +67,7 @@ exports.WritableStream = WritableStream;
 
 // Helper functions for the WritableStream.
 
-function CreateWritableStreamBrandCheckException(name) {
+function streamBrandCheckException(name) {
   return new TypeError('WritableStream.prototype.' + name + ' can only be used on a WritableStream')
 }
 
@@ -262,7 +264,7 @@ class WritableStreamDefaultWriter {
 
   get closed() {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      return Promise.reject(CreateWritableStreamDefaultWriterBrandCheckException('closed'));
+      return Promise.reject(defaultWriterBrandCheckException('closed'));
     }
 
     return this._closedPromise;
@@ -270,11 +272,11 @@ class WritableStreamDefaultWriter {
 
   get desiredSize() {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      throw CreateWritableStreamDefaultWriterBrandCheckException('desiredSize');
+      throw defaultWriterBrandCheckException('desiredSize');
     }
 
     if (this._ownerWritableStream === undefined) {
-      throw CreateWritableStreamDefaultWriterLockException('desiredSize');
+      throw defaultWriterLockException('desiredSize');
     }
 
     return WritableStreamDefaultWriterGetDesiredSize(this)
@@ -282,7 +284,7 @@ class WritableStreamDefaultWriter {
 
   get ready() {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      return Promise.reject(CreateWritableStreamDefaultWriterBrandCheckException('ready'));
+      return Promise.reject(defaultWriterBrandCheckException('ready'));
     }
 
     return this._readyPromise;
@@ -290,11 +292,11 @@ class WritableStreamDefaultWriter {
 
   abort(reason) {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      return Promise.reject(CreateWritableStreamDefaultWriterBrandCheckException('abort'));
+      return Promise.reject(defaultWriterBrandCheckException('abort'));
     }
 
     if (this._ownerWritableStream === undefined) {
-      return Promise.reject(CreateWritableStreamDefaultWriterLockException('abort'));
+      return Promise.reject(defaultWriterLockException('abort'));
     }
 
     return WritableStreamDefaultWriterAbort(this, reason);
@@ -302,13 +304,13 @@ class WritableStreamDefaultWriter {
 
   close() {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      return Promise.reject(CreateWritableStreamDefaultWriterBrandCheckException('close'));
+      return Promise.reject(defaultWriterBrandCheckException('close'));
     }
 
     const stream = this._ownerWritableStream;
 
     if (stream === undefined) {
-      return Promise.reject(CreateWritableStreamDefaultWriterLockException('close'));
+      return Promise.reject(defaultWriterLockException('close'));
     }
 
     if (stream._state === 'closing') {
@@ -320,7 +322,7 @@ class WritableStreamDefaultWriter {
 
   releaseLock() {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      throw CreateWritableStreamDefaultWriterBrandCheckException('releaseLock');
+      throw defaultWriterBrandCheckException('releaseLock');
     }
 
     const stream = this._ownerWritableStream;
@@ -353,11 +355,11 @@ class WritableStreamDefaultWriter {
 
   write(chunk) {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      return Promise.reject(CreateWritableStreamDefaultWriterBrandCheckException('write'));
+      return Promise.reject(defaultWriterBrandCheckException('write'));
     }
 
     if (this._ownerWritableStream === undefined) {
-      return Promise.reject(CreateWritableStreamDefaultWriterLockException('write to'));
+      return Promise.reject(defaultWriterLockException('write to'));
     }
 
     if (this._ownerWritableStream._state === 'closing') {
@@ -370,11 +372,11 @@ class WritableStreamDefaultWriter {
 
 // Helper functions for the WritableStreamDefaultWriter.
 
-function CreateWritableStreamDefaultWriterBrandCheckException(name) {
+function defaultWriterBrandCheckException(name) {
   return new TypeError('WritableStreamDefaultWriter.prototype.' + name + ' can only be used on a WritableStreamDefaultWriter');
 }
 
-function CreateWritableStreamDefaultWriterLockException(name) {
+function defaultWriterLockException(name) {
   return new TypeError('Cannot ' + name + ' a stream using a released writer');
 }
 
