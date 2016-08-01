@@ -12,20 +12,15 @@ module.exports = class TransformStream {
       throw new TypeError('transform must be a function');
     }
 
-    let writeChunk, writeDone, errorWritable;
-    let transforming = false;
-    let chunkWrittenButNotYetTransformed = false;
+    let resolveWriteChunk, resolvePullRequested, nextTransformCompleted;
+    let errorWritable;
     this.writable = new WritableStream({
       start(error) {
         errorWritable = error;
       },
       write(chunk) {
-        writeChunk = chunk;
-        chunkWrittenButNotYetTransformed = true;
-
-        const p = new Promise(resolve => writeDone = resolve);
-        maybeDoTransform();
-        return p;
+        resolveWriteChunk(chunk);
+        return nextTransformCompleted;
       },
       close() {
         try {
@@ -45,30 +40,37 @@ module.exports = class TransformStream {
         errorReadable = c.error.bind(c);
       },
       pull() {
-        if (chunkWrittenButNotYetTransformed === true) {
-          maybeDoTransform();
-        }
+        resolvePullRequested();
+        return nextTransformCompleted;
       }
     }, transformer.readableStrategy);
 
-    function maybeDoTransform() {
-      if (transforming === false) {
-        transforming = true;
-        try {
-          transformer.transform(writeChunk, enqueueInReadable, transformDone);
-          writeChunk = undefined;
-          chunkWrittenButNotYetTransformed = false;
-        } catch (e) {
-          transforming = false;
-          errorWritable(e);
-          errorReadable(e);
-        }
-      }
+    // Create promises to be resolved by the invocation of write() and pull()
+    // and hook up our transform invocation so that we only transform when we
+    // both have something to transform and an explicit pull request from the
+    // readable.
+    function prepareNextTransform() {
+      let haveWriteChunk = new Promise(resolve => {
+        resolveWriteChunk = resolve;
+      });
+      let pullRequested = new Promise(resolve => {
+        resolvePullRequested = resolve;
+      });
+      let readyForTransform  = Promise.all([haveWriteChunk, pullRequested]);
+      nextTransformCompleted = readyForTransform.then(([writeChunk]) => {
+        return new Promise(resolve => {
+          try {
+            transformer.transform(writeChunk, enqueueInReadable, () => {
+              prepareNextTransform();
+              resolve();
+            });
+          } catch (e) {
+            errorWritable(e);
+            errorReadable(e);
+          }
+        });
+      });
     }
-
-    function transformDone() {
-      transforming = false;
-      writeDone();
-    }
+    prepareNextTransform();
   }
 };
