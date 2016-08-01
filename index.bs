@@ -3205,7 +3205,7 @@ happens in the <code>start</code> function.
     return new ReadableStream({
       start(controller) {
         ws.onmessage = event => controller.enqueue(event.data);
-        ws.onend = () => controller.close();
+        ws.onclose = () => controller.close();
         ws.onerror = () => controller.error(new Error("The WebSocket errored!"));
       },
 
@@ -3276,7 +3276,7 @@ socket.
 <h3 id="example-rbs-push">A readable byte stream with an underlying push source and backpressure support</h3>
 
 The following function returns <a>readable byte streams</a> that allow efficient direct reading of TCP sockets, based on
-a hypothetical JavaScript socket API. The socket object is an <code><a idl class="non-normative">EventTarget</a></code> 
+a hypothetical JavaScript socket API. The socket object is an <code><a idl class="non-normative">EventTarget</a></code>
 which emits a <code>readable</code> event (similar to the POSIX select(2) call). [[DOM]]
 
 This setup allows zero-copy reading directly into developer-supplied buffers. Additionally, it ensures that when data is
@@ -3567,7 +3567,7 @@ source abstractions.
 
     start(controller) {
       this._ws.onmessage = event => controller.enqueue(event.data);
-      this._ws.onend = () => controller.close();
+      this._ws.onclose = () => controller.close();
 
       this._ws.addEventListener("error", () => {
         controller.error(new Error("The WebSocket errored!"));
