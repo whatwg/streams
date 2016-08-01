@@ -3289,7 +3289,7 @@ to avoid overflowing the kernel-space queue. In this case, an additional copy wi
   const DEFAULT_WINDOW_SIZE = 65536;
 
   function makeReadableBackpressureByteSocketStream(host, port) {
-    const socket = createHypotheticalTCPIPSocket(host, port);
+    const socket = createHypotheticalTCPSocket(host, port);
 
     return new ReadableStream({
       type: "bytes",
