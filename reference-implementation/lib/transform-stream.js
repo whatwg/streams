@@ -6,7 +6,7 @@ const { WritableStream } = require('./writable-stream.js');
 // Functions passed to the transformer.start().
 
 function TransformStreamCloseReadable(transformStream) {
-  console.log('TransformStreamCloseReadable()');
+  //console.log('TransformStreamCloseReadable()');
 
   if (transformStream._errored === true) {
     throw new TypeError('TransformStream is already errored');
@@ -81,7 +81,6 @@ function TransformStreamError(transformStream, e) {
 // Functions passed to transformer.transform().
 
 function TransformStreamChunkDone(transformStream) {
-      console.log('sjsjs' + transformStream);
   if (transformStream._errroed === true) {
     throw new TypeError('TransformStream is already errored');
   }
@@ -103,7 +102,7 @@ function TransformStreamChunkDone(transformStream) {
 // Abstract operations.
 
 function TransformStreamErrorInternal(transformStream, e) {
-  console.log('TransformStreamErrorInternal()');
+  //console.log('TransformStreamErrorInternal()');
 
   transformStream._errored = true;
 
@@ -122,7 +121,7 @@ function TransformStreamErrorInternal(transformStream, e) {
 }
 
 function TransformStreamTransformIfNeeded(transformStream) {
-  console.log('TransformStreamTransformIfNeeded()');
+  //console.log('TransformStreamTransformIfNeeded()');
 
   if (transformStream._chunkPending === false) {
     return;
@@ -188,7 +187,7 @@ class TransformStreamSink {
   }
 
   write(chunk) {
-    console.log('TransformStreamSink.write()');
+    //console.log('TransformStreamSink.write()');
 
     const transformStream = this._transformStream;
 
@@ -218,7 +217,7 @@ class TransformStreamSink {
   }
 
   close() {
-    console.log('TransformStreamSink.close()');
+    //console.log('TransformStreamSink.close()');
 
     const transformStream = this._transformStream;
 
