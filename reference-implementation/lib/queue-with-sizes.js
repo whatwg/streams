@@ -2,12 +2,12 @@
 const assert = require('assert');
 const { IsFiniteNonNegativeNumber } = require('./helpers.js');
 
-const InternalTotalSize = Symbol('[[InternalTotalSize]]');
-
 exports.DequeueValue = queue => {
   assert(queue.length > 0, 'Spec-level failure: should never dequeue from an empty queue.');
   const pair = queue.shift();
-  queue[InternalTotalSize] -= pair.size;
+
+  queue._totalSize -= pair.size;
+
   return pair.value;
 };
 
@@ -19,17 +19,18 @@ exports.EnqueueValueWithSize = (queue, value, size) => {
 
   queue.push({ value: value, size: size });
 
-  if (queue[InternalTotalSize] === undefined) {
-    queue[InternalTotalSize] = 0;
+  if (queue._totalSize === undefined) {
+    queue._totalSize = 0;
   }
-  queue[InternalTotalSize] += size;
+  queue._totalSize += size;
 };
 
+// This implementation is not per-spec. Total size is cached for speed.
 exports.GetTotalQueueSize = queue => {
-  if (queue[InternalTotalSize] === undefined) {
-    queue[InternalTotalSize] = 0;
+  if (queue._totalSize === undefined) {
+    queue._totalSize = 0;
   }
-  return queue[InternalTotalSize];
+  return queue._totalSize;
 };
 
 exports.PeekQueueValue = queue => {
