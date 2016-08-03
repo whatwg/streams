@@ -107,22 +107,7 @@ function WritableStreamAbort(stream, reason) {
 
   const error = new TypeError('Aborted');
 
-  for (const writeRequest of stream._writeRequests) {
-    writeRequest._reject(error);
-  }
-  stream._writeRequests = [];
-
-  const writer = stream._writer;
-  if (writer !== undefined) {
-    defaultWriterClosedPromiseReject(writer, error);
-
-    if (state === 'writable' && WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
-      defaultWriterReadyPromiseResolve(writer, undefined);
-    }
-  }
-
-  stream._state = 'errored';
-  stream._storedError = error;
+  WritableStreamError(stream, error);
 
   return WritableStreamDefaultControllerAbort(stream._writableStreamController, reason);
 }
@@ -149,14 +134,12 @@ function WritableStreamError(stream, e) {
   const state = stream._state;
   assert(state === 'writable' || state === 'closing');
 
-  const writeRequests = stream._writeRequests;
-  while (writeRequests.length > 0) {
-    const writeRequest = writeRequests.shift();
+  for (const writeRequest of stream._writeRequests) {
     writeRequest._reject(e);
   }
+  stream._writeRequests = [];
 
   const writer = stream._writer;
-
   if (writer !== undefined) {
     defaultWriterClosedPromiseReject(writer, e);
 
@@ -172,15 +155,13 @@ function WritableStreamError(stream, e) {
 function WritableStreamFinishClose(stream) {
   assert(stream._state === 'closing');
 
-  stream._state = 'closed';
-
-  const writer = stream._writer;
-
   // writer cannot be released while close() is ongoing. So, we can assert that
   // there's an active writer.
-  assert(writer !== undefined);
+  assert(stream._writer !== undefined);
 
-  defaultWriterClosedPromiseResolve(writer);
+  stream._state = 'closed';
+
+  defaultWriterClosedPromiseResolve(stream._writer);
 }
 
 function WritableStreamFulfillWriteRequest(stream) {
@@ -191,21 +172,17 @@ function WritableStreamFulfillWriteRequest(stream) {
 }
 
 function WritableStreamUpdateBackpressure(stream, backpressure) {
-  const writer = stream._writer;
-
   assert(stream._state === 'writable');
 
-  if (backpressure === true) {
-    if (writer !== undefined) {
-      defaultWriterReadyPromiseReset(writer);
-    }
-
+  const writer = stream._writer;
+  if (writer === undefined) {
     return;
   }
 
-  assert(backpressure === false);
-
-  if (writer !== undefined) {
+  if (backpressure === true) {
+      defaultWriterReadyPromiseReset(writer);
+  } else {
+    assert(backpressure === false);
     defaultWriterReadyPromiseResolve(writer, undefined);
   }
 }
