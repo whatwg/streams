@@ -2716,6 +2716,171 @@ nothrow>SyncWritableStreamStateWithQueue ( <var>stream</var> )</h4>
   1. Return *undefined*.
 </emu-alg>
 
+<h3 id="default-writer-class" interface lt="WritableStreamDefaultWriter">Class
+<code>WritableStreamDefaultWriter</code></h3>
+
+The {{WritableStreamDefaultWriter}} class represents a <a>default writer</a> designed to be vended by a
+{{WritableStream}} instance.
+
+<h4 id="default-writer-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the {{WritableStreamDefaultWriter}} class in something close to the syntax of [[!ECMASCRIPT]], it
+would look like
+
+<pre><code class="lang-javascript">
+  class WritableStreamDefaultWriter {
+    constructor(stream)
+
+    get closed()
+    get desiredSize()
+    get ready()
+
+    abort(reason)
+    close()
+    releaseLock()
+    write(chunk)
+  }
+</code></pre>
+
+<h4 id="default-writer-internal-slots">Internal Slots</h4>
+
+Instances of {{WritableStreamDefaultWriter}} are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[closedPromise]]
+    <td>A promise returned by the writer's {{WritableStreamDefaultWriter/closed}} getter
+  </tr>
+  <tr>
+    <td>\[[ownerWritableStream]]
+    <td>A {{WritableStream}} instance that owns this writer
+  </tr>
+  <tr>
+    <td>\[[readyPromise]]
+    <td>A promise returned by the writer's {{WritableStreamDefaultWriter/ready}} getter
+  </tr>
+</table>
+
+<h4 id="default-writer-constructor" constructor for="WritableStreamDefaultWriter"
+lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>stream</var>)</h4>
+
+<div class="note">
+  The <code>WritableStreamDefaultWriter</code> constructor is generally not meant to be used directly; instead, a
+  stream's {{WritableStream/getWriter()}} method should be used.
+</div>
+
+<emu-alg>
+  1. If ! IsWritableStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If ! IsWritableStreamLocked(_stream_) is *true*, throw a *TypeError* exception.
+  1. Set *this*.[[ownerWritableStream]] to _stream_.
+  1. Set _stream_.[[writer]] to *this*.
+  1. Let _state_ be _stream_.[[state]].
+  1. If _state_ is `"writable"` or `"closing"`,
+    1. Set _writer_.[[closedPromise]] to a new promise.
+  1. Otherwise,
+    1. If _state_ is `"closed"`,
+      1. Set _writer_.[[closedPromise]] to a new promise resolved with *undefined*.
+    1. Otherwise,
+      1. Assert: _state_ is `"errored"`.
+      1. Set _writer_.[[closedPromise]] to a new promise rejected with _stream_.[[storedError]].
+  1. If _state_ is `"writable"` and ! WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]] is *true*,
+    1. Set _writer_.[[readyPromise]] to a new promise.
+  1. Otherwise,
+    1. Set _writer_.[[readyPromise]] to a new promise resolved with *undefined*.
+</emu-alg>
+
+<h4 id="default-writer-prototype">Properties of the {{WritableStreamDefaultWriter}} Prototype</h4>
+
+<h5 id="default-writer-closed" attribute for="WritableStreamDefaultWriter" lt="closed">get closed</h5>
+
+<div class="note">
+  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed or the
+  writer's lock is <a lt="release a write lock">released</a>, or rejected if the stream ever errors.
+</div>
+
+<emu-alg>
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Return *this*.[[closedPromise]].
+</emu-alg>
+
+<h5 id="default-writer-desiredSize" attribute for="WritableStreamDefaultWriter" lt="desiredSize">get desiredSize</h5>
+
+<emu-alg>
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*.[[ownerWritableStream]] is *undefined*, throw a *TypeError* exception.
+  1. Return ! WritableStreamDefaultWriterGetDesiredSize(*this*).
+</emu-alg>
+
+<h5 id="default-writer-ready" attribute for="WritableStreamDefaultWriter" lt="ready">get ready</h5>
+
+<emu-alg>
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Return *this*.[[readyPromise]].
+</emu-alg>
+
+<h5 id="default-writer-abort" method for="WritableStreamDefaultWriter">abort(<var>reason</var>)</h5>
+
+<div class="note">
+  If the writer is <a lt="active writer">active</a>, the <code>abort</code> method behaves the same as that for the
+  associated stream.
+</div>
+
+<emu-alg>
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If *this*.[[ownerWritableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
+  1. Return ! WritableStreamDefaultWriterAbort(*this*, _reason_).
+</emu-alg>
+
+<h5 id="default-writer-close" method for="WritableStreamDefaultWriter">close()</h5>
+
+<emu-alg>
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Let _stream_ be *this*.[[ownerWritableStream]].
+  1. If _stream_ is *undefined*, return a promise rejected with a *TypeError* exception.
+  1. If _stream_.[[state]] is `"closing"`, return a promise rejected with a *TypeError* exception.
+  1. Return ! WritableStreamDefaultWriterClose(*this*).
+</emu-alg>
+
+<h5 id="default-writer-release-lock" method for="WritableStreamDefaultWriter">releaseLock()</h5>
+
+<div class="note">
+  The <code>releaseLock</code> method <a lt="release a write lock">releases the writer's lock</a> on the corresponding
+  stream. After the lock is released, the writer is no longer <a lt="active writer">active</a>. If the associated
+  stream is errored when the lock is released, the writer will appear errored in the same way from now on; otherwise,
+  the writer will appear closed.
+</div>
+
+<emu-alg>
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _stream_ be *this*.[[ownerWritableStream]].
+  1. If _stream_ is *undefined*, return *undefined*.
+  1. Assert: _stream_.[[writer]] is not *undefined*.
+  1. If _state_ is `"writable"` or `"closing"`, reject _writer_.[[closedPromise]] with a *TypeError* exception.
+  1. Otherwise, set _writer_.[[closedPromise]] to a new promise rejected with a *TypeError* exception.
+  1. If _state_ is `"writable"` and ! WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, reject _writer_.[[readyPromise]] with a *TypeError* exception.
+  1. Otherwise, set _writer_.[[readyPromise]] to a new promise rejected with a *TypeError* exception.
+  1. Set _stream_.[[writer]] to *undefined*.
+  1. Set *this*.[[ownerReadableStream]] to *undefined*.
+</emu-alg>
+
+<h5 id="default-writer-write" method for="WritableStreamDefaultWriter">write(<var>chunk</var>)</h5>
+
+<emu-alg>
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Let _stream_ be *this*.[[ownerWritableStream]].
+  1. If _stream_ is *undefined*, return a promise rejected with a *TypeError* exception.
+  1. If _stream_.[[state]] is `"closing"`, return a promise rejected with a *TypeError* exception.
+  1. Return ! WritableStreamDefaultWriterWrite(*this*, _chunk_).
+</emu-alg>
+
 <h2 id="ts">Transform Streams</h2>
 
 Transform streams have been developed in the testable implementation, but not yet re-encoded in spec language.

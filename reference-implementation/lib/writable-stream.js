@@ -342,11 +342,13 @@ class WritableStreamDefaultWriter {
       return Promise.reject(defaultWriterBrandCheckException('write'));
     }
 
-    if (this._ownerWritableStream === undefined) {
+    const stream = this._ownerWritableStream;
+
+    if (stream === undefined) {
       return Promise.reject(defaultWriterLockException('write to'));
     }
 
-    if (this._ownerWritableStream._state === 'closing') {
+    if (stream._state === 'closing') {
       return Promise.reject(new TypeError('Cannot write to an already-closed stream'));
     }
 
