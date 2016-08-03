@@ -5,6 +5,9 @@ const { IsFiniteNonNegativeNumber } = require('./helpers.js');
 exports.DequeueValue = queue => {
   assert(queue.length > 0, 'Spec-level failure: should never dequeue from an empty queue.');
   const pair = queue.shift();
+
+  queue._totalSize -= pair.size;
+
   return pair.value;
 };
 
@@ -15,19 +18,19 @@ exports.EnqueueValueWithSize = (queue, value, size) => {
   }
 
   queue.push({ value: value, size: size });
+
+  if (queue._totalSize === undefined) {
+    queue._totalSize = 0;
+  }
+  queue._totalSize += size;
 };
 
+// This implementation is not per-spec. Total size is cached for speed.
 exports.GetTotalQueueSize = queue => {
-  let totalSize = 0;
-
-  queue.forEach(pair => {
-    assert(typeof pair.size === 'number' && !Number.isNaN(pair.size) &&
-      pair.size !== +Infinity && pair.size !== -Infinity,
-      'Spec-level failure: should never find an invalid size in the queue.');
-    totalSize += pair.size;
-  });
-
-  return totalSize;
+  if (queue._totalSize === undefined) {
+    queue._totalSize = 0;
+  }
+  return queue._totalSize;
 };
 
 exports.PeekQueueValue = queue => {
