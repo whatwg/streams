@@ -224,21 +224,24 @@ similarly, avoiding writes that would cause the desired size to go negative.
 
 <h3 id="locking">Locking</h3>
 
-<!-- TODO: writable streams too, probably -->
-
 A <dfn>readable stream reader</dfn>, or simply reader, is an object that allows direct reading of <a>chunks</a> from a
 <a>readable stream</a>. Without a reader, a <a>consumer</a> can only perform high-level operations on the readable
-stream: waiting for the stream to become closed or errored, <a lt="cancel a readable stream">canceling</a> the stream,
-or <a>piping</a> the readable stream to a writable stream. Many of those high-level operations actually use a reader
-themselves.
+stream: <a lt="cancel a readable stream">canceling</a> the stream, or <a>piping</a> the readable stream to a writable
+stream.
 
-A given readable stream only has at most one reader at a time. We say in this case the stream is
-<dfn lt="locked to a reader">locked to the reader</dfn>, and that the reader is <dfn lt="active reader">active</dfn>.
+Similarly, a <dfn>writable stream writer</dfn>, or simply writer, is an object that allows direct writing of
+<a>chunks</a> to a <a>writable stream</a>. Without a writer, a <a>producer</a> can only perform the high-level
+operations of <a lt="abort a writable stream">aborting</a> the stream or <a>piping</a> a readable stream to the writable
+stream.
 
-A reader also has the capability to <dfn lt="release a read lock">release its read lock</dfn>, which makes it no
-longer active. At this point another reader can be acquired at will. If the stream becomes closed or errored as a
-result of the behavior of its <a>underlying source</a> or via <a lt="cancel a readable stream">cancellation</a>, its
-reader (if one exists) will automatically release its lock.
+(Under the covers, these high-level operations actually use a reader or writer themselves.)
+
+A given readable or writable stream only has at most one reader or writer at a time. We say in this case the stream is
+<dfn lt="locked to a reader|locked to a writer">locked</dfn>, and that the reader or writer is <dfn
+lt="active reader|active writer">active</dfn>.
+
+A reader or writer also has the capability to <dfn lt="release a read lock|release a write lock">release its
+lock</dfn>, which makes it no longer active, and allows further readers or writers to be acquired.
 
 A <a>readable byte stream</a> has the ability to vend two types of readers: <dfn>default readers</dfn> and <dfn>BYOB
 readers</dfn>. BYOB ("bring your own buffer") readers allow reading into a developer-supplied buffer, thus minimizing
@@ -379,13 +382,13 @@ Instances of {{ReadableStream}} are created with the internal slots described in
     </tr>
   </thead>
   <tr>
+    <td>\[[disturbed]]
+    <td>A boolean flag set to <emu-val>true</emu-val> when the stream has been read from or canceled
+  </tr>
+  <tr>
     <td>\[[readableStreamController]]
     <td>A {{ReadableStreamDefaultController}} or {{ReadableByteStreamController}} created with the ability to control
     the state and queue of this stream; also used for the IsReadableStream brand check
-  </tr>
-  <tr>
-    <td>\[[disturbed]]
-    <td>A boolean flag set to <emu-val>true</emu-val> when the stream has been read from or canceled
   </tr>
   <tr>
     <td>\[[reader]]
@@ -395,7 +398,7 @@ Instances of {{ReadableStream}} are created with the internal slots described in
   <tr>
     <td>\[[state]]
     <td>A string containing the stream's current state, used internally; one of <code>"readable"</code>,
-      <code>"closed"</code>, or <code>"errored"</code>.
+      <code>"closed"</code>, or <code>"errored"</code>
   </tr>
   <tr>
     <td>\[[storedError]]
@@ -2399,11 +2402,8 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
 <h2 id="ws">Writable Streams</h2>
 
 <div class="warning" id="ws-not-ready-yet">
-  Although readable streams have been significantly evolved recently due to implementation progress providing feedback,
-  writable streams have not yet caught up to all the discoveries in that space. As such, while the following spec will
-  be the basis for a final API, it is expected to change in several important ways before being ready to ship. Please
-  follow along on the <a href="https://github.com/whatwg/streams/labels/writable%20streams">writable streams issues
-  label</a> for details.
+  The writable stream spec is still stabilizing, although it has recently improved a lot and is more aligned with our
+  vision. Still, it is not quite yet ready to ship.
 </div>
 
 <h3 id="ws-intro">Using Writable Streams</h3>
@@ -2422,15 +2422,17 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
 </div>
 
 <div class="example">
-  You can also write directly to writable streams using their {{WritableStream/write()}} and {{WritableStream/close()}}
-  methods. Since writable streams queue any incoming writes, and take care internally to forward them to the
-  <a>underlying sink</a> in sequence, you can indiscriminately write to a writable stream without much ceremony:
+  You can also write directly to writable streams by acquiring a <a lt="writable stream writer">writer</a> and using its
+  {{WritableStreamDefaultWriter/write()}} and {{WritableStreamDefaultWriter/close()}} methods. Since writable streams
+  queue any incoming writes, and take care internally to forward them to the <a>underlying sink</a> in sequence, you can
+  indiscriminately write to a writable stream without much ceremony:
 
   <pre><code class="lang-javascript">
     function writeArrayToStream(array, writableStream) {
-      array.forEach(chunk => writableStream.write(chunk));
+      const writer = writableStream.getWriter();
+      array.forEach(chunk => writer.write(chunk));
 
-      return writableStream.close();
+      return writer.close();
     }
 
     writeArrayToStream([1, 2, 3, 4, 5], writableStream)
@@ -2441,15 +2443,16 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
 
 <div class="example">
   In the previous example we only paid attention to the success or failure of the entire stream, by looking at the
-  promise returned by its {{WritableStream/close()}} method. That promise (which can also be accessed using the
-  {{WritableStream/closed}} getter) will reject if anything goes wrong with the stream—initializing it, writing to it,
-  or closing it. And it will fulfill once the stream is successfully closed. Often this is all you care about.
+  promise returned by its {{WritableStreamDefaultWriter/close()}} method. That promise (which can also be accessed using
+  the {{WritableStreamDefaultWriter/closed}} getter) will reject if anything goes wrong with the stream—initializing it,
+  writing to it, or closing it. And it will fulfill once the stream is successfully closed. Often this is all you care
+  about.
 
   However, if you care about the success of writing a specific <a>chunk</a>, you can use the promise returned by the
-  stream's {{WritableStream/write()}} method:
+  stream's {{WritableStreamDefaultWriter/write()}} method:
 
   <pre><code class="lang-javascript">
-    writableStream.write("i am a chunk of data")
+    writer.write("i am a chunk of data")
       .then(() => console.log("chunk successfully written!"))
       .catch(e => console.error(e));
   </code></pre>
@@ -2470,15 +2473,12 @@ like
 
 <pre><code class="lang-javascript">
   class WritableStream {
-    constructor(underlyingSink = {}, { size, highWaterMark = 0 } = {})
+    constructor(underlyingSink = {}, { size, highWaterMark = 1 } = {})
 
-    get closed()
-    get ready()
-    get state()
+    get locked()
 
     abort(reason)
-    close()
-    write(chunk)
+    getWriter()
   }
 </code></pre>
 
@@ -2494,26 +2494,9 @@ Instances of {{WritableStream}} are created with the internal slots described in
     </tr>
   </thead>
   <tr>
-    <td>\[[closedPromise]]
-    <td>A promise that becomes fulfilled when the stream becomes <code>"closed"</code>; returned by the
-      {{WritableStream/closed}} getter
-  </tr>
-  <tr>
-    <td>\[[queue]]
-    <td>A List representing the stream's internal queue of pending writes
-  </tr>
-  <tr>
-    <td>\[[started]]
-    <td>A boolean flag indicating whether the <a>underlying sink</a> has finished starting
-  </tr>
-  <tr>
-    <td>\[[startedPromise]]
-    <td>A promise storing the result of starting the <a>underlying sink</a>, used to delay actions until that is
-      complete
-  </tr>
-  <tr>
     <td>\[[state]]
-    <td>A string containing the stream's current state; returned by the {{WritableStream/state}} getter
+    <td>A string containing the stream's current state, used internally; one of <code>"writable"</code>,
+    <code>"closing"</code>, <code>"closed"</code>, or <code>"errored"</code>
   </tr>
   <tr>
     <td>\[[storedError]]
@@ -2521,40 +2504,30 @@ Instances of {{WritableStream}} are created with the internal slots described in
       on the stream while in the <code>"errored"</code> state
   </tr>
   <tr>
-    <td>\[[strategySize]]
-    <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
-      the size of <a>chunks</a> written; can be <emu-val>undefined</emu-val> for the default behavior.
+    <td>\[[writableStreamController]]
+    <td>A {{WritableStreamDefaultController}} created with the ability to control the state and queue of this stream;
+    also used for the IsWritableStream brand check
   </tr>
   <tr>
-    <td>\[[strategyHWM]]
-    <td>A number supplied to the constructor as part of the stream's <a>queuing strategy</a>, indicating the point at
-      which the stream will apply <a>backpressure</a> to any <a>producers</a>.
+    <td>\[[writer]]
+    <td>A {{WritableStreamDefaultWriter}} instance, if the stream is <a>locked to a writer</a>, or
+    <emu-val>undefined</emu-val> if it is not
   </tr>
   <tr>
-    <td>\[[readyPromise]]
-    <td>A promise returned by the {{WritableStream/ready}} getter
-  </tr>
-  <tr>
-    <td>\[[underlyingSink]]
-    <td>An object representation of the stream's <a>underlying sink</a>; also used for the
-      <a href="#is-writable-stream">IsWritableStream</a> brand check
-  </tr>
-  <tr>
-    <td>\[[writing]]
-    <td>A boolean flag indicating whether the stream is currently writing to the <a>underlying sink</a>, used to
-      prevent concurrent such writes
+    <td>\[[writeRequests]]
+    <td>A List representing the stream's internal queue of pending writes
   </tr>
 </table>
 
 <h4 id="ws-constructor" constructor for="WritableStream" lt="WritableStream(underlyingSink, queuingStrategy)">new
-WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWaterMark</var> = 0 } = {})</h4>
+WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWaterMark</var> = 1 } = {})</h4>
 
 <div class="note">
   The <code>underlyingSink</code> object passed to the constructor can implement any of the following methods to govern
   how the constructed stream instance behaves:
 
   <ul>
-    <li> <code>start(error)</code> is called immediately, and should perform any actions necessary to acquire
+    <li> <code>start(controller)</code> is called immediately, and should perform any actions necessary to acquire
       access to the <a>underlying sink</a>. If this process is asynchronous, it can return a promise to signal success
       or failure.
     <li> <code>write(chunk)</code> is called when a new <a>chunk</a> of data is ready to be written to the
@@ -2567,18 +2540,20 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
       signal success or failure. The stream implementation guarantees that this method will be called only after all
       queued-up writes have succeeded.
     <li> <code>abort(reason)</code> is called when the producer signals they wish to abruptly close the stream
-      and put it in an <code>"errored"</code> state. It should clean up any held resources, much like
-      <code>close</code>, but perhaps with some custom handling. Unlike <code>close</code>, <code>abort</code> will be
-      called even if writes are queued up; those <a>chunks</a> will be thrown away. If this process is asynchronous, it
-      can return a promise to signal success or failure. If no abort method is passed, by default the
-      <code>close</code> method will be called instead.
+      and put it in an errored state. It should clean up any held resources, much like <code>close</code>, but perhaps
+      with some custom handling. Unlike <code>close</code>, <code>abort</code> will be called even if writes are queued
+      up; those <a>chunks</a> will be thrown away. If this process is asynchronous, it can return a promise to signal
+      success or failure. If no abort method is passed, by default the <code>close</code> method will be called instead.
   </ul>
+
+  The <code>controller</code> object passed to <code>start</code> is an instance of {{WritableStreamDefaultController}},
+  and has the ability to error the stream.
 
   The constructor also accepts a second argument containing the <a>queuing strategy</a> object with
   two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
   supplied <code>strategy</code> could be an instance of the built-in {{CountQueuingStrategy}} or
   {{ByteLengthQueuingStrategy}} classes, or it could be custom. If no strategy is supplied, the default
-  behavior will be the same as a {{CountQueuingStrategy}} with a <a>high water mark</a> of 0.
+  behavior will be the same as a {{CountQueuingStrategy}} with a <a>high water mark</a> of 1.
 </div>
 
 <div class="note">
