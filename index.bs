@@ -2864,6 +2864,65 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   1. Return ! WritableStreamDefaultWriterWrite(*this*, _chunk_).
 </emu-alg>
 
+<h3 id="rs-writer-abstract-ops">Writable Stream Writer Abstract Operations</h3>
+
+<h4 id="is-writable-stream-default-writer" aoid="IsWritableStreamDefaultWriter" nothrow>IsWritableStreamDefaultWriter (
+<var>x</var> )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have an [[ownerWritableStream]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="writable-stream-default-writer-abort" aoid="WritableStreamDefaultWriterAbort"
+nothrow>WritableStreamDefaultWriterAbort ( <var>writer</var>, <var>reason</var> )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _writer_.[[ownerWritableStream]].
+  1. Assert: _stream_ is not *undefined*.
+  1. Return ! WritableStreamAbort(_stream_, _reason_).
+</emu-alg>
+
+<h4 id="writable-stream-default-writer-close" aoid="WritableStreamDefaultWriterClose"
+nothrow>WritableStreamDefaultWriterClose ( <var>writer</var> )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _writer_.[[ownerWritableStream]].
+  1. Assert: _stream_ is not *undefined*.
+  1. Let _state_ be _stream_.[[state]].
+  1. If _state_ is `"close"` or `"errored"`, return a promise rejected with a *TypeError* exception.
+  1. Assert: _state_ is `"writable"`.
+  1. Let _promise_ be ! WritableStreamAddWriteRequest(_stream_).
+  1. If ! WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, resolve _writer_.[[readyPromise]] with *undefined*.
+  1. Set _stream_.[[state]] to `"closing"`.
+  1. Perform ! WritableStreamDefaultControllerClose(_stream_.[[writableStreamController]]).
+  1. Return _promise_.
+</emu-alg>
+
+<h4 id="writable-stream-default-writer-get-desired-size" aoid="WritableStreamDefaultWriterGetDesiredSize"
+nothrow>WritableStreamDefaultWriterGetDesiredSize ( <var>writer</var> )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _writer_.[[ownerWritableStream]].
+  1. If _stream_.[[state]] is `"errored"`, return *null*.
+  1. Return ! WritableStreamDefaultControllerGetDesiredSize(_stream_.[[writableStreamController]]).
+</emu-alg>
+
+<h4 id="writable-stream-default-writer-write" aoid="WritableStreamDefaultWriterWrite"
+nothrow>WritableStreamDefaultWriterWrite ( <var>writer</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _writer_.[[ownerWritableStream]].
+  1. Assert: _stream_ is not *undefined*.
+  1. Let _state_ be _stream_.[[state]].
+  1. If _state_ is `"closed"` or `"errored"`, return a promise rejected with a *TypeError* exception.
+  1. Assert: _state_ is `"writable"`.
+  1. Let _promise_ be ! WritableStreamAddWriteRequest(_stream_).
+  1. Perform ! WritableStreamDefaultControllerWrite(_stream_.[[writableStreamController]], _chunk_).
+  1. Return _promise_.
+</emu-alg>
+
 <h2 id="ts">Transform Streams</h2>
 
 Transform streams have been developed in the testable implementation, but not yet re-encoded in spec language.
