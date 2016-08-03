@@ -533,7 +533,7 @@ class WritableStreamDefaultController {
     this._strategyHWM = normalizedStrategy.highWaterMark;
 
     const backpressure = WritableStreamDefaultControllerGetBackpressure(this);
-    if (backpressure !== false) {
+    if (backpressure === true) {
       WritableStreamUpdateBackpressure(stream, backpressure);
     }
 

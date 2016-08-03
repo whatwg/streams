@@ -2967,6 +2967,258 @@ nothrow>WritableStreamDefaultWriterWrite ( <var>writer</var>, <var>chunk</var> )
   1. Return _promise_.
 </emu-alg>
 
+<h3 id="ws-default-controller-class" interface lt="WritableStreamDefaultController">Class
+<code>WritableStreamDefaultController</code></h3>
+
+The {{WritableStreamDefaultController}} class has methods that allow control of a {{WritableStream}}'s state. When
+constructing a {{WritableStream}}, the <a>underlyingsink</a> is given a corresponding
+{{WritableStreamDefaultController}} instance to manipulate.
+
+<h4 id="ws-default-controller-class-definition">Class Definition</h4>
+
+<em>This section is non-normative.</em>
+
+If one were to write the {{WritableStreamDefaultController}} class in something close to the syntax of [[!ECMASCRIPT]],
+it would look like
+
+<pre><code class="lang-javascript">
+  class WritableStreamDefaultController {
+    constructor(stream, underlyingSink, size, highWaterMark)
+
+    error(e)
+  }
+</code></pre>
+
+<h4 id="ws-default-controller-internal-slots">Internal Slots</h4>
+
+Instances of {{WritableStreamDefaultController}} are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[controlledWritableStream]]
+    <td>The {{WritableStream}} instance controlled
+  </tr>
+  <tr>
+    <td>\[[queue]]
+    <td>A List representing the stream's internal queue of <a>chunks</a>
+  </tr>
+  <tr>
+    <td>\[[started]]
+    <td>A boolean flag indicating whether the <a>underlying sink</a> has finished starting
+  </tr>
+  <tr>
+    <td>\[[strategyHWM]]
+    <td>A number supplied to the constructor as part of the stream's <a>queuing strategy</a>, indicating the point at
+      which the stream will apply <a>backpressure</a> to its <a>underlying sink</a>
+  </tr>
+  <tr>
+    <td>\[[strategySize]]
+    <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
+      the size of enqueued <a>chunks</a>; can be <emu-val>undefined</emu-val> for the default behavior
+  </tr>
+  <tr>
+    <td>\[[underlyingSink]]
+    <td>An object representation of the stream's <a>underlying sink</a>; also
+      used for the <a href="#is-writable-stream">IsWritableStream</a> brand check
+  </tr>
+  <tr>
+    <td>\[[writing]]
+    <td>A boolean flag set to <emu-val>true</emu-val> while the <a>underlying sink</a>'s <code>write</code> method is
+      executing and has not yet fulfilled, used to prevent reentrant calls
+  </tr>
+</table>
+
+<h4 id="ws-default-controller-constructor" constructor for="WritableStreamDefaultController"
+lt="WritableStreamDefaultController(stream, underlyingSink, size, highWaterMark)">new
+WritableStreamDefaultController(<var>stream</var>, <var>underlyingSink</var>, <var>size</var>,
+<var>highWaterMark</var>)</h4>
+
+<div class="note">
+  The <code>WritableStreamDefaultController</code> constructor cannot be used directly; it only works on a
+  {{WritableStream}} that is in the middle of being constructed.
+</div>
+
+<emu-alg>
+  1. If ! IsWritableStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If _stream_.[[writableStreamController]] is not *undefined*, throw a *TypeError* exception.
+  1. Set *this*.[[controlledWritableStream]] to _stream_.
+  1. Set *this*.[[underlyingSink]] to _underlyingSink_.
+  1. Set *this*.[[queue]] to a new empty List.
+  1. Set *this*.[[started]] and *this*.[[writing]] to *false*.
+  1. Let _normalizedStrategy_ be ? ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
+  1. Set *this*.[[strategySize]] to _normalizedStrategy_.[[size]] and *this*.[[strategyHWM]] to
+     _normalizedStrategy_.[[highWaterMark]].
+  1. Let _backpressure_ be ! WritableStreamDefaultControllerGetBackpressure(*this*).
+  1. If _backpressure_ is *true*, perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
+  1. Let _controller_ be *this*.
+  1. Let _startResult_ be ? InvokeOrNoop(_underlyingSink_, `"start"`, « *this* »).
+  1. Resolve _startResult_ as a promise:
+    1. Upon fulfillment,
+      1. Set _controller_.[[started]] to *true*.
+      1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
+    1. Upon rejection with reason _r_,
+      1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
+</emu-alg>
+
+<h4 id="ws-default-controller-prototype">Properties of the {{WritableStreamDefaultController}} Prototype</h4>
+
+<h5 id="ws-default-controller-error" method for="WritableStreamDefaultController">error(<var>e</var>)</h5>
+
+<emu-alg>
+  1. If ! IsWritableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _state_ be *this*.[[controlledWritableStream]].[[state]].
+  1. If _state_ is `"closed"` or `"errored"`, throw a *TypeError* exception.
+  1. Perform ! WritableStreamDefaultControllerError(*this*, _e_).
+</emu-alg>
+
+<h3 id="ws-default-controller-abstract-ops">Writable Stream Default Controller Abstract Operations</h3>
+
+<h4 id="is-writable-stream-default-controller" aoid="IsWritableStreamDefaultController"
+nothrow>IsWritableStreamDefaultController ( <var>x</var> )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have an [[underlyingSink]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="writable-stream-default-controller-abort" aoid="WritableStreamDefaultControllerAbort"
+nothrow>WritableStreamDefaultControllerAbort ( <var>controller</var>, <var>reason</var> )</h4>
+
+<emu-alg>
+  1. Set _controller_.[[queue]] to a new empty List.
+  1. Let _sinkAbortPromise_ be ! PromiseInvokeOrFallbackOrNoop(_controller_.[[underlyingSink]], `"abort"`, « _reason_ », `"close"`, « »).
+  1. Upon fulfillment of _sinkAbortPromise_,
+    1. Return *undefined*.
+</emu-alg>
+
+<h4 id="writable-stream-default-controller-close" aoid="WritableStreamDefaultControllerClose"
+nothrow>WritableStreamDefaultControllerClose ( <var>controller</var> )</h4>
+
+<emu-alg>
+  1. Perform ! EnqueueValueWithSize(_controller_.[[queue]], `"close"`, *0*).
+  1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
+</emu-alg>
+
+<h4 id="writable-stream-default-controller-get-desired-size" aoid="WritableStreamDefaultControllerGetDesiredSize"
+nothrow>WritableStreamDefaultControllerGetDesiredSize ( <var>controller</var> )</h4>
+
+<emu-alg>
+  1. Let _queueSize_ be ! GetTotalQueueSize(_controller_.[[queue]]).
+  1. Return _controller_.[[strategyHWM]] - _queueSize_.
+</emu-alg>
+
+<h4 id="writable-stream-default-controller-write" aoid="WritableStreamDefaultControllerWrite"
+nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _controller_.[[controlledWritableStream]].
+  1. Assert: _stream_.[[state]] is `"writable"`.
+  1. Let _chunkSize_ be *1*.
+  1. If _controller_.[[strategySize]] is not *undefined*,
+    1. Set _chunkSize_ to Call(_controller_.[[strategySize]], *undefined*, « ‍_chunk_ »).
+      1. If _chunkSize_ is an abrupt completion,
+        1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_,‍_chunkSize_.[[Value]]).
+        1. Return a promise rejected with _chunkSize_.[[Value]].
+  1. Let _writeRecord_ be Record {[[chunk]]: _chunk_}.
+  1. Let _lastBackpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
+  1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_.[[queue]], _writeRecord_, _chunkSize_).
+  1. If _enqueueResult_ is an abrupt completion,
+    1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_,‍_enqueueResult_.[[Value]]).
+    1. Return a promise rejected with _enqueueResult_.[[Value]].
+  1. Let _state_ be _stream_.[[state]].
+  1. If _state_ is `"writable"`,
+    1. Let _backpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
+    1. If _lastBackpressure_ is not _backpressure_, perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
+  1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
+</emu-alg>
+
+<h4 id="writable-stream-default-controller-advance-queue-if-needed" aoid="WritableStreamDefaultControllerAdvanceQueueIfNeeded"
+nothrow>WritableStreamDefaultControllerAdvanceQueueIfNeeded ( <var>controller</var> )</h4>
+
+<emu-alg>
+  1. Let _state_ be _controller_.[[controlledWritableStream]].[[state]].
+  1. If _state_ is `"closed"` or `"errored"`, return.
+  1. If _controller_.[[started]] is *false*, return.
+  1. If _controller_.[[queue]] is emtpy, return.
+  1. If _controller_.[[writing]] is *true*, return.
+  1. Let _writeRecord_ be ! PeekQueueValue(_controller_.[[queue]]).
+  1. If _writeRecord_ is `"close"`, perform WritableStreamDefaultControllerProcessClose(_controller_).
+  1. Otherwise, perform WritableStreamDefaultControllerProcessWrite(_controller_, _writeRecord_.[[chunk]]).
+</emu-alg>
+
+<h4 id="writable-stream-default-controller-error-if-needed" aoid="WritableStreamDefaultControllerErrorIfNeeded"
+nothrow>WritableStreamDefaultControllerErrorIfNeeded ( <var>controller</var>, <var>e</var> )</h4>
+
+<emu-alg>
+  1. Let _state_ be _controller_.[[controlledWritableStream]].[[state]].
+  1. If _state_ is `"writable"` or `"closing"`, perform ! WritableStreamDefaultControllerError(_controller_, _e_).
+</emu-alg>
+
+<h4 id="writable-stream-default-controller-process-close" aoid="WritableStreamDefaultControllerProcessClose"
+nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _controller_.[[controlledWritableStream]].
+  1. Assert: _stream_.[[state]] is `"closing"`.
+  1. Perform ! DequeueValue(_controller_.[[queue]]).
+  1. Assert: _controller_.[[queue]] is empty.
+  1. Let _sinkClosePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"close"`).
+  1. Upon fulfillment of _sinkClosePromise_,
+    1. If _stream_.[[state]] is not `"closing"`, return.
+    1. Perform ! WritableStreamFulfillWriteRequest(_stream_).
+    1. Perform ! WritableStreamFinishClose(_stream_).
+  1. Upon rejection of _sinkClosePromise_ with reason _r_,
+    1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
+</emu-alg>
+
+<h4 id="writable-stream-default-controller-process-write" aoid="WritableStreamDefaultControllerProcessWrite"
+nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+  1. Set _controller_.[[writing]] to *true*.
+  1. Let _sinkWritePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"write"`, « ‍_chunk_ »).
+  1. Upon fulfillment of _sinkWritePromise_,
+    1. Let _stream_ be _controller_.[[controlledWritableStream]].
+    1. Let _state_ be _stream_.[[state]].
+    1. If _state_ is `"errored"` or `"closed"`, return.
+    1. Set _controller_.[[writing]] to *false*.
+    1. Perform ! WritableStreamFulfillWriteRequest(_stream_).
+    1. Let _lastBackpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
+    1. Perform ! DequeueValue(_controller_.[[queue]]).
+    1. If _state_ is not `"closing"`,
+      1. Let _backpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
+      1. If _lastBackpressure_ is not _backpressure_, perform ! WritableStreamUpdateBackpressure(_controller_.[[controlledWritableStream]], _backpressure_).
+    1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
+  1. Upon rejection of _sinkWritePromise_ with reason _r_,
+    1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
+</emu-alg>
+
+<h4 id="writable-stream-default-controller-get-backpressure" aoid="WritableStreamDefaultControllerGetBackpressure"
+nothrow>WritableStreamDefaultControllerGetBackpressure ( <var>controller</var> )</h4>
+
+<emu-alg>
+  1. Let _desiredSize_ be ! WritableStreamDefaultControllerGetDesiredSize(_controller_).
+  1. Return _desiredSize_ <= *0*.
+</emu-alg>
+
+<h4 id="writable-stream-default-controller-error" aoid="WritableStreamDefaultControllerError"
+nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>e</var> )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _controller_.[[controlledWritableStream]].
+  1. Let _state_ be _stream_.[[state]].
+  1. Assert: _state_ is `"writable"` or `"closing"`.
+  1. Perform ! WritableStreamError(_stream_, _e_).
+  1. Set _controller_.[[queue]] to a new empty List.
+</emu-alg>
+
 <h2 id="ts">Transform Streams</h2>
 
 Transform streams have been developed in the testable implementation, but not yet re-encoded in spec language.
