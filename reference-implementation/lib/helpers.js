@@ -26,7 +26,7 @@ exports.toInteger = v => {
 
 exports.createDataProperty = (o, p, v) => {
   assert(exports.typeIsObject(o));
-  Object.defineProperty(o, p, { value: v, writable: true, enumerable: true, configurable: true });
+  o[p] = v;
 };
 
 exports.createArrayFromList = elements => {
@@ -41,10 +41,10 @@ exports.ArrayBufferCopy = (dest, destOffset, src, srcOffset, n) => {
 
 exports.CreateIterResultObject = (value, done) => {
   assert(typeof done === 'boolean');
-  const obj = {};
-  Object.defineProperty(obj, 'value', { value: value, enumerable: true, writable: true, configurable: true });
-  Object.defineProperty(obj, 'done', { value: done, enumerable: true, writable: true, configurable: true });
-  return obj;
+  return {
+    value: value,
+    done: done,
+  };
 };
 
 exports.IsFiniteNonNegativeNumber = v => {
@@ -73,15 +73,11 @@ exports.PromiseInvokeOrNoop = (O, P, args) => {
   let method;
   try {
     method = O[P];
-  } catch (methodE) {
-    return Promise.reject(methodE);
-  }
 
-  if (method === undefined) {
-    return Promise.resolve(undefined);
-  }
+    if (method === undefined) {
+      return Promise.resolve(undefined);
+    }
 
-  try {
     return Promise.resolve(method.apply(O, args));
   } catch (e) {
     return Promise.reject(e);
