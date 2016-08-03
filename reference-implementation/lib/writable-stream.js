@@ -6,29 +6,24 @@ const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } = require('./queue-with-sizes.js');
 
 class WritableStream {
-  constructor(underlyingSink = {}, { size, highWaterMark } = {}) {
-    // Temporary value. Never used. To be overwritten by the initializer code of the controller.
+  constructor(underlyingSink = {}, { size, highWaterMark = 1 } = {}) {
     this._state = 'writable';
     this._storedError = undefined;
 
     this._writer = undefined;
 
-    // This queue is placed here instead of the writer class in order to allow for passing a writer to the next data
-    // producer without waiting for the queued writes to finish.
-    this._writeRequests = [];
-
     // Initialize to undefined first because the constructor of the controller checks this
     // variable to validate the caller.
     this._writableStreamController = undefined;
+
+    // This queue is placed here instead of the writer class in order to allow for passing a writer to the next data
+    // producer without waiting for the queued writes to finish.
+    this._writeRequests = [];
 
     const type = underlyingSink.type;
 
     if (type !== undefined) {
       throw new RangeError('Invalid type is specified');
-    }
-
-    if (highWaterMark === undefined) {
-      highWaterMark = 1;
     }
 
     this._writableStreamController = new WritableStreamDefaultController(this, underlyingSink, size, highWaterMark);

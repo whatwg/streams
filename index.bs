@@ -540,7 +540,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
       return pump();
 
       function pump() {
-        return reader.read().then(({ value, done })=> {
+        return reader.read().then(({ value, done }) => {
           if (done) {
             return chunks;
           }
@@ -2566,169 +2566,58 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
 </div>
 
 <emu-alg>
-  1. Set *this*.[[underlyingSink]] to _underlyingSink_.
-  1. Set *this*.[[closedPromise]] to a new promise.
-  1. Set *this*.[[readyPromise]] to a new promise resolved with *undefined*.
-  1. Set *this*.[[queue]] to a new empty List.
-  1. Set *this*.[[state]] to "writable".
-  1. Set *this*.[[started]] and *this*.[[writing]] to *false*.
-  1. Let _normalizedStrategy_ be ? ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
-  1. Set *this*.[[strategySize]] to _normalizedStrategy_.[[size]] and *this*.[[strategyHWM]] to _normalizedStrategy_.[[highWaterMark]].
-  1. Perform ! SyncWritableStreamStateWithQueue(*this*).
-  1. Let _error_ be a new <a><code>WritableStream</code> error function</a>.
-  1. Set _error_.[[stream]] to *this*.
-  1. Let _startResult_ be ? InvokeOrNoop(_underlyingSink_, "start", « _error_ »).
-  1. Set *this*.[[startedPromise]] to the result of resolving _startResult_ as a promise.
-    1. Upon fulfillment,
-      1. Set *this*.[[started]] to *true*.
-      1. Set *this*.[[startedPromise]] to *undefined*.
-    1. Upon rejection with reason _r_, perform ! ErrorWritableStream(*this*, _r_).
-</emu-alg>
-
-A <dfn>{{WritableStream}} error function</dfn> is an anonymous built-in function that is used to allow
-<a>underlying sinks</a> to error their associated writable stream. Each {{WritableStream}} error function has
-a \[[stream]] internal slot. When a {{WritableStream}} error function <var>F</var> is called with argument
-<var>e</var>, it performs the following steps:
-
-<emu-alg>
-  1. Let _stream_ be _F_.[[stream]].
-  1. Perform ErrorWritableStream(_stream_, _e_).
-  1. Return *undefined*.
+  1. Set *this*.[[state]] to `"writable"`.
+  1. Set *this*.[[storedError]], *this*.[[writer]], and *this*.[[writableStreamController]] to *undefined*.
+  1. Set *this*.[[writeRequests]] to a new empty List.
+  1. Let _type_ be ? GetV(_underlyingSource_, `"type"`).
+  1. If _type_ is not *undefined*, throw a *RangeError* exception. <p class="note">This is to allow us to add new
+     potential types in the future, without backward-compatibility concerns.</p>
+  1. Set *this*.[[writableStreamController]] to ? Construct(`<a idl>WritableStreamDefaultController</a>`, « *this*,
+     _underlyingSink_, _size_, _highWaterMark_ »).
 </emu-alg>
 
 <h4 id="ws-prototype">Properties of the {{WritableStream}} Prototype</h4>
 
-<h5 id="ws-closed" attribute for="WritableStream" lt="closed">get closed</h5>
+<h5 id="ws-locked" attribute for="WritableStream" lt="locked">get locked</h5>
 
 <div class="note">
-  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected
-  if it ever errors.
-</div>
-
-<emu-alg>
-  1. If ! IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. Return *this*.[[closedPromise]].
-</emu-alg>
-
-<h5 id="ws-ready" attribute for="WritableStream" lt="ready">get ready</h5>
-
-<div class="note">
-  The <code>ready</code> getter returns a promise that will be fulfilled when the stream transitions away from the
-  <code>"waiting"</code> state to any other state. Once the stream transitions back to <code>"waiting"</code>, the
-  getter will return a new promise that stays pending until the next state transition.
-
-  In essence, this promise gives a signal as to when any backpressure has let up (or that the stream has been closed
-  or errored).
-</div>
-
-<emu-alg>
-  1. If ! IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. Return *this*.[[readyPromise]].
-</emu-alg>
-
-<h5 id="ws-state" attribute for="WritableStream" lt="state">get state</h5>
-
-<div class="note">
-  The <code>state</code> getter returns the state of the stream, which will be one of the following:
-
-  <dl>
-    <dt><code>"waiting"</code>
-    <dd>The stream's internal queue is full; that is, the stream is
-      exerting <a>backpressure</a>. Use {{WritableStream/ready}} to be notified of when the pressure subsides.
-
-    <dt><code>"writable"</code>
-    <dd>The stream's internal queue is not full; call {{WritableStream/write()}} until backpressure is exerted.
-
-    <dt><code>"closing"</code>
-    <dd>The stream's {{WritableStream/close()}} method has been called, and a command to close is in the queue or
-      being processed by the <a>underlying sink</a>; attempts to write will now fail.
-
-    <dt><code>"closed"</code>
-    <dd>The <a>underlying sink</a> has been closed; writing is no longer possible.
-
-    <dt><code>"errored"</code>
-    <dd>An error occurred interacting with the <a>underlying sink</a> or the stream has been aborted, so the stream is
-      now dead.
-  </dl>
+  The <code>locked</code> getter returns whether or not the writable stream is <a>locked to a writer</a>.
 </div>
 
 <emu-alg>
   1. If ! IsWritableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. Return *this*.[[state]].
+  1. Return ! IsWritableStreamLocked(*this*).
 </emu-alg>
 
 <h5 id="ws-abort" method for="WritableStream">abort(<var>reason</var>)</h5>
 
 <div class="note">
-  The <code>abort</code> method signals that the producer can no longer successfully write to the stream and it should
-  be immediately moved to an <code>"errored"</code> state, with any queued-up writes discarded. This will also execute
-  any abort mechanism of the <a>underlying sink</a>.
+  The <code>abort</code> method <a lt="abort a writable stream">aborts</a> the stream, signaling that the producer can
+  no longer successfully write to the stream and it should be immediately moved to an errored state, with any queued-up
+  writes discarded. This will also execute any abort mechanism of the <a>underlying sink</a>.
 </div>
 
 <emu-alg>
   1. If ! IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If *this*.[[state]] is "closed", return a promise resolved with *undefined*.
-  1. If *this*.[[state]] is "errored", return a promise rejected with *this*.[[storedError]].
-  1. Perform ! ErrorWritableStream(*this*, _reason_).
-  1. Let _sinkAbortPromise_ be ! PromiseInvokeOrFallbackOrNoop(*this*.[[underlyingSink]], "abort", « _reason_ »,
-     "close", «  »).
-  1. Return the result of transforming _sinkAbortPromise_ by a fulfillment handler that returns *undefined*.
+  1. If ! IsWritableStreamLocked(*this*) is *true*, return a promise rejected with a *TypeError* exception.
+  1. Return ! WritableStreamAbort(*this*, _reason_).
 </emu-alg>
 
-<h5 id="ws-close" method for="WritableStream">close()</h5>
+<h5 id="ws-get-writer" method for="WritableStream">getWriter()</h5>
 
 <div class="note">
-  The <code>close</code> method signals that the producer is done writing chunks to the stream and wishes to move the
-  stream to a <code>"closed"</code> state. This queues an action to close the stream, such that once any currently
-  queued-up writes complete, the close mechanism of the <a>underlying sink</a> will execute, releasing any held
-  resources. In the meantime, the stream will be in a <code>"closing"</code> state.
+  The <code>getWriter</code> method creates a <a lt="writable stream writer">writer</a> (an instance of
+  {{WritableStreamDefaultWriter}}) and <a lt="locked to a writer">locks</a> the stream to the new writer. While the
+  stream is locked, no other writer can be acquired until this one is <a lt="release a write lock">released</a>.
+
+  This functionality is especially useful for creating abstractions that desire the ability to write to a stream without
+  interruption or interleaving. By getting a writer for the stream, you can ensure nobody else can write at the same
+  time, which would cause the resulting written data to be unpredictable and probably useless.
 </div>
 
 <emu-alg>
-  1. If ! IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If *this*.[[state]] is "closing" or "closed", return a promise rejected with a *TypeError* exception.
-  1. If *this*.[[state]] is "errored", return a promise rejected with *this*.[[storedError]].
-  1. If *this*.[[state]] is "waiting", resolve *this*.[[readyPromise]] with *undefined*.
-  1. Set *this*.[[state]] to "closing".
-  1. Perform ! EnqueueValueWithSize(*this*.[[queue]], "close", *0*).
-  1. Perform ! CallOrScheduleWritableStreamAdvanceQueue(*this*).
-  1. Return *this*.[[closedPromise]].
-</emu-alg>
-
-<h5 id="ws-write" method for="WritableStream">write(<var>chunk</var>)</h5>
-
-<div class="note">
-  The <code>write</code> method adds a write to the stream's internal queue, instructing the stream to
-  write the given <a>chunk</a> of data to the <a>underlying sink</a> once all other pending writes have finished
-  successfully. It returns a promise that will be fulfilled or rejected depending on the success or failure of writing
-  the chunk to the underlying sink.
-
-  The impact of enqueuing this chunk will be immediately reflected in the stream's {{WritableStream/state}} property; in
-  particular, if the internal queue is now full according to the stream's <a>queuing strategy</a>, the stream will
-  exert backpressure by changing its state to <code>"waiting"</code>.
-</div>
-
-<emu-alg>
-  1. If ! IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If *this*.[[state]] is `"closing"` or `"closed"`, return a promise rejected with a *TypeError* exception.
-  1. If *this*.[[state]] is `"errored"`, return a promise rejected with *this*.[[storedError]].
-  1. Assert: *this*.[[state]] is either `"waiting"` or `"writable"`.
-  1. Let _chunkSize_ be *1*.
-  1. If *this*.[[strategySize]] is not *undefined*, then
-    1. Set _chunkSize_ to Call(*this*.[[strategySize]], *undefined*, « ‍_chunk_ »).
-    1. If _chunkSize_ is an abrupt completion,
-      1. Perform ! ErrorWritableStream(*this*, _chunkSize_.[[Value]]).
-      1. Return a new promise rejected with _chunkSize_.[[Value]].
-    1. Set _chunkSize_ to _chunkSize_.[[Value]].
-  1. Let _promise_ be a new promise.
-  1. Let _writeRecord_ be Record {[[promise]]: _promise_, [[chunk]]: _chunk_}.
-  1. Let _enqueueResult_ be EnqueueValueWithSize(*this*.[[queue]], _writeRecord_, _chunkSize_).
-  1. If _enqueueResult_ is an abrupt completion,
-    1. Perform ! ErrorWritableStream(*this*, _enqueueResult_.[[Value]]).
-    1. Return a new promise rejected with _enqueueResult_.[[Value]].
-  1. Perform ! SyncWritableStreamStateWithQueue(*this*).
-  1. Perform ! CallOrScheduleWritableStreamAdvanceQueue(*this*).
-  1. Return _promise_.
+  1. If ! IsWritableStream(*this*) is *false*, throw a *TypeError* exception.
+  1. Return ? AcquireWritableStreamDefaultReader(*this*).
 </emu-alg>
 
 <h3 id="ws-abstract-ops">Writable Stream Abstract Operations</h3>
