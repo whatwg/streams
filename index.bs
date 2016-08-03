@@ -2515,7 +2515,7 @@ Instances of {{WritableStream}} are created with the internal slots described in
   </tr>
   <tr>
     <td>\[[writeRequests]]
-    <td>A List representing the stream's internal queue of pending writes
+    <td>A List of promises representing the stream's internal queue of pending writes
   </tr>
 </table>
 
@@ -2620,106 +2620,89 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
   1. Return ? AcquireWritableStreamDefaultReader(*this*).
 </emu-alg>
 
-<h3 id="ws-abstract-ops">Writable Stream Abstract Operations</h3>
+<h3 id="ws-abstract-ops">General Writable Stream Abstract Operations</h3>
 
-<h4 id="call-or-schedule-writable-stream-advance-queue" aoid="CallOrScheduleWritableStreamAdvanceQueue"
-nothrow>CallOrScheduleWritableStreamAdvanceQueue ( <var>stream</var> )</h4>
+The following abstract operations, unlike most in this specification, are meant to be generally useful by other
+specifications, instead of just being part of the implementation of this spec's classes.
 
-<emu-alg>
-  1. If _stream_.[[started]] is *false*, then
-    1. Upon fulfillment of _stream_.[[startedPromise]], perform !
-       WritableStreamAdvanceQueue(_stream_).
-  1. Otherwise,
-    1. Perform ! WritableStreamAdvanceQueue(_stream_).
-  1. Return *undefined*.
-</emu-alg>
-
-<h4 id="close-writable-stream" aoid="CloseWritableStream" nothrow>CloseWritableStream (
-<var>stream</var> )</h4>
+<h4 id="acquire-writable-stream-default-writer" aoid="AcquireWritableStreamDefaultWriter"
+nothrow>AcquireWritableStreamDefaultWriter ( <var>stream</var> )</h4>
 
 <emu-alg>
-  1. Assert: _stream_.[[state]] is `"closing"`.
-  1. Let _sinkClosePromise_ be ! PromiseInvokeOrNoop(_stream_.[[underlyingSink]], "close").
-    1. Upon fulfillment,
-      1. If _stream_.[[state]] is `"errored"`, return.
-      1. Assert: _stream_.[[state]] is `"closing"`.
-      1. Resolve _stream_.[[closedPromise]] with *undefined*.
-      1. Set _stream_.[[state]] to `"closed"`.
-    1. Upon rejection with reason _r_,
-      1. Perform ! ErrorWritableStream(_stream_, _r_).
-  1. Return *undefined*.
-</emu-alg>
-
-<h4 id="error-writable-stream" aoid="ErrorWritableStream" nothrow>ErrorWritableStream ( <var>stream</var>, <var>e</var>
-)</h4>
-
-<emu-alg>
-  1. If _stream_.[[state]] is "closed" or "errored", return *undefined*.
-  1. Repeat while _stream_.[[queue]] is not empty:
-    1. Let _writeRecord_ be ! DequeueValue(_stream_.[[queue]]).
-    1. If _writeRecord_ is not `"close"`, reject _writeRecord_.[[promise]] with _e_.
-  1. Set _stream_.[[storedError]] to _e_.
-  1. If _stream_.[[state]] is `"waiting"`, resolve _stream_.[[readyPromise]] with *undefined*.
-  1. Reject _stream_.[[closedPromise]] with _e_.
-  1. Set _stream_.[[state]] to "errored".
-  1. Return *undefined*.
+  1. Return ? Construct(`<a idl>WritableStreamDefaultWriter</a>`, « *this* »).
 </emu-alg>
 
 <h4 id="is-writable-stream" aoid="IsWritableStream" nothrow>IsWritableStream ( <var>x</var> )</h4>
 
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have a [[underlyingSink]] internal slot, return *false*.
+  1. If _x_ does not have a [[writableStreamController]] internal slot, return *false*.
   1. Return *true*.
 </emu-alg>
 
-<h4 id="sync-writable-stream-state-with-queue" aoid="SyncWritableStreamStateWithQueue"
-nothrow>SyncWritableStreamStateWithQueue ( <var>stream</var> )</h4>
+<h4 id="is-writable-stream-locked" aoid="IsWritableStreamLocked" nothrow>IsWritableStreamLocked ( <var>stream</var>
+)</h4>
+
+This abstract operation is meant to be called from other specifications that may wish to query whether or not a
+writable stream is <a>locked to a writer</a>.
 
 <emu-alg>
-  1. If _stream_.[[state]] is `"closing"`, return *undefined*.
-  1. Assert: _stream_.[[state]] is either `"writable"` or `"waiting"`.
-  1. Let _queueSize_ be ! GetTotalQueueSize(_stream_.[[queue]]).
-  1. Let _shouldApplyBackpressure_ be *true* if _queueSize_ > _stream_.[[strategyHWM]], and *false* otherwise.
-  1. If _shouldApplyBackpressure_ is *true* and _stream_.[[state]] is `"writable"`, then
-    1. Set _stream_.[[state]] to `"waiting"`.
-    1. Set _stream_.[[readyPromise]] to a new promise.
-  1. If _shouldApplyBackpressure_ is *false* and _stream_.[[state]] is `"waiting"`, then
-    1. Set _stream_.[[state]] to `"writable"`.
-    1. Resolve _stream_.[[readyPromise]] with *undefined*.
-  1. Return *undefined*.
+  1. Assert: ! IsWritableStream(_stream_) is *true*.
+  1. If _stream_.[[writer]] is *undefined*, return *false*.
+  1. Return *true*.
 </emu-alg>
 
-<h4 id="writable-stream-advance-queue" aoid="WritableStreamAdvanceQueue" nothrow>WritableStreamAdvanceQueue (
+<h4 id="writable-stream-abort" aoid="WritableStreamAbort" nothrow>WritableStreamAbort ( <var>stream</var>,
+<var>reason</var> )</h4>
+
+<emu-alg>
+  1. Let _state_ be _stream_.[[state]].
+  1. If _state_ is `"closed"`, return a new promise resolved with *undefined*.
+  1. If _state_ is `"errored"`, return a new promise rejected with _stream_.[[storedError]].
+  1. Assert: _state_ is either `"writable"` or `"closing"`.
+  1. Let _error_ be a new *TypeError* indicating that the stream has been aborted.
+  1. Repeat for each _writeRequest_ that is an element of _stream_.[[writeRequests]],
+    1. Reject _writeRequest_ with _error_.
+  1. Set _stream_.[[writeRequests]] to an empty List.
+  1. Let _writer_ be _stream_.[[writer]].
+  1. If _writer_ is not undefined,
+    1. Reject _writer_.[[closedPromise]] with _error_.
+    1. If _state_ is `"writable"` and !
+    WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, resolve
+    _writer_.[[readyPromise]] with *undefined*.
+  1. Set _stream_.[[state]] to `"errored"`.
+  1. Set _stream_.[[storedError]] to _error_.
+  1. Return ! WritableStreamDefaultControllerAbort(_stream_.[[writableStreamController]], _reason_).
+</emu-alg>
+
+<h3 id="ws-abstract-ops-used-by-controllers">Writable Stream Abstract Operations Used by Controllers</h3>
+
+To allow future flexibility to add different writable stream behaviors (similar to the distinction between simple
+readable streams and <a>readable byte streams</a>), much of the internal state of a <a>writable stream</a> is
+encapsulated by the {{WritableStreamDefaultController}} class. At this point in time the division of work between the
+stream and its controller may seems somewhat arbitrary, but centralizing much of the logic in the controller is a useful
+structure for the future.
+
+The abstract operations in this section are interfaces that are used by the controller implementation to affect its
+associated {{WritableStream}} object, translating the controller's internal state changes into developer-facing results
+visible through the {{WritableStream}}'s public API.
+
+<h4 id="writable-stream-add-write-request" aoid="WritableStreamAddWriteRequest" nothrow>WritableStreamAddWriteRequest (
 <var>stream</var> )</h4>
 
 <emu-alg>
-  1. If _stream_.[[queue]] is empty, or _stream_.[[writing]] is *true*, return *undefined*.
-  1. Let _writeRecord_ be ! PeekQueueValue(_stream_.[[queue]]).
-  1. If _writeRecord_ is `"close"`, then
-    1. Assert: _stream_.[[state]] is "closing".
-    1. Perform ! DequeueValue(_stream_.[[queue]]).
-    1. Assert: _stream_.[[queue]] is now empty.
-    1. Perform ! CloseWritableStream(_stream_).
-    1. Return *undefined*.
-  1. Set _stream_.[[writing]] to *true*.
-  1. Let _writeResult_ be ! PromiseInvokeOrNoop(_stream_.[[underlyingSink]], `"write"`, « _writeRecord_.[[chunk]] »).
-  1. Upon fulfillment of _writeResult_,
-    1. If _stream_.[[state]] is `"errored"`, return.
-    1. Set _stream_.[[writing]] to *false*.
-    1. Resolve _writeRecord_.[[promise]] with *undefined*.
-    1. Perform ! DequeueValue(_stream_.[[queue]]).
-    1. Perform ! SyncWritableStreamStateWithQueue(_stream_).
-    1. Perform ! WritableStreamAdvanceQueue(_stream_).
-  1. Upon rejection of _writeResult_ with reason _r_,
-    1. Perform ! ErrorWritableStream(_stream_, _r_).
-  1. Return *undefined*.
+  1. Let _writer_ be _stream_.[[writer]].
+  1. Assert: ! IsWritableStreamLocked(_writer_) is *true*.
+  1. Assert: _stream_.[[state]] is `"writable"`.
+  1. Let _promise_ be a new promise.
+  1. Append _promise_ as the last element of _stream_.[[writeRequests]].
+  1. Return _promise_.
 </emu-alg>
 
 <h3 id="default-writer-class" interface lt="WritableStreamDefaultWriter">Class
 <code>WritableStreamDefaultWriter</code></h3>
 
-The {{WritableStreamDefaultWriter}} class represents a <a>default writer</a> designed to be vended by a
+The {{WritableStreamDefaultWriter}} class represents a <a>writable stream writer</a> designed to be vended by a
 {{WritableStream}} instance.
 
 <h4 id="default-writer-class-definition">Class Definition</h4>

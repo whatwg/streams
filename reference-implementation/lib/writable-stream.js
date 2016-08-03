@@ -105,14 +105,14 @@ function WritableStreamAbort(stream, reason) {
 
   assert(state === 'writable' || state === 'closing');
 
-  const writer = stream._writer;
-
   const error = new TypeError('Aborted');
 
   for (const writeRequest of stream._writeRequests) {
     writeRequest._reject(error);
   }
+  stream._writeRequests = [];
 
+  const writer = stream._writer;
   if (writer !== undefined) {
     defaultWriterClosedPromiseReject(writer, error);
 
@@ -130,11 +130,8 @@ function WritableStreamAbort(stream, reason) {
 // WritableStream API exposed for controllers.
 
 function WritableStreamAddWriteRequest(stream) {
-  const writer = stream._writer;
-  assert(IsWritableStreamDefaultWriter(writer) === true);
-
-  const state = stream._state;
-  assert(state === 'writable');
+  assert(IsWritableStreamLocked(stream) === true);
+  assert(stream._state === 'writable');
 
   const promise = new Promise((resolve, reject) => {
     const writeRequest = {
