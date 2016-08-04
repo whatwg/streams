@@ -1449,7 +1449,7 @@ ReadableStreamDefaultController(<var>stream</var>, <var>underlyingSource</var>, 
       1. Set _controller_.[[started]] to *true*.
       1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
     1. Upon rejection with reason _r_,
-      1. If _stream_.[[state]] is `"readable"`, perform ! ReadableStreamDefaultControllerError(_controller_, _r_).
+      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
 </emu-alg>
 
 <h4 id="rs-default-controller-prototype">Properties of the {{ReadableStreamDefaultController}} Prototype</h4>
@@ -1564,8 +1564,7 @@ nothrow>ReadableStreamDefaultControllerCallPullIfNeeded ( <var>controller</var> 
       1. Set _controller_.[[pullAgain]] to *false*.
       1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
   1. Upon rejection of _pullPromise_ with reason _e_,
-    1. If _controller_.[[controlledReadableStream]].[[state]] is `"readable"`, perform !
-       ReadableStreamDefaultControllerError(_controller_, _e_).
+    1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _e_).
   1. Return *undefined*.
 </emu-alg>
 
@@ -1618,14 +1617,12 @@ asserts).
     1. If _controller_.[[strategySize]] is not *undefined*,
       1. Set _chunkSize_ to Call(_stream_.[[strategySize]], *undefined*, « ‍_chunk_ »).
       1. If _chunkSize_ is an abrupt completion,
-        1. If _stream_.[[state]] is `"readable"`, perform ! ReadableStreamDefaultControllerError(_controller_,
-           ‍_chunkSize_.[[Value]]).
+        1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _chunkSize_.[[Value]]).
         1. Return _chunkSize_.
       1. Let _chunkSize_ be _chunkSize_.[[Value]].
     1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_.[[queue]], _chunk_, _chunkSize_).
     1. If _enqueueResult_ is an abrupt completion,
-      1. If _stream_.[[state]] is `"readable"`, perform ! ReadableStreamDefaultControllerError(_controller_,
-         ‍_enqueueResult_.[[Value]]).
+      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _enqueueResult_.[[Value]]).
       1. Return _enqueueResult_.
   1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
   1. Return *undefined*.
@@ -1652,6 +1649,14 @@ an assert).
   1. Assert: _stream_.[[state]] is `"readable"`.
   1. Set _controller_.[[queue]] to a new empty List.
   1. Perform ! ReadableStreamError(_stream_, _e_).
+</emu-alg>
+
+<h4 id="readable-stream-default-controller-error-if-needed" aoid="ReadableStreamDefaultControllerErrorIfNeeded"
+nothrow>ReadableStreamDefaultControllerErrorIfNeeded ( <var>controller</var>, <var>e</var> )</h4>
+
+<emu-alg>
+  1. If _controller_.[[controlledReadableStream]].[[state]] is `"readable"`, perform !
+     ReadableStreamDefaultControllerError(_controller_, _e_).
 </emu-alg>
 
 <h4 id="readable-stream-default-controller-get-desired-size" aoid="ReadableStreamDefaultControllerGetDesiredSize"
