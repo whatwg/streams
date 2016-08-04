@@ -971,7 +971,7 @@ nothrow>ReadableStreamGetNumReadRequests ( <var>stream</var> )</h4>
   1. Return *true*.
 </emu-alg>
 
-<h4 id="readable-stream-has-reader" aoid="ReadableStreamHasDefaultReader" nothrow>ReadableStreamHasDefaultReader (
+<h4 id="readable-stream-has-default-reader" aoid="ReadableStreamHasDefaultReader" nothrow>ReadableStreamHasDefaultReader (
 <var>stream</var> )</h4>
 
 <emu-alg>
@@ -1259,7 +1259,7 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
 
 <h3 id="rs-reader-abstract-ops">Readable Stream Reader Abstract Operations</h3>
 
-<h4 id="is-readable-stream-reader" aoid="IsReadableStreamDefaultReader" nothrow>IsReadableStreamDefaultReader (
+<h4 id="is-readable-stream-default-reader" aoid="IsReadableStreamDefaultReader" nothrow>IsReadableStreamDefaultReader (
 <var>x</var> )</h4>
 
 <emu-alg>
@@ -1277,7 +1277,7 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
   1. Return *true*.
 </emu-alg>
 
-<h4 id="readable-stream-reader-cancel" aoid="ReadableStreamReaderGenericCancel"
+<h4 id="readable-stream-reader-generic-cancel" aoid="ReadableStreamReaderGenericCancel"
 nothrow>ReadableStreamReaderGenericCancel ( <var>reader</var>, <var>reason</var> )</h4>
 
 <emu-alg>
@@ -1302,7 +1302,7 @@ nothrow>ReadableStreamReaderGenericInitialize ( <var>reader</var>, <var>stream</
       1. Set _reader_.[[closedPromise]] to a new promise rejected with _stream_.[[storedError]].
 </emu-alg>
 
-<h4 id="readable-stream-reader-release" aoid="ReadableStreamReaderGenericRelease"
+<h4 id="readable-stream-reader-generic-release" aoid="ReadableStreamReaderGenericRelease"
 nothrow>ReadableStreamReaderGenericRelease ( <var>reader</var> )</h4>
 
 <emu-alg>
@@ -1569,7 +1569,7 @@ nothrow>ReadableStreamDefaultControllerCallPullIfNeeded ( <var>controller</var> 
   1. Return *undefined*.
 </emu-alg>
 
-<h4 id="should-pull-readable-stream-default-controller" aoid="ReadableStreamDefaultControllerShouldCallPull"
+<h4 id="readable-stream-default-controller-should-call-pull" aoid="ReadableStreamDefaultControllerShouldCallPull"
 nothrow>ReadableStreamDefaultControllerShouldCallPull ( <var>controller</var> )</h4>
 
 <emu-alg>
@@ -1584,7 +1584,7 @@ nothrow>ReadableStreamDefaultControllerShouldCallPull ( <var>controller</var> )<
   1. Return *false*.
 </emu-alg>
 
-<h4 id="close-readable-stream-default-controller" aoid="ReadableStreamDefaultControllerClose"
+<h4 id="readable-stream-default-controller-close" aoid="ReadableStreamDefaultControllerClose"
 nothrow>ReadableStreamDefaultControllerClose ( <var>controller</var> )</h4>
 
 This abstract operation can be called by other specifications that wish to close a readable stream, in the same way
@@ -1599,7 +1599,7 @@ this to streams they did not create, and must ensure they have obeyed the precon
   1. If _controller_.[[queue]] is empty, perform ! ReadableStreamClose(_stream_).
 </emu-alg>
 
-<h4 id="enqueue-in-readable-stream" aoid="ReadableStreamDefaultControllerEnqueue"
+<h4 id="readable-stream-default-controller-enqueue" aoid="ReadableStreamDefaultControllerEnqueue"
 nothrow>ReadableStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
 
 This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in a readable stream,
