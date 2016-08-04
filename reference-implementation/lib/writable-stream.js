@@ -379,9 +379,14 @@ function WritableStreamDefaultWriterClose(writer) {
 
 function WritableStreamDefaultWriterGetDesiredSize(writer) {
   const stream = writer._ownerWritableStream;
+  const state = stream._state;
 
-  if (stream._state === 'errored') {
+  if (state === 'errored') {
     return null;
+  }
+
+  if (state === 'closed') {
+    return 0;
   }
 
   return WritableStreamDefaultControllerGetDesiredSize(stream._writableStreamController);

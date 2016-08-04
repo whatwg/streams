@@ -3022,7 +3022,9 @@ nothrow>WritableStreamDefaultWriterGetDesiredSize ( <var>writer</var> )</h4>
 
 <emu-alg>
   1. Let _stream_ be _writer_.[[ownerWritableStream]].
-  1. If _stream_.[[state]] is `"errored"`, return *null*.
+  1. Let _state_ be _stream_.[[state]].
+  1. If _state_ is `"errored"`, return *null*.
+  1. If _state_ is `"closed"`, return *0*.
   1. Return ! WritableStreamDefaultControllerGetDesiredSize(_stream_.[[writableStreamController]]).
 </emu-alg>
 

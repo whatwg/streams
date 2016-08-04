@@ -25,6 +25,28 @@ test('desiredSize on a released writer', t => {
   t.end();
 });
 
+test('desiredSize initial value', t => {
+  const ws = new WritableStream({});
+
+  const writer = ws.getWriter();
+
+  t.equal(writer.desiredSize, 1, 'desiredSize should be 1');
+  t.end();
+});
+
+test('desiredSize on a writer for a closed stream', t => {
+  const ws = new WritableStream({});
+
+  const writer = ws.getWriter();
+
+  writer.close();
+
+  writer.closed.then(() => {
+    t.equal(writer.desiredSize, 0, 'desiredSize should be 0');
+    t.end();
+  });
+});
+
 test('ws.getWriter() on a closing WritableStream', t => {
   const ws = new WritableStream({});
 
