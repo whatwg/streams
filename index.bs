@@ -2858,7 +2858,8 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 
 <div class="note">
   The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected if
-  the stream ever errors or the writer's lock is <a lt="release a write lock">released</a>.
+  the stream ever errors or the writer's lock is <a lt="release a write lock">released</a> before the stream finishes
+  closing.
 </div>
 
 <emu-alg>
@@ -2868,6 +2869,15 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 
 <h5 id="default-writer-desiredSize" attribute for="WritableStreamDefaultWriter" lt="desiredSize">get desiredSize</h5>
 
+<div class="note">
+  The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size to
+  fill the stream's internal queue</a>. It can be negative, if the queue is over-full. A <a>producer</a> should use this
+  information to determine the right amount of data to write.
+
+  It will be <emu-val>null</emu-val> if the stream is errored, or zero if the stream is closed. The getter will throw an
+  exception if invoked when the writer's lock is <a lt="release a write lock">released</a>.
+</div>
+
 <emu-alg>
   1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*.[[ownerWritableStream]] is *undefined*, throw a *TypeError* exception.
@@ -2875,6 +2885,17 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 </emu-alg>
 
 <h5 id="default-writer-ready" attribute for="WritableStreamDefaultWriter" lt="ready">get ready</h5>
+
+<div class="note">
+  The <code>ready</code> getter returns a promise that will be fulfilled when the <a lt="desired size to fill a stream's
+  internal queue">desired size to fill the stream's internal queue</a> transitions from nonpositive to positive,
+  signaling that it is no longer applying <a>backpressure</a>. Once the <a lt="desired size to fill a stream's internal
+  queue">desired size to fill the stream's internal queue</a> dips back to zero or below, the getter will return a new
+  promise that stays pending until the next transition.
+
+  If the stream becomes errored, or the writer's lock is <a lt="release a write lock">released</a>, is the returned
+  promise will become rejected.
+</div>
 
 <emu-alg>
   1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
@@ -2885,7 +2906,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 
 <div class="note">
   If the writer is <a lt="active writer">active</a>, the <code>abort</code> method behaves the same as that for the
-  associated stream.
+  associated stream. (Otherwise, it returns a rejected promise.)
 </div>
 
 <emu-alg>
@@ -2895,6 +2916,16 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 </emu-alg>
 
 <h5 id="default-writer-close" method for="WritableStreamDefaultWriter">close()</h5>
+
+<div class="note">
+  The <code>close</code> method will close the associated writable stream. The <a>underlying sink</a> will finish
+  processing any previously-written <a>chunks</a>, before invoking its close behavior. During this time any further
+  attempts to write will fail (without erroring the stream).
+
+  The method returns a promise that is fulfilled with <emu-val>undefined</emu-val> if all remaining <a>chunks</a> are
+  successfully written and the stream successfully closes, or rejects if an error is encountered during this process.
+  (This is the same promise as is returned by {{WritableStreamDefaultWriter/closed}}.)
+</div>
 
 <emu-alg>
   1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
@@ -2930,6 +2961,16 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 </emu-alg>
 
 <h5 id="default-writer-write" method for="WritableStreamDefaultWriter">write(<var>chunk</var>)</h5>
+
+<div class="note">
+  The <code>write</code> method writes the given <a>chunk</a> to the writable stream, by waiting until any previous
+  writes have finished successfully, and then sending the <a>chunk</a> to the <a>underlying sink</a>. It will return a
+  promise that fulfills with <emu-val>undefined</emu-val> upon a successful write, or rejects if the write fails or
+  stream becomes errored before the writing process is initiated.
+
+  Note that what "success" means is up to the <a>underlying sink</a>; it may indicate simply that the <a>chunk</a> has
+  been accepted, and not necessarily that it is safely saved to its ultimate destination.
+</div>
 
 <emu-alg>
   1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
@@ -3101,6 +3142,15 @@ WritableStreamDefaultController(<var>stream</var>, <var>underlyingSink</var>, <v
 <h4 id="ws-default-controller-prototype">Properties of the {{WritableStreamDefaultController}} Prototype</h4>
 
 <h5 id="ws-default-controller-error" method for="WritableStreamDefaultController">error(<var>e</var>)</h5>
+
+<div class="note">
+  The <code>error</code> method will error the writable stream, making all future interactions with it fail with the
+  given error <code>e</code>.
+
+  This method is rarely used, since usually it suffices to return a rejected promise from one of the <a>underlying
+  sink</a>'s methods. However, it can be useful for suddenly shutting down a stream in response to an event outside the
+  normal lifecycle of interactions with the <a>underlying sink</a>.
+</div>
 
 <emu-alg>
   1. If ! IsWritableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
