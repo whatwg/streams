@@ -3888,10 +3888,11 @@ to the manual branching in [[#example-rbs-push]].
 <h3 id="example-ws-no-backpressure">A writable stream with no backpressure or success signals</h3>
 
 The following function returns a <a>writable stream</a> that wraps a {{WebSocket}} [[HTML]]. Web sockets do not provide
-any way to tell when a given chunk of data has been successfully sent, so this writable stream has no ability to
-communicate <a>backpressure</a> signals or write success/failure to its <a>producers</a>. That is, it will always be in
-the <code>"writable"</code> state, and the promise returned by its <code>write()</code> method will always fulfill
-immediately.
+any way to tell when a given chunk of data has been successfully sent (without awkward polling of
+{{WebSocket/bufferedAmount}}, which we leave as an exercise to the reader). As such, this writable stream has no ability
+to communicate accurate <a>backpressure</a> signals or write success/failure to its <a>producers</a>. That is, the
+promises returned by its <a lt="writable stream writer">writer</a>'s {{WritableStreamDefaultWriter/write()}} method and
+{{WritableStreamDefaultWriter/ready}} getter will always fulfill immediately.
 
 <pre><code class="lang-javascript">
   function makeWritableWebSocketStream(url, protocols) {
