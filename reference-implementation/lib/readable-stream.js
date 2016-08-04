@@ -996,9 +996,7 @@ class ReadableStreamDefaultController {
         ReadableStreamDefaultControllerCallPullIfNeeded(controller);
       },
       r => {
-        if (stream._state === 'readable') {
-          ReadableStreamDefaultControllerError(controller, r);
-        }
+        ReadableStreamDefaultControllerErrorIfNeeded(controller, r);
       }
     )
     .catch(rethrowAssertionErrorRejection);
@@ -1127,9 +1125,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
       }
     },
     e => {
-      if (controller._controlledReadableStream._state === 'readable') {
-        return ReadableStreamDefaultControllerError(controller, e);
-      }
+      ReadableStreamDefaultControllerErrorIfNeeded(controller, e);
     }
   )
   .catch(rethrowAssertionErrorRejection);
@@ -1194,9 +1190,7 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
       try {
         chunkSize = controller._strategySize(chunk);
       } catch (chunkSizeE) {
-        if (stream._state === 'readable') {
-          ReadableStreamDefaultControllerError(controller, chunkSizeE);
-        }
+        ReadableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
         throw chunkSizeE;
       }
     }
@@ -1204,9 +1198,7 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
     try {
       EnqueueValueWithSize(controller._queue, chunk, chunkSize);
     } catch (enqueueE) {
-      if (stream._state === 'readable') {
-        ReadableStreamDefaultControllerError(controller, enqueueE);
-      }
+      ReadableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
       throw enqueueE;
     }
   }
@@ -1224,6 +1216,12 @@ function ReadableStreamDefaultControllerError(controller, e) {
   controller._queue = [];
 
   ReadableStreamError(stream, e);
+}
+
+function ReadableStreamDefaultControllerErrorIfNeeded(controller, e) {
+  if (controller._controlledReadableStream._state === 'readable') {
+    ReadableStreamDefaultControllerError(controller, e);
+  }
 }
 
 function ReadableStreamDefaultControllerGetDesiredSize(controller) {
