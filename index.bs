@@ -1029,7 +1029,7 @@ Instances of {{ReadableStreamDefaultReader}} are created with the internal slots
     <td>\[[readRequests]]
     <td>A List of promises returned by calls to the reader's {{ReadableStreamDefaultReader/read()}} method that have
       not yet been resolved, due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available; also
-      used for the <a href="#is-readable-stream-reader">IsReadableStreamDefaultReader</a> brand check
+      used for the <a href="#is-readable-stream-default-reader">IsReadableStreamDefaultReader</a> brand check
   </tr>
 </table>
 
