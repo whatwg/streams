@@ -2626,7 +2626,7 @@ The following abstract operations, unlike most in this specification, are meant 
 specifications, instead of just being part of the implementation of this spec's classes.
 
 <h4 id="acquire-writable-stream-default-writer" aoid="AcquireWritableStreamDefaultWriter"
-nothrow>AcquireWritableStreamDefaultWriter ( <var>stream</var> )</h4>
+throws>AcquireWritableStreamDefaultWriter ( <var>stream</var> )</h4>
 
 <emu-alg>
   1. Return ? Construct(`<a idl>WritableStreamDefaultWriter</a>`, « *this* »).
@@ -2659,7 +2659,7 @@ writable stream is <a>locked to a writer</a>.
   1. Let _state_ be _stream_.[[state]].
   1. If _state_ is `"closed"`, return a new promise resolved with *undefined*.
   1. If _state_ is `"errored"`, return a new promise rejected with _stream_.[[storedError]].
-  1. Assert: _state_ is either `"writable"` or `"closing"`.
+  1. Assert: _state_ is `"writable"` or `"closing"`.
   1. Let _error_ be a new *TypeError* indicating that the stream has been aborted.
   1. Perform ! WritableStreamError(_stream_, _error_).
   1. Return ! WritableStreamDefaultControllerAbort(_stream_.[[writableStreamController]], _reason_).
@@ -2694,7 +2694,7 @@ visible through the {{WritableStream}}'s public API.
 
 <emu-alg>
   1. Let _state_ be _stream_.[[state]].
-  1. Assert: _state_ is either `"writable"` or `"closing"`.
+  1. Assert: _state_ is `"writable"` or `"closing"`.
   1. Repeat for each _writeRequest_ that is an element of _stream_.[[writeRequests]],
     1. Reject _writeRequest_ with _e_.
   1. Set _stream_.[[writeRequests]] to an empty List.
@@ -2812,13 +2812,13 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   1. Let _state_ be _stream_.[[state]].
   1. If _state_ is `"writable"` or `"closing"`,
     1. Set _writer_.[[closedPromise]] to a new promise.
+  1. Otherwise if _state_ is `"closed"`,
+    1. Set _writer_.[[closedPromise]] to a new promise resolved with *undefined*.
   1. Otherwise,
-    1. If _state_ is `"closed"`,
-      1. Set _writer_.[[closedPromise]] to a new promise resolved with *undefined*.
-    1. Otherwise,
-      1. Assert: _state_ is `"errored"`.
-      1. Set _writer_.[[closedPromise]] to a new promise rejected with _stream_.[[storedError]].
-  1. If _state_ is `"writable"` and ! WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]] is *true*,
+    1. Assert: _state_ is `"errored"`.
+    1. Set _writer_.[[closedPromise]] to a new promise rejected with _stream_.[[storedError]].
+  1. If _state_ is `"writable"` and !
+     WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*,
     1. Set _writer_.[[readyPromise]] to a new promise.
   1. Otherwise,
     1. Set _writer_.[[readyPromise]] to a new promise resolved with *undefined*.
@@ -2829,8 +2829,8 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 <h5 id="default-writer-closed" attribute for="WritableStreamDefaultWriter" lt="closed">get closed</h5>
 
 <div class="note">
-  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed or the
-  writer's lock is <a lt="release a write lock">released</a>, or rejected if the stream ever errors.
+  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected if
+  the stream ever errors or the writer's lock is <a lt="release a write lock">released</a>.
 </div>
 
 <emu-alg>
@@ -2890,9 +2890,12 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   1. Let _stream_ be *this*.[[ownerWritableStream]].
   1. If _stream_ is *undefined*, return *undefined*.
   1. Assert: _stream_.[[writer]] is not *undefined*.
+  1. Let _state_ be _stream_.[[state]].
   1. If _state_ is `"writable"` or `"closing"`, reject _writer_.[[closedPromise]] with a *TypeError* exception.
   1. Otherwise, set _writer_.[[closedPromise]] to a new promise rejected with a *TypeError* exception.
-  1. If _state_ is `"writable"` and ! WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, reject _writer_.[[readyPromise]] with a *TypeError* exception.
+  1. If _state_ is `"writable"` and !
+     WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, reject
+     _writer_.[[readyPromise]] with a *TypeError* exception.
   1. Otherwise, set _writer_.[[readyPromise]] to a new promise rejected with a *TypeError* exception.
   1. Set _stream_.[[writer]] to *undefined*.
   1. Set *this*.[[ownerReadableStream]] to *undefined*.
@@ -2938,7 +2941,8 @@ nothrow>WritableStreamDefaultWriterClose ( <var>writer</var> )</h4>
   1. If _state_ is `"close"` or `"errored"`, return a promise rejected with a *TypeError* exception.
   1. Assert: _state_ is `"writable"`.
   1. Let _promise_ be ! WritableStreamAddWriteRequest(_stream_).
-  1. If ! WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, resolve _writer_.[[readyPromise]] with *undefined*.
+  1. If ! WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, resolve
+     _writer_.[[readyPromise]] with *undefined*.
   1. Set _stream_.[[state]] to `"closing"`.
   1. Perform ! WritableStreamDefaultControllerClose(_stream_.[[writableStreamController]]).
   1. Return _promise_.
@@ -2971,7 +2975,7 @@ nothrow>WritableStreamDefaultWriterWrite ( <var>writer</var>, <var>chunk</var> )
 <code>WritableStreamDefaultController</code></h3>
 
 The {{WritableStreamDefaultController}} class has methods that allow control of a {{WritableStream}}'s state. When
-constructing a {{WritableStream}}, the <a>underlyingsink</a> is given a corresponding
+constructing a {{WritableStream}}, the <a>underlying sink</a> is given a corresponding
 {{WritableStreamDefaultController}} instance to manipulate.
 
 <h4 id="ws-default-controller-class-definition">Class Definition</h4>
@@ -3093,9 +3097,10 @@ nothrow>WritableStreamDefaultControllerAbort ( <var>controller</var>, <var>reaso
 
 <emu-alg>
   1. Set _controller_.[[queue]] to a new empty List.
-  1. Let _sinkAbortPromise_ be ! PromiseInvokeOrFallbackOrNoop(_controller_.[[underlyingSink]], `"abort"`, « _reason_ », `"close"`, « »).
-  1. Upon fulfillment of _sinkAbortPromise_,
-    1. Return *undefined*.
+  1. Let _sinkAbortPromise_ be ! PromiseInvokeOrFallbackOrNoop(_controller_.[[underlyingSink]],
+     `"abort"`, « _reason_ », `"close"`, « »).
+  1. Return the result of transforming _sinkAbortPromise_ by a fulfillment handler that returns
+    *undefined*.
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-close" aoid="WritableStreamDefaultControllerClose"
@@ -3111,7 +3116,7 @@ nothrow>WritableStreamDefaultControllerGetDesiredSize ( <var>controller</var> )<
 
 <emu-alg>
   1. Let _queueSize_ be ! GetTotalQueueSize(_controller_.[[queue]]).
-  1. Return _controller_.[[strategyHWM]] - _queueSize_.
+  1. Return _controller_.[[strategyHWM]] − _queueSize_.
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-write" aoid="WritableStreamDefaultControllerWrite"
@@ -3123,31 +3128,31 @@ nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk
   1. Let _chunkSize_ be *1*.
   1. If _controller_.[[strategySize]] is not *undefined*,
     1. Set _chunkSize_ to Call(_controller_.[[strategySize]], *undefined*, « ‍_chunk_ »).
-      1. If _chunkSize_ is an abrupt completion,
-        1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_,‍_chunkSize_.[[Value]]).
-        1. Return a promise rejected with _chunkSize_.[[Value]].
+    1. If _chunkSize_ is an abrupt completion,
+      1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_,‍ _chunkSize_.[[Value]]).
+      1. Return a promise rejected with _chunkSize_.[[Value]].
   1. Let _writeRecord_ be Record {[[chunk]]: _chunk_}.
   1. Let _lastBackpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
   1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_.[[queue]], _writeRecord_, _chunkSize_).
   1. If _enqueueResult_ is an abrupt completion,
-    1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_,‍_enqueueResult_.[[Value]]).
+    1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _enqueueResult_.[[Value]]).
     1. Return a promise rejected with _enqueueResult_.[[Value]].
-  1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"writable"`,
+  1. If _stream_.[[state]] is `"writable"`,
     1. Let _backpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
-    1. If _lastBackpressure_ is not _backpressure_, perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
+    1. If _lastBackpressure_ is not _backpressure_, perform ! WritableStreamUpdateBackpressure(_stream_,
+       _backpressure_).
   1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
 </emu-alg>
 
-<h4 id="writable-stream-default-controller-advance-queue-if-needed" aoid="WritableStreamDefaultControllerAdvanceQueueIfNeeded"
-nothrow>WritableStreamDefaultControllerAdvanceQueueIfNeeded ( <var>controller</var> )</h4>
+<h4 id="writable-stream-default-controller-advance-queue-if-needed"
+aoid="WritableStreamDefaultControllerAdvanceQueueIfNeeded" nothrow>WritableStreamDefaultControllerAdvanceQueueIfNeeded (
+<var>controller</var> )</h4>
 
 <emu-alg>
-  1. Let _state_ be _controller_.[[controlledWritableStream]].[[state]].
-  1. If _state_ is `"closed"` or `"errored"`, return.
+  1. If _controller_.[[controlledWritableStream]].[[state]] is `"closed"` or `"errored"`, return.
   1. If _controller_.[[started]] is *false*, return.
-  1. If _controller_.[[queue]] is emtpy, return.
   1. If _controller_.[[writing]] is *true*, return.
+  1. If _controller_.[[queue]] is empty, return.
   1. Let _writeRecord_ be ! PeekQueueValue(_controller_.[[queue]]).
   1. If _writeRecord_ is `"close"`, perform WritableStreamDefaultControllerProcessClose(_controller_).
   1. Otherwise, perform WritableStreamDefaultControllerProcessWrite(_controller_, _writeRecord_.[[chunk]]).
@@ -3157,8 +3162,8 @@ nothrow>WritableStreamDefaultControllerAdvanceQueueIfNeeded ( <var>controller</v
 nothrow>WritableStreamDefaultControllerErrorIfNeeded ( <var>controller</var>, <var>e</var> )</h4>
 
 <emu-alg>
-  1. Let _state_ be _controller_.[[controlledWritableStream]].[[state]].
-  1. If _state_ is `"writable"` or `"closing"`, perform ! WritableStreamDefaultControllerError(_controller_, _e_).
+  1. If _controller_.[[controlledWritableStream]].[[state]] is `"writable"` or `"closing"`, perform !
+     WritableStreamDefaultControllerError(_controller_, _e_).
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-process-close" aoid="WritableStreamDefaultControllerProcessClose"
@@ -3194,7 +3199,8 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
     1. Perform ! DequeueValue(_controller_.[[queue]]).
     1. If _state_ is not `"closing"`,
       1. Let _backpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
-      1. If _lastBackpressure_ is not _backpressure_, perform ! WritableStreamUpdateBackpressure(_controller_.[[controlledWritableStream]], _backpressure_).
+      1. If _lastBackpressure_ is not _backpressure_, perform !
+         WritableStreamUpdateBackpressure(_controller_.[[controlledWritableStream]], _backpressure_).
     1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
   1. Upon rejection of _sinkWritePromise_ with reason _r_,
     1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
@@ -3205,7 +3211,7 @@ nothrow>WritableStreamDefaultControllerGetBackpressure ( <var>controller</var> )
 
 <emu-alg>
   1. Let _desiredSize_ be ! WritableStreamDefaultControllerGetDesiredSize(_controller_).
-  1. Return _desiredSize_ <= *0*.
+  1. Return _desiredSize_ ≤ *0*.
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-error" aoid="WritableStreamDefaultControllerError"
@@ -3213,8 +3219,7 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>e</va
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledWritableStream]].
-  1. Let _state_ be _stream_.[[state]].
-  1. Assert: _state_ is `"writable"` or `"closing"`.
+  1. Assert: _stream_.[[state]] is `"writable"` or `"closing"`.
   1. Perform ! WritableStreamError(_stream_, _e_).
   1. Set _controller_.[[queue]] to a new empty List.
 </emu-alg>

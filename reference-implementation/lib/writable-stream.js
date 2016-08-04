@@ -203,14 +203,12 @@ class WritableStreamDefaultWriter {
 
     if (state === 'writable' || state === 'closing') {
       defaultWriterClosedPromiseInitialize(this);
+    } else if (state === 'closed') {
+      defaultWriterClosedPromiseInitializeAsResolved(this, undefined);
     } else {
-      if (state === 'closed') {
-        defaultWriterClosedPromiseInitializeAsResolved(this, undefined);
-      } else {
-        assert(state === 'errored', 'state must be errored');
+      assert(state === 'errored', 'state must be errored');
 
-        defaultWriterClosedPromiseInitializeAsRejected(this, stream._storedError);
-      }
+      defaultWriterClosedPromiseInitializeAsRejected(this, stream._storedError);
     }
 
     if (state === 'writable' && WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
@@ -613,8 +611,7 @@ function WritableStreamDefaultControllerWrite(controller, chunk) {
     return Promise.reject(enqueueE);
   }
 
-  const state = stream._state;
-  if (state === 'writable') {
+  if (stream._state === 'writable') {
     const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
     if (lastBackpressure !== backpressure) {
       WritableStreamUpdateBackpressure(stream, backpressure);
@@ -641,8 +638,8 @@ function IsWritableStreamDefaultController(x) {
 }
 
 function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
-  const state = controller._controlledWritableStream._state;
-  if (state === 'closed' || state === 'errored') {
+  if (controller._controlledWritableStream._state === 'closed' ||
+      controller._controlledWritableStream._state === 'errored') {
     return;
   }
 
@@ -650,11 +647,11 @@ function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
     return;
   }
 
-  if (controller._queue.length === 0) {
+  if (controller._writing === true) {
     return;
   }
 
-  if (controller._writing === true) {
+  if (controller._queue.length === 0) {
     return;
   }
 
@@ -667,8 +664,8 @@ function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
 }
 
 function WritableStreamDefaultControllerErrorIfNeeded(controller, e) {
-  const state = controller._controlledWritableStream._state;
-  if (state === 'writable' || state === 'closing') {
+  if (controller._controlledWritableStream._state === 'writable' ||
+      controller._controlledWritableStream._state === 'closing') {
     WritableStreamDefaultControllerError(controller, e);
   }
 }
@@ -742,8 +739,7 @@ function WritableStreamDefaultControllerGetBackpressure(controller) {
 function WritableStreamDefaultControllerError(controller, e) {
   const stream = controller._controlledWritableStream;
 
-  const state = stream._state;
-  assert(state === 'writable' || state === 'closing');
+  assert(stream._state === 'writable' || stream._state === 'closing');
 
   WritableStreamError(stream, e);
 
