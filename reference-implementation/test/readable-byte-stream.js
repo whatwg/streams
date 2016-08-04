@@ -1941,9 +1941,6 @@ test('ReadableStream with byte source: read(view) with zero-length view must fai
 
 test('ReadableStream with byte source: read(view) with passing an empty object as view must fail', t => {
   const stream = new ReadableStream({
-    pull(controller) {
-      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
-    },
     type: 'bytes'
   });
 
@@ -1961,9 +1958,6 @@ test('ReadableStream with byte source: read(view) with passing an empty object a
 test('ReadableStream with byte source: Even read(view) with passing ArrayBufferView like object as view must fail',
 t => {
   const stream = new ReadableStream({
-    pull(controller) {
-      t.equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
-    },
     type: 'bytes'
   });
 
