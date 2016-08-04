@@ -2466,6 +2466,30 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
   chunk has been flushed to disk.
 </div>
 
+<div class="example">
+  The {{WritableStreamDefaultWriter/desiredSize}} and {{WritableStreamDefaultWriter/ready}} properties of <a>writable
+  stream writers</a> allow <a>producers</a> to more precisely respond to flow control signals from the stream, to keep
+  memory usage below the stream's specified <a>high water mark</a>. The following example writes an infinite sequence of
+  random bytes to a stream, using {{WritableStreamDefaultWriter/desiredSize}} to determine how many bytes to generate at
+  a given time, and using {{WritableStreamDefaultWriter/ready}} to wait for the <a>backpressure</a> to subside.
+
+  <pre><code class="lang-javascript">
+  async function writeRandomBytesForever(writableStream) {
+    const writer = writableStream.getWriter();
+
+    while (true) {
+      await writer.ready;
+
+      const bytes = new Uint8Array(writer.desiredSize);
+      window.crypto.getRandomValues(bytes);
+
+      await writer.write(bytes);
+    }
+  }
+
+  writeRandomBytesForever(myWritableStream).catch(e => console.error("Something broke", e));
+  </code></pre>
+</div>
 <h3 id="ws-class" interface lt="WritableStream">Class <code>WritableStream</code></h3>
 
 <h4 id="ws-class-definition">Class Definition</h4>
