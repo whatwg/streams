@@ -38,7 +38,7 @@ test('TransformStream errors thrown in flush put the writable and readable in an
 
   const thrownError = new Error('bad things are happening!');
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
+    transform(chunk, done) {
       done();
     },
     flush() {

@@ -2,7 +2,7 @@
 const test = require('tape-catch');
 
 function promise_rejects(t, expectedReason, promise, name, msg) {
-  promise.then(value => {
+  promise.then(() => {
     t.fail(name + ' fulfilled unexpectedly');
     t.end();
   }, reason => {
@@ -105,12 +105,7 @@ test('Controller argument is given to start method', t => {
 });
 
 test('highWaterMark', t => {
-  let controller;
-  const ws = new WritableStream({
-    start(c) {
-      controller = c;
-    },
-  }, {
+  const ws = new WritableStream({}, {
     highWaterMark: 1000,
     size() { return 1; }
   });
@@ -130,7 +125,9 @@ test('Underlying sink\'s write won\'t be called until start finishes', t => {
   let resolveStartPromise;
   const ws = new WritableStream({
     start() {
-      return new Promise(resolve => { resolveStartPromise = resolve; });
+      return new Promise(resolve => {
+        resolveStartPromise = resolve;
+      });
     },
     write(chunk) {
       if (expectWriteCall) {
@@ -166,9 +163,11 @@ test('Underlying sink\'s close won\'t be called until start finishes', t => {
   let resolveStartPromise;
   const ws = new WritableStream({
     start() {
-      return new Promise(resolve => { resolveStartPromise = resolve; });
+      return new Promise(resolve => {
+        resolveStartPromise = resolve;
+      });
     },
-    write(chunk) {
+    write() {
       t.fail('Unexpected write call');
       t.end();
     },
@@ -218,11 +217,11 @@ test('Underlying sink\'s write or close are never invoked if start throws', t =>
   const passedError = new Error('horrible things');
 
   try {
-    const ws = new WritableStream({
+    new WritableStream({
       start() {
         throw passedError;
       },
-      write(chunk) {
+      write() {
         t.fail('Unexpected write call');
         t.end();
       },
@@ -241,11 +240,11 @@ test('Underlying sink\'s write or close are never invoked if start throws', t =>
 });
 
 test('Underlying sink\'s write or close are never invoked if the promise returned by start is rejected', t => {
-  const ws = new WritableStream({
+  new WritableStream({
     start() {
       return Promise.reject();
     },
-    write(chunk) {
+    write() {
       t.fail('Unexpected write call');
       t.end();
     },
@@ -328,7 +327,7 @@ test('WritableStream with simple input, processed synchronously', t => {
 
     write(chunk) {
       storage.push(chunk);
-    },
+    }
   });
 
   const writer = ws.getWriter();
@@ -382,7 +381,9 @@ test('WritableStream transitions to waiting until write is acknowledged', t => {
   let resolveSinkWritePromise;
   const ws = new WritableStream({
     write() {
-      const sinkWritePromise = new Promise(resolve => resolveSinkWritePromise = resolve);
+      const sinkWritePromise = new Promise(resolve => {
+        resolveSinkWritePromise = resolve;
+      });
       return sinkWritePromise;
     }
   });
@@ -529,7 +530,7 @@ test('If close is called on a WritableStream in writable state, ready will retur
 
   // Wait for ws to start.
   setTimeout(() => {
-    writer.ready.then(v => {
+    writer.ready.then(() => {
       t.equal(writer.desiredSize, 1, 'desiredSize should be 1');
 
       writer.close();
@@ -584,7 +585,6 @@ test('If close is called on a WritableStream in waiting state, ready promise wil
 
 test('If close is called on a WritableStream in waiting state, ready will be fulfilled immediately even if close ' +
      'takes a long time', t => {
-
   let readyFulfilledAlready = false;
   const ws = new WritableStream({
     abort() {
@@ -621,7 +621,9 @@ test('If sink rejects on a WritableStream in writable state, ready will return a
   let rejectSinkWritePromise;
   const ws = new WritableStream({
     write() {
-      return new Promise((r, reject) => rejectSinkWritePromise = reject);
+      return new Promise((r, reject) => {
+        rejectSinkWritePromise = reject;
+      });
     }
   });
 
@@ -663,7 +665,7 @@ test('WritableStream if sink\'s close throws', t => {
     abort() {
       t.fail('Unexpected abort call');
       t.end();
-    },
+    }
   });
 
   // Wait for ws to start.
@@ -702,7 +704,7 @@ test('WritableStream if the promise returned by sink\'s close rejects', t => {
     abort() {
       t.fail('abort of sink called');
       t.end();
-    },
+    }
   });
 
   // Wait for ws to start.
@@ -779,15 +781,15 @@ test('WritableStream if sink\'s write throws an error inside write, the stream b
       t.fail('write promise was unexpectedly fulfilled');
       t.end();
     },
-    r => {
-      t.equal(r, thrownError, 'write() should reject with the thrown error');
+    writeE => {
+      t.equal(writeE, thrownError, 'write() should reject with the thrown error');
 
       writer.close().then(
         () => {
           t.fail('close() is fulfilled unexpectedly');
         },
-        r => {
-          t.equal(r.constructor, TypeError, 'close() should be rejected');
+        closeE => {
+          t.equal(closeE.constructor, TypeError, 'close() should be rejected');
           t.end();
         }
       );
@@ -875,11 +877,14 @@ test('WritableStream queue lots of data and have all of them processed at once',
   let resolveFirstWritePromise;
   let writeCount = 0;
   const ws = new WritableStream({
-    write(chunk) {
+    write() {
       ++writeCount;
       if (!resolveFirstWritePromise) {
-        return new Promise(resolve => resolveFirstWritePromise = resolve);
+        return new Promise(resolve => {
+          resolveFirstWritePromise = resolve;
+        });
       }
+      return Promise.resolve();
     }
   });
 
@@ -889,7 +894,7 @@ test('WritableStream queue lots of data and have all of them processed at once',
     for (let i = 1; i < numberOfWrites; ++i) {
       writer.write('a');
     }
-    const writePromise = writer.write('a')
+    const writePromise = writer.write('a');
 
     t.equal(writeCount, 1, 'should have called sink\'s write once');
 
@@ -927,7 +932,7 @@ test('WritableStream should call underlying sink methods as methods', t => {
   }
 
   const theSink = new Sink();
-  theSink.debugName = "the sink object passed to the constructor";
+  theSink.debugName = 'the sink object passed to the constructor';
   const ws = new WritableStream(theSink);
 
   const writer = ws.getWriter();

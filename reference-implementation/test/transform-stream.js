@@ -170,7 +170,7 @@ test('TransformStream: by default, closing the writable waits for transforms to 
   t.plan(2);
 
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
+    transform(chunk, done) {
       setTimeout(done, 50);
     }
   });
@@ -243,7 +243,7 @@ test('TransformStream flush is called immediately when the writable is closed, i
   let flushCalled = false;
   const ts = new TransformStream({
     transform() { },
-    flush(enqueue) {
+    flush() {
       flushCalled = true;
     }
   });
@@ -257,10 +257,10 @@ test('TransformStream flush is called immediately when the writable is closed, i
 test('TransformStream flush is called after all queued writes finish, once the writable is closed', t => {
   let flushCalled = false;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
+    transform(chunk, done) {
       setTimeout(done, 10);
     },
-    flush(enqueue) {
+    flush() {
       flushCalled = true;
     }
   });
@@ -284,7 +284,7 @@ test('TransformStream flush is called after all queued writes finish, once the w
 
 test('TransformStream flush gets a chance to enqueue more into the readable', t => {
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
+    transform(chunk, done) {
       done();
     },
     flush(enqueue) {
@@ -314,7 +314,7 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
   t.plan(3);
 
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
+    transform(chunk, done) {
       done();
     },
     flush(enqueue, close) {

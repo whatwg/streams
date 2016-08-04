@@ -17,7 +17,7 @@ exports.EnqueueValueWithSize = (queue, value, size) => {
     throw new RangeError('Size must be a finite, non-NaN, non-negative number.');
   }
 
-  queue.push({ value: value, size: size });
+  queue.push({ value, size });
 
   if (queue._totalSize === undefined) {
     queue._totalSize = 0;

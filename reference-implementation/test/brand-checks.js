@@ -6,41 +6,15 @@ function fakeWritableStreamDefaultWriter() {
     get closed() { return Promise.resolve(); },
     get desiredSize() { return 1; },
     get ready() { return Promise.resolve(); },
-    abort(reason) { return Promise.resolve(); },
+    abort() { return Promise.resolve(); },
     close() { return Promise.resolve(); },
-    write(chunk) { return Promise.resolve(); }
+    write() { return Promise.resolve(); }
   };
 }
 
 function realReadableStreamDefaultWriter() {
   const rs = new ReadableStream();
   return rs.getReader();
-}
-
-function fakeByteLengthQueuingStrategy() {
-  return {
-    highWaterMark: 0,
-    size(chunk) {
-      return chunk.byteLength;
-    }
-  };
-}
-
-function realByteLengthQueuingStrategy() {
-  return new ByteLengthQueuingStrategy({ highWaterMark: 1 });
-}
-
-function fakeCountQueuingStrategy() {
-  return {
-    highWaterMark: 0,
-    size(chunk) {
-      return 1;
-    }
-  };
-}
-
-function realCountQueuingStrategy() {
-  return new CountQueuingStrategy({ highWaterMark: 1 });
 }
 
 function getterRejects(t, obj, getterName, target) {
@@ -65,12 +39,6 @@ function getterThrows(t, obj, getterName, target) {
   const getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
 
   t.throws(() => getter.call(target), /TypeError/, getterName + ' should throw a TypeError');
-}
-
-function methodThrows(t, obj, methodName, target) {
-  const method = obj[methodName];
-
-  t.throws(() => method.call(target), /TypeError/, methodName + ' should throw a TypeError');
 }
 
 const ws = new WritableStream();

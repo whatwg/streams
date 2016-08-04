@@ -18,13 +18,13 @@ module.exports = (limit, options) => {
 
     pull(c) {
       return new Promise((resolve, reject) => {
-        sequentialSource.read((err, done, chunk) => {
-          if (err) {
-            reject(err);
+        sequentialSource.read((readErr, done, chunk) => {
+          if (readErr) {
+            reject(readErr);
           } else if (done) {
-            sequentialSource.close(err => {
-              if (err) {
-                reject(err);
+            sequentialSource.close(closeErr => {
+              if (closeErr) {
+                reject(closeErr);
               }
               c.close();
               resolve();

@@ -59,7 +59,7 @@ test('Aborting a WritableStream prevents further writes after any that are in pr
       if (writeCount > 1) {
         t.fail('Only the single in-progress chunk gets written to the sink');
         t.end();
-        return;
+        return Promise.resolve();
       }
 
       t.equals(chunk, 1, 'chunk should be 1');
@@ -78,14 +78,12 @@ test('Aborting a WritableStream prevents further writes after any that are in pr
     writer.write(4);
     writer.write(5);
 
-    setTimeout(function () {
-      t.pass('Passed 200 ms');
-    }, 200);
+    setTimeout(() => t.pass('Passed 200 ms'), 200);
   }, 0);
 });
 
 test('Fulfillment value of ws.abort() call must be undefined even if the underlying sink returns a non-undefined value',
-     t => {
+t => {
   const ws = new WritableStream({
     abort() {
       return 'Hello';
@@ -168,7 +166,6 @@ test('Aborting a WritableStream passes through the given reason', t => {
 test('Aborting a WritableStream puts it in an errored state, with stored error equal to the abort reason', t => {
   t.plan(4);
 
-  let recordedReason;
   const ws = new WritableStream();
 
   const writer = ws.getWriter();
@@ -198,9 +195,8 @@ test('Aborting a WritableStream puts it in an errored state, with stored error e
 });
 
 test('Aborting a WritableStream causes any outstanding ready promises to be fulfilled immediately', t => {
-  let recordedReason;
   const ws = new WritableStream({
-    write(chunk) {
+    write() {
       return new Promise(() => { }); // forever-pending, so normally .ready would not fulfill.
     }
   });
@@ -298,8 +294,8 @@ test('Aborting a WritableStream after it is closed is a no-op', t => {
 
 test('WritableStream should call underlying sink\'s close if no abort is supplied', t => {
   const ws = new WritableStream({
-    close() {
-      t.equal(arguments.length, 0, 'close() was called (with no arguments)');
+    close(...args) {
+      t.equal(args.length, 0, 'close() was called (with no arguments)');
       t.end();
     }
   });

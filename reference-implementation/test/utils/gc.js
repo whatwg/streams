@@ -1,4 +1,5 @@
 'use strict';
+/* eslint-disable no-console */
 
 module.exports = () => {
   if (global.gc) {

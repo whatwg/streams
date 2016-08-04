@@ -6,7 +6,7 @@ const { WritableStream } = require('./writable-stream.js');
 // Functions passed to the transformer.start().
 
 function TransformStreamCloseReadable(transformStream) {
-  //console.log('TransformStreamCloseReadable()');
+  // console.log('TransformStreamCloseReadable()');
 
   if (transformStream._errored === true) {
     throw new TypeError('TransformStream is already errored');
@@ -49,7 +49,7 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
       const reason = new TypeError('Failed to enqueue to readable side');
       TransformStreamErrorInternal(transformStream, reason);
     }
-    throw reason;
+    throw transformStream._error;
   }
 
   let backpressure;
@@ -60,7 +60,7 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
       const reason = new TypeError('Failed to calculate backpressure of readable side');
       TransformStreamError(transformStream, reason);
     }
-    throw reason;
+    throw transformStream._error;
   }
 
   // enqueue() may invoke pull() synchronously when we're not in pull() call.
@@ -102,7 +102,7 @@ function TransformStreamChunkDone(transformStream) {
 // Abstract operations.
 
 function TransformStreamErrorInternal(transformStream, e) {
-  //console.log('TransformStreamErrorInternal()');
+  // console.log('TransformStreamErrorInternal()');
 
   transformStream._errored = true;
 
@@ -121,7 +121,7 @@ function TransformStreamErrorInternal(transformStream, e) {
 }
 
 function TransformStreamTransformIfNeeded(transformStream) {
-  //console.log('TransformStreamTransformIfNeeded()');
+  // console.log('TransformStreamTransformIfNeeded()');
 
   if (transformStream._chunkPending === false) {
     return;
@@ -187,7 +187,7 @@ class TransformStreamSink {
   }
 
   write(chunk) {
-    //console.log('TransformStreamSink.write()');
+    // console.log('TransformStreamSink.write()');
 
     const transformStream = this._transformStream;
 
@@ -210,14 +210,14 @@ class TransformStreamSink {
     return promise;
   }
 
-  abort(reason) {
+  abort() {
     const transformStream = this._transformStream;
     transformStream._writableDone = true;
     TransformStreamErrorInternal(transformStream, new TypeError('Writable side aborted'));
   }
 
   close() {
-    //console.log('TransformStreamSink.close()');
+    // console.log('TransformStreamSink.close()');
 
     const transformStream = this._transformStream;
 
@@ -270,7 +270,7 @@ class TransformStreamSource {
     TransformStreamTransformIfNeeded(this._transformStream);
   }
 
-  cancel(reason) {
+  cancel() {
     const transformStream = this._transformStream;
     transformStream._readableClosed = true;
     TransformStreamErrorInternal(transformStream, new TypeError('Readable side canceled'));

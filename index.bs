@@ -1294,12 +1294,11 @@ nothrow>ReadableStreamReaderGenericInitialize ( <var>reader</var>, <var>stream</
   1. Set _stream_.[[reader]] to _reader_.
   1. If _stream_.[[state]] is `"readable"`,
     1. Set _reader_.[[closedPromise]] to a new promise.
+  1. Otherwise, if _stream_.[[state]] is `"closed"`,
+    1. Set _reader_.[[closedPromise]] to a new promise resolved with *undefined*.
   1. Otherwise,
-    1. If _stream_.[[state]] is `"closed"`,
-      1. Set _reader_.[[closedPromise]] to a new promise resolved with *undefined*.
-    1. Otherwise,
-      1. Assert: _stream_.[[state]] is `"errored"`.
-      1. Set _reader_.[[closedPromise]] to a new promise rejected with _stream_.[[storedError]].
+    1. Assert: _stream_.[[state]] is `"errored"`.
+    1. Set _reader_.[[closedPromise]] to a new promise rejected with _stream_.[[storedError]].
 </emu-alg>
 
 <h4 id="readable-stream-reader-generic-release" aoid="ReadableStreamReaderGenericRelease"

@@ -15,7 +15,7 @@ function promise_fulfills(t, expectedValue, promise, msg) {
 
 function promise_rejects(t, expectedReason, promise, msg) {
   promise.then(value => {
-    t.fail(name + ': Fulfilled unexpectedly wuth: ' + value);
+    t.fail(msg + ': Fulfilled unexpectedly with: ' + value);
   }, reason => {
     if (typeof expectedReason === 'function') {
       t.equal(reason.constructor, expectedReason, msg);
@@ -99,15 +99,11 @@ test('Piping from a ReadableStream in readable state to a WritableStream in clos
 });
 
 test('Piping from a ReadableStream in readable state to a WritableStream in errored state', t => {
-  let pullCount = 0;
   let cancelCalled = false;
   const passedError = new Error('horrible things');
   const rs = new ReadableStream({
     start(c) {
       c.enqueue('Hello');
-    },
-    pull() {
-      ++pullCount;
     },
     cancel(reason) {
       t.assert(!cancelCalled, 'cancel must not be called more than once');
@@ -231,13 +227,11 @@ test('Piping from a ReadableStream in the readable state which becomes errored a
     }
   });
 
-  let passedError = new Error('horrible things');
+  const passedError = new Error('horrible things');
   const startPromise = Promise.resolve();
   const ws = new WritableStream({
     start() {
       return startPromise;
-    },
-    write(chunk) {
     },
     close() {
       t.fail('Unexpected close call');
@@ -286,7 +280,7 @@ test('Piping from an empty ReadableStream which becomes non-empty after pipeTo c
     close() {
       t.fail('Unexpected close call');
     },
-    abort(reason) {
+    abort() {
       t.fail('Unexpected abort call');
     }
   });
@@ -355,7 +349,7 @@ test('Piping from an empty ReadableStream to a WritableStream in the writable st
       writableController = c;
       return startPromise;
     },
-    write(chunk) {
+    write() {
       t.fail('Unexpected write call');
     },
     close() {
@@ -368,7 +362,7 @@ test('Piping from an empty ReadableStream to a WritableStream in the writable st
 
   startPromise.then(() => {
     rs.pipeTo(ws).catch(e => {
-      t.equal(e, theError, 'pipeTo should reject with the passed error')
+      t.equal(e, theError, 'pipeTo should reject with the passed error');
 
       promise_rejects(t, theError, ws.getWriter().closed, 'ws.closed should reject with theError');
     })
@@ -403,12 +397,15 @@ test('Piping from a non-empty ReadableStream to a WritableStream in the waiting 
     write(chunk) {
       if (!resolveWritePromise) {
         t.equal(chunk, 'Hello', 'the first chunk to arrive in write should be the first chunk written');
-        return new Promise(resolve => resolveWritePromise = resolve);
-      } else {
-        t.equal(chunk, 'World', 'the second chunk to arrive in write should be from the readable stream');
-        t.equal(pullCount, 1, 'the readable stream\'s pull should have been called once');
-        t.end();
+        return new Promise(resolve => {
+          resolveWritePromise = resolve;
+        });
       }
+
+      t.equal(chunk, 'World', 'the second chunk to arrive in write should be from the readable stream');
+      t.equal(pullCount, 1, 'the readable stream\'s pull should have been called once');
+      t.end();
+      return Promise.resolve();
     },
     close() {
       t.fail('Unexpected close call');
@@ -564,17 +561,21 @@ test('Piping from a non-empty ReadableStream to a WritableStream in the waiting 
 
       if (writeCount === 1) {
         t.equal(chunk, 'Hello', 'first chunk written should equal the one passed to ws.write');
-        return new Promise(resolve => resolveWritePromise = resolve);
+        return new Promise(resolve => {
+          resolveWritePromise = resolve;
+        });
       }
       if (writeCount === 2) {
         t.equal(chunk, 'Goodbye', 'second chunk written should be from the source readable stream');
         t.end();
       }
+
+      return Promise.resolve();
     },
     close() {
       t.fail('Unexpected close call');
     },
-    abort(reason) {
+    abort() {
       t.fail('Unexpected abort call');
     }
   });
@@ -623,7 +624,9 @@ test('Piping from an empty ReadableStream to a WritableStream in the waiting sta
     write(chunk) {
       t.assert(!resolveWritePromise);
       t.equal(chunk, 'Hello');
-      return new Promise(resolve => resolveWritePromise = resolve);
+      return new Promise(resolve => {
+        resolveWritePromise = resolve;
+      });
     },
     close() {
       t.fail('Unexpected close call');
@@ -840,7 +843,6 @@ test('Piping to a stream that has been closed propagates a TypeError cancellatio
 });
 
 test('Piping to a stream that errors on write should pass through the error as the cancellation reason', t => {
-  let recordedReason;
   const rs = new ReadableStream({
     start(c) {
       c.enqueue('a');
@@ -856,7 +858,7 @@ test('Piping to a stream that errors on write should pass through the error as t
   let written = 0;
   const passedError = new Error('I don\'t like you.');
   const ws = new WritableStream({
-    write(chunk) {
+    write() {
       return new Promise((resolve, reject) => {
         if (++written > 1) {
           reject(passedError);
@@ -887,7 +889,7 @@ test('Piping to a stream that errors on write should not pass through the error 
   let written = 0;
   const passedError = new Error('I don\'t like you.');
   const ws = new WritableStream({
-    write(chunk) {
+    write() {
       return new Promise((resolve, reject) => {
         if (++written > 1) {
           reject(passedError);
@@ -908,8 +910,8 @@ test('Piping to a stream that errors on write should not pass through the error 
   );
 });
 
-test('Piping to a stream that errors soon after writing should pass through the error as the cancellation reason', t => {
-  let recordedReason;
+test('Piping to a stream that errors soon after writing should pass through the error as the cancellation reason',
+t => {
   const rs = new ReadableStream({
     start(c) {
       c.enqueue('a');
@@ -925,7 +927,7 @@ test('Piping to a stream that errors soon after writing should pass through the 
   let written = 0;
   const passedError = new Error('I don\'t like you.');
   const ws = new WritableStream({
-    write(chunk) {
+    write() {
       return new Promise((resolve, reject) => {
         if (++written > 1) {
           setTimeout(() => reject(passedError), 10);
@@ -940,7 +942,7 @@ test('Piping to a stream that errors soon after writing should pass through the 
 });
 
 test('Piping to a writable stream that does not consume the writes fast enough exerts backpressure on the source',
-     t => {
+t => {
   const desiredSizes = [];
   const rs = new ReadableStream({
     start(c) {

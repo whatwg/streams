@@ -7,7 +7,7 @@ test('Closing a writable stream with in-flight writes below the high water mark 
   let isDone = false;
   const ws = new WritableStream(
     {
-      write(chunk) {
+      write() {
         return new Promise(resolve => {
           setTimeout(() => {
             isDone = true;

@@ -15,7 +15,7 @@ module.exports = class SequentialPullSource {
 
   open(cb) {
     this._exec(() => {
-      this.opened = true
+      this.opened = true;
       cb();
     });
   }

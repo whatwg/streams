@@ -81,7 +81,7 @@ templatedRSTwoChunksClosed('ReadableStream (two chunks enqueued async, then clos
         }, 30);
       }
 
-      cancel(reason) {
+      cancel() {
         this._canceled = true;
       }
     }

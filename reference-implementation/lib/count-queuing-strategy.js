@@ -6,7 +6,7 @@ module.exports = class CountQueuingStrategy {
     createDataProperty(this, 'highWaterMark', highWaterMark);
   }
 
-  size(chunk) {
+  size() {
     return 1;
   }
 };

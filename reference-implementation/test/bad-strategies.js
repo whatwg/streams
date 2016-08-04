@@ -45,7 +45,7 @@ test('Writable stream: throwing strategy.size method', t => {
 test('Writable stream: invalid strategy.size return value', t => {
   t.plan(8);
 
-  for (const size of [NaN, -Infinity, +Infinity, -1]) {
+  for (const size of [NaN, -Infinity, Infinity, -1]) {
     let theError;
     const ws = new WritableStream({}, {
       size() {

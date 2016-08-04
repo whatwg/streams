@@ -137,7 +137,8 @@ function WritableStreamError(stream, e) {
   if (writer !== undefined) {
     defaultWriterClosedPromiseReject(writer, e);
 
-    if (state === 'writable' && WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
+    if (state === 'writable' &&
+        WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
       defaultWriterReadyPromiseResolve(writer, undefined);
     }
   }
@@ -174,7 +175,7 @@ function WritableStreamUpdateBackpressure(stream, backpressure) {
   }
 
   if (backpressure === true) {
-      defaultWriterReadyPromiseReset(writer);
+    defaultWriterReadyPromiseReset(writer);
   } else {
     assert(backpressure === false);
     defaultWriterReadyPromiseResolve(writer, undefined);
@@ -205,7 +206,8 @@ class WritableStreamDefaultWriter {
       defaultWriterClosedPromiseInitializeAsRejected(this, stream._storedError);
     }
 
-    if (state === 'writable' && WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
+    if (state === 'writable' &&
+        WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
       defaultWriterReadyPromiseInitialize(this);
     } else {
       defaultWriterReadyPromiseInitializeAsResolved(this, undefined);
@@ -229,7 +231,7 @@ class WritableStreamDefaultWriter {
       throw defaultWriterLockException('desiredSize');
     }
 
-    return WritableStreamDefaultWriterGetDesiredSize(this)
+    return WritableStreamDefaultWriterGetDesiredSize(this);
   }
 
   get ready() {
@@ -285,7 +287,8 @@ class WritableStreamDefaultWriter {
 
     const state = stream._state;
 
-    const releasedException = new TypeError('Writer was released and can no longer be used to monitor the stream\'s closedness');
+    const releasedException = new TypeError(
+      'Writer was released and can no longer be used to monitor the stream\'s closedness');
 
     if (state === 'writable' || state === 'closing') {
       defaultWriterClosedPromiseReject(this, releasedException);
@@ -293,7 +296,8 @@ class WritableStreamDefaultWriter {
       defaultWriterClosedPromiseResetToRejected(this, releasedException);
     }
 
-    if (state === 'writable' && WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
+    if (state === 'writable' &&
+        WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
       defaultWriterReadyPromiseReject(this, releasedException);
     } else {
       defaultWriterReadyPromiseResetToRejected(this, releasedException);
@@ -301,6 +305,7 @@ class WritableStreamDefaultWriter {
 
     stream._writer = undefined;
     this._ownerWritableStream = undefined;
+    return undefined;
   }
 
   write(chunk) {
@@ -353,7 +358,8 @@ function WritableStreamDefaultWriterClose(writer) {
 
   const state = stream._state;
   if (state === 'closed' || state === 'errored') {
-    return Promise.reject(new TypeError(`The stream (in ${state} state) is not in the writable state and cannot be closed`));
+    return Promise.reject(new TypeError(
+      `The stream (in ${state} state) is not in the writable state and cannot be closed`));
   }
 
   assert(state === 'writable');
@@ -388,7 +394,8 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
 
   const state = stream._state;
   if (state === 'closed' || state === 'errored') {
-    return Promise.reject(new TypeError(`The stream (in ${state} state) is not in the writable state and cannot be written to`));
+    return Promise.reject(new TypeError(
+      `The stream (in ${state} state) is not in the writable state and cannot be written to`));
   }
 
   assert(state === 'writable');
@@ -407,7 +414,8 @@ class WritableStreamDefaultController {
     }
 
     if (stream._writableStreamController !== undefined) {
-      throw new TypeError('WritableStreamDefaultController instances can only be created by the WritableStream constructor');
+      throw new TypeError(
+        'WritableStreamDefaultController instances can only be created by the WritableStream constructor');
     }
 
     this._controlledWritableStream = stream;
@@ -444,7 +452,8 @@ class WritableStreamDefaultController {
 
   error(e) {
     if (IsWritableStreamDefaultController(this) === false) {
-      throw new TypeError('WritableStreamDefaultController.prototype.error can only be used on a WritableStreamDefaultController');
+      throw new TypeError(
+        'WritableStreamDefaultController.prototype.error can only be used on a WritableStreamDefaultController');
     }
 
     const state = this._controlledWritableStream._state;
@@ -492,7 +501,7 @@ function WritableStreamDefaultControllerWrite(controller, chunk) {
     }
   }
 
-  const writeRecord = { chunk: chunk };
+  const writeRecord = { chunk };
 
   const lastBackpressure = WritableStreamDefaultControllerGetBackpressure(controller);
 
@@ -511,8 +520,6 @@ function WritableStreamDefaultControllerWrite(controller, chunk) {
   }
 
   WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
-
-  return;
 }
 
 // Abstract operations for the WritableStreamDefaultController.
@@ -647,7 +654,8 @@ function streamBrandCheckException(name) {
 // Helper functions for the WritableStreamDefaultWriter.
 
 function defaultWriterBrandCheckException(name) {
-  return new TypeError('WritableStreamDefaultWriter.prototype.' + name + ' can only be used on a WritableStreamDefaultWriter');
+  return new TypeError(
+    `WritableStreamDefaultWriter.prototype.${name} can only be used on a WritableStreamDefaultWriter`);
 }
 
 function defaultWriterLockException(name) {

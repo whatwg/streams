@@ -150,6 +150,7 @@ module.exports = (label, factory, chunks) => {
           if (++chunkCounter === 2) {
             return new Promise((r, reject) => setTimeout(() => reject(theError), 50));
           }
+          return Promise.resolve();
         }
       },
       {

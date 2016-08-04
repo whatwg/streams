@@ -123,21 +123,21 @@ class ReadableStream {
     });
 
     function releaseReader() {
-      //console.log('pipeTo(): releaseReader()');
+      // console.log('pipeTo(): releaseReader()');
 
       _reader.releaseLock();
       _reader = undefined;
     }
 
     function releaseWriter() {
-      //console.log('pipeTo(): releaseWriter()');
+      // console.log('pipeTo(): releaseWriter()');
 
       _writer.releaseLock();
       _writer = undefined;
     }
 
-    function done() {
-      //console.log('pipeTo(): done()');
+    function pipeDone() {
+      // console.log('pipeTo(): pipeDone()');
 
       assert(_reader === undefined);
       assert(_writer === undefined);
@@ -150,23 +150,23 @@ class ReadableStream {
     }
 
     function finishWithFulfillment() {
-      //console.log('pipeTo(): finishWithFulfillment()');
+      // console.log('pipeTo(): finishWithFulfillment()');
 
       _resolvePipeToPromise(undefined);
       _resolvePipeToPromise = undefined;
       _rejectPipeToPromise = undefined;
 
-      done();
+      pipeDone();
     }
 
     function finishWithRejection(reason) {
-      //console.log('pipeTo(): finishWithRejection()');
+      // console.log('pipeTo(): finishWithRejection()');
 
       _rejectPipeToPromise(reason);
       _resolvePipeToPromise = undefined;
       _rejectPipeToPromise = undefined;
 
-      done();
+      pipeDone();
     }
 
     function abortWriterCancelReader(reason, skipAbort, skipCancel) {
@@ -220,7 +220,7 @@ class ReadableStream {
     }
 
     function handleWriteRejection(reason) {
-      //console.log('pipeTo(): handleWriteRejection()');
+      // console.log('pipeTo(): handleWriteRejection()');
 
       if (_state !== 'piping') {
         return;
@@ -230,7 +230,7 @@ class ReadableStream {
     }
 
     function handleReadValue(value) {
-      //console.log('pipeTo(): handleReadValue()');
+      // console.log('pipeTo(): handleReadValue()');
 
       _lastWrite = _writer.write(value);
       _lastWrite.catch(handleWriteRejection);
@@ -242,14 +242,14 @@ class ReadableStream {
     }
 
     function handleReadDone() {
-      //console.log('pipeTo(): handleReadDone()');
+      // console.log('pipeTo(): handleReadDone()');
 
       // Does not need to wait for lastRead since it occurs only on source closed.
 
       releaseReader();
 
       if (preventClose === false) {
-        //console.log('pipeTo(): Close dest');
+        // console.log('pipeTo(): Close dest');
 
         // We don't use writer.closed. We can ensure that the microtask for writer.closed is run before any
         // writer.close() call so that we can determine whether the closure was caused by the close() or ws was already
@@ -274,7 +274,7 @@ class ReadableStream {
       }
 
       if (_lastWrite === undefined) {
-        releaseWriter()
+        releaseWriter();
         finishWithFulfillment();
         return;
       }
@@ -287,14 +287,14 @@ class ReadableStream {
         },
         reason => {
           releaseWriter();
-          finishWithRejection(reason)
+          finishWithRejection(reason);
         }
       );
       _state = 'waitingLastWriteOnReadableClosed';
     }
 
     function doPipe() {
-      //console.log('pipeTo(): doPipe()');
+      // console.log('pipeTo(): doPipe()');
 
       _lastRead = _reader.read();
 
@@ -321,7 +321,7 @@ class ReadableStream {
     }
 
     function handleReaderClosedRejection(reason) {
-      //console.log('pipeTo(): handleReaderClosedRejection()');
+      // console.log('pipeTo(): handleReaderClosedRejection()');
 
       if (_state !== 'piping') {
         return;
@@ -332,7 +332,7 @@ class ReadableStream {
     }
 
     function handleUnexpectedWriterCloseAndError(reason) {
-      //console.log('pipeTo(): handleUnexpectedWriterCloseAndError()');
+      // console.log('pipeTo(): handleUnexpectedWriterCloseAndError()');
 
       if (_state !== 'piping') {
         return;
@@ -343,13 +343,13 @@ class ReadableStream {
     }
 
     function handleWriterClosedFulfillment() {
-      //console.log('pipeTo(): handleWriterClosedFulfillment()');
+      // console.log('pipeTo(): handleWriterClosedFulfillment()');
 
       handleUnexpectedWriterCloseAndError(new TypeError('dest closed unexpectedly'));
     }
 
     function handleWriterClosedRejection(reason) {
-      //console.log('pipeTo(): handleWriterClosedRejection()');
+      // console.log('pipeTo(): handleWriterClosedRejection()');
 
       handleUnexpectedWriterCloseAndError(reason);
     }
@@ -420,7 +420,9 @@ function ReadableStreamTee(stream, shouldClone) {
     reason1: undefined,
     reason2: undefined
   };
-  teeState.promise = new Promise(resolve => teeState._resolve = resolve);
+  teeState.promise = new Promise(resolve => {
+    teeState._resolve = resolve;
+  });
 
   const pull = create_ReadableStreamTeePullFunction();
   pull._reader = reader;
@@ -450,7 +452,7 @@ function ReadableStreamTee(stream, shouldClone) {
 
   reader._closedPromise.catch(r => {
     if (teeState.closedOrErrored === true) {
-      return undefined;
+      return;
     }
 
     ReadableStreamDefaultControllerError(pull._branch1, r);
@@ -462,15 +464,15 @@ function ReadableStreamTee(stream, shouldClone) {
 }
 
 function create_ReadableStreamTeePullFunction() {
-  const f = () => {
-    const { _reader: reader, _branch1: branch1, _branch2: branch2, _teeState: teeState,
-            _shouldClone: shouldClone } = f;
+  function f() {
+    const { _reader: reader, _branch1: branch1, _branch2: branch2, _teeState: teeState/* ,
+            _shouldClone: shouldClone*/ } = f;
 
     return ReadableStreamDefaultReaderRead(reader).then(result => {
       assert(typeIsObject(result));
       const value = result.value;
       const done = result.done;
-      assert(typeof done === "boolean");
+      assert(typeof done === 'boolean');
 
       if (done === true && teeState.closedOrErrored === false) {
         if (teeState.canceled1 === false) {
@@ -483,7 +485,7 @@ function create_ReadableStreamTeePullFunction() {
       }
 
       if (teeState.closedOrErrored === true) {
-        return undefined;
+        return;
       }
 
       // There is no way to access the cloning code right now in the reference implementation.
@@ -491,7 +493,7 @@ function create_ReadableStreamTeePullFunction() {
 
 
       if (teeState.canceled1 === false) {
-        let value1 = value;
+        const value1 = value;
 //        if (shouldClone === true) {
 //          value1 = StructuredClone(value);
 //        }
@@ -499,19 +501,19 @@ function create_ReadableStreamTeePullFunction() {
       }
 
       if (teeState.canceled2 === false) {
-        let value2 = value;
+        const value2 = value;
 //        if (shouldClone === true) {
 //          value2 = StructuredClone(value);
 //        }
         ReadableStreamDefaultControllerEnqueue(branch2, value2);
       }
     });
-  };
+  }
   return f;
 }
 
 function create_ReadableStreamTeeBranch1CancelFunction() {
-  const f = reason => {
+  function f(reason) {
     const { _stream: stream, _teeState: teeState } = f;
 
     teeState.canceled1 = true;
@@ -522,12 +524,12 @@ function create_ReadableStreamTeeBranch1CancelFunction() {
       teeState._resolve(cancelResult);
     }
     return teeState.promise;
-  };
+  }
   return f;
 }
 
 function create_ReadableStreamTeeBranch2CancelFunction() {
-  const f = reason => {
+  function f(reason) {
     const { _stream: stream, _teeState: teeState } = f;
 
     teeState.canceled2 = true;
@@ -538,7 +540,7 @@ function create_ReadableStreamTeeBranch2CancelFunction() {
       teeState._resolve(cancelResult);
     }
     return teeState.promise;
-  };
+  }
   return f;
 }
 
@@ -723,8 +725,8 @@ class ReadableStreamDefaultReader {
 
   get closed() {
     if (IsReadableStreamDefaultReader(this) === false) {
-      return Promise.reject(
-        new TypeError('ReadableStreamDefaultReader.prototype.closed can only be used on a ReadableStreamDefaultReader'));
+      return Promise.reject(new TypeError(
+        'ReadableStreamDefaultReader.prototype.closed can only be used on a ReadableStreamDefaultReader'));
     }
 
     return this._closedPromise;
@@ -732,8 +734,8 @@ class ReadableStreamDefaultReader {
 
   cancel(reason) {
     if (IsReadableStreamDefaultReader(this) === false) {
-      return Promise.reject(
-        new TypeError('ReadableStreamDefaultReader.prototype.cancel can only be used on a ReadableStreamDefaultReader'));
+      return Promise.reject(new TypeError(
+        'ReadableStreamDefaultReader.prototype.cancel can only be used on a ReadableStreamDefaultReader'));
     }
 
     if (this._ownerReadableStream === undefined) {
@@ -758,11 +760,12 @@ class ReadableStreamDefaultReader {
 
   releaseLock() {
     if (IsReadableStreamDefaultReader(this) === false) {
-      throw new TypeError('ReadableStreamDefaultReader.prototype.releaseLock can only be used on a ReadableStreamDefaultReader');
+      throw new TypeError(
+        'ReadableStreamDefaultReader.prototype.releaseLock can only be used on a ReadableStreamDefaultReader');
     }
 
     if (this._ownerReadableStream === undefined) {
-      return undefined;
+      return;
     }
 
     if (this._readRequests.length > 0) {
@@ -887,22 +890,21 @@ function ReadableStreamReaderGenericInitialize(reader, stream) {
       reader._closedPromise_resolve = resolve;
       reader._closedPromise_reject = reject;
     });
+  } else if (stream._state === 'closed') {
+    reader._closedPromise = Promise.resolve(undefined);
+    reader._closedPromise_resolve = undefined;
+    reader._closedPromise_reject = undefined;
   } else {
-    if (stream._state === 'closed') {
-      reader._closedPromise = Promise.resolve(undefined);
-      reader._closedPromise_resolve = undefined;
-      reader._closedPromise_reject = undefined;
-    } else {
-      assert(stream._state === 'errored', 'state must be errored');
+    assert(stream._state === 'errored', 'state must be errored');
 
-      reader._closedPromise = Promise.reject(stream._storedError);
-      reader._closedPromise_resolve = undefined;
-      reader._closedPromise_reject = undefined;
-    }
+    reader._closedPromise = Promise.reject(stream._storedError);
+    reader._closedPromise_resolve = undefined;
+    reader._closedPromise_reject = undefined;
   }
 }
 
-// A client of ReadableStreamDefaultReader and ReadableStreamBYOBReader may use these functions directly to bypass state check.
+// A client of ReadableStreamDefaultReader and ReadableStreamBYOBReader may use these functions directly to bypass state
+// check.
 
 function ReadableStreamReaderGenericCancel(reader, reason) {
   const stream = reader._ownerReadableStream;
@@ -970,7 +972,8 @@ class ReadableStreamDefaultController {
     }
 
     if (stream._readableStreamController !== undefined) {
-      throw new TypeError('ReadableStreamDefaultController instances can only be created by the ReadableStream constructor');
+      throw new TypeError(
+        'ReadableStreamDefaultController instances can only be created by the ReadableStream constructor');
     }
 
     this._controlledReadableStream = stream;
@@ -1049,7 +1052,8 @@ class ReadableStreamDefaultController {
 
   error(e) {
     if (IsReadableStreamDefaultController(this) === false) {
-      throw new TypeError('ReadableStreamDefaultController.prototype.error can only be used on a ReadableStreamDefaultController');
+      throw new TypeError(
+        'ReadableStreamDefaultController.prototype.error can only be used on a ReadableStreamDefaultController');
     }
 
     const stream = this._controlledReadableStream;
@@ -1123,6 +1127,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
         controller._pullAgain = false;
         return ReadableStreamDefaultControllerCallPullIfNeeded(controller);
       }
+      return undefined;
     },
     e => {
       ReadableStreamDefaultControllerErrorIfNeeded(controller, e);
@@ -1301,10 +1306,10 @@ class ReadableByteStreamController {
 
     this._strategyHWM = ValidateAndNormalizeHighWaterMark(highWaterMark);
 
-    const autoAllocateChunkSize = underlyingByteSource['autoAllocateChunkSize'];
+    const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
     if (autoAllocateChunkSize !== undefined) {
       if (Number.isInteger(autoAllocateChunkSize) === false || autoAllocateChunkSize < 0) {
-        throw new RangeError("autoAllocateChunkSize must be a non negative integer");
+        throw new RangeError('autoAllocateChunkSize must be a non negative integer');
       }
     }
     this._autoAllocateChunkSize = autoAllocateChunkSize;
@@ -1576,7 +1581,7 @@ function ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescripto
 }
 
 function ReadableByteStreamControllerEnqueueChunkToQueue(controller, buffer, byteOffset, byteLength) {
-  controller._queue.push({buffer, byteOffset, byteLength});
+  controller._queue.push({ buffer, byteOffset, byteLength });
   controller._totalQueuedBytes += byteLength;
 }
 
@@ -1617,7 +1622,7 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
 
     ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesToCopy, pullIntoDescriptor);
 
-    totalBytesToCopyRemaining -= bytesToCopy
+    totalBytesToCopyRemaining -= bytesToCopy;
   }
 
   if (ready === false) {
@@ -1695,7 +1700,7 @@ function ReadableByteStreamControllerPullInto(controller, view) {
   };
 
   if (controller._pendingPullIntos.length > 0) {
-    pullIntoDescriptor.buffer = SameRealmTransfer(pullIntoDescriptor.buffer);;
+    pullIntoDescriptor.buffer = SameRealmTransfer(pullIntoDescriptor.buffer);
     controller._pendingPullIntos.push(pullIntoDescriptor);
 
     // No ReadableByteStreamControllerCallPullIfNeeded() call since:
@@ -1721,7 +1726,7 @@ function ReadableByteStreamControllerPullInto(controller, view) {
 
     if (controller._closeRequested === true) {
       const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
-      ReadableByteStreamControllerError(controller, e)
+      ReadableByteStreamControllerError(controller, e);
 
       return Promise.reject(e);
     }
@@ -1909,7 +1914,7 @@ function ReadableByteStreamControllerGetDesiredSize(controller) {
 function ReadableByteStreamControllerRespond(controller, bytesWritten) {
   bytesWritten = Number(bytesWritten);
   if (IsFiniteNonNegativeNumber(bytesWritten) === false) {
-    throw new RangeError('bytesWritten must be a finite')
+    throw new RangeError('bytesWritten must be a finite');
   }
 
   assert(controller._pendingPullIntos.length > 0);

@@ -17,10 +17,11 @@ module.exports = (label, factory, error) => {
       }
     });
 
-    rs.pipeTo(ws).catch(e => {
-      t.equal(e, error, 'rejection reason of pipeToPromise should be the source error');
+    rs.pipeTo(ws).catch(pipeE => {
+      t.equal(pipeE, error, 'rejection reason of pipeToPromise should be the source error');
 
-      ws.getWriter().closed.catch(e => t.equal(e.constructor, TypeError), 'rejection reason of dest closed should be a TypeError');
+      ws.getWriter().closed.catch(closedE => t.equal(closedE.constructor, TypeError),
+        'rejection reason of dest closed should be a TypeError');
     });
   });
 
@@ -35,10 +36,11 @@ module.exports = (label, factory, error) => {
       }
     });
 
-    rs.pipeTo(ws, { preventAbort: false }).catch(e => {
-      t.equal(e, error, 'rejection reason of pipeToPromise should be the source error');
+    rs.pipeTo(ws, { preventAbort: false }).catch(pipeE => {
+      t.equal(pipeE, error, 'rejection reason of pipeToPromise should be the source error');
 
-      ws.getWriter().closed.catch(e => t.equal(e.constructor, TypeError), 'rejection reason of dest closed should be a TypeError');
+      ws.getWriter().closed.catch(closedE => t.equal(closedE.constructor, TypeError),
+        'rejection reason of dest closed should be a TypeError');
     });
   });
 

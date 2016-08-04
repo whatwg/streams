@@ -87,7 +87,7 @@ test('Piping with { preventCancel: false } and a destination error', t => {
 
 test('Piping with { preventCancel: true } and a destination error', t => {
   let resolveLastEnqueuePromise;
-  const lastEnqueuePromise = new Promise((r) => {
+  const lastEnqueuePromise = new Promise(r => {
     resolveLastEnqueuePromise = r;
   });
 
@@ -119,7 +119,9 @@ test('Piping with { preventCancel: true } and a destination error', t => {
     t.equal(e, theError, 'rejection reason of pipeTo promise is the sink error');
 
     let reader;
-    t.doesNotThrow(() => { reader = rs.getReader(); }, 'should be able to get a stream reader after pipeTo completes');
+    t.doesNotThrow(() => {
+      reader = rs.getReader();
+    }, 'should be able to get a stream reader after pipeTo completes');
 
     // { value: 'c', done: false } gets consumed before we know that ws has errored, and so is lost.
 

@@ -3,8 +3,9 @@
   "description": "Reference implementation and tests for the WHATWG Streams Standard",
   "scripts": {
     "pretest": "bash ./update-web-platform-tests.sh",
-    "test": "node --expose_gc run-tests.js | tap-spec && npm run wpt",
-    "wpt": "node --expose_gc run-web-platform-tests.js"
+    "test": "npm run lint && node --expose_gc run-tests.js | tap-spec && npm run wpt",
+    "wpt": "node --expose_gc run-web-platform-tests.js",
+    "lint": "eslint \"{lib,test}/**\""
   },
   "author": "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
   "contributors": [
@@ -14,6 +15,7 @@
   ],
   "license": "(CC0-1.0 OR MIT)",
   "devDependencies": {
+    "eslint": "^3.2.2",
     "glob": "^7.0.3",
     "tap-spec": "^4.1.1",
     "tape": "^4.5.1",

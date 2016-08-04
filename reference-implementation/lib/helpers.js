@@ -42,7 +42,7 @@ exports.ArrayBufferCopy = (dest, destOffset, src, srcOffset, n) => {
 exports.CreateIterResultObject = (value, done) => {
   assert(typeof done === 'boolean');
   const obj = {};
-  Object.defineProperty(obj, 'value', { value: value, enumerable: true, writable: true, configurable: true });
+  Object.defineProperty(obj, 'value', { value, enumerable: true, writable: true, configurable: true });
   Object.defineProperty(obj, 'done', { value: done, enumerable: true, writable: true, configurable: true });
   return obj;
 };
@@ -51,7 +51,7 @@ exports.IsFiniteNonNegativeNumber = v => {
   if (Number.isNaN(v)) {
     return false;
   }
-  if (v === +Infinity) {
+  if (v === Infinity) {
     return false;
   }
   if (v < 0) {

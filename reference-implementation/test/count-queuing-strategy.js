@@ -13,7 +13,9 @@ test('Correctly governs the value of a WritableStream\'s state property (HWM = 0
   const ws = new WritableStream(
     {
       write(chunk) {
-        return new Promise(resolve => dones[chunk] = resolve);
+        return new Promise(resolve => {
+          dones[chunk] = resolve;
+        });
       }
     },
     new CountQueuingStrategy({ highWaterMark: 0 })
@@ -59,7 +61,9 @@ test('Correctly governs the value of a WritableStream\'s state property (HWM = 4
   const ws = new WritableStream(
     {
       write(chunk) {
-        return new Promise(resolve => dones[chunk] = resolve);
+        return new Promise(resolve => {
+          dones[chunk] = resolve;
+        });
       }
     },
     new CountQueuingStrategy({ highWaterMark: 4 })
