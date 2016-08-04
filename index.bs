@@ -3549,7 +3549,7 @@ The attributes of these properties must be { \[[Writable]]: <emu-val>true</emu-v
 
 <div class="note">
   The {{ReadableStreamDefaultReader}}, {{ReadableStreamBYOBReader}}, {{ReadableStreamDefaultController}},
-  {{ReadableByteStreamController}}, {{WritableStreamWriter}}, and {{WritableStreamDefaultController}} classes are
+  {{ReadableByteStreamController}}, {{WritableStreamDefaultWriter}}, and {{WritableStreamDefaultController}} classes are
   specifically not exposed, as they are not independently useful.
 </div>
 
