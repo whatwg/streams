@@ -3746,17 +3746,57 @@ to avoid overflowing the kernel-space queue. In this case, an additional copy wi
       start(controller) {
         socket.setTCPWindowSize(Math.max(0, controller.desiredSize));
 
+        let buffer;
+        let byteOffset;
+        let byteLength;
+        let bytesWritten = 0;
+
         socket.onreadable = () => {
-          // Since onreadable can happen even when there's no pending BYOB
-          // requests, we need to handle both cases.
-          if (controller.byobRequest) {
-            const v = controller.byobRequest.view;
-            const bytesRead = socket.readInto(v.buffer, v.byteOffset, v.byteLength);
-            controller.byobRequest.respond(bytesRead);
-          } else {
-            const buffer = new ArrayBuffer(DEFAULT_WINDOW_SIZE);
-            const bytesRead = socket.readInto(buffer, 0, DEFAULT_WINDOW_SIZE);
-            controller.enqueue(new Uint8Array(buffer, 0, bytesRead));
+          while (true) {
+            // Since onreadable can happen even when there's no pending BYOB
+            // requests, we need to handle both cases.
+            //
+            // In case the BYOB requests cannot drain all available data, we
+            // enqueue them into the stream.
+
+            if (buffer === undefined) {
+              bytesWritten = 0;
+
+              if (controller.byobRequest) {
+                const v = controller.byobRequest.view;
+
+                buffer = v.buffer;
+                byteOffset = v.byteOffset;
+                byteLength = v.byteLength;
+              } else {
+                buffer = new ArrayBuffer(DEFAULT_WINDOW_SIZE);
+                byteOffset = 0;
+                byteLength = DEFAULT_WINDOW_SIZE;
+              }
+            }
+
+            const result = socket.readInto(buffer, byteOffset + bytesWritten, byteLength - bytesWritten);
+
+            if (result.type === socket.WOULDBLOCK || result.type === socket.EOF) {
+              break;
+            } else if (result.type === socket.OK) {
+              bytesWritten += result.bytesRead;
+              if (bytesWritten === byteLength) {
+                break;
+              }
+            } else {
+              // Handle errors.
+            }
+          }
+
+          if (bytesWritten > 0) {
+            if (controller.byobRequest) {
+              controller.byobRequest.respond(bytesWritten);
+            } else {
+              controller.enqueue(new Uint8Array(buffer, 0, bytesWritten));
+            }
+
+            buffer = undefined;
           }
 
           // The internal queue size has changed, so propagate
