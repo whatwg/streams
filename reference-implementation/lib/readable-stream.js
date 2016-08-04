@@ -42,7 +42,7 @@ class ReadableStream {
 
   get locked() {
     if (IsReadableStream(this) === false) {
-      throw new TypeError('ReadableStream.prototype.locked can only be used on a ReadableStream');
+      throw streamBrandCheckException('locked');
     }
 
     return IsReadableStreamLocked(this);
@@ -50,7 +50,7 @@ class ReadableStream {
 
   cancel(reason) {
     if (IsReadableStream(this) === false) {
-      return Promise.reject(new TypeError('ReadableStream.prototype.cancel can only be used on a ReadableStream'));
+      return Promise.reject(streamBrandCheckException('cancel'));
     }
 
     if (IsReadableStreamLocked(this) === true) {
@@ -62,7 +62,7 @@ class ReadableStream {
 
   getReader({ mode } = {}) {
     if (IsReadableStream(this) === false) {
-      throw new TypeError('ReadableStream.prototype.getReader can only be used on a ReadableStream');
+      throw streamBrandCheckException('getReader');
     }
 
     if (mode === 'byob') {
@@ -357,7 +357,7 @@ class ReadableStream {
 
   tee() {
     if (IsReadableStream(this) === false) {
-      throw new TypeError('ReadableStream.prototype.tee can only be used on a ReadableStream');
+      throw streamBrandCheckException('tee');
     }
 
     const branches = ReadableStreamTee(this, false);
@@ -612,9 +612,7 @@ function ReadableStreamClose(stream) {
     reader._readRequests = [];
   }
 
-  reader._closedPromise_resolve(undefined);
-  reader._closedPromise_resolve = undefined;
-  reader._closedPromise_reject = undefined;
+  defaultReaderClosedPromiseResolve(reader);
 
   return undefined;
 }
@@ -648,9 +646,7 @@ function ReadableStreamError(stream, e) {
     reader._readIntoRequests = [];
   }
 
-  reader._closedPromise_reject(e);
-  reader._closedPromise_resolve = undefined;
-  reader._closedPromise_reject = undefined;
+  defaultReaderClosedPromiseReject(reader, e);
 }
 
 function ReadableStreamFulfillReadIntoRequest(stream, chunk, done) {
@@ -725,8 +721,7 @@ class ReadableStreamDefaultReader {
 
   get closed() {
     if (IsReadableStreamDefaultReader(this) === false) {
-      return Promise.reject(new TypeError(
-        'ReadableStreamDefaultReader.prototype.closed can only be used on a ReadableStreamDefaultReader'));
+      return Promise.reject(defaultReaderBrandCheckException('closed'));
     }
 
     return this._closedPromise;
@@ -734,12 +729,11 @@ class ReadableStreamDefaultReader {
 
   cancel(reason) {
     if (IsReadableStreamDefaultReader(this) === false) {
-      return Promise.reject(new TypeError(
-        'ReadableStreamDefaultReader.prototype.cancel can only be used on a ReadableStreamDefaultReader'));
+      return Promise.reject(defaultReaderBrandCheckException('cancel'));
     }
 
     if (this._ownerReadableStream === undefined) {
-      return Promise.reject(new TypeError('Cannot cancel a stream using a released reader'));
+      return Promise.reject(readerLockException('cancel'));
     }
 
     return ReadableStreamReaderGenericCancel(this, reason);
@@ -747,12 +741,11 @@ class ReadableStreamDefaultReader {
 
   read() {
     if (IsReadableStreamDefaultReader(this) === false) {
-      return Promise.reject(
-        new TypeError('ReadableStreamDefaultReader.prototype.read can only be used on a ReadableStreamDefaultReader'));
+      return Promise.reject(defaultReaderBrandCheckException('read'));
     }
 
     if (this._ownerReadableStream === undefined) {
-      return Promise.reject(new TypeError('Cannot read from a released reader'));
+      return Promise.reject(readerLockException('read from'));
     }
 
     return ReadableStreamDefaultReaderRead(this);
@@ -760,8 +753,7 @@ class ReadableStreamDefaultReader {
 
   releaseLock() {
     if (IsReadableStreamDefaultReader(this) === false) {
-      throw new TypeError(
-        'ReadableStreamDefaultReader.prototype.releaseLock can only be used on a ReadableStreamDefaultReader');
+      throw defaultReaderBrandCheckException('releaseLock');
     }
 
     if (this._ownerReadableStream === undefined) {
@@ -793,9 +785,7 @@ class ReadableStreamBYOBReader {
 
   get closed() {
     if (!IsReadableStreamBYOBReader(this)) {
-      return Promise.reject(
-        new TypeError(
-            'ReadableStreamBYOBReader.prototype.closed can only be used on a ReadableStreamBYOBReader'));
+      return Promise.reject(byobReaderBrandCheckException('closed'));
     }
 
     return this._closedPromise;
@@ -803,13 +793,11 @@ class ReadableStreamBYOBReader {
 
   cancel(reason) {
     if (!IsReadableStreamBYOBReader(this)) {
-      return Promise.reject(
-        new TypeError(
-            'ReadableStreamBYOBReader.prototype.cancel can only be used on a ReadableStreamBYOBReader'));
+      return Promise.reject(byobReaderBrandCheckException('cancel'));
     }
 
     if (this._ownerReadableStream === undefined) {
-      return Promise.reject(new TypeError('Cannot cancel a stream using a released reader'));
+      return Promise.reject(readerLockException('cancel'));
     }
 
     return ReadableStreamReaderGenericCancel(this, reason);
@@ -817,13 +805,11 @@ class ReadableStreamBYOBReader {
 
   read(view) {
     if (!IsReadableStreamBYOBReader(this)) {
-      return Promise.reject(
-        new TypeError(
-            'ReadableStreamBYOBReader.prototype.read can only be used on a ReadableStreamBYOBReader'));
+      return Promise.reject(byobReaderBrandCheckException('read'));
     }
 
     if (this._ownerReadableStream === undefined) {
-      return Promise.reject(new TypeError('Cannot read from a released reader'));
+      return Promise.reject(readerLockException('read from'));
     }
 
     if (!ArrayBuffer.isView(view)) {
@@ -839,8 +825,7 @@ class ReadableStreamBYOBReader {
 
   releaseLock() {
     if (!IsReadableStreamBYOBReader(this)) {
-      throw new TypeError(
-          'ReadableStreamBYOBReader.prototype.releaseLock can only be used on a ReadableStreamBYOBReader');
+      throw byobReaderBrandCheckException('releaseLock');
     }
 
     if (this._ownerReadableStream === undefined) {
@@ -886,20 +871,13 @@ function ReadableStreamReaderGenericInitialize(reader, stream) {
   stream._reader = reader;
 
   if (stream._state === 'readable') {
-    reader._closedPromise = new Promise((resolve, reject) => {
-      reader._closedPromise_resolve = resolve;
-      reader._closedPromise_reject = reject;
-    });
+    defaultReaderClosedPromiseInitialize(reader);
   } else if (stream._state === 'closed') {
-    reader._closedPromise = Promise.resolve(undefined);
-    reader._closedPromise_resolve = undefined;
-    reader._closedPromise_reject = undefined;
+    defaultReaderClosedPromiseInitializeAsResolved(reader);
   } else {
     assert(stream._state === 'errored', 'state must be errored');
 
-    reader._closedPromise = Promise.reject(stream._storedError);
-    reader._closedPromise_resolve = undefined;
-    reader._closedPromise_reject = undefined;
+    defaultReaderClosedPromiseInitializeAsRejected(reader, stream._storedError);
   }
 }
 
@@ -917,10 +895,12 @@ function ReadableStreamReaderGenericRelease(reader) {
   assert(reader._ownerReadableStream._reader === reader);
 
   if (reader._ownerReadableStream._state === 'readable') {
-    reader._closedPromise_reject(
+    defaultReaderClosedPromiseReject(
+        reader,
         new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
   } else {
-    reader._closedPromise = Promise.reject(
+    defaultReaderClosedPromiseResetToRejected(
+        reader,
         new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
   }
 
@@ -1007,8 +987,7 @@ class ReadableStreamDefaultController {
 
   get desiredSize() {
     if (IsReadableStreamDefaultController(this) === false) {
-      throw new TypeError(
-        'ReadableStreamDefaultController.prototype.desiredSize can only be used on a ReadableStreamDefaultController');
+      throw defaultControllerBrandCheckException('desiredSize');
     }
 
     return ReadableStreamDefaultControllerGetDesiredSize(this);
@@ -1016,8 +995,7 @@ class ReadableStreamDefaultController {
 
   close() {
     if (IsReadableStreamDefaultController(this) === false) {
-      throw new TypeError(
-          'ReadableStreamDefaultController.prototype.close can only be used on a ReadableStreamDefaultController');
+      throw defaultControllerBrandCheckException('close');
     }
 
     if (this._closeRequested === true) {
@@ -1034,8 +1012,7 @@ class ReadableStreamDefaultController {
 
   enqueue(chunk) {
     if (IsReadableStreamDefaultController(this) === false) {
-      throw new TypeError(
-          'ReadableStreamDefaultController.prototype.enqueue can only be used on a ReadableStreamDefaultController');
+      throw defaultControllerBrandCheckException('enqueue');
     }
 
     if (this._closeRequested === true) {
@@ -1052,8 +1029,7 @@ class ReadableStreamDefaultController {
 
   error(e) {
     if (IsReadableStreamDefaultController(this) === false) {
-      throw new TypeError(
-        'ReadableStreamDefaultController.prototype.error can only be used on a ReadableStreamDefaultController');
+      throw defaultControllerBrandCheckException('error');
     }
 
     const stream = this._controlledReadableStream;
@@ -1246,8 +1222,7 @@ class ReadableStreamBYOBRequest {
 
   respond(bytesWritten) {
     if (IsReadableStreamBYOBRequest(this) === false) {
-      throw new TypeError(
-          'ReadableByteStreamController.prototype.respond can only be used on a ReadableByteStreamController');
+      throw byobRequestBrandCheckException('respond');
     }
 
     if (this._associatedReadableByteStreamController === undefined) {
@@ -1259,8 +1234,7 @@ class ReadableStreamBYOBRequest {
 
   respondWithNewView(view) {
     if (IsReadableStreamBYOBRequest(this) === false) {
-      throw new TypeError(
-          'ReadableByteStreamController.prototype.respond can only be used on a ReadableByteStreamController');
+      throw byobRequestBrandCheckException('respond');
     }
 
     if (this._associatedReadableByteStreamController === undefined) {
@@ -1339,8 +1313,7 @@ class ReadableByteStreamController {
 
   get byobRequest() {
     if (IsReadableByteStreamController(this) === false) {
-      throw new TypeError(
-        'ReadableByteStreamController.prototype.byobRequest can only be used on a ReadableByteStreamController');
+      throw byteStreamControllerBrandCheckException('byobRequest');
     }
 
     if (this._byobRequest === undefined && this._pendingPullIntos.length > 0) {
@@ -1357,8 +1330,7 @@ class ReadableByteStreamController {
 
   get desiredSize() {
     if (IsReadableByteStreamController(this) === false) {
-      throw new TypeError(
-        'ReadableByteStreamController.prototype.desiredSize can only be used on a ReadableByteStreamController');
+      throw byteStreamControllerBrandCheckException('desiredSize');
     }
 
     return ReadableByteStreamControllerGetDesiredSize(this);
@@ -1366,8 +1338,7 @@ class ReadableByteStreamController {
 
   close() {
     if (IsReadableByteStreamController(this) === false) {
-      throw new TypeError(
-          'ReadableByteStreamController.prototype.close can only be used on a ReadableByteStreamController');
+      throw byteStreamControllerBrandCheckException('close');
     }
 
     if (this._closeRequested === true) {
@@ -1384,8 +1355,7 @@ class ReadableByteStreamController {
 
   enqueue(chunk) {
     if (IsReadableByteStreamController(this) === false) {
-      throw new TypeError(
-          'ReadableByteStreamController.prototype.enqueue can only be used on a ReadableByteStreamController');
+      throw byteStreamControllerBrandCheckException('enqueue');
     }
 
     if (this._closeRequested === true) {
@@ -1406,8 +1376,7 @@ class ReadableByteStreamController {
 
   error(e) {
     if (IsReadableByteStreamController(this) === false) {
-      throw new TypeError(
-          'ReadableByteStreamController.prototype.error can only be used on a ReadableByteStreamController');
+      throw byteStreamControllerBrandCheckException('error');
     }
 
     const stream = this._controlledReadableStream;
@@ -1937,4 +1906,95 @@ function ReadableByteStreamControllerRespondWithNewView(controller, view) {
   firstDescriptor.buffer = view.buffer;
 
   ReadableByteStreamControllerRespondInternal(controller, view.byteLength);
+}
+
+// Helper functions for the ReadableStream.
+
+function streamBrandCheckException(name) {
+  return new TypeError(`ReadableStream.prototype.${name} can only be used on a ReadableStream`);
+}
+
+// Helper functions for the readers.
+
+function readerLockException(name) {
+  return new TypeError('Cannot ' + name + ' a stream using a released reader');
+}
+
+// Helper functions for the ReadableStreamDefaultReader.
+
+function defaultReaderBrandCheckException(name) {
+  return new TypeError(
+    `ReadableStreamDefaultReader.prototype.${name} can only be used on a ReadableStreamDefaultReader`);
+}
+
+function defaultReaderClosedPromiseInitialize(reader) {
+  reader._closedPromise = new Promise((resolve, reject) => {
+    reader._closedPromise_resolve = resolve;
+    reader._closedPromise_reject = reject;
+  });
+}
+
+function defaultReaderClosedPromiseInitializeAsRejected(reader, reason) {
+  reader._closedPromise = Promise.reject(reason);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
+}
+
+function defaultReaderClosedPromiseInitializeAsResolved(reader) {
+  reader._closedPromise = Promise.resolve(undefined);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
+}
+
+function defaultReaderClosedPromiseReject(reader, reason) {
+  assert(reader._closedPromise_resolve !== undefined);
+  assert(reader._closedPromise_reject !== undefined);
+
+  reader._closedPromise_reject(reason);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
+}
+
+function defaultReaderClosedPromiseResetToRejected(reader, reason) {
+  assert(reader._closedPromise_resolve === undefined);
+  assert(reader._closedPromise_reject === undefined);
+
+  reader._closedPromise = Promise.reject(reason);
+}
+
+function defaultReaderClosedPromiseResolve(reader) {
+  assert(reader._closedPromise_resolve !== undefined);
+  assert(reader._closedPromise_reject !== undefined);
+
+  reader._closedPromise_resolve(undefined);
+  reader._closedPromise_resolve = undefined;
+  reader._closedPromise_reject = undefined;
+}
+
+// Helper functions for the ReadableStreamDefaultReader.
+
+function byobReaderBrandCheckException(name) {
+  return new TypeError(
+    `ReadableStreamBYOBReader.prototype.${name} can only be used on a ReadableStreamBYOBReader`);
+}
+
+// Helper functions for the ReadableStreamDefaultController.
+
+function defaultControllerBrandCheckException(name) {
+  return new TypeError(
+    `ReadableStreamDefaultController.prototype.${name} can only be used on a ReadableStreamDefaultController`);
+}
+
+// Helper functions for the ReadableStreamBYOBRequest.
+
+function byobRequestBrandCheckException(name) {
+  return new TypeError(
+    `ReadableStreamBYOBRequest.prototype.${name} can only be used on a ReadableStreamBYOBRequest`);
+}
+
+// Helper functions for the ReadableByteStreamController.
+
+function byteStreamControllerBrandCheckException(name) {
+  return new TypeError(
+    `ReadableByteStreamController.prototype.${name} can only be used on a ReadableByteStreamController`);
 }
