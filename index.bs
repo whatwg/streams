@@ -1655,7 +1655,8 @@ an assert).
 nothrow>ReadableStreamDefaultControllerErrorIfNeeded ( <var>controller</var>, <var>e</var> )</h4>
 
 <emu-alg>
-  1. If _controller_.[[controlledReadableStream]].[[state]] is `"readable"`, perform ! ReadableStreamDefaultControllerError(_controller_, _e_).
+  1. If _controller_.[[controlledReadableStream]].[[state]] is `"readable"`, perform !
+     ReadableStreamDefaultControllerError(_controller_, _e_).
 </emu-alg>
 
 <h4 id="readable-stream-default-controller-get-desired-size" aoid="ReadableStreamDefaultControllerGetDesiredSize"
