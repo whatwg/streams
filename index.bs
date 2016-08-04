@@ -238,10 +238,10 @@ stream.
 
 A given readable or writable stream only has at most one reader or writer at a time. We say in this case the stream is
 <dfn lt="locked to a reader|locked to a writer">locked</dfn>, and that the reader or writer is <dfn
-lt="active reader|active writer">active</dfn>.
+lt="active|active reader|active writer">active</dfn>.
 
-A reader or writer also has the capability to <dfn lt="release a read lock|release a write lock">release its
-lock</dfn>, which makes it no longer active, and allows further readers or writers to be acquired.
+A reader or writer also has the capability to <dfn lt="release a lock|release a read lock|release a write lock">release
+its lock</dfn>, which makes it no longer active, and allows further readers or writers to be acquired.
 
 A <a>readable byte stream</a> has the ability to vend two types of readers: <dfn>default readers</dfn> and <dfn>BYOB
 readers</dfn>. BYOB ("bring your own buffer") readers allow reading into a developer-supplied buffer, thus minimizing
@@ -3548,12 +3548,9 @@ The attributes of these properties must be { \[[Writable]]: <emu-val>true</emu-v
 \[[Configurable]]: <emu-val>true</emu-val> }.
 
 <div class="note">
-  The {{ReadableStreamDefaultReader}} and {{ReadableStreamBYOBReader}} classes are specifically <em>not</em> exposed,
-  as while they do have a functioning constructor, instances should instead be created through the
-  {{ReadableStream/getReader()}} method of a {{ReadableStream}} instance.
-  Similarly, the supporting classes {{ReadableStreamDefaultController}}, {{ReadableByteStreamController}}, and
-  {{ReadableStreamBYOBRequest}} are not exposed, since they are not independently useful outside of the
-  {{ReadableStream}} implementation.
+  The {{ReadableStreamDefaultReader}}, {{ReadableStreamBYOBReader}}, {{ReadableStreamDefaultController}},
+  {{ReadableByteStreamController}}, {{WritableStreamWriter}}, and {{WritableStreamDefaultController}} classes are
+  specifically not exposed, as they are not independently useful.
 </div>
 
 <h2 id="creating-examples">Examples of Creating Streams</h2>
@@ -3891,11 +3888,12 @@ We can then use this function to create a writable stream for a file, and write 
 
 <pre><code class="lang-javascript">
   const fileStream = makeWritableFileStream("/example/path/on/fs.txt");
+  const writer = fileStream.getWriter();
 
-  fileStream.write("To stream, or not to stream\n");
-  fileStream.write("That is the question\n");
+  writer.write("To stream, or not to stream\n");
+  writer.write("That is the question\n");
 
-  fileStream.close()
+  writer.close()
     .then(() => console.log("chunks written and stream closed successfully!"))
     .catch(e => console.error(e));
 </code></pre>
@@ -3983,23 +3981,19 @@ APIs:
 
 <pre><code class="lang-javascript">
   const streamyWS = streamifyWebSocket("wss://example.com:443/", "protocol");
+  const writer = streamyWS.writable.getWriter();
+  const reader = streamyWS.readable.getReader();
 
-  streamyWS.writable.write("Hello");
-  streamyWS.writable.write("web socket!");
+  writer.write("Hello");
+  writer.write("web socket!");
 
-  streamyWS.readable.read().then(({ value, done }) => {
+  reader.read().then(({ value, done }) => {
     console.log("The web socket says: ", value);
   });
 </code></pre>
 
 Note how in this setup canceling the <code>readable</code> side will implicitly close the <code>writable</code> side,
 and similarly, closing or aborting the <code>writable</code> side will implicitly close the <code>readable</code> side.
-
-<pre><code class="lang-javascript">
-  streamyWS.readable.cancel().then(() => {
-    assert(streamyWS.writable.state === "closed");
-  });
-</code></pre>
 
 <h2 id="conventions" class="no-num">Conventions</h2>
 
@@ -4058,7 +4052,7 @@ and
 平野裕 (Yutaka Hirano) for his help with the readable stream reader design.
 
 This standard is written by <a href="https://domenic.me/">Domenic Denicola</a>
-(<a href="https://google.com">Google</a>, <a href="mailto:d@domenic.me">d@domenic.me</a>) with substantial help from
+(<a href="https://google.com">Google</a>, <a href="mailto:d@domenic.me">d@domenic.me</a>) and
 吉野剛史 (Takeshi Yoshino, <a href="https://google.com">Google</a>,
 <a href="mailto:tyoshino@chromium.org">tyoshino@chromium.org</a>).
 
