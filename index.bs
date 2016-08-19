@@ -3722,35 +3722,36 @@ sockets. This time, however, when we pipe to a destination that cannot accept da
 it, or if we leave the stream alone without reading from it for some time, a backpressure signal will be sent to the
 socket.
 
-<h3 id="example-rbs-push">A readable byte stream with an underlying push source and backpressure support</h3>
+<h3 id="example-rbs-push">A readable byte stream with an underlying push source (no backpressure support)</h3>
 
-The following function returns <a>readable byte streams</a> that represents an adaptive UDP-based video stream. It uses
-a hypothetical UDP socket API, including a promise-returning <code>select2()</code> method that is meant to be evocative
-of the POSIX select(2) system call. It uses the <a>backpressure</a> signaling provided by
-{{ReadableByteStreamController/desiredSize}} to send a message down the socket asking for an increased bit rate whenever
-too much buffered data is being accumulated, as this represents a case where the user is watching video slower than the
-data is arriving.
+The following function returns <a>readable byte streams</a> that wraps a hypothetical UDP socket API, including a
+promise-returning <code>select2()</code> method that is meant to be evocative of the POSIX select(2) system call.
 
-The byte stream setup shown here allows zero-copy reading directly into developer-supplied buffers. Additionally, it
-ensures that when data is available from the socket but not yet requested by the developer, it is enqueued in the
-stream's <a>internal queue</a>, to avoid overflow of the kernel-space queue and a consequent loss of video data. In this
-case, an additional copy will potentially be necessary when using a <a>BYOB reader</a>, to move the data from the
-stream's internal queue to the developer-supplied buffer.
+Since UDP sockets do not have any built-in backpressure support, the backpressure signal given by
+{{ReadableByteStreamController/desiredSize}} is ignored, and the stream ensures that when data is available from the
+socket but not yet requested by the developer, it is enqueued in the stream's <a>internal queue</a>, to avoid overflow
+of the kernel-space queue and a consequent loss of data.
+
+This has some interesting consequences for how <a>consumers</a> interact with the stream. If the consumer does not read
+data as fast as the socket produces it, the <a>chunks</a> will remain in the stream's <a>internal queue</a>
+indefinitely. In this case, using a <a>BYOB reader</a> will cause an extra copy, to move the data from the stream's
+internal queue to the developer-supplied buffer. However, if the consumer consumes the data quickly enough, a <a>BYOB
+reader</a> will allow zero-copy reading directly into developer-supplied buffers.
+
+(You can imagine a more complex version of this example which uses {{ReadableByteStreamController/desiredSize}} to
+inform an out-of-band backpressure signaling mechanism, for example by sending a message down the socket to adjust the
+rate of data being sent. That is left as an exercise for the reader.)
 
 <pre><code class="lang-javascript">
-  const STARTING_BIT_RATE = 131072;       // 1 Mbps
-  const DEFAULT_CHUNK_SIZE = 65536;       // 64 KiB
-  const PREFERRED_QUEUED_SIZE = 10485760; // 10 MiB
+  const DEFAULT_CHUNK_SIZE = 65536;
 
-  function makeReadableVideoSocketStream(host, port) {
+  function makeUDPSocketStream(host, port) {
     const socket = createUDPSocket(host, port);
 
     return new ReadableStream({
       type: "bytes",
 
       start(controller) {
-        socket.send(createSetBitrateMessage(STARTING_BIT_RATE));
-
         readRepeatedly().catch(e => controller.error(e));
 
         function readRepeatedly() {
@@ -3763,8 +3764,8 @@ stream's internal queue to the developer-supplied buffer.
               bytesRead = socket.readInto(v.buffer, v.byteOffset, v.byteLength);
               controller.byobRequest.respond(bytesRead);
             } else {
-              const buffer = new ArrayBuffer(DEFAULT_WINDOW_SIZE);
-              bytesRead = socket.readInto(buffer, 0, DEFAULT_WINDOW_SIZE);
+              const buffer = new ArrayBuffer(DEFAULT_CHUNK_SIZE);
+              bytesRead = socket.readInto(buffer, 0, DEFAULT_CHUNK_SIZE);
               controller.enqueue(new Uint8Array(buffer, 0, bytesRead));
             }
 
@@ -3773,28 +3774,14 @@ stream's internal queue to the developer-supplied buffer.
               return;
             }
 
-            // Adjust the bitrate according to how much data we have queued.
-            // (If the queue is full, then we can up the bitrate for higher quality.)
-            const newBitrate = determineBestBitrate(controller.desiredSize);
-            socket.send(createSetBitrateMessage(newBitrate));
-
             return readRepeatedly();
           });
         }
-      }
-      pull(controller) {
-        // This is called when the internal queue has been drained, and the
-        // stream's consumer can accept more data. Recompute the best bitrate
-        // using the new desiredSize.
-        const newBitrate = determineBestBitrate(controller.desiredSize);
-        socket.send(createSetBitrateMessage(newBitrate));
       },
 
       cancel() {
         socket.close();
       }
-    }, {
-      highWaterMark: PREFERRED_QUEUED_SIZE
     });
   }
 </code></pre>
