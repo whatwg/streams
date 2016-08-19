@@ -35,7 +35,7 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
   }
 
   // We throttle transformer.transform invoation based on the backpressure of the ReadableStream, but we still
-  // accept TrasnformStreamEnqueueToReadable() calls.
+  // accept TransformStreamEnqueueToReadable() calls.
 
   const controller = transformStream._readableController;
 
@@ -164,7 +164,8 @@ function TransformStreamStart(transformStream) {
     return;
   }
 
-  // Thrown exception will be handled by the constructor of TransformStream.
+  // Thrown exception will be handled by TransformStreamSink.start()
+  // method.
   transformStream._transformer.start(
       transformStream._enqueueFunction,
       transformStream._closeFunction,
