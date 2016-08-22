@@ -3902,14 +3902,14 @@ promises returned by its <a lt="writable stream writer">writer</a>'s {{WritableS
     const ws = new WebSocket(url, protocols);
 
     return new WritableStream({
-      start(error) {
-        ws.onerror = error;
+      start(controller) {
+        ws.onerror = () => controller.error(new Error("The WebSocket errored!"));
         return new Promise(resolve => ws.onopen = resolve);
       },
 
       write(chunk) {
         ws.send(chunk);
-        // Return immediately, since the web socket gives us no way to tell
+        // Return immediately, since the web socket gives us no easy way to tell
         // when the write completes.
       },
 
@@ -3935,11 +3935,11 @@ We can then use this function to create writable streams for a web socket, and p
 
 <h3 id="example-ws-backpressure">A writable stream with backpressure and success signals</h3>
 
-The following function returns <a>writable streams</a> that wrap portions of the
-<a href="https://iojs.org/api/fs.html">io.js file system API</a> (which themselves map fairly directly to C's
-  <code>fopen</code>, <code>fwrite</code>, and <code>fclose</code> trio). Since the API we are wrapping provides
-a way to tell when a given write succeeds, this stream will be able to communicate <a>backpressure</a> signals as well
-as whether an individual write succeeded or failed.
+The following function returns <a>writable streams</a> that wrap portions of the <a
+href="https://nodejs.org/api/fs.html">Node.js file system API</a> (which themselves map fairly directly to C's
+<code>fopen</code>, <code>fwrite</code>, and <code>fclose</code> trio). Since the API we are wrapping provides a way to
+tell when a given write succeeds, this stream will be able to communicate <a>backpressure</a> signals as well as whether
+an individual write succeeded or failed.
 
 <pre><code class="lang-javascript">
   const fs = require("pr/fs"); // https://github.com/jden/pr
@@ -3985,7 +3985,7 @@ of chunks in this queue can move the stream into a <code>"waiting"</code> state,
 that they should back off and stop writing if possible.
 
 The way in which the writable stream queues up writes is especially important in this case, since as stated in
-<a href="https://iojs.org/api/fs.html#fs_fs_write_fd_data_position_encoding_callback">the documentation for
+<a href="https://nodejs.org/api/fs.html#fs_fs_write_fd_data_position_encoding_callback">the documentation for
 <code>fs.write</code></a>, "it is unsafe to use <code>fs.write</code> multiple times on the same file without waiting
 for the [promise]." But we don't have to worry about that when writing the <code>makeWritableFileStream</code>
 function, since the stream implementation guarantees that the <a>underlying sink</a>'s <code>write</code> method will
@@ -4036,9 +4036,9 @@ source abstractions.
       this._ws = ws;
     }
 
-    start(error) {
+    start(controller) {
       this._ws.addEventListener("error", () => {
-        error(new Error("The WebSocket errored!"));
+        controller.error(new Error("The WebSocket errored!"));
       });
 
       return new Promise(resolve => this._ws.onopen = resolve);
