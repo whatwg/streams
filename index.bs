@@ -3722,65 +3722,66 @@ sockets. This time, however, when we pipe to a destination that cannot accept da
 it, or if we leave the stream alone without reading from it for some time, a backpressure signal will be sent to the
 socket.
 
-<h3 id="example-rbs-push">A readable byte stream with an underlying push source and backpressure support</h3>
+<h3 id="example-rbs-push">A readable byte stream with an underlying push source (no backpressure support)</h3>
 
-The following function returns <a>readable byte streams</a> that allow efficient direct reading of TCP sockets, based on
-a hypothetical JavaScript socket API. The socket object is an <code><a idl class="non-normative">EventTarget</a></code>
-which emits a <code>readable</code> event (similar to the POSIX select(2) call). [[DOM]]
+The following function returns <a>readable byte streams</a> that wraps a hypothetical UDP socket API, including a
+promise-returning <code>select2()</code> method that is meant to be evocative of the POSIX select(2) system call.
 
-This setup allows zero-copy reading directly into developer-supplied buffers. Additionally, it ensures that when data is
-available from the socket but not yet requested by the developer, it is enqueued in the stream's <a>internal queue</a>,
-to avoid overflowing the kernel-space queue. In this case, an additional copy will potentially be necessary when using a
-<a>BYOB reader</a>, to move the data from the stream's internal queue to the developer-supplied buffer. If this occurs,
-<a>backpressure</a> will immediately be applied downstream on the socket, by adjusting the TCP window size.
+Since the UDP protocol does not have any built-in backpressure support, the backpressure signal given by
+{{ReadableByteStreamController/desiredSize}} is ignored, and the stream ensures that when data is available from the
+socket but not yet requested by the developer, it is enqueued in the stream's <a>internal queue</a>, to avoid overflow
+of the kernel-space queue and a consequent loss of data.
+
+This has some interesting consequences for how <a>consumers</a> interact with the stream. If the consumer does not read
+data as fast as the socket produces it, the <a>chunks</a> will remain in the stream's <a>internal queue</a>
+indefinitely. In this case, using a <a>BYOB reader</a> will cause an extra copy, to move the data from the stream's
+internal queue to the developer-supplied buffer. However, if the consumer consumes the data quickly enough, a <a>BYOB
+reader</a> will allow zero-copy reading directly into developer-supplied buffers.
+
+(You can imagine a more complex version of this example which uses {{ReadableByteStreamController/desiredSize}} to
+inform an out-of-band backpressure signaling mechanism, for example by sending a message down the socket to adjust the
+rate of data being sent. That is left as an exercise for the reader.)
 
 <pre><code class="lang-javascript">
-  const DEFAULT_WINDOW_SIZE = 65536;
+  const DEFAULT_CHUNK_SIZE = 65536;
 
-  function makeReadableBackpressureByteSocketStream(host, port) {
-    const socket = createHypotheticalTCPSocket(host, port);
+  function makeUDPSocketStream(host, port) {
+    const socket = createUDPSocket(host, port);
 
     return new ReadableStream({
       type: "bytes",
 
       start(controller) {
-        socket.setTCPWindowSize(Math.max(0, controller.desiredSize));
+        readRepeatedly().catch(e => controller.error(e));
 
-        socket.onreadable = () => {
-          // Since onreadable can happen even when there's no pending BYOB
-          // requests, we need to handle both cases.
-          if (controller.byobRequest) {
-            const v = controller.byobRequest.view;
-            const bytesRead = socket.readInto(v.buffer, v.byteOffset, v.byteLength);
-            controller.byobRequest.respond(bytesRead);
-          } else {
-            const buffer = new ArrayBuffer(DEFAULT_WINDOW_SIZE);
-            const bytesRead = socket.readInto(buffer, 0, DEFAULT_WINDOW_SIZE);
-            controller.enqueue(new Uint8Array(buffer, 0, bytesRead));
-          }
+        function readRepeatedly() {
+          return socket.select2().then(() => {
+            // Since the socket can become readable even when there’s
+            // no pending BYOB requests, we need to handle both cases.
+            let bytesRead;
+            if (controller.byobRequest) {
+              const v = controller.byobRequest.view;
+              bytesRead = socket.readInto(v.buffer, v.byteOffset, v.byteLength);
+              controller.byobRequest.respond(bytesRead);
+            } else {
+              const buffer = new ArrayBuffer(DEFAULT_CHUNK_SIZE);
+              bytesRead = socket.readInto(buffer, 0, DEFAULT_CHUNK_SIZE);
+              controller.enqueue(new Uint8Array(buffer, 0, bytesRead));
+            }
 
-          // The internal queue size has changed, so propagate
-          // the backpressure signal to the underlying source.
-          socket.setTCPWindowSize(Math.max(0, controller.desiredSize));
-        };
+            if (bytesRead === 0) {
+              controller.close();
+              return;
+            }
 
-        socket.onend = () => controller.close();
-        socket.onerror = () => controller.error(new Error("The socket errored!"));
-      },
-
-      pull(controller) {
-        // This is called when the internal queue has been drained, and the
-        // stream's consumer can accept more data. Reflect the up-to-date
-        // backpressure level by setting the TCP receive window of the socket
-        // to desiredSize.
-        socket.setTCPWindowSize(Math.max(0, controller.desiredSize));
+            return readRepeatedly();
+          });
+        }
       },
 
       cancel() {
         socket.close();
       }
-    }, {
-      highWaterMark: DEFAULT_WINDOW_SIZE
     });
   }
 </code></pre>
