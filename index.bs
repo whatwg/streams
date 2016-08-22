@@ -3727,7 +3727,7 @@ socket.
 The following function returns <a>readable byte streams</a> that wraps a hypothetical UDP socket API, including a
 promise-returning <code>select2()</code> method that is meant to be evocative of the POSIX select(2) system call.
 
-Since UDP sockets do not have any built-in backpressure support, the backpressure signal given by
+Since the UDP protocol does not have any built-in backpressure support, the backpressure signal given by
 {{ReadableByteStreamController/desiredSize}} is ignored, and the stream ensures that when data is available from the
 socket but not yet requested by the developer, it is enqueued in the stream's <a>internal queue</a>, to avoid overflow
 of the kernel-space queue and a consequent loss of data.
