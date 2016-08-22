@@ -14,7 +14,7 @@ To understand the importance of backpressure, watch [Thorsten Lorenz's LXJS 2013
 
 A _push-based_ data source is one which, while the flow is turned on, pushes data at you (e.g. via events). It may also provide a mechanism for pausing and resuming the flow of data. However, this mechanism could be advisory, i.e. you may still receive data after requesting a pause. It is important not to lose such data (it must be queued for further consumption).
 
-An example of a push-based data source is a TCP socket. The remote server pushes data to you, and while the OS will try to buffer it up to some limit, if you do not vacate that kernel-level buffer in time, data can be lost. In this context, "pausing" can be accomplished by adjusting the TCP window size.
+An example of a push-based data source is a UDP socket. The remote server pushes data to you, and while the OS will try to buffer it up to some limit, if you do not vacate that kernel-level buffer in time, data will be lost.
 
 ### You must be able to efficiently adapt existing _pull_-based data sources into a uniform streaming interface.
 
