@@ -10,8 +10,10 @@ const ByteLengthQueuingStrategy = require('./lib/byte-length-queuing-strategy.js
 const CountQueuingStrategy = require('./lib/count-queuing-strategy.js');
 
 const testsPath = path.resolve(__dirname, 'web-platform-tests/streams');
+const toUpstreamTestsPath = path.resolve(__dirname, 'to-upstream-wpts');
 
-wptRunner(testsPath, { rootURL: 'streams/', setup })
+wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup })
+  .then(() => wptRunner(testsPath, { rootURL: 'streams/', setup }))
   .then(failures => process.exit(failures))
   .catch(e => {
     console.error(e.stack);

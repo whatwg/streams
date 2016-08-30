@@ -20,6 +20,6 @@
     "tap-spec": "^4.1.1",
     "tape": "^4.5.1",
     "tape-catch": "^1.0.5",
-    "wpt-runner": "^2.0.1"
+    "wpt-runner": "^2.1.0"
   }
 }

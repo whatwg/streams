@@ -3,6 +3,5 @@ npm-debug.log
 
 bench/results/
 web-platform-tests/
-!web-platform-tests/streams/writable-streams/*
 
 browser-tests/bundle.js
