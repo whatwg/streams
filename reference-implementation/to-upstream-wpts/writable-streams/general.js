@@ -80,3 +80,22 @@ test(() => {
     }
   );
 }, 'ws.getWriter() on an errored WritableStream');
+
+promise_test(() => {
+  const ws = new WritableStream({});
+
+  const writer = ws.getWriter();
+  writer.releaseLock();
+
+  return writer.closed.then(
+    v => assert_unreached('writer.closed fulfilled unexpectedly with: ' + v),
+    closedRejection => {
+      assert_equals(closedRejection.name, 'TypeError', 'closed promise should reject with a TypeError');
+      return writer.ready.then(
+        v => assert_unreached('writer.ready fulfilled unexpectedly with: ' + v),
+        readyRejection => assert_equals(readyRejection, closedRejection,
+          'ready promise should reject with the same error')
+      );
+    }
+  );
+}, 'closed and ready on a released writer');

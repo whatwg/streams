@@ -280,32 +280,12 @@ class WritableStreamDefaultWriter {
     const stream = this._ownerWritableStream;
 
     if (stream === undefined) {
-      return undefined;
+      return;
     }
 
     assert(stream._writer !== undefined);
 
-    const state = stream._state;
-
-    const releasedException = new TypeError(
-      'Writer was released and can no longer be used to monitor the stream\'s closedness');
-
-    if (state === 'writable' || state === 'closing') {
-      defaultWriterClosedPromiseReject(this, releasedException);
-    } else {
-      defaultWriterClosedPromiseResetToRejected(this, releasedException);
-    }
-
-    if (state === 'writable' &&
-        WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
-      defaultWriterReadyPromiseReject(this, releasedException);
-    } else {
-      defaultWriterReadyPromiseResetToRejected(this, releasedException);
-    }
-
-    stream._writer = undefined;
-    this._ownerWritableStream = undefined;
-    return undefined;
+    WritableStreamDefaultWriterRelease(this);
   }
 
   write(chunk) {
@@ -390,6 +370,32 @@ function WritableStreamDefaultWriterGetDesiredSize(writer) {
   }
 
   return WritableStreamDefaultControllerGetDesiredSize(stream._writableStreamController);
+}
+
+function WritableStreamDefaultWriterRelease(writer) {
+  const stream = writer._ownerWritableStream;
+  assert(stream !== undefined);
+  assert(stream._writer === writer);
+
+  const releasedError = new TypeError(
+    'Writer was released and can no longer be used to monitor the stream\'s closedness');
+  const state = stream._state;
+
+  if (state === 'writable' || state === 'closing') {
+    defaultWriterClosedPromiseReject(writer, releasedError);
+  } else {
+    defaultWriterClosedPromiseResetToRejected(writer, releasedError);
+  }
+
+  if (state === 'writable' &&
+      WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
+    defaultWriterReadyPromiseReject(writer, releasedError);
+  } else {
+    defaultWriterReadyPromiseResetToRejected(writer, releasedError);
+  }
+
+  stream._writer = undefined;
+  writer._ownerWritableStream = undefined;
 }
 
 function WritableStreamDefaultWriterWrite(writer, chunk) {
