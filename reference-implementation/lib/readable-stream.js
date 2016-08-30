@@ -6,6 +6,9 @@ const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, Invo
 const { createArrayFromList, createDataProperty, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } = require('./queue-with-sizes.js');
+const { AcquireWritableStreamDefaultWriter, IsWritableStream, WritableStreamAbort,
+        WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
+        WritableStreamDefaultWriterWrite } = require('./writable-stream.js');
 
 const InternalCancel = Symbol('[[Cancel]]');
 const InternalPull = Symbol('[[Pull]]');
@@ -86,273 +89,126 @@ class ReadableStream {
   }
 
   pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) {
-    // brandcheck
+    if (IsReadableStream(this) === false) {
+      return Promise.reject(streamBrandCheckException('pipeTo'));
+    }
+    if (IsWritableStream(dest) === false) {
+      return Promise.reject(
+        new TypeError('ReadableStream.prototype.pipeTo\'s first argument must be a WritableStream'));
+    }
 
     preventClose = Boolean(preventClose);
     preventAbort = Boolean(preventAbort);
     preventCancel = Boolean(preventCancel);
 
-    const source = this;
+    const reader = AcquireReadableStreamDefaultReader(this);
+    const writer = AcquireWritableStreamDefaultWriter(dest);
 
-    let _resolvePipeToPromise;
-    let _rejectPipeToPromise;
+    let shuttingDown = false;
 
-    let _reader;
-    let _writer;
-
-    let _state = 'piping';
-
-    let _lastRead;
-    let _lastWrite;
-    let _allWrites;
+    // This is used to keep track of the spec's requirement that we wait for ongoing writes during shutdown.
+    let currentWrite;
 
     return new Promise((resolve, reject) => {
-      _resolvePipeToPromise = resolve;
-      _rejectPipeToPromise = reject;
+      // Using reader and writer, read all chunks from this and write them to dest
+      // - Backpressure must be enforced
+      // - Shutdown must stop all activity
+      function pipeLoop() {
+        currentWrite = Promise.resolve();
 
-      _reader = source.getReader();
-      _writer = dest.getWriter();
-
-      _reader.closed.catch(handleReaderClosedRejection);
-      _writer.closed.then(
-        handleWriterClosedFulfillment,
-        handleWriterClosedRejection
-      );
-
-      doPipe();
-    });
-
-    function releaseReader() {
-      // console.log('pipeTo(): releaseReader()');
-
-      _reader.releaseLock();
-      _reader = undefined;
-    }
-
-    function releaseWriter() {
-      // console.log('pipeTo(): releaseWriter()');
-
-      _writer.releaseLock();
-      _writer = undefined;
-    }
-
-    function pipeDone() {
-      // console.log('pipeTo(): pipeDone()');
-
-      assert(_reader === undefined);
-      assert(_writer === undefined);
-
-      _state = 'done';
-
-      _lastRead = undefined;
-      _lastWrite = undefined;
-      _allWrites = undefined;
-    }
-
-    function finishWithFulfillment() {
-      // console.log('pipeTo(): finishWithFulfillment()');
-
-      _resolvePipeToPromise(undefined);
-      _resolvePipeToPromise = undefined;
-      _rejectPipeToPromise = undefined;
-
-      pipeDone();
-    }
-
-    function finishWithRejection(reason) {
-      // console.log('pipeTo(): finishWithRejection()');
-
-      _rejectPipeToPromise(reason);
-      _resolvePipeToPromise = undefined;
-      _rejectPipeToPromise = undefined;
-
-      pipeDone();
-    }
-
-    function abortWriterCancelReader(reason, skipAbort, skipCancel) {
-      const promises = [];
-
-      if (skipAbort === false) {
-        _writer.abort(reason);
-
-        releaseWriter();
-      } else if (_lastWrite === undefined) {
-        releaseWriter();
-      } else {
-        promises.push(_lastWrite.then(
-          () => {
-            releaseWriter();
-          },
-          () => {
-            releaseWriter();
-          }
-        ));
-      }
-
-      if (skipCancel === false) {
-        _reader.cancel(reason);
-
-        releaseReader();
-      } else if (_lastRead === undefined) {
-        releaseReader();
-      } else {
-        promises.push(_lastRead.then(
-          () => {
-            releaseReader();
-          },
-          () => {
-            releaseReader();
-          }
-        ));
-      }
-
-      if (promises.length > 0) {
-        Promise.all(promises).then(
-          () => {
-            finishWithRejection(reason);
-          }
-        );
-        _state = 'waitingForLastReadAndOrLastWrite';
-        return;
-      }
-
-      finishWithRejection(reason);
-    }
-
-    function handleWriteRejection(reason) {
-      // console.log('pipeTo(): handleWriteRejection()');
-
-      if (_state !== 'piping') {
-        return;
-      }
-
-      abortWriterCancelReader(reason, preventAbort, preventCancel);
-    }
-
-    function handleReadValue(value) {
-      // console.log('pipeTo(): handleReadValue()');
-
-      _lastWrite = _writer.write(value);
-      _lastWrite.catch(handleWriteRejection);
-
-      // dest may be already errored. But proceed to write().
-      _allWrites = Promise.all([_allWrites, _lastWrite]);
-
-      doPipe();
-    }
-
-    function handleReadDone() {
-      // console.log('pipeTo(): handleReadDone()');
-
-      // Does not need to wait for lastRead since it occurs only on source closed.
-
-      releaseReader();
-
-      if (preventClose === false) {
-        // console.log('pipeTo(): Close dest');
-
-        // We don't use writer.closed. We can ensure that the microtask for writer.closed is run before any
-        // writer.close() call so that we can determine whether the closure was caused by the close() or ws was already
-        // closed before pipeTo(). It's possible but fragile.
-        _writer.close().then(
-          () => {
-            return _allWrites;
-          },
-          reason => {
-            releaseWriter();
-            finishWithRejection(reason);
-          }
-        ).then(
-          () => {
-            releaseWriter();
-            finishWithFulfillment();
-          }
-        );
-        _state = 'closingDest';
-
-        return;
-      }
-
-      if (_lastWrite === undefined) {
-        releaseWriter();
-        finishWithFulfillment();
-        return;
-      }
-
-      // We don't use writer.closed. pipeTo() is responsible only for what it has written.
-      _lastWrite.then(
-        () => {
-          releaseWriter();
-          finishWithFulfillment();
-        },
-        reason => {
-          releaseWriter();
-          finishWithRejection(reason);
+        if (shuttingDown === true) {
+          return undefined;
         }
-      );
-      _state = 'waitingLastWriteOnReadableClosed';
-    }
 
-    function doPipe() {
-      // console.log('pipeTo(): doPipe()');
+        return writer._readyPromise.then(() => {
+          return ReadableStreamDefaultReaderRead(reader).then(({ value, done }) => {
+            if (done === true) {
+              return undefined;
+            }
 
-      _lastRead = _reader.read();
+            currentWrite = WritableStreamDefaultWriterWrite(writer, value);
+            return currentWrite;
+          });
+        })
+        .then(pipeLoop);
+      }
 
-      Promise.all([_lastRead, _writer.ready]).then(
-        ([{ value, done }]) => {
-          if (_state !== 'piping') {
-            return;
-          }
+      pipeLoop().catch(err => {
+        currentWrite = Promise.resolve();
+        rethrowAssertionErrorRejection(err);
+      });
 
-          if (Boolean(done) === false) {
-            handleReadValue(value);
+      // Errors must be propagated forward
+      reader._closedPromise.catch(storedError => {
+        if (preventAbort === false) {
+          performAsyncShutdown(() => WritableStreamAbort(dest, storedError), true, storedError);
+        } else {
+          performShutdown(true, storedError);
+        }
+      });
+
+      // Errors must be propagated backward
+      writer._closedPromise.catch(storedError => {
+        if (preventCancel === false) {
+          performAsyncShutdown(() => ReadableStreamCancel(this, storedError), true, storedError);
+        } else {
+          performShutdown(true, storedError);
+        }
+      });
+
+      // Closing must be propagated forward
+      reader._closedPromise.then(() => {
+        if (preventClose === false) {
+          performAsyncShutdown(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
+        } else {
+          performShutdown();
+        }
+      });
+
+      // Closing must be propagated backward
+      writer._closedPromise.then(() => {
+        const destClosed = new TypeError('the destination writable stream closed before all data could be piped to it');
+
+        if (preventCancel === false) {
+          performAsyncShutdown(() => ReadableStreamCancel(this, destClosed), true, destClosed);
+        } else {
+          performShutdown(true, destClosed);
+        }
+      });
+
+      function waitForCurrentWrite() {
+        return currentWrite.catch(() => {});
+      }
+
+      function performAsyncShutdown(action, originalIsError, originalError) {
+        if (shuttingDown === true) {
+          return;
+        }
+        shuttingDown = true;
+
+        waitForCurrentWrite().then(() => {
+          action().then(
+            () => performShutdown(originalIsError, originalError),
+            newError => performShutdown(true, newError)
+          );
+        });
+      }
+
+      function performShutdown(isError, error) {
+        shuttingDown = true;
+
+        waitForCurrentWrite().then(() => {
+          WritableStreamDefaultWriterRelease(writer);
+          ReadableStreamReaderGenericRelease(reader);
+
+          if (isError) {
+            reject(error);
           } else {
-            handleReadDone();
+            resolve(undefined);
           }
-        },
-        () => {
-          // Do nothing
-        }
-      )
-      .catch(rethrowAssertionErrorRejection);
-
-      // Any failures will be handled by listening to reader.closed and dest.closed above.
-      // TODO: handle malicious dest.write/dest.close?
-    }
-
-    function handleReaderClosedRejection(reason) {
-      // console.log('pipeTo(): handleReaderClosedRejection()');
-
-      if (_state !== 'piping') {
-        return;
+        });
       }
-
-      _lastRead = undefined;
-      abortWriterCancelReader(reason, preventAbort, true);
-    }
-
-    function handleUnexpectedWriterCloseAndError(reason) {
-      // console.log('pipeTo(): handleUnexpectedWriterCloseAndError()');
-
-      if (_state !== 'piping') {
-        return;
-      }
-
-      _lastWrite = undefined;
-      abortWriterCancelReader(reason, true, preventCancel);
-    }
-
-    function handleWriterClosedFulfillment() {
-      // console.log('pipeTo(): handleWriterClosedFulfillment()');
-
-      handleUnexpectedWriterCloseAndError(new TypeError('dest closed unexpectedly'));
-    }
-
-    function handleWriterClosedRejection(reason) {
-      // console.log('pipeTo(): handleWriterClosedRejection()');
-
-      handleUnexpectedWriterCloseAndError(reason);
-    }
+    });
   }
 
   tee() {

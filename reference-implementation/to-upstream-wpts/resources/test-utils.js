@@ -1,5 +1,6 @@
 'use strict';
-// This file already exists upstream. We are duplicating it here due to tooling limitations.
+// This file already exists upstream. We are duplicating and updating it here. Be sure to override the existing one
+// when upstreaming.
 
 self.getterRejects = (t, obj, getterName, target) => {
   const getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
@@ -7,10 +8,10 @@ self.getterRejects = (t, obj, getterName, target) => {
   return promise_rejects(t, new TypeError(), getter.call(target));
 };
 
-self.methodRejects = (t, obj, methodName, target) => {
+self.methodRejects = (t, obj, methodName, target, args) => {
   const method = obj[methodName];
 
-  return promise_rejects(t, new TypeError(), method.call(target));
+  return promise_rejects(t, new TypeError(), method.apply(target, args));
 };
 
 self.getterThrows = (obj, getterName, target) => {

@@ -598,16 +598,72 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   consumer from acquiring a reader.
 </div>
 
-The <code>pipeTo</code> method is still in some flux. Its design depends on the design of writable streams, which
-<a href="#ws-not-ready-yet">are still undergoing spec churn</a>.
-
-For now, the reference implementation and tests provide a guide to what this method is generally intended to do: <a
-href="https://github.com/whatwg/streams/blob/master/reference-implementation/lib/readable-stream.js">reference-implementation/lib/readable-stream.js</a>,
-look for the <code>pipeTo</code> method. In addition to changing as the writable stream design changes, one major
-aspect of <code>pipeTo</code> not captured by the reference implementation is that it will operate via unobservable
-abstract operation calls, instead of using the JavaScript-exposed readable and writable stream APIs. This will better
-allow optimization and specialization. See <a href="https://github.com/whatwg/streams/issues/407">#407</a> and <a
-href="https://github.com/whatwg/streams/issues/97">#97</a> for more information.
+<emu-alg>
+  1. If ! IsReadableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsWritableStream(_dest_) is *false*, return a promise rejected with a *TypeError* exception.
+  1. Set _preventClose_ to ? ToBoolean(_preventClose_), set _preventAbort_ to ? ToBoolean(_preventAbort_), and set
+     _preventCancel_ to ? ToBoolean(_preventCancel_).
+  1. If ! IsReadableByteStreamController(*this*.[[readableStreamController]]) is true, let _reader_ be either ?
+     AcquireReadableStreamBYOBReader(*this*) or ? AcquireReadableStreamDefaultReader(*this*), at the user agent's
+     discretion.
+  1. Otherwise, let _reader_ be ? AcquireReadableStreamDefaultReader(*this*).
+  1. Let _writer_ be ? AcquireWritableStreamDefaultWriter(_dest_).
+  1. Let _promise_ be a new promise.
+  1. Let _shuttingDown_ be *false*.
+  1. <a>In parallel</a>, using _reader_ and _writer_, read all <a>chunks</a> from *this* and write them to _dest_. Due
+     to the locking provided by the reader and writer, the exact manner in which this happens is not observable to
+     author code, and so there is flexibility in how this is done. The following constraints apply regardless of the
+     exact algorithm used:
+     * <strong>Public API must not be used:</strong> while reading or writing, or performing any of the operations
+       below, the JavaScript-modifiable reader, writer, and stream APIs (i.e. methods on the appropriate prototypes)
+       must not be used. Instead, the streams must be manipulated directly.
+     * <strong>Backpressure must be enforced:</strong>
+       * While WritableStreamDefaultWriterGetDesiredSize(_writer_) is ≤ *0* or is *null*, the user agent must not read
+         from _reader_.
+       * If _reader_ is a <a>BYOB reader</a>, WritableStreamDefaultWriterGetDesiredSize(_writer_) should be used to
+         determine the size of the chunks read from _reader_.
+       * Otherwise, WritableStreamDefaultWriterGetDesiredSize(_writer_) may be used to determine the flow rate
+         heuristically, e.g. by delaying reads while it is judged to be "low" compared to the size of chunks that have
+         been typically read.
+     * <strong>Shutdown must stop all activity:</strong> if _shuttingDown_ becomes *true*, the user agent must not
+       initiate further reads from _reader_ or writes to _writer_. (Ongoing reads and writes may finish.)
+     * <strong>Errors must be propagated forward:</strong> if *this*.[[state]] is or becomes `"errored"`, then
+       1. If _preventAbort_ is *false*, <a href="#rs-pipeTo-async-shutdown">perform async shutdown</a> given the action
+          of performing ! WritableStreamAbort(_dest_, *this*.[[storedError]]), and given *this*.[[storedError]].
+       1. Otherwise, <a href="#rs-pipeTo-shutdown">perform shutdown</a> with *this*.[[storedError]].
+     * <strong>Errors must be propagated backward:</strong> if _dest_.[[state]] is or becomes `"errored"`, then
+       1. If _preventCancel_ is *false*, <a href="#rs-pipeTo-async-shutdown">perform async shutdown</a> given the action
+          of performing ! ReadableStreamCancel(*this*, _dest_.[[storedError]]), and given _dest_.[[storedError]].
+       1.  Otherwise, <a href="#rs-pipeTo-shutdown">perform shutdown</a> with _dest_.[[storedError]].
+     * <strong>Closing must be propagated forward:</strong> if *this*.[[state]] is or becomes `"closed"`, then
+       1. If _preventClose_ is *false*, <a href="#rs-pipeTo-async-shutdown">perform async shutdown</a> given the action
+          of performing ! WritableStreamDefaultWriterCloseWithErrorPropagation(_writer_).
+       1. Otherwise, <a href="#rs-pipeTo-shutdown">perform shutdown</a>.
+     * <strong>Closing must be propagated backward:</strong> if _dest_.[[state]] is `"closing"` or `"closed"`, then
+       1. Let _destClosed_ be a new *TypeError*.
+       1. If _preventCancel_ is *false*, <a href="#rs-pipeTo-async-shutdown">Perform async shutdown</a> given the action
+          of performing ! ReadableStreamCancel(*this*, _destClosed_), and given and _destClosed_.
+       1. Otherwise, <a href="#rs-pipeTo-shutdown">perform shutdown</a> with _destClosed_.
+     * <i id="rs-pipeTo-async-shutdown">Async shutdown</i>: if any of the above requirements ask to perform async
+       shutdown, given an action _action_ and an optional error _originalError_, then:
+       1. If _shuttingDown_ is *true*, abort these substeps.
+       1. Set _shuttingDown_ to *true*.
+       1. Wait until any ongoing write finishes (i.e. the corresponding promises settle).
+       1. Let _p_ be the result of performing _action_.
+       1. If _p_ fulfills,
+         1. If _originalError_ was given, <a href="#rs-pipeTo-shutdown">perform shutdown</a> with _originalError_.
+         1. Otherwise, <a href="#rs-pipeTo-shutdown">perform shutdown</a>.
+       1. If _p_ rejects with reason _newError_, <a href="#rs-pipeTo-shutdown">perform shutdown</a> with _newError_.
+     * <i id="rs-pipeTo-shutdown">Shutdown</i>: if any of the above requirements or steps ask to perform shutdown, given
+       an optional error _error_, then:
+       1. Set _shuttingDown_ to *true*.
+       1. Wait until any ongoing write finishes (i.e. the corresponding promises settle).
+       1. Perform ! WritableStreamDefaultWriterRelease(_writer_).
+       1. Perform ! ReadableStreamReaderGenericRelease(_reader_).
+       1. If _error_ was given, reject _promise_ with the given error.
+       1. Otherwise, resolve _promise_ with *undefined*.
+  1. Return _promise_.
+</emu-alg>
 
 <h5 id="rs-tee" method for="ReadableStream">tee()</h5>
 
@@ -2993,6 +3049,22 @@ nothrow>WritableStreamDefaultWriterClose ( <var>writer</var> )</h4>
   1. Set _stream_.[[state]] to `"closing"`.
   1. Perform ! WritableStreamDefaultControllerClose(_stream_.[[writableStreamController]]).
   1. Return _promise_.
+</emu-alg>
+
+<h4 id="writable-stream-default-writer-close-with-error-propagation" aoid="WritableStreamDefaultWriterCloseWithErrorPropagation"
+nothrow>WritableStreamDefaultWriterCloseWithErrorPropagation ( <var>writer</var> )</h4>
+
+<p class="note">This abstract operation helps implement the error propagation semantics of
+{{ReadableStream/pipeTo()}}.</p>
+
+<emu-alg>
+  1. Let _stream_ be _writer_.[[ownerWritableStream]].
+  1. Assert: _stream_ is not *undefined*.
+  1. Let _state_ be _stream_.[[state]].
+  1. If _state_ is `"closed"` or `"closing"`, return a new promise resolved with *undefined*.
+  1. If _state_ is `"errored"`, return a new promise rejected with _stream_.[[storedError]].
+  1. Assert: _state_ is `"writable"`.
+  1. Return ! WritableStreamDefaultWriterClose(_writer_).
 </emu-alg>
 
 <h4 id="writable-stream-default-writer-get-desired-size" aoid="WritableStreamDefaultWriterGetDesiredSize"

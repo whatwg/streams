@@ -60,6 +60,17 @@ class WritableStream {
 
 exports.WritableStream = WritableStream;
 
+Object.assign(exports, {
+  AcquireWritableStreamDefaultWriter,
+  IsWritableStream,
+  WritableStream,
+  WritableStreamAbort,
+  WritableStreamDefaultWriterClose,
+  WritableStreamDefaultWriterCloseWithErrorPropagation,
+  WritableStreamDefaultWriterRelease,
+  WritableStreamDefaultWriterWrite
+});
+
 // Abstract operations for the WritableStream.
 
 function AcquireWritableStreamDefaultWriter(stream) {
@@ -357,6 +368,24 @@ function WritableStreamDefaultWriterClose(writer) {
   WritableStreamDefaultControllerClose(stream._writableStreamController);
 
   return promise;
+}
+
+
+function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
+  const stream = writer._ownerWritableStream;
+
+  assert(stream !== undefined);
+
+  const state = stream._state;
+  if (state === 'closed' || state === 'closing') {
+    return Promise.resolve();
+  }
+
+  if (state === 'errored') {
+    return Promise.reject(stream._storedError);
+  }
+
+  return WritableStreamDefaultWriterClose(writer);
 }
 
 function WritableStreamDefaultWriterGetDesiredSize(writer) {
