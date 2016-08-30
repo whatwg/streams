@@ -11,7 +11,7 @@ const CountQueuingStrategy = require('./lib/count-queuing-strategy.js');
 
 const testsPath = path.resolve(__dirname, 'web-platform-tests/streams');
 
-wptRunner(testsPath, setup)
+wptRunner(testsPath, { rootURL: 'streams/', setup })
   .then(failures => process.exit(failures))
   .catch(e => {
     console.error(e.stack);
@@ -23,6 +23,7 @@ function setup(window) {
   window.Promise = Promise;
 
   window.ReadableStream = ReadableStream;
+  window.WritableStream = WritableStream;
   window.ByteLengthQueuingStrategy = ByteLengthQueuingStrategy;
   window.CountQueuingStrategy = CountQueuingStrategy;
 }
