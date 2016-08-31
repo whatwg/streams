@@ -54,6 +54,10 @@ class Pipe {
     doSpecialPipe(readable, writable);
   }
 
+  get coveredRequests() {
+    return this._coveredRequests;
+  }
+
   onProgress(numBytesDone) {
     globalPipeManager.onPipeProgress(this, numBytesDone);
   }
@@ -68,23 +72,29 @@ class Pipe {
   }
 }
 
+// Corresponds to and describes each pipeTo() invocation.
 class PipeRequest {
-  constructor(readable, writable, numBytes) {
+  constructor(reader, writer, numBytes) {
     this._remainingBytes = numBytes;
 
-    this._readable = readable;
-    this._writable = writable;
+    // The reader of the source readable stream from which we pipe data.
+    this._reader = reader;
+    // The writer of the destination writable stream to which we pipe data.
+    this._writer = writer;
 
+    // The active pipe instance which is covering this request.
     this._pipe = undefined;
 
     this._done = false;
+
+    globalPipeManager.register(this);
 
     function processPipeCandidates() {
       if (this._done === true) {
         return;
       }
 
-      const candidates = this._writable.pipeCandidates;
+      const candidates = this._writer.pipeCandidates;
 
       this._pipeCandidates = [];
       for (let candidate of candidates) {
@@ -105,19 +115,28 @@ class PipeRequest {
       // pipeCandidates might be updated asynchronously.
       // GlobalPipeManager.onRequestsUpdate() may need to adopt some
       // intelligent algorithm to avoid churn.
-      const candidatesToForward = [this];
+      //
+      // flushRequired is a list of writable streams indicating that the
+      // candidates are not yet available but becomes available if writes to
+      // the writable streams are throttled to allow their parent transform
+      // stream to flush data. E.g. an IdentityTransformStream with pending
+      // queue inside it could append its writable stream to flushRequired to
+      // ask the global pipe manager to suspend piping to the writable stream
+      // for a while to enable the pipe candidates.
+      const candidatesToForward = {
+        flushRequired: [],
+        pipeRequest: this
+      };
       for (let candidate of candidates) {
         candidatesToForward.push(candidate);
       }
-      this._readable.notifyPipeCandidates(candidatesToForward);
+      this._reader.notifyPipeCandidates(candidatesToForward);
 
-      this._writable.waitWritablesChange.then(() => {
+      this._writer.waitPipeCandidatesChange.then(() => {
         processPipeCandidates();
       })
     }
     processPipeCandidates();
-
-    globalPipeManager.register(this);
   }
 
   // To be scanned by the global pipe manager and the best one will be chosen
