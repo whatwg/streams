@@ -36,9 +36,13 @@ test('TransformStream writable starts in the writable state', t => {
 test('Pass-through sync TransformStream: can read from readable what is put into writable', t => {
   t.plan(3);
 
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      enqueue(chunk);
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk, done) {
+      c.enqueue(chunk);
       done();
     }
   });
@@ -59,9 +63,13 @@ test('Pass-through sync TransformStream: can read from readable what is put into
 });
 
 test('Uppercaser sync TransformStream: can read from readable transformed version of what is put into writable', t => {
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      enqueue(chunk.toUpperCase());
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk, done) {
+      c.enqueue(chunk.toUpperCase());
       done();
     }
   });
@@ -80,10 +88,14 @@ test('Uppercaser sync TransformStream: can read from readable transformed versio
 test('Uppercaser-doubler sync TransformStream: can read both chunks put into the readable', t => {
   t.plan(2);
 
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      enqueue(chunk.toUpperCase());
-      enqueue(chunk.toUpperCase());
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk, done) {
+      c.enqueue(chunk.toUpperCase());
+      c.enqueue(chunk.toUpperCase());
       done();
     }
   });
@@ -108,9 +120,13 @@ test('Uppercaser-doubler sync TransformStream: can read both chunks put into the
 test('Uppercaser async TransformStream: can read from readable transformed version of what is put into writable', t => {
   t.plan(1);
 
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      setTimeout(() => enqueue(chunk.toUpperCase()), 10);
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk, done) {
+      setTimeout(() => c.enqueue(chunk.toUpperCase()), 10);
       setTimeout(done, 50);
     }
   });
@@ -128,10 +144,14 @@ test('Uppercaser async TransformStream: can read from readable transformed versi
 test('Uppercaser-doubler async TransformStream: can read both chunks put into the readable', t => {
   t.plan(2);
 
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      setTimeout(() => enqueue(chunk.toUpperCase()), 10);
-      setTimeout(() => enqueue(chunk.toUpperCase()), 50);
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk, done) {
+      setTimeout(() => c.enqueue(chunk.toUpperCase()), 10);
+      setTimeout(() => c.enqueue(chunk.toUpperCase()), 50);
       setTimeout(done, 90);
     }
   });
@@ -196,10 +216,14 @@ test('TransformStream: by default, closing the writable waits for transforms to 
 });
 
 test('TransformStream: by default, closing the writable closes the readable after sync enqueues and async done', t => {
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      enqueue('x');
-      enqueue('y');
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk, done) {
+      c.enqueue('x');
+      c.enqueue('y');
       setTimeout(done, 50);
     }
   });
@@ -218,10 +242,14 @@ test('TransformStream: by default, closing the writable closes the readable afte
 });
 
 test('TransformStream: by default, closing the writable closes the readable after async enqueues and async done', t => {
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      setTimeout(() => enqueue('x'), 10);
-      setTimeout(() => enqueue('y'), 50);
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk, done) {
+      setTimeout(() => c.enqueue('x'), 10);
+      setTimeout(() => c.enqueue('y'), 50);
       setTimeout(done, 90);
     }
   });
@@ -283,13 +311,17 @@ test('TransformStream flush is called after all queued writes finish, once the w
 });
 
 test('TransformStream flush gets a chance to enqueue more into the readable', t => {
+  let c;
   const ts = new TransformStream({
+    start(controller) {
+      c = controller;
+    },
     transform(chunk, done) {
       done();
     },
-    flush(enqueue) {
-      enqueue('x');
-      enqueue('y');
+    flush() {
+      c.enqueue('x');
+      c.enqueue('y');
     }
   });
 
@@ -313,14 +345,18 @@ test('TransformStream flush gets a chance to enqueue more into the readable', t 
 test('TransformStream flush gets a chance to enqueue more into the readable, and can then async close', t => {
   t.plan(3);
 
+  let c;
   const ts = new TransformStream({
+    start(controller) {
+      c = controller;
+    },
     transform(chunk, done) {
       done();
     },
-    flush(enqueue, close) {
-      enqueue('x');
-      enqueue('y');
-      setTimeout(close, 10);
+    flush() {
+      c.enqueue('x');
+      c.enqueue('y');
+      setTimeout(() => c.close(), 10);
     }
   });
 
@@ -348,17 +384,22 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
 test('Transform stream should call transformer methods as methods', t => {
   t.plan(1);
 
+  let c;
   const ts = new TransformStream({
     suffix: '-suffix',
 
-    transform(chunk, done, enqueue) {
-      enqueue(chunk + this.suffix);
+    start(controller) {
+      c = controller;
+    },
+
+    transform(chunk, done) {
+      c.enqueue(chunk + this.suffix);
       done();
     },
 
-    flush(enqueue, close) {
-      enqueue('flushed' + this.suffix);
-      close();
+    flush() {
+      c.enqueue('flushed' + this.suffix);
+      c.close();
     }
   });
 

@@ -155,9 +155,7 @@ function TransformStreamTransformIfNeeded(transformStream) {
       transformStream._transformer.transform(
           chunk,
           TransformStreamChunkDone.bind(undefined, transformStream),
-          transformStream._enqueueFunction,
-          transformStream._closeFunction,
-          transformStream._errorFunction);
+          transformStream._controller);
     }
   } catch (e) {
     TransformStreamErrorIfNeeded(transformStream, e);
@@ -171,10 +169,7 @@ function TransformStreamStart(transformStream) {
 
   // Thrown exception will be handled by TransformStreamSink.start()
   // method.
-  transformStream._transformer.start(
-      transformStream._enqueueFunction,
-      transformStream._closeFunction,
-      transformStream._errorFunction);
+  transformStream._transformer.start(transformStream._controller);
 }
 
 class TransformStreamSink {
@@ -242,10 +237,7 @@ class TransformStreamSink {
       TransformStreamCloseReadable(transformStream);
     } else {
       try {
-        transformStream._transformer.flush(
-            transformStream._enqueueFunction,
-            transformStream._closeFunction,
-            transformStream._errorFunction);
+        transformStream._transformer.flush(transformStream._controller);
       } catch (e) {
         TransformStreamErrorIfNeeded(transformStream, e);
         throw transformStream._storedError;
@@ -281,6 +273,24 @@ class TransformStreamSource {
   }
 }
 
+class TransformStreamDefaultController {
+  constructor(transformStream) {
+    this._controlledTransformStream = transformStream;
+  }
+
+  enqueue(chunk) {
+    TransformStreamEnqueueToReadable(this._controlledTransformStream, chunk);
+  }
+
+  close() {
+    TransformStreamCloseReadable(this._controlledTransformStream);
+  }
+
+  error(reason) {
+    TransformStreamError(this._controlledTransformStream, reason);
+  }
+}
+
 module.exports = class TransformStream {
   constructor(transformer) {
     if (transformer.start !== undefined && typeof transformer.start !== 'function') {
@@ -310,9 +320,7 @@ module.exports = class TransformStream {
     this._chunkPending = false;
     this._chunk = undefined;
 
-    this._enqueueFunction = TransformStreamEnqueueToReadable.bind(undefined, this);
-    this._closeFunction = TransformStreamCloseReadable.bind(undefined, this);
-    this._errorFunction = TransformStreamError.bind(undefined, this);
+    this._controller = new TransformStreamDefaultController(this);
 
     const sink = new TransformStreamSink(this);
 
