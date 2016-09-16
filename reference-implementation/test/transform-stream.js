@@ -413,3 +413,16 @@ test('Transform stream should call transformer methods as methods', t => {
     });
   }, e => t.error(e));
 });
+
+test('TransformStream cannot be used after becoming errored', t => {
+  t.plan(1);
+  new TransformStream({
+    start(c) {
+      c.enqueue('a');
+      c.error(new Error('generic error'));
+      t.throws(() => c.enqueue('b'), /TypeError/, 'Errored TransformStream cannot enqueue new chunks');
+    },
+    transform() {
+    }
+  });
+});
