@@ -1,5 +1,6 @@
 'use strict';
 const assert = require('assert');
+const { InvokeOrNoop } = require('./helpers.js');
 const { ReadableStream } = require('./readable-stream.js');
 const { WritableStream } = require('./writable-stream.js');
 
@@ -163,13 +164,9 @@ function TransformStreamTransformIfNeeded(transformStream) {
 }
 
 function TransformStreamStart(transformStream) {
-  if (transformStream._transformer.start === undefined) {
-    return;
-  }
-
   // Thrown exception will be handled by TransformStreamSink.start()
   // method.
-  transformStream._transformer.start(transformStream._controller);
+  InvokeOrNoop(transformStream._transformer, 'start', [transformStream._controller]);
 }
 
 class TransformStreamSink {
