@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-const { InvokeOrNoop } = require('./helpers.js');
+const { InvokeOrNoop, PromiseInvokeOrNoop } = require('./helpers.js');
 const { ReadableStream } = require('./readable-stream.js');
 const { WritableStream } = require('./writable-stream.js');
 
@@ -77,19 +77,7 @@ function TransformStreamError(transformStream, e) {
   TransformStreamErrorInternal(transformStream, e);
 }
 
-// Functions passed to transformer.transform().
-
-function TransformStreamChunkDone(transformStream) {
-  if (transformStream._errored === true) {
-    throw new TypeError('TransformStream is already errored');
-  }
-
-  if (transformStream._transforming === false) {
-    throw new TypeError('No active transform is running');
-  }
-
-  TransformStreamResolveWrite(transformStream);
-}
+// Function called when ready to accept the next chunk
 
 function TransformStreamResolveWrite(transformStream) {
   if (transformStream._errored === true) {
@@ -161,16 +149,10 @@ function TransformStreamTransformIfNeeded(transformStream) {
   transformStream._chunkPending = false;
   transformStream._chunk = undefined;
 
-  try {
-    if (transformStream._transformer.transform !== undefined) {
-      transformStream._transformer.transform(
-          chunk,
-          TransformStreamChunkDone.bind(undefined, transformStream),
-          transformStream._controller);
-    }
-  } catch (e) {
-    TransformStreamErrorIfNeeded(transformStream, e);
-  }
+  const p = PromiseInvokeOrNoop(transformStream._transformer, 'transform', [chunk, transformStream._controller]);
+
+  p.then(() => TransformStreamResolveWrite(transformStream),
+      e => TransformStreamErrorIfNeeded(transformStream, e));
 }
 
 function TransformStreamStart(transformStream) {

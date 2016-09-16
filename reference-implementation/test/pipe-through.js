@@ -29,9 +29,8 @@ test('Piping through an identity transform stream will close the destination whe
     start(controller) {
       c = controller;
     },
-    transform(chunk, done) {
+    transform(chunk) {
       c.enqueue(chunk);
-      done();
     }
   });
 
@@ -71,9 +70,8 @@ test.skip('Piping through a default transform stream causes backpressure to be e
     start(controller) {
       c = controller;
     },
-    transform(chunk, done) {
+    transform(chunk) {
       c.enqueue(chunk);
-      done();
     }
   });
 
