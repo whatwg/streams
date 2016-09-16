@@ -26,7 +26,7 @@ function TransformStreamCloseReadable(transformStream) {
 }
 
 function TransformStreamEnqueueToReadable(transformStream, chunk) {
-  if (transformStream._errroed === true) {
+  if (transformStream._errored === true) {
     throw new TypeError('TransformStream is already errored');
   }
 
@@ -34,7 +34,7 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
     throw new TypeError('Readable side is already closed');
   }
 
-  // We throttle transformer.transform invoation based on the backpressure of the ReadableStream, but we still
+  // We throttle transformer.transform invocation based on the backpressure of the ReadableStream, but we still
   // accept TransformStreamEnqueueToReadable() calls.
 
   const controller = transformStream._readableController;
@@ -81,7 +81,7 @@ function TransformStreamError(transformStream, e) {
 // Functions passed to transformer.transform().
 
 function TransformStreamChunkDone(transformStream) {
-  if (transformStream._errroed === true) {
+  if (transformStream._errored === true) {
     throw new TypeError('TransformStream is already errored');
   }
 
