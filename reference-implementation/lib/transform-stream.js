@@ -88,6 +88,16 @@ function TransformStreamChunkDone(transformStream) {
     throw new TypeError('No active transform is running');
   }
 
+  TransformStreamResolveWrite(transformStream);
+}
+
+function TransformStreamResolveWrite(transformStream) {
+  if (transformStream._errored === true) {
+    return;
+  }
+
+  assert(transformStream._transforming === true);
+
   assert(transformStream._resolveWrite !== undefined);
 
   transformStream._transforming = false;
