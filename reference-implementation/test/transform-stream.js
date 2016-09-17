@@ -287,6 +287,7 @@ test('TransformStream flush is called after all queued writes finish, once the w
     },
     flush() {
       flushCalled = true;
+      return new Promise(); // never resolves
     }
   });
 
@@ -302,7 +303,7 @@ test('TransformStream flush is called after all queued writes finish, once the w
 
   setTimeout(() => {
     t.ok(flushCalled, 'flush is eventually called');
-    t.equal(rsClosed, false, 'if flush does not call close, the readable does not become closed');
+    t.equal(rsClosed, false, 'if flushPromise does not resolve, the readable does not become closed');
     t.end();
   }, 50);
 });
@@ -351,7 +352,7 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
     flush() {
       c.enqueue('x');
       c.enqueue('y');
-      setTimeout(() => c.close(), 10);
+      return new Promise(resolve => setTimeout(resolve, 10));
     }
   });
 
@@ -377,7 +378,7 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
 });
 
 test('Transform stream should call transformer methods as methods', t => {
-  t.plan(1);
+  t.plan(2);
 
   let c;
   const ts = new TransformStream({
@@ -393,7 +394,7 @@ test('Transform stream should call transformer methods as methods', t => {
 
     flush() {
       c.enqueue('flushed' + this.suffix);
-      c.close();
+      t.throws(() => c.close(), /TypeError/, 'A closing TransformStream cannot be closed again');
     }
   });
 
