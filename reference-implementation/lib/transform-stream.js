@@ -17,6 +17,13 @@ function TransformStreamCloseReadable(transformStream) {
     throw new TypeError('Readable side is already closed');
   }
 
+  TransformStreamCloseReadableInternal(transformStream);
+}
+
+function TransformStreamCloseReadableInternal(transformStream) {
+  assert(transformStream._errored === false);
+  assert(transformStream._readableClosed === false);
+
   try {
     transformStream._readableController.close();
   } catch (e) {
@@ -223,7 +230,7 @@ class TransformStreamSink {
     transformStream._writableDone = true;
 
     if (transformStream._transformer.flush === undefined) {
-      TransformStreamCloseReadable(transformStream);
+      TransformStreamCloseReadableInternal(transformStream);
     } else {
       try {
         transformStream._transformer.flush(transformStream._controller);
