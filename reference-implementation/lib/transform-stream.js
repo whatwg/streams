@@ -44,11 +44,10 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
   try {
     controller.enqueue(chunk);
   } catch (e) {
-    if (transformStream._errored === false) {
-      // This happens when the given strategy is bad.
-      const reason = new TypeError('Failed to enqueue to readable side');
-      TransformStreamErrorInternal(transformStream, reason);
-    }
+    // This happens when the given strategy is bad.
+    const reason = new TypeError('Failed to enqueue to readable side');
+    TransformStreamErrorIfNeeded(transformStream, reason);
+
     throw transformStream._storedError;
   }
 
@@ -56,10 +55,9 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
   try {
     backpressure = controller.desiredSize <= 0;
   } catch (e) {
-    if (transformStream._errored === false) {
-      const reason = new TypeError('Failed to calculate backpressure of readable side');
-      TransformStreamError(transformStream, reason);
-    }
+    const reason = new TypeError('Failed to calculate backpressure of readable side');
+    TransformStreamErrorIfNeeded(transformStream, reason);
+
     throw transformStream._storedError;
   }
 
@@ -101,8 +99,16 @@ function TransformStreamChunkDone(transformStream) {
 
 // Abstract operations.
 
+function TransformStreamErrorIfNeeded(transformStream, e) {
+  if (transformStream._errored === false) {
+    TransformStreamErrorInternal(transformStream, e);
+  }
+}
+
 function TransformStreamErrorInternal(transformStream, e) {
   // console.log('TransformStreamErrorInternal()');
+
+  assert(transformStream._errored === false);
 
   transformStream._errored = true;
   transformStream._storedError = e;
@@ -154,9 +160,7 @@ function TransformStreamTransformIfNeeded(transformStream) {
           transformStream._errorFunction);
     }
   } catch (e) {
-    if (transformStream._errored === false) {
-      TransformStreamErrorInternal(transformStream, e);
-    }
+    TransformStreamErrorIfNeeded(transformStream, e);
   }
 }
 
