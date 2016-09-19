@@ -44,23 +44,23 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
   try {
     controller.enqueue(chunk);
   } catch (e) {
-    if (transformStream._error === false) {
+    if (transformStream._errored === false) {
       // This happens when the given strategy is bad.
       const reason = new TypeError('Failed to enqueue to readable side');
       TransformStreamErrorInternal(transformStream, reason);
     }
-    throw transformStream._error;
+    throw transformStream._storedError;
   }
 
   let backpressure;
   try {
     backpressure = controller.desiredSize <= 0;
   } catch (e) {
-    if (transformStream._error === false) {
+    if (transformStream._errored === false) {
       const reason = new TypeError('Failed to calculate backpressure of readable side');
       TransformStreamError(transformStream, reason);
     }
-    throw transformStream._error;
+    throw transformStream._storedError;
   }
 
   // enqueue() may invoke pull() synchronously when we're not in pull() call.
