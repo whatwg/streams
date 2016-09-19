@@ -247,10 +247,8 @@ class TransformStreamSink {
             transformStream._closeFunction,
             transformStream._errorFunction);
       } catch (e) {
-        if (transformStream._errored === false) {
-          TransformStreamErrorInternal(transformStream, e);
-          throw e;
-        }
+        TransformStreamErrorIfNeeded(transformStream, e);
+        throw transformStream._storedError;
       }
     }
   }
