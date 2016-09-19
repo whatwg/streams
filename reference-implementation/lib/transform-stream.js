@@ -105,6 +105,7 @@ function TransformStreamErrorInternal(transformStream, e) {
   // console.log('TransformStreamErrorInternal()');
 
   transformStream._errored = true;
+  transformStream._storedError = e;
 
   if (transformStream._writableDone === false) {
     transformStream._writableController.error(e);
@@ -294,6 +295,7 @@ module.exports = class TransformStream {
 
     this._transforming = false;
     this._errored = false;
+    this._storedError = undefined;
 
     this._writableController = undefined;
     this._readableController = undefined;
