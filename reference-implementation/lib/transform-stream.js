@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-const { InvokeOrNoop, PromiseInvokeOrNoop } = require('./helpers.js');
+const { PromiseInvokeOrNoop } = require('./helpers.js');
 const { ReadableStream } = require('./readable-stream.js');
 const { WritableStream } = require('./writable-stream.js');
 
@@ -167,25 +167,49 @@ function TransformStreamTransformIfNeeded(transformStream) {
 }
 
 function TransformStreamStart(transformStream) {
-  // Thrown exception will be handled by TransformStreamSink.start()
-  // method.
-  InvokeOrNoop(transformStream._transformer, 'start', [transformStream._controller]);
+  return PromiseInvokeOrNoop(transformStream._transformer, 'start', [transformStream._controller]);
+}
+
+function TransformStreamCreateStartPromise(transformStream) {
+  const sinkStart = new Promise(resolve => {
+    transformStream._sinkStart_resolve = resolve;
+  });
+
+  const sourceStart = new Promise(resolve => {
+    transformStream._sourceStart_resolve = resolve;
+  });
+
+  const bothStart = Promise.all([sinkStart, sourceStart]);
+
+  const transformerStart = bothStart.then(() => TransformStreamStart(transformStream));
+
+  transformerStart.catch(e => {
+    // The underlyingSink and underlyingSource will error the readable and writable ends on their own.
+    if (transformStream._errored === false) {
+      transformStream._errored = true;
+      transformStream._storedError = e;
+    }
+  });
+
+  return transformerStart;
 }
 
 function TransformStreamAddWritableController(transformStream, c) {
   transformStream._writableController = c;
 
-  if (transformStream._readableController !== undefined) {
-    TransformStreamStart(transformStream);
-  }
+  transformStream._sinkStart_resolve();
+  transformStream._sinkStart_resolve = undefined;
+
+  return transformStream._startPromise;
 }
 
 function TransformStreamAddReadableController(transformStream, c) {
   transformStream._readableController = c;
 
-  if (transformStream._writableController !== undefined) {
-    TransformStreamStart(transformStream);
-  }
+  transformStream._sourceStart_resolve();
+  transformStream._sourceStart_resolve = undefined;
+
+  return transformStream._startPromise;
 }
 
 class TransformStreamSink {
@@ -324,6 +348,8 @@ module.exports = class TransformStream {
     this._chunk = undefined;
 
     this._controller = new TransformStreamDefaultController(this);
+
+    this._startPromise = TransformStreamCreateStartPromise(this);
 
     const sink = new TransformStreamSink(this);
 

@@ -421,3 +421,95 @@ test('TransformStream cannot be used after becoming errored', t => {
     }
   });
 });
+
+test('TransformStream start, transform, and flush are strictly ordered', t => {
+  t.plan(4);
+  let startCalled = false;
+  let startDone = false;
+  let transformDone = false;
+  let flushDone = false;
+  const ts = new TransformStream({
+    start() {
+      startCalled = true;
+      return new Promise(resolve => setTimeout(resolve, 90))
+        .then(() => { startDone = true; });
+    },
+    transform() {
+      t.ok(startDone, 'startPromise must resolve before transform is called');
+      return new Promise(resolve => setTimeout(resolve, 30))
+        .then(() => { transformDone = true; });
+    },
+    flush() {
+      t.ok(transformDone, 'pending transform promise must resolve before flush is called');
+      return new Promise(resolve => setTimeout(resolve, 50))
+        .then(() => { flushDone = true; });
+    }
+  });
+
+  t.notOk(startCalled, 'start is not called synchronously');
+
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close().then(() => {
+    t.ok(flushDone, 'flushPromise resolved');
+    t.end();
+  })
+  .catch(e => t.error(e));
+});
+
+test('TransformStream transformer.start() rejected promise errors the stream', t => {
+  t.plan(2);
+  const thrownError = new Error('start failure');
+  const ts = new TransformStream({
+    start() {
+      return new Promise(resolve => setTimeout(resolve, 90))
+        .then(() => { throw thrownError; });
+    },
+    transform() {
+      t.fail('transform must never be called if start() fails');
+    },
+    flush() {
+      t.fail('flush must never be called if start() fails');
+    }
+  });
+
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close().then(() => {
+    t.fail('writer should be errored if start() fails');
+  })
+  .catch(e => t.equal(e, thrownError, 'writer rejects with same error'));
+
+  const reader = ts.readable.getReader();
+
+  reader.read().catch(e => t.equal(e, thrownError, 'reader rejects with same error'));
+});
+
+test('TransformStream both calling controller.error and rejecting a promise', t => {
+  t.plan(2);
+  const controllerError = new Error('start failure');
+  const ts = new TransformStream({
+    start(c) {
+      c.error(controllerError);
+      return new Promise(resolve => setTimeout(resolve, 90))
+        .then(() => { throw new Error('ignored error'); });
+    },
+    transform() {
+      t.fail('transform must never be called if start() fails');
+    },
+    flush() {
+      t.fail('flush must never be called if start() fails');
+    }
+  });
+
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close().then(() => {
+    t.fail('writer should be errored if start() fails');
+  })
+  .catch(e => t.equal(e, controllerError, 'writer rejects with same error'));
+
+  const reader = ts.readable.getReader();
+
+  reader.read().catch(e => t.equal(e, controllerError, 'reader rejects with same error'));
+});
