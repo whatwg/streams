@@ -172,6 +172,22 @@ function TransformStreamStart(transformStream) {
   InvokeOrNoop(transformStream._transformer, 'start', [transformStream._controller]);
 }
 
+function TransformStreamAddWritableController(transformStream, c) {
+  transformStream._writableController = c;
+
+  if (transformStream._readableController !== undefined) {
+    TransformStreamStart(transformStream);
+  }
+}
+
+function TransformStreamAddReadableController(transformStream, c) {
+  transformStream._readableController = c;
+
+  if (transformStream._writableController !== undefined) {
+    TransformStreamStart(transformStream);
+  }
+}
+
 class TransformStreamSink {
   constructor(transformStream) {
     this._transformStream = transformStream;
@@ -180,11 +196,7 @@ class TransformStreamSink {
   start(c) {
     const transformStream = this._transformStream;
 
-    transformStream._writableController = c;
-
-    if (transformStream._readableController !== undefined) {
-      TransformStreamStart(transformStream);
-    }
+    return TransformStreamAddWritableController(transformStream, c);
   }
 
   write(chunk) {
@@ -249,11 +261,7 @@ class TransformStreamSource {
   start(c) {
     const transformStream = this._transformStream;
 
-    transformStream._readableController = c;
-
-    if (transformStream._writableController !== undefined) {
-      TransformStreamStart(transformStream);
-    }
+    return TransformStreamAddReadableController(transformStream, c);
   }
 
   pull() {
