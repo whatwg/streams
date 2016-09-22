@@ -515,3 +515,11 @@ test('TransformStream both calling controller.error and rejecting a promise', t 
 
   reader.read().catch(e => t.equal(e, controllerError, 'reader rejects with same error'));
 });
+
+test('TransformStream throw in transformer.start', t => {
+  t.plan(1);
+  t.throws(() => new TransformStream({
+    start() { throw new URIError('start thrown error'); },
+    transform() {}
+  }), /URIError.*start thrown error/, 'TransformStream constructor throws when start does');
+});
