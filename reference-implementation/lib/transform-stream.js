@@ -316,27 +316,11 @@ module.exports = class TransformStream {
 
     const sink = new TransformStreamSink(this, startPromise);
 
-    try {
-      this.writable = new WritableStream(sink, transformer.writableStrategy);
-    } catch (e) {
-      if (this._errored === false) {
-        TransformStreamError(this, e);
-        throw e;
-      }
-      return;
-    }
+    this.writable = new WritableStream(sink, transformer.writableStrategy);
 
     const source = new TransformStreamSource(this, startPromise);
 
-    try {
-      this.readable = new ReadableStream(source, transformer.readableStrategy);
-    } catch (e) {
-      this.writable = undefined;
-      if (this._errored === false) {
-        TransformStreamError(this, e);
-        throw e;
-      }
-    }
+    this.readable = new ReadableStream(source, transformer.readableStrategy);
 
     const transformStream = this;
     const startResult = InvokeOrNoop(transformer, 'start', [transformStream._controller]);
