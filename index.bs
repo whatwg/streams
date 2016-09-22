@@ -1557,6 +1557,7 @@ nothrow>ReadableStreamDefaultControllerCallPullIfNeeded ( <var>controller</var> 
   1. If _controller_.[[pulling]] is *true*,
     1. Set _controller_.[[pullAgain]] to *true*.
     1. Return *undefined*.
+  1. Assert: _controller_.[[pullAgain]] is *false*.
   1. Set _controller_.[[pulling]] to *true*.
   1. Let _pullPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSource]], `"pull"`, « _controller_ »).
   1. Upon fulfillment of _pullPromise_,
@@ -2043,7 +2044,7 @@ nothrow>ReadableByteStreamControllerCallPullIfNeeded ( <var>controller</var> )</
   1. If _controller_.[[pulling]] is *true*,
     1. Set _controller_.[[pullAgain]] to *true*.
     1. Return *undefined*.
-  1. Set _controller_.[[pullAgain]] to *false*.
+  1. Assert: _controller_.[[pullAgain]] is *false*.
   1. Set _controller_.[[pulling]] to *true*.
   1. Let _pullPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingByteSource]], `"pull"`, « ‍_controller_ »).
   1. Upon fulfillment of _pullPromise_,

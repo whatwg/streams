@@ -1096,6 +1096,8 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
     return undefined;
   }
 
+  assert(controller._pullAgain === false);
+
   controller._pulling = true;
 
   const pullPromise = PromiseInvokeOrNoop(controller._underlyingSource, 'pull', [controller]);
@@ -1493,7 +1495,7 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
     return undefined;
   }
 
-  controller._pullAgain = false;
+  assert(controller._pullAgain === false);
 
   controller._pulling = true;
 
