@@ -17,10 +17,6 @@ function TransformStreamCloseReadable(transformStream) {
     throw new TypeError('Readable side is already closed');
   }
 
-  if (transformStream._writableDone === true) {
-    throw new TypeError('TransformStream is already closing');
-  }
-
   TransformStreamCloseReadableInternal(transformStream);
 }
 
@@ -226,11 +222,18 @@ class TransformStreamSink {
 
     const flushPromise = PromiseInvokeOrNoop(transformStream._transformer, 'flush', [transformStream._controller]);
     // Return a promise that is fulfilled with undefined on success.
-    return flushPromise.then(() => TransformStreamCloseReadableInternal(transformStream),
-                      r => {
-                        TransformStreamErrorIfNeeded(transformStream, r);
-                        return Promise.reject(transformStream._storedError);
-                      });
+    return flushPromise.then(() => {
+      if (transformStream._errored === true) {
+        return Promise.reject(transformStream._storedError);
+      }
+      if (transformStream._readableClosed === false) {
+        TransformStreamCloseReadableInternal(transformStream);
+      }
+      return Promise.resolve();
+    }).catch(r => {
+      TransformStreamErrorIfNeeded(transformStream, r);
+      return Promise.reject(transformStream._storedError);
+    });
   }
 }
 

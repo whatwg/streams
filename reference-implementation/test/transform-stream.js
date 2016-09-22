@@ -378,7 +378,7 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
 });
 
 test('Transform stream should call transformer methods as methods', t => {
-  t.plan(2);
+  t.plan(1);
 
   let c;
   const ts = new TransformStream({
@@ -394,7 +394,6 @@ test('Transform stream should call transformer methods as methods', t => {
 
     flush() {
       c.enqueue('flushed' + this.suffix);
-      t.throws(() => c.close(), /TypeError/, 'A closing TransformStream cannot be closed again');
     }
   });
 
