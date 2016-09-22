@@ -3003,7 +3003,7 @@ nothrow>WritableStreamDefaultWriterClose ( <var>writer</var> )</h4>
   1. Let _stream_ be _writer_.[[ownerWritableStream]].
   1. Assert: _stream_ is not *undefined*.
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"close"` or `"errored"`, return a promise rejected with a *TypeError* exception.
+  1. If _state_ is `"closed"` or `"errored"`, return a promise rejected with a *TypeError* exception.
   1. Assert: _state_ is `"writable"`.
   1. Let _promise_ be ! WritableStreamAddWriteRequest(_stream_).
   1. If ! WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, resolve
