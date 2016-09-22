@@ -976,6 +976,10 @@ class ReadableStreamDefaultController {
     Promise.resolve(startResult).then(
       () => {
         controller._started = true;
+
+        assert(controller._pulling === false);
+        assert(controller._pullAgain === false);
+
         ReadableStreamDefaultControllerCallPullIfNeeded(controller);
       },
       r => {
