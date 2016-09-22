@@ -1446,6 +1446,8 @@ ReadableStreamDefaultController(<var>stream</var>, <var>underlyingSource</var>, 
   1. Resolve _startResult_ as a promise:
     1. Upon fulfillment,
       1. Set _controller_.[[started]] to *true*.
+      1. Assert: _controller_.[[pulling]] is *false*.
+      1. Assert: _controller_.[[pullAgain]] is *false*.
       1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
     1. Upon rejection with reason _r_,
       1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
