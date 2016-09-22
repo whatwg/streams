@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-const { PromiseInvokeOrNoop } = require('./helpers.js');
+const { InvokeOrNoop, PromiseInvokeOrNoop } = require('./helpers.js');
 const { ReadableStream } = require('./readable-stream.js');
 const { WritableStream } = require('./writable-stream.js');
 
@@ -166,61 +166,18 @@ function TransformStreamTransformIfNeeded(transformStream) {
       e => TransformStreamErrorIfNeeded(transformStream, e));
 }
 
-function TransformStreamStart(transformStream) {
-  return PromiseInvokeOrNoop(transformStream._transformer, 'start', [transformStream._controller]);
-}
-
-function TransformStreamCreateStartPromise(transformStream) {
-  const sinkStart = new Promise(resolve => {
-    transformStream._sinkStart_resolve = resolve;
-  });
-
-  const sourceStart = new Promise(resolve => {
-    transformStream._sourceStart_resolve = resolve;
-  });
-
-  const bothStart = Promise.all([sinkStart, sourceStart]);
-
-  const transformerStart = bothStart.then(() => TransformStreamStart(transformStream));
-
-  transformerStart.catch(e => {
-    // The underlyingSink and underlyingSource will error the readable and writable ends on their own.
-    if (transformStream._errored === false) {
-      transformStream._errored = true;
-      transformStream._storedError = e;
-    }
-  });
-
-  return transformerStart;
-}
-
-function TransformStreamAddWritableController(transformStream, c) {
-  transformStream._writableController = c;
-
-  transformStream._sinkStart_resolve();
-  transformStream._sinkStart_resolve = undefined;
-
-  return transformStream._startPromise;
-}
-
-function TransformStreamAddReadableController(transformStream, c) {
-  transformStream._readableController = c;
-
-  transformStream._sourceStart_resolve();
-  transformStream._sourceStart_resolve = undefined;
-
-  return transformStream._startPromise;
-}
-
 class TransformStreamSink {
-  constructor(transformStream) {
+  constructor(transformStream, startPromise) {
     this._transformStream = transformStream;
+    this._startPromise = startPromise;
   }
 
   start(c) {
     const transformStream = this._transformStream;
 
-    return TransformStreamAddWritableController(transformStream, c);
+    transformStream._writableController = c;
+
+    return this._startPromise;
   }
 
   write(chunk) {
@@ -278,14 +235,17 @@ class TransformStreamSink {
 }
 
 class TransformStreamSource {
-  constructor(transformStream) {
+  constructor(transformStream, startPromise) {
     this._transformStream = transformStream;
+    this._startPromise = startPromise;
   }
 
   start(c) {
     const transformStream = this._transformStream;
 
-    return TransformStreamAddReadableController(transformStream, c);
+    transformStream._readableController = c;
+
+    return this._startPromise;
   }
 
   pull() {
@@ -349,9 +309,12 @@ module.exports = class TransformStream {
 
     this._controller = new TransformStreamDefaultController(this);
 
-    this._startPromise = TransformStreamCreateStartPromise(this);
+    let startPromise_resolve;
+    const startPromise = new Promise(resolve => {
+      startPromise_resolve = resolve;
+    });
 
-    const sink = new TransformStreamSink(this);
+    const sink = new TransformStreamSink(this, startPromise);
 
     try {
       this.writable = new WritableStream(sink, transformer.writableStrategy);
@@ -363,7 +326,7 @@ module.exports = class TransformStream {
       return;
     }
 
-    const source = new TransformStreamSource(this);
+    const source = new TransformStreamSource(this, startPromise);
 
     try {
       this.readable = new ReadableStream(source, transformer.readableStrategy);
@@ -374,5 +337,16 @@ module.exports = class TransformStream {
         throw e;
       }
     }
+
+    const transformStream = this;
+    const startResult = InvokeOrNoop(transformer, 'start', [transformStream._controller]);
+    startPromise_resolve(startResult);
+    startPromise.catch(e => {
+      // The underlyingSink and underlyingSource will error the readable and writable ends on their own.
+      if (transformStream._errored === false) {
+        transformStream._errored = true;
+        transformStream._storedError = e;
+      }
+    });
   }
 };

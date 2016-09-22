@@ -446,7 +446,7 @@ test('TransformStream start, transform, and flush are strictly ordered', t => {
     }
   });
 
-  t.notOk(startCalled, 'start is not called synchronously');
+  t.ok(startCalled, 'start is called synchronously');
 
   const writer = ts.writable.getWriter();
   writer.write('a');
@@ -490,9 +490,11 @@ test('TransformStream both calling controller.error and rejecting a promise', t 
   const controllerError = new Error('start failure');
   const ts = new TransformStream({
     start(c) {
-      c.error(controllerError);
       return new Promise(resolve => setTimeout(resolve, 90))
-        .then(() => { throw new Error('ignored error'); });
+        .then(() => {
+          c.error(controllerError);
+          throw new Error('ignored error');
+        });
     },
     transform() {
       t.fail('transform must never be called if start() fails');
