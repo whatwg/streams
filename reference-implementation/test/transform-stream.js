@@ -538,3 +538,26 @@ test('TransformStream throw in readableStrategy.size', t => {
     readableStrategy: strategy
   }), /URIError.*size thrown error/, 'throws same error strategy.size throws');
 });
+
+test('TransformStream throw in tricky readableStrategy.size', t => {
+  t.plan(1);
+
+  const controllerError = new URIError('controller.error');
+
+  let controller;
+  const strategy = {
+    size() {
+      controller.error(controllerError);
+      throw new URIError('redundant error');
+    }
+  };
+
+  t.throws(() => new TransformStream({
+    start(c) {
+      controller = c;
+      c.enqueue('a');
+    },
+    transform() {},
+    readableStrategy: strategy
+  }), /URIError.*controller\.error/, 'first error gets thrown');
+});

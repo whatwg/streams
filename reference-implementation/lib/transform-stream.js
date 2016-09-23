@@ -55,9 +55,9 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
     // This happens when readableStrategy.size() throws.
     // The ReadableStream has already errored itself.
     transformStream._readableClosed = true;
-    TransformStreamErrorInternal(transformStream, e);
+    TransformStreamErrorIfNeeded(transformStream, e);
 
-    throw e;
+    throw transformStream._storedError;
   }
 
   const backpressure = controller.desiredSize <= 0;
