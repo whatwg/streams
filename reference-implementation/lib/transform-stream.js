@@ -59,15 +59,7 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
     throw transformStream._storedError;
   }
 
-  let backpressure;
-  try {
-    backpressure = controller.desiredSize <= 0;
-  } catch (e) {
-    const reason = new TypeError('Failed to calculate backpressure of readable side');
-    TransformStreamErrorIfNeeded(transformStream, reason);
-
-    throw transformStream._storedError;
-  }
+  const backpressure = controller.desiredSize <= 0;
 
   // enqueue() may invoke pull() synchronously when we're not in pull() call.
   // In such case, _readableBackpressure may be already set to false.
