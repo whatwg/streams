@@ -522,3 +522,19 @@ test('TransformStream throw in transformer.start', t => {
     transform() {}
   }), /URIError.*start thrown error/, 'TransformStream constructor throws when start does');
 });
+
+test('TransformStream throw in readableStrategy.size', t => {
+  t.plan(1);
+
+  const strategy = {
+    size() { throw new URIError('size thrown error'); }
+  };
+
+  t.throws(() => new TransformStream({
+    start(c) {
+      c.enqueue('a');
+    },
+    transform() {},
+    readableStrategy: strategy
+  }), /URIError.*size thrown error/, 'throws same error strategy.size throws');
+});

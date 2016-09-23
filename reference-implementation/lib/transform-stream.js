@@ -52,11 +52,12 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
   try {
     controller.enqueue(chunk);
   } catch (e) {
-    // This happens when the given strategy is bad.
-    const reason = new TypeError('Failed to enqueue to readable side');
-    TransformStreamErrorIfNeeded(transformStream, reason);
+    // This happens when readableStrategy.size() throws.
+    // The ReadableStream has already errored itself.
+    transformStream._readableClosed = true;
+    TransformStreamErrorInternal(transformStream, e);
 
-    throw transformStream._storedError;
+    throw e;
   }
 
   const backpressure = controller.desiredSize <= 0;
