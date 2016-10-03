@@ -1493,7 +1493,7 @@ desiredSize</h5>
   1. If ! IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*.[[closeRequested]] is *true*, throw a *TypeError* exception.
   1. If *this*.[[controlledReadableStream]].[[state]] is not `"readable"`, throw a *TypeError* exception.
-  1. Return ! ReadableStreamDefaultControllerEnqueue(*this*, _chunk_).
+  1. Return ? ReadableStreamDefaultControllerEnqueue(*this*, _chunk_).
 </emu-alg>
 
 <h5 id="rs-default-controller-error" method for="ReadableStreamDefaultController">error(<var>e</var>)</h5>
@@ -1601,7 +1601,7 @@ this to streams they did not create, and must ensure they have obeyed the precon
 </emu-alg>
 
 <h4 id="readable-stream-default-controller-enqueue" aoid="ReadableStreamDefaultControllerEnqueue"
-nothrow>ReadableStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
+throws>ReadableStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
 
 This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in a readable stream,
 in the same way a developer would enqueue chunks using the stream's associated controller object. Specifications should
