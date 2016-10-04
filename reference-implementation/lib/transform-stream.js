@@ -4,7 +4,7 @@ const { InvokeOrNoop, PromiseInvokeOrNoop } = require('./helpers.js');
 const { ReadableStream } = require('./readable-stream.js');
 const { WritableStream } = require('./writable-stream.js');
 
-// Functions passed to the transformer.start().
+// Methods on the transform stream controller object
 
 function TransformStreamCloseReadable(transformStream) {
   // console.log('TransformStreamCloseReadable()');
