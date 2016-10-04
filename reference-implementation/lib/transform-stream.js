@@ -319,6 +319,9 @@ module.exports = class TransformStream {
 
     this.readable = new ReadableStream(source, transformer.readableStrategy);
 
+    assert(this._writableController !== undefined);
+    assert(this._readableController !== undefined);
+
     const transformStream = this;
     const startResult = InvokeOrNoop(transformer, 'start', [transformStream._controller]);
     startPromise_resolve(startResult);
