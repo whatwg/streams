@@ -451,7 +451,6 @@ test('TransformStream start, transform, and flush are strictly ordered', t => {
   writer.write('a');
   writer.close().then(() => {
     t.ok(flushDone, 'flushPromise resolved');
-    t.end();
   })
   .catch(e => t.error(e));
 });
