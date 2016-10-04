@@ -149,10 +149,11 @@ function TransformStreamTransformIfNeeded(transformStream) {
   transformStream._chunkPending = false;
   transformStream._chunk = undefined;
 
-  const p = PromiseInvokeOrNoop(transformStream._transformer, 'transform', [chunk, transformStream._controller]);
+  const transformPromise = PromiseInvokeOrNoop(transformStream._transformer,
+                             'transform', [chunk, transformStream._controller]);
 
-  p.then(() => TransformStreamResolveWrite(transformStream),
-      e => TransformStreamErrorIfNeeded(transformStream, e));
+  transformPromise.then(() => TransformStreamResolveWrite(transformStream),
+                     e => TransformStreamErrorIfNeeded(transformStream, e));
 }
 
 class TransformStreamSink {
