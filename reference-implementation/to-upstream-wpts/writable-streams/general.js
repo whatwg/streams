@@ -63,7 +63,7 @@ test(() => {
   ws.getWriter();
 }, 'ws.getWriter() on an aborted WritableStream');
 
-test(() => {
+promise_test(() => {
   const ws = new WritableStream({
     start(c) {
       c.error();
