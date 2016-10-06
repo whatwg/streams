@@ -36,7 +36,7 @@ promise_test(() => {
   return writer.ready.then(v => {
     assert_equals(v, undefined, 'ready promise should fulfill with undefined');
   });
-}, 'highWaterMark should be copied to desiredSize');
+}, 'highWaterMark should be reflected to desiredSize');
 
 promise_test(() => {
   const ws = new WritableStream({}, {
@@ -66,8 +66,8 @@ test(() => {
 
   assert_equals(writer.desiredSize, 1, 'desiredSize should start at 1');
 
-  assert_idl_attribute(writer, 'ready', 'writer should have a ready attribute');
-  assert_equals(typeof writer.ready.then, 'function', 'ready attribute should be thenable');
-  assert_idl_attribute(writer, 'closed', 'writer should have a closed attribute');
-  assert_equals(typeof writer.closed.then, 'function', 'closed attribute should be thenable');
+  assert_not_equals(typeof writer.ready, 'undefined', 'writer should have a ready property');
+  assert_equals(typeof writer.ready.then, 'function', 'ready property should be thenable');
+  assert_not_equals(typeof writer.closed, 'undefined', 'writer should have a closed property');
+  assert_equals(typeof writer.closed.then, 'function', 'closed property should be thenable');
 }, 'WritableStream instances should have standard methods and properties');
