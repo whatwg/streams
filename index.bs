@@ -2737,8 +2737,9 @@ visible through the {{WritableStream}}'s public API.
   1. If _writer_ is not undefined,
     1. Reject _writer_.[[closedPromise]] with _e_.
     1. If _state_ is `"writable"` and !
-    WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, resolve
-    _writer_.[[readyPromise]] with *undefined*.
+    WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, reject
+    _writer_.[[readyPromise]] with _e_.
+    1. Otherwise, set _writer_.[[readyPromise]] to a new promise rejected with _e_.
   1. Set _stream_.[[state]] to `"errored"`.
   1. Set _stream_.[[storedError]] to _e_.
 </emu-alg>

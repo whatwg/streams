@@ -194,25 +194,6 @@ test('Aborting a WritableStream puts it in an errored state, with stored error e
   );
 });
 
-test('Aborting a WritableStream causes any outstanding ready promises to be fulfilled immediately', t => {
-  const ws = new WritableStream({
-    write() {
-      return new Promise(() => { }); // forever-pending, so normally .ready would not fulfill.
-    }
-  });
-
-  const writer = ws.getWriter();
-
-  writer.write('a');
-
-  writer.ready.then(() => {
-    t.end();
-  });
-
-  const passedReason = new Error('Sorry, it just wasn\'t meant to be.');
-  writer.abort(passedReason);
-});
-
 test('Aborting a WritableStream causes any outstanding write() promises to be rejected with the abort reason', t => {
   t.plan(1);
 

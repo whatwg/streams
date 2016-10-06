@@ -139,7 +139,9 @@ function WritableStreamError(stream, e) {
 
     if (state === 'writable' &&
         WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
-      defaultWriterReadyPromiseResolve(writer);
+      defaultWriterReadyPromiseReject(writer, e);
+    } else {
+      defaultWriterReadyPromiseResetToRejected(writer, e);
     }
   }
 

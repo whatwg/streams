@@ -19,25 +19,6 @@ promise_test(t => {
     'value');
 
 async_test(t => {
-  const thrownError = new Error('throw me');
-  const ws = new WritableStream({
-    close() {
-      throw thrownError;
-    }
-  });
-
-  const writer = ws.getWriter();
-
-  promise_rejects(
-      t, thrownError, writer.close(), 'close promise should be rejected with the thrown error');
-
-  setTimeout(() => {
-    promise_rejects(t, thrownError, writer.closed, 'closed should stay rejected');
-    t.done();
-  }, 0);
-}, 'when sink throws an error while closing, the stream should become errored');
-
-async_test(t => {
   const passedError = new Error('error me');
   let controller;
   const ws = new WritableStream({
