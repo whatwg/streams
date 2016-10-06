@@ -59,7 +59,7 @@ async_test(t => {
       t.step(() => {
         assert_true(expectCloseCall, 'close should not be called until start promise resolves');
         t.done();
-        });
+      });
     }
   });
 
