@@ -15,42 +15,6 @@ function writeArrayToStream(array, writableStreamWriter) {
   return writableStreamWriter.close();
 }
 
-test('Controller argument is given to start method', t => {
-  let controller;
-  const ws = new WritableStream({
-    start(c) {
-      controller = c;
-    }
-  });
-
-  // Now error the stream after its construction.
-  const passedError = new Error('horrible things');
-  controller.error(passedError);
-
-  const writer = ws.getWriter();
-
-  t.equal(writer.desiredSize, null, 'desiredSize should be null');
-  writer.closed.catch(r => {
-    t.equal(r, passedError, 'ws should be errored by passedError');
-    t.end();
-  });
-});
-
-test('highWaterMark', t => {
-  const ws = new WritableStream({}, {
-    highWaterMark: 1000,
-    size() { return 1; }
-  });
-
-  const writer = ws.getWriter();
-
-  t.equal(writer.desiredSize, 1000, 'desiredSize should be 1000');
-  writer.ready.then(v => {
-    t.equal(v, undefined, 'ready promise should fulfill with undefined');
-    t.end();
-  });
-});
-
 test('Underlying sink\'s write won\'t be called until start finishes', t => {
   let expectWriteCall = false;
 
@@ -192,30 +156,6 @@ test('Underlying sink\'s write or close are never invoked if the promise returne
   }, 100);
 });
 
-test('WritableStream can be constructed with no arguments', t => {
-  t.plan(1);
-  t.doesNotThrow(() => new WritableStream(), 'WritableStream constructed with no errors');
-});
-
-test('WritableStream instances have the correct methods and properties', t => {
-  t.plan(8);
-
-  const ws = new WritableStream();
-
-  const writer = ws.getWriter();
-
-  t.equal(typeof writer.write, 'function', 'has a write method');
-  t.equal(typeof writer.abort, 'function', 'has an abort method');
-  t.equal(typeof writer.close, 'function', 'has a close method');
-
-  t.equal(writer.desiredSize, 1, 'desiredSize starts out 1');
-
-  t.ok(writer.ready, 'has a ready property');
-  t.ok(writer.ready.then, 'ready property is a thenable');
-  t.ok(writer.closed, 'has a closed property');
-  t.ok(writer.closed.then, 'closed property is thenable');
-});
-
 test('WritableStream with simple input, processed asynchronously', t => {
   t.plan(1);
 
@@ -269,22 +209,6 @@ test('WritableStream with simple input, processed synchronously', t => {
     () => t.deepEqual(storage, input, 'correct data was relayed to underlying sink'),
     r => t.fail(r)
   );
-});
-
-test('WritableStream is writable and ready fulfills immediately if the strategy does not apply backpressure', t => {
-  const ws = new WritableStream({}, {
-    highWaterMark: Infinity,
-    size() { return 0; }
-  });
-
-  const writer = ws.getWriter();
-
-  t.equal(writer.desiredSize, Infinity, 'desiredSize should be Infinity');
-
-  writer.ready.then(() => {
-    t.pass('ready promise was fulfilled');
-    t.end();
-  });
 });
 
 test('Fulfillment value of ws.write() call must be undefined even if the underlying sink returns a non-undefined ' +
