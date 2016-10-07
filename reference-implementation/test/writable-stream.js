@@ -15,80 +15,6 @@ function writeArrayToStream(array, writableStreamWriter) {
   return writableStreamWriter.close();
 }
 
-test('Underlying sink\'s write won\'t be called until start finishes', t => {
-  let expectWriteCall = false;
-
-  let resolveStartPromise;
-  const ws = new WritableStream({
-    start() {
-      return new Promise(resolve => {
-        resolveStartPromise = resolve;
-      });
-    },
-    write(chunk) {
-      if (expectWriteCall) {
-        t.equal(chunk, 'a', 'chunk should be the value passed to writer.write()');
-        t.end();
-      } else {
-        t.fail('Unexpected write call');
-        t.end();
-      }
-    },
-    close() {
-      t.fail('Unexpected close call');
-      t.end();
-    }
-  });
-
-  const writer = ws.getWriter();
-
-  t.equal(writer.desiredSize, 1, 'desiredSize should be 1');
-  writer.write('a');
-  t.equal(writer.desiredSize, 0, 'desiredSize should be 0 after writer.write()');
-
-  // Wait and see that write won't be called.
-  setTimeout(() => {
-    expectWriteCall = true;
-    resolveStartPromise();
-  }, 100);
-});
-
-test('Underlying sink\'s close won\'t be called until start finishes', t => {
-  let expectCloseCall = false;
-
-  let resolveStartPromise;
-  const ws = new WritableStream({
-    start() {
-      return new Promise(resolve => {
-        resolveStartPromise = resolve;
-      });
-    },
-    write() {
-      t.fail('Unexpected write call');
-      t.end();
-    },
-    close() {
-      if (expectCloseCall) {
-        t.end();
-      } else {
-        t.fail('Unexpected close call');
-        t.end();
-      }
-    }
-  });
-
-  const writer = ws.getWriter();
-
-  writer.close('a');
-  t.equal(writer.desiredSize, 1, 'desiredSize should be 1');
-
-  // Wait and see that write won't be called.
-  setTimeout(() => {
-    expectCloseCall = true;
-    resolveStartPromise();
-  }, 100);
-});
-
 test('Fulfillment value of ws.close() call must be undefined even if the underlying sink returns a non-undefined ' +
      'value', t => {
   const ws = new WritableStream({
@@ -107,53 +33,6 @@ test('Fulfillment value of ws.close() call must be undefined even if the underly
     t.fail('closePromise is rejected');
     t.end();
   });
-});
-
-test('Underlying sink\'s write or close are never invoked if start throws', t => {
-  const passedError = new Error('horrible things');
-
-  try {
-    new WritableStream({
-      start() {
-        throw passedError;
-      },
-      write() {
-        t.fail('Unexpected write call');
-        t.end();
-      },
-      close() {
-        t.fail('Unexpected close call');
-        t.end();
-      }
-    });
-  } catch (e) {
-    t.equal(e, passedError, 'Constructor should throw passedError');
-    t.end();
-    return;
-  }
-  t.fail('Constructor didn\'t throw');
-  t.end();
-});
-
-test('Underlying sink\'s write or close are never invoked if the promise returned by start is rejected', t => {
-  new WritableStream({
-    start() {
-      return Promise.reject();
-    },
-    write() {
-      t.fail('Unexpected write call');
-      t.end();
-    },
-    close() {
-      t.fail('Unexpected close call');
-      t.end();
-    }
-  });
-
-  // Wait and see that write or close won't be called.
-  setTimeout(() => {
-    t.end();
-  }, 100);
 });
 
 test('WritableStream with simple input, processed asynchronously', t => {
