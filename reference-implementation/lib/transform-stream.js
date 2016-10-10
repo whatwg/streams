@@ -87,11 +87,13 @@ function TransformStreamResolveWrite(transformStream) {
   assert(transformStream._transforming === true);
 
   assert(transformStream._resolveWrite !== undefined);
+  assert(transformStream._rejectWrite !== undefined);
 
   transformStream._transforming = false;
 
   transformStream._resolveWrite(undefined);
   transformStream._resolveWrite = undefined;
+  transformStream._rejectWrite = undefined;
 
   TransformStreamTransformIfNeeded(transformStream);
 }
@@ -121,8 +123,8 @@ function TransformStreamErrorInternal(transformStream, e) {
 
   transformStream._chunk = undefined;
 
-  if (transformStream._resolveWriter !== undefined) {
-    transformStream._resolveWriter(undefined);
+  if (transformStream._rejectWriter !== undefined) {
+    transformStream._rejectWriter(e);
   }
 }
 
@@ -181,12 +183,14 @@ class TransformStreamSink {
     assert(transformStream._chunk === undefined);
 
     assert(transformStream._resolveWrite === undefined);
+    assert(transformStream._rejectWrite === undefined);
 
     transformStream._chunkPending = true;
     transformStream._chunk = chunk;
 
     const promise = new Promise(resolve => {
       transformStream._resolveWrite = resolve;
+      transformStream._rejectWrite = resolve;
     });
 
     TransformStreamTransformIfNeeded(transformStream);
@@ -209,6 +213,7 @@ class TransformStreamSink {
     assert(transformStream._chunk === undefined);
 
     assert(transformStream._resolveWrite === undefined);
+    assert(transformStream._rejectWrite === undefined);
 
     assert(transformStream._transforming === false);
 
@@ -300,6 +305,7 @@ module.exports = class TransformStream {
     this._readableClosed = false;
 
     this._resolveWrite = undefined;
+    this._rejectWrite = undefined;
 
     this._chunkPending = false;
     this._chunk = undefined;
