@@ -18,10 +18,10 @@ test('TransformStream instances must have writable and readable properties of th
   t.plan(4);
   const ts = new TransformStream({ transform() { } });
 
-  t.ok(Object.prototype.hasOwnProperty.call(ts, 'writable'), 'it has a writable property');
+  t.ok(Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ts), 'writable'), 'it has a writable property');
   t.ok(ts.writable instanceof WritableStream, 'writable is an instance of WritableStream');
 
-  t.ok(Object.prototype.hasOwnProperty.call(ts, 'readable'), 'it has a readable property');
+  t.ok(Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ts), 'readable'), 'it has a readable property');
   t.ok(ts.readable instanceof ReadableStream, 'readable is an instance of ReadableStream');
 });
 

@@ -317,11 +317,11 @@ module.exports = class TransformStream {
 
     const sink = new TransformStreamSink(this, startPromise);
 
-    this.writable = new WritableStream(sink, transformer.writableStrategy);
+    this._writable = new WritableStream(sink, transformer.writableStrategy);
 
     const source = new TransformStreamSource(this, startPromise);
 
-    this.readable = new ReadableStream(source, transformer.readableStrategy);
+    this._readable = new ReadableStream(source, transformer.readableStrategy);
 
     assert(this._writableController !== undefined);
     assert(this._readableController !== undefined);
@@ -336,5 +336,13 @@ module.exports = class TransformStream {
         transformStream._storedError = e;
       }
     });
+  }
+
+  get readable() {
+    return this._readable;
+  }
+
+  get writable() {
+    return this._writable;
   }
 };
