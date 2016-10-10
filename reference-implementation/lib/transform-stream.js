@@ -20,19 +20,6 @@ function TransformStreamCloseReadable(transformStream) {
   TransformStreamCloseReadableInternal(transformStream);
 }
 
-function TransformStreamCloseReadableInternal(transformStream) {
-  assert(transformStream._errored === false);
-  assert(transformStream._readableClosed === false);
-
-  try {
-    transformStream._readableController.close();
-  } catch (e) {
-    assert(false);
-  }
-
-  transformStream._readableClosed = true;
-}
-
 function TransformStreamEnqueueToReadable(transformStream, chunk) {
   if (transformStream._errored === true) {
     throw new TypeError('TransformStream is already errored');
@@ -78,6 +65,19 @@ function TransformStreamError(transformStream, e) {
 }
 
 // Abstract operations.
+
+function TransformStreamCloseReadableInternal(transformStream) {
+  assert(transformStream._errored === false);
+  assert(transformStream._readableClosed === false);
+
+  try {
+    transformStream._readableController.close();
+  } catch (e) {
+    assert(false);
+  }
+
+  transformStream._readableClosed = true;
+}
 
 function TransformStreamResolveWrite(transformStream) {
   if (transformStream._errored === true) {
