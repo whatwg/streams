@@ -706,21 +706,26 @@ readable stream is <a>locked to a reader</a>.
 </emu-alg>
 
 <h4 id="readable-stream-tee" aoid="ReadableStreamTee" throws>ReadableStreamTee ( <var>stream</var>,
-<var>shouldClone</var> )</h4>
+<var>cloneForBranch2</var> )</h4>
 
-This abstract operation is meant to be called from other specifications that may wish to
-<a lt="tee a readable stream">tee</a> a given readable stream. Its second argument governs whether or not the data from
-the original stream will be <a abstract-op lt="StructuredClone">structured cloned</a> before becoming visible in the
-returned branches. [[!HTML]]
+This abstract operation is meant to be called from other specifications that may wish to <a lt="tee a readable
+stream">tee</a> a given readable stream.
+
+The second argument, <var>cloneForBranch2</var>, governs whether or not the data from the original stream will be <a
+abstract-op lt="StructuredClone">structured cloned</a> before appearing in the second of the returned branches. This is
+useful for scenarios where both branches are to be consumed in such a way that they might otherwise interfere with each
+other, such as by <a abstract-op lt="Transfer">transfering</a> their <a>chunks</a>. However, it does introduce a
+noticable asymmetry between the two branches. [[!HTML]]
 
 <emu-alg>
   1. Assert: ! IsReadableStream(_stream_) is *true*.
-  1. Assert: Type(_shouldClone_) is Boolean.
+  1. Assert: Type(_cloneForBranch2_) is Boolean.
   1. Let _reader_ be ? AcquireReadableStreamDefaultReader(_stream_).
   1. Let _teeState_ be Record {[[closedOrErrored]]: *false*, [[canceled1]]: *false*, [[canceled2]]: *false*,
      [[reason1]]: *undefined*, [[reason2]]: *undefined*, [[promise]]: a new promise}.
   1. Let _pull_ be a new <a>ReadableStreamTee pull function</a>.
-  1. Set _pull_.[[reader]] to _reader_, _pull_.[[teeState]] to _teeState_, and _pull_.[[shouldClone]] to _shouldClone_.
+  1. Set _pull_.[[reader]] to _reader_, _pull_.[[teeState]] to _teeState_, and _pull_.[[cloneForBranch2]] to
+     _cloneForBranch2_.
   1. Let _cancel1_ be a new <a>ReadableStreamTee branch 1 cancel function</a>.
   1. Set _cancel1_.[[stream]] to _stream_ and _cancel1_.[[teeState]] to _teeState_.
   1. Let _cancel2_ be a new <a>ReadableStreamTee branch 2 cancel function</a>.
@@ -743,27 +748,14 @@ returned branches. [[!HTML]]
   1. Return « _branch1Stream_, _branch2Stream_ ».
 </emu-alg>
 
-<div class="note">
-  The given algorithm creates two clones of each chunk, and discards the original, instead of creating one clone and
-  giving the original to one branch and the clone to another. This is done to ensure symmetry between the chunks seen
-  by each branch; for example, the clone of <code class="lang-javascript">const r = /?:/; r.expando = "!";</code> is
-  distinguishable from the original since the clone will not have the expando property.
-
-  However, in specific cases implementations may be able to do something more optimal, without observable consequences.
-  For example if each chunk is created by the implementation, and cannot otherwise be modified by the developer, it may
-  be possible to ensure the original and its clone are not distinguishable, in which case only one clone operation
-  would be necessary. <a href="https://lists.w3.org/Archives/Public/public-webcrypto/2014Mar/0141.html">But, be
-  careful!</a>
-</div>
-
 A <dfn>ReadableStreamTee pull function</dfn> is an anonymous built-in function that pulls data from a given <a>readable
 stream reader</a> and enqueues it into two other streams ("branches" of the associated tee). Each ReadableStreamTee
-pull function has \[[reader]], \[[branch1]], \[[branch2]], \[[teeState]], and \[[shouldClone]] internal slots. When a
-ReadableStreamTee pull function <var>F</var> is called, it performs the following steps:
+pull function has \[[reader]], \[[branch1]], \[[branch2]], \[[teeState]], and \[[cloneForBranch2]] internal slots. When
+a ReadableStreamTee pull function <var>F</var> is called, it performs the following steps:
 
 <emu-alg>
   1. Let _reader_ be _F_.[[reader]], _branch1_ be _F_.[[branch1]], _branch2_ be _F_.[[branch2]], _teeState_ be
-     _F_.[[teeState]], and _shouldClone_ be _F_.[[shouldClone]].
+     _F_.[[teeState]], and _cloneForBranch2_ be _F_.[[cloneForBranch2]].
   1. Return the result of transforming ! ReadableStreamDefaultReaderRead(_reader_) by a fulfillment handler which takes
      the argument _result_ and performs the following steps:
     1. Assert: Type(_result_) is Object.
@@ -777,14 +769,11 @@ ReadableStreamTee pull function <var>F</var> is called, it performs the followin
         1. Perform ! ReadableStreamDefaultControllerClose(_branch2_).
       1. Set _teeState_.[[closedOrErrored]] to *true*.
     1. If _teeState_.[[closedOrErrored]] is *true*, return *undefined*.
-    1. If _teeState_.[[canceled1]] is *false*,
-      1. Let _value1_ be _value_.
-      1. If _shouldClone_ is *true*, set _value1_ to ? <a abstract-op>StructuredClone</a>(_value_).
-      1. Perform ? ReadableStreamDefaultControllerEnqueue(_branch1_, _value1_).
-    1. If _teeState_.[[canceled2]] is *false*,
-      1. Let _value2_ be _value_.
-      1. If _shouldClone_ is *true*, set _value2_ to ? <a abstract-op>StructuredClone</a>(_value_).
-      1. Perform ? ReadableStreamDefaultControllerEnqueue(_branch2_, _value2_).
+    1. Let _value1_ and _value2_ be _value_.
+    1. If _teeState_.[[canceled2]] is *false* and _cloneForBranch2_ is *true*, set _value2_ to ? <a
+       abstract-op>StructuredClone</a>(_value2_).
+    1. If _teeState_.[[canceled1]] is *false*, perform ? ReadableStreamDefaultControllerEnqueue(_branch1_, _value1_).
+    1. If _teeState_.[[canceled2]] is *false*, perform ? ReadableStreamDefaultControllerEnqueue(_branch2_, _value2_).
 </emu-alg>
 
 A <dfn>ReadableStreamTee branch 1 cancel function</dfn> is an anonymous built-in function that reacts to the

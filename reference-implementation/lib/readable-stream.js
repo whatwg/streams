@@ -407,9 +407,9 @@ function IsReadableStreamLocked(stream) {
   return true;
 }
 
-function ReadableStreamTee(stream, shouldClone) {
+function ReadableStreamTee(stream, cloneForBranch2) {
   assert(IsReadableStream(stream) === true);
-  assert(typeof shouldClone === 'boolean');
+  assert(typeof cloneForBranch2 === 'boolean');
 
   const reader = AcquireReadableStreamDefaultReader(stream);
 
@@ -427,7 +427,7 @@ function ReadableStreamTee(stream, shouldClone) {
   const pull = create_ReadableStreamTeePullFunction();
   pull._reader = reader;
   pull._teeState = teeState;
-  pull._shouldClone = shouldClone;
+  pull._cloneForBranch2 = cloneForBranch2;
 
   const cancel1 = create_ReadableStreamTeeBranch1CancelFunction();
   cancel1._stream = stream;
@@ -466,7 +466,7 @@ function ReadableStreamTee(stream, shouldClone) {
 function create_ReadableStreamTeePullFunction() {
   function f() {
     const { _reader: reader, _branch1: branch1, _branch2: branch2, _teeState: teeState/* ,
-            _shouldClone: shouldClone*/ } = f;
+            _cloneForBranch2: cloneForBranch2*/ } = f;
 
     return ReadableStreamDefaultReaderRead(reader).then(result => {
       assert(typeIsObject(result));
@@ -488,23 +488,20 @@ function create_ReadableStreamTeePullFunction() {
         return;
       }
 
+      const value1 = value;
+      const value2 = value;
+
       // There is no way to access the cloning code right now in the reference implementation.
       // If we add one then we'll need an implementation for StructuredClone.
-
+      // if (teeState.canceled2 === false && cloneForBranch2 === true) {
+      //   value2 = StructuredClone(value2);
+      // }
 
       if (teeState.canceled1 === false) {
-        const value1 = value;
-//        if (shouldClone === true) {
-//          value1 = StructuredClone(value);
-//        }
         ReadableStreamDefaultControllerEnqueue(branch1, value1);
       }
 
       if (teeState.canceled2 === false) {
-        const value2 = value;
-//        if (shouldClone === true) {
-//          value2 = StructuredClone(value);
-//        }
         ReadableStreamDefaultControllerEnqueue(branch2, value2);
       }
     });
