@@ -77,7 +77,7 @@ function TransformStreamError(transformStream, e) {
   TransformStreamErrorInternal(transformStream, e);
 }
 
-// Function called when ready to accept the next chunk
+// Abstract operations.
 
 function TransformStreamResolveWrite(transformStream) {
   if (transformStream._errored === true) {
@@ -97,8 +97,6 @@ function TransformStreamResolveWrite(transformStream) {
 
   TransformStreamTransformIfNeeded(transformStream);
 }
-
-// Abstract operations.
 
 function TransformStreamErrorIfNeeded(transformStream, e) {
   if (transformStream._errored === false) {
