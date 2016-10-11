@@ -2652,7 +2652,7 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
 
 <emu-alg>
   1. If ! IsWritableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. Return ? AcquireWritableStreamDefaultReader(*this*).
+  1. Return ? AcquireWritableStreamDefaultWriter(*this*).
 </emu-alg>
 
 <h3 id="ws-abstract-ops">General Writable Stream Abstract Operations</h3>
