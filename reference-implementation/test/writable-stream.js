@@ -1,36 +1,6 @@
 'use strict';
 const test = require('tape-catch');
 
-function promise_rejects(t, expectedReason, promise, name, msg) {
-  promise.then(() => {
-    t.fail(name + ' fulfilled unexpectedly');
-    t.end();
-  }, reason => {
-    t.equal(reason, expectedReason, msg);
-  });
-}
-
-test('Fulfillment value of ws.close() call must be undefined even if the underlying sink returns a non-undefined ' +
-     'value', t => {
-  const ws = new WritableStream({
-    close() {
-      return 'Hello';
-    }
-  });
-
-  const writer = ws.getWriter();
-
-  const closePromise = writer.close('a');
-  closePromise.then(value => {
-    t.equal(value, undefined, 'fulfillment value must be undefined');
-    t.end();
-  }).catch(() => {
-    t.fail('closePromise is rejected');
-    t.end();
-  });
-});
-
-
 test('If close is called on a WritableStream in writable state, ready will return a fulfilled promise', t => {
   const ws = new WritableStream({
     write() {
@@ -281,79 +251,6 @@ test('If sink\'s write rejects on a WritableStream in waiting state, ready will 
     );
   }, 0);
 });
-
-test('WritableStream if sink\'s close throws an error while closing, the stream becomes errored', t => {
-  t.plan(2);
-
-  const thrownError = new Error('throw me');
-  const ws = new WritableStream({
-    close() {
-      throw thrownError;
-    }
-  });
-
-  const writer = ws.getWriter();
-
-  promise_rejects(
-      t, thrownError, writer.close(), 'close promise', 'close promise should be rejected with the thrown error');
-
-  setTimeout(() => {
-    promise_rejects(t, thrownError, writer.closed, 'closed', 'closed should stay rejected');
-  }, 0);
-});
-
-test('WritableStream if sink calls error while asynchronously closing, the stream becomes errored', t => {
-  t.plan(2);
-
-  const passedError = new Error('error me');
-  let controller;
-  const ws = new WritableStream({
-    start(c) {
-      controller = c;
-    },
-    close() {
-      return new Promise(resolve => setTimeout(resolve, 50));
-    }
-  });
-
-  const writer = ws.getWriter();
-
-  writer.close();
-  setTimeout(() => controller.error(passedError), 10);
-
-  promise_rejects(
-      t, passedError, writer.closed, 'closed promise', 'closed promise should be rejected with the passed error');
-
-  setTimeout(() => {
-    promise_rejects(t, passedError, writer.closed, 'closed', 'closed should stay rejected');
-  }, 70);
-});
-
-
-test('WritableStream if sink calls error while closing with no asynchrony, the stream becomes errored', t => {
-  t.plan(2);
-
-  const passedError = new Error('error me');
-  let controller;
-  const ws = new WritableStream({
-    start(c) {
-      controller = c;
-    },
-    close() {
-      controller.error(passedError);
-    }
-  });
-
-  const writer = ws.getWriter();
-
-  promise_rejects(
-      t, passedError, writer.close(), 'close promise', 'close promise should be rejected with the passed error');
-
-  setTimeout(() => {
-    promise_rejects(t, passedError, writer.closed, 'closed', 'closed should stay rejected');
-  }, 0);
-});
-
 
 test('WritableStream should call underlying sink methods as methods', t => {
   t.plan(5);
