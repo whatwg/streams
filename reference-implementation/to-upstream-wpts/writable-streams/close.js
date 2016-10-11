@@ -29,10 +29,10 @@ async_test(t => {
   const writer = ws.getWriter();
 
   promise_rejects(
-      t, thrownError, writer.close(), 'close promise', 'close promise should be rejected with the thrown error');
+      t, thrownError, writer.close(), 'close promise should be rejected with the thrown error');
 
   setTimeout(() => {
-    promise_rejects(t, thrownError, writer.closed, 'closed', 'closed should stay rejected');
+    promise_rejects(t, thrownError, writer.closed, 'closed should stay rejected');
     t.done();
   }, 0);
 }, 'when sink throws an error while closing, the stream should become errored');
@@ -55,10 +55,10 @@ async_test(t => {
   setTimeout(() => controller.error(passedError), 10);
 
   promise_rejects(
-      t, passedError, writer.closed, 'closed promise', 'closed promise should be rejected with the passed error');
+      t, passedError, writer.closed, 'closed promise should be rejected with the passed error');
 
   setTimeout(() => {
-    promise_rejects(t, passedError, writer.closed, 'closed', 'closed should stay rejected');
+    promise_rejects(t, passedError, writer.closed, 'closed should stay rejected');
     t.done();
   }, 70);
 }, 'when sink calls error asynchronously while closing, the stream should become errored');
@@ -78,10 +78,10 @@ async_test(t => {
   const writer = ws.getWriter();
 
   promise_rejects(
-      t, passedError, writer.close(), 'close promise', 'close promise should be rejected with the passed error');
+      t, passedError, writer.close(), 'close promise should be rejected with the passed error');
 
   setTimeout(() => {
-    promise_rejects(t, passedError, writer.closed, 'closed', 'closed should stay rejected');
+    promise_rejects(t, passedError, writer.closed, 'closed should stay rejected');
     t.done();
   }, 0);
 }, 'when sink calls error synchronously while closing, the stream should become errored');
