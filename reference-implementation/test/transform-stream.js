@@ -18,10 +18,10 @@ test('TransformStream instances must have writable and readable properties of th
   t.plan(4);
   const ts = new TransformStream({ transform() { } });
 
-  t.ok(Object.prototype.hasOwnProperty.call(ts, 'writable'), 'it has a writable property');
+  t.ok(Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ts), 'writable'), 'it has a writable property');
   t.ok(ts.writable instanceof WritableStream, 'writable is an instance of WritableStream');
 
-  t.ok(Object.prototype.hasOwnProperty.call(ts, 'readable'), 'it has a readable property');
+  t.ok(Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ts), 'readable'), 'it has a readable property');
   t.ok(ts.readable instanceof ReadableStream, 'readable is an instance of ReadableStream');
 });
 
@@ -36,10 +36,13 @@ test('TransformStream writable starts in the writable state', t => {
 test('Pass-through sync TransformStream: can read from readable what is put into writable', t => {
   t.plan(3);
 
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      enqueue(chunk);
-      done();
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk) {
+      c.enqueue(chunk);
     }
   });
 
@@ -59,10 +62,13 @@ test('Pass-through sync TransformStream: can read from readable what is put into
 });
 
 test('Uppercaser sync TransformStream: can read from readable transformed version of what is put into writable', t => {
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      enqueue(chunk.toUpperCase());
-      done();
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk) {
+      c.enqueue(chunk.toUpperCase());
     }
   });
 
@@ -80,11 +86,14 @@ test('Uppercaser sync TransformStream: can read from readable transformed versio
 test('Uppercaser-doubler sync TransformStream: can read both chunks put into the readable', t => {
   t.plan(2);
 
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      enqueue(chunk.toUpperCase());
-      enqueue(chunk.toUpperCase());
-      done();
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk) {
+      c.enqueue(chunk.toUpperCase());
+      c.enqueue(chunk.toUpperCase());
     }
   });
 
@@ -108,10 +117,14 @@ test('Uppercaser-doubler sync TransformStream: can read both chunks put into the
 test('Uppercaser async TransformStream: can read from readable transformed version of what is put into writable', t => {
   t.plan(1);
 
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      setTimeout(() => enqueue(chunk.toUpperCase()), 10);
-      setTimeout(done, 50);
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk) {
+      setTimeout(() => c.enqueue(chunk.toUpperCase()), 10);
+      return new Promise(resolve => setTimeout(resolve, 50));
     }
   });
 
@@ -128,11 +141,15 @@ test('Uppercaser async TransformStream: can read from readable transformed versi
 test('Uppercaser-doubler async TransformStream: can read both chunks put into the readable', t => {
   t.plan(2);
 
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      setTimeout(() => enqueue(chunk.toUpperCase()), 10);
-      setTimeout(() => enqueue(chunk.toUpperCase()), 50);
-      setTimeout(done, 90);
+    start(controller) {
+      c = controller;
+    },
+    transform(chunk) {
+      setTimeout(() => c.enqueue(chunk.toUpperCase()), 10);
+      setTimeout(() => c.enqueue(chunk.toUpperCase()), 50);
+      return new Promise(resolve => setTimeout(resolve, 90));
     }
   });
 
@@ -170,8 +187,8 @@ test('TransformStream: by default, closing the writable waits for transforms to 
   t.plan(2);
 
   const ts = new TransformStream({
-    transform(chunk, done) {
-      setTimeout(done, 50);
+    transform() {
+      return new Promise(resolve => setTimeout(resolve, 50));
     }
   });
 
@@ -196,11 +213,15 @@ test('TransformStream: by default, closing the writable waits for transforms to 
 });
 
 test('TransformStream: by default, closing the writable closes the readable after sync enqueues and async done', t => {
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      enqueue('x');
-      enqueue('y');
-      setTimeout(done, 50);
+    start(controller) {
+      c = controller;
+    },
+    transform() {
+      c.enqueue('x');
+      c.enqueue('y');
+      return new Promise(resolve => setTimeout(resolve, 50));
     }
   });
 
@@ -218,11 +239,15 @@ test('TransformStream: by default, closing the writable closes the readable afte
 });
 
 test('TransformStream: by default, closing the writable closes the readable after async enqueues and async done', t => {
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done, enqueue) {
-      setTimeout(() => enqueue('x'), 10);
-      setTimeout(() => enqueue('y'), 50);
-      setTimeout(done, 90);
+    start(controller) {
+      c = controller;
+    },
+    transform() {
+      setTimeout(() => c.enqueue('x'), 10);
+      setTimeout(() => c.enqueue('y'), 50);
+      return new Promise(resolve => setTimeout(resolve, 50));
     }
   });
 
@@ -257,11 +282,12 @@ test('TransformStream flush is called immediately when the writable is closed, i
 test('TransformStream flush is called after all queued writes finish, once the writable is closed', t => {
   let flushCalled = false;
   const ts = new TransformStream({
-    transform(chunk, done) {
-      setTimeout(done, 10);
+    transform() {
+      return new Promise(resolve => setTimeout(resolve, 10));
     },
     flush() {
       flushCalled = true;
+      return new Promise(); // never resolves
     }
   });
 
@@ -277,19 +303,22 @@ test('TransformStream flush is called after all queued writes finish, once the w
 
   setTimeout(() => {
     t.ok(flushCalled, 'flush is eventually called');
-    t.equal(rsClosed, false, 'if flush does not call close, the readable does not become closed');
+    t.equal(rsClosed, false, 'if flushPromise does not resolve, the readable does not become closed');
     t.end();
   }, 50);
 });
 
 test('TransformStream flush gets a chance to enqueue more into the readable', t => {
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done) {
-      done();
+    start(controller) {
+      c = controller;
     },
-    flush(enqueue) {
-      enqueue('x');
-      enqueue('y');
+    transform() {
+    },
+    flush() {
+      c.enqueue('x');
+      c.enqueue('y');
     }
   });
 
@@ -313,14 +342,17 @@ test('TransformStream flush gets a chance to enqueue more into the readable', t 
 test('TransformStream flush gets a chance to enqueue more into the readable, and can then async close', t => {
   t.plan(3);
 
+  let c;
   const ts = new TransformStream({
-    transform(chunk, done) {
-      done();
+    start(controller) {
+      c = controller;
     },
-    flush(enqueue, close) {
-      enqueue('x');
-      enqueue('y');
-      setTimeout(close, 10);
+    transform() {
+    },
+    flush() {
+      c.enqueue('x');
+      c.enqueue('y');
+      return new Promise(resolve => setTimeout(resolve, 10));
     }
   });
 
@@ -348,17 +380,20 @@ test('TransformStream flush gets a chance to enqueue more into the readable, and
 test('Transform stream should call transformer methods as methods', t => {
   t.plan(1);
 
+  let c;
   const ts = new TransformStream({
     suffix: '-suffix',
 
-    transform(chunk, done, enqueue) {
-      enqueue(chunk + this.suffix);
-      done();
+    start(controller) {
+      c = controller;
     },
 
-    flush(enqueue, close) {
-      enqueue('flushed' + this.suffix);
-      close();
+    transform(chunk) {
+      c.enqueue(chunk + this.suffix);
+    },
+
+    flush() {
+      c.enqueue('flushed' + this.suffix);
     }
   });
 
@@ -371,4 +406,157 @@ test('Transform stream should call transformer methods as methods', t => {
       t.deepEqual(chunks, ['a-suffix', 'flushed-suffix'], 'both enqueued chunks have suffixes');
     });
   }, e => t.error(e));
+});
+
+test('TransformStream cannot be used after becoming errored', t => {
+  t.plan(1);
+  new TransformStream({
+    start(c) {
+      c.enqueue('a');
+      c.error(new Error('generic error'));
+      t.throws(() => c.enqueue('b'), /TypeError/, 'Errored TransformStream cannot enqueue new chunks');
+    },
+    transform() {
+    }
+  });
+});
+
+test('TransformStream start, transform, and flush are strictly ordered', t => {
+  t.plan(4);
+  let startCalled = false;
+  let startDone = false;
+  let transformDone = false;
+  let flushDone = false;
+  const ts = new TransformStream({
+    start() {
+      startCalled = true;
+      return new Promise(resolve => setTimeout(resolve, 90))
+        .then(() => { startDone = true; });
+    },
+    transform() {
+      t.ok(startDone, 'startPromise must resolve before transform is called');
+      return new Promise(resolve => setTimeout(resolve, 30))
+        .then(() => { transformDone = true; });
+    },
+    flush() {
+      t.ok(transformDone, 'pending transform promise must resolve before flush is called');
+      return new Promise(resolve => setTimeout(resolve, 50))
+        .then(() => { flushDone = true; });
+    }
+  });
+
+  t.ok(startCalled, 'start is called synchronously');
+
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close().then(() => {
+    t.ok(flushDone, 'flushPromise resolved');
+  })
+  .catch(e => t.error(e));
+});
+
+test('TransformStream transformer.start() rejected promise errors the stream', t => {
+  t.plan(2);
+  const thrownError = new Error('start failure');
+  const ts = new TransformStream({
+    start() {
+      return new Promise(resolve => setTimeout(resolve, 90))
+        .then(() => { throw thrownError; });
+    },
+    transform() {
+      t.fail('transform must never be called if start() fails');
+    },
+    flush() {
+      t.fail('flush must never be called if start() fails');
+    }
+  });
+
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close().then(() => {
+    t.fail('writer should be errored if start() fails');
+  })
+  .catch(e => t.equal(e, thrownError, 'writer rejects with same error'));
+
+  const reader = ts.readable.getReader();
+
+  reader.read().catch(e => t.equal(e, thrownError, 'reader rejects with same error'));
+});
+
+test('TransformStream both calling controller.error and rejecting a promise', t => {
+  t.plan(2);
+  const controllerError = new Error('start failure');
+  const ts = new TransformStream({
+    start(c) {
+      return new Promise(resolve => setTimeout(resolve, 90))
+        .then(() => {
+          c.error(controllerError);
+          throw new Error('ignored error');
+        });
+    },
+    transform() {
+      t.fail('transform must never be called if start() fails');
+    },
+    flush() {
+      t.fail('flush must never be called if start() fails');
+    }
+  });
+
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close().then(() => {
+    t.fail('writer should be errored if start() fails');
+  })
+  .catch(e => t.equal(e, controllerError, 'writer rejects with same error'));
+
+  const reader = ts.readable.getReader();
+
+  reader.read().catch(e => t.equal(e, controllerError, 'reader rejects with same error'));
+});
+
+test('TransformStream throw in transformer.start', t => {
+  t.plan(1);
+  t.throws(() => new TransformStream({
+    start() { throw new URIError('start thrown error'); },
+    transform() {}
+  }), /URIError.*start thrown error/, 'TransformStream constructor throws when start does');
+});
+
+test('TransformStream throw in readableStrategy.size', t => {
+  t.plan(1);
+
+  const strategy = {
+    size() { throw new URIError('size thrown error'); }
+  };
+
+  t.throws(() => new TransformStream({
+    start(c) {
+      c.enqueue('a');
+    },
+    transform() {},
+    readableStrategy: strategy
+  }), /URIError.*size thrown error/, 'throws same error strategy.size throws');
+});
+
+test('TransformStream throw in tricky readableStrategy.size', t => {
+  t.plan(1);
+
+  const controllerError = new URIError('controller.error');
+
+  let controller;
+  const strategy = {
+    size() {
+      controller.error(controllerError);
+      throw new URIError('redundant error');
+    }
+  };
+
+  t.throws(() => new TransformStream({
+    start(c) {
+      controller = c;
+      c.enqueue('a');
+    },
+    transform() {},
+    readableStrategy: strategy
+  }), /URIError.*controller\.error/, 'first error gets thrown');
 });

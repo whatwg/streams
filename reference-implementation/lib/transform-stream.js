@@ -1,9 +1,10 @@
 'use strict';
 const assert = require('assert');
+const { InvokeOrNoop, PromiseInvokeOrNoop } = require('./helpers.js');
 const { ReadableStream } = require('./readable-stream.js');
 const { WritableStream } = require('./writable-stream.js');
 
-// Functions passed to the transformer.start().
+// Methods on the transform stream controller object
 
 function TransformStreamCloseReadable(transformStream) {
   // console.log('TransformStreamCloseReadable()');
@@ -16,17 +17,11 @@ function TransformStreamCloseReadable(transformStream) {
     throw new TypeError('Readable side is already closed');
   }
 
-  try {
-    transformStream._readableController.close();
-  } catch (e) {
-    assert(false);
-  }
-
-  transformStream._readableClosed = true;
+  TransformStreamCloseReadableInternal(transformStream);
 }
 
 function TransformStreamEnqueueToReadable(transformStream, chunk) {
-  if (transformStream._errroed === true) {
+  if (transformStream._errored === true) {
     throw new TypeError('TransformStream is already errored');
   }
 
@@ -34,7 +29,7 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
     throw new TypeError('Readable side is already closed');
   }
 
-  // We throttle transformer.transform invoation based on the backpressure of the ReadableStream, but we still
+  // We throttle transformer.transform invocation based on the backpressure of the ReadableStream, but we still
   // accept TransformStreamEnqueueToReadable() calls.
 
   const controller = transformStream._readableController;
@@ -44,24 +39,15 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
   try {
     controller.enqueue(chunk);
   } catch (e) {
-    if (transformStream._error === false) {
-      // This happens when the given strategy is bad.
-      const reason = new TypeError('Failed to enqueue to readable side');
-      TransformStreamErrorInternal(transformStream, reason);
-    }
-    throw transformStream._error;
+    // This happens when readableStrategy.size() throws.
+    // The ReadableStream has already errored itself.
+    transformStream._readableClosed = true;
+    TransformStreamErrorIfNeeded(transformStream, e);
+
+    throw transformStream._storedError;
   }
 
-  let backpressure;
-  try {
-    backpressure = controller.desiredSize <= 0;
-  } catch (e) {
-    if (transformStream._error === false) {
-      const reason = new TypeError('Failed to calculate backpressure of readable side');
-      TransformStreamError(transformStream, reason);
-    }
-    throw transformStream._error;
-  }
+  const backpressure = controller.desiredSize <= 0;
 
   // enqueue() may invoke pull() synchronously when we're not in pull() call.
   // In such case, _readableBackpressure may be already set to false.
@@ -78,33 +64,53 @@ function TransformStreamError(transformStream, e) {
   TransformStreamErrorInternal(transformStream, e);
 }
 
-// Functions passed to transformer.transform().
+// Abstract operations.
 
-function TransformStreamChunkDone(transformStream) {
-  if (transformStream._errroed === true) {
-    throw new TypeError('TransformStream is already errored');
+function TransformStreamCloseReadableInternal(transformStream) {
+  assert(transformStream._errored === false);
+  assert(transformStream._readableClosed === false);
+
+  try {
+    transformStream._readableController.close();
+  } catch (e) {
+    assert(false);
   }
 
-  if (transformStream._transforming === false) {
-    throw new TypeError('No active transform is running');
+  transformStream._readableClosed = true;
+}
+
+function TransformStreamResolveWrite(transformStream) {
+  if (transformStream._errored === true) {
+    return;
   }
+
+  assert(transformStream._transforming === true);
 
   assert(transformStream._resolveWrite !== undefined);
+  assert(transformStream._rejectWrite !== undefined);
 
   transformStream._transforming = false;
 
   transformStream._resolveWrite(undefined);
   transformStream._resolveWrite = undefined;
+  transformStream._rejectWrite = undefined;
 
   TransformStreamTransformIfNeeded(transformStream);
 }
 
-// Abstract operations.
+function TransformStreamErrorIfNeeded(transformStream, e) {
+  if (transformStream._errored === false) {
+    TransformStreamErrorInternal(transformStream, e);
+  }
+}
 
 function TransformStreamErrorInternal(transformStream, e) {
   // console.log('TransformStreamErrorInternal()');
 
+  assert(transformStream._errored === false);
+
   transformStream._errored = true;
+  transformStream._storedError = e;
 
   if (transformStream._writableDone === false) {
     transformStream._writableController.error(e);
@@ -115,8 +121,8 @@ function TransformStreamErrorInternal(transformStream, e) {
 
   transformStream._chunk = undefined;
 
-  if (transformStream._resolveWriter !== undefined) {
-    transformStream._resolveWriter(undefined);
+  if (transformStream._rejectWriter !== undefined) {
+    transformStream._rejectWriter(e);
   }
 }
 
@@ -143,38 +149,17 @@ function TransformStreamTransformIfNeeded(transformStream) {
   transformStream._chunkPending = false;
   transformStream._chunk = undefined;
 
-  try {
-    if (transformStream._transformer.transform !== undefined) {
-      transformStream._transformer.transform(
-          chunk,
-          TransformStreamChunkDone.bind(undefined, transformStream),
-          transformStream._enqueueFunction,
-          transformStream._closeFunction,
-          transformStream._errorFunction);
-    }
-  } catch (e) {
-    if (transformStream._errored === false) {
-      TransformStreamErrorInternal(transformStream, e);
-    }
-  }
-}
+  const transformPromise = PromiseInvokeOrNoop(transformStream._transformer,
+                             'transform', [chunk, transformStream._controller]);
 
-function TransformStreamStart(transformStream) {
-  if (transformStream._transformer.start === undefined) {
-    return;
-  }
-
-  // Thrown exception will be handled by TransformStreamSink.start()
-  // method.
-  transformStream._transformer.start(
-      transformStream._enqueueFunction,
-      transformStream._closeFunction,
-      transformStream._errorFunction);
+  transformPromise.then(() => TransformStreamResolveWrite(transformStream),
+                     e => TransformStreamErrorIfNeeded(transformStream, e));
 }
 
 class TransformStreamSink {
-  constructor(transformStream) {
+  constructor(transformStream, startPromise) {
     this._transformStream = transformStream;
+    this._startPromise = startPromise;
   }
 
   start(c) {
@@ -182,9 +167,7 @@ class TransformStreamSink {
 
     transformStream._writableController = c;
 
-    if (transformStream._readableController !== undefined) {
-      TransformStreamStart(transformStream);
-    }
+    return this._startPromise;
   }
 
   write(chunk) {
@@ -198,12 +181,14 @@ class TransformStreamSink {
     assert(transformStream._chunk === undefined);
 
     assert(transformStream._resolveWrite === undefined);
+    assert(transformStream._rejectWrite === undefined);
 
     transformStream._chunkPending = true;
     transformStream._chunk = chunk;
 
     const promise = new Promise(resolve => {
       transformStream._resolveWrite = resolve;
+      transformStream._rejectWrite = resolve;
     });
 
     TransformStreamTransformIfNeeded(transformStream);
@@ -226,34 +211,33 @@ class TransformStreamSink {
     assert(transformStream._chunk === undefined);
 
     assert(transformStream._resolveWrite === undefined);
+    assert(transformStream._rejectWrite === undefined);
 
     assert(transformStream._transforming === false);
 
-    // No control over the promise returned by writableStreamWriter.close(). Need it?
-
     transformStream._writableDone = true;
 
-    if (transformStream._transformer.flush === undefined) {
-      TransformStreamCloseReadable(transformStream);
-    } else {
-      try {
-        transformStream._transformer.flush(
-            transformStream._enqueueFunction,
-            transformStream._closeFunction,
-            transformStream._errorFunction);
-      } catch (e) {
-        if (transformStream._errored === false) {
-          TransformStreamErrorInternal(transformStream, e);
-          throw e;
-        }
+    const flushPromise = PromiseInvokeOrNoop(transformStream._transformer, 'flush', [transformStream._controller]);
+    // Return a promise that is fulfilled with undefined on success.
+    return flushPromise.then(() => {
+      if (transformStream._errored === true) {
+        return Promise.reject(transformStream._storedError);
       }
-    }
+      if (transformStream._readableClosed === false) {
+        TransformStreamCloseReadableInternal(transformStream);
+      }
+      return Promise.resolve();
+    }).catch(r => {
+      TransformStreamErrorIfNeeded(transformStream, r);
+      return Promise.reject(transformStream._storedError);
+    });
   }
 }
 
 class TransformStreamSource {
-  constructor(transformStream) {
+  constructor(transformStream, startPromise) {
     this._transformStream = transformStream;
+    this._startPromise = startPromise;
   }
 
   start(c) {
@@ -261,9 +245,7 @@ class TransformStreamSource {
 
     transformStream._readableController = c;
 
-    if (transformStream._writableController !== undefined) {
-      TransformStreamStart(transformStream);
-    }
+    return this._startPromise;
   }
 
   pull() {
@@ -275,6 +257,24 @@ class TransformStreamSource {
     const transformStream = this._transformStream;
     transformStream._readableClosed = true;
     TransformStreamErrorInternal(transformStream, new TypeError('Readable side canceled'));
+  }
+}
+
+class TransformStreamDefaultController {
+  constructor(transformStream) {
+    this._controlledTransformStream = transformStream;
+  }
+
+  enqueue(chunk) {
+    TransformStreamEnqueueToReadable(this._controlledTransformStream, chunk);
+  }
+
+  close() {
+    TransformStreamCloseReadable(this._controlledTransformStream);
+  }
+
+  error(reason) {
+    TransformStreamError(this._controlledTransformStream, reason);
   }
 }
 
@@ -294,6 +294,7 @@ module.exports = class TransformStream {
 
     this._transforming = false;
     this._errored = false;
+    this._storedError = undefined;
 
     this._writableController = undefined;
     this._readableController = undefined;
@@ -302,36 +303,46 @@ module.exports = class TransformStream {
     this._readableClosed = false;
 
     this._resolveWrite = undefined;
+    this._rejectWrite = undefined;
 
     this._chunkPending = false;
     this._chunk = undefined;
 
-    this._enqueueFunction = TransformStreamEnqueueToReadable.bind(undefined, this);
-    this._closeFunction = TransformStreamCloseReadable.bind(undefined, this);
-    this._errorFunction = TransformStreamError.bind(undefined, this);
+    this._controller = new TransformStreamDefaultController(this);
 
-    const sink = new TransformStreamSink(this);
+    let startPromise_resolve;
+    const startPromise = new Promise(resolve => {
+      startPromise_resolve = resolve;
+    });
 
-    try {
-      this.writable = new WritableStream(sink, transformer.writableStrategy);
-    } catch (e) {
-      if (this._errored === false) {
-        TransformStreamError(this, e);
-        throw e;
+    const sink = new TransformStreamSink(this, startPromise);
+
+    this._writable = new WritableStream(sink, transformer.writableStrategy);
+
+    const source = new TransformStreamSource(this, startPromise);
+
+    this._readable = new ReadableStream(source, transformer.readableStrategy);
+
+    assert(this._writableController !== undefined);
+    assert(this._readableController !== undefined);
+
+    const transformStream = this;
+    const startResult = InvokeOrNoop(transformer, 'start', [transformStream._controller]);
+    startPromise_resolve(startResult);
+    startPromise.catch(e => {
+      // The underlyingSink and underlyingSource will error the readable and writable ends on their own.
+      if (transformStream._errored === false) {
+        transformStream._errored = true;
+        transformStream._storedError = e;
       }
-      return;
-    }
+    });
+  }
 
-    const source = new TransformStreamSource(this);
+  get readable() {
+    return this._readable;
+  }
 
-    try {
-      this.readable = new ReadableStream(source, transformer.readableStrategy);
-    } catch (e) {
-      this.writable = undefined;
-      if (this._errored === false) {
-        TransformStreamError(this, e);
-        throw e;
-      }
-    }
+  get writable() {
+    return this._writable;
   }
 };

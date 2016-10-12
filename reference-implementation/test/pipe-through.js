@@ -23,15 +23,14 @@ test('Piping through an identity transform stream will close the destination whe
     }
   });
 
-  let enqueue;
+  let c;
 
   const ts = new TransformStream({
-    start(e) {
-      enqueue = e;
+    start(controller) {
+      c = controller;
     },
-    transform(chunk, done) {
-      enqueue(chunk);
-      done();
+    transform(chunk) {
+      c.enqueue(chunk);
     }
   });
 
@@ -65,15 +64,14 @@ test.skip('Piping through a default transform stream causes backpressure to be e
     }
   });
 
-  let enqueue;
+  let c;
 
   const ts = new TransformStream({
-    start(e) {
-      enqueue = e;
+    start(controller) {
+      c = controller;
     },
-    transform(chunk, done) {
-      enqueue(chunk);
-      done();
+    transform(chunk) {
+      c.enqueue(chunk);
     }
   });
 
