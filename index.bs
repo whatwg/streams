@@ -28,11 +28,6 @@ Ignored Vars: e
 </pre>
 
 <pre class="anchors">
-urlPrefix: https://html.spec.whatwg.org/multipage/; spec: HTML
-    text: StructuredClone; urlPrefix: infrastructure.html; type: abstract-op
-    text: Transfer; url: infrastructure.html#transfer-abstract-op; type: abstract-op
-    text: WebSocket; url: comms.html#websocket; type: interface
-    text: transferable objects; url: infrastructure.html; type: dfn
 urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
     text: %Uint8Array%; url: #sec-typedarray-objects; type: constructor
     text: ArrayBuffer; url: #sec-arraybuffer-objects; type: interface
@@ -337,10 +332,10 @@ copies.
 
   An important thing to note here is that the final <code>buffer</code> value is different from the
   <code>startingAB</code>, but it (and all intermediate buffers) shares the same backing memory allocation. At each
-  step, the buffer is transferred <!-- TODO link --> to a new {{ArrayBuffer}} object. The <code>newView</code>
-  is a new {{Uint8Array}}, with that {{ArrayBuffer}} object as its <code>buffer</code> property, the
-  offset that bytes were written to as its <code>byteOffset</code> property, and the number of bytes that were written
-  as its <code>byteLength</code> property.
+  step, the buffer is <a abstract-op lt="Transfer">transferred</a> to a new {{ArrayBuffer}} object. The
+  <code>newView</code> is a new {{Uint8Array}}, with that {{ArrayBuffer}} object as its <code>buffer</code> property,
+  the offset that bytes were written to as its <code>byteOffset</code> property, and the number of bytes that were
+  written as its <code>byteLength</code> property.
 </div>
 
 <h3 id="rs-class" interface lt="ReadableStream">Class <code>ReadableStream</code></h3>
