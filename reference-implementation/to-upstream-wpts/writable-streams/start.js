@@ -1,10 +1,10 @@
 'use strict';
 
 if (self.importScripts) {
-  self.importScripts('/resources/testharness.js');
+  self.importScripts('/resources/testharness.js', '../resources/test-utils.js');
 }
 
-async_test(t => {
+promise_test(t => {
   let expectWriteCall = false;
 
   let resolveStartPromise;
@@ -15,17 +15,11 @@ async_test(t => {
       });
     },
     write(chunk) {
-      t.step(() => {
-        assert_true(expectWriteCall, 'write should not be called until start promise resolves');
-        assert_equals(chunk, 'a', 'chunk should be the value passed to write');
-        t.done();
-      });
+      assert_true(expectWriteCall, 'write should not be called until start promise resolves');
+      assert_equals(chunk, 'a', 'chunk should be the value passed to write');
     },
     close() {
-      t.step(() => {
-        assert_unreached('close should not be called');
-        t.done();
-      });
+      assert_unreached('close should not be called');
     }
   });
 
@@ -36,13 +30,14 @@ async_test(t => {
   assert_equals(writer.desiredSize, 0, 'desiredSize should be 0 after writer.write()');
 
   // Wait and verify that write isn't be called.
-  setTimeout(() => {
+  return delay(100).then(() => {
     expectWriteCall = true;
     resolveStartPromise();
-  }, 100);
+    return writer.ready;
+  });
 }, 'underlying sink\'s write should not be called until start finishes');
 
-async_test(t => {
+promise_test(t => {
   let expectCloseCall = false;
 
   let resolveStartPromise;
@@ -53,13 +48,10 @@ async_test(t => {
       });
     },
     write() {
-      t.step(() => assert_unreached('write could not be called'));
+      assert_unreached('write could not be called');
     },
     close() {
-      t.step(() => {
-        assert_true(expectCloseCall, 'close should not be called until start promise resolves');
-        t.done();
-      });
+      assert_true(expectCloseCall, 'close should not be called until start promise resolves');
     }
   });
 
@@ -69,10 +61,11 @@ async_test(t => {
   assert_equals(writer.desiredSize, 1, 'desiredSize should be 1');
 
   // Wait and see that write won't be called.
-  setTimeout(() => {
+  return delay(100).then(() => {
     expectCloseCall = true;
     resolveStartPromise();
-  }, 100);
+    return writer.closed;
+  });
 }, 'underlying sink\'s close should not be called until start finishes');
 
 test(t => {
@@ -93,19 +86,19 @@ test(t => {
   }, 'constructor should throw passedError');
 }, 'underlying sink\'s write or close should not be called if start throws');
 
-async_test(t => {
+promise_test(t => {
   new WritableStream({
     start() {
       return Promise.reject();
     },
     write() {
-      t.step(() => assert_unreached('write should not be called'));
+      assert_unreached('write should not be called');
     },
     close() {
-      t.step(() => assert_unreached('close should not be called'));
+      assert_unreached('close should not be called');
     }
   });
 
   // Wait and verify that write or close won't be called.
-  setTimeout(() => t.done(), 100);
+  return delay(100);
 }, 'underlying sink\'s write or close should not be invoked if the promise returned by start is rejected');

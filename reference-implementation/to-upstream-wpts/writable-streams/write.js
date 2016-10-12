@@ -1,7 +1,7 @@
 'use strict';
 
 if (self.importScripts) {
-  self.importScripts('/resources/testharness.js');
+  self.importScripts('/resources/testharness.js', '../resources/test-utils.js');
 }
 
 function writeArrayToStream(array, writableStreamWriter) {
@@ -17,16 +17,11 @@ promise_test(t => {
     },
 
     write(chunk) {
-      return new Promise(resolve => {
-        setTimeout(() => {
-          storage.push(chunk);
-          resolve();
-        }, 0);
-      });
+      return delay(0).then(() => storage.push(chunk));
     },
 
     close() {
-      return new Promise(resolve => setTimeout(resolve, 0));
+      return delay(0);
     }
   });
 
@@ -71,7 +66,7 @@ promise_test(t => {
 }, 'fulfillment value of ws.write() call should be undefined even if the underlying sink returns a non-undefined ' +
     'value');
 
-async_test(t => {
+promise_test(t => {
   let resolveSinkWritePromise;
   const ws = new WritableStream({
     write() {
@@ -84,42 +79,39 @@ async_test(t => {
 
   const writer = ws.getWriter();
 
-  setTimeout(t.step_func(() => {
-    assert_equals(writer.desiredSize, 1, 'desiredSize should be 1');
+  assert_equals(writer.desiredSize, 1, 'desiredSize should be 1');
 
-    writer.ready.then(t.step_func(() => {
-      const writePromise = writer.write('a');
-      let writePromiseResolved = false;
-      assert_not_equals(resolveSinkWritePromise, undefined, 'resolveSinkWritePromise should not be undefined');
+  writer.ready.then(() => {
+    const writePromise = writer.write('a');
+    let writePromiseResolved = false;
+    assert_not_equals(resolveSinkWritePromise, undefined, 'resolveSinkWritePromise should not be undefined');
 
-      assert_equals(writer.desiredSize, 0, 'desiredSize should be 0 after writer.write()');
+    assert_equals(writer.desiredSize, 0, 'desiredSize should be 0 after writer.write()');
 
-      writePromise.then(t.step_func(value => {
+    return Promise.all([
+      writePromise.then(value => {
         writePromiseResolved = true;
         assert_equals(resolveSinkWritePromise, undefined, 'sinkWritePromise should be fulfilled before writePromise');
 
         assert_equals(value, undefined, 'writePromise should be fulfilled with undefined');
-      }));
-
-      writer.ready.then(t.step_func(value => {
+      }),
+      writer.ready.then(value => {
         assert_equals(resolveSinkWritePromise, undefined, 'sinkWritePromise should be fulfilled before writer.ready');
         assert_true(writePromiseResolved, 'writePromise should be fulfilled before writer.ready');
 
         assert_equals(writer.desiredSize, 1, 'desiredSize should be 1 again');
 
         assert_equals(value, undefined, 'writePromise should be fulfilled with undefined');
-        t.done();
-      }));
-
-      setTimeout(() => {
+      }),
+      delay(100).then(() => {
         resolveSinkWritePromise();
         resolveSinkWritePromise = undefined;
-      }, 100);
-    }));
-  }), 0);
+      })
+    ]);
+  });
 }, 'WritableStream should transition to waiting until write is acknowledged');
 
-async_test(t => {
+promise_test(t => {
   let sinkWritePromiseRejectors = [];
   const ws = new WritableStream({
     write() {
@@ -130,9 +122,9 @@ async_test(t => {
 
   const writer = ws.getWriter();
 
-  setTimeout(t.step_func(() => {
-    assert_equals(writer.desiredSize, 1, 'desiredSize should be 1');
+  assert_equals(writer.desiredSize, 1, 'desiredSize should be 1');
 
+  return writer.ready.then(() => {
     const writePromise = writer.write('a');
     assert_equals(sinkWritePromiseRejectors.length, 1, 'there should be 1 rejector');
     assert_equals(writer.desiredSize, 0, 'desiredSize should be 0');
@@ -147,23 +139,22 @@ async_test(t => {
 
     const passedError = new Error('horrible things');
 
-    Promise.all([
-      promise_rejects(t, passedError, closedPromise,  'closedPromise should reject with passedError')
-          .then(t.step_func(() => assert_equals(sinkWritePromiseRejectors.length, 0,
-                                                'sinkWritePromise should reject before closedPromise'))),
+    return Promise.all([
+      promise_rejects(t, passedError, closedPromise, 'closedPromise should reject with passedError')
+          .then(() => assert_equals(sinkWritePromiseRejectors.length, 0,
+                                    'sinkWritePromise should reject before closedPromise')),
       promise_rejects(t, passedError, writePromise, 'writePromise should reject with passedError')
-          .then(t.step_func(() => assert_equals(sinkWritePromiseRejectors.length, 0,
-                                                'sinkWritePromise should reject before writePromise'))),
+          .then(() => assert_equals(sinkWritePromiseRejectors.length, 0,
+                                    'sinkWritePromise should reject before writePromise')),
       promise_rejects(t, passedError, writePromise2, 'writePromise2 should reject with passedError')
-          .then(t.step_func(() => assert_equals(sinkWritePromiseRejectors.length, 0,
-                                                'sinkWritePromise should reject before writePromise2')))
-    ]).then(() => t.done());
-
-    setTimeout(() => {
-      sinkWritePromiseRejectors[0](passedError);
-      sinkWritePromiseRejectors = [];
-    }, 100);
-  }), 0);
+          .then(() => assert_equals(sinkWritePromiseRejectors.length, 0,
+                                    'sinkWritePromise should reject before writePromise2')),
+      delay(100).then(() => {
+        sinkWritePromiseRejectors[0](passedError);
+        sinkWritePromiseRejectors = [];
+      })
+    ]);
+  });
 }, 'when write returns a rejected promise, queued writes and close should be cleared');
 
 promise_test(t => {
@@ -180,7 +171,7 @@ promise_test(t => {
       .then(() => promise_rejects(t, new TypeError(), writer.close(), 'close() should be rejected'));
 }, 'when sink\'s write throws an error, the stream should become errored and the promise should reject');
 
-async_test(t => {
+promise_test(t => {
   const numberOfWrites = 10000;
 
   let resolveFirstWritePromise;
@@ -197,9 +188,8 @@ async_test(t => {
     }
   });
 
-  setTimeout(t.step_func(() => {
-    const writer = ws.getWriter();
-
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
     for (let i = 1; i < numberOfWrites; ++i) {
       writer.write('a');
     }
@@ -209,11 +199,8 @@ async_test(t => {
 
     resolveFirstWritePromise();
 
-    writePromise
-        .then(t.step_func(() => {
-          assert_equals(writeCount, numberOfWrites, `should have called sink's write ${numberOfWrites} times`);
-          t.done();
-        }))
-        .catch(t.step_func(() => assert_unreached('writePromise should not be rejected')));
-  }), 0);
+    return writePromise
+        .then(() =>
+        assert_equals(writeCount, numberOfWrites, `should have called sink's write ${numberOfWrites} times`));
+  });
 }, 'a large queue of writes should be processed completely');
