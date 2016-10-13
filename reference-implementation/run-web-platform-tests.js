@@ -12,9 +12,16 @@ const CountQueuingStrategy = require('./lib/count-queuing-strategy.js');
 const testsPath = path.resolve(__dirname, 'web-platform-tests/streams');
 const toUpstreamTestsPath = path.resolve(__dirname, 'to-upstream-wpts');
 
+let totalFailures = 0;
 wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup })
-  .then(() => wptRunner(testsPath, { rootURL: 'streams/', setup }))
-  .then(failures => process.exit(failures))
+  .then(failures => {
+    totalFailures += failures;
+    return wptRunner(testsPath, { rootURL: 'streams/', setup });
+  })
+  .then(failures => {
+    totalFailures += failures;
+    process.exit(totalFailures);
+  })
   .catch(e => {
     console.error(e.stack);
     process.exit(1);
