@@ -106,6 +106,8 @@ promise_test(t => {
   ['start', 'write', 'close', 'abort'].forEach(methodName =>
        promises[methodName] = new Promise(resolve => resolvers[methodName] = resolve));
 
+  // Calls to Sink methods after the first are implicitly ignored. Only the first value that is passed to the resolver
+  // is used.
   class Sink {
     start() {
       // Called twice
