@@ -2,6 +2,7 @@
 
 if (self.importScripts) {
   self.importScripts('/resources/testharness.js');
+  self.importScripts('../resources/test-utils.js');
 }
 
 promise_test(t => {
@@ -13,12 +14,12 @@ promise_test(t => {
 
   const writer = ws.getWriter();
 
-  const closePromise = writer.close('a');
+  const closePromise = writer.close();
   return closePromise.then(value => assert_equals(value, undefined, 'fulfillment value must be undefined'));
 }, 'fulfillment value of ws.close() call must be undefined even if the underlying sink returns a non-undefined ' +
     'value');
 
-async_test(t => {
+promise_test(t => {
   const passedError = new Error('error me');
   let controller;
   const ws = new WritableStream({
@@ -26,25 +27,23 @@ async_test(t => {
       controller = c;
     },
     close() {
-      return new Promise(resolve => setTimeout(resolve, 50));
+      return delay(50);
     }
   });
 
   const writer = ws.getWriter();
 
   writer.close();
-  setTimeout(() => controller.error(passedError), 10);
 
-  promise_rejects(
-      t, passedError, writer.closed, 'closed promise should be rejected with the passed error');
-
-  setTimeout(() => {
-    promise_rejects(t, passedError, writer.closed, 'closed should stay rejected');
-    t.done();
-  }, 70);
+  return Promise.all([
+    delay(10).then(() => controller.error(passedError)),
+    promise_rejects(t, passedError, writer.closed,
+                    'closed promise should be rejected with the passed error'),
+    delay(70).then(() => promise_rejects(t, passedError, writer.closed, 'closed should stay rejected'))
+  ]);
 }, 'when sink calls error asynchronously while closing, the stream should become errored');
 
-async_test(t => {
+promise_test(t => {
   const passedError = new Error('error me');
   let controller;
   const ws = new WritableStream({
@@ -58,11 +57,6 @@ async_test(t => {
 
   const writer = ws.getWriter();
 
-  promise_rejects(
-      t, passedError, writer.close(), 'close promise should be rejected with the passed error');
-
-  setTimeout(() => {
-    promise_rejects(t, passedError, writer.closed, 'closed should stay rejected');
-    t.done();
-  }, 0);
+  return promise_rejects(t, passedError, writer.close(), 'close promise should be rejected with the passed error')
+      .then(() => promise_rejects(t, passedError, writer.closed, 'closed should stay rejected'));
 }, 'when sink calls error synchronously while closing, the stream should become errored');
