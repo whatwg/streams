@@ -195,6 +195,6 @@ promise_test(t => {
 
     return writePromise
         .then(() =>
-        assert_equals(writeCount, numberOfWrites, `should have called sink's write ${numberOfWrites} times`));
+          assert_equals(writeCount, numberOfWrites, `should have called sink's write ${numberOfWrites} times`));
   });
 }, 'a large queue of writes should be processed completely');

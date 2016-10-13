@@ -7,8 +7,6 @@ if (self.importScripts) {
 }
 
 promise_test(t => {
-  let expectWriteCall = false;
-
   let resolveStartPromise;
   const ws = recordingWritableStream({
     start() {
@@ -27,7 +25,6 @@ promise_test(t => {
   // Wait and verify that write isn't called.
   return delay(100)
       .then(() => {
-        expectWriteCall = true;
         assert_array_equals(ws.events, [], 'write should not be called until start promise resolves');
         resolveStartPromise();
         return writer.ready;
@@ -37,8 +34,6 @@ promise_test(t => {
 }, 'underlying sink\'s write should not be called until start finishes');
 
 promise_test(t => {
-  let expectCloseCall = false;
-
   let resolveStartPromise;
   const ws = recordingWritableStream({
     start() {
