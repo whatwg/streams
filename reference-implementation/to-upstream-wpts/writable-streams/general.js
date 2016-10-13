@@ -99,3 +99,50 @@ promise_test(() => {
     }
   );
 }, 'closed and ready on a released writer');
+
+promise_test(t => {
+  let promises = {};
+  let resolvers = {};
+  ['start', 'write', 'close', 'abort'].forEach(methodName =>
+       promises[methodName] = new Promise(resolve => resolvers[methodName] = resolve));
+
+  class Sink {
+    start() {
+      // Called twice
+      resolvers.start(this);
+    }
+
+    write() {
+      resolvers.write(this);
+    }
+
+    close() {
+      resolvers.close(this);
+    }
+
+    abort() {
+      resolvers.abort(this);
+    }
+  }
+
+  const theSink = new Sink();
+  const ws = new WritableStream(theSink);
+
+  const writer = ws.getWriter();
+
+  writer.write('a');
+  writer.close();
+
+  const ws2 = new WritableStream(theSink);
+  const writer2 = ws2.getWriter();
+  writer2.abort();
+
+  return promises.start
+      .then(thisValue => assert_equals(thisValue, theSink, 'start should be called as a method'))
+      .then(() => promises.write)
+      .then(thisValue => assert_equals(thisValue, theSink, 'write should be called as a method'))
+      .then(() => promises.close)
+      .then(thisValue => assert_equals(thisValue, theSink, 'close should be called as a method'))
+      .then(() => promises.abort)
+      .then(thisValue => assert_equals(thisValue, theSink, 'abort should be called as a method'));
+}, 'WritableStream should call underlying sink methods as methods');
