@@ -3,6 +3,7 @@
 if (self.importScripts) {
   self.importScripts('/resources/testharness.js');
   self.importScripts('../resources/test-utils.js');
+  self.importScripts('../resources/recording-streams.js');
 }
 
 promise_test(t => {
@@ -61,108 +62,72 @@ promise_test(t => {
       .then(() => promise_rejects(t, passedError, writer.closed, 'closed should stay rejected'));
 }, 'when sink calls error synchronously while closing, the stream should become errored');
 
-async_test(t => {
-  const ws = new WritableStream({
-    write() {
-      t.step(() => {
-        assert_unreached('Unexpected write call');
-      });
-    },
-    abort() {
-      t.step(() => {
-        assert_unreached('Unexpected abort call');
-      });
-    }
-  });
+promise_test(t => {
+  const ws = recordingWritableStream();
 
   const writer = ws.getWriter();
 
-  // Wait for ws to start.
-  setTimeout(t.step_func(() => {
-    writer.ready.then(t.step_func(() => {
-      assert_equals(writer.desiredSize, 1, 'desiredSize should be 1');
+  return writer.ready.then(() => {
+    assert_equals(writer.desiredSize, 1, 'desiredSize should be 1');
 
-      writer.close();
-      assert_equals(writer.desiredSize, 1, 'desiredSize should be still 1');
+    writer.close();
+    assert_equals(writer.desiredSize, 1, 'desiredSize should be still 1');
 
-      writer.ready.then(t.step_func(v => {
-        assert_equals(v, undefined, 'ready promise was fulfilled with undefined');
-        t.done();
-      }));
-    }));
-  }), 0);
-}, 'If close is called on a WritableStream in writable state, ready will return a fulfilled promise');
+    return writer.ready.then(v => {
+      assert_equals(v, undefined, 'ready promise should be fulfilled with undefined');
+      assert_array_equals(ws.events, ['close'], 'write and abort should not be called');
+    });
+  });
+}, 'when close is called on a WritableStream in writable state, ready should return a fulfilled promise');
 
-async_test(t => {
-  const ws = new WritableStream({
+promise_test(t => {
+  const ws = recordingWritableStream({
     write() {
       return new Promise(() => {});
-    },
-    abort() {
-      t.step(() => {
-        assert_unreached('Unexpected abort call');
-      });
     }
   });
 
   const writer = ws.getWriter();
 
-  // Wait for ws to start.
-  setTimeout(t.step_func(() => {
+  return writer.ready.then(() => {
     writer.write('a');
 
     assert_equals(writer.desiredSize, 0, 'desiredSize should be 0');
 
-    let closeCalled = false;
+    let calledClose = false;
+    return Promise.all([
+      writer.ready.then(v => {
+        assert_equals(v, undefined, 'ready promise should be fulfilled with undefined');
+        assert_true(calledClose, 'ready should not be fulfilled before writer.close() is called');
+        assert_array_equals(ws.events, ['write', 'a'], 'sink abort() should not be called');
+      }),
+      delay(100).then(() => {
+        writer.close();
+        calledClose = true;
+      })
+    ]);
+  });
+}, 'when close is called on a WritableStream in waiting state, ready promise should be fulfilled');
 
-    writer.ready.then(t.step_func(v => {
-      if (closeCalled === false) {
-        assert_unreached('ready fulfilled before writer.close()');
-        return;
-      }
-
-      assert_equals(v, undefined, 'ready promise was fulfilled with undefined');
-      t.done();
-    }));
-
-    setTimeout(t.step_func(() => {
-      writer.close();
-      closeCalled = true;
-    }), 100);
-  }), 0);
-}, 'If close is called on a WritableStream in waiting state, ready promise will fulfill');
-
-async_test(t => {
-  let readyFulfilledAlready = false;
-  const ws = new WritableStream({
-    abort() {
-      t.step(() => {
-        assert_unreached('Unexpected abort call');
-      });
-    },
+promise_test(t => {
+  let asyncCloseFinished = false;
+  const ws = recordingWritableStream({
     close() {
-      return new Promise(resolve => {
-        setTimeout(t.step_func(() => {
-          t.ok(readyFulfilledAlready, 'ready should have fulfilled already');
-          resolve();
-        }), 50);
-      });
+      return delay(50).then(() => asyncCloseFinished = true);
     }
   });
 
-  // Wait for ws to start.
-  setTimeout(t.step_func(() => {
-    const writer = ws.getWriter();
-
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
     writer.write('a');
 
     writer.close();
 
-    writer.ready.then(t.step_func(v => {
-      readyFulfilledAlready = true;
-      assert_equals(v, undefined, 'ready promise was fulfilled with undefined');
-      t.done();
-    }));
-  }), 0);
-}, 'If close is called on a WritableStream in waiting state, ready will be fulfilled immediately even if close ' +
+    return writer.ready.then(v => {
+      assert_false(asyncCloseFinished, 'ready promise should be called before async close completes');
+      assert_equals(v, undefined, 'ready promise should be fulfilled with undefined');
+      assert_array_equals(ws.events, ['write', 'a', 'close'], 'sink abort() should not be called');
+    });
+  });
+}, 'when close is called on a WritableStream in waiting state, ready should be fulfilled immediately even if close ' +
     'takes a long time');
