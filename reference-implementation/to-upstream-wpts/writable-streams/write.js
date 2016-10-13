@@ -1,7 +1,9 @@
 'use strict';
 
 if (self.importScripts) {
-  self.importScripts('/resources/testharness.js', '../resources/test-utils.js');
+  self.importScripts('/resources/testharness.js');
+  self.importScripts('../resources/test-utils.js');
+  self.importScripts('../resources/recording-streams.js');
 }
 
 function writeArrayToStream(array, writableStreamWriter) {
@@ -34,21 +36,14 @@ promise_test(t => {
 
 promise_test(t => {
   let storage;
-  const ws = new WritableStream({
-    start() {
-      storage = [];
-    },
-
-    write(chunk) {
-      storage.push(chunk);
-    }
-  });
+  const ws = recordingWritableStream();
 
   const writer = ws.getWriter();
 
   const input = [1, 2, 3, 4, 5];
   return writeArrayToStream(input, writer)
-      .then(() => assert_array_equals(storage, input, 'correct data should be relayed to underlying sink'));
+      .then(() => assert_array_equals(ws.events, ['write', 1, 'write', 2, 'write', 3, 'write', 4, 'write', 5, 'close'],
+                                      'correct data should be relayed to underlying sink'));
 }, 'WritableStream should complete synchronous writes before close resolves');
 
 promise_test(t => {
@@ -70,10 +65,9 @@ promise_test(t => {
   let resolveSinkWritePromise;
   const ws = new WritableStream({
     write() {
-      const sinkWritePromise = new Promise(resolve => {
+      return new Promise(resolve => {
         resolveSinkWritePromise = resolve;
       });
-      return sinkWritePromise;
     }
   });
 
@@ -81,7 +75,7 @@ promise_test(t => {
 
   assert_equals(writer.desiredSize, 1, 'desiredSize should be 1');
 
-  writer.ready.then(() => {
+  return writer.ready.then(() => {
     const writePromise = writer.write('a');
     let writePromiseResolved = false;
     assert_not_equals(resolveSinkWritePromise, undefined, 'resolveSinkWritePromise should not be undefined');

@@ -1,7 +1,8 @@
 'use strict';
 
 if (self.importScripts) {
-  self.importScripts('/resources/testharness.js', '..resources/test-utils.js');
+  self.importScripts('/resources/testharness.js');
+  self.importScripts('../resources/test-utils.js');
 }
 
 promise_test(t => {

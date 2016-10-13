@@ -1,25 +1,20 @@
 'use strict';
 
 if (self.importScripts) {
-  self.importScripts('/resources/testharness.js', '../resources/test-utils.js');
+  self.importScripts('/resources/testharness.js');
+  self.importScripts('../resources/test-utils.js');
+  self.importScripts('../resources/recording-streams.js');
 }
 
 promise_test(t => {
   let expectWriteCall = false;
 
   let resolveStartPromise;
-  const ws = new WritableStream({
+  const ws = recordingWritableStream({
     start() {
       return new Promise(resolve => {
         resolveStartPromise = resolve;
       });
-    },
-    write(chunk) {
-      assert_true(expectWriteCall, 'write should not be called until start promise resolves');
-      assert_equals(chunk, 'a', 'chunk should be the value passed to write');
-    },
-    close() {
-      assert_unreached('close should not be called');
     }
   });
 
@@ -29,40 +24,38 @@ promise_test(t => {
   writer.write('a');
   assert_equals(writer.desiredSize, 0, 'desiredSize should be 0 after writer.write()');
 
-  // Wait and verify that write isn't be called.
-  return delay(100).then(() => {
-    expectWriteCall = true;
-    resolveStartPromise();
-    return writer.ready;
-  });
+  // Wait and verify that write isn't called.
+  return delay(100)
+      .then(() => {
+        expectWriteCall = true;
+        assert_array_equals(ws.events, [], 'write should not be called until start promise resolves');
+        resolveStartPromise();
+        return writer.ready;
+      })
+      .then(() =>  assert_array_equals(ws.events, ['write', 'a'],
+                                       'write should not be called until start promise resolves'));
 }, 'underlying sink\'s write should not be called until start finishes');
 
 promise_test(t => {
   let expectCloseCall = false;
 
   let resolveStartPromise;
-  const ws = new WritableStream({
+  const ws = recordingWritableStream({
     start() {
       return new Promise(resolve => {
         resolveStartPromise = resolve;
       });
     },
-    write() {
-      assert_unreached('write could not be called');
-    },
-    close() {
-      assert_true(expectCloseCall, 'close should not be called until start promise resolves');
-    }
   });
 
   const writer = ws.getWriter();
 
-  writer.close('a');
+  writer.close();
   assert_equals(writer.desiredSize, 1, 'desiredSize should be 1');
 
-  // Wait and see that write won't be called.
+  // Wait and verify that write isn't called.
   return delay(100).then(() => {
-    expectCloseCall = true;
+    assert_array_equals(ws.events, [], 'close should not be called until start promise resolves');
     resolveStartPromise();
     return writer.closed;
   });
@@ -71,34 +64,35 @@ promise_test(t => {
 test(t => {
   const passedError = new Error('horrible things');
 
+  let writeCalled = false;
+  let closeCalled = false;
   assert_throws(passedError, () => {
+    // recordingWritableStream cannot be used here because the exception in the
+    // constructor prevents assigning the object to a variable.
     new WritableStream({
       start() {
         throw passedError;
       },
       write() {
-        assert_unreached('write should not be called');
+        writeCalled = true;
       },
       close() {
-        assert_unreached('close should not be called');
+        closeCalled = true;
       }
     });
   }, 'constructor should throw passedError');
+  assert_false(writeCalled, 'write should not be called');
+  assert_false(closeCalled, 'close should not be called');
 }, 'underlying sink\'s write or close should not be called if start throws');
 
 promise_test(t => {
-  new WritableStream({
+  const ws = recordingWritableStream({
     start() {
       return Promise.reject();
     },
-    write() {
-      assert_unreached('write should not be called');
-    },
-    close() {
-      assert_unreached('close should not be called');
-    }
   });
 
-  // Wait and verify that write or close won't be called.
-  return delay(100);
+  // Wait and verify that write or close aren't called.
+  return delay(100)
+      .then(() => assert_array_equals(ws.events, [], 'write and close should not be called'));
 }, 'underlying sink\'s write or close should not be invoked if the promise returned by start is rejected');
