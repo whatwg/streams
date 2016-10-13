@@ -29,8 +29,8 @@ promise_test(t => {
         resolveStartPromise();
         return writer.ready;
       })
-      .then(() =>  assert_array_equals(ws.events, ['write', 'a'],
-                                       'write should not be called until start promise resolves'));
+      .then(() => assert_array_equals(ws.events, ['write', 'a'],
+                                      'write should not be called until start promise resolves'));
 }, 'underlying sink\'s write should not be called until start finishes');
 
 promise_test(t => {
@@ -40,7 +40,7 @@ promise_test(t => {
       return new Promise(resolve => {
         resolveStartPromise = resolve;
       });
-    },
+    }
   });
 
   const writer = ws.getWriter();
@@ -84,7 +84,7 @@ promise_test(t => {
   const ws = recordingWritableStream({
     start() {
       return Promise.reject();
-    },
+    }
   });
 
   // Wait and verify that write or close aren't called.

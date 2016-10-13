@@ -35,7 +35,6 @@ promise_test(t => {
 }, 'WritableStream should complete asynchronous writes before close resolves');
 
 promise_test(t => {
-  let storage;
   const ws = recordingWritableStream();
 
   const writer = ws.getWriter();
