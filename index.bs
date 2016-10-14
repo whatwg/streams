@@ -650,14 +650,15 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
        1. Set _shuttingDown_ to *true*.
        1. Wait until any ongoing write finishes (i.e. the corresponding promises settle).
        1. Let _p_ be the result of performing _action_.
-       1. If _p_ fulfills,
-         1. If _originalError_ was given, <a href="#rs-pipeTo-shutdown">shutdown</a> with _originalError_.
-         1. Otherwise, <a href="#rs-pipeTo-shutdown">shutdown</a>.
-       1. If _p_ rejects with reason _newError_, <a href="#rs-pipeTo-shutdown">shutdown</a> with _newError_.
+       1. If _p_ fulfills, <a href="#rs-pipeTo-finalize">finalize</a>, passing along _originalError_ if it was given.
+       1. If _p_ rejects with reason _newError_, <a href="#rs-pipeTo-finalize">finalize</a> with _newError_.
      * <i id="rs-pipeTo-shutdown">Shutdown</i>: if any of the above requirements or steps ask to shutdown, optionally
        with an error _error_, then:
        1. Set _shuttingDown_ to *true*.
        1. Wait until any ongoing write finishes (i.e. the corresponding promises settle).
+       1. <a href="#rs-pipeTo-finalize">Finalize</a>, passing along _error_ if it was given.
+     * <i id="rs-pipeTo-finalize">Finalize</i>: both forms of shutdown will eventually ask to finalize, optionally with
+       an error _error_, which means to perform the following steps:
        1. Perform ! WritableStreamDefaultWriterRelease(_writer_).
        1. Perform ! ReadableStreamReaderGenericRelease(_reader_).
        1. If _error_ was given, reject _promise_ with the given error.

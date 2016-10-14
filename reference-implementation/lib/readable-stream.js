@@ -188,8 +188,8 @@ class ReadableStream {
 
         waitForCurrentWrite().then(() => {
           action().then(
-            () => shutdown(originalIsError, originalError),
-            newError => shutdown(true, newError)
+            () => finalize(originalIsError, originalError),
+            newError => finalize(true, newError)
           );
         });
       }
@@ -198,15 +198,19 @@ class ReadableStream {
         shuttingDown = true;
 
         waitForCurrentWrite().then(() => {
-          WritableStreamDefaultWriterRelease(writer);
-          ReadableStreamReaderGenericRelease(reader);
-
-          if (isError) {
-            reject(error);
-          } else {
-            resolve(undefined);
-          }
+          finalize(isError, error);
         });
+      }
+
+      function finalize(isError, error) {
+        WritableStreamDefaultWriterRelease(writer);
+        ReadableStreamReaderGenericRelease(reader);
+
+        if (isError) {
+          reject(error);
+        } else {
+          resolve(undefined);
+        }
       }
     });
   }
