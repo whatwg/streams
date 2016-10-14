@@ -141,27 +141,27 @@ class ReadableStream {
       // Errors must be propagated forward
       reader._closedPromise.catch(storedError => {
         if (preventAbort === false) {
-          performShutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
+          shutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
         } else {
-          performShutdown(true, storedError);
+          shutdown(true, storedError);
         }
       });
 
       // Errors must be propagated backward
       writer._closedPromise.catch(storedError => {
         if (preventCancel === false) {
-          performShutdownWithAction(() => ReadableStreamCancel(this, storedError), true, storedError);
+          shutdownWithAction(() => ReadableStreamCancel(this, storedError), true, storedError);
         } else {
-          performShutdown(true, storedError);
+          shutdown(true, storedError);
         }
       });
 
       // Closing must be propagated forward
       reader._closedPromise.then(() => {
         if (preventClose === false) {
-          performShutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
+          shutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
         } else {
-          performShutdown();
+          shutdown();
         }
       });
 
@@ -170,9 +170,9 @@ class ReadableStream {
         const destClosed = new TypeError('the destination writable stream closed before all data could be piped to it');
 
         if (preventCancel === false) {
-          performShutdownWithAction(() => ReadableStreamCancel(this, destClosed), true, destClosed);
+          shutdownWithAction(() => ReadableStreamCancel(this, destClosed), true, destClosed);
         } else {
-          performShutdown(true, destClosed);
+          shutdown(true, destClosed);
         }
       });
 
@@ -180,7 +180,7 @@ class ReadableStream {
         return currentWrite.catch(() => {});
       }
 
-      function performShutdownWithAction(action, originalIsError, originalError) {
+      function shutdownWithAction(action, originalIsError, originalError) {
         if (shuttingDown === true) {
           return;
         }
@@ -188,13 +188,13 @@ class ReadableStream {
 
         waitForCurrentWrite().then(() => {
           action().then(
-            () => performShutdown(originalIsError, originalError),
-            newError => performShutdown(true, newError)
+            () => shutdown(originalIsError, originalError),
+            newError => shutdown(true, newError)
           );
         });
       }
 
-      function performShutdown(isError, error) {
+      function shutdown(isError, error) {
         shuttingDown = true;
 
         waitForCurrentWrite().then(() => {
