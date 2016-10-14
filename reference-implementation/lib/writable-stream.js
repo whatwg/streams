@@ -377,9 +377,7 @@ function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
   assert(stream !== undefined);
 
   const state = stream._state;
-  if (state === 'closed' || state === 'closing') {
-    return Promise.resolve();
-  }
+  assert(state !== 'closing' && state !== 'closed');
 
   if (state === 'errored') {
     return Promise.reject(stream._storedError);
