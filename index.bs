@@ -4098,6 +4098,7 @@ Jake Archibald,
 Jens Nockert,
 Mangala Sadhu Sangeet Singh Khalsa,
 Marcos Caceres,
+Marvin Hagemeister,
 Michael Mior,
 Mihai Potra,
 Stephen Sugden,
@@ -4123,7 +4124,6 @@ Janessa Det for the logo;
 Will Chan for his help ensuring that the API allows high-performance network streaming;
 and
 平野裕 (Yutaka Hirano) for his help with the readable stream reader design.
-Marvin Hagemeister for helping with porting tests to the web-platform-test framework
 
 This standard is written by <a href="https://domenic.me/">Domenic Denicola</a>
 (<a href="https://google.com">Google</a>, <a href="mailto:d@domenic.me">d@domenic.me</a>) and
