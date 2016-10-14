@@ -9,7 +9,7 @@ test(() => {
   const writer = ws.getWriter();
   writer.releaseLock();
 
-  assert_throws(new TypeError, () => writer.desiredSize, 'desiredSize should throw a TypeError');
+  assert_throws(new TypeError(), () => writer.desiredSize, 'desiredSize should throw a TypeError');
 }, 'desiredSize on a released writer');
 
 test(() => {
@@ -50,7 +50,7 @@ promise_test(() => {
     writer.releaseLock();
 
     ws.getWriter();
-  })
+  });
 }, 'ws.getWriter() on a closed WritableStream');
 
 test(() => {
@@ -101,8 +101,8 @@ promise_test(() => {
 }, 'closed and ready on a released writer');
 
 promise_test(t => {
-  let promises = {};
-  let resolvers = {};
+  const promises = {};
+  const resolvers = {};
   ['start', 'write', 'close', 'abort'].forEach(methodName =>
        promises[methodName] = new Promise(resolve => resolvers[methodName] = resolve));
 

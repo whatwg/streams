@@ -49,10 +49,11 @@ promise_test(() => {
   assert_equals(writer.desiredSize, Infinity, 'desiredSize should be Infinity');
 
   return writer.ready;
-}, 'WritableStream should be writable and ready should fulfill immediately if the strategy does not apply backpressure');
+}, 'WritableStream should be writable and ready should fulfill immediately if the strategy does not apply ' +
+    'backpressure');
 
 test(() => {
-  const ws = new WritableStream();
+  new WritableStream();
 }, 'WritableStream should be constructible with no arguments');
 
 test(() => {

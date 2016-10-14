@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 self.recordingReadableStream = (extras = {}, strategy) => {
   let controllerToCopyOver;
