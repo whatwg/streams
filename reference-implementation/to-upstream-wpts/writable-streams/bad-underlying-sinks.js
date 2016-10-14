@@ -54,7 +54,7 @@ promise_test(t => {
     start() {
       return startPromise;
     },
-    write(chunk) {
+    write() {
       return new Promise((r, reject) => {
         rejectSinkWritePromise = reject;
       });
@@ -81,7 +81,7 @@ promise_test(t => {
 promise_test(t => {
 
   const ws = recordingWritableStream({
-    write(chunk) {
+    write() {
       if (ws.events.length === 2) {
         return delay(10);
       }

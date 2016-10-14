@@ -100,11 +100,14 @@ promise_test(() => {
   );
 }, 'closed and ready on a released writer');
 
-promise_test(t => {
+promise_test(() => {
   const promises = {};
   const resolvers = {};
-  ['start', 'write', 'close', 'abort'].forEach(methodName =>
-       promises[methodName] = new Promise(resolve => resolvers[methodName] = resolve));
+  for (const methodName of ['start', 'write', 'close', 'abort']) {
+    promises[methodName] = new Promise(resolve => {
+      resolvers[methodName] = resolve;
+    });
+  }
 
   // Calls to Sink methods after the first are implicitly ignored. Only the first value that is passed to the resolver
   // is used.

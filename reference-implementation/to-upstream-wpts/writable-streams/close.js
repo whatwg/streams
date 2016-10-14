@@ -6,7 +6,7 @@ if (self.importScripts) {
   self.importScripts('../resources/recording-streams.js');
 }
 
-promise_test(t => {
+promise_test(() => {
   const ws = new WritableStream({
     close() {
       return 'Hello';
@@ -62,7 +62,7 @@ promise_test(t => {
       .then(() => promise_rejects(t, passedError, writer.closed, 'closed should stay rejected'));
 }, 'when sink calls error synchronously while closing, the stream should become errored');
 
-promise_test(t => {
+promise_test(() => {
   const ws = recordingWritableStream();
 
   const writer = ws.getWriter();
@@ -80,7 +80,7 @@ promise_test(t => {
   });
 }, 'when close is called on a WritableStream in writable state, ready should return a fulfilled promise');
 
-promise_test(t => {
+promise_test(() => {
   const ws = recordingWritableStream({
     write() {
       return new Promise(() => {});
@@ -109,11 +109,13 @@ promise_test(t => {
   });
 }, 'when close is called on a WritableStream in waiting state, ready promise should be fulfilled');
 
-promise_test(t => {
+promise_test(() => {
   let asyncCloseFinished = false;
   const ws = recordingWritableStream({
     close() {
-      return delay(50).then(() => asyncCloseFinished = true);
+      return delay(50).then(() => {
+        asyncCloseFinished = true;
+      });
     }
   });
 

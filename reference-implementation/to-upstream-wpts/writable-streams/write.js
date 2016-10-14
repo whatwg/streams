@@ -11,7 +11,7 @@ function writeArrayToStream(array, writableStreamWriter) {
   return writableStreamWriter.close();
 }
 
-promise_test(t => {
+promise_test(() => {
   let storage;
   const ws = new WritableStream({
     start() {
@@ -34,7 +34,7 @@ promise_test(t => {
       .then(() => assert_array_equals(storage, input, 'correct data should be relayed to underlying sink'));
 }, 'WritableStream should complete asynchronous writes before close resolves');
 
-promise_test(t => {
+promise_test(() => {
   const ws = recordingWritableStream();
 
   const writer = ws.getWriter();
@@ -45,7 +45,7 @@ promise_test(t => {
                                       'correct data should be relayed to underlying sink'));
 }, 'WritableStream should complete synchronous writes before close resolves');
 
-promise_test(t => {
+promise_test(() => {
   const ws = new WritableStream({
     write() {
       return 'Hello';
@@ -60,7 +60,7 @@ promise_test(t => {
 }, 'fulfillment value of ws.write() call should be undefined even if the underlying sink returns a non-undefined ' +
     'value');
 
-promise_test(t => {
+promise_test(() => {
   let resolveSinkWritePromise;
   const ws = new WritableStream({
     write() {
@@ -164,7 +164,7 @@ promise_test(t => {
       .then(() => promise_rejects(t, new TypeError(), writer.close(), 'close() should be rejected'));
 }, 'when sink\'s write throws an error, the stream should become errored and the promise should reject');
 
-promise_test(t => {
+promise_test(() => {
   const numberOfWrites = 10000;
 
   let resolveFirstWritePromise;

@@ -5,7 +5,7 @@ if (self.importScripts) {
 }
 
 test(() => {
-  const ts = new TransformStream({ transform() { } });
+  new TransformStream({ transform() { } });
 }, 'TransformStream can be constructed with a transform function');
 
 test(() => {

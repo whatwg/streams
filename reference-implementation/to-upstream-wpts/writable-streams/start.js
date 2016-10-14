@@ -6,7 +6,7 @@ if (self.importScripts) {
   self.importScripts('../resources/recording-streams.js');
 }
 
-promise_test(t => {
+promise_test(() => {
   let resolveStartPromise;
   const ws = recordingWritableStream({
     start() {
@@ -33,7 +33,7 @@ promise_test(t => {
                                       'write should not be called until start promise resolves'));
 }, 'underlying sink\'s write should not be called until start finishes');
 
-promise_test(t => {
+promise_test(() => {
   let resolveStartPromise;
   const ws = recordingWritableStream({
     start() {
@@ -56,7 +56,7 @@ promise_test(t => {
   });
 }, 'underlying sink\'s close should not be called until start finishes');
 
-test(t => {
+test(() => {
   const passedError = new Error('horrible things');
 
   let writeCalled = false;
@@ -80,7 +80,7 @@ test(t => {
   assert_false(closeCalled, 'close should not be called');
 }, 'underlying sink\'s write or close should not be called if start throws');
 
-promise_test(t => {
+promise_test(() => {
   const ws = recordingWritableStream({
     start() {
       return Promise.reject();

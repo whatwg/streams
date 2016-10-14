@@ -9,6 +9,8 @@ self.recordingReadableStream = (extras = {}, strategy) => {
       if (extras.start) {
         return extras.start(controller);
       }
+
+      return undefined;
     },
     pull(controller) {
       stream.events.push('pull');
@@ -16,6 +18,8 @@ self.recordingReadableStream = (extras = {}, strategy) => {
       if (extras.pull) {
         return extras.pull(controller);
       }
+
+      return undefined;
     },
     cancel(reason) {
       stream.events.push('cancel', reason);
@@ -24,6 +28,8 @@ self.recordingReadableStream = (extras = {}, strategy) => {
       if (extras.cancel) {
         return extras.cancel(reason);
       }
+
+      return undefined;
     }
   }, strategy);
 
@@ -43,6 +49,8 @@ self.recordingWritableStream = (extras = {}, strategy) => {
       if (extras.start) {
         return extras.start(controller);
       }
+
+      return undefined;
     },
     write(chunk) {
       stream.events.push('write', chunk);
@@ -50,6 +58,8 @@ self.recordingWritableStream = (extras = {}, strategy) => {
       if (extras.write) {
         return extras.write(chunk);
       }
+
+      return undefined;
     },
     close() {
       stream.events.push('close');
@@ -57,6 +67,8 @@ self.recordingWritableStream = (extras = {}, strategy) => {
       if (extras.close) {
         return extras.close();
       }
+
+      return undefined;
     },
     abort(e) {
       stream.events.push('abort', e);
@@ -64,6 +76,8 @@ self.recordingWritableStream = (extras = {}, strategy) => {
       if (extras.abort) {
         return extras.abort(e);
       }
+
+      return undefined;
     }
   }, strategy);
 
