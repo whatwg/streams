@@ -141,7 +141,7 @@ class ReadableStream {
       // Errors must be propagated forward
       reader._closedPromise.catch(storedError => {
         if (preventAbort === false) {
-          performAsyncShutdown(() => WritableStreamAbort(dest, storedError), true, storedError);
+          performShutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
         } else {
           performShutdown(true, storedError);
         }
@@ -150,7 +150,7 @@ class ReadableStream {
       // Errors must be propagated backward
       writer._closedPromise.catch(storedError => {
         if (preventCancel === false) {
-          performAsyncShutdown(() => ReadableStreamCancel(this, storedError), true, storedError);
+          performShutdownWithAction(() => ReadableStreamCancel(this, storedError), true, storedError);
         } else {
           performShutdown(true, storedError);
         }
@@ -159,7 +159,7 @@ class ReadableStream {
       // Closing must be propagated forward
       reader._closedPromise.then(() => {
         if (preventClose === false) {
-          performAsyncShutdown(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
+          performShutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
         } else {
           performShutdown();
         }
@@ -170,7 +170,7 @@ class ReadableStream {
         const destClosed = new TypeError('the destination writable stream closed before all data could be piped to it');
 
         if (preventCancel === false) {
-          performAsyncShutdown(() => ReadableStreamCancel(this, destClosed), true, destClosed);
+          performShutdownWithAction(() => ReadableStreamCancel(this, destClosed), true, destClosed);
         } else {
           performShutdown(true, destClosed);
         }
@@ -180,7 +180,7 @@ class ReadableStream {
         return currentWrite.catch(() => {});
       }
 
-      function performAsyncShutdown(action, originalIsError, originalError) {
+      function performShutdownWithAction(action, originalIsError, originalError) {
         if (shuttingDown === true) {
           return;
         }

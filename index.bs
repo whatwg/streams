@@ -628,24 +628,24 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
      * <strong>Shutdown must stop all activity:</strong> if _shuttingDown_ becomes *true*, the user agent must not
        initiate further reads from _reader_ or writes to _writer_. (Ongoing reads and writes may finish.)
      * <strong>Errors must be propagated forward:</strong> if *this*.[[state]] is or becomes `"errored"`, then
-       1. If _preventAbort_ is *false*, <a href="#rs-pipeTo-async-shutdown">perform async shutdown</a> given the action
-          of performing ! WritableStreamAbort(_dest_, *this*.[[storedError]]), and given *this*.[[storedError]].
+       1. If _preventAbort_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">perform shutdown with an action</a>
+          of ! WritableStreamAbort(_dest_, *this*.[[storedError]]) and given *this*.[[storedError]].
        1. Otherwise, <a href="#rs-pipeTo-shutdown">perform shutdown</a> with *this*.[[storedError]].
      * <strong>Errors must be propagated backward:</strong> if _dest_.[[state]] is or becomes `"errored"`, then
-       1. If _preventCancel_ is *false*, <a href="#rs-pipeTo-async-shutdown">perform async shutdown</a> given the action
-          of performing ! ReadableStreamCancel(*this*, _dest_.[[storedError]]), and given _dest_.[[storedError]].
+       1. If _preventCancel_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">perform shutdown with an action</a>
+          of ! ReadableStreamCancel(*this*, _dest_.[[storedError]]) and given _dest_.[[storedError]].
        1.  Otherwise, <a href="#rs-pipeTo-shutdown">perform shutdown</a> with _dest_.[[storedError]].
      * <strong>Closing must be propagated forward:</strong> if *this*.[[state]] is or becomes `"closed"`, then
-       1. If _preventClose_ is *false*, <a href="#rs-pipeTo-async-shutdown">perform async shutdown</a> given the action
-          of performing ! WritableStreamDefaultWriterCloseWithErrorPropagation(_writer_).
+       1. If _preventClose_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">perform shutdown with an action</a>
+          of ! WritableStreamDefaultWriterCloseWithErrorPropagation(_writer_).
        1. Otherwise, <a href="#rs-pipeTo-shutdown">perform shutdown</a>.
      * <strong>Closing must be propagated backward:</strong> if _dest_.[[state]] is `"closing"` or `"closed"`, then
        1. Let _destClosed_ be a new *TypeError*.
-       1. If _preventCancel_ is *false*, <a href="#rs-pipeTo-async-shutdown">Perform async shutdown</a> given the action
-          of performing ! ReadableStreamCancel(*this*, _destClosed_), and given and _destClosed_.
+       1. If _preventCancel_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">Perform shutdown with an action</a>
+          of ! ReadableStreamCancel(*this*, _destClosed_) and given _destClosed_.
        1. Otherwise, <a href="#rs-pipeTo-shutdown">perform shutdown</a> with _destClosed_.
-     * <i id="rs-pipeTo-async-shutdown">Async shutdown</i>: if any of the above requirements ask to perform async
-       shutdown, given an action _action_ and an optional error _originalError_, then:
+     * <i id="rs-pipeTo-shutdown-with-action">Shutdown with an action</i>: if any of the above requirements ask to
+       perform shutdown with an action _action_, given an optional error _originalError_, then:
        1. If _shuttingDown_ is *true*, abort these substeps.
        1. Set _shuttingDown_ to *true*.
        1. Wait until any ongoing write finishes (i.e. the corresponding promises settle).
