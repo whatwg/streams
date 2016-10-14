@@ -124,7 +124,7 @@ promise_test(t => {
     writer.close();
 
     return writer.ready.then(v => {
-      assert_false(asyncCloseFinished, 'ready promise should be called before async close completes');
+      assert_false(asyncCloseFinished, 'ready promise should be fulfilled before async close completes');
       assert_equals(v, undefined, 'ready promise should be fulfilled with undefined');
       assert_array_equals(ws.events, ['write', 'a', 'close'], 'sink abort() should not be called');
     });
