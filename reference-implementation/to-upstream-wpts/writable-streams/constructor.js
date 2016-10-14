@@ -25,6 +25,38 @@ promise_test(() => {
 }, 'controller argument should be passed to start method');
 
 promise_test(() => {
+  const passedError = new Error('tea and scones');
+  const ws = new WritableStream({
+    write(chunk, controller) {
+      controller.error(passedError);
+    }
+  });
+
+  const writer = ws.getWriter();
+  writer.write('a');
+
+  return writer.closed.catch(r => {
+    assert_equals(r, passedError, 'ws should be errored by passedError');
+  });
+}, 'controller argument should be passed to write method');
+
+promise_test(() => {
+  const passedError = new Error('jelly and ice cream');
+  const ws = new WritableStream({
+    close(controller) {
+      controller.error(passedError);
+    }
+  });
+
+  const writer = ws.getWriter();
+  writer.close();
+
+  return writer.closed.catch(r => {
+    assert_equals(r, passedError, 'ws should be errored by passedError');
+  });
+}, 'controller argument should be passed to close method');
+
+promise_test(() => {
   const ws = new WritableStream({}, {
     highWaterMark: 1000,
     size() { return 1; }

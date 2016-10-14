@@ -2549,14 +2549,14 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
     <li> <code>start(controller)</code> is called immediately, and should perform any actions necessary to acquire
       access to the <a>underlying sink</a>. If this process is asynchronous, it can return a promise to signal success
       or failure.
-    <li> <code>write(chunk)</code> is called when a new <a>chunk</a> of data is ready to be written to the
+    <li> <code>write(chunk, controller)</code> is called when a new <a>chunk</a> of data is ready to be written to the
       <a>underlying sink</a>. It can return a promise to signal success or failure of the write operation. The stream
       implementation guarantees that this method will be called only after previous writes have succeeded, and never
       after <code>close</code> or <code>abort</code> is called.
-    <li> <code>close()</code> is called after the producer signals that they are done writing chunks to the stream, and
-      all queued-up writes successfully complete. It should perform any actions necessary to finalize writes to the
-      <a>underlying sink</a>, and release access to it. If this process is asynchronous, it can return a promise to
-      signal success or failure. The stream implementation guarantees that this method will be called only after all
+    <li> <code>close(controller)</code> is called after the producer signals that they are done writing chunks to the
+      stream, and all queued-up writes successfully complete. It should perform any actions necessary to finalize writes
+      to the <a>underlying sink</a>, and release access to it. If this process is asynchronous, it can return a promise
+      to signal success or failure. The stream implementation guarantees that this method will be called only after all
       queued-up writes have succeeded.
     <li> <code>abort(reason)</code> is called when the producer signals they wish to abruptly close the stream
       and put it in an errored state. It should clean up any held resources, much like <code>close</code>, but perhaps
@@ -2565,8 +2565,8 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
       success or failure. If no abort method is passed, by default the <code>close</code> method will be called instead.
   </ul>
 
-  The <code>controller</code> object passed to <code>start</code> is an instance of {{WritableStreamDefaultController}},
-  and has the ability to error the stream.
+  The <code>controller</code> object passed to <code>start</code>, <code>write</code> and <code>close</code> is an
+  instance of {{WritableStreamDefaultController}}, and has the ability to error the stream.
 
   The constructor also accepts a second argument containing the <a>queuing strategy</a> object with
   two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
@@ -3181,7 +3181,7 @@ nothrow>WritableStreamDefaultControllerAbort ( <var>controller</var>, <var>reaso
 <emu-alg>
   1. Set _controller_.[[queue]] to a new empty List.
   1. Let _sinkAbortPromise_ be ! PromiseInvokeOrFallbackOrNoop(_controller_.[[underlyingSink]],
-     `"abort"`, « _reason_ », `"close"`, « »).
+     `"abort"`, « _reason_ », `"close"`, « _controller_ »).
   1. Return the result of transforming _sinkAbortPromise_ by a fulfillment handler that returns
     *undefined*.
 </emu-alg>
@@ -3257,7 +3257,7 @@ nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h
   1. Assert: _stream_.[[state]] is `"closing"`.
   1. Perform ! DequeueValue(_controller_.[[queue]]).
   1. Assert: _controller_.[[queue]] is empty.
-  1. Let _sinkClosePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"close"`).
+  1. Let _sinkClosePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"close"`, « ‍_controller_ »).
   1. Upon fulfillment of _sinkClosePromise_,
     1. If _stream_.[[state]] is not `"closing"`, return.
     1. Perform ! WritableStreamFulfillWriteRequest(_stream_).
@@ -3271,7 +3271,8 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
 
 <emu-alg>
   1. Set _controller_.[[writing]] to *true*.
-  1. Let _sinkWritePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"write"`, « ‍_chunk_ »).
+  1. Let _sinkWritePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"write"`, « ‍_chunk_,
+  _controller_ »).
   1. Upon fulfillment of _sinkWritePromise_,
     1. Let _stream_ be _controller_.[[controlledWritableStream]].
     1. Let _state_ be _stream_.[[state]].
