@@ -143,8 +143,9 @@ function TransformStreamTransformIfNeeded(transformStream) {
   transformStream._chunkPending = false;
   transformStream._chunk = undefined;
 
+  const controller = transformStream._transformStreamController;
   const transformPromise = PromiseInvokeOrNoop(transformStream._transformer,
-                             'transform', [chunk, transformStream._controller]);
+                             'transform', [chunk, controller]);
 
   transformPromise.then(() => TransformStreamResolveWrite(transformStream),
                      e => TransformStreamErrorIfNeeded(transformStream, e));
@@ -156,6 +157,18 @@ function IsTransformStreamDefaultController(x) {
   }
 
   if (!Object.prototype.hasOwnProperty.call(x, '_controlledTransformStream')) {
+    return false;
+  }
+
+  return true;
+}
+
+function IsTransformStream(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_transformStreamController')) {
     return false;
   }
 
@@ -220,7 +233,8 @@ class TransformStreamSink {
 
     transformStream._writableDone = true;
 
-    const flushPromise = PromiseInvokeOrNoop(transformStream._transformer, 'flush', [transformStream._controller]);
+    const flushPromise = PromiseInvokeOrNoop(transformStream._transformer,
+                         'flush', [transformStream._transformStreamController]);
     // Return a promise that is fulfilled with undefined on success.
     return flushPromise.then(() => {
       if (transformStream._errored === true) {
@@ -322,7 +336,7 @@ module.exports = class TransformStream {
     this._chunkPending = false;
     this._chunk = undefined;
 
-    this._controller = new TransformStreamDefaultController(this);
+    this._transformStreamController = new TransformStreamDefaultController(this);
 
     let startPromise_resolve;
     const startPromise = new Promise(resolve => {
@@ -341,7 +355,8 @@ module.exports = class TransformStream {
     assert(this._readableController !== undefined);
 
     const transformStream = this;
-    const startResult = InvokeOrNoop(transformer, 'start', [transformStream._controller]);
+    const startResult = InvokeOrNoop(transformer, 'start',
+                          [transformStream._transformStreamController]);
     startPromise_resolve(startResult);
     startPromise.catch(e => {
       // The underlyingSink and underlyingSource will error the readable and writable ends on their own.
@@ -353,10 +368,18 @@ module.exports = class TransformStream {
   }
 
   get readable() {
+    if (IsTransformStream(this) === false) {
+      throw streamBrandCheckException('readable');
+    }
+
     return this._readable;
   }
 
   get writable() {
+    if (IsTransformStream(this) === false) {
+      throw streamBrandCheckException('writable');
+    }
+
     return this._writable;
   }
 };
@@ -366,4 +389,11 @@ module.exports = class TransformStream {
 function defaultControllerBrandCheckException(name) {
   return new TypeError(
     `TransformStreamDefaultController.prototype.${name} can only be used on a TransformStreamDefaultController`);
+}
+
+// Helper functions for the TransformStream.
+
+function streamBrandCheckException(name) {
+  return new TypeError(
+    `TransformStream.prototype.${name} can only be used on a TransformStream`);
 }
