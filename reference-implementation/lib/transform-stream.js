@@ -279,6 +279,16 @@ class TransformStreamSource {
 
 class TransformStreamDefaultController {
   constructor(transformStream) {
+    if (IsTransformStream(transformStream) === false) {
+      throw new TypeError('TransformStreamDefaultController can only be ' +
+                          'constructed with a TransformStream instance');
+    }
+
+    if (transformStream._transformStreamController !== undefined) {
+      throw new TypeError('TransformStreamDefaultController instances can ' +
+                          'only be created by the TransformStream constructor');
+    }
+
     this._controlledTransformStream = transformStream;
   }
 
@@ -327,6 +337,7 @@ module.exports = class TransformStream {
 
     this._writableController = undefined;
     this._readableController = undefined;
+    this._transformStreamController = undefined;
 
     this._writableDone = false;
     this._readableClosed = false;
