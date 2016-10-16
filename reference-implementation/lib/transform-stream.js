@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-const { InvokeOrNoop, PromiseInvokeOrNoop } = require('./helpers.js');
+const { InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
 const { ReadableStream } = require('./readable-stream.js');
 const { WritableStream } = require('./writable-stream.js');
 
@@ -150,6 +150,18 @@ function TransformStreamTransformIfNeeded(transformStream) {
                      e => TransformStreamErrorIfNeeded(transformStream, e));
 }
 
+function IsTransformStreamDefaultController(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_controlledTransformStream')) {
+    return false;
+  }
+
+  return true;
+}
+
 class TransformStreamSink {
   constructor(transformStream, startPromise) {
     this._transformStream = transformStream;
@@ -257,14 +269,26 @@ class TransformStreamDefaultController {
   }
 
   enqueue(chunk) {
+    if (IsTransformStreamDefaultController(this) === false) {
+      throw defaultControllerBrandCheckException('enqueue');
+    }
+
     TransformStreamEnqueueToReadable(this._controlledTransformStream, chunk);
   }
 
   close() {
+    if (IsTransformStreamDefaultController(this) === false) {
+      throw defaultControllerBrandCheckException('close');
+    }
+
     TransformStreamCloseReadable(this._controlledTransformStream);
   }
 
   error(reason) {
+    if (IsTransformStreamDefaultController(this) === false) {
+      throw defaultControllerBrandCheckException('error');
+    }
+
     TransformStreamError(this._controlledTransformStream, reason);
   }
 }
@@ -336,3 +360,10 @@ module.exports = class TransformStream {
     return this._writable;
   }
 };
+
+// Helper functions for the TransformStreamDefaultController.
+
+function defaultControllerBrandCheckException(name) {
+  return new TypeError(
+    `TransformStreamDefaultController.prototype.${name} can only be used on a TransformStreamDefaultController`);
+}
