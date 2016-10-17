@@ -11,15 +11,15 @@ test(() => {
   const rs = new ReadableStream();
   const ws = new WritableStream();
 
-  assert_false(rs.locked, 'sanity check: the readable stream must not start locked');
-  assert_false(ws.locked, 'sanity check: the writable stream must not start locked');
+  assert_false(rs.locked, 'sanity check: the ReadableStream must not start locked');
+  assert_false(ws.locked, 'sanity check: the WritableStream must not start locked');
 
   rs.pipeTo(ws);
 
-  assert_true(rs.locked, 'the readable stream must become locked');
-  assert_true(ws.locked, 'the writable stream must become locked');
+  assert_true(rs.locked, 'the ReadableStream must become locked');
+  assert_true(ws.locked, 'the WritableStream must become locked');
 
-}, 'Piping must lock both the readable and writable streams');
+}, 'Piping must lock both the ReadableStream and WritableStream');
 
 promise_test(() => {
 
@@ -31,11 +31,11 @@ promise_test(() => {
   const ws = new WritableStream();
 
   return rs.pipeTo(ws).then(() => {
-    assert_false(rs.locked, 'the readable stream must become unlocked');
-    assert_false(ws.locked, 'the writable stream must become unlocked');
+    assert_false(rs.locked, 'the ReadableStream must become unlocked');
+    assert_false(ws.locked, 'the WritableStream must become unlocked');
   });
 
-}, 'Piping finishing must unlock both the readable and writable streams');
+}, 'Piping finishing must unlock both the ReadableStream and WritableStream');
 
 promise_test(t => {
 
@@ -54,6 +54,39 @@ promise_test(t => {
   return methodRejects(t, ReadableStream.prototype, 'pipeTo', rs, [fakeWS]);
 
 }, 'pipeTo must check the brand of its WritableStream argument');
+
+promise_test(t => {
+
+  const rs = new ReadableStream();
+  const ws = new WritableStream();
+
+  rs.getReader();
+
+  assert_true(rs.locked, 'sanity check: the ReadableStream starts locked');
+  assert_false(ws.locked, 'sanity check: the WritableStream does not start locked');
+
+  return promise_rejects(t, new TypeError(), rs.pipeTo(ws)).then(() => {
+    assert_false(ws.locked, 'the WritableStream must still be unlocked');
+  });
+
+}, 'pipeTo must fail if the ReadableStream is locked, and not lock the WritableStream');
+
+promise_test(t => {
+
+  const rs = new ReadableStream();
+  const ws = new WritableStream();
+
+  ws.getWriter();
+
+  assert_false(rs.locked, 'sanity check: the ReadableStream does not start locked');
+  assert_true(ws.locked, 'sanity check: the WritableStream starts locked');
+
+
+  return promise_rejects(t, new TypeError(), rs.pipeTo(ws)).then(() => {
+    assert_false(rs.locked, 'the ReadableStream must still be unlocked');
+  });
+
+}, 'pipeTo must fail if the WritableStream is locked, and not lock the ReadableStream');
 
 promise_test(() => {
 

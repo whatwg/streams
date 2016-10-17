@@ -61,6 +61,7 @@ class WritableStream {
 Object.assign(exports, {
   AcquireWritableStreamDefaultWriter,
   IsWritableStream,
+  IsWritableStreamLocked,
   WritableStream,
   WritableStreamAbort,
   WritableStreamDefaultWriterCloseWithErrorPropagation,

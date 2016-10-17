@@ -6,9 +6,9 @@ const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, Invo
 const { createArrayFromList, createDataProperty, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } = require('./queue-with-sizes.js');
-const { AcquireWritableStreamDefaultWriter, IsWritableStream, WritableStreamAbort,
-        WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
-        WritableStreamDefaultWriterWrite } = require('./writable-stream.js');
+const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
+        WritableStreamAbort, WritableStreamDefaultWriterCloseWithErrorPropagation,
+        WritableStreamDefaultWriterRelease, WritableStreamDefaultWriterWrite } = require('./writable-stream.js');
 
 const InternalCancel = Symbol('[[Cancel]]');
 const InternalPull = Symbol('[[Pull]]');
@@ -100,6 +100,13 @@ class ReadableStream {
     preventClose = Boolean(preventClose);
     preventAbort = Boolean(preventAbort);
     preventCancel = Boolean(preventCancel);
+
+    if (IsReadableStreamLocked(this) === true) {
+      return Promise.reject(new TypeError('ReadableStream.prototype.pipeTo cannot be used on a locked ReadableStream'));
+    }
+    if (IsWritableStreamLocked(dest) === true) {
+      return Promise.reject(new TypeError('ReadableStream.prototype.pipeTo cannot be used on a locked WritableStream'));
+    }
 
     const reader = AcquireReadableStreamDefaultReader(this);
     const writer = AcquireWritableStreamDefaultWriter(dest);

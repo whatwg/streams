@@ -603,11 +603,13 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   1. If ! IsWritableStream(_dest_) is *false*, return a promise rejected with a *TypeError* exception.
   1. Set _preventClose_ to ? ToBoolean(_preventClose_), set _preventAbort_ to ? ToBoolean(_preventAbort_), and set
      _preventCancel_ to ? ToBoolean(_preventCancel_).
-  1. If ! IsReadableByteStreamController(*this*.[[readableStreamController]]) is true, let _reader_ be either ?
-     AcquireReadableStreamBYOBReader(*this*) or ? AcquireReadableStreamDefaultReader(*this*), at the user agent's
+  1. If ! IsReadableStreamLocked(*this*) is *true*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsWritableStreamLocked(_dest_) is *true*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsReadableByteStreamController(*this*.[[readableStreamController]]) is true, let _reader_ be either !
+     AcquireReadableStreamBYOBReader(*this*) or ! AcquireReadableStreamDefaultReader(*this*), at the user agent's
      discretion.
-  1. Otherwise, let _reader_ be ? AcquireReadableStreamDefaultReader(*this*).
-  1. Let _writer_ be ? AcquireWritableStreamDefaultWriter(_dest_).
+  1. Otherwise, let _reader_ be ! AcquireReadableStreamDefaultReader(*this*).
+  1. Let _writer_ be ! AcquireWritableStreamDefaultWriter(_dest_).
   1. Let _promise_ be a new promise.
   1. Let _shuttingDown_ be *false*.
   1. <a>In parallel</a>, using _reader_ and _writer_, read all <a>chunks</a> from *this* and write them to _dest_. Due
