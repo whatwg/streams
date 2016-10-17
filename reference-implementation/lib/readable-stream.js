@@ -173,7 +173,7 @@ class ReadableStream {
       });
 
       // Closing must be propagated backward
-      writer._closedPromise.then(() => {
+      if (dest._state === 'closing' || dest._state === 'closed') {
         const destClosed = new TypeError('the destination writable stream closed before all data could be piped to it');
 
         if (preventCancel === false) {
@@ -181,7 +181,7 @@ class ReadableStream {
         } else {
           shutdown(true, destClosed);
         }
-      });
+      }
 
       function waitForCurrentWrite() {
         return currentWrite.catch(() => {});
