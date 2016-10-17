@@ -58,14 +58,11 @@ class WritableStream {
   }
 }
 
-exports.WritableStream = WritableStream;
-
 Object.assign(exports, {
   AcquireWritableStreamDefaultWriter,
   IsWritableStream,
   WritableStream,
   WritableStreamAbort,
-  WritableStreamDefaultWriterClose,
   WritableStreamDefaultWriterCloseWithErrorPropagation,
   WritableStreamDefaultWriterRelease,
   WritableStreamDefaultWriterWrite
