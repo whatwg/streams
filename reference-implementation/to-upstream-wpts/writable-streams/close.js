@@ -24,10 +24,8 @@ promise_test(t => {
   const passedError = new Error('error me');
   let controller;
   const ws = new WritableStream({
-    start(c) {
+    close(c) {
       controller = c;
-    },
-    close() {
       return delay(50);
     }
   });
@@ -46,12 +44,8 @@ promise_test(t => {
 
 promise_test(t => {
   const passedError = new Error('error me');
-  let controller;
   const ws = new WritableStream({
-    start(c) {
-      controller = c;
-    },
-    close() {
+    close(controller) {
       controller.error(passedError);
     }
   });

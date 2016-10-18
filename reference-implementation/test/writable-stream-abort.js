@@ -276,7 +276,7 @@ test('Aborting a WritableStream after it is closed is a no-op', t => {
 test('WritableStream should call underlying sink\'s close if no abort is supplied', t => {
   const ws = new WritableStream({
     close(...args) {
-      t.equal(args.length, 0, 'close() was called (with no arguments)');
+      t.equal(args.length, 1, 'close() was called (with one argument)');
       t.end();
     }
   });

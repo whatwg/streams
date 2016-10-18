@@ -483,7 +483,8 @@ class WritableStreamDefaultController {
 function WritableStreamDefaultControllerAbort(controller, reason) {
   controller._queue = [];
 
-  const sinkAbortPromise = PromiseInvokeOrFallbackOrNoop(controller._underlyingSink, 'abort', [reason], 'close', []);
+  const sinkAbortPromise = PromiseInvokeOrFallbackOrNoop(controller._underlyingSink, 'abort', [reason],
+                                                         'close', [controller]);
   return sinkAbortPromise.then(() => undefined);
 }
 
@@ -590,7 +591,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
   DequeueValue(controller._queue);
   assert(controller._queue.length === 0, 'queue must be empty once the final write record is dequeued');
 
-  const sinkClosePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'close');
+  const sinkClosePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'close', [controller]);
   sinkClosePromise.then(
     () => {
       if (stream._state !== 'closing') {
@@ -610,7 +611,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
 function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   controller._writing = true;
 
-  const sinkWritePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'write', [chunk]);
+  const sinkWritePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'write', [chunk, controller]);
   sinkWritePromise.then(
     () => {
       const stream = controller._controlledWritableStream;
