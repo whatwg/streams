@@ -24,36 +24,30 @@ promise_test(() => {
   });
 }, 'controller argument should be passed to start method');
 
-promise_test(() => {
-  const passedError = new Error('tea and scones');
+promise_test(t => {
   const ws = new WritableStream({
     write(chunk, controller) {
-      controller.error(passedError);
+      controller.error(new Error());
     }
   });
 
   const writer = ws.getWriter();
   writer.write('a');
 
-  return writer.closed.catch(r => {
-    assert_equals(r, passedError, 'ws should be errored by passedError');
-  });
+  return promise_rejects(t, new Error(), writer.closed, 'controller.error() in write() should errored the stream');
 }, 'controller argument should be passed to write method');
 
-promise_test(() => {
-  const passedError = new Error('jelly and ice cream');
+promise_test(t => {
   const ws = new WritableStream({
     close(controller) {
-      controller.error(passedError);
+      controller.error(new Error());
     }
   });
 
   const writer = ws.getWriter();
   writer.close();
 
-  return writer.closed.catch(r => {
-    assert_equals(r, passedError, 'ws should be errored by passedError');
-  });
+  return promise_rejects(t, new Error(), writer.closed, 'controller.error() in close() should error the stream');
 }, 'controller argument should be passed to close method');
 
 promise_test(() => {
