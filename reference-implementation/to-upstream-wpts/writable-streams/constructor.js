@@ -98,3 +98,49 @@ test(() => {
   assert_not_equals(typeof writer.closed, 'undefined', 'writer should have a closed property');
   assert_equals(typeof writer.closed.then, 'function', 'closed property should be thenable');
 }, 'WritableStream instances should have standard methods and properties');
+
+test(() => {
+  ['WritableStreamDefaultWriter', 'WritableStreamDefaultController'].forEach(c =>
+      assert_equals(typeof self[c], 'undefined', `${c} should not be exported`));
+}, 'private constructors should not be exported');
+
+test(() => {
+  let WritableStreamDefaultController;
+  new WritableStream({
+    start(c) {
+      WritableStreamDefaultController = c.constructor;
+    }
+  });
+
+  assert_throws(new TypeError(), () => new WritableStreamDefaultController({}),
+                'constructor should throw a TypeError exception');
+}, 'WritableStreamDefaultController constructor should throw unless passed a WritableStream');
+
+test(() => {
+  let WritableStreamDefaultController;
+  const stream = new WritableStream({
+    start(c) {
+      WritableStreamDefaultController = c.constructor;
+    }
+  });
+
+  assert_throws(new TypeError(), () => new WritableStreamDefaultController(stream),
+                'constructor should throw a TypeError exception');
+}, 'WritableStreamDefaultController constructor should throw when passed an initalised WritableStream');
+
+test(() => {
+  const stream = new WritableStream();
+  const writer = stream.getWriter();
+  const WritableStreamDefaultWriter = writer.constructor;
+  writer.releaseLock();
+  assert_throws(new TypeError(), () => new WritableStreamDefaultWriter({}),
+                'constructor should throw a TypeError exception');
+}, 'WritableStreamDefaultWriter should throw unless passed a WritableStream');
+
+test(() => {
+  const stream = new WritableStream();
+  const writer = stream.getWriter();
+  const WritableStreamDefaultWriter = writer.constructor;
+  assert_throws(new TypeError(), () => new WritableStreamDefaultWriter(stream),
+                'constructor should throw a TypeError exception');
+}, 'WritableStreamDefaultController constructor should throw when stream argument is locked');
