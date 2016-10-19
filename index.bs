@@ -1601,7 +1601,7 @@ asserts).
   1. Otherwise,
     1. Let _chunkSize_ be *1*.
     1. If _controller_.[[strategySize]] is not *undefined*,
-      1. Set _chunkSize_ to Call(_stream_.[[strategySize]], *undefined*, « ‍_chunk_ »).
+      1. Set _chunkSize_ to Call(_controller_.[[strategySize]], *undefined*, « ‍_chunk_ »).
       1. If _chunkSize_ is an abrupt completion,
         1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _chunkSize_.[[Value]]).
         1. Return _chunkSize_.
