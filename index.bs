@@ -2588,7 +2588,7 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
   1. Set *this*.[[state]] to `"writable"`.
   1. Set *this*.[[storedError]], *this*.[[writer]], and *this*.[[writableStreamController]] to *undefined*.
   1. Set *this*.[[writeRequests]] to a new empty List.
-  1. Let _type_ be ? GetV(_underlyingSource_, `"type"`).
+  1. Let _type_ be ? GetV(_underlyingSink_, `"type"`).
   1. If _type_ is not *undefined*, throw a *RangeError* exception. <p class="note">This is to allow us to add new
      potential types in the future, without backward-compatibility concerns.</p>
   1. Set *this*.[[writableStreamController]] to ? Construct(`<a idl>WritableStreamDefaultController</a>`, « *this*,
