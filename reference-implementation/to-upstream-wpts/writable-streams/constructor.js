@@ -143,4 +143,4 @@ test(() => {
   const WritableStreamDefaultWriter = writer.constructor;
   assert_throws(new TypeError(), () => new WritableStreamDefaultWriter(stream),
                 'constructor should throw a TypeError exception');
-}, 'WritableStreamDefaultController constructor should throw when stream argument is locked');
+}, 'WritableStreamDefaultWriter constructor should throw when stream argument is locked');
