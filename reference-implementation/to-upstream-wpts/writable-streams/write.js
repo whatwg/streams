@@ -197,3 +197,15 @@ promise_test(() => {
           assert_equals(writeCount, numberOfWrites, `should have called sink's write ${numberOfWrites} times`));
   });
 }, 'a large queue of writes should be processed completely');
+
+promise_test(() => {
+  const stream = recordingWritableStream();
+  const w = stream.getWriter();
+  const WritableStreamDefaultWriter = w.constructor;
+  w.releaseLock();
+  const writer = new WritableStreamDefaultWriter(stream);
+  return writer.ready.then(() => {
+    writer.write('a');
+    assert_array_equals(stream.events, ['write', 'a'], 'write() should be passed to sink');
+  });
+}, 'WritableStreamDefaultWriter should work when manually constructed');
