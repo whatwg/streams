@@ -278,6 +278,16 @@ class TransformStreamDefaultController {
     this._controlledTransformStream = transformStream;
   }
 
+  get desiredSize() {
+    if (IsTransformStreamDefaultController(this) === false) {
+      throw defaultControllerBrandCheckException('desiredSize');
+    }
+
+    const transformStream = this._controlledTransformStream;
+
+    return transformStream._readableController.desiredSize;
+  }
+
   enqueue(chunk) {
     if (IsTransformStreamDefaultController(this) === false) {
       throw defaultControllerBrandCheckException('enqueue');
