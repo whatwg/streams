@@ -1400,8 +1400,8 @@ Instances of {{ReadableStreamDefaultController}} are created with the internal s
   </tr>
   <tr>
     <td>\[[underlyingSource]]
-    <td>An object representation of the stream's <a>underlying source</a>, including its <a>queuing strategy</a>; also
-      used for the <a href="#is-readable-stream">IsReadableStream</a> brand check
+    <td>An object representation of the stream's <a>underlying source</a>; also
+      used for the <a href="#is-readable-stream-default-controller">IsReadableStreamDefaultController</a> brand check
   </tr>
 </table>
 
@@ -1748,8 +1748,8 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
   </tr>
   <tr>
     <td>\[[underlyingByteSource]]
-    <td>An object representation of the stream's <a>underlying byte source</a>, including its <a>queuing strategy</a>;
-      also used for the <a href="#is-readable-stream">IsReadableStream</a> brand check
+    <td>An object representation of the stream's <a>underlying byte source</a>;
+      also used for the <a href="#is-readable-byte-stream-controller">IsReadableByteStreamController</a> brand check
   </tr>
 </table>
 
