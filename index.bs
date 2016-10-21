@@ -1743,11 +1743,6 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
       which the stream will apply <a>backpressure</a> to its <a>underlying byte source</a>
   </tr>
   <tr>
-    <td>\[[strategySize]]
-    <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
-      the size of enqueued <a>chunks</a>; can be <emu-val>undefined</emu-val> for the default behavior
-  </tr>
-  <tr>
     <td>\[[totalQueuedBytes]]
     <td>The number of bytes stored in \[[queue]]
   </tr>
