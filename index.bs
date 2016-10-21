@@ -596,6 +596,27 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 
   Piping a stream will <a lt="locked to a reader">lock</a> it for the duration of the pipe, preventing any other
   consumer from acquiring a reader.
+
+  Errors and closures of the source and destination streams propagate as follows:
+
+  <ul>
+    <li><p>An error in the source <a>readable stream</a> will <a lt="abort a writable stream">abort</a> the destination
+    <a>writable stream</a>, unless <code>preventAbort</code> is truthy. The returned promise will be rejected with the
+    source's error, or with any error that occurs during aborting the destination.</p></li>
+
+    <li><p>An error in the destination <a>writable stream</a> will <a lt="cancel a readable stream">cancel</a> the
+    source <a>readable stream</a>, unless <code>preventCancel</code> is truthy. The returned promise will be rejected
+    with the destination's error, or with any error that occurs during canceling the source.</p></li>
+
+    <li><p>When the source <a>readable stream</a> closes, the destination <a>writable stream</a> will be closed, unless
+    <code>preventClose</code> is true. The returned promise will be fulfilled once this process completes, unless an
+    error is encountered while closing the destination, in which case it will be rejected with that error.</p></li>
+
+    <li><p>If the destination <a>writable stream</a> starts out closed or closing, the source <a>readable stream</a>
+    will be <a lt="cancel a readable stream">canceled</a>, unless <code>preventCancel</code> is true. The returned
+    promise will be rejected with an error indicating piping to a closed stream failed, or with any error that occurs
+    during canceling the source.</p></li>
+  </ul>
 </div>
 
 <emu-alg>
