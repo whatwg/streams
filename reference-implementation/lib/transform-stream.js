@@ -34,8 +34,6 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
 
   const controller = transformStream._readableController;
 
-  transformStream._readableBackpressure = true;
-
   try {
     controller.enqueue(chunk);
   } catch (e) {
@@ -49,10 +47,14 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
 
   const backpressure = controller.desiredSize <= 0;
 
-  // enqueue() may invoke pull() synchronously when we're not in pull() call.
-  // In such case, _readableBackpressure may be already set to false.
-  if (backpressure) {
+  // controller.enqueue may be called from transformer.start().
+  // The constructor leaves readableBackpressure as undefined initially.
+  if (backpressure && transformStream._readableBackpressure !== true) {
     transformStream._readableBackpressure = true;
+    if (transformStream._backpressurePromise_resolve !== undefined) {
+      transformStream._backpressurePromise_resolve();
+      transformStream._backpressurePromise_resolve = undefined;
+    }
   }
 }
 
@@ -267,8 +269,18 @@ class TransformStreamSource {
 
   pull() {
     // console.log('TransformStreamSource.pull()');
+
+    const transformStream = this._transformStream;
+    assert(transformStream._readableBackpressure !== false);
+    assert(transformStream._backpressurePromise_resolve === undefined);
+
+    const backpressurePromise = new Promise(resolve => {
+      transformStream._backpressurePromise_resolve = resolve;
+    });
+
     this._transformStream._readableBackpressure = false;
     TransformStreamTransformIfNeeded(this._transformStream);
+    return backpressurePromise;
   }
 
   cancel() {
@@ -344,9 +356,13 @@ module.exports = class TransformStream {
     this._readableClosed = false;
 
     this._resolveWrite = undefined;
-    this._readableBackpressure = false;
     this._chunkPending = false;
     this._chunk = undefined;
+
+    // readableBackpressure begins in an unknown state, to be determined at
+    // the first pull() or controller.enqueue() call.
+    this._readableBackpressure = undefined;
+    this._backpressurePromise_resolve = undefined;
 
     this._transformStreamController = new TransformStreamDefaultController(this);
 
