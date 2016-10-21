@@ -96,25 +96,6 @@ function TransformStreamReadyPromise(transformStream) {
   return readyPromise;
 }
 
-function TransformStreamResolveWrite(transformStream) {
-  if (transformStream._errored === true) {
-    return;
-  }
-
-  assert(transformStream._transforming === true);
-
-  assert(transformStream._resolveWrite !== undefined);
-
-  const readyPromise = TransformStreamReadyPromise(transformStream);
-
-  readyPromise.then(() => {
-    transformStream._transforming = false;
-
-    transformStream._resolveWrite(undefined);
-    transformStream._resolveWrite = undefined;
-  });
-}
-
 function TransformStreamErrorIfNeeded(transformStream, e) {
   if (transformStream._errored === false) {
     TransformStreamErrorInternal(transformStream, e);
@@ -141,13 +122,6 @@ function TransformStreamTransform(transformStream, chunk) {
   // console.log('TransformStreamTransform()');
 
   assert(transformStream._errored === false);
-  assert(transformStream._resolveWrite === undefined);
-
-  const promise = new Promise(resolve => {
-    transformStream._resolveWrite = resolve;
-  });
-
-  assert(transformStream._resolveWrite !== undefined);
   assert(transformStream._transforming === false);
   assert(transformStream._readableBackpressure === false);
 
@@ -157,10 +131,10 @@ function TransformStreamTransform(transformStream, chunk) {
   const transformPromise = PromiseInvokeOrNoop(transformStream._transformer,
                              'transform', [chunk, controller]);
 
-  transformPromise.then(() => TransformStreamResolveWrite(transformStream),
-                     e => TransformStreamErrorIfNeeded(transformStream, e));
-
-  return promise;
+  return transformPromise.then(() => {
+    transformStream._transforming = false;
+  }).then(() => TransformStreamReadyPromise(transformStream),
+          e => TransformStreamErrorIfNeeded(transformStream, e));
 }
 
 function IsTransformStreamDefaultController(x) {
@@ -222,8 +196,6 @@ class TransformStreamSink {
     // console.log('TransformStreamSink.close()');
 
     const transformStream = this._transformStream;
-
-    assert(transformStream._resolveWrite === undefined);
 
     assert(transformStream._transforming === false);
 
@@ -355,8 +327,6 @@ module.exports = class TransformStream {
 
     this._writableDone = false;
     this._readableClosed = false;
-
-    this._resolveWrite = undefined;
 
     // readableBackpressure begins in an unknown state, to be determined at
     // the first pull() or controller.enqueue() call.
