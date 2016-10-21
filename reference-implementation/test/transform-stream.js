@@ -200,8 +200,10 @@ test('TransformStream: by default, closing the writable closes the readable afte
   writer.write('a');
   writer.close();
 
+  const readableChunks = readableStreamToArray(ts.readable);
+
   writer.closed.then(() => {
-    return readableStreamToArray(ts.readable).then(chunks => {
+    return readableChunks.then(chunks => {
       t.deepEqual(chunks, ['x', 'y'], 'both enqueued chunks can be read from the readable');
       t.end();
     });
@@ -226,8 +228,10 @@ test('TransformStream: by default, closing the writable closes the readable afte
   writer.write('a');
   writer.close();
 
+  const readableChunks = readableStreamToArray(ts.readable);
+
   writer.closed.then(() => {
-    return readableStreamToArray(ts.readable).then(chunks => {
+    return readableChunks.then(chunks => {
       t.deepEqual(chunks, ['x', 'y'], 'both enqueued chunks can be read from the readable');
       t.end();
     });
@@ -259,8 +263,10 @@ test('Transform stream should call transformer methods as methods', t => {
   writer.write('a');
   writer.close();
 
+  const readableChunks = readableStreamToArray(ts.readable);
+
   writer.closed.then(() => {
-    return readableStreamToArray(ts.readable).then(chunks => {
+    return readableChunks.then(chunks => {
       t.deepEqual(chunks, ['a-suffix', 'flushed-suffix'], 'both enqueued chunks have suffixes');
     });
   }, e => t.error(e));

@@ -90,12 +90,25 @@ function TransformStreamResolveWrite(transformStream) {
 
   assert(transformStream._resolveWrite !== undefined);
 
-  transformStream._transforming = false;
+  assert(transformStream._readyPromise_resolve === undefined);
 
-  transformStream._resolveWrite(undefined);
-  transformStream._resolveWrite = undefined;
+  let readyPromise;
+  if (transformStream._readableBackpressure === false) {
+    readyPromise = Promise.resolve();
+  } else {
+    readyPromise = new Promise(resolve => {
+      transformStream._readyPromise_resolve = resolve;
+    });
+  }
 
-  TransformStreamTransformIfNeeded(transformStream);
+  readyPromise.then(() => {
+    transformStream._transforming = false;
+
+    transformStream._resolveWrite(undefined);
+    transformStream._resolveWrite = undefined;
+
+    TransformStreamTransformIfNeeded(transformStream);
+  });
 }
 
 function TransformStreamErrorIfNeeded(transformStream, e) {
@@ -274,6 +287,14 @@ class TransformStreamSource {
     assert(transformStream._readableBackpressure !== false);
     assert(transformStream._backpressurePromise_resolve === undefined);
 
+    // The constructor leaves readableBackpressure as undefined initially.
+    // pull() may be called right after startPromise resolves.
+    // There won't be a readyPromise to fulfill on that first call.
+    if (transformStream._readyPromise_resolve !== undefined) {
+      transformStream._readyPromise_resolve();
+      transformStream._readyPromise_resolve = undefined;
+    }
+
     const backpressurePromise = new Promise(resolve => {
       transformStream._backpressurePromise_resolve = resolve;
     });
@@ -363,6 +384,7 @@ module.exports = class TransformStream {
     // the first pull() or controller.enqueue() call.
     this._readableBackpressure = undefined;
     this._backpressurePromise_resolve = undefined;
+    this._readyPromise_resolve = undefined;
 
     this._transformStreamController = new TransformStreamDefaultController(this);
 
