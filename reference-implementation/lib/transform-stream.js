@@ -81,15 +81,7 @@ function TransformStreamCloseReadableInternal(transformStream) {
   transformStream._readableClosed = true;
 }
 
-function TransformStreamResolveWrite(transformStream) {
-  if (transformStream._errored === true) {
-    return;
-  }
-
-  assert(transformStream._transforming === true);
-
-  assert(transformStream._resolveWrite !== undefined);
-
+function TransformStreamReadyPromise(transformStream) {
   assert(transformStream._readyPromise_resolve === undefined);
 
   let readyPromise;
@@ -100,6 +92,20 @@ function TransformStreamResolveWrite(transformStream) {
       transformStream._readyPromise_resolve = resolve;
     });
   }
+
+  return readyPromise;
+}
+
+function TransformStreamResolveWrite(transformStream) {
+  if (transformStream._errored === true) {
+    return;
+  }
+
+  assert(transformStream._transforming === true);
+
+  assert(transformStream._resolveWrite !== undefined);
+
+  const readyPromise = TransformStreamReadyPromise(transformStream);
 
   readyPromise.then(() => {
     transformStream._transforming = false;
@@ -201,7 +207,10 @@ class TransformStreamSink {
 
     transformStream._writableController = c;
 
-    return this._startPromise;
+    // delay all sink.write() calls until there is no longer backpressure.
+    return this._startPromise.then(() => {
+      return TransformStreamReadyPromise(transformStream);
+    });
   }
 
   write(chunk) {
@@ -393,13 +402,13 @@ module.exports = class TransformStream {
       startPromise_resolve = resolve;
     });
 
-    const sink = new TransformStreamSink(this, startPromise);
-
-    this._writable = new WritableStream(sink, transformer.writableStrategy);
-
     const source = new TransformStreamSource(this, startPromise);
 
     this._readable = new ReadableStream(source, transformer.readableStrategy);
+
+    const sink = new TransformStreamSink(this, startPromise);
+
+    this._writable = new WritableStream(sink, transformer.writableStrategy);
 
     assert(this._writableController !== undefined);
     assert(this._readableController !== undefined);
