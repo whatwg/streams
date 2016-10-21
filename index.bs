@@ -3098,7 +3098,7 @@ Instances of {{WritableStreamDefaultController}} are created with the internal s
   <tr>
     <td>\[[underlyingSink]]
     <td>An object representation of the stream's <a>underlying sink</a>; also
-      used for the <a href="#is-writable-stream">IsWritableStream</a> brand check
+      used for the <a href="#is-writable-stream-default-controller">IsWritableStreamDefaultController</a> brand check
   </tr>
   <tr>
     <td>\[[writing]]
