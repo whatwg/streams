@@ -1698,7 +1698,7 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
   </thead>
   <tr>
     <td>\[[autoAllocateChunkSize]]
-    <td>A nonnegative integer when, the automatic buffer allocation feature is enabled. In that case, this value
+    <td>A positive integer, when the automatic buffer allocation feature is enabled. In that case, this value
       specifies the size of buffer to allocate. It is <emu-val>undefined</emu-val> otherwise.
   </tr>
   <tr>
