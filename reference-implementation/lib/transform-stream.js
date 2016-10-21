@@ -52,7 +52,7 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
   // enqueue() may invoke pull() synchronously when we're not in pull() call.
   // In such case, _readableBackpressure may be already set to false.
   if (backpressure) {
-    transformStream._readableBackpressure = false;
+    transformStream._readableBackpressure = true;
   }
 }
 
