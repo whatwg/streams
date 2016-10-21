@@ -140,6 +140,13 @@ function TransformStreamErrorInternal(transformStream, e) {
 function TransformStreamTransform(transformStream, chunk) {
   // console.log('TransformStreamTransform()');
 
+  assert(transformStream._errored === false);
+  assert(transformStream._resolveWrite === undefined);
+
+  const promise = new Promise(resolve => {
+    transformStream._resolveWrite = resolve;
+  });
+
   assert(transformStream._resolveWrite !== undefined);
   assert(transformStream._transforming === false);
   assert(transformStream._readableBackpressure === false);
@@ -152,6 +159,8 @@ function TransformStreamTransform(transformStream, chunk) {
 
   transformPromise.then(() => TransformStreamResolveWrite(transformStream),
                      e => TransformStreamErrorIfNeeded(transformStream, e));
+
+  return promise;
 }
 
 function IsTransformStreamDefaultController(x) {
@@ -200,17 +209,7 @@ class TransformStreamSink {
 
     const transformStream = this._transformStream;
 
-    assert(transformStream._errored === false);
-
-    assert(transformStream._resolveWrite === undefined);
-
-    const promise = new Promise(resolve => {
-      transformStream._resolveWrite = resolve;
-    });
-
-    TransformStreamTransform(transformStream, chunk);
-
-    return promise;
+    return TransformStreamTransform(transformStream, chunk);
   }
 
   abort() {
