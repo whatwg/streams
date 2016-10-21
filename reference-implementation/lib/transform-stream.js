@@ -266,6 +266,7 @@ class TransformStreamSource {
   }
 
   pull() {
+    // console.log('TransformStreamSource.pull()');
     this._transformStream._readableBackpressure = false;
     TransformStreamTransformIfNeeded(this._transformStream);
   }
