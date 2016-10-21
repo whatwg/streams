@@ -112,8 +112,6 @@ function TransformStreamResolveWrite(transformStream) {
 
     transformStream._resolveWrite(undefined);
     transformStream._resolveWrite = undefined;
-
-    TransformStreamTransformIfNeeded(transformStream);
   });
 }
 
@@ -137,32 +135,16 @@ function TransformStreamErrorInternal(transformStream, e) {
   if (transformStream._readableClosed === false) {
     transformStream._readableController.error(e);
   }
-
-  transformStream._chunk = undefined;
 }
 
-function TransformStreamTransformIfNeeded(transformStream) {
-  // console.log('TransformStreamTransformIfNeeded()');
-
-  if (transformStream._chunkPending === false) {
-    return;
-  }
+function TransformStreamTransform(transformStream, chunk) {
+  // console.log('TransformStreamTransform()');
 
   assert(transformStream._resolveWrite !== undefined);
-
-  if (transformStream._transforming === true) {
-    return;
-  }
-
-  if (transformStream._readableBackpressure === true) {
-    return;
-  }
+  assert(transformStream._transforming === false);
+  assert(transformStream._readableBackpressure === false);
 
   transformStream._transforming = true;
-
-  const chunk = transformStream._chunk;
-  transformStream._chunkPending = false;
-  transformStream._chunk = undefined;
 
   const controller = transformStream._transformStreamController;
   const transformPromise = PromiseInvokeOrNoop(transformStream._transformer,
@@ -220,19 +202,13 @@ class TransformStreamSink {
 
     assert(transformStream._errored === false);
 
-    assert(transformStream._chunkPending === false);
-    assert(transformStream._chunk === undefined);
-
     assert(transformStream._resolveWrite === undefined);
-
-    transformStream._chunkPending = true;
-    transformStream._chunk = chunk;
 
     const promise = new Promise(resolve => {
       transformStream._resolveWrite = resolve;
     });
 
-    TransformStreamTransformIfNeeded(transformStream);
+    TransformStreamTransform(transformStream, chunk);
 
     return promise;
   }
@@ -247,9 +223,6 @@ class TransformStreamSink {
     // console.log('TransformStreamSink.close()');
 
     const transformStream = this._transformStream;
-
-    assert(transformStream._chunkPending === false);
-    assert(transformStream._chunk === undefined);
 
     assert(transformStream._resolveWrite === undefined);
 
@@ -309,7 +282,6 @@ class TransformStreamSource {
     });
 
     this._transformStream._readableBackpressure = false;
-    TransformStreamTransformIfNeeded(this._transformStream);
     return backpressurePromise;
   }
 
@@ -386,8 +358,6 @@ module.exports = class TransformStream {
     this._readableClosed = false;
 
     this._resolveWrite = undefined;
-    this._chunkPending = false;
-    this._chunk = undefined;
 
     // readableBackpressure begins in an unknown state, to be determined at
     // the first pull() or controller.enqueue() call.
