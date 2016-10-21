@@ -343,7 +343,7 @@ module.exports = class TransformStream {
     this._readableClosed = false;
 
     this._resolveWrite = undefined;
-
+    this._readableBackpressure = false;
     this._chunkPending = false;
     this._chunk = undefined;
 
