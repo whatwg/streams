@@ -411,8 +411,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true }),
-                                      'pipeTo must reject with the same error')
+  return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true }), 'pipeTo must reject with the same error')
     .then(() => {
       assert_array_equals(rs.eventsWithoutPulls, []);
       assert_array_equals(ws.events, ['write', 'a', 'write', 'b', 'write', 'c']);

@@ -81,7 +81,6 @@ promise_test(t => {
   assert_false(rs.locked, 'sanity check: the ReadableStream does not start locked');
   assert_true(ws.locked, 'sanity check: the WritableStream starts locked');
 
-
   return promise_rejects(t, new TypeError(), rs.pipeTo(ws)).then(() => {
     assert_false(rs.locked, 'the ReadableStream must still be unlocked');
   });

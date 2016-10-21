@@ -134,7 +134,7 @@ promise_test(() => {
     ]);
   });
 
-}, 'Closing must be propagated forward: becomes closed while empty; preventClose omitted; fulfilled close promise');
+}, 'Closing must be propagated forward: becomes closed asynchronously; preventClose omitted; fulfilled close promise');
 
 promise_test(t => {
 
@@ -160,7 +160,7 @@ promise_test(t => {
     ]);
   });
 
-}, 'Closing must be propagated forward: becomes closed while empty; preventClose omitted; rejected close promise');
+}, 'Closing must be propagated forward: becomes closed asynchronously; preventClose omitted; rejected close promise');
 
 promise_test(() => {
 
@@ -182,7 +182,7 @@ promise_test(() => {
     return rs.getReader().closed;
   });
 
-}, 'Closing must be propagated forward: becomes closed while empty; preventClose = true');
+}, 'Closing must be propagated forward: becomes closed asynchronously; preventClose = true');
 
 promise_test(() => {
 
@@ -207,7 +207,7 @@ promise_test(() => {
     ]);
   });
 
-}, 'Closing must be propagated forward: becomes closed while empty; dest never desires chunks; ' +
+}, 'Closing must be propagated forward: becomes closed asynchronously; dest never desires chunks; ' +
    'preventClose omitted; fulfilled close promise');
 
 promise_test(t => {
@@ -234,7 +234,7 @@ promise_test(t => {
     ]);
   });
 
-}, 'Closing must be propagated forward: becomes closed while empty; dest never desires chunks; ' +
+}, 'Closing must be propagated forward: becomes closed asynchronously; dest never desires chunks; ' +
    'preventClose omitted; rejected close promise');
 
 promise_test(() => {
@@ -257,7 +257,7 @@ promise_test(() => {
     return rs.getReader().closed;
   });
 
-}, 'Closing must be propagated forward: becomes closed while empty; dest never desires chunks; ' +
+}, 'Closing must be propagated forward: becomes closed asynchronously; dest never desires chunks; ' +
    'preventClose = true');
 
 promise_test(() => {

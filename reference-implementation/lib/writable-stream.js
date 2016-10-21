@@ -381,6 +381,8 @@ function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
     return Promise.reject(stream._storedError);
   }
 
+  assert(state === 'writable');
+
   return WritableStreamDefaultWriterClose(writer);
 }
 
