@@ -3967,8 +3967,8 @@ We can then use this function to create a writable stream for a file, and write 
 
 Note that if a particular call to <code>fs.write</code> takes a longer time, the returned promise will fulfill later.
 In the meantime, additional writes can be queued up, which are stored in the stream's internal queue. The accumulation
-of chunks in this queue can move the stream into a <code>"waiting"</code> state, which is a signal to <a>producers</a>
-that they should back off and stop writing if possible.
+of chunks in this queue can change the stream to return a pending promise from the {{WritableStreamDefaultWriter/ready}}
+getter, which is a signal to <a>producers</a> that they should back off and stop writing if possible.
 
 The way in which the writable stream queues up writes is especially important in this case, since as stated in
 <a href="https://nodejs.org/api/fs.html#fs_fs_write_fd_data_position_encoding_callback">the documentation for
