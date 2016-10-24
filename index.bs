@@ -2648,7 +2648,7 @@ specifications, instead of just being part of the implementation of this spec's 
 throws>AcquireWritableStreamDefaultWriter ( <var>stream</var> )</h4>
 
 <emu-alg>
-  1. Return ? Construct(`<a idl>WritableStreamDefaultWriter</a>`, « <var>source</var> »).
+  1. Return ? Construct(`<a idl>WritableStreamDefaultWriter</a>`, « _stream_ »).
 </emu-alg>
 
 <h4 id="is-writable-stream" aoid="IsWritableStream" nothrow>IsWritableStream ( <var>x</var> )</h4>
