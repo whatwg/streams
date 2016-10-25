@@ -2826,17 +2826,17 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   1. Set _stream_.[[writer]] to *this*.
   1. Let _state_ be _stream_.[[state]].
   1. If _state_ is `"writable"` or `"closing"`,
-    1. Set _writer_.[[closedPromise]] to <a>a new promise</a>.
+    1. Set *this*.[[closedPromise]] to <a>a new promise</a>.
   1. Otherwise if _state_ is `"closed"`,
-    1. Set _writer_.[[closedPromise]] to <a>a promise resolved with</a> *undefined*.
+    1. Set *this*.[[closedPromise]] to <a>a promise resolved with</a> *undefined*.
   1. Otherwise,
     1. Assert: _state_ is `"errored"`.
-    1. Set _writer_.[[closedPromise]] to <a>a promise rejected with</a> _stream_.[[storedError]].
+    1. Set *this*.[[closedPromise]] to <a>a promise rejected with</a> _stream_.[[storedError]].
   1. If _state_ is `"writable"` and !
      WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*,
-    1. Set _writer_.[[readyPromise]] to <a>a new promise</a>.
+    1. Set *this*.[[readyPromise]] to <a>a new promise</a>.
   1. Otherwise,
-    1. Set _writer_.[[readyPromise]] to <a>a promise resolved with</a> *undefined*.
+    1. Set *this*.[[readyPromise]] to <a>a promise resolved with</a> *undefined*.
 </emu-alg>
 
 <h4 id="default-writer-prototype">Properties of the {{WritableStreamDefaultWriter}} Prototype</h4>
