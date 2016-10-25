@@ -70,21 +70,10 @@ exports.InvokeOrNoop = (O, P, args) => {
 };
 
 exports.PromiseInvokeOrNoop = (O, P, args) => {
-  let method;
   try {
-    method = O[P];
-  } catch (methodE) {
-    return Promise.reject(methodE);
-  }
-
-  if (method === undefined) {
-    return Promise.resolve(undefined);
-  }
-
-  try {
-    return Promise.resolve(method.apply(O, args));
-  } catch (e) {
-    return Promise.reject(e);
+    return Promise.resolve(exports.InvokeOrNoop(O, P, args));
+  } catch (returnValueE) {
+    return Promise.reject(returnValueE);
   }
 };
 

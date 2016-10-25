@@ -3520,7 +3520,7 @@ A few abstract operations are used in this specification for utility purposes. W
 </div>
 
 <emu-alg>
-  1. Assert: _P_ is a valid property key.
+  1. Assert: ! IsPropertyKey(_P_) is *true*.
   1. If _args_ was not passed, let _args_ be a new empty List.
   1. Let _method_ be ? GetV(_O_, _P_).
   1. If _method_ is *undefined*, return *undefined*.
@@ -3541,15 +3541,14 @@ A few abstract operations are used in this specification for utility purposes. W
 <var>O</var>, <var>P1</var>, <var>args1</var>, <var>P2</var>, <var>args2</var> )</h4>
 
 <div class="note">
-  PromiseInvokeOrFallbackOrNoop is a specialized version of
-  <a href="http://www.w3.org/2001/tag/doc/promises-guide#promise-calling">promise-calling</a> that works on methods,
-  calls a fallback method if the first method is not present, and returns a promise for <emu-val>undefined</emu-val>
-  when neither method is not present.
+  PromiseInvokeOrFallbackOrNoop is a specialized version of <a>promise-calling</a> that works on methods, calls a
+  fallback method if the first method is not present, and returns a promise for <emu-val>undefined</emu-val> when
+  neither method is present.
 </div>
 
 <emu-alg>
-  1. Assert: _P1_ is a valid property key.
-  1. Assert: _P2_ is a valid property key.
+  1. Assert: ! IsPropertyKey(_P1_) is *true*.
+  1. Assert: ! IsPropertyKey(_P2_) is *true*.
   1. Let _method_ be GetV(_O_, _P1_).
   1. If _method_ is an abrupt completion, return <a>a promise rejected with</a> _method_.[[Value]].
   1. Let _method_ be _method_.[[Value]].
@@ -3563,20 +3562,15 @@ A few abstract operations are used in this specification for utility purposes. W
 <var>args</var> )</h4>
 
 <div class="note">
-  PromiseInvokeOrNoop is a specialized version of
-  <a href="http://www.w3.org/2001/tag/doc/promises-guide#promise-calling">promise-calling</a> that both works on
-  methods and returns a promise for <emu-val>undefined</emu-val> when the method is not present.
+  PromiseInvokeOrNoop is a specialized version of <a>promise-calling</a> that both works on methods and returns a
+  promise for <emu-val>undefined</emu-val> when the method is not present.
 </div>
 
 <emu-alg>
-  1. Assert: _P_ is a valid property key.
+  1. Assert: ! IsPropertyKey(_P_) is *true*.
   1. If _args_ was not passed, let _args_ be a new empty List.
-  1. Let _method_ be GetV(_O_, _P_).
-  1. If _method_ is an abrupt completion, return <a>a promise rejected with</a> _method_.[[Value]].
-  1. Let _method_ be _method_.[[Value]].
-  1. If _method_ is *undefined*, return <a>a promise resolved with</a> *undefined*.
-  1. Let _returnValue_ be Call(_method_, _O_, _args_).
-  1. If _returnValue_ is an abrupt completion, return <a>a promise rejected with</a> _returnValue_.[[Value]].
+  1. Let _returnValue_ be InvokeOrNoop(_O_, _P_, _args_).
+  1. If _returnValue_ is an abrupt completion, return <a>a promise rejected with</a> _result_.[[Value]].
   1. Otherwise, return <a>a promise resolved with</a> _returnValue_.[[Value]].
 </emu-alg>
 
