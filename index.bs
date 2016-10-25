@@ -632,7 +632,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   1. Otherwise, let _reader_ be ! AcquireReadableStreamDefaultReader(*this*).
   1. Let _writer_ be ! AcquireWritableStreamDefaultWriter(_dest_).
   1. Let _shuttingDown_ be *false*.
-  1. Let _promise_ be a new promise.
+  1. Let _promise_ be <a>a new promise</a>.
   1. <a>In parallel</a>, using _reader_ and _writer_, read all <a>chunks</a> from *this* and write them to _dest_. Due
      to the locking provided by the reader and writer, the exact manner in which this happens is not observable to
      author code, and so there is flexibility in how this is done. The following constraints apply regardless of the
@@ -673,9 +673,10 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
        1. Set _shuttingDown_ to *true*.
        1. Wait until any ongoing write finishes (i.e. the corresponding promises settle).
        1. Let _p_ be the result of performing _action_.
-       1. Upon fulfillment of _p_, <a href="#rs-pipeTo-finalize">finalize</a>, passing along _originalError_ if it was
-          given.
-       1. Upon rejection of _p_ with reason _newError_, <a href="#rs-pipeTo-finalize">finalize</a> with _newError_.
+       1. <a>Upon fulfillment</a> of _p_, <a href="#rs-pipeTo-finalize">finalize</a>, passing along _originalError_ if
+          it was given.
+       1. <a>Upon rejection</a> of _p_ with reason _newError_, <a href="#rs-pipeTo-finalize">finalize</a> with
+          _newError_.
      * <i id="rs-pipeTo-shutdown">Shutdown</i>: if any of the above requirements or steps ask to shutdown, optionally
        with an error _error_, then:
        1. Set _shuttingDown_ to *true*.
@@ -685,8 +686,8 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
        an error _error_, which means to perform the following steps:
        1. Perform ! WritableStreamDefaultWriterRelease(_writer_).
        1. Perform ! ReadableStreamReaderGenericRelease(_reader_).
-       1. If _error_ was given, reject _promise_ with the given error.
-       1. Otherwise, resolve _promise_ with *undefined*.
+       1. If _error_ was given, <a>reject</a> _promise_ with _error_.
+       1. Otherwise, <a>resolve</a> _promise_ with *undefined*.
   1. Return _promise_.
 </emu-alg>
 
