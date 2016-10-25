@@ -4073,8 +4073,8 @@ itself will evolve in these ways.
     procedure was performed before the algorithm starts.
   <li> We similarly use the default argument notation <code>= {}</code> in a couple of cases.
   <li> We use "<emu-val>this</emu-val>" instead of "<emu-val>this</emu-val> value".
-  <li> We use <a href="https://w3ctag.github.io/promises-guide/#shorthand-phrases">the shorthand phrases from the W3C
-    TAG promises guide</a> to operate on promises at a higher level than the ECMAScript spec does.
+  <li> We use the shorthand phrases from the [[!PROMISES-GUIDE]] to operate on promises at a higher level than the
+    ECMAScript spec does.
 </ul>
 
 <h2 id="acks" class="no-num">Acknowledgments</h2>
