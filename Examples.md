@@ -9,14 +9,16 @@ Many examples of using and creating streams are given in-line in the specificati
 This function uses the reading APIs to buffer the entire stream in memory and give a promise for the results, defeating the purpose of streams but educating us while doing so:
 
 ```js
-function readableStreamToArray(readable) {
+function readableStreamToArray(readableStream) {
   const chunks = [];
+  const reader = readableStream.getReader();
 
   return pump();
 
   function pump() {
-    return readable.read().then(({ value, done }) => {
+    return reader.read().then(({ value, done }) => {
       if (done) {
+        reader.releaseLock();
         return chunks;
       }
 
@@ -36,14 +38,16 @@ readableStreamToArray(myStream).then(chunks => {
 We can also write this using the [async function syntax](https://github.com/lukehoban/ecmascript-asyncawait/) proposed for ES2016:
 
 ```js
-async function readableStreamToArray(readable) {
+async function readableStreamToArray(readableStream) {
   const chunks = [];
+  const reader = readableStream.getReader();
 
   let result;
-  while (!(result = await readable.read()).done) {
+  while (!(result = await reader.read()).done) {
     chunks.push(result.value);
   }
 
+  reader.releaseLock();
   return chunks;
 }
 ```
@@ -56,13 +60,17 @@ Even if we queue up all our writes immediately, as in [the second example in the
 
 ```js
 function writeArrayToStreamWithReporting(array, writableStream) {
+  const writer = writableStream.getWriter();
   for (const chunk of array) {
-    writableStream.write(chunk)
+    writer.write(chunk)
       .then(() => console.log("Wrote " + chunk + " successfully"))
       .catch(e => console.error("Failed to write " + chunk + "; error was " + e));
   }
 
-  return writableStream.close();
+  const closed = writer.close();
+  const release = () => writer.releaseLock();
+  closed.then(release,release);
+  return closed;
 }
 
 writeArrayToStream([1, 2, 3], myStream)
@@ -90,30 +98,29 @@ Error with the stream: "Disk full"
 
 ### Paying Attention to Backpressure Signals
 
-Most writable stream examples use the writable streams internal queue to indiscriminately write to it, counting on the stream itself to handle an excessive number of writes (i.e., more than could be reasonably written to the underlying sink). In reality, the underlying sink will be communicating backpressure signals back to you through the writable stream's `state` property. When the stream's `state` property is `"writable"`, the stream is ready to accept more data—but when it is `"waiting"`, you should, if possible, avoid writing more data.
+Most writable stream examples use the writable streams internal queue to indiscriminately write to it, counting on the stream itself to handle an excessive number of writes (i.e., more than could be reasonably written to the underlying sink). In reality, the underlying sink will be communicating backpressure signals back to you through the writer object's `ready` promise. When the `ready` promise is fulfilled, the stream is ready to accept more data. When it is pending, you should, if possible, avoid writing more data.
 
 It's a little hard to come up with a realistic example where you can do something useful with this information, since most of them involve readable streams, and in that case, you should just be piping the streams together. But here's one that's only slightly contrived, where we imagine prompting the user for input via a promise-returning `prompt()` function—and disallowing the user from entering more input until the writable stream is ready to accept it.
 
 ```js
-function promptAndWrite(myStream) {
-  if (writableStream.state === "writable") {
+function promptAndWriteStream(myStream) {
+  const writer = myStream.getWriter();
+
+  return writer.ready.then(promptAndWrite);
+
+  function promptAndWrite() {
     prompt("Enter data to write to the stream").then(chunk => {
-      if (chunk !== "DONE") {
-        writableStream.write(chunk);
-        promptAndWrite();
-      } else {
-        writableStream.close()
+      if (chunk === "DONE") {
+        return writer.close()
           .then(() => console.log("Successfully closed"))
-          .catch(e => console.error("Failed to close: ", e));
+          .catch(e => console.error("Failed to close: ", e))
+          .then(() => writer.releaseLock());
       }
+      writer.write(chunk);
+      return writer.ready.then(promptAndWrite);
     });
-  } else if (writableStream.state === "waiting") {
-    console.log("Waiting for the stream to flush to the underlying sink, please hold...");
-    writableStream.ready.then(promptAndWrite);
-  } else if (writableStream.state === "errored") {
-    console.error("Error writing; this session is over!");
   }
 }
 
-promptAndWrite(myStream);
+promptAndWrite(myStream).catch(e => console.error("Error writing: ", e));
 ```
