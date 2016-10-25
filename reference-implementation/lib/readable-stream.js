@@ -202,6 +202,10 @@ class ReadableStream {
       }
 
       function shutdown(isError, error) {
+        // TODO: find a test that makes this necessary (see #557)
+        // if (shuttingDown === true) {
+        //   return;
+        // }
         shuttingDown = true;
 
         waitForCurrentWrite().then(() => {
