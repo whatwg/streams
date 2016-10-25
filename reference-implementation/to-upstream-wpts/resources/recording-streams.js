@@ -61,7 +61,9 @@ self.recordingWritableStream = (extras = {}, strategy) => {
 
       return undefined;
     },
-    close() {
+    close(...args) {
+      assert_array_equals(args, [controllerToCopyOver], 'close must always be called with the controller');
+
       stream.events.push('close');
 
       if (extras.close) {
