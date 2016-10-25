@@ -84,16 +84,13 @@ function TransformStreamCloseReadableInternal(transformStream) {
 function TransformStreamReadyPromise(transformStream) {
   assert(transformStream._readyPromise_resolve === undefined);
 
-  let readyPromise;
   if (transformStream._readableBackpressure === false) {
-    readyPromise = Promise.resolve();
-  } else {
-    readyPromise = new Promise(resolve => {
-      transformStream._readyPromise_resolve = resolve;
-    });
+    return Promise.resolve();
   }
 
-  return readyPromise;
+  return new Promise(resolve => {
+    transformStream._readyPromise_resolve = resolve;
+  });
 }
 
 function TransformStreamErrorIfNeeded(transformStream, e) {
@@ -131,10 +128,13 @@ function TransformStreamTransform(transformStream, chunk) {
   const transformPromise = PromiseInvokeOrNoop(transformStream._transformer,
                              'transform', [chunk, controller]);
 
-  return transformPromise.then(() => {
-    transformStream._transforming = false;
-  }).then(() => TransformStreamReadyPromise(transformStream),
-          e => TransformStreamErrorIfNeeded(transformStream, e));
+  return transformPromise.then(
+    () => {
+      transformStream._transforming = false;
+      // Do not fulfill until there's no backpressure.
+      return TransformStreamReadyPromise(transformStream);
+    },
+    e => TransformStreamErrorIfNeeded(transformStream, e));
 }
 
 function IsTransformStreamDefaultController(x) {
@@ -173,9 +173,7 @@ class TransformStreamSink {
     transformStream._writableController = c;
 
     // delay all sink.write() calls until there is no longer backpressure.
-    return this._startPromise.then(() => {
-      return TransformStreamReadyPromise(transformStream);
-    });
+    return this._startPromise.then(() => TransformStreamReadyPromise(transformStream));
   }
 
   write(chunk) {
@@ -237,12 +235,17 @@ class TransformStreamSource {
     // console.log('TransformStreamSource.pull()');
 
     const transformStream = this._transformStream;
+    // invariant: pull is never called when readableBackpressure is false.
+    // For the first pull call, this is ensured by the constructor setting
+    // readableBackpressure as undefined initially.
+    // Subsequent pull calls are delayed until backpressurePromise fulfills,
+    // indicating readableBackpressure was set to true.
     assert(transformStream._readableBackpressure !== false);
     assert(transformStream._backpressurePromise_resolve === undefined);
 
-    // The constructor leaves readableBackpressure as undefined initially.
-    // pull() may be called right after startPromise resolves.
-    // There won't be a readyPromise to fulfill on that first call.
+    // This is needed if there is already backpressure when transformer.start
+    // finishes, before any transform calls have happened; or when a transform
+    // call has finished but backpressure has delayed the start of the next transform.
     if (transformStream._readyPromise_resolve !== undefined) {
       transformStream._readyPromise_resolve();
       transformStream._readyPromise_resolve = undefined;
