@@ -110,6 +110,8 @@ function TransformStreamReadyPromise(transformStream) {
 }
 
 function TransformStreamSetBackpressure(transformStream, backpressure) {
+  // console.log(`TransformStreamSetBackpressure(${backpressure})`);
+
   assert(transformStream._readableBackpressure !== backpressure);
 
   if (transformStream._backpressureChangePromise !== undefined) {
