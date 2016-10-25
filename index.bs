@@ -486,8 +486,8 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 </div>
 
 <emu-alg>
-  1. If ! IsReadableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If ! IsReadableStreamLocked(*this*) is *true*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsReadableStream(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If ! IsReadableStreamLocked(*this*) is *true*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! ReadableStreamCancel(*this*, _reason_).
 </emu-alg>
 
@@ -722,7 +722,7 @@ noticable asymmetry between the two branches. [[!HTML]]
   1. Assert: Type(_cloneForBranch2_) is Boolean.
   1. Let _reader_ be ? AcquireReadableStreamDefaultReader(_stream_).
   1. Let _teeState_ be Record {[[closedOrErrored]]: *false*, [[canceled1]]: *false*, [[canceled2]]: *false*,
-     [[reason1]]: *undefined*, [[reason2]]: *undefined*, [[promise]]: a new promise}.
+     [[reason1]]: *undefined*, [[reason2]]: *undefined*, [[promise]]: <a>a new promise</a>}.
   1. Let _pull_ be a new <a>ReadableStreamTee pull function</a>.
   1. Set _pull_.[[reader]] to _reader_, _pull_.[[teeState]] to _teeState_, and _pull_.[[cloneForBranch2]] to
      _cloneForBranch2_.
@@ -740,7 +740,7 @@ noticable asymmetry between the two branches. [[!HTML]]
   1. Let _branch2Stream_ be ! Construct(`<a idl>ReadableStream</a>`, _underlyingSource2_).
   1. Set _pull_.[[branch1]] to _branch1Stream_.[[readableStreamController]].
   1. Set _pull_.[[branch2]] to _branch2Stream_.[[readableStreamController]].
-  1. Upon rejection of _reader_.[[closedPromise]] with reason _r_,
+  1. <a>Upon rejection</a> of _reader_.[[closedPromise]] with reason _r_,
     1. If _teeState_.[[closedOrErrored]] is *true*, return *undefined*.
     1. Perform ! ReadableStreamDefaultControllerError(_pull_.[[branch1]], _r_).
     1. Perform ! ReadableStreamDefaultControllerError(_pull_.[[branch2]], _r_).
@@ -788,7 +788,7 @@ called with argument <var>reason</var>, it performs the following steps:
   1. If _teeState_.[[canceled2]] is *true*,
     1. Let _compositeReason_ be ! CreateArrayFromList(« _teeState_.[[reason1]], _teeState_.[[reason2]] »).
     1. Let _cancelResult_ be ! ReadableStreamCancel(_stream_, _compositeReason_).
-    1. Resolve _teeState_.[[promise]] with _cancelResult_.
+    1. <a>Resolve</a> _teeState_.[[promise]] with _cancelResult_.
   1. Return _teeState_.[[promise]].
 </emu-alg>
 
@@ -804,7 +804,7 @@ called with argument <var>reason</var>, it performs the following steps:
   1. If _teeState_.[[canceled1]] is *true*,
     1. Let _compositeReason_ be ! CreateArrayFromList(« _teeState_.[[reason1]], _teeState_.[[reason2]] »).
     1. Let _cancelResult_ be ! ReadableStreamCancel(_stream_, _compositeReason_).
-    1. Resolve _teeState_.[[promise]] with _cancelResult_.
+    1. <a>Resolve</a> _teeState_.[[promise]] with _cancelResult_.
   1. Return _teeState_.[[promise]].
 </emu-alg>
 
@@ -834,7 +834,7 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
 <emu-alg>
   1. Assert: ! IsReadableStreamBYOBReader(_stream_.[[reader]]) is *true*.
   1. Assert: _stream_.[[state]] is `"readable"` or `"closed"`.
-  1. Let _promise_ be a new promise.
+  1. Let _promise_ be <a>a new promise</a>.
   1. Let _readIntoRequest_ be Record {[[promise]]: _promise_}.
   1. Append _readIntoRequest_ as the last element of _stream_.[[reader]].[[readIntoRequests]].
   1. Return _promise_.
@@ -846,7 +846,7 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
 <emu-alg>
   1. Assert: ! IsReadableStreamDefaultReader(_stream_.[[reader]]) is *true*.
   1. Assert: _stream_.[[state]] is `"readable"`.
-  1. Let _promise_ be a new promise.
+  1. Let _promise_ be <a>a new promise</a>.
   1. Let _readRequest_ be Record {[[promise]]: _promise_}.
   1. Append _readRequest_ as the last element of _stream_.[[reader]].[[readRequests]].
   1. Return _promise_.
@@ -857,8 +857,8 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
 
 <emu-alg>
   1. Set _stream_.[[disturbed]] to *true*.
-  1. If _stream_.[[state]] is `"closed"`, return a new promise resolved with *undefined*.
-  1. If _stream_.[[state]] is `"errored"`, return a new promise rejected with _stream_.[[storedError]].
+  1. If _stream_.[[state]] is `"closed"`, return <a>a promise resolved with</a> *undefined*.
+  1. If _stream_.[[state]] is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Perform ! ReadableStreamClose(_stream_).
   1. Let _sourceCancelPromise_ be ! _stream_.[[readableStreamController]].[[Cancel]](_reason_).
   1. Return the result of transforming _sourceCancelPromise_ by a fulfillment handler that returns *undefined*.
@@ -873,9 +873,9 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
   1. If _reader_ is *undefined*, return *undefined*.
   1. If ! IsReadableStreamDefaultReader(_reader_) is *true*,
     1. Repeat for each _readRequest_ that is an element of _reader_.[[readRequests]],
-      1. Resolve _readRequest_.[[promise]] with ! CreateIterResultObject(*undefined*, *true*).
+      1. <a>Resolve</a> _readRequest_.[[promise]] with ! CreateIterResultObject(*undefined*, *true*).
     1. Set _reader_.[[readRequests]] to an empty List.
-  1. Resolve _reader_.[[closedPromise]] with *undefined*.
+  1. <a>Resolve</a> _reader_.[[closedPromise]] with *undefined*.
   1. Return *undefined*.
 </emu-alg>
 
@@ -899,14 +899,14 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
   1. If _reader_ is *undefined*, return *undefined*.
   1. If ! IsReadableStreamDefaultReader(_reader_) is *true*,
     1. Repeat for each _readRequest_ that is an element of _reader_.[[readRequests]],
-      1. Reject _readRequest_.[[promise]] with _e_.
+      1. <a>Reject</a> _readRequest_.[[promise]] with _e_.
     1. Set _reader_.[[readRequests]] to a new empty List.
   1. Otherwise,
     1. Assert: ! IsReadableStreamBYOBReader(_reader_).
     1. Repeat for each _readIntoRequest_ that is an element of _reader_.[[readIntoRequests]],
-      1. Reject _readIntoRequest_.[[promise]] with _e_.
+      1. <a>Reject</a> _readIntoRequest_.[[promise]] with _e_.
     1. Set _reader_.[[readIntoRequests]] to a new empty List.
-  1. Reject _reader_.[[closedPromise]] with _e_.
+  1. <a>Reject</a> _reader_.[[closedPromise]] with _e_.
 </emu-alg>
 
 <h4 id="readable-stream-fulfill-read-into-request" aoid="ReadableStreamFulfillReadIntoRequest"
@@ -917,7 +917,7 @@ nothrow>ReadableStreamFulfillReadIntoRequest ( <var>stream</var>, <var>chunk</va
   1. Let _readIntoRequest_ be the first element of _reader_.[[readIntoRequests]].
   1. Remove _readIntoRequest_ from _reader_.[[readIntoRequests]], shifting all other elements downward (so that the
      second becomes the first, and so on).
-  1. Resolve _readIntoRequest_.[[promise]] with ! CreateIterResultObject(_chunk_, _done_).
+  1. <a>Resolve</a> _readIntoRequest_.[[promise]] with ! CreateIterResultObject(_chunk_, _done_).
 </emu-alg>
 
 <h4 id="readable-stream-fulfill-read-request" aoid="ReadableStreamFulfillReadRequest"
@@ -928,7 +928,7 @@ nothrow>ReadableStreamFulfillReadRequest ( <var>stream</var>, <var>chunk</var>, 
   1. Let _readRequest_ be the first element of _reader_.[[readRequests]].
   1. Remove _readRequest_ from _reader_.[[readRequests]], shifting all other elements downward (so that the second
      becomes the first, and so on).
-  1. Resolve _readRequest_.[[promise]] with ! CreateIterResultObject(_chunk_, _done_).
+  1. <a>Resolve</a> _readRequest_.[[promise]] with ! CreateIterResultObject(_chunk_, _done_).
 </emu-alg>
 
 <h4 id="readable-stream-get-num-read-into-requests" aoid="ReadableStreamGetNumReadIntoRequests"
@@ -1042,7 +1042,7 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
 </div>
 
 <emu-alg>
-  1. If ! IsReadableStreamDefaultReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsReadableStreamDefaultReader(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return *this*.[[closedPromise]].
 </emu-alg>
 
@@ -1054,8 +1054,8 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
 </div>
 
 <emu-alg>
-  1. If ! IsReadableStreamDefaultReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If *this*.[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsReadableStreamDefaultReader(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If *this*.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! ReadableStreamReaderGenericCancel(*this*, _reason_).
 </emu-alg>
 
@@ -1077,8 +1077,8 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
 </div>
 
 <emu-alg>
-  1. If ! IsReadableStreamDefaultReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If *this*.[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsReadableStreamDefaultReader(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If *this*.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! ReadableStreamDefaultReaderRead(*this*).
 </emu-alg>
 
@@ -1178,7 +1178,7 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
 </div>
 
 <emu-alg>
-  1. If ! IsReadableStreamBYOBReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsReadableStreamBYOBReader(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return *this*.[[closedPromise]].
 </emu-alg>
 
@@ -1190,15 +1190,15 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
 </div>
 
 <emu-alg>
-  1. If ! IsReadableStreamBYOBReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If *this*.[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsReadableStreamBYOBReader(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If *this*.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! ReadableStreamReaderGenericCancel(*this*, _reason_).
 </emu-alg>
 
 <h5 id="byob-reader-read" method for="ReadableStreamBYOBReader">read(<var>view</var>)</h5>
 
 <div class="note">
-  The <code>read</code> method will write read bytes into <code>view</code> and return a promise resolved with a
+  The <code>read</code> method will write read bytes into <code>view</code> and return <a>a promise resolved with</a> a
   possibly transferred buffer as described below.
 
   <ul>
@@ -1213,11 +1213,11 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
 </div>
 
 <emu-alg>
-  1. If ! IsReadableStreamBYOBReader(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If *this*.[[ownerReadableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
-  1. If Type(_view_) is not Object, return a promise rejected with a *TypeError* exception.
-  1. If _view_ does not have a [[ViewedArrayBuffer]] internal slot, return a promise rejected with a *TypeError* exception.
-  1. If _view_.[[ByteLength]] is *0*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsReadableStreamBYOBReader(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If *this*.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If Type(_view_) is not Object, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If _view_ does not have a [[ViewedArrayBuffer]] internal slot, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If _view_.[[ByteLength]] is *0*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! ReadableStreamBYOBReaderRead(*this*, _view_).
 </emu-alg>
 
@@ -1277,12 +1277,12 @@ nothrow>ReadableStreamReaderGenericInitialize ( <var>reader</var>, <var>stream</
   1. Set _reader_.[[ownerReadableStream]] to _stream_.
   1. Set _stream_.[[reader]] to _reader_.
   1. If _stream_.[[state]] is `"readable"`,
-    1. Set _reader_.[[closedPromise]] to a new promise.
+    1. Set _reader_.[[closedPromise]] to <a>a new promise</a>.
   1. Otherwise, if _stream_.[[state]] is `"closed"`,
-    1. Set _reader_.[[closedPromise]] to a new promise resolved with *undefined*.
+    1. Set _reader_.[[closedPromise]] to <a>a promise resolved with</a> *undefined*.
   1. Otherwise,
     1. Assert: _stream_.[[state]] is `"errored"`.
-    1. Set _reader_.[[closedPromise]] to a new promise rejected with _stream_.[[storedError]].
+    1. Set _reader_.[[closedPromise]] to <a>a promise rejected with</a> _stream_.[[storedError]].
 </emu-alg>
 
 <h4 id="readable-stream-reader-generic-release" aoid="ReadableStreamReaderGenericRelease"
@@ -1291,9 +1291,9 @@ nothrow>ReadableStreamReaderGenericRelease ( <var>reader</var> )</h4>
 <emu-alg>
   1. Assert: _reader_.[[ownerReadableStream]] is not *undefined*.
   1. Assert: _reader_.[[ownerReadableStream]].[[reader]] is _reader_.
-  1. If _reader_.[[ownerReadableStream]].[[state]] is `"readable"`, reject _reader_.[[closedPromise]] with a *TypeError*
+  1. If _reader_.[[ownerReadableStream]].[[state]] is `"readable"`, <a>reject</a> _reader_.[[closedPromise]] with a *TypeError*
      exception.
-  1. Otherwise, set _reader_.[[closedPromise]] to a new promise rejected with a *TypeError* exception.
+  1. Otherwise, set _reader_.[[closedPromise]] to <a>a promise rejected with</a> a *TypeError* exception.
   1. Set _reader_.[[ownerReadableStream]].[[reader]] to *undefined*.
   1. Set _reader_.[[ownerReadableStream]] to *undefined*.
 </emu-alg>
@@ -1305,7 +1305,7 @@ nothrow>ReadableStreamReaderGenericRelease ( <var>reader</var> )</h4>
   1. Let _stream_ be _reader_.[[ownerReadableStream]].
   1. Assert: _stream_ is not *undefined*.
   1. Set _stream_.[[disturbed]] to *true*.
-  1. If _stream_.[[state]] is `"errored"`, return a promise rejected with _stream_.[[storedError]].
+  1. If _stream_.[[state]] is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Return ! ReadableByteStreamControllerPullInto(_stream_.[[readableStreamController]], _view_).
 </emu-alg>
 
@@ -1316,9 +1316,9 @@ nothrow>ReadableStreamDefaultReaderRead ( <var>reader</var> )</h4>
   1. Let _stream_ be _reader_.[[ownerReadableStream]].
   1. Assert: _stream_ is not *undefined*.
   1. Set _stream_.[[disturbed]] to *true*.
-  1. If _stream_.[[state]] is `"closed"`, return a new promise resolved with ! CreateIterResultObject(*undefined*,
+  1. If _stream_.[[state]] is `"closed"`, return <a>a promise resolved with</a> ! CreateIterResultObject(*undefined*,
      *true*).
-  1. If _stream_.[[state]] is `"errored"`, return a new promise rejected with _stream_.[[storedError]].
+  1. If _stream_.[[state]] is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Assert: _stream_.[[state]] is `"readable"`.
   1. Return ! _stream_.[[readableStreamController]].[[Pull]]().
 </emu-alg>
@@ -1427,13 +1427,13 @@ ReadableStreamDefaultController(<var>stream</var>, <var>underlyingSource</var>, 
      _normalizedStrategy_.[[highWaterMark]].
   1. Let _controller_ be *this*.
   1. Let _startResult_ be ? InvokeOrNoop(_underlyingSource_, `"start"`, « *this* »).
-  1. Resolve _startResult_ as a promise:
-    1. Upon fulfillment,
+  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
+    1. <a>Upon fulfillment</a>  of _startPromise_,
       1. Set _controller_.[[started]] to *true*.
       1. Assert: _controller_.[[pulling]] is *false*.
       1. Assert: _controller_.[[pullAgain]] is *false*.
       1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
-    1. Upon rejection with reason _r_,
+    1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
       1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
 </emu-alg>
 
@@ -1515,7 +1515,7 @@ polymorphic dispatch from the readable stream implementation to either these or 
     1. Let _chunk_ be ! DequeueValue(*this*.[[queue]]).
     1. If *this*.[[closeRequested]] is *true* and *this*.[[queue]] is empty, perform ! ReadableStreamClose(_stream_).
     1. Otherwise, perform ! ReadableStreamDefaultControllerCallPullIfNeeded(*this*).
-    1. Return a promise resolved with ! CreateIterResultObject(_chunk_, *false*).
+    1. Return <a>a promise resolved with</a> ! CreateIterResultObject(_chunk_, *false*).
   1. Let _pendingPromise_ be ! ReadableStreamAddReadRequest(_stream_).
   1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(*this*).
   1. Return _pendingPromise_.
@@ -1544,12 +1544,12 @@ nothrow>ReadableStreamDefaultControllerCallPullIfNeeded ( <var>controller</var> 
   1. Assert: _controller_.[[pullAgain]] is *false*.
   1. Set _controller_.[[pulling]] to *true*.
   1. Let _pullPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSource]], `"pull"`, « _controller_ »).
-  1. Upon fulfillment of _pullPromise_,
+  1. <a>Upon fulfillment</a> of _pullPromise_,
     1. Set _controller_.[[pulling]] to *false*.
     1. If _controller_.[[pullAgain]] is *true*,
       1. Set _controller_.[[pullAgain]] to *false*.
       1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
-  1. Upon rejection of _pullPromise_ with reason _e_,
+  1. <a>Upon rejection</a> of _pullPromise_ with reason _e_,
     1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _e_).
   1. Return *undefined*.
 </emu-alg>
@@ -1781,13 +1781,13 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
   1. Set *this*.[[pendingPullIntos]] to a new empty List.
   1. Let _controller_ be *this*.
   1. Let _startResult_ be ? InvokeOrNoop(_underlyingByteSource_, `"start"`, « *this* »).
-  1. Resolve _startResult_ as a promise:
-    1. Upon fulfillment,
+  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
+    1. <a>Upon fulfillment</a>  of _startPromise_,
       1. Set _controller_.[[started]] to *true*.
       1. Assert: _controller_.[[pulling]] is *false*.
       1. Assert: _controller_.[[pullAgain]] is *false*.
       1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
-    1. Upon rejection with reason _r_,
+    1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
       1. If _stream_.[[state]] is `"readable"`, perform ! ReadableByteStreamControllerError(_controller_, _r_).
 </emu-alg>
 
@@ -1896,11 +1896,11 @@ dispatch from the readable stream implementation to either these or their counte
       1. Perform ! ReadableByteStreamControllerHandleQueueDrain(*this*).
       1. Let _view_ be ! Construct(<a idl>%Uint8Array%</a>, « _entry_.[[buffer]], _entry_.[[byteOffset]],
          _entry_.[[byteLength]] »).
-      1. Return a promise resolved with ! CreateIterResultObject(_view_, *false*).
+      1. Return <a>a promise resolved with</a> ! CreateIterResultObject(_view_, *false*).
     1. Let _autoAllocateChunkSize_ be *this*.[[autoAllocateChunkSize]].
     1. If _autoAllocateChunkSize_ is not *undefined*,
       1. Let _buffer_ be Construct(%ArrayBuffer%, « _autoAllocateChunkSize_ »).
-      1. If _buffer_ is an abrupt completion, return a promise rejected with _buffer_.[[Value]].
+      1. If _buffer_ is an abrupt completion, return <a>a promise rejected with</a> _buffer_.[[Value]].
       1. Let _pullIntoDescriptor_ be Record {[[buffer]]: _buffer_.[[Value]], [[byteOffset]]: *0*, [[byteLength]]:
          _autoAllocateChunkSize_, [[bytesFilled]]: *0*, [[elementSize]]: *1*, [[ctor]]: <a idl>%Uint8Array%</a>,
          [[readerType]]: `"default"`}.
@@ -2026,12 +2026,12 @@ nothrow>ReadableByteStreamControllerCallPullIfNeeded ( <var>controller</var> )</
   1. Assert: _controller_.[[pullAgain]] is *false*.
   1. Set _controller_.[[pulling]] to *true*.
   1. Let _pullPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingByteSource]], `"pull"`, « ‍_controller_ »).
-  1. Upon fulfillment of _pullPromise_,
+  1. <a>Upon fulfillment</a> of _pullPromise_,
     1. Set _controller_.[[pulling]] to *false*.
     1. If _controller_.[[pullAgain]] is *true*,
       1. Set _controller_.[[pullAgain]] to *false*.
       1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
-  1. Upon rejection of _pullPromise_ with reason _e_,
+  1. <a>Upon rejection</a> of _pullPromise_ with reason _e_,
     1. If _controller_.[[controlledReadableStream]].[[state]] is `"readable"`, perform
        ! ReadableByteStreamControllerError(_controller_, _e_).
   1. Return *undefined*.
@@ -2267,16 +2267,16 @@ nothrow>ReadableByteStreamControllerPullInto ( <var>controller</var>, <var>view<
     1. Return ! ReadableStreamAddReadIntoRequest(_stream_).
   1. If _stream_.[[state]] is `"closed"`,
     1. Let _emptyView_ be ! Construct(_ctor_, « _view_.[[buffer]], _view_.[[byteOffset]], *0* »).
-    1. Return a promise resolved with ! CreateIterResultObject(_emptyView_, *true*).
+    1. Return <a>a promise resolved with</a> ! CreateIterResultObject(_emptyView_, *true*).
   1. If _controller_.[[totalQueuedBytes]] > *0*,
     1. If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
       1. Let _filledView_ be ! ReadableByteStreamControllerConvertPullIntoDescriptor(_pullIntoDescriptor_).
       1. Perform ! ReadableByteStreamControllerHandleQueueDrain(_controller_).
-      1. Return a promise resolved with ! CreateIterResultObject(_filledView_, *false*).
+      1. Return <a>a promise resolved with</a> ! CreateIterResultObject(_filledView_, *false*).
     1. If _controller_.[[closeRequested]] is *true*,
       1. Let _e_ be a *TypeError* exception.
       1. Perform ! ReadableByteStreamControllerError(_controller_, _e_).
-      1. Return a promise rejected with _e_.
+      1. Return <a>a promise rejected with</a> _e_.
   1. Set _pullIntoDescriptor_.[[buffer]] to ! <a abstract-op>Transfer</a>(_pullIntoDescriptor_.[[buffer]], the current
      Realm Record).
   1. Append _pullIntoDescriptor_ as the last element of _controller_.[[pendingPullIntos]].
@@ -2612,8 +2612,8 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
 </div>
 
 <emu-alg>
-  1. If ! IsWritableStream(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If ! IsWritableStreamLocked(*this*) is *true*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsWritableStream(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If ! IsWritableStreamLocked(*this*) is *true*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! WritableStreamAbort(*this*, _reason_).
 </emu-alg>
 
@@ -2671,8 +2671,8 @@ writable stream is <a>locked to a writer</a>.
 
 <emu-alg>
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"closed"`, return a new promise resolved with *undefined*.
-  1. If _state_ is `"errored"`, return a new promise rejected with _stream_.[[storedError]].
+  1. If _state_ is `"closed"`, return <a>a promise resolved with</a> *undefined*.
+  1. If _state_ is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Assert: _state_ is `"writable"` or `"closing"`.
   1. Let _error_ be a new *TypeError* indicating that the stream has been aborted.
   1. Perform ! WritableStreamError(_stream_, _error_).
@@ -2698,7 +2698,7 @@ visible through the {{WritableStream}}'s public API.
   1. Let _writer_ be _stream_.[[writer]].
   1. Assert: ! IsWritableStreamLocked(_writer_) is *true*.
   1. Assert: _stream_.[[state]] is `"writable"`.
-  1. Let _promise_ be a new promise.
+  1. Let _promise_ be <a>a new promise</a>.
   1. Append _promise_ as the last element of _stream_.[[writeRequests]].
   1. Return _promise_.
 </emu-alg>
@@ -2710,15 +2710,15 @@ visible through the {{WritableStream}}'s public API.
   1. Let _state_ be _stream_.[[state]].
   1. Assert: _state_ is `"writable"` or `"closing"`.
   1. Repeat for each _writeRequest_ that is an element of _stream_.[[writeRequests]],
-    1. Reject _writeRequest_ with _e_.
+    1. <a>Reject</a> _writeRequest_ with _e_.
   1. Set _stream_.[[writeRequests]] to an empty List.
   1. Let _writer_ be _stream_.[[writer]].
   1. If _writer_ is not undefined,
-    1. Reject _writer_.[[closedPromise]] with _e_.
+    1. <a>Reject</a> _writer_.[[closedPromise]] with _e_.
     1. If _state_ is `"writable"` and !
-    WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, reject
+    WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, <a>reject</a>
     _writer_.[[readyPromise]] with _e_.
-    1. Otherwise, set _writer_.[[readyPromise]] to a new promise rejected with _e_.
+    1. Otherwise, set _writer_.[[readyPromise]] to <a>a promise rejected with</a> _e_.
   1. Set _stream_.[[state]] to `"errored"`.
   1. Set _stream_.[[storedError]] to _e_.
 </emu-alg>
@@ -2730,7 +2730,7 @@ visible through the {{WritableStream}}'s public API.
   1. Assert: _stream_.[[state]] is `"closing"`.
   1. Assert: _stream_.[[writer]] is not *undefined*.
   1. Set _stream_.[[state]] to `"closed"`.
-  1. Resolve _stream_.[[writer]].[[closedPromise]] with *undefined*.
+  1. <a>Resolve</a> _stream_.[[writer]].[[closedPromise]] with *undefined*.
 </emu-alg>
 
 <h4 id="writable-stream-fulfill-write-request" aoid="WritableStreamFulfillWriteRequest"
@@ -2741,7 +2741,7 @@ nothrow>WritableStreamFulfillWriteRequest ( <var>stream</var> )</h4>
   1. Let _writeRequest_ be the first element of _stream_.[[writeRequests]].
   1. Remove _writeRequest_ from _stream_.[[writeRequests]], shifting all other elements downward (so that the second
   becomes the first, and so on).
-  1. Resolve _writeRequest_ with *undefined*.
+  1. <a>Resolve</a> _writeRequest_ with *undefined*.
 </emu-alg>
 
 <h4 id="writable-stream-update-backpressure" aoid="WritableStreamUpdateBackpressure"
@@ -2752,10 +2752,10 @@ nothrow>WritableStreamUpdateBackpressure ( <var>stream</var>, <var>backpressure<
   1. Let _writer_ be _stream_.[[writer]].
   1. If _writer_ is *undefined*, return.
   1. If _backpressure_ is *true*,
-    1. Set _writer_.[[readyPromise]] to a new promise.
+    1. Set _writer_.[[readyPromise]] to <a>a new promise</a>.
   1. Otherwise,
     1. Assert: _backpressure_ is *false*.
-    1. Resolve _writer_.[[readyPromise]] with *undefined*.
+    1. <a>Resolve</a> _writer_.[[readyPromise]] with *undefined*.
 </emu-alg>
 
 <h3 id="default-writer-class" interface lt="WritableStreamDefaultWriter">Class
@@ -2826,17 +2826,17 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   1. Set _stream_.[[writer]] to *this*.
   1. Let _state_ be _stream_.[[state]].
   1. If _state_ is `"writable"` or `"closing"`,
-    1. Set _writer_.[[closedPromise]] to a new promise.
+    1. Set _writer_.[[closedPromise]] to <a>a new promise</a>.
   1. Otherwise if _state_ is `"closed"`,
-    1. Set _writer_.[[closedPromise]] to a new promise resolved with *undefined*.
+    1. Set _writer_.[[closedPromise]] to <a>a promise resolved with</a> *undefined*.
   1. Otherwise,
     1. Assert: _state_ is `"errored"`.
-    1. Set _writer_.[[closedPromise]] to a new promise rejected with _stream_.[[storedError]].
+    1. Set _writer_.[[closedPromise]] to <a>a promise rejected with</a> _stream_.[[storedError]].
   1. If _state_ is `"writable"` and !
      WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*,
-    1. Set _writer_.[[readyPromise]] to a new promise.
+    1. Set _writer_.[[readyPromise]] to <a>a new promise</a>.
   1. Otherwise,
-    1. Set _writer_.[[readyPromise]] to a new promise resolved with *undefined*.
+    1. Set _writer_.[[readyPromise]] to <a>a promise resolved with</a> *undefined*.
 </emu-alg>
 
 <h4 id="default-writer-prototype">Properties of the {{WritableStreamDefaultWriter}} Prototype</h4>
@@ -2850,7 +2850,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 </div>
 
 <emu-alg>
-  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return *this*.[[closedPromise]].
 </emu-alg>
 
@@ -2885,7 +2885,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 </div>
 
 <emu-alg>
-  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return *this*.[[readyPromise]].
 </emu-alg>
 
@@ -2897,8 +2897,8 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 </div>
 
 <emu-alg>
-  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
-  1. If *this*.[[ownerWritableStream]] is *undefined*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If *this*.[[ownerWritableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! WritableStreamDefaultWriterAbort(*this*, _reason_).
 </emu-alg>
 
@@ -2915,10 +2915,10 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 </div>
 
 <emu-alg>
-  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Let _stream_ be *this*.[[ownerWritableStream]].
-  1. If _stream_ is *undefined*, return a promise rejected with a *TypeError* exception.
-  1. If _stream_.[[state]] is `"closing"`, return a promise rejected with a *TypeError* exception.
+  1. If _stream_ is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If _stream_.[[state]] is `"closing"`, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! WritableStreamDefaultWriterClose(*this*).
 </emu-alg>
 
@@ -2952,10 +2952,10 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 </div>
 
 <emu-alg>
-  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return a promise rejected with a *TypeError* exception.
+  1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Let _stream_ be *this*.[[ownerWritableStream]].
-  1. If _stream_ is *undefined*, return a promise rejected with a *TypeError* exception.
-  1. If _stream_.[[state]] is `"closing"`, return a promise rejected with a *TypeError* exception.
+  1. If _stream_ is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If _stream_.[[state]] is `"closing"`, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! WritableStreamDefaultWriterWrite(*this*, _chunk_).
 </emu-alg>
 
@@ -2986,10 +2986,10 @@ nothrow>WritableStreamDefaultWriterClose ( <var>writer</var> )</h4>
   1. Let _stream_ be _writer_.[[ownerWritableStream]].
   1. Assert: _stream_ is not *undefined*.
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"closed"` or `"errored"`, return a promise rejected with a *TypeError* exception.
+  1. If _state_ is `"closed"` or `"errored"`, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Assert: _state_ is `"writable"`.
   1. Let _promise_ be ! WritableStreamAddWriteRequest(_stream_).
-  1. If ! WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, resolve
+  1. If ! WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, <a>resolve</a>
      _writer_.[[readyPromise]] with *undefined*.
   1. Set _stream_.[[state]] to `"closing"`.
   1. Perform ! WritableStreamDefaultControllerClose(_stream_.[[writableStreamController]]).
@@ -3016,12 +3016,12 @@ nothrow>WritableStreamDefaultWriterRelease ( <var>writer</var> )</h4>
   1. Assert: _stream_.[[writer]] is _writer_.
   1. Let _releasedError_ be a new *TypeError*.
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"writable"` or `"closing"`, reject _writer_.[[closedPromise]] with _releasedError_.
-  1. Otherwise, set _writer_.[[closedPromise]] to a new promise rejected with _releasedError_.
+  1. If _state_ is `"writable"` or `"closing"`, <a>reject</a> _writer_.[[closedPromise]] with _releasedError_.
+  1. Otherwise, set _writer_.[[closedPromise]] to <a>a promise rejected with</a> _releasedError_.
   1. If _state_ is `"writable"` and !
      WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is
-     *true*, reject _writer_.[[readyPromise]] with _releasedError_.
-  1. Otherwise, set _writer_.[[readyPromise]] to a new promise rejected with _releasedError_.
+     *true*, <a>reject</a> _writer_.[[readyPromise]] with _releasedError_.
+  1. Otherwise, set _writer_.[[readyPromise]] to <a>a promise rejected with</a> _releasedError_.
   1. Set _stream_.[[writer]] to *undefined*.
   1. Set _writer_.[[ownerReadableStream]] to *undefined*.
 </emu-alg>
@@ -3033,7 +3033,7 @@ nothrow>WritableStreamDefaultWriterWrite ( <var>writer</var>, <var>chunk</var> )
   1. Let _stream_ be _writer_.[[ownerWritableStream]].
   1. Assert: _stream_ is not *undefined*.
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"closed"` or `"errored"`, return a promise rejected with a *TypeError* exception.
+  1. If _state_ is `"closed"` or `"errored"`, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Assert: _state_ is `"writable"`.
   1. Let _promise_ be ! WritableStreamAddWriteRequest(_stream_).
   1. Perform ! WritableStreamDefaultControllerWrite(_stream_.[[writableStreamController]], _chunk_).
@@ -3131,11 +3131,11 @@ WritableStreamDefaultController(<var>stream</var>, <var>underlyingSink</var>, <v
   1. If _backpressure_ is *true*, perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
   1. Let _controller_ be *this*.
   1. Let _startResult_ be ? InvokeOrNoop(_underlyingSink_, `"start"`, « *this* »).
-  1. Resolve _startResult_ as a promise:
-    1. Upon fulfillment,
+  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
+    1. <a>Upon fulfillment</a>  of _startPromise_,
       1. Set _controller_.[[started]] to *true*.
       1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
-    1. Upon rejection with reason _r_,
+    1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
       1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
 </emu-alg>
 
@@ -3208,13 +3208,13 @@ nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk
     1. Set _chunkSize_ to Call(_controller_.[[strategySize]], *undefined*, « ‍_chunk_ »).
     1. If _chunkSize_ is an abrupt completion,
       1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_,‍ _chunkSize_.[[Value]]).
-      1. Return a promise rejected with _chunkSize_.[[Value]].
+      1. Return <a>a promise rejected with</a> _chunkSize_.[[Value]].
   1. Let _writeRecord_ be Record {[[chunk]]: _chunk_}.
   1. Let _lastBackpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
   1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_.[[queue]], _writeRecord_, _chunkSize_).
   1. If _enqueueResult_ is an abrupt completion,
     1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _enqueueResult_.[[Value]]).
-    1. Return a promise rejected with _enqueueResult_.[[Value]].
+    1. Return <a>a promise rejected with</a> _enqueueResult_.[[Value]].
   1. If _stream_.[[state]] is `"writable"`,
     1. Let _backpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
     1. If _lastBackpressure_ is not _backpressure_, perform ! WritableStreamUpdateBackpressure(_stream_,
@@ -3253,11 +3253,11 @@ nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h
   1. Perform ! DequeueValue(_controller_.[[queue]]).
   1. Assert: _controller_.[[queue]] is empty.
   1. Let _sinkClosePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"close"`, « ‍_controller_ »).
-  1. Upon fulfillment of _sinkClosePromise_,
+  1. <a>Upon fulfillment</a> of _sinkClosePromise_,
     1. If _stream_.[[state]] is not `"closing"`, return.
     1. Perform ! WritableStreamFulfillWriteRequest(_stream_).
     1. Perform ! WritableStreamFinishClose(_stream_).
-  1. Upon rejection of _sinkClosePromise_ with reason _r_,
+  1. <a>Upon rejection</a> of _sinkClosePromise_ with reason _r_,
     1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
 </emu-alg>
 
@@ -3268,7 +3268,7 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
   1. Set _controller_.[[writing]] to *true*.
   1. Let _sinkWritePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"write"`, « ‍_chunk_,
   _controller_ »).
-  1. Upon fulfillment of _sinkWritePromise_,
+  1. <a>Upon fulfillment</a> of _sinkWritePromise_,
     1. Let _stream_ be _controller_.[[controlledWritableStream]].
     1. Let _state_ be _stream_.[[state]].
     1. If _state_ is `"errored"` or `"closed"`, return.
@@ -3281,7 +3281,7 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
       1. If _lastBackpressure_ is not _backpressure_, perform !
          WritableStreamUpdateBackpressure(_controller_.[[controlledWritableStream]], _backpressure_).
     1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
-  1. Upon rejection of _sinkWritePromise_ with reason _r_,
+  1. <a>Upon rejection</a> of _sinkWritePromise_ with reason _r_,
     1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
 </emu-alg>
 
@@ -3551,12 +3551,12 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Assert: _P1_ is a valid property key.
   1. Assert: _P2_ is a valid property key.
   1. Let _method_ be GetV(_O_, _P1_).
-  1. If _method_ is an abrupt completion, return a new promise rejected with _method_.[[Value]].
+  1. If _method_ is an abrupt completion, return <a>a promise rejected with</a> _method_.[[Value]].
   1. Let _method_ be _method_.[[Value]].
   1. If _method_ is *undefined*, return ! PromiseInvokeOrNoop(_O_, _P2_, _args2_).
   1. Let _returnValue_ be Call(_method_, _O_, _args1_).
-  1. If _returnValue_ is an abrupt completion, return a new promise rejected with _returnValue_.[[Value]].
-  1. Otherwise, return a new promise resolved with _returnValue_.[[Value]].
+  1. If _returnValue_ is an abrupt completion, return <a>a promise rejected with</a> _returnValue_.[[Value]].
+  1. Otherwise, return <a>a promise resolved with</a> _returnValue_.[[Value]].
 </emu-alg>
 
 <h4 id="promise-invoke-or-noop" aoid="PromiseInvokeOrNoop" nothrow>PromiseInvokeOrNoop ( <var>O</var>, <var>P</var>,
@@ -3572,12 +3572,12 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Assert: _P_ is a valid property key.
   1. If _args_ was not passed, let _args_ be a new empty List.
   1. Let _method_ be GetV(_O_, _P_).
-  1. If _method_ is an abrupt completion, return a new promise rejected with _method_.[[Value]].
+  1. If _method_ is an abrupt completion, return <a>a promise rejected with</a> _method_.[[Value]].
   1. Let _method_ be _method_.[[Value]].
-  1. If _method_ is *undefined*, return a new promise resolved with *undefined*.
+  1. If _method_ is *undefined*, return <a>a promise resolved with</a> *undefined*.
   1. Let _returnValue_ be Call(_method_, _O_, _args_).
-  1. If _returnValue_ is an abrupt completion, return a new promise rejected with _returnValue_.[[Value]].
-  1. Otherwise, return a new promise resolved with _returnValue_.[[Value]].
+  1. If _returnValue_ is an abrupt completion, return <a>a promise rejected with</a> _returnValue_.[[Value]].
+  1. Otherwise, return <a>a promise resolved with</a> _returnValue_.[[Value]].
 </emu-alg>
 
 <h4 id="validate-and-normalize-high-water-mark" aoid="ValidateAndNormalizeHighWaterMark"
@@ -4073,8 +4073,8 @@ itself will evolve in these ways.
     procedure was performed before the algorithm starts.
   <li> We similarly use the default argument notation <code>= {}</code> in a couple of cases.
   <li> We use "<emu-val>this</emu-val>" instead of "<emu-val>this</emu-val> value".
-  <li> We use <a href="https://w3ctag.github.io/promises-guide/#shorthand-phrases">the shorthand phrases from the W3C
-    TAG promises guide</a> to operate on promises at a higher level than the ECMAScript spec does.
+  <li> We use the shorthand phrases from the [[!PROMISES-GUIDE]] to operate on promises at a higher level than the
+    ECMAScript spec does.
 </ul>
 
 <h2 id="acks" class="no-num">Acknowledgments</h2>
