@@ -211,7 +211,7 @@ For readable streams, an underlying source can use this desired size as a backpr
 generation so as to try to keep the desired size above or at zero. For writable streams, a producer can behave
 similarly, avoiding writes that would cause the desired size to go negative.
 
-<div class="example">
+<div class="example" id="example-simple-queuing-strategy">
   A simple example of a queuing strategy would be one that assigns a size of one to each chunk, and has a high water
   mark of three. This would mean that up to three chunks could be enqueued in a readable stream, or three chunks
   written to a writable stream, before the streams are considered to be applying backpressure.
@@ -246,7 +246,7 @@ copies.
 
 <h3 id="rs-intro">Using Readable Streams</h3>
 
-<div class="example">
+<div class="example" id="example-basic-pipe-to">
   The simplest way to consume a readable stream is to simply <a lt="piping">pipe</a> it to a <a>writable stream</a>.
   This ensures that <a>backpressure</a> is respected, and any errors (either writing or reading) are propagated through
   the chain:
@@ -258,7 +258,7 @@ copies.
   </code></pre>
 </div>
 
-<div class="example">
+<div class="example" id="example-pipe-as-chunks-receiver">
   If you simply want to be alerted of each new chunk from a readable stream, you can <a lt="piping">pipe</a> it to a
   new <a>writable stream</a> that you custom-create for that purpose:
 
@@ -280,7 +280,7 @@ copies.
   stream.
 </div>
 
-<div class="example">
+<div class="example" id="example-manual-read">
   Although readable streams will usually be used by piping them to a writable stream, you can also read them directly
   by acquiring a <a lt="readable stream reader">reader</a> and using its <code>read()</code> method to get successive
   chunks. For example, this code logs the next <a>chunk</a> in the stream, if available:
@@ -304,7 +304,7 @@ copies.
   on streams, beyond the provided ones of <a>piping</a> and <a lt="tee a readable stream">teeing</a>.
 </div>
 
-<div class="example">
+<div class="example" id="example-manual-read-bytes">
   The above example showed using the readable stream's <a>default reader</a>. If the stream is a <a>readable byte
   stream</a>, you can also acquire a <a>BYOB reader</a> for it, which allows more precise control over buffer
   allocation in order to avoid copies. For example, this code reads the first 1024 bytes from the stream into a single
@@ -523,7 +523,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   1. Throw a *RangeError* exception.
 </emu-alg>
 
-<div class="example">
+<div class="example" id="example-read-all-chunks">
   An example of an abstraction that might benefit from using a reader is a function like the following, which is
   designed to read an entire readable stream into memory as an array of <a>chunks</a>.
 
@@ -573,7 +573,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   1. Return _readable_.
 </emu-alg>
 
-<div class="example">
+<div class="example" id="example-pipe-chain">
   A typical example of constructing <a>pipe chain</a> using {{ReadableStream/pipeThrough(transform, options)}} would
   look like
 
@@ -631,7 +631,7 @@ href="https://github.com/whatwg/streams/issues/97">#97</a> for more information.
   1. Return ! CreateArrayFromList(_branches_).
 </emu-alg>
 
-<div class="example">
+<div class="example" id="example-piping">
   Teeing a stream is most useful when you wish to let two independent consumers read from the stream in parallel,
   perhaps even at different speeds. For example, given a writable stream <code>cacheEntry</code> representing an
   on-disk file, and another writable stream <code>httpRequestBody</code> representing an upload to a remote server,
@@ -2398,7 +2398,7 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
 
 <h3 id="ws-intro">Using Writable Streams</h3>
 
-<div class="example">
+<div class="example" id="example-basic-pipe-to-2">
   The usual way to write to a writable stream is to simply <a lt="piping">pipe</a> a <a>readable stream</a> to it.
   This ensures that <a>backpressure</a> is respected, so that if the writable stream's <a>underlying sink</a> is not
   able to accept data as fast as the readable stream can produce it, the readable stream is informed of this and has a
@@ -2411,7 +2411,7 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
   </code></pre>
 </div>
 
-<div class="example">
+<div class="example" id="example-manual-write-batch">
   You can also write directly to writable streams by acquiring a <a lt="writable stream writer">writer</a> and using its
   {{WritableStreamDefaultWriter/write()}} and {{WritableStreamDefaultWriter/close()}} methods. Since writable streams
   queue any incoming writes, and take care internally to forward them to the <a>underlying sink</a> in sequence, you can
@@ -2431,7 +2431,7 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
   </code></pre>
 </div>
 
-<div class="example">
+<div class="example" id="example-manual-write-single">
   In the previous example we only paid attention to the success or failure of the entire stream, by looking at the
   promise returned by its {{WritableStreamDefaultWriter/close()}} method. That promise (which can also be accessed using
   the {{WritableStreamDefaultWriter/closed}} getter) will reject if anything goes wrong with the stream—initializing it,
@@ -2452,7 +2452,7 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
   chunk has been flushed to disk.
 </div>
 
-<div class="example">
+<div class="example" id="example-manual-write-with-backpressure">
   The {{WritableStreamDefaultWriter/desiredSize}} and {{WritableStreamDefaultWriter/ready}} properties of <a>writable
   stream writers</a> allow <a>producers</a> to more precisely respond to flow control signals from the stream, to keep
   memory usage below the stream's specified <a>high water mark</a>. The following example writes an infinite sequence of
@@ -3318,7 +3318,7 @@ A common <a>queuing strategy</a> when dealing with bytes is to wait until the ac
 properties of the incoming <a>chunks</a> reaches a specified high-water mark. As such, this is provided as a built-in
 <a>queuing strategy</a> that can be used when constructing streams.
 
-<div class="example">
+<div class="example" id="example-blqs">
   When creating a <a>readable stream</a> or <a>writable stream</a>, you can supply a byte-length queuing strategy
   directly:
 
@@ -3394,7 +3394,7 @@ A common <a>queuing strategy</a> when dealing with streams of generic objects is
 that have been accumulated so far, waiting until this number reaches a specified high-water mark. As such, this
 strategy is also provided out of the box.
 
-<div class="example">
+<div class="example" id="example-cqs">
   When creating a <a>readable stream</a> or <a>writable stream</a>, you can supply a count queuing strategy directly:
 
   <pre><code class="lang-javascript">
