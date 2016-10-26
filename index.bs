@@ -2695,8 +2695,7 @@ visible through the {{WritableStream}}'s public API.
 <var>stream</var> )</h4>
 
 <emu-alg>
-  1. Let _writer_ be _stream_.[[writer]].
-  1. Assert: ! IsWritableStreamLocked(_writer_) is *true*.
+  1. Assert: ! IsWritableStreamLocked(_stream_) is *true*.
   1. Assert: _stream_.[[state]] is `"writable"`.
   1. Let _promise_ be <a>a new promise</a>.
   1. Append _promise_ as the last element of _stream_.[[writeRequests]].
