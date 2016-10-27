@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('assert');
 const { InvokeOrNoop, PromiseInvokeOrNoop, PromiseInvokeOrFallbackOrNoop, ValidateAndNormalizeQueuingStrategy,
-        typeIsObject } = require('./helpers.js');
+        ValidateMethodsAreFunctions, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } = require('./queue-with-sizes.js');
 
@@ -19,6 +19,8 @@ class WritableStream {
     // This queue is placed here instead of the writer class in order to allow for passing a writer to the next data
     // producer without waiting for the queued writes to finish.
     this._writeRequests = [];
+
+    ValidateMethodsAreFunctions(underlyingSink, ['start', 'write', 'close']);
 
     const type = underlyingSink.type;
 

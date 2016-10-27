@@ -1,7 +1,8 @@
 'use strict';
 const assert = require('assert');
 const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, PromiseInvokeOrNoop,
-        SameRealmTransfer, ValidateAndNormalizeQueuingStrategy, ValidateAndNormalizeHighWaterMark } =
+        SameRealmTransfer, ValidateAndNormalizeQueuingStrategy, ValidateAndNormalizeHighWaterMark,
+        ValidateMethodsAreFunctions } =
       require('./helpers.js');
 const { createArrayFromList, createDataProperty, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
@@ -23,6 +24,9 @@ class ReadableStream {
     // Initialize to undefined first because the constructor of the controller checks this
     // variable to validate the caller.
     this._readableStreamController = undefined;
+
+    ValidateMethodsAreFunctions(underlyingSource, ['start', 'pull', 'cancel']);
+
     const type = underlyingSource.type;
     const typeString = String(type);
     if (typeString === 'bytes') {

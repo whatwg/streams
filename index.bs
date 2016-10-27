@@ -451,6 +451,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   1. Set *this*.[[reader]] and *this*.[[storedError]] to *undefined*.
   1. Set *this*.[[disturbed]] to *false*.
   1. Set *this*.[[readableStreamController]] to *undefined*.
+  1. Perform ? ValidateMethodsAreFunctions(_underlyingSource_, « `"start"`, `"pull"`, `"cancel"` »).
   1. Let _type_ be ? GetV(_underlyingSource_, `"type"`).
   1. Let _typeString_ be ? ToString(_type_).
   1. If _typeString_ is `"bytes"`,
@@ -2583,6 +2584,7 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
   1. Set *this*.[[state]] to `"writable"`.
   1. Set *this*.[[storedError]], *this*.[[writer]], and *this*.[[writableStreamController]] to *undefined*.
   1. Set *this*.[[writeRequests]] to a new empty List.
+  1. Perform ? ValidateMethodsAreFunctions(_underlyingSink_, « `"start"`, `"write"`, `"abort"` »).
   1. Let _type_ be ? GetV(_underlyingSink_, `"type"`).
   1. If _type_ is not *undefined*, throw a *RangeError* exception. <p class="note">This is to allow us to add new
      potential types in the future, without backward-compatibility concerns.</p>
@@ -3590,6 +3592,16 @@ throws>ValidateAndNormalizeQueuingStrategy ( <var>size</var>, <var>highWaterMark
   1. If _size_ is not *undefined* and ! IsCallable(_size_) is *false*, throw a *TypeError* exception.
   1. Let _highWaterMark_ be ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
   1. Return Record {[[size]]: _size_, [[highWaterMark]]: _highWaterMark_}.
+</emu-alg>
+
+<h4 id="validate-methods-are-functions" aoid="ValidateMethodsAreFunctions"
+throws>ValidateMethodsAreFunctions ( <var>x</var>, <var>methods</var> )</h4>
+
+<emu-alg>
+  1. Repeat for each _method_ that is an element of _methods_,
+    1. Let _fun_ be ? GetV(_x_, _method_).
+    1. If _fun_ is not *undefined* and ! IsCallable(_fun_) is *false*, throw a *TypeError* exception.
+  1. Return *undefined*.
 </emu-alg>
 
 <h2 id="globals">Global Properties</h2>
