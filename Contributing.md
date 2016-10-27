@@ -12,7 +12,7 @@ Use "let" for introducing new local variables. Use "set" for updating existing v
 
 Mark up definitions [appropriately](https://github.com/tabatkins/bikeshed/blob/master/docs/definitions-autolinks.md#definitions). This is mostly applicable when defining new classes or methods; follow the existing examples in the spec.
 
-Mark up abstract operations with `throw` or `nothrow` attributes in their heading tags, according to whether or not they can ever return an abrupt completion.
+Mark up abstract operations with `throws` or `nothrow` attributes in their heading tags, according to whether or not they can ever return an abrupt completion.
 
 Use cross-reference [autolinking](https://github.com/tabatkins/bikeshed/blob/master/docs/definitions-autolinks.md#autolinking) liberally. This generally amounts to writing references to "definitions" as `<a>term</a>`, and writing references to classes or methods as `{{ClassName}}` or `{{ClassName/methodName()}}`.
 
