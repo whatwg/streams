@@ -2,7 +2,7 @@
 
 The streams standard provides APIs for creating, composing, and consuming streams of data. These streams are designed to map efficiently to low-level I/O primitives, and allow easy composition with built-in backpressure and queuing.
 
-The main spec is available at https://streams.spec.whatwg.org/, generated from the `index.bs` file. We are also working on a potential extension in TeeStream.md.
+The main spec is available at https://streams.spec.whatwg.org/, generated from the `index.bs` file.
 
 Snapshots of any given commit or branch are available at specially-crafted URLs:
 
