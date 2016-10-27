@@ -86,7 +86,7 @@ exports.PromiseInvokeOrFallback = (O, P1, args1, F, args2) => {
   }
 
   if (method === undefined) {
-    return F(args2);
+    return F(...args2);
   }
 
   try {
