@@ -4,18 +4,10 @@ const test = require('tape-catch');
 const readableStreamToArray = require('./utils/readable-stream-to-array.js');
 
 
-test('Pass-through sync TransformStream: can read from readable what is put into writable', t => {
+test('identity TransformStream: can read from readable what is put into writable', t => {
   t.plan(3);
 
-  let c;
-  const ts = new TransformStream({
-    start(controller) {
-      c = controller;
-    },
-    transform(chunk) {
-      c.enqueue(chunk);
-    }
-  });
+  const ts = new TransformStream();
 
   const writer = ts.writable.getWriter();
   writer.write('a');
