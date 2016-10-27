@@ -117,3 +117,13 @@ exports.ValidateAndNormalizeQueuingStrategy = (size, highWaterMark) => {
 
   return { size, highWaterMark };
 };
+
+exports.ValidateMethodsAreFunctions = (x, methods) => {
+  for (const method of methods) {
+    const fun = x[method];
+    if (fun !== undefined && typeof fun !== 'function') {
+      throw new TypeError(`${method} must be a function or undefined`);
+    }
+  }
+  return undefined;
+};

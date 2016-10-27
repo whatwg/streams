@@ -3592,6 +3592,16 @@ throws>ValidateAndNormalizeQueuingStrategy ( <var>size</var>, <var>highWaterMark
   1. Return Record {[[size]]: _size_, [[highWaterMark]]: _highWaterMark_}.
 </emu-alg>
 
+<h4 id="validate-methods-are-functions" aoid="ValidateMethodsAreFunctions"
+throws>ValidateMethodsAreFunctions ( <var>x</var>, <var>methods</var> )</h4>
+
+<emu-alg>
+  1. Repeat for each _method_ that is an element of _methods_,
+    1. Let _fun_ be ? GetV(_x_, _method_).
+    1. If _fun_ is not *undefined* and ! IsCallable(_fun_) is *false*, throw a *TypeError* exception.
+  1. Return *undefined*.
+</emu-alg>
+
 <h2 id="globals">Global Properties</h2>
 
 The following constructors must be exposed on the global object as data properties of the same name:
