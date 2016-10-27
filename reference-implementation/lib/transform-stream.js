@@ -21,6 +21,8 @@ function TransformStreamCloseReadable(transformStream) {
 }
 
 function TransformStreamEnqueueToReadable(transformStream, chunk) {
+  // console.log('TransformStreamEnqueueToReadable()');
+
   if (transformStream._errored === true) {
     throw new TypeError('TransformStream is already errored');
   }
@@ -45,10 +47,16 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
     throw transformStream._storedError;
   }
 
-  const backpressure = controller.desiredSize <= 0;
+  const maybeBackpressure = controller.desiredSize <= 0;
 
-  if (transformStream._readableBackpressure !== backpressure) {
-    TransformStreamSetBackpressure(transformStream, backpressure);
+  if (maybeBackpressure === true && transformStream._backpressure === false) {
+    // This allows pull() again. When desiredSize is 0, it's possible that a pull() is made immediately (but
+    // asynchronously) after this because of pending read()s and fix _backpressure back to false.
+    //
+    // We don't have to worry about that such a pull() may happen synchronously to the enqueue(), and therefore is not
+    // queued at this point. It's guaranteed that there is pending start() or the last pull() kept pending which
+    // prevent such a synchronous pull().
+    TransformStreamSetBackpressure(transformStream, true);
   }
 }
 
@@ -97,14 +105,17 @@ function TransformStreamErrorInternal(transformStream, e) {
   }
 }
 
-function TransformStreamReadyPromise(transformStream) {
-  assert(transformStream._backpressureChangePromise !== undefined);
+// Used for preventing the next write() call on TransformStreamSink until there
+// is no longer backpressure.
+function TransformStreamBackpressureGonePromise(transformStream) {
+  assert(transformStream._backpressureChangePromise !== undefined,
+         '_backpressureChangePromise should have been initialized');
 
-  if (transformStream._readableBackpressure === false) {
+  if (transformStream._backpressure === false) {
     return Promise.resolve();
   }
 
-  transformStream._backpressureChangePromise.then(backpressure => assert(backpressure === false));
+  assert(transformStream._backpressure === true, '_backpressure should have been initialized');
 
   return transformStream._backpressureChangePromise;
 }
@@ -112,9 +123,12 @@ function TransformStreamReadyPromise(transformStream) {
 function TransformStreamSetBackpressure(transformStream, backpressure) {
   // console.log(`TransformStreamSetBackpressure(${backpressure})`);
 
-  assert(transformStream._readableBackpressure !== backpressure);
+  // Passes also when called for initialization.
+  assert(transformStream._backpressure !== backpressure,
+         'TransformStreamSetBackpressure() should be called only when backpressure is changed');
 
   if (transformStream._backpressureChangePromise !== undefined) {
+    // The fulfillment value is just for the assertion.
     transformStream._backpressureChangePromise_resolve(backpressure);
   }
 
@@ -122,7 +136,12 @@ function TransformStreamSetBackpressure(transformStream, backpressure) {
     transformStream._backpressureChangePromise_resolve = resolve;
   });
 
-  transformStream._readableBackpressure = backpressure;
+  transformStream._backpressureChangePromise.then(resolution => {
+    assert(resolution !== backpressure,
+           '_backpressureChangePromise should be fulfilled only when backpressure is changed');
+  });
+
+  transformStream._backpressure = backpressure;
 }
 
 function TransformStreamTransform(transformStream, chunk) {
@@ -130,7 +149,7 @@ function TransformStreamTransform(transformStream, chunk) {
 
   assert(transformStream._errored === false);
   assert(transformStream._transforming === false);
-  assert(transformStream._readableBackpressure === false);
+  assert(transformStream._backpressure === false);
 
   transformStream._transforming = true;
 
@@ -141,8 +160,8 @@ function TransformStreamTransform(transformStream, chunk) {
   return transformPromise.then(
     () => {
       transformStream._transforming = false;
-      // Do not fulfill until there's no backpressure.
-      return TransformStreamReadyPromise(transformStream);
+
+      return TransformStreamBackpressureGonePromise(transformStream);
     },
     e => TransformStreamErrorIfNeeded(transformStream, e));
 }
@@ -182,8 +201,7 @@ class TransformStreamSink {
 
     transformStream._writableController = c;
 
-    // delay all sink.write() calls until there is no longer backpressure.
-    return this._startPromise.then(() => TransformStreamReadyPromise(transformStream));
+    return this._startPromise;
   }
 
   write(chunk) {
@@ -238,13 +256,17 @@ class TransformStreamSource {
 
     transformStream._readableController = c;
 
-    // delay the first source.pull call until there is backpressure
     return this._startPromise.then(() => {
-      if (transformStream._readableBackpressure === true) {
-        return true;
+      // Prevent the first pull() call until there is backpressure.
+
+      assert(transformStream._backpressureChangePromise !== undefined,
+             '_backpressureChangePromise should have been initialized');
+
+      if (transformStream._backpressure === true) {
+        return;
       }
 
-      transformStream._backpressureChangePromise.then(backpressure => assert(backpressure === true));
+      assert(transformStream._backpressure === false, '_backpressure should have been initialized');
 
       return transformStream._backpressureChangePromise;
     });
@@ -254,15 +276,16 @@ class TransformStreamSource {
     // console.log('TransformStreamSource.pull()');
 
     const transformStream = this._transformStream;
-    // invariant: pull is never called while readableBackpressure is false.
-    // Enforced by the promises returned by source.start and source.pull.
-    assert(transformStream._readableBackpressure === true);
-    assert(transformStream._backpressureChangePromise !== undefined);
+
+    // Invariant. Enforced by the promises returned by start() and pull().
+    assert(transformStream._backpressure === true, 'pull() is never called while _backpressure is false');
+
+    assert(transformStream._backpressureChangePromise !== undefined,
+           '_backpressureChangePromise should have been initialized');
 
     TransformStreamSetBackpressure(transformStream, false);
 
-    transformStream._backpressureChangePromise.then(backpressure => assert(backpressure === true));
-
+    // Prevent the next pull() call until there is backpressure.
     return transformStream._backpressureChangePromise;
   }
 
@@ -348,7 +371,7 @@ module.exports = class TransformStream {
     this._writableDone = false;
     this._readableClosed = false;
 
-    this._readableBackpressure = undefined;
+    this._backpressure = undefined;
     this._backpressureChangePromise = undefined;
     this._backpressureChangePromise_resolve = undefined;
 
@@ -363,7 +386,9 @@ module.exports = class TransformStream {
 
     this._readable = new ReadableStream(source, transformer.readableStrategy);
 
-    const sink = new TransformStreamSink(this, startPromise);
+    const sink = new TransformStreamSink(this, startPromise.then(() => {
+      return TransformStreamBackpressureGonePromise(this);
+    }));
 
     this._writable = new WritableStream(sink, transformer.writableStrategy);
 
@@ -371,6 +396,8 @@ module.exports = class TransformStream {
     assert(this._readableController !== undefined);
 
     const desiredSize = this._readableController.desiredSize;
+    // Tentatively set _backpressure based on desiredSize. When desiredSize is 0, it's possible that a pull() is made
+    // immediately after this because of pending read()s and fix _backpressure back to false.
     TransformStreamSetBackpressure(this, desiredSize <= 0);
 
     const transformStream = this;
