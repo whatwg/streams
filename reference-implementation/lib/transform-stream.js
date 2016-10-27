@@ -263,7 +263,7 @@ class TransformStreamSource {
              '_backpressureChangePromise should have been initialized');
 
       if (transformStream._backpressure === true) {
-        return;
+        return Promise.resolve();
       }
 
       assert(transformStream._backpressure === false, '_backpressure should have been initialized');
