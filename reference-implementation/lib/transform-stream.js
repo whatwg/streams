@@ -278,7 +278,7 @@ class TransformStreamSource {
     const transformStream = this._transformStream;
 
     // Invariant. Enforced by the promises returned by start() and pull().
-    assert(transformStream._backpressure === true, 'pull() is never called while _backpressure is false');
+    assert(transformStream._backpressure === true, 'pull() should be never called while _backpressure is false');
 
     assert(transformStream._backpressureChangePromise !== undefined,
            '_backpressureChangePromise should have been initialized');
