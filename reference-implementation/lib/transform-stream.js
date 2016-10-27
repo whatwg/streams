@@ -125,6 +125,11 @@ function TransformStreamSetBackpressure(transformStream, backpressure) {
   transformStream._readableBackpressure = backpressure;
 }
 
+function TransformStreamDefaultTransform(chunk, transformStreamController) {
+  transformStreamController.enqueue(chunk);
+  return Promise.resolve();
+}
+
 function TransformStreamTransform(transformStream, chunk) {
   // console.log('TransformStreamTransform()');
 
@@ -134,9 +139,14 @@ function TransformStreamTransform(transformStream, chunk) {
 
   transformStream._transforming = true;
 
+  const transformer = transformStream._transformer;
   const controller = transformStream._transformStreamController;
-  const transformPromise = PromiseInvokeOrNoop(transformStream._transformer,
-                             'transform', [chunk, controller]);
+  let transformPromise;
+  if (transformer.transform === undefined) {
+    transformPromise = TransformStreamDefaultTransform(chunk, controller);
+  } else {
+    transformPromise = PromiseInvokeOrNoop(transformer, 'transform', [chunk, controller]);
+  }
 
   return transformPromise.then(
     () => {
@@ -324,18 +334,9 @@ class TransformStreamDefaultController {
 }
 
 module.exports = class TransformStream {
-  constructor(transformer) {
-    if (transformer.start !== undefined && typeof transformer.start !== 'function') {
-      throw new TypeError('start must be a function or undefined');
-    }
-    if (typeof transformer.transform !== 'function') {
-      throw new TypeError('transform must be a function');
-    }
-    if (transformer.flush !== undefined && typeof transformer.flush !== 'function') {
-      throw new TypeError('flush must be a function or undefined');
-    }
-
+  constructor(transformer = {}) {
     this._transformer = transformer;
+    const { readableStrategy, writableStrategy } = transformer;
 
     this._transforming = false;
     this._errored = false;
@@ -361,11 +362,11 @@ module.exports = class TransformStream {
 
     const source = new TransformStreamSource(this, startPromise);
 
-    this._readable = new ReadableStream(source, transformer.readableStrategy);
+    this._readable = new ReadableStream(source, readableStrategy);
 
     const sink = new TransformStreamSink(this, startPromise);
 
-    this._writable = new WritableStream(sink, transformer.writableStrategy);
+    this._writable = new WritableStream(sink, writableStrategy);
 
     assert(this._writableController !== undefined);
     assert(this._readableController !== undefined);
