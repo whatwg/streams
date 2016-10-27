@@ -203,3 +203,19 @@ test(() => {
     assert_array_equals(ws.events, ['close']);
   });
 }, 'WritableStream should call underlying sink\'s close if no abort is supplied');
+
+promise_test(() => {
+  let thenCalled = false;
+  const ws = new WritableStream({
+    abort() {
+      return {
+        then(resolve) {
+          thenCalled = true;
+          resolve();
+        }
+      };
+    }
+  });
+  const writer = ws.getWriter();
+  return writer.abort().then(() => assert_true(thenCalled, 'then() should be called'));
+}, 'returning a thenable from abort() should work');
