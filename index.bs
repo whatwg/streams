@@ -631,7 +631,7 @@ href="https://github.com/whatwg/streams/issues/97">#97</a> for more information.
   1. Return ! CreateArrayFromList(_branches_).
 </emu-alg>
 
-<div class="example" id="example-piping">
+<div class="example" id="example-tee-and-pipe">
   Teeing a stream is most useful when you wish to let two independent consumers read from the stream in parallel,
   perhaps even at different speeds. For example, given a writable stream <code>cacheEntry</code> representing an
   on-disk file, and another writable stream <code>httpRequestBody</code> representing an upload to a remote server,
@@ -2431,7 +2431,7 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
   </code></pre>
 </div>
 
-<div class="example" id="example-manual-write-single">
+<div class="example" id="example-manual-write-with-error-handling">
   In the previous example we only paid attention to the success or failure of the entire stream, by looking at the
   promise returned by its {{WritableStreamDefaultWriter/close()}} method. That promise (which can also be accessed using
   the {{WritableStreamDefaultWriter/closed}} getter) will reject if anything goes wrong with the stream—initializing it,
