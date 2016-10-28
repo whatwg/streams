@@ -200,9 +200,7 @@ class TransformStreamSink {
 
     transformStream._writableController = c;
 
-    return this._startPromise.then(() => {
-      return TransformStreamReadableReadyPromise(transformStream);
-    });
+    return this._startPromise.then(() => TransformStreamReadableReadyPromise(transformStream));
   }
 
   write(chunk) {
@@ -395,7 +393,7 @@ module.exports = class TransformStream {
     assert(this._readableController !== undefined);
 
     const desiredSize = this._readableController.desiredSize;
-    // Set _backpressure based on desiredSize. As there is no read() at this point, so we can just interpret
+    // Set _backpressure based on desiredSize. As there is no read() at this point, we can just interpret
     // desiredSize being non-positive as backpressure.
     TransformStreamSetBackpressure(this, desiredSize <= 0);
 
