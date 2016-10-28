@@ -4,9 +4,9 @@ Drawing upon the JavaScript community's extensive experience with streaming prim
 
 ## Background Reading
 
-The most clear and insightful commentary on a streams API has so far been produced by Isaac Schlueter, lead Node.js maintainer. In a series of posts on the public-webapps list, he outlined his thoughts, first [on the general concepts and requirements of a streams API](http://lists.w3.org/Archives/Public/public-webapps/2013JulSep/0275.html), and second [on potential specific API details and considerations](http://lists.w3.org/Archives/Public/public-webapps/2013JulSep/0355.html). This document leans heavily on his conceptual analysis.
+The most clear and insightful commentary on a streams API has so far been produced by Isaac Schlueter, lead Node.js maintainer. In a series of posts on the public-webapps list, he outlined his thoughts, first [on the general concepts and requirements of a streams API](https://lists.w3.org/Archives/Public/public-webapps/2013JulSep/0275.html), and second [on potential specific API details and considerations](https://lists.w3.org/Archives/Public/public-webapps/2013JulSep/0355.html). This document leans heavily on his conceptual analysis.
 
-To understand the importance of backpressure, watch [Thorsten Lorenz's LXJS 2013 talk](https://www.youtube.com/watch?v=9llfAByho98) and perhaps play with his [stream-viz](http://thlorenz.github.io/stream-viz/) demo.
+To understand the importance of backpressure, watch [Thorsten Lorenz's LXJS 2013 talk](https://www.youtube.com/watch?v=9llfAByho98) and perhaps play with his [stream-viz](https://thlorenz.github.io/stream-viz/) demo.
 
 ## Creating Readable Streams
 
@@ -73,7 +73,7 @@ The primary way of consuming streams is to pipe them to each other. This is the 
 fs.createReadStream("source.txt")
     .pipeTo(fs.createWriteStream("dest.txt"));
 
-http.get("http://example.com")
+https.get("https://example.com")
     .pipeTo(fs.createWriteStream("dest.txt"));
 ```
 
@@ -90,7 +90,7 @@ fs.createReadStream("index.html")
     .pipeThrough(zlib.createGzipCompressor(options))
     .pipeTo(httpServerResponse);
 
-http.get("http://example.com/video.mp4")
+https.get("https://example.com/video.mp4")
     .pipeThrough(videoProcessingWebWorker)
     .pipeTo(document.query("video"));
 
