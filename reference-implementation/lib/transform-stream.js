@@ -50,12 +50,12 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
   const maybeBackpressure = controller.desiredSize <= 0;
 
   if (maybeBackpressure === true && transformStream._backpressure === false) {
-    // This allows pull() again. When desiredSize is 0, it's possible that a pull() is made immediately (but
-    // asynchronously) after this because of pending read()s and fix _backpressure back to false.
+    // This allows pull() again. When desiredSize is 0, it's possible that a pull() will happen immediately (but
+    // asynchronously) after this because of pending read()s and set _backpressure back to false.
     //
-    // We don't have to worry about that such a pull() may happen synchronously to the enqueue(), and therefore is not
+    // We don't have to worry about that such a pull() may happen inside the enqueue() call, and therefore is not
     // queued at this point. It's guaranteed that there is pending start() or the last pull() kept pending which
-    // prevent such a synchronous pull().
+    // prevent such a pull() inside the enqueue() call.
     TransformStreamSetBackpressure(transformStream, true);
   }
 }
@@ -128,7 +128,7 @@ function TransformStreamSetBackpressure(transformStream, backpressure) {
          'TransformStreamSetBackpressure() should be called only when backpressure is changed');
 
   if (transformStream._backpressureChangePromise !== undefined) {
-    // The fulfillment value is just for the assertion.
+    // The fulfillment value is just for a sanity check.
     transformStream._backpressureChangePromise_resolve(backpressure);
   }
 
