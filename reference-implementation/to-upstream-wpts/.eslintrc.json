@@ -53,6 +53,8 @@
     "add_completion_callback": false,
 
     "delay": true,
+    "methodRejects": true,
+    "readableStreamToArray": true,
     "recordingReadableStream": true,
     "recordingWritableStream": true
   }
