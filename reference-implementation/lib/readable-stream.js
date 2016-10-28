@@ -114,7 +114,7 @@ class ReadableStream {
     let shuttingDown = false;
 
     // This is used to keep track of the spec's requirement that we wait for ongoing writes during shutdown.
-    let currentWrite;
+    let currentWrite = Promise.resolve();
 
     return new Promise((resolve, reject) => {
       // Using reader and writer, read all chunks from this and write them to dest
@@ -124,7 +124,7 @@ class ReadableStream {
         currentWrite = Promise.resolve();
 
         if (shuttingDown === true) {
-          return undefined;
+          return Promise.resolve();
         }
 
         return writer._readyPromise.then(() => {
@@ -140,13 +140,8 @@ class ReadableStream {
         .then(pipeLoop);
       }
 
-      pipeLoop().catch(err => {
-        currentWrite = Promise.resolve();
-        rethrowAssertionErrorRejection(err);
-      });
-
       // Errors must be propagated forward
-      reader._closedPromise.catch(storedError => {
+      isOrBecomesErrored(this, reader._closedPromise, storedError => {
         if (preventAbort === false) {
           shutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
         } else {
@@ -155,7 +150,7 @@ class ReadableStream {
       });
 
       // Errors must be propagated backward
-      writer._closedPromise.catch(storedError => {
+      isOrBecomesErrored(dest, writer._closedPromise, storedError => {
         if (preventCancel === false) {
           shutdownWithAction(() => ReadableStreamCancel(this, storedError), true, storedError);
         } else {
@@ -164,7 +159,7 @@ class ReadableStream {
       });
 
       // Closing must be propagated forward
-      reader._closedPromise.then(() => {
+      isOrBecomesClosed(this, reader._closedPromise, () => {
         if (preventClose === false) {
           shutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
         } else {
@@ -183,6 +178,27 @@ class ReadableStream {
         }
       }
 
+      pipeLoop().catch(err => {
+        currentWrite = Promise.resolve();
+        rethrowAssertionErrorRejection(err);
+      });
+
+      function isOrBecomesErrored(stream, promise, action) {
+        if (stream._state === 'errored') {
+          action(stream._storedError);
+        } else {
+          promise.catch(action).catch(rethrowAssertionErrorRejection);
+        }
+      }
+
+      function isOrBecomesClosed(stream, promise, action) {
+        if (stream._state === 'closed') {
+          action();
+        } else {
+          promise.then(action).catch(rethrowAssertionErrorRejection);
+        }
+      }
+
       function waitForCurrentWrite() {
         return currentWrite.catch(() => {});
       }
@@ -194,23 +210,24 @@ class ReadableStream {
         shuttingDown = true;
 
         waitForCurrentWrite().then(() => {
-          action().then(
+          return action().then(
             () => finalize(originalIsError, originalError),
             newError => finalize(true, newError)
           );
-        });
+        })
+        .catch(rethrowAssertionErrorRejection);
       }
 
       function shutdown(isError, error) {
-        // TODO: find a test that makes this necessary (see #557)
-        // if (shuttingDown === true) {
-        //   return;
-        // }
+        if (shuttingDown === true) {
+          return;
+        }
         shuttingDown = true;
 
         waitForCurrentWrite().then(() => {
           finalize(isError, error);
-        });
+        })
+        .catch(rethrowAssertionErrorRejection);
       }
 
       function finalize(isError, error) {

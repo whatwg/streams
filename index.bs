@@ -649,7 +649,9 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
          heuristically, e.g. by delaying reads while it is judged to be "low" compared to the size of chunks that have
          been typically read.
      * <strong>Shutdown must stop all activity:</strong> if _shuttingDown_ becomes *true*, the user agent must not
-       initiate further reads from _reader_ or writes to _writer_. (Ongoing reads and writes may finish.)
+       initiate further reads from _reader_ or writes to _writer_. (Ongoing reads and writes may finish.) In particular,
+       the user agent must check the below conditions on *this*.[[state]] and _dest_.[[state]] before performing any
+       reads or writes, since they might lead to immediate shutdown.
      * <strong>Errors must be propagated forward:</strong> if *this*.[[state]] is or becomes `"errored"`, then
        1. If _preventAbort_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">shutdown with an action</a> of !
           WritableStreamAbort(_dest_, *this*.[[storedError]]) and with *this*.[[storedError]].
@@ -679,6 +681,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
           _newError_.
      * <i id="rs-pipeTo-shutdown">Shutdown</i>: if any of the above requirements or steps ask to shutdown, optionally
        with an error _error_, then:
+       1. If _shuttingDown_ is *true*, abort these substeps.
        1. Set _shuttingDown_ to *true*.
        1. Wait until any ongoing write finishes (i.e. the corresponding promises settle).
        1. <a href="#rs-pipeTo-finalize">Finalize</a>, passing along _error_ if it was given.
@@ -3087,8 +3090,8 @@ nothrow>WritableStreamDefaultWriterCloseWithErrorPropagation ( <var>writer</var>
   1. Let _stream_ be _writer_.[[ownerWritableStream]].
   1. Assert: _stream_ is not *undefined*.
   1. Let _state_ be _stream_.[[state]].
-  1. Assert: _state_ is not `"closing"` or `"closed"`.
-  1. If _state_ is `"errored"`, return a new promise rejected with _stream_.[[storedError]].
+  1. If _state_ is `"closing"` or `"closed"`, return <a>a promis resolved with</a> *undefined*.
+  1. If _state_ is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Assert: _state_ is `"writable"`.
   1. Return ! WritableStreamDefaultWriterClose(_writer_).
 </emu-alg>
