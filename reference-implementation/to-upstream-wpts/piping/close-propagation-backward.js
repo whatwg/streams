@@ -111,3 +111,43 @@ for (const truthy of [true, 'a', 1, Symbol(), { }]) {
 
   }, `Closing must be propagated backward: starts closed; preventCancel = ${String(truthy)} (truthy)`);
 }
+
+promise_test(t => {
+
+  const rs = recordingReadableStream();
+
+  const ws = recordingWritableStream();
+  const writer = ws.getWriter();
+  writer.close();
+  writer.releaseLock();
+
+  return promise_rejects(t, new TypeError(), rs.pipeTo(ws, { preventCancel: true, preventAbort: true }))
+    .then(() => {
+      assert_array_equals(rs.eventsWithoutPulls, []);
+      assert_array_equals(ws.events, ['close']);
+
+      return ws.getWriter().closed;
+    });
+
+}, 'Closing must be propagated backward: starts closed; preventCancel = true, preventAbort = true');
+
+promise_test(t => {
+
+  const rs = recordingReadableStream();
+
+  const ws = recordingWritableStream();
+  const writer = ws.getWriter();
+  writer.close();
+  writer.releaseLock();
+
+  return promise_rejects(t, new TypeError(),
+                         rs.pipeTo(ws, { preventCancel: true, preventAbort: true, preventClose: true }))
+  .then(() => {
+    assert_array_equals(rs.eventsWithoutPulls, []);
+    assert_array_equals(ws.events, ['close']);
+
+    return ws.getWriter().closed;
+  });
+
+}, 'Closing must be propagated backward: starts closed; preventCancel = true, preventAbort = true, preventClose ' +
+   '= true');

@@ -150,6 +150,62 @@ for (const truthy of [true, 'a', 1, Symbol(), { }]) {
 
 promise_test(t => {
 
+  const rs = recordingReadableStream();
+
+  const ws = recordingWritableStream({
+    write() {
+      return Promise.reject(error1);
+    }
+  });
+
+  const writer = ws.getWriter();
+  writer.write('Hello');
+
+  return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error')
+    .then(() => {
+      writer.releaseLock();
+
+      return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true, preventAbort: true }),
+                             'pipeTo must reject with the write error')
+        .then(() => {
+          assert_array_equals(rs.eventsWithoutPulls, []);
+          assert_array_equals(ws.events, ['write', 'Hello']);
+        });
+    });
+
+}, 'Errors must be propagated backward: becomes errored before piping due to write, preventCancel = true; ' +
+   'preventAbort = true');
+
+promise_test(t => {
+
+  const rs = recordingReadableStream();
+
+  const ws = recordingWritableStream({
+    write() {
+      return Promise.reject(error1);
+    }
+  });
+
+  const writer = ws.getWriter();
+  writer.write('Hello');
+
+  return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error')
+    .then(() => {
+      writer.releaseLock();
+
+      return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true, preventAbort: true, preventClose: true }),
+                             'pipeTo must reject with the write error')
+        .then(() => {
+          assert_array_equals(rs.eventsWithoutPulls, []);
+          assert_array_equals(ws.events, ['write', 'Hello']);
+        });
+    });
+
+}, 'Errors must be propagated backward: becomes errored before piping due to write; preventCancel = true, ' +
+   'preventAbort = true, preventClose = true');
+
+promise_test(t => {
+
   const rs = recordingReadableStream({
     start(controller) {
       controller.enqueue('Hello');

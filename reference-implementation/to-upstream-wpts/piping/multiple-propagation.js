@@ -110,7 +110,7 @@ promise_test(t => {
 
 }, 'Piping from a closed readable stream to an errored writable stream');
 
-promise_test(t => {
+promise_test(() => {
   const rs = recordingReadableStream({
     start(c) {
       c.close();

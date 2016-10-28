@@ -3090,7 +3090,7 @@ nothrow>WritableStreamDefaultWriterCloseWithErrorPropagation ( <var>writer</var>
   1. Let _stream_ be _writer_.[[ownerWritableStream]].
   1. Assert: _stream_ is not *undefined*.
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"closing"` or `"closed"`, return <a>a promis resolved with</a> *undefined*.
+  1. If _state_ is `"closing"` or `"closed"`, return <a>a promise resolved with</a> *undefined*.
   1. If _state_ is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Assert: _state_ is `"writable"`.
   1. Return ! WritableStreamDefaultWriterClose(_writer_).

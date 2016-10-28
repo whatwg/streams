@@ -93,6 +93,45 @@ for (const truthy of [true, 'a', 1, Symbol(), { }]) {
   }, `Errors must be propagated forward: starts errored; preventAbort = ${String(truthy)} (truthy)`);
 }
 
+
+promise_test(t => {
+
+  const rs = recordingReadableStream({
+    start() {
+      return Promise.reject(error1);
+    }
+  });
+
+  const ws = recordingWritableStream();
+
+  return promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true, preventCancel: true }),
+    'pipeTo must reject with the same error')
+    .then(() => {
+      assert_array_equals(rs.events, []);
+      assert_array_equals(ws.events, []);
+    });
+
+}, 'Errors must be propagated forward: starts errored; preventAbort = true, preventCancel = true');
+
+promise_test(t => {
+
+  const rs = recordingReadableStream({
+    start() {
+      return Promise.reject(error1);
+    }
+  });
+
+  const ws = recordingWritableStream();
+
+  return promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true, preventCancel: true, preventClose: true }),
+    'pipeTo must reject with the same error')
+    .then(() => {
+      assert_array_equals(rs.events, []);
+      assert_array_equals(ws.events, []);
+    });
+
+}, 'Errors must be propagated forward: starts errored; preventAbort = true, preventCancel = true, preventClose = true');
+
 promise_test(t => {
 
   const rs = recordingReadableStream();
