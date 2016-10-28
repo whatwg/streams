@@ -123,7 +123,7 @@ function TransformStreamReadableReadyPromise(transformStream) {
 function TransformStreamSetBackpressure(transformStream, backpressure) {
   // console.log(`TransformStreamSetBackpressure(${backpressure})`);
 
-  // Passes also when called for initialization.
+  // Passes also when called during construction.
   assert(transformStream._backpressure !== backpressure,
          'TransformStreamSetBackpressure() should be called only when backpressure is changed');
 
