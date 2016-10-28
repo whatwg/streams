@@ -77,7 +77,7 @@ exports.PromiseInvokeOrNoop = (O, P, args) => {
   }
 };
 
-exports.PromiseInvokeOrFallback = (O, P, args, F, argsF) => {
+exports.PromiseInvokeOrPerformFallback = (O, P, args, F, argsF) => {
   let method;
   try {
     method = O[P];
@@ -97,7 +97,7 @@ exports.PromiseInvokeOrFallback = (O, P, args, F, argsF) => {
 };
 
 exports.PromiseInvokeOrFallbackOrNoop = (O, P1, args1, P2, args2) => {
-  return exports.PromiseInvokeOrFallback(O, P1, args1, exports.PromiseInvokeOrNoop, [O, P2, args2]);
+  return exports.PromiseInvokeOrPerformFallback(O, P1, args1, exports.PromiseInvokeOrNoop, [O, P2, args2]);
 };
 
 // Not implemented correctly

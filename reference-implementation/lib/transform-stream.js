@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-const { InvokeOrNoop, PromiseInvokeOrFallback, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
+const { InvokeOrNoop, PromiseInvokeOrPerformFallback, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
 const { ReadableStream } = require('./readable-stream.js');
 const { WritableStream } = require('./writable-stream.js');
 
@@ -142,7 +142,7 @@ function TransformStreamTransform(transformStream, chunk) {
   const transformer = transformStream._transformer;
   const controller = transformStream._transformStreamController;
 
-  const transformPromise = PromiseInvokeOrFallback(transformer, 'transform', [chunk, controller],
+  const transformPromise = PromiseInvokeOrPerformFallback(transformer, 'transform', [chunk, controller],
                              TransformStreamDefaultTransform, [chunk, controller]);
 
   return transformPromise.then(
