@@ -107,7 +107,7 @@ function TransformStreamErrorInternal(transformStream, e) {
 
 // Used for preventing the next write() call on TransformStreamSink until there
 // is no longer backpressure.
-function TransformStreamBackpressureGonePromise(transformStream) {
+function TransformStreamReadableReadyPromise(transformStream) {
   assert(transformStream._backpressureChangePromise !== undefined,
          '_backpressureChangePromise should have been initialized');
 
@@ -161,7 +161,7 @@ function TransformStreamTransform(transformStream, chunk) {
     () => {
       transformStream._transforming = false;
 
-      return TransformStreamBackpressureGonePromise(transformStream);
+      return TransformStreamReadableReadyPromise(transformStream);
     },
     e => TransformStreamErrorIfNeeded(transformStream, e));
 }
@@ -201,7 +201,9 @@ class TransformStreamSink {
 
     transformStream._writableController = c;
 
-    return this._startPromise;
+    return this._startPromise.then(() => {
+      return TransformStreamReadableReadyPromise(transformStream);
+    });
   }
 
   write(chunk) {
@@ -386,9 +388,7 @@ module.exports = class TransformStream {
 
     this._readable = new ReadableStream(source, transformer.readableStrategy);
 
-    const sink = new TransformStreamSink(this, startPromise.then(() => {
-      return TransformStreamBackpressureGonePromise(this);
-    }));
+    const sink = new TransformStreamSink(this, startPromise);
 
     this._writable = new WritableStream(sink, transformer.writableStrategy);
 
@@ -396,8 +396,8 @@ module.exports = class TransformStream {
     assert(this._readableController !== undefined);
 
     const desiredSize = this._readableController.desiredSize;
-    // Tentatively set _backpressure based on desiredSize. When desiredSize is 0, it's possible that a pull() is made
-    // immediately after this because of pending read()s and fix _backpressure back to false.
+    // Set _backpressure based on desiredSize. As there is no read() at this point, so we can just interpret
+    // desiredSize being non-positive as backpressure.
     TransformStreamSetBackpressure(this, desiredSize <= 0);
 
     const transformStream = this;
