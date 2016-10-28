@@ -127,3 +127,15 @@ promise_test(() => {
   });
 }, 'when close is called on a WritableStream in waiting state, ready should be fulfilled immediately even if close ' +
     'takes a long time');
+
+promise_test(t => {
+  const rejection = { name: 'letter' };
+  const ws = new WritableStream({
+    close() {
+      return {
+        then(onFulfilled, onRejected) { onRejected(rejection); }
+      };
+    }
+  });
+  return promise_rejects(t, rejection, ws.getWriter().close(), 'close() should return a rejection');
+}, 'returning a thenable from close() should work');

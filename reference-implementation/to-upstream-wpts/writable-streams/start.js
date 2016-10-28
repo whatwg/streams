@@ -91,3 +91,15 @@ promise_test(() => {
   return delay(100)
       .then(() => assert_array_equals(ws.events, [], 'write and close should not be called'));
 }, 'underlying sink\'s write or close should not be invoked if the promise returned by start is rejected');
+
+promise_test(t => {
+  const rejection = { name: 'this is checked' };
+  const ws = new WritableStream({
+    start() {
+      return {
+        then(onFulfilled, onRejected) { onRejected(rejection); }
+      };
+    }
+  });
+  return promise_rejects(t, rejection, ws.getWriter().closed, 'closed promise should be rejected');
+}, 'returning a thenable from start() should work');

@@ -209,3 +209,18 @@ promise_test(() => {
     assert_array_equals(stream.events, ['write', 'a'], 'write() should be passed to sink');
   });
 }, 'WritableStreamDefaultWriter should work when manually constructed');
+
+promise_test(() => {
+  let thenCalled = false;
+  const ws = new WritableStream({
+    write() {
+      return {
+        then(onFulfilled) {
+          thenCalled = true;
+          onFulfilled();
+        }
+      };
+    }
+  });
+  ws.getWriter().write('a').then(() => assert_true(thenCalled, 'thenCalled should be true'));
+}, 'returning a thenable from write() should work');
