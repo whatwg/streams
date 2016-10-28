@@ -76,7 +76,7 @@ promise_test(t => {
 
   return promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the readable stream\'s error').then(() => {
     assert_array_equals(rs.events, []);
-    assert_array_equals(ws.events, []);
+    assert_array_equals(ws.events, ['close']);
 
     return Promise.all([
       promise_rejects(t, error1, rs.getReader().closed, 'the readable stream must be errored with error1'),
@@ -104,7 +104,7 @@ promise_test(t => {
 
     return Promise.all([
       rs.getReader().closed,
-      promise_rejects(t, error2, ws.getWriter().closed, 'the writable stream must be errored with error1')
+      promise_rejects(t, error1, ws.getWriter().closed, 'the writable stream must be errored with error1')
     ]);
   });
 
@@ -123,7 +123,7 @@ promise_test(t => {
 
   return rs.pipeTo(ws).then(() => {
     assert_array_equals(rs.events, []);
-    assert_array_equals(ws.events, []);
+    assert_array_equals(ws.events, ['close']);
 
     return Promise.all([
       rs.getReader().closed,
