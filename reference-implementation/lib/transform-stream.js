@@ -53,9 +53,8 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
     // This allows pull() again. When desiredSize is 0, it's possible that a pull() will happen immediately (but
     // asynchronously) after this because of pending read()s and set _backpressure back to false.
     //
-    // We don't have to worry about that such a pull() may happen inside the enqueue() call, and therefore is not
-    // queued at this point. It's guaranteed that there is pending start() or the last pull() kept pending which
-    // prevent such a pull() inside the enqueue() call.
+    // If pull() could be called from inside enqueue(), then this logic would be wrong. This cannot happen
+    // because there is always a promise pending from start() or pull() when _backpressure is false.
     TransformStreamSetBackpressure(transformStream, true);
   }
 }
