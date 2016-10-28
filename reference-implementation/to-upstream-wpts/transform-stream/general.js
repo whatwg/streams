@@ -9,11 +9,9 @@ test(() => {
 }, 'TransformStream can be constructed with a transform function');
 
 test(() => {
-  assert_throws(new TypeError(), () => new TransformStream(), 'TransformStream cannot be ' +
-    'constructed with no arguments');
-  assert_throws(new TypeError(), () => new TransformStream({}), 'TransformStream cannot be ' +
-    'constructed with an empty object');
-}, 'TransformStream cannot be constructed with no transform function');
+  new TransformStream();
+  new TransformStream({});
+}, 'TransformStream can be constructed with no transform function');
 
 test(() => {
   const ts = new TransformStream({ transform() { } });
