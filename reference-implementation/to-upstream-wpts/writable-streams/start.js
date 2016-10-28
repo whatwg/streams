@@ -97,7 +97,7 @@ promise_test(t => {
   const ws = new WritableStream({
     start() {
       return {
-        then(resolve, reject) { reject(rejection); }
+        then(onFulfilled, onRejected) { onRejected(rejection); }
       };
     }
   });

@@ -209,9 +209,9 @@ promise_test(() => {
   const ws = new WritableStream({
     abort() {
       return {
-        then(resolve) {
+        then(onFulfilled) {
           thenCalled = true;
-          resolve();
+          onFulfilled();
         }
       };
     }
