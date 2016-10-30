@@ -4,9 +4,9 @@ const path = require('path');
 
 const { ReadableStream } = require('./lib/readable-stream.js');
 const { WritableStream } = require('./lib/writable-stream.js');
+const { TransformStream } = require('./lib/transform-stream.js');
 const ByteLengthQueuingStrategy = require('./lib/byte-length-queuing-strategy.js');
 const CountQueuingStrategy = require('./lib/count-queuing-strategy.js');
-const TransformStream = require('./lib/transform-stream.js');
 
 global.ReadableStream = ReadableStream;
 global.WritableStream = WritableStream;
