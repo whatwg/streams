@@ -27,6 +27,24 @@ test('Underlying sink: throwing start method', t => {
   t.end();
 });
 
+test('Underlying sink: non-function start', t => {
+  t.throws(() => {
+    new WritableStream({
+      start: 'not a function or undefined'
+    });
+  }, /TypeError/);
+  t.end();
+});
+
+test('Underlying sink: non-function start with .apply', t => {
+  t.throws(() => {
+    new WritableStream({
+      start: { apply() {} }
+    });
+  }, /TypeError/);
+  t.end();
+});
+
 test('Underlying sink: throwing write getter', t => {
   t.plan(2);
 

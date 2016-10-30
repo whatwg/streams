@@ -66,6 +66,11 @@ exports.InvokeOrNoop = (O, P, args) => {
   if (method === undefined) {
     return undefined;
   }
+
+  if (typeof method !== 'function') {
+    throw new TypeError(`${P} is not a function`);
+  }
+
   return method.apply(O, args);
 };
 
@@ -87,6 +92,10 @@ exports.PromiseInvokeOrPerformFallback = (O, P, args, F, argsF) => {
 
   if (method === undefined) {
     return F(...argsF);
+  }
+
+  if (typeof method !== 'function') {
+    return Promise.reject(new TypeError(`${P} is not a function`));
   }
 
   try {
