@@ -21,11 +21,11 @@ wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup })
   })
   .then(failures => {
     totalFailures += failures;
-    process.exit(totalFailures);
+    process.exitCode = totalFailures;
   })
   .catch(e => {
     console.error(e.stack);
-    process.exit(1);
+    process.exitCode = 1;
   });
 
 function setup(window) {
