@@ -58,7 +58,7 @@ class WritableStream {
   }
 }
 
-Object.assign(exports, {
+module.exports = {
   AcquireWritableStreamDefaultWriter,
   IsWritableStream,
   IsWritableStreamLocked,
@@ -67,7 +67,7 @@ Object.assign(exports, {
   WritableStreamDefaultWriterCloseWithErrorPropagation,
   WritableStreamDefaultWriterRelease,
   WritableStreamDefaultWriterWrite
-});
+};
 
 // Abstract operations for the WritableStream.
 

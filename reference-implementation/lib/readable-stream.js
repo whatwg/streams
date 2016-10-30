@@ -253,7 +253,7 @@ class ReadableStream {
   }
 }
 
-exports.ReadableStream = ReadableStream;
+module.exports = { ReadableStream, IsReadableStreamDisturbed };
 
 // Abstract operations for the ReadableStream.
 
@@ -282,8 +282,6 @@ function IsReadableStreamDisturbed(stream) {
 
   return stream._disturbed;
 }
-
-exports.IsReadableStreamDisturbed = IsReadableStreamDisturbed;
 
 function IsReadableStreamLocked(stream) {
   assert(IsReadableStream(stream) === true, 'IsReadableStreamLocked should only be used on known readable streams');
