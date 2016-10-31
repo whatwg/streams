@@ -62,6 +62,10 @@ exports.IsFiniteNonNegativeNumber = v => {
 };
 
 exports.InvokeOrNoop = (O, P, args) => {
+  assert(exports.typeIsObject(O) === true);
+  assert(typeof P === 'string');
+  assert(Array.isArray(args));
+
   const method = O[P];
   if (method === undefined) {
     return undefined;
@@ -75,6 +79,9 @@ exports.InvokeOrNoop = (O, P, args) => {
 };
 
 exports.PromiseInvokeOrNoop = (O, P, args) => {
+  assert(exports.typeIsObject(O) === true);
+  assert(typeof P === 'string');
+  assert(Array.isArray(args));
   try {
     return Promise.resolve(exports.InvokeOrNoop(O, P, args));
   } catch (returnValueE) {
@@ -83,6 +90,11 @@ exports.PromiseInvokeOrNoop = (O, P, args) => {
 };
 
 exports.PromiseInvokeOrPerformFallback = (O, P, args, F, argsF) => {
+  assert(exports.typeIsObject(O) === true);
+  assert(typeof P === 'string');
+  assert(Array.isArray(args));
+  assert(Array.isArray(argsF));
+
   let method;
   try {
     method = O[P];
@@ -106,6 +118,12 @@ exports.PromiseInvokeOrPerformFallback = (O, P, args, F, argsF) => {
 };
 
 exports.PromiseInvokeOrFallbackOrNoop = (O, P1, args1, P2, args2) => {
+  assert(exports.typeIsObject(O) === true);
+  assert(typeof P1 === 'string');
+  assert(Array.isArray(args1));
+  assert(typeof P2 === 'string');
+  assert(Array.isArray(args2));
+
   return exports.PromiseInvokeOrPerformFallback(O, P1, args1, exports.PromiseInvokeOrNoop, [O, P2, args2]);
 };
 
