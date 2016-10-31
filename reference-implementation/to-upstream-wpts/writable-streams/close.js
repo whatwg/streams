@@ -139,3 +139,5 @@ promise_test(t => {
   });
   return promise_rejects(t, rejection, ws.getWriter().close(), 'close() should return a rejection');
 }, 'returning a thenable from close() should work');
+
+done();

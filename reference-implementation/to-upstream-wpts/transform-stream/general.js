@@ -40,3 +40,5 @@ test(() => {
   const writer = ts.writable.getWriter();
   assert_equals(writer.desiredSize, 1, 'writer.desiredSize should be 1');
 }, 'TransformStream writable starts in the writable state');
+
+done();

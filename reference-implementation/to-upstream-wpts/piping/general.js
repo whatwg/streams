@@ -153,3 +153,5 @@ promise_test(() => {
   return pipePromise;
 
 }, 'Piping from a ReadableStream for which a chunk becomes asynchronously readable after the pipeTo');
+
+done();

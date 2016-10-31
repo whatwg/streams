@@ -151,3 +151,5 @@ promise_test(t => {
 
 }, 'Closing must be propagated backward: starts closed; preventCancel = true, preventAbort = true, preventClose ' +
    '= true');
+
+done();
