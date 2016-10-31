@@ -3620,7 +3620,9 @@ A few abstract operations are used in this specification for utility purposes. W
 </div>
 
 <emu-alg>
+  1. Assert: _O_ is not *undefined*.
   1. Assert: ! IsPropertyKey(_P_) is *true*.
+  1. Assert: _args_ is a List.
   1. Let _method_ be ? GetV(_O_, _P_).
   1. If _method_ is *undefined*, return *undefined*.
   1. Return ? Call(_method_, _O_, _args_).
@@ -3646,8 +3648,11 @@ A few abstract operations are used in this specification for utility purposes. W
 </div>
 
 <emu-alg>
+  1. Assert: _O_ is not *undefined*.
   1. Assert: ! IsPropertyKey(_P1_) is *true*.
+  1. Assert: _args1_ is a List.
   1. Assert: ! IsPropertyKey(_P2_) is *true*.
+  1. Assert: _args2_ is a List.
   1. Let _method_ be GetV(_O_, _P1_).
   1. If _method_ is an abrupt completion, return <a>a promise rejected with</a> _method_.[[Value]].
   1. Let _method_ be _method_.[[Value]].
@@ -3666,7 +3671,9 @@ A few abstract operations are used in this specification for utility purposes. W
 </div>
 
 <emu-alg>
+  1. Assert: _O_ is not *undefined*.
   1. Assert: ! IsPropertyKey(_P_) is *true*.
+  1. Assert: _args_ is a List.
   1. Let _returnValue_ be InvokeOrNoop(_O_, _P_, _args_).
   1. If _returnValue_ is an abrupt completion, return <a>a promise rejected with</a> _result_.[[Value]].
   1. Otherwise, return <a>a promise resolved with</a> _returnValue_.[[Value]].
