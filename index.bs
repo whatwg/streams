@@ -750,7 +750,8 @@ for a given stream.
 </emu-alg>
 
 <h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamDefaultReader"
-throws>AcquireReadableStreamDefaultReader ( <var>stream</var> )</h4>
+lt="AcquireReadableStreamDefaultReader" throws dfn export>AcquireReadableStreamDefaultReader (
+<var>stream</var> )</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to acquire a <a>default
 reader</a> for a given stream.
@@ -767,8 +768,9 @@ reader</a> for a given stream.
   1. Return *true*.
 </emu-alg>
 
-<h4 id="is-readable-stream-disturbed" aoid="IsReadableStreamDisturbed" nothrow>IsReadableStreamDisturbed (
-<var>stream</var> )</h4>
+<h4 id="is-readable-stream-disturbed" aoid="IsReadableStreamDisturbed"
+lt="IsReadableStreamDisturbed" nothrow dfn export>IsReadableStreamDisturbed ( <var>stream</var>
+)</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to query whether or not a
 readable stream has ever been read from or canceled.
@@ -778,8 +780,8 @@ readable stream has ever been read from or canceled.
   1. Return _stream_.[[disturbed]].
 </emu-alg>
 
-<h4 id="is-readable-stream-locked" aoid="IsReadableStreamLocked" nothrow>IsReadableStreamLocked ( <var>stream</var>
-)</h4>
+<h4 id="is-readable-stream-locked" aoid="IsReadableStreamLocked" lt="IsReadableStreamLocked" nothrow
+dfn export>IsReadableStreamLocked ( <var>stream</var> )</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to query whether or not a
 readable stream is <a>locked to a reader</a>.
@@ -790,8 +792,8 @@ readable stream is <a>locked to a reader</a>.
   1. Return *true*.
 </emu-alg>
 
-<h4 id="readable-stream-tee" aoid="ReadableStreamTee" throws>ReadableStreamTee ( <var>stream</var>,
-<var>cloneForBranch2</var> )</h4>
+<h4 id="readable-stream-tee" aoid="ReadableStreamTee" lt="ReadableStreamTee" throws dfn
+export>ReadableStreamTee ( <var>stream</var>, <var>cloneForBranch2</var> )</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to <a lt="tee a readable
 stream">tee</a> a given readable stream.
@@ -937,8 +939,8 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
   1. Return _promise_.
 </emu-alg>
 
-<h4 id="readable-stream-cancel" aoid="ReadableStreamCancel" nothrow>ReadableStreamCancel ( <var>stream</var>,
-<var>reason</var> )</h4>
+<h4 id="readable-stream-cancel" aoid="ReadableStreamCancel" lt="ReadableStreamCancel" nothrow dfn
+export>ReadableStreamCancel ( <var>stream</var>, <var>reason</var> )</h4>
 
 <emu-alg>
   1. Set _stream_.[[disturbed]] to *true*.
@@ -1395,7 +1397,8 @@ nothrow>ReadableStreamReaderGenericRelease ( <var>reader</var> )</h4>
 </emu-alg>
 
 <h4 id="readable-stream-default-reader-read" aoid="ReadableStreamDefaultReaderRead"
-nothrow>ReadableStreamDefaultReaderRead ( <var>reader</var> )</h4>
+lt="ReadableStreamDefaultReaderRead" nothrow dfn export>ReadableStreamDefaultReaderRead (
+<var>reader</var> )</h4>
 
 <emu-alg>
   1. Let _stream_ be _reader_.[[ownerReadableStream]].
@@ -1655,7 +1658,8 @@ nothrow>ReadableStreamDefaultControllerShouldCallPull ( <var>controller</var> )<
 </emu-alg>
 
 <h4 id="readable-stream-default-controller-close" aoid="ReadableStreamDefaultControllerClose"
-nothrow>ReadableStreamDefaultControllerClose ( <var>controller</var> )</h4>
+lt="ReadableStreamDefaultControllerClose" nothrow dfn export>ReadableStreamDefaultControllerClose (
+<var>controller</var> )</h4>
 
 This abstract operation can be called by other specifications that wish to close a readable stream, in the same way
 a developer-created stream would be closed by its associated controller object. Specifications should <em>not</em> do
@@ -1670,7 +1674,8 @@ this to streams they did not create, and must ensure they have obeyed the precon
 </emu-alg>
 
 <h4 id="readable-stream-default-controller-enqueue" aoid="ReadableStreamDefaultControllerEnqueue"
-throws>ReadableStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
+lt="ReadableStreamDefaultControllerEnqueue" throws dfn export>ReadableStreamDefaultControllerEnqueue
+( <var>controller</var>, <var>chunk</var> )</h4>
 
 This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in a readable stream,
 in the same way a developer would enqueue chunks using the stream's associated controller object. Specifications should
@@ -1708,7 +1713,8 @@ asserts).
 </div>
 
 <h4 id="readable-stream-default-controller-error" aoid="ReadableStreamDefaultControllerError"
-nothrow>ReadableStreamDefaultControllerError ( <var>controller</var>, <var>e</var> )</h4>
+lt="ReadableStreamDefaultControllerError" nothrow dfn export>ReadableStreamDefaultControllerError (
+<var>controller</var>, <var>e</var> )</h4>
 
 This abstract operation can be called by other specifications that wish to move a readable stream to an errored state,
 in the same way a developer would error a stream using its associated controller object. Specifications should
@@ -1730,8 +1736,10 @@ nothrow>ReadableStreamDefaultControllerErrorIfNeeded ( <var>controller</var>, <v
      ReadableStreamDefaultControllerError(_controller_, _e_).
 </emu-alg>
 
-<h4 id="readable-stream-default-controller-get-desired-size" aoid="ReadableStreamDefaultControllerGetDesiredSize"
-nothrow>ReadableStreamDefaultControllerGetDesiredSize ( <var>controller</var> )</h4>
+<h4 id="readable-stream-default-controller-get-desired-size"
+aoid="ReadableStreamDefaultControllerGetDesiredSize"
+lt="ReadableStreamDefaultControllerGetDesiredSize" nothrow dfn
+export>ReadableStreamDefaultControllerGetDesiredSize ( <var>controller</var> )</h4>
 
 This abstract operation can be called by other specifications that wish to determine the <a lt="desired size to fill a
 stream's internal queue">desired size to fill this stream's internal queue</a>, similar to how a developer would consult
