@@ -630,3 +630,5 @@ promise_test(t => {
   });
 
 }, 'Errors must be propagated backward: erroring via the controller errors a slow write');
+
+done();

@@ -219,3 +219,5 @@ promise_test(() => {
   const writer = ws.getWriter();
   return writer.abort().then(() => assert_true(thenCalled, 'then() should be called'));
 }, 'returning a thenable from abort() should work');
+
+done();

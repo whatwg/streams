@@ -132,3 +132,5 @@ promise_test(() => {
   });
 
 }, 'Piping from a closed readable stream to a closed writable stream');
+
+done();

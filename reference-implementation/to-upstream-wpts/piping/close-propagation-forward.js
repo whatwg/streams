@@ -420,3 +420,5 @@ promise_test(() => {
   });
 
 }, 'Closing must be propagated forward: shutdown must not occur until the final write completes');
+
+done();

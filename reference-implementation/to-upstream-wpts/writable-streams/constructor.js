@@ -144,3 +144,5 @@ test(() => {
   assert_throws(new TypeError(), () => new WritableStreamDefaultWriter(stream),
                 'constructor should throw a TypeError exception');
 }, 'WritableStreamDefaultWriter constructor should throw when stream argument is locked');
+
+done();

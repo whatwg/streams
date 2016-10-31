@@ -114,3 +114,5 @@ promise_test(() => {
     })
   ]);
 }, 'TransformStream flush gets a chance to enqueue more into the readable, and can then async close');
+
+done();

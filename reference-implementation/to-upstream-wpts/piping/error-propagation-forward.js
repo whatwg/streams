@@ -424,3 +424,5 @@ promise_test(t => {
   });
 
 }, 'Errors must be propagated forward: shutdown must not occur until the final write completes');
+
+done();

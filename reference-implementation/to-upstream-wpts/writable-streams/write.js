@@ -194,7 +194,7 @@ promise_test(() => {
 
     return writePromise
         .then(() =>
-          assert_equals(writeCount, numberOfWrites, `should have called sink's write ${numberOfWrites} times`));
+        assert_equals(writeCount, numberOfWrites, `should have called sink's write ${numberOfWrites} times`));
   });
 }, 'a large queue of writes should be processed completely');
 
@@ -224,3 +224,5 @@ promise_test(() => {
   });
   ws.getWriter().write('a').then(() => assert_true(thenCalled, 'thenCalled should be true'));
 }, 'returning a thenable from write() should work');
+
+done();

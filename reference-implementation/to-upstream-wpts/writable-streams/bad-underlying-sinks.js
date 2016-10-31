@@ -108,3 +108,5 @@ promise_test(t => {
   });
 
 }, 'write: returning a rejected promise (second write) should cause writer write() and ready to reject');
+
+done();

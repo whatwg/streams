@@ -151,3 +151,5 @@ promise_test(() => {
       .then(() => promises.abort)
       .then(thisValue => assert_equals(thisValue, theSink, 'abort should be called as a method'));
 }, 'WritableStream should call underlying sink methods as methods');
+
+done();
