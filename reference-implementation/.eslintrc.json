@@ -19,7 +19,7 @@
     // Possible errors
     "comma-dangle": ["error", "never"],
     "no-cond-assign": ["error", "except-parens"],
-    "no-console": "off",
+    "no-console": "error",
     "no-constant-condition": "error",
     "no-control-regex": "error",
     "no-debugger": "error",

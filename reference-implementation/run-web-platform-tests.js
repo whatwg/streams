@@ -24,6 +24,7 @@ wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup })
     process.exitCode = totalFailures;
   })
   .catch(e => {
+    /* eslint-disable no-console */
     console.error(e.stack);
     process.exitCode = 1;
   });
