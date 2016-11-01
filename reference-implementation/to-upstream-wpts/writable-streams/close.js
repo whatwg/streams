@@ -95,7 +95,7 @@ promise_test(() => {
         assert_true(calledClose, 'ready should not be fulfilled before writer.close() is called');
         assert_array_equals(ws.events, ['write', 'a'], 'sink abort() should not be called');
       }),
-      delay(100).then(() => {
+      flushAsyncEvents().then(() => {
         writer.close();
         calledClose = true;
       })
@@ -107,7 +107,7 @@ promise_test(() => {
   let asyncCloseFinished = false;
   const ws = recordingWritableStream({
     close() {
-      return delay(50).then(() => {
+      return flushAsyncEvents().then(() => {
         asyncCloseFinished = true;
       });
     }

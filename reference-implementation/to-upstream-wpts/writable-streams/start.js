@@ -23,7 +23,7 @@ promise_test(() => {
   assert_equals(writer.desiredSize, 0, 'desiredSize should be 0 after writer.write()');
 
   // Wait and verify that write isn't called.
-  return delay(100)
+  return flushAsyncEvents()
       .then(() => {
         assert_array_equals(ws.events, [], 'write should not be called until start promise resolves');
         resolveStartPromise();
@@ -49,7 +49,7 @@ promise_test(() => {
   assert_equals(writer.desiredSize, 1, 'desiredSize should be 1');
 
   // Wait and verify that write isn't called.
-  return delay(100).then(() => {
+  return flushAsyncEvents().then(() => {
     assert_array_equals(ws.events, [], 'close should not be called until start promise resolves');
     resolveStartPromise();
     return writer.closed;
@@ -88,7 +88,7 @@ promise_test(() => {
   });
 
   // Wait and verify that write or close aren't called.
-  return delay(100)
+  return flushAsyncEvents()
       .then(() => assert_array_equals(ws.events, [], 'write and close should not be called'));
 }, 'underlying sink\'s write or close should not be invoked if the promise returned by start is rejected');
 

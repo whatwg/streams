@@ -96,7 +96,7 @@ promise_test(() => {
 
         assert_equals(value, undefined, 'writePromise should be fulfilled with undefined');
       }),
-      delay(100).then(() => {
+      flushAsyncEvents().then(() => {
         resolveSinkWritePromise();
         resolveSinkWritePromise = undefined;
       })
@@ -142,7 +142,7 @@ promise_test(t => {
       promise_rejects(t, passedError, writePromise2, 'writePromise2 should reject with passedError')
           .then(() => assert_equals(sinkWritePromiseRejectors.length, 0,
                                     'sinkWritePromise should reject before writePromise2')),
-      delay(100).then(() => {
+      flushAsyncEvents().then(() => {
         sinkWritePromiseRejectors[0](passedError);
         sinkWritePromiseRejectors = [];
       })
