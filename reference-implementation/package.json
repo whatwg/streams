@@ -5,7 +5,7 @@
     "pretest": "bash ./update-web-platform-tests.sh",
     "test": "npm run lint && node --expose_gc run-tests.js | tap-spec && npm run wpt",
     "wpt": "node --expose_gc run-web-platform-tests.js",
-    "lint": "eslint \"{lib,test,to-upstream-wpts}/**/*.js\""
+    "lint": "eslint \"**/*.js\""
   },
   "author": "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
   "contributors": [
