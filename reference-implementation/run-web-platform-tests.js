@@ -6,7 +6,7 @@ const wptRunner = require('wpt-runner');
 
 const { ReadableStream } = require('./lib/readable-stream.js');
 const { WritableStream } = require('./lib/writable-stream.js');
-const TransformStream = require('./lib/transform-stream.js');
+const { TransformStream } = require('./lib/transform-stream.js');
 const ByteLengthQueuingStrategy = require('./lib/byte-length-queuing-strategy.js');
 const CountQueuingStrategy = require('./lib/count-queuing-strategy.js');
 
@@ -21,11 +21,12 @@ wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup })
   })
   .then(failures => {
     totalFailures += failures;
-    process.exit(totalFailures);
+    process.exitCode = totalFailures;
   })
   .catch(e => {
+    /* eslint-disable no-console */
     console.error(e.stack);
-    process.exit(1);
+    process.exitCode = 1;
   });
 
 function setup(window) {

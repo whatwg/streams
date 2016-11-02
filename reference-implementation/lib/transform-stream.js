@@ -352,7 +352,7 @@ class TransformStreamDefaultController {
   }
 }
 
-module.exports = class TransformStream {
+class TransformStream {
   constructor(transformer = {}) {
     this._transformer = transformer;
     const { readableStrategy, writableStrategy } = transformer;
@@ -423,7 +423,9 @@ module.exports = class TransformStream {
 
     return this._writable;
   }
-};
+}
+
+module.exports = { TransformStream };
 
 // Helper functions for the TransformStreamDefaultController.
 
