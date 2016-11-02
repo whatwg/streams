@@ -10,11 +10,11 @@ Do not introduce explicit `<p>` tags. (Bikeshed does this automatically.)
 
 Use "let" for introducing new local variables. Use "set" for updating existing variables or internal slots.
 
-Mark up definitions [appropriately](https://github.com/tabatkins/bikeshed/blob/master/docs/definitions-autolinks.md#definitions). This is mostly applicable when defining new classes or methods; follow the existing examples in the spec.
+Mark up definitions [appropriately](https://tabatkins.github.io/bikeshed/#definitions). This is mostly applicable when defining new classes or methods; follow the existing examples in the spec.
 
 Mark up abstract operations with `throws` or `nothrow` attributes in their heading tags, according to whether or not they can ever return an abrupt completion.
 
-Use cross-reference [autolinking](https://github.com/tabatkins/bikeshed/blob/master/docs/definitions-autolinks.md#autolinking) liberally. This generally amounts to writing references to "definitions" as `<a>term</a>`, and writing references to classes or methods as `{{ClassName}}` or `{{ClassName/methodName()}}`.
+Use cross-reference [autolinking](https://tabatkins.github.io/bikeshed/#autolinking) liberally. This generally amounts to writing references to "definitions" as `<a>term</a>`, and writing references to classes or methods as `{{ClassName}}` or `{{ClassName/methodName()}}`.
 
 When writing examples or notes, JavaScript variables and values are enclosed in `<code>` tags, not in `<var>` tags.
 
@@ -32,6 +32,8 @@ Use two-space indents.
 Alphabetize imports.
 
 Use single quotes.
+
+Pass ESLint.
 
 ## Commit guidelines
 

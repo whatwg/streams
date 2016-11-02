@@ -11,7 +11,7 @@ Snapshots of any given commit or branch are available at specially-crafted URLs:
 
 ## Tests and reference implementation
 
-This repository also includes a reference implementation and test suite under `reference-implementation/`. See the README under that directory for more details. The test suite is automatically deployed, in a form viable for running against browsers, to https://streams.spec.whatwg.org/tests/.
+This repository also includes a reference implementation and test suite under `reference-implementation/`. See the README under that directory for more details. We strive for every commit that changes the spec to also add tests, and to change the reference implementation in order to pass those tests.
 
 ## Contribution guidelines
 

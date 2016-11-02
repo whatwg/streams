@@ -14,7 +14,6 @@ SERVER="streams.spec.whatwg.org"
 WEB_ROOT="streams.spec.whatwg.org"
 COMMITS_DIR="commit-snapshots"
 BRANCHES_DIR="branch-snapshots"
-TESTS_DIR="tests"
 
 if [ "$1" == "--local" ]; then
     echo "Running a local deploy into $WEB_ROOT directory"
