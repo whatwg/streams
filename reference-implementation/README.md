@@ -10,6 +10,8 @@ The reference implementation is meant to be a fairly close transcription of the 
 
 Test coverage is not complete, but we do aim for it to be. Adding tests would be a great way to contribute to this project.
 
+You can check the test coverage at any time by running `npm run coverage` in this folder.
+
 ### Original Tests
 
 The original tests are written using the [tape](https://github.com/substack/tape) framework.

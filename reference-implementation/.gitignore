@@ -1,7 +1,7 @@
 node_modules/
 npm-debug.log
 
-bench/results/
 web-platform-tests/
 
-browser-tests/bundle.js
+.nyc_output/
+coverage/
