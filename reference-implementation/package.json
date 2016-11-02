@@ -5,7 +5,8 @@
     "pretest": "bash ./update-web-platform-tests.sh",
     "test": "npm run lint && node --expose_gc run-tests.js | tap-spec && npm run wpt",
     "wpt": "node --expose_gc run-web-platform-tests.js",
-    "lint": "eslint \"**/*.js\""
+    "lint": "eslint \"**/*.js\"",
+    "coverage": "nyc --reporter=lcov npm test && opener coverage/lcov-report/index.html"
   },
   "author": "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
   "contributors": [
@@ -17,9 +18,16 @@
   "devDependencies": {
     "eslint": "^3.2.2",
     "glob": "^7.0.3",
+    "nyc": "^8.4.0",
+    "opener": "^1.4.2",
     "tap-spec": "^4.1.1",
     "tape": "^4.5.1",
     "tape-catch": "^1.0.5",
-    "wpt-runner": "^2.1.0"
+    "wpt-runner": "^2.1.1"
+  },
+  "nyc": {
+    "include": [
+      "**/lib/**/*.js"
+    ]
   }
 }
