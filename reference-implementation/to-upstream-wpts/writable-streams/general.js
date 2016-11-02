@@ -152,4 +152,15 @@ promise_test(() => {
       .then(thisValue => assert_equals(thisValue, theSink, 'abort should be called as a method'));
 }, 'WritableStream should call underlying sink methods as methods');
 
+promise_test(() => {
+  const ws = new WritableStream();
+  const writer1 = ws.getWriter();
+  assert_equals(undefined, writer1.releaseLock(), 'releaseLock() should return undefined');
+  const writer2 = ws.getWriter();
+  assert_equals(undefined, writer1.releaseLock(), 'no-op releaseLock() should return undefined');
+  // Calling releaseLock() on writer1 should not interfere with writer2. If it did, then the ready promise would be
+  // rejected.
+  return writer2.ready;
+}, 'redundant releaseLock() is no-op');
+
 done();
