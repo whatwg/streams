@@ -5,28 +5,7 @@ function IsPropertyKey(argument) {
   return typeof argument === 'string' || typeof argument === 'symbol';
 }
 
-exports.promiseCall = (func, ...args) => {
-  try {
-    return Promise.resolve(func(...args));
-  } catch (e) {
-    return Promise.reject(e);
-  }
-};
-
 exports.typeIsObject = x => (typeof x === 'object' && x !== null) || typeof x === 'function';
-
-exports.toInteger = v => {
-  v = Number(v);
-  if (isNaN(v)) {
-    return 0;
-  }
-
-  if (v < 0) {
-    return -1 * Math.floor(Math.abs(v));
-  }
-
-  return Math.floor(Math.abs(v));
-};
 
 exports.createDataProperty = (o, p, v) => {
   assert(exports.typeIsObject(o));
