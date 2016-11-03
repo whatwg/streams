@@ -139,27 +139,6 @@ test('Underlying sink: throwing abort method', t => {
   );
 });
 
-test('Underlying sink: non-function abort method with .apply', t => {
-  t.plan(2);
-
-  const abortReason = new Error('reason');
-  const ws = new WritableStream({
-    abort: { apply() {} }
-  });
-
-  const writer = ws.getWriter();
-
-  writer.abort(abortReason).then(
-    () => t.fail('abort should not fulfill'),
-    r => t.equal(r.constructor, TypeError, 'abort should reject with TypeError')
-  );
-
-  writer.closed.then(
-    () => t.fail('closed should not fulfill'),
-    r => t.equal(r.constructor, TypeError, 'closed should reject with a TypeError')
-  );
-});
-
 test('Underlying sink: throwing close getter', t => {
   t.plan(1);
 

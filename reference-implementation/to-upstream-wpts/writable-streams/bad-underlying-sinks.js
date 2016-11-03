@@ -109,4 +109,15 @@ promise_test(t => {
 
 }, 'write: returning a rejected promise (second write) should cause writer write() and ready to reject');
 
+promise_test(t => {
+  const ws = new WritableStream({
+    abort: { apply() {} }
+  });
+
+  return promise_rejects(t, new TypeError(), ws.abort(error1), 'abort should reject with TypeError').then(() => {
+    const writer = ws.getWriter();
+    return promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError');
+  });
+}, 'abort: non-function abort method with .apply');
+
 done();
