@@ -15,19 +15,6 @@ exports.promiseCall = (func, ...args) => {
 
 exports.typeIsObject = x => (typeof x === 'object' && x !== null) || typeof x === 'function';
 
-exports.toInteger = v => {
-  v = Number(v);
-  if (isNaN(v)) {
-    return 0;
-  }
-
-  if (v < 0) {
-    return -1 * Math.floor(Math.abs(v));
-  }
-
-  return Math.floor(Math.abs(v));
-};
-
 exports.createDataProperty = (o, p, v) => {
   assert(exports.typeIsObject(o));
   Object.defineProperty(o, p, { value: v, writable: true, enumerable: true, configurable: true });
