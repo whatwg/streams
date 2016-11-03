@@ -5,14 +5,6 @@ function IsPropertyKey(argument) {
   return typeof argument === 'string' || typeof argument === 'symbol';
 }
 
-exports.promiseCall = (func, ...args) => {
-  try {
-    return Promise.resolve(func(...args));
-  } catch (e) {
-    return Promise.reject(e);
-  }
-};
-
 exports.typeIsObject = x => (typeof x === 'object' && x !== null) || typeof x === 'function';
 
 exports.createDataProperty = (o, p, v) => {
