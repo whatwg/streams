@@ -1860,8 +1860,7 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
   1. Set *this*.[[strategyHWM]] to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
   1. Let _autoAllocateChunkSize_ be ? GetV(_underlyingByteSource_, `"autoAllocateChunkSize"`).
   1. If _autoAllocateChunkSize_ is not *undefined*,
-    1. Set _autoAllocateChunkSize_ to ? ToInteger(_autoAllocateChunkSize_).
-    1. If _autoAllocateChunkSize_ ≤ *0*, or if _autoAllocateChunkSize_ is *+∞* or *−∞*, throw a *RangeError* exception.
+    1. If ! IsInteger(_autoAllocateChunkSize_) is *false*, or if _autoAllocateChunkSize_ ≤ *0*, throw a *RangeError* exception.
   1. Set *this*.[[autoAllocateChunkSize]] to _autoAllocateChunkSize_.
   1. Set *this*.[[pendingPullIntos]] to a new empty List.
   1. Let _controller_ be *this*.
