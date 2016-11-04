@@ -1172,7 +1172,7 @@ class ReadableByteStreamController {
     const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
     if (autoAllocateChunkSize !== undefined) {
       if (Number.isInteger(autoAllocateChunkSize) === false || autoAllocateChunkSize <= 0) {
-        throw new RangeError('autoAllocateChunkSize must be a non negative integer');
+        throw new RangeError('autoAllocateChunkSize must be a positive integer');
       }
     }
     this._autoAllocateChunkSize = autoAllocateChunkSize;
