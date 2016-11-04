@@ -9,6 +9,36 @@ if (self.importScripts) {
 const error1 = new Error('error1');
 error1.name = 'error1';
 
+test(() => {
+  assert_throws(error1, () => {
+    new WritableStream({
+      get start() {
+        throw error1;
+      }
+    });
+  }, 'constructor throws same error from throwing start getter');
+
+  assert_throws(error1, () => {
+    new WritableStream({
+      start() {
+        throw error1;
+      }
+    });
+  }, 'constructor throws same error from throwing start method');
+
+  assert_throws(new TypeError(), () => {
+    new WritableStream({
+      start: 'not a function or undefined'
+    });
+  }, 'non-function start property throws TypeError in constructor');
+
+  assert_throws(new TypeError(), () => {
+    new WritableStream({
+      start: { apply() {} }
+    });
+  }, 'non-function start property with .apply method throws TypeError in constructor');
+}, 'start: errors in start cause WritableStream constructor to throw');
+
 promise_test(t => {
 
   const ws = recordingWritableStream({
@@ -45,6 +75,48 @@ promise_test(t => {
   });
 
 }, 'close: returning a rejected promise should cause writer close() and ready to reject');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    get close() {
+      throw error1;
+    }
+  });
+
+  const writer = ws.getWriter();
+
+  return promise_rejects(t, error1, writer.close(), 'close should reject with the thrown error');
+}, 'close: throwing getter should cause writer close() to reject');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    get write() {
+      throw error1;
+    }
+  });
+
+  const writer = ws.getWriter();
+
+  return promise_rejects(t, error1, writer.write('a'), 'write should reject with the thrown error')
+  .then(() => {
+    return promise_rejects(t, error1, writer.closed, 'closed should reject with the thrown error');
+  });
+}, 'write: throwing getter should cause write() and closed to reject');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    write() {
+      throw error1;
+    }
+  });
+
+  const writer = ws.getWriter();
+
+  return promise_rejects(t, error1, writer.write('a'), 'write should reject with the thrown error')
+  .then(() => {
+    return promise_rejects(t, error1, writer.closed, 'closed should reject with the thrown error');
+  });
+}, 'write: throwing method should cause write() and closed to reject');
 
 promise_test(t => {
 
@@ -119,5 +191,37 @@ promise_test(t => {
     return promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError');
   });
 }, 'abort: non-function abort method with .apply');
+
+promise_test(t => {
+  const abortReason = new Error('different string');
+  const ws = new WritableStream({
+    get abort() {
+      throw error1;
+    }
+  });
+
+  const writer = ws.getWriter();
+
+  return promise_rejects(t, error1, writer.abort(abortReason), 'abort should reject with the thrown error')
+  .then(() => {
+    return promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError');
+  });
+}, 'abort: throwing getter should cause abort() and closed to reject');
+
+promise_test(t => {
+  const abortReason = new Error('different string');
+  const ws = new WritableStream({
+    abort() {
+      throw error1;
+    }
+  });
+
+  const writer = ws.getWriter();
+
+  return promise_rejects(t, error1, writer.abort(abortReason), 'abort should reject with the thrown error')
+  .then(() => {
+    return promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError');
+  });
+}, 'abort: throwing method should cause abort() and closed to reject');
 
 done();
