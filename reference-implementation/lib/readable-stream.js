@@ -253,7 +253,14 @@ class ReadableStream {
   }
 }
 
-module.exports = { ReadableStream, IsReadableStreamDisturbed };
+module.exports = {
+  ReadableStream,
+  IsReadableStreamDisturbed,
+  ReadableStreamDefaultControllerClose,
+  ReadableStreamDefaultControllerEnqueue,
+  ReadableStreamDefaultControllerError,
+  ReadableStreamDefaultControllerGetDesiredSize
+};
 
 // Abstract operations for the ReadableStream.
 
