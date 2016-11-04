@@ -64,6 +64,7 @@ module.exports = {
   IsWritableStreamLocked,
   WritableStream,
   WritableStreamAbort,
+  WritableStreamDefaultControllerError,
   WritableStreamDefaultWriterCloseWithErrorPropagation,
   WritableStreamDefaultWriterRelease,
   WritableStreamDefaultWriterWrite
