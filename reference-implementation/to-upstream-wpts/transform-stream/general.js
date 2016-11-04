@@ -54,7 +54,7 @@ promise_test(() => {
   return ts.readable.getReader().read().then(result => {
     assert_equals(result.value, 'a',
       'result from reading the readable is the same as was written to writable');
-    assert_false(result.done, 'stream is not done');
+    assert_false(result.done, 'stream should not done');
 
     return writer.ready.then(() => {
       assert_equals(writer.desiredSize, 1, 'desiredSize should be 1 again');
@@ -79,7 +79,7 @@ promise_test(() => {
   return ts.readable.getReader().read().then(result => {
     assert_equals(result.value, 'A',
       'result from reading the readable is the transformation of what was written to writable');
-    assert_false(result.done, 'stream is not done');
+    assert_false(result.done, 'stream should not be done');
   });
 }, 'Uppercaser sync TransformStream: can read from readable transformed version of what is put into writable');
 
@@ -103,12 +103,12 @@ promise_test(() => {
   return reader.read().then(result1 => {
     assert_equals(result1.value, 'A',
       'the first chunk read is the transformation of the single chunk written');
-    assert_false(result1.done, 'stream is not done');
+    assert_false(result1.done, 'stream should not be done');
 
     return reader.read().then(result2 => {
       assert_equals(result2.value, 'A',
         'the second chunk read is also the transformation of the single chunk written');
-      assert_false(result2.done, 'stream is not done');
+      assert_false(result2.done, 'stream should not be done');
     });
   });
 }, 'Uppercaser-doubler sync TransformStream: can read both chunks put into the readable');
@@ -131,7 +131,7 @@ promise_test(() => {
   return ts.readable.getReader().read().then(result => {
     assert_equals(result.value, 'A',
       'result from reading the readable is the transformation of what was written to writable');
-    assert_false(result.done, 'stream is not done');
+    assert_false(result.done, 'stream should not be done');
   });
 }, 'Uppercaser async TransformStream: can read from readable transformed version of what is put into writable');
 
@@ -156,12 +156,12 @@ promise_test(() => {
   return reader.read().then(result1 => {
     assert_equals(result1.value, 'A',
       'the first chunk read is the transformation of the single chunk written');
-    assert_false(result1.done, 'stream is not done');
+    assert_false(result1.done, 'stream should not be done');
 
     return reader.read().then(result2 => {
       assert_equals(result2.value, 'A',
         'the second chunk read is also the transformation of the single chunk written');
-      assert_false(result2.done, 'stream is not done');
+      assert_false(result2.done, 'stream should not be done');
     });
   });
 }, 'Uppercaser-doubler async TransformStream: can read both chunks put into the readable');

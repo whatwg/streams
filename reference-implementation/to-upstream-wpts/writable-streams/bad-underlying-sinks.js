@@ -16,7 +16,7 @@ test(() => {
         throw error1;
       }
     });
-  }, 'constructor throws same error from throwing start getter');
+  }, 'constructor should throw same error as throwing start getter');
 
   assert_throws(error1, () => {
     new WritableStream({
@@ -24,19 +24,19 @@ test(() => {
         throw error1;
       }
     });
-  }, 'constructor throws same error from throwing start method');
+  }, 'constructor should throw same error as throwing start method');
 
   assert_throws(new TypeError(), () => {
     new WritableStream({
       start: 'not a function or undefined'
     });
-  }, 'non-function start property throws TypeError in constructor');
+  }, 'constructor should throw TypeError when passed a non-function start property');
 
   assert_throws(new TypeError(), () => {
     new WritableStream({
       start: { apply() {} }
     });
-  }, 'non-function start property with .apply method throws TypeError in constructor');
+  }, 'constructor should throw TypeError when passed a non-function start property with an .apply method');
 }, 'start: errors in start cause WritableStream constructor to throw');
 
 promise_test(t => {
