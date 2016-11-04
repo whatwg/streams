@@ -54,7 +54,7 @@ promise_test(() => {
   return ts.readable.getReader().read().then(result => {
     assert_equals(result.value, 'a',
       'result from reading the readable is the same as was written to writable');
-    assert_false(result.done, 'stream should not done');
+    assert_false(result.done, 'stream should not be done');
 
     return writer.ready.then(() => {
       assert_equals(writer.desiredSize, 1, 'desiredSize should be 1 again');
