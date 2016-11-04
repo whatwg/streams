@@ -3012,6 +3012,11 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   stream. After the lock is released, the writer is no longer <a lt="active writer">active</a>. If the associated
   stream is errored when the lock is released, the writer will appear errored in the same way from now on; otherwise,
   the writer will appear closed.
+
+  Note that the lock can still be released even if some ongoing writes have not yet finished (i.e. even if the promises
+  returned from previous calls to {{WritableStreamDefaultWriter/write()}} have not yet settled). It's not required to
+  hold the lock on the writer for the duration of the write; the lock instead simply prevents other <a>producers</a>
+  from writing in an interleaved manner.
 </div>
 
 <emu-alg>
