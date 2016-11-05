@@ -243,6 +243,9 @@ function IsTransformStream(x) {
 
 class TransformStreamSink {
   constructor(transformStream, startPromise, type) {
+    if (type !== undefined) {
+      throw TypeError(`writableType cannot be ${type}`);
+    }
     this._transformStream = transformStream;
     this._startPromise = startPromise;
     this.type = type;
@@ -299,6 +302,9 @@ class TransformStreamSink {
 
 class TransformStreamSource {
   constructor(transformStream, startPromise, type) {
+    if (type !== undefined && type !== 'bytes') {
+      throw TypeError(`readableType cannot be ${type}`);
+    }
     this._transformStream = transformStream;
     this._startPromise = startPromise;
     this.type = type;
