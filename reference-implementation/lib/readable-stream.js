@@ -1726,6 +1726,7 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
 
   assert(controller._closeRequested === false);
   assert(stream._state === 'readable');
+  assert(ArrayBuffer.isView(chunk) === true);
 
   const buffer = chunk.buffer;
   const byteOffset = chunk.byteOffset;

@@ -2181,6 +2181,8 @@ nothrow>ReadableByteStreamControllerEnqueue ( <var>controller</var>, <var>chunk<
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
   1. Assert: _controller_.[[closeRequested]] is *false*.
   1. Assert: _stream_.[[state]] is `"readable"`.
+  1. Assert: Type(_chunk_) is Object.
+  1. Assert: _chunk_ has a [[ViewedArrayBuffer]] internal slot.
   1. Let _buffer_ be _chunk_.[[ViewedArrayBuffer]].
   1. Let _byteOffset_ be _chunk_.[[ByteOffset]].
   1. Let _byteLength_ be _chunk_.[[ByteLength]].
