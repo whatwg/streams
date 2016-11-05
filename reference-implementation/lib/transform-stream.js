@@ -3,7 +3,10 @@ const assert = require('assert');
 const { InvokeOrNoop, PromiseInvokeOrPerformFallback, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
 const { ReadableStream, ReadableStreamDefaultControllerClose,
         ReadableStreamDefaultControllerEnqueue, ReadableStreamDefaultControllerError,
-        ReadableStreamDefaultControllerGetDesiredSize } = require('./readable-stream.js');
+        ReadableStreamDefaultControllerGetDesiredSize,
+        ReadableByteStreamControllerClose, ReadableByteStreamControllerEnqueue,
+        ReadableByteStreamControllerError, ReadableByteStreamControllerGetBYOBRequest,
+        ReadableByteStreamControllerGetDesiredSize } = require('./readable-stream.js');
 const { WritableStream, WritableStreamDefaultControllerError } = require('./writable-stream.js');
 
 // Methods on the transform stream controller object
@@ -37,19 +40,28 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
   // accept TransformStreamEnqueueToReadable() calls.
 
   const controller = transformStream._readableController;
+  const type = transformStream._readableType;
+  assert(type === undefined || type === 'bytes');
 
-  try {
-    ReadableStreamDefaultControllerEnqueue(controller, chunk);
-  } catch (e) {
-    // This happens when readableStrategy.size() throws.
-    // The ReadableStream has already errored itself.
-    transformStream._readableClosed = true;
-    TransformStreamErrorIfNeeded(transformStream, e);
+  if (type === 'bytes') {
+    if (ArrayBuffer.isView(chunk) === false) {
+      throw new TypeError('You can only enqueue array buffer views when readableType is "bytes"');
+    }
+    ReadableByteStreamControllerEnqueue(controller, chunk);
+  } else if (type === undefined) {
+    try {
+      ReadableStreamDefaultControllerEnqueue(controller, chunk);
+    } catch (e) {
+      // This happens when readableStrategy.size() throws.
+      // The ReadableStream has already errored itself.
+      transformStream._readableClosed = true;
+      TransformStreamErrorIfNeeded(transformStream, e);
 
-    throw transformStream._storedError;
+      throw transformStream._storedError;
+    }
   }
 
-  const desiredSize = ReadableStreamDefaultControllerGetDesiredSize(controller);
+  const desiredSize = TransformStreamGetDesiredSize(transformStream);
   const maybeBackpressure = desiredSize <= 0;
 
   if (maybeBackpressure === true && transformStream._backpressure === false) {
@@ -76,10 +88,14 @@ function TransformStreamCloseReadableInternal(transformStream) {
   assert(transformStream._errored === false);
   assert(transformStream._readableClosed === false);
 
-  try {
-    ReadableStreamDefaultControllerClose(transformStream._readableController);
-  } catch (e) {
-    assert(false);
+  const readableController = transformStream._readableController;
+  const type = transformStream._readableType;
+  assert(type === undefined || type === 'bytes');
+
+  if (type === 'bytes') {
+    ReadableByteStreamControllerClose(readableController);
+  } else if (type === undefined) {
+    ReadableStreamDefaultControllerClose(readableController);
   }
 
   transformStream._readableClosed = true;
@@ -99,11 +115,23 @@ function TransformStreamErrorInternal(transformStream, e) {
   transformStream._errored = true;
   transformStream._storedError = e;
 
+  const writableController = transformStream._writableController;
+  const readableController = transformStream._readableController;
+
+  const writableType = transformStream._writableType;
+  const readableType = transformStream._readableType;
+  assert(writableType === undefined);
+  assert(readableType === 'bytes' || readableType === undefined);
+
   if (transformStream._writableDone === false) {
-    WritableStreamDefaultControllerError(transformStream._writableController, e);
+    WritableStreamDefaultControllerError(writableController, e);
   }
   if (transformStream._readableClosed === false) {
-    ReadableStreamDefaultControllerError(transformStream._readableController, e);
+    if (readableType === 'bytes') {
+      ReadableByteStreamControllerError(readableController, e);
+    } else if (readableType === undefined) {
+      ReadableStreamDefaultControllerError(readableController, e);
+    }
   }
 }
 
@@ -176,6 +204,19 @@ function TransformStreamTransform(transformStream, chunk) {
     e => TransformStreamErrorIfNeeded(transformStream, e));
 }
 
+function TransformStreamGetDesiredSize(transformStream) {
+  const type = transformStream._readableType;
+  const controller = transformStream._readableController;
+
+  assert(type === undefined || type === 'bytes');
+
+  if (type === 'bytes') {
+    return ReadableByteStreamControllerGetDesiredSize(controller);
+  } else if (type === undefined) {
+    return ReadableStreamDefaultControllerGetDesiredSize(controller);
+  }
+}
+
 function IsTransformStreamDefaultController(x) {
   if (!typeIsObject(x)) {
     return false;
@@ -201,9 +242,10 @@ function IsTransformStream(x) {
 }
 
 class TransformStreamSink {
-  constructor(transformStream, startPromise) {
+  constructor(transformStream, startPromise, type) {
     this._transformStream = transformStream;
     this._startPromise = startPromise;
+    this.type = type;
   }
 
   start(c) {
@@ -256,9 +298,10 @@ class TransformStreamSink {
 }
 
 class TransformStreamSource {
-  constructor(transformStream, startPromise) {
+  constructor(transformStream, startPromise, type) {
     this._transformStream = transformStream;
     this._startPromise = startPromise;
+    this.type = type;
   }
 
   start(c) {
@@ -321,15 +364,28 @@ class TransformStreamDefaultController {
     this._controlledTransformStream = transformStream;
   }
 
+  get byobRequest() {
+    if (IsTransformStreamDefaultController(this) === false) {
+      throw defaultControllerBrandCheckException('byobRequest');
+    }
+
+    if (this._readableType !== 'bytes') {
+      return undefined;
+    }
+
+    const readableController = this._readableController;
+
+    return ReadableByteStreamControllerGetBYOBRequest(readableController);
+  }
+
   get desiredSize() {
     if (IsTransformStreamDefaultController(this) === false) {
       throw defaultControllerBrandCheckException('desiredSize');
     }
 
     const transformStream = this._controlledTransformStream;
-    const readableController = transformStream._readableController;
 
-    return ReadableStreamDefaultControllerGetDesiredSize(readableController);
+    return TransformStreamGetDesiredSize(transformStream);
   }
 
   enqueue(chunk) {
@@ -379,23 +435,26 @@ class TransformStream {
 
     this._transformStreamController = new TransformStreamDefaultController(this);
 
+    this._readableType = transformer.readableType;
+    this._writableType = transformer.writableType;
+
     let startPromise_resolve;
     const startPromise = new Promise(resolve => {
       startPromise_resolve = resolve;
     });
 
-    const source = new TransformStreamSource(this, startPromise);
+    const source = new TransformStreamSource(this, startPromise, this._readableType);
 
     this._readable = new ReadableStream(source, readableStrategy);
 
-    const sink = new TransformStreamSink(this, startPromise);
+    const sink = new TransformStreamSink(this, startPromise, this._writableType);
 
     this._writable = new WritableStream(sink, writableStrategy);
 
     assert(this._writableController !== undefined);
     assert(this._readableController !== undefined);
 
-    const desiredSize = ReadableStreamDefaultControllerGetDesiredSize(this._readableController);
+    const desiredSize = TransformStreamGetDesiredSize(this);
     // Set _backpressure based on desiredSize. As there is no read() at this point, we can just interpret
     // desiredSize being non-positive as backpressure.
     TransformStreamSetBackpressure(this, desiredSize <= 0);

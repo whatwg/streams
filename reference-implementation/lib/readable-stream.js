@@ -256,6 +256,11 @@ class ReadableStream {
 module.exports = {
   ReadableStream,
   IsReadableStreamDisturbed,
+  ReadableByteStreamControllerClose,
+  ReadableByteStreamControllerEnqueue,
+  ReadableByteStreamControllerError,
+  ReadableByteStreamControllerGetBYOBRequest,
+  ReadableByteStreamControllerGetDesiredSize,
   ReadableStreamDefaultControllerClose,
   ReadableStreamDefaultControllerEnqueue,
   ReadableStreamDefaultControllerError,
