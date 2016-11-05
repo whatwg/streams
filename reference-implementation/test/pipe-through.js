@@ -1,47 +1,6 @@
 'use strict';
 const test = require('tape-catch');
 
-const sequentialReadableStream = require('./utils/sequential-rs.js');
-const duckTypedPassThroughTransform = require('./utils/duck-typed-pass-through-transform.js');
-const readableStreamToArray = require('./utils/readable-stream-to-array.js');
-
-test('Piping through a duck-typed pass-through transform stream works', t => {
-  t.plan(1);
-
-  const readableEnd = sequentialReadableStream(5).pipeThrough(duckTypedPassThroughTransform());
-
-  readableStreamToArray(readableEnd).then(chunks => t.deepEqual(chunks, [1, 2, 3, 4, 5]));
-});
-
-test('Piping through an identity transform stream will close the destination when the source closes', t => {
-  const rs = new ReadableStream({
-    start(c) {
-      c.enqueue('a');
-      c.enqueue('b');
-      c.enqueue('c');
-      c.close();
-    }
-  });
-
-  let c;
-
-  const ts = new TransformStream({
-    start(controller) {
-      c = controller;
-    },
-    transform(chunk) {
-      c.enqueue(chunk);
-    }
-  });
-
-  const ws = new WritableStream();
-
-  rs.pipeThrough(ts).pipeTo(ws).then(() => {
-    t.end();
-  })
-  .catch(e => t.error(e));
-});
-
 // FIXME: expected results here will probably change as we fix https://github.com/whatwg/streams/issues/190
 // As they are now they don't make very much sense, so we will skip the test. When #190 is fixed, we should fix the
 // test and re-enable.
