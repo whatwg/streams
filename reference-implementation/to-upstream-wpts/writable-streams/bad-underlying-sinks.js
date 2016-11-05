@@ -70,9 +70,7 @@ promise_test(t => {
 
   return promise_rejects(t, error1, writer.close(), 'close() promise must reject with the same error')
   .then(() => promise_rejects(t, error1, writer.ready, 'ready promise must reject with the same error'))
-  .then(() => {
-    assert_array_equals(ws.events, ['close']);
-  });
+  .then(() => assert_array_equals(ws.events, ['close']));
 
 }, 'close: returning a rejected promise should cause writer close() and ready to reject');
 
@@ -98,9 +96,7 @@ promise_test(t => {
   const writer = ws.getWriter();
 
   return promise_rejects(t, error1, writer.write('a'), 'write should reject with the thrown error')
-  .then(() => {
-    return promise_rejects(t, error1, writer.closed, 'closed should reject with the thrown error');
-  });
+  .then(() => promise_rejects(t, error1, writer.closed, 'closed should reject with the thrown error'));
 }, 'write: throwing getter should cause write() and closed to reject');
 
 promise_test(t => {
@@ -113,9 +109,7 @@ promise_test(t => {
   const writer = ws.getWriter();
 
   return promise_rejects(t, error1, writer.write('a'), 'write should reject with the thrown error')
-  .then(() => {
-    return promise_rejects(t, error1, writer.closed, 'closed should reject with the thrown error');
-  });
+  .then(() => promise_rejects(t, error1, writer.closed, 'closed should reject with the thrown error'));
 }, 'write: throwing method should cause write() and closed to reject');
 
 promise_test(t => {
@@ -175,9 +169,7 @@ promise_test(t => {
       'transitioned');
     return promise_rejects(t, error1, writer.ready, 'ready promise must reject with the same error');
   })
-  .then(() => {
-    assert_array_equals(ws.events, ['write', 'a', 'write', 'b']);
-  });
+  .then(() => assert_array_equals(ws.events, ['write', 'a', 'write', 'b']));
 
 }, 'write: returning a rejected promise (second write) should cause writer write() and ready to reject');
 
@@ -203,9 +195,7 @@ promise_test(t => {
   const writer = ws.getWriter();
 
   return promise_rejects(t, error1, writer.abort(abortReason), 'abort should reject with the thrown error')
-  .then(() => {
-    return promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError');
-  });
+  .then(() => promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError'));
 }, 'abort: throwing getter should cause abort() and closed to reject');
 
 promise_test(t => {
@@ -219,9 +209,7 @@ promise_test(t => {
   const writer = ws.getWriter();
 
   return promise_rejects(t, error1, writer.abort(abortReason), 'abort should reject with the thrown error')
-  .then(() => {
-    return promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError');
-  });
+  .then(() => promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError'));
 }, 'abort: throwing method should cause abort() and closed to reject');
 
 done();
