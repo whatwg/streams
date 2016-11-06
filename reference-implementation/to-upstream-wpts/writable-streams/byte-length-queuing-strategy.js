@@ -1,9 +1,10 @@
 'use strict';
-const test = require('tape-catch');
 
-test('Closing a writable stream with in-flight writes below the high water mark delays the close call properly', t => {
-  t.plan(1);
+if (self.importScripts) {
+  self.importScripts('/resources/testharness.js');
+}
 
+promise_test(() => {
   let isDone = false;
   const ws = new WritableStream(
     {
@@ -17,7 +18,7 @@ test('Closing a writable stream with in-flight writes below the high water mark 
       },
 
       close() {
-        t.true(isDone, 'close is only called once the promise has been resolved');
+        assert_true(isDone, 'close is only called once the promise has been resolved');
       }
     },
     new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 16 })
@@ -25,5 +26,6 @@ test('Closing a writable stream with in-flight writes below the high water mark 
 
   const writer = ws.getWriter();
   writer.write({ byteLength: 1024 });
-  writer.close();
-});
+
+  return writer.close();
+}, 'Closing a writable stream with in-flight writes below the high water mark delays the close call properly');
