@@ -52,26 +52,26 @@ test(() => {
 
 promise_test(t => {
   return Promise.all([getterRejects(t, WriterProto, 'closed', fakeWritableStreamDefaultWriter()),
-                      getterRejects(t, WriterProto, 'closed', realReadableStreamDefaultWriter())]);
+    getterRejects(t, WriterProto, 'closed', realReadableStreamDefaultWriter())]);
 }, 'WritableStreamDefaultWriter.prototype.closed enforces a brand check');
 
 promise_test(t => {
   return Promise.all([getterRejects(t, WriterProto, 'ready', fakeWritableStreamDefaultWriter()),
-                      getterRejects(t, WriterProto, 'ready', realReadableStreamDefaultWriter())]);
+    getterRejects(t, WriterProto, 'ready', realReadableStreamDefaultWriter())]);
 }, 'WritableStreamDefaultWriter.prototype.ready enforces a brand check');
 
 test(t => {
   return Promise.all([methodRejects(t, WriterProto, 'abort', fakeWritableStreamDefaultWriter()),
-                      methodRejects(t, WriterProto, 'abort', realReadableStreamDefaultWriter())]);
+    methodRejects(t, WriterProto, 'abort', realReadableStreamDefaultWriter())]);
 
 }, 'WritableStreamDefaultWriter.prototype.abort enforces a brand check');
 
 promise_test(t => {
   return Promise.all([methodRejects(t, WriterProto, 'write', fakeWritableStreamDefaultWriter()),
-                      methodRejects(t, WriterProto, 'write', realReadableStreamDefaultWriter())]);
+    methodRejects(t, WriterProto, 'write', realReadableStreamDefaultWriter())]);
 }, 'WritableStreamDefaultWriter.prototype.write enforces a brand check');
 
 promise_test(t => {
   return Promise.all([methodRejects(t, WriterProto, 'close', fakeWritableStreamDefaultWriter()),
-                      methodRejects(t, WriterProto, 'close', realReadableStreamDefaultWriter())]);
+    methodRejects(t, WriterProto, 'close', realReadableStreamDefaultWriter())]);
 }, 'WritableStreamDefaultWriter.prototype.close enforces a brand check');
