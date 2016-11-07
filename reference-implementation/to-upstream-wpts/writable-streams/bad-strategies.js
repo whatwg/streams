@@ -36,8 +36,8 @@ promise_test(t => {
 }, 'Writable stream: throwing strategy.size method');
 
 promise_test(t => {
-  const results = [];
-  for (const size of [NaN, -Infinity, Infinity, -1]) {
+  const sizes = [NaN, -Infinity, Infinity, -1];
+  return Promise.all(sizes.map(size => {
     let theError;
     const ws = new WritableStream({}, {
       size() {
@@ -48,17 +48,16 @@ promise_test(t => {
 
     const writer = ws.getWriter();
 
-    results.push(promise_rejects(t, new RangeError(), writer.write('a').catch(r => {
-      theError = r;
-      throw r;
-    }), `write should reject with a RangeError for ${size}`));
-
-    results.push(promise_rejects(t, new RangeError(), writer.closed.catch(e => {
-      assert_equals(e, theError, `closed should reject with the error for ${size}`);
-      throw e;
-    }), 'closed should reject'));
-  }
-  return Promise.all(results);
+    return Promise.all([
+      promise_rejects(t, new RangeError(), writer.write('a').catch(r => {
+        theError = r;
+        throw r;
+      }), `write should reject with a RangeError for ${size}`),
+      promise_rejects(t, new RangeError(), writer.closed.catch(e => {
+        assert_equals(e, theError, `closed should reject with the error for ${size}`);
+        throw e;
+      }), 'closed should reject')]);
+  }));
 }, 'Writable stream: invalid strategy.size return value');
 
 test(() => {
