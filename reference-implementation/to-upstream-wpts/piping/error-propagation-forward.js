@@ -410,7 +410,7 @@ promise_test(t => {
   return writeCalledPromise.then(() => {
     rs.controller.error(error1);
 
-    // Ensure that within two event loops, at least, no shutdown occurs.
+    // Flush async events and verify that no shutdown occurs.
     return flushAsyncEvents();
   }).then(() => {
     assert_array_equals(ws.events, ['write', 'a']); // no 'abort'
