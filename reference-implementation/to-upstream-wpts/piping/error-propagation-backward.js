@@ -41,9 +41,11 @@ promise_test(t => {
   });
 
   const writer = ws.getWriter();
-  writer.write('Hello');
 
-  return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error')
+  return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+    .then(() => {
+      return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error');
+    })
     .then(() => {
       writer.releaseLock();
 
@@ -72,9 +74,11 @@ promise_test(t => {
   });
 
   const writer = ws.getWriter();
-  writer.write('Hello');
 
-  return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error')
+  return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+    .then(() => {
+      return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error');
+    })
     .then(() => {
       writer.releaseLock();
 
@@ -100,9 +104,11 @@ for (const falsy of [undefined, null, false, +0, -0, NaN, '']) {
     });
 
     const writer = ws.getWriter();
-    writer.write('Hello');
 
-    return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error')
+    return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+      .then(() => {
+        return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error');
+      })
       .then(() => {
         writer.releaseLock();
 
@@ -130,9 +136,11 @@ for (const truthy of [true, 'a', 1, Symbol(), { }]) {
     });
 
     const writer = ws.getWriter();
-    writer.write('Hello');
 
-    return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error')
+    return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+      .then(() => {
+        return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error');
+      })
       .then(() => {
         writer.releaseLock();
 
@@ -159,9 +167,11 @@ promise_test(t => {
   });
 
   const writer = ws.getWriter();
-  writer.write('Hello');
 
-  return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error')
+  return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+    .then(() => {
+      return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error');
+    })
     .then(() => {
       writer.releaseLock();
 
@@ -187,9 +197,11 @@ promise_test(t => {
   });
 
   const writer = ws.getWriter();
-  writer.write('Hello');
 
-  return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error')
+  return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+    .then(() => {
+      return promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error');
+    })
     .then(() => {
       writer.releaseLock();
 

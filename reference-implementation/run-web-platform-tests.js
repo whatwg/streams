@@ -1,5 +1,6 @@
 // This runs the web platform tests against the reference implementation, in Node.js using jsdom, for easier rapid
 // development of the reference implementation and the web platform tests.
+/* eslint-disable no-console*/
 'use strict';
 const path = require('path');
 const wptRunner = require('wpt-runner');
@@ -13,6 +14,18 @@ const CountQueuingStrategy = require('./lib/count-queuing-strategy.js');
 const testsPath = path.resolve(__dirname, 'web-platform-tests/streams');
 const toUpstreamTestsPath = path.resolve(__dirname, 'to-upstream-wpts');
 
+// wpt-runner does not yet support unhandled rejection tracking a la
+// https://github.com/w3c/testharness.js/commit/7716e2581a86dfd9405a9c00547a7504f0c7fe94
+// So we emulate it with Node.js events
+const rejections = new Map();
+process.on('unhandledRejection', (reason, promise) => {
+  rejections.set(promise, reason);
+});
+
+process.on('rejectionHandled', promise => {
+  rejections.delete(promise);
+});
+
 let totalFailures = 0;
 wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup })
   .then(failures => {
@@ -22,9 +35,18 @@ wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup })
   .then(failures => {
     totalFailures += failures;
     process.exitCode = totalFailures;
+
+    if (rejections.size > 0) {
+      if (totalFailures === 0) {
+        process.exitCode = 1;
+      }
+
+      for (const reason of rejections.values()) {
+        console.error('Unhandled promise rejection: ', reason.stack);
+      }
+    }
   })
   .catch(e => {
-    /* eslint-disable no-console */
     console.error(e.stack);
     process.exitCode = 1;
   });

@@ -4,6 +4,9 @@ if (self.importScripts) {
   self.importScripts('/resources/testharness.js');
 }
 
+const error1 = new Error('error1');
+error1.name = 'error1';
+
 promise_test(() => {
   let controller;
   const ws = new WritableStream({
@@ -13,41 +16,44 @@ promise_test(() => {
   });
 
   // Now error the stream after its construction.
-  const passedError = new Error('horrible things');
-  controller.error(passedError);
+  controller.error(error1);
 
   const writer = ws.getWriter();
 
   assert_equals(writer.desiredSize, null, 'desiredSize should be null');
   return writer.closed.catch(r => {
-    assert_equals(r, passedError, 'ws should be errored by passedError');
+    assert_equals(r, error1, 'ws should be errored by the passed error');
   });
 }, 'controller argument should be passed to start method');
 
 promise_test(t => {
   const ws = new WritableStream({
     write(chunk, controller) {
-      controller.error(new Error());
+      controller.error(error1);
     }
   });
 
   const writer = ws.getWriter();
-  writer.write('a');
 
-  return promise_rejects(t, new Error(), writer.closed, 'controller.error() in write() should errored the stream');
+  return Promise.all([
+    promise_rejects(t, error1, writer.write('a'), 'write() should reject with the error'),
+    promise_rejects(t, error1, writer.closed, 'controller.error() in write() should errored the stream')
+  ]);
 }, 'controller argument should be passed to write method');
 
 promise_test(t => {
   const ws = new WritableStream({
     close(controller) {
-      controller.error(new Error());
+      controller.error(error1);
     }
   });
 
   const writer = ws.getWriter();
-  writer.close();
 
-  return promise_rejects(t, new Error(), writer.closed, 'controller.error() in close() should error the stream');
+  return Promise.all([
+    promise_rejects(t, error1, writer.close(), 'close() should reject with the error'),
+    promise_rejects(t, error1, writer.closed, 'controller.error() in close() should error the stream')
+  ]);
 }, 'controller argument should be passed to close method');
 
 promise_test(() => {

@@ -537,6 +537,7 @@ function ReadableStreamError(stream, e) {
   }
 
   defaultReaderClosedPromiseReject(reader, e);
+  reader._closedPromise.catch(() => {});
 }
 
 function ReadableStreamFulfillReadIntoRequest(stream, chunk, done) {
@@ -768,6 +769,7 @@ function ReadableStreamReaderGenericInitialize(reader, stream) {
     assert(stream._state === 'errored', 'state must be errored');
 
     defaultReaderClosedPromiseInitializeAsRejected(reader, stream._storedError);
+    reader._closedPromise.catch(() => {});
   }
 }
 
@@ -793,6 +795,7 @@ function ReadableStreamReaderGenericRelease(reader) {
         reader,
         new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
   }
+  reader._closedPromise.catch(() => {});
 
   reader._ownerReadableStream._reader = undefined;
   reader._ownerReadableStream = undefined;

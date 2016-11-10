@@ -17,7 +17,7 @@ promise_test(t => {
   });
 
   const writer = ws.getWriter();
-  writer.write('a');
+  const writePromise = writer.write('a');
 
   const readyPromise = writer.ready;
 
@@ -25,7 +25,10 @@ promise_test(t => {
 
   assert_equals(writer.ready, readyPromise, 'the ready promise property should not change');
 
-  return promise_rejects(t, new TypeError(), readyPromise, 'the ready promise should reject with a TypeError');
+  return Promise.all([
+    promise_rejects(t, new TypeError(), readyPromise, 'the ready promise should reject with a TypeError'),
+    promise_rejects(t, new TypeError(), writePromise, 'the write() promise should reject with a TypeError')
+  ]);
 }, 'Aborting a WritableStream should cause the writer\'s unsettled ready promise to reject');
 
 promise_test(t => {
@@ -53,7 +56,7 @@ promise_test(t => {
   return promise_rejects(t, new TypeError(), writer.abort(), 'abort() should reject with a TypeError');
 }, 'abort() on a released writer rejects');
 
-promise_test(() => {
+promise_test(t => {
   const ws = recordingWritableStream();
 
   return delay(0)
@@ -61,29 +64,41 @@ promise_test(() => {
       const writer = ws.getWriter();
 
       writer.abort();
-      writer.write(1);
-      writer.write(2);
+
+      return Promise.all([
+        promise_rejects(t, new TypeError(), writer.write(1), 'write(1) must reject with a TypeError'),
+        promise_rejects(t, new TypeError(), writer.write(2), 'write(2) must reject with a TypeError')
+      ]);
     })
     .then(() => {
       assert_array_equals(ws.events, ['abort', undefined]);
     });
 }, 'Aborting a WritableStream immediately prevents future writes');
 
-promise_test(() => {
+promise_test(t => {
   const ws = recordingWritableStream();
+  const results = [];
 
   return delay(0)
     .then(() => {
       const writer = ws.getWriter();
 
-      writer.write(1);
-      writer.write(2);
-      writer.write(3);
+      results.push(
+        writer.write(1),
+        promise_rejects(t, new TypeError(), writer.write(2), 'write(2) must reject with a TypeError'),
+        promise_rejects(t, new TypeError(), writer.write(3), 'write(3) must reject with a TypeError')
+      );
+
       writer.abort();
-      writer.write(4);
-      writer.write(5);
+
+      results.push(
+        promise_rejects(t, new TypeError(), writer.write(4), 'write(4) must reject with a TypeError'),
+        promise_rejects(t, new TypeError(), writer.write(5), 'write(5) must reject with a TypeError')
+      );
     }).then(() => {
       assert_array_equals(ws.events, ['write', 1, 'abort', undefined]);
+
+      return Promise.all(results);
     });
 }, 'Aborting a WritableStream prevents further writes after any that are in progress');
 
@@ -162,10 +177,13 @@ promise_test(t => {
   const ws = new WritableStream();
   const writer = ws.getWriter();
 
-  writer.close();
+  const closePromise = writer.close();
   writer.abort(error1);
 
-  return promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError');
+  return Promise.all([
+    promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError'),
+    promise_rejects(t, new TypeError(), closePromise, 'close() should reject with a TypeError')
+  ]);
 }, 'Closing but then immediately aborting a WritableStream causes the stream to error');
 
 promise_test(t => {
@@ -176,12 +194,15 @@ promise_test(t => {
   });
   const writer = ws.getWriter();
 
-  writer.close();
+  const closePromise = writer.close();
 
   return delay(0).then(() => {
     writer.abort(error1);
   })
-  .then(() => promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError'));
+  .then(() => Promise.all([
+    promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError'),
+    promise_rejects(t, new TypeError(), closePromise, 'close() should reject with a TypeError')
+  ]));
 }, 'Closing a WritableStream and aborting it while it closes causes the stream to error');
 
 promise_test(() => {
@@ -193,14 +214,25 @@ promise_test(() => {
   return delay(0).then(() => writer.abort());
 }, 'Aborting a WritableStream after it is closed is a no-op');
 
-test(() => {
-  const ws = recordingWritableStream();
+promise_test(t => {
+  // Cannot use recordingWritableStream since it always has an abort
+  let controller;
+  let closeArgs;
+  const ws = new WritableStream({
+    start(c) {
+      controller = c;
+    },
+    close(...args) {
+      closeArgs = args;
+    }
+  });
+
   const writer = ws.getWriter();
 
   writer.abort();
 
-  return writer.closed.then(() => {
-    assert_array_equals(ws.events, ['close']);
+  return promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError').then(() => {
+    assert_array_equals(closeArgs, [controller], 'close must have been called, with the controller as its argument');
   });
 }, 'WritableStream should call underlying sink\'s close if no abort is supplied');
 
