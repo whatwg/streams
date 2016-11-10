@@ -84,12 +84,8 @@ promise_test(() => {
 
   const rs = recordingReadableStream();
 
-  const startPromise = Promise.resolve();
   let resolveWritePromise;
   const ws = recordingWritableStream({
-    start() {
-      return startPromise;
-    },
     write() {
       if (!resolveWritePromise) {
         // first write
@@ -104,7 +100,7 @@ promise_test(() => {
   const writer = ws.getWriter();
   writer.write('a');
 
-  return startPromise.then(() => {
+  return ws.startPromise.then(() => {
     assert_array_equals(ws.events, ['write', 'a']);
     assert_equals(writer.desiredSize, 0, 'after writing the writer\'s desiredSize must be 0');
     writer.releaseLock();
