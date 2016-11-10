@@ -2,6 +2,8 @@
 
 self.recordingReadableStream = (extras = {}, strategy) => {
   let controllerToCopyOver;
+  const events = [];
+  const eventsWithoutPulls = [];
   const stream = new ReadableStream({
     start(controller) {
       controllerToCopyOver = controller;
@@ -13,7 +15,7 @@ self.recordingReadableStream = (extras = {}, strategy) => {
       return undefined;
     },
     pull(controller) {
-      stream.events.push('pull');
+      events.push('pull');
 
       if (extras.pull) {
         return extras.pull(controller);
@@ -22,8 +24,8 @@ self.recordingReadableStream = (extras = {}, strategy) => {
       return undefined;
     },
     cancel(reason) {
-      stream.events.push('cancel', reason);
-      stream.eventsWithoutPulls.push('cancel', reason);
+      events.push('cancel', reason);
+      eventsWithoutPulls.push('cancel', reason);
 
       if (extras.cancel) {
         return extras.cancel(reason);
@@ -34,14 +36,15 @@ self.recordingReadableStream = (extras = {}, strategy) => {
   }, strategy);
 
   stream.controller = controllerToCopyOver;
-  stream.events = [];
-  stream.eventsWithoutPulls = [];
+  stream.events = events;
+  stream.eventsWithoutPulls = eventsWithoutPulls;
 
   return stream;
 };
 
 self.recordingWritableStream = (extras = {}, strategy) => {
   let controllerToCopyOver;
+  const events = [];
   const stream = new WritableStream({
     start(controller) {
       controllerToCopyOver = controller;
@@ -53,7 +56,7 @@ self.recordingWritableStream = (extras = {}, strategy) => {
       return undefined;
     },
     write(chunk) {
-      stream.events.push('write', chunk);
+      events.push('write', chunk);
 
       if (extras.write) {
         return extras.write(chunk);
@@ -64,7 +67,7 @@ self.recordingWritableStream = (extras = {}, strategy) => {
     close(...args) {
       assert_array_equals(args, [controllerToCopyOver], 'close must always be called with the controller');
 
-      stream.events.push('close');
+      events.push('close');
 
       if (extras.close) {
         return extras.close();
@@ -73,7 +76,7 @@ self.recordingWritableStream = (extras = {}, strategy) => {
       return undefined;
     },
     abort(e) {
-      stream.events.push('abort', e);
+      events.push('abort', e);
 
       if (extras.abort) {
         return extras.abort(e);
@@ -84,7 +87,7 @@ self.recordingWritableStream = (extras = {}, strategy) => {
   }, strategy);
 
   stream.controller = controllerToCopyOver;
-  stream.events = [];
+  stream.events = events;
 
   return stream;
 };
