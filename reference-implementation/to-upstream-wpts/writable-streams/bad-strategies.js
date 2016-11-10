@@ -18,6 +18,39 @@ test(() => {
   }, 'construction should re-throw the error');
 }, 'Writable stream: throwing strategy.size getter');
 
+test(() => {
+  assert_throws(error1, () => {
+    new WritableStream({}, {
+      size() {
+        return 1;
+      },
+      get highWaterMark() {
+        throw error1;
+      }
+    });
+  }, 'construction should re-throw the error');
+}, 'Writable stream: throwing strategy.highWaterMark getter');
+
+test(() => {
+
+  for (const highWaterMark of [-1, -Infinity, NaN, 'foo', {}]) {
+    assert_throws(new RangeError(), () => {
+      new WritableStream({}, {
+        size() {
+          return 1;
+        },
+        highWaterMark
+      });
+    }, `construction should throw a RangeError for ${highWaterMark}`);
+  }
+}, 'Writable stream: invalid strategy.highWaterMark');
+
+test(() => {
+  assert_throws(new TypeError(), () => {
+    new WritableStream({}, { size: 'a string' });
+  });
+}, 'reject any non-function value for strategy.size');
+
 promise_test(t => {
   const ws = new WritableStream({}, {
     size() {
@@ -56,38 +89,5 @@ promise_test(() => {
     });
   }));
 }, 'Writable stream: invalid strategy.size return value');
-
-test(() => {
-  assert_throws(error1, () => {
-    new WritableStream({}, {
-      size() {
-        return 1;
-      },
-      get highWaterMark() {
-        throw error1;
-      }
-    });
-  }, 'construction should re-throw the error');
-}, 'Writable stream: throwing strategy.highWaterMark getter');
-
-test(() => {
-
-  for (const highWaterMark of [-1, -Infinity, NaN, 'foo', {}]) {
-    assert_throws(new RangeError(), () => {
-      new WritableStream({}, {
-        size() {
-          return 1;
-        },
-        highWaterMark
-      });
-    }, `construction should throw a RangeError for ${highWaterMark}`);
-  }
-}, 'Writable stream: invalid strategy.highWaterMark');
-
-test(() => {
-  assert_throws(new TypeError(), () => {
-    new WritableStream({}, { size: 'a string' });
-  });
-}, 'reject any non-function value for strategy.size');
 
 done();
