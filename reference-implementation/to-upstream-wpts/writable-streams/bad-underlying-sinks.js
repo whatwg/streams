@@ -83,7 +83,7 @@ promise_test(t => {
   const ws = recordingWritableStream({
     write() {
       if (ws.events.length === 2) {
-        return flushAsyncEvents();
+        return delay(0);
       }
 
       return Promise.reject(error1);
