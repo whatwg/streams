@@ -1,6 +1,7 @@
 // This runs the web platform tests against the reference implementation, in Node.js using jsdom, for easier rapid
 // development of the reference implementation and the web platform tests.
 'use strict';
+const fs = require('fs');
 const path = require('path');
 const wptRunner = require('wpt-runner');
 
@@ -17,6 +18,9 @@ let totalFailures = 0;
 wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup })
   .then(failures => {
     totalFailures += failures;
+    if (!fs.existsSync(testsPath)) {
+      return 0;
+    }
     return wptRunner(testsPath, { rootURL: 'streams/', setup });
   })
   .then(failures => {
