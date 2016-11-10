@@ -19,6 +19,12 @@ test(() => {
 }, 'Writable stream: throwing strategy.size getter');
 
 test(() => {
+  assert_throws(new TypeError(), () => {
+    new WritableStream({}, { size: 'a string' });
+  });
+}, 'reject any non-function value for strategy.size');
+
+test(() => {
   assert_throws(error1, () => {
     new WritableStream({}, {
       size() {
@@ -44,12 +50,6 @@ test(() => {
     }, `construction should throw a RangeError for ${highWaterMark}`);
   }
 }, 'Writable stream: invalid strategy.highWaterMark');
-
-test(() => {
-  assert_throws(new TypeError(), () => {
-    new WritableStream({}, { size: 'a string' });
-  });
-}, 'reject any non-function value for strategy.size');
 
 promise_test(t => {
   const ws = new WritableStream({}, {
