@@ -4,7 +4,6 @@ if (self.importScripts) {
   self.importScripts('/resources/testharness.js');
   self.importScripts('../resources/test-utils.js');
   self.importScripts('../resources/recording-streams.js');
-  self.importScripts('../resources/rs-utils.js');
 }
 
 test(() => {
@@ -154,37 +153,6 @@ promise_test(() => {
   return pipePromise;
 
 }, 'Piping from a ReadableStream for which a chunk becomes asynchronously readable after the pipeTo');
-
-function duckTypedPassThroughTransform() {
-  let enqueueInReadable;
-  let closeReadable;
-
-  return {
-    writable: new WritableStream({
-      write(chunk) {
-        enqueueInReadable(chunk);
-      },
-
-      close() {
-        closeReadable();
-      }
-    }),
-
-    readable: new ReadableStream({
-      start(c) {
-        enqueueInReadable = c.enqueue.bind(c);
-        closeReadable = c.close.bind(c);
-      }
-    })
-  };
-}
-
-promise_test(() => {
-  const readableEnd = sequentialReadableStream(5).pipeThrough(duckTypedPassThroughTransform());
-
-  return readableStreamToArray(readableEnd).then(chunks =>
-    assert_array_equals(chunks, [1, 2, 3, 4, 5]));
-}, 'Piping through a duck-typed pass-through transform stream should work');
 
 promise_test(() => {
   const rs = new ReadableStream({
