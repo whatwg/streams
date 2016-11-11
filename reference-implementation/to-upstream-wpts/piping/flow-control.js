@@ -24,8 +24,8 @@ promise_test(t => {
 
   const pipePromise = rs.pipeTo(ws, { preventCancel: true });
 
-  // Give it some time to make sure it doesn't do any reading for at least 50 ms.
-  return delay(50).then(() => {
+  // Wait and make sure it doesn't do any reading.
+  return flushAsyncEvents().then(() => {
     ws.controller.error(error1);
   })
   .then(() => promise_rejects(t, error1, pipePromise, 'pipeTo must reject with the same error'))
@@ -71,7 +71,7 @@ promise_test(() => {
 
   const pipePromise = rs.pipeTo(ws);
 
-  return delay(10).then(() => resolveWritePromise())
+  return flushAsyncEvents().then(() => resolveWritePromise())
     .then(() => Promise.all([firstWritePromise, pipePromise]))
     .then(() => {
       assert_array_equals(rs.eventsWithoutPulls, []);

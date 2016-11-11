@@ -286,7 +286,7 @@ promise_test(t => {
   const ws = recordingWritableStream({
     write() {
       if (ws.events.length > 2) {
-        return delay(10).then(() => {
+        return delay(0).then(() => {
           throw error1;
         });
       }
@@ -318,7 +318,7 @@ promise_test(t => {
   const ws = recordingWritableStream({
     write() {
       if (ws.events.length > 2) {
-        return delay(10).then(() => {
+        return delay(0).then(() => {
           throw error1;
         });
       }
@@ -347,7 +347,7 @@ promise_test(t => {
   const ws = recordingWritableStream({
     write() {
       if (ws.events.length > 2) {
-        return delay(10).then(() => {
+        return delay(0).then(() => {
           throw error1;
         });
       }

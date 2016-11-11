@@ -407,8 +407,8 @@ promise_test(() => {
   rs.controller.enqueue('a');
   rs.controller.close();
 
-  // Ensure that within 50 ms, at least, no shutdown occurs.
-  return delay(50).then(() => {
+  // Flush async events and verify that no shutdown occurs.
+  return flushAsyncEvents().then(() => {
     assert_array_equals(ws.events, ['write', 'a']); // no 'close'
     assert_equals(pipeComplete, false, 'the pipe must not be complete');
 

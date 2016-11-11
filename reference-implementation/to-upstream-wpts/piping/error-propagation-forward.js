@@ -410,8 +410,8 @@ promise_test(t => {
   return writeCalledPromise.then(() => {
     rs.controller.error(error1);
 
-    // Ensure that within 50 ms, at least, no shutdown occurs.
-    return delay(50);
+    // Flush async events and verify that no shutdown occurs.
+    return flushAsyncEvents();
   }).then(() => {
     assert_array_equals(ws.events, ['write', 'a']); // no 'abort'
     assert_equals(pipeComplete, false, 'the pipe must not be complete');

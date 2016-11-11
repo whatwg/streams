@@ -178,7 +178,7 @@ promise_test(t => {
 
   writer.close();
 
-  return delay(20).then(() => {
+  return delay(0).then(() => {
     writer.abort(error1);
   })
   .then(() => promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError'));

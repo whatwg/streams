@@ -89,7 +89,7 @@ promise_test(() => {
     flush() {
       c.enqueue('x');
       c.enqueue('y');
-      return delay(10);
+      return delay(0);
     }
   });
 
