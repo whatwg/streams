@@ -126,7 +126,7 @@ test(() => {
 
   assert_throws(new TypeError(), () => new WritableStreamDefaultController(stream),
                 'constructor should throw a TypeError exception');
-}, 'WritableStreamDefaultController constructor should throw when passed an initalised WritableStream');
+}, 'WritableStreamDefaultController constructor should throw when passed an initialised WritableStream');
 
 test(() => {
   const stream = new WritableStream();
