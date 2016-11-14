@@ -75,3 +75,5 @@ promise_test(t => {
   return Promise.all([methodRejects(t, WriterProto, 'close', fakeWritableStreamDefaultWriter()),
     methodRejects(t, WriterProto, 'close', realReadableStreamDefaultWriter())]);
 }, 'WritableStreamDefaultWriter.prototype.close enforces a brand check');
+
+done();
