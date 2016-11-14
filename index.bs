@@ -3320,13 +3320,13 @@ nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk
     1. Set _chunkSize_ to Call(_controller_.[[strategySize]], *undefined*, « ‍_chunk_ »).
     1. If _chunkSize_ is an abrupt completion,
       1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_,‍ _chunkSize_.[[Value]]).
-      1. Return <a>a promise rejected with</a> _chunkSize_.[[Value]].
+      1. Return.
   1. Let _writeRecord_ be Record {[[chunk]]: _chunk_}.
   1. Let _lastBackpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
   1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_.[[queue]], _writeRecord_, _chunkSize_).
   1. If _enqueueResult_ is an abrupt completion,
     1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _enqueueResult_.[[Value]]).
-    1. Return <a>a promise rejected with</a> _enqueueResult_.[[Value]].
+    1. Return.
   1. If _stream_.[[state]] is `"writable"`,
     1. Let _backpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
     1. If _lastBackpressure_ is not _backpressure_, perform ! WritableStreamUpdateBackpressure(_stream_,

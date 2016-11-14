@@ -546,7 +546,7 @@ function WritableStreamDefaultControllerWrite(controller, chunk) {
     } catch (chunkSizeE) {
       // TODO: Should we notify the sink of this error?
       WritableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
-      return Promise.reject(chunkSizeE);
+      return;
     }
   }
 
@@ -558,7 +558,7 @@ function WritableStreamDefaultControllerWrite(controller, chunk) {
     EnqueueValueWithSize(controller._queue, writeRecord, chunkSize);
   } catch (enqueueE) {
     WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
-    return Promise.reject(enqueueE);
+    return;
   }
 
   if (stream._state === 'writable') {

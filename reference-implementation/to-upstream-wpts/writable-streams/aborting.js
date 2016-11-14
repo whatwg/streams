@@ -75,6 +75,8 @@ promise_test(t => {
     });
 }, 'Aborting a WritableStream immediately prevents future writes');
 
+// https://github.com/whatwg/streams/issues/611
+/*
 promise_test(t => {
   const ws = recordingWritableStream();
   const results = [];
@@ -101,6 +103,7 @@ promise_test(t => {
       return Promise.all(results);
     });
 }, 'Aborting a WritableStream prevents further writes after any that are in progress');
+*/
 
 promise_test(() => {
   const ws = new WritableStream({
