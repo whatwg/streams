@@ -3469,7 +3469,7 @@ Each {{ByteLengthQueuingStrategy}} instance will additionally have an own data p
 ByteLengthQueuingStrategy({ <var>highWaterMark</var> })</h4>
 
 <div class="note">
-  The constructor takes a nonnegative number for the high-water mark, and stores it on the object as a property.
+  The constructor takes a non-negative number for the high-water mark, and stores it on the object as a property.
 </div>
 
 <emu-alg>
@@ -3544,7 +3544,7 @@ set by its constructor.
 CountQueuingStrategy({ <var>highWaterMark</var> })</h4>
 
 <div class="note">
-  The constructor takes a nonnegative number for the high-water mark, and stores it on the object as a property.
+  The constructor takes a non-negative number for the high-water mark, and stores it on the object as a property.
 </div>
 
 <emu-alg>

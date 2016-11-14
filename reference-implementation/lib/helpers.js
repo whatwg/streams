@@ -116,7 +116,7 @@ exports.SameRealmTransfer = O => O;
 exports.ValidateAndNormalizeHighWaterMark = highWaterMark => {
   highWaterMark = Number(highWaterMark);
   if (Number.isNaN(highWaterMark) || highWaterMark < 0) {
-    throw new RangeError('highWaterMark property of a queuing strategy must be nonnegative and non-NaN');
+    throw new RangeError('highWaterMark property of a queuing strategy must be non-negative and non-NaN');
   }
 
   return highWaterMark;
