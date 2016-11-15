@@ -3624,7 +3624,7 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Assert: ! IsPropertyKey(_P_) is *true*.
   1. Assert: _args_ is a List.
   1. Let _method_ be ? GetV(_O_, _P_).
-  1. If _method_ is *undefined*, return.
+  1. If _method_ is *undefined*, return *undefined*.
   1. Return ? Call(_method_, _O_, _args_).
 </emu-alg>
 
