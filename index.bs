@@ -826,10 +826,10 @@ noticable asymmetry between the two branches. [[!HTML]]
   1. Set _pull_.[[branch1]] to _branch1Stream_.[[readableStreamController]].
   1. Set _pull_.[[branch2]] to _branch2Stream_.[[readableStreamController]].
   1. <a>Upon rejection</a> of _reader_.[[closedPromise]] with reason _r_,
-    1. If _teeState_.[[closedOrErrored]] is *true*, return *undefined*.
-    1. Perform ! ReadableStreamDefaultControllerError(_pull_.[[branch1]], _r_).
-    1. Perform ! ReadableStreamDefaultControllerError(_pull_.[[branch2]], _r_).
-    1. Set _teeState_.[[closedOrErrored]] to *true*.
+    1. If _teeState_.[[closedOrErrored]] is *false*, then:
+      1. Perform ! ReadableStreamDefaultControllerError(_pull_.[[branch1]], _r_).
+      1. Perform ! ReadableStreamDefaultControllerError(_pull_.[[branch2]], _r_).
+      1. Set _teeState_.[[closedOrErrored]] to *true*.
   1. Return « _branch1Stream_, _branch2Stream_ ».
 </emu-alg>
 
@@ -853,7 +853,7 @@ a ReadableStreamTee pull function <var>F</var> is called, it performs the follow
       1. If _teeState_.[[canceled2]] is *false*,
         1. Perform ! ReadableStreamDefaultControllerClose(_branch2_).
       1. Set _teeState_.[[closedOrErrored]] to *true*.
-    1. If _teeState_.[[closedOrErrored]] is *true*, return *undefined*.
+    1. If _teeState_.[[closedOrErrored]] is *true*, return.
     1. Let _value1_ and _value2_ be _value_.
     1. If _teeState_.[[canceled2]] is *false* and _cloneForBranch2_ is *true*, set _value2_ to ? <a
        abstract-op>StructuredClone</a>(_value2_).
@@ -955,13 +955,12 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
   1. Assert: _stream_.[[state]] is `"readable"`.
   1. Set _stream_.[[state]] to `"closed"`.
   1. Let _reader_ be _stream_.[[reader]].
-  1. If _reader_ is *undefined*, return *undefined*.
+  1. If _reader_ is *undefined*, return.
   1. If ! IsReadableStreamDefaultReader(_reader_) is *true*,
     1. Repeat for each _readRequest_ that is an element of _reader_.[[readRequests]],
       1. <a>Resolve</a> _readRequest_.[[promise]] with ! CreateIterResultObject(*undefined*, *true*).
     1. Set _reader_.[[readRequests]] to an empty List.
   1. <a>Resolve</a> _reader_.[[closedPromise]] with *undefined*.
-  1. Return *undefined*.
 </emu-alg>
 
 <div class="note">
@@ -981,7 +980,7 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
   1. Set _stream_.[[state]] to `"errored"`.
   1. Set _stream_.[[storedError]] to _e_.
   1. Let _reader_ be _stream_.[[reader]].
-  1. If _reader_ is *undefined*, return *undefined*.
+  1. If _reader_ is *undefined*, return.
   1. If ! IsReadableStreamDefaultReader(_reader_) is *true*,
     1. Repeat for each _readRequest_ that is an element of _reader_.[[readRequests]],
       1. <a>Reject</a> _readRequest_.[[promise]] with _e_.
@@ -1183,7 +1182,7 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
 
 <emu-alg>
   1. If ! IsReadableStreamDefaultReader(*this*) is *false*, throw a *TypeError* exception.
-  1. If *this*.[[ownerReadableStream]] is *undefined*, return *undefined*.
+  1. If *this*.[[ownerReadableStream]] is *undefined*, return.
   1. If *this*.[[readRequests]] is not empty, throw a *TypeError* exception.
   1. Perform ! ReadableStreamReaderGenericRelease(*this*).
 </emu-alg>
@@ -1322,7 +1321,7 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
 
 <emu-alg>
   1. If ! IsReadableStreamBYOBReader(*this*) is *false*, throw a *TypeError* exception.
-  1. If *this*.[[ownerReadableStream]] is *undefined*, return *undefined*.
+  1. If *this*.[[ownerReadableStream]] is *undefined*, return.
   1. If *this*.[[readIntoRequests]] is not empty, throw a *TypeError* exception.
   1. Perform ! ReadableStreamReaderGenericRelease(*this*).
 </emu-alg>
@@ -1625,10 +1624,10 @@ nothrow>ReadableStreamDefaultControllerCallPullIfNeeded ( <var>controller</var> 
 
 <emu-alg>
   1. Let _shouldPull_ be ! ReadableStreamDefaultControllerShouldCallPull(_controller_).
-  1. If _shouldPull_ is *false*, return *undefined*.
+  1. If _shouldPull_ is *false*, return.
   1. If _controller_.[[pulling]] is *true*,
     1. Set _controller_.[[pullAgain]] to *true*.
-    1. Return *undefined*.
+    1. Return.
   1. Assert: _controller_.[[pullAgain]] is *false*.
   1. Set _controller_.[[pulling]] to *true*.
   1. Let _pullPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSource]], `"pull"`, « _controller_ »).
@@ -1639,7 +1638,6 @@ nothrow>ReadableStreamDefaultControllerCallPullIfNeeded ( <var>controller</var> 
       1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
   1. <a>Upon rejection</a> of _pullPromise_ with reason _e_,
     1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _e_).
-  1. Return *undefined*.
 </emu-alg>
 
 <h4 id="readable-stream-default-controller-should-call-pull" aoid="ReadableStreamDefaultControllerShouldCallPull"
@@ -1699,7 +1697,6 @@ asserts).
       1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _enqueueResult_.[[Value]]).
       1. Return _enqueueResult_.
   1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
-  1. Return *undefined*.
 </emu-alg>
 
 <div class="note">
@@ -2106,10 +2103,10 @@ nothrow>ReadableByteStreamControllerCallPullIfNeeded ( <var>controller</var> )</
 
 <emu-alg>
   1. Let _shouldPull_ be ! ReadableByteStreamControllerShouldCallPull(_controller_).
-  1. If _shouldPull_ is *false*, return *undefined*.
+  1. If _shouldPull_ is *false*, return.
   1. If _controller_.[[pulling]] is *true*,
     1. Set _controller_.[[pullAgain]] to *true*.
-    1. Return *undefined*.
+    1. Return.
   1. Assert: _controller_.[[pullAgain]] is *false*.
   1. Set _controller_.[[pulling]] to *true*.
   1. Let _pullPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingByteSource]], `"pull"`, « ‍_controller_ »).
@@ -2121,7 +2118,6 @@ nothrow>ReadableByteStreamControllerCallPullIfNeeded ( <var>controller</var> )</
   1. <a>Upon rejection</a> of _pullPromise_ with reason _e_,
     1. If _controller_.[[controlledReadableStream]].[[state]] is `"readable"`, perform
        ! ReadableByteStreamControllerError(_controller_, _e_).
-  1. Return *undefined*.
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-clear-pending-pull-intos"
@@ -3028,7 +3024,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 <emu-alg>
   1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, throw a *TypeError* exception.
   1. Let _stream_ be *this*.[[ownerWritableStream]].
-  1. If _stream_ is *undefined*, return *undefined*.
+  1. If _stream_ is *undefined*, return.
   1. Assert: _stream_.[[writer]] is not *undefined*.
   1. Perform ! WritableStreamDefaultWriterRelease(*this*).
 </emu-alg>
