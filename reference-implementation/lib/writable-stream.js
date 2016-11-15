@@ -146,6 +146,7 @@ function WritableStreamError(stream, e) {
   const writer = stream._writer;
   if (writer !== undefined) {
     defaultWriterClosedPromiseReject(writer, e);
+    writer._closedPromise.catch(() => {});
 
     if (state === 'writable' &&
         WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
@@ -153,6 +154,7 @@ function WritableStreamError(stream, e) {
     } else {
       defaultWriterReadyPromiseResetToRejected(writer, e);
     }
+    writer._readyPromise.catch(() => {});
   }
 
   stream._state = 'errored';
@@ -216,6 +218,7 @@ class WritableStreamDefaultWriter {
       assert(state === 'errored', 'state must be errored');
 
       defaultWriterClosedPromiseInitializeAsRejected(this, stream._storedError);
+      this._closedPromise.catch(() => {});
     }
 
     if (state === 'writable' &&
@@ -418,6 +421,7 @@ function WritableStreamDefaultWriterRelease(writer) {
   } else {
     defaultWriterClosedPromiseResetToRejected(writer, releasedError);
   }
+  writer._closedPromise.catch(() => {});
 
   if (state === 'writable' &&
       WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
@@ -425,6 +429,7 @@ function WritableStreamDefaultWriterRelease(writer) {
   } else {
     defaultWriterReadyPromiseResetToRejected(writer, releasedError);
   }
+  writer._readyPromise.catch(() => {});
 
   stream._writer = undefined;
   writer._ownerWritableStream = undefined;
@@ -541,7 +546,7 @@ function WritableStreamDefaultControllerWrite(controller, chunk) {
     } catch (chunkSizeE) {
       // TODO: Should we notify the sink of this error?
       WritableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
-      return Promise.reject(chunkSizeE);
+      return;
     }
   }
 
@@ -553,7 +558,7 @@ function WritableStreamDefaultControllerWrite(controller, chunk) {
     EnqueueValueWithSize(controller._queue, writeRecord, chunkSize);
   } catch (enqueueE) {
     WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
-    return Promise.reject(enqueueE);
+    return;
   }
 
   if (stream._state === 'writable') {

@@ -32,9 +32,8 @@ promise_test(t => {
 
   const writer = ws.getWriter();
 
-  writer.close();
-
   return Promise.all([
+    promise_rejects(t, passedError, writer.close(), 'close() should be rejected with the passed error'),
     delay(10).then(() => controller.error(passedError)),
     promise_rejects(t, passedError, writer.closed,
                     'closed promise should be rejected with the passed error'),

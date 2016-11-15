@@ -18,9 +18,9 @@ promise_test(t => {
 
   const writer = ts.writable.getWriter();
 
-  writer.write('a');
-
   return Promise.all([
+    promise_rejects(t, thrownError, writer.write('a'),
+                    'writable\'s write should reject with the thrown error'),
     promise_rejects(t, thrownError, reader.read(),
                     'readable\'s read should reject with the thrown error'),
     promise_rejects(t, thrownError, reader.closed,
@@ -43,10 +43,10 @@ promise_test(t => {
 
   const writer = ts.writable.getWriter();
 
-  writer.write('a');
-  writer.close();
-
   return Promise.all([
+    writer.write('a'),
+    promise_rejects(t, thrownError, writer.close(),
+                    'writable\'s close should reject with the thrown error'),
     promise_rejects(t, thrownError, reader.read(),
                     'readable\'s read should reject with the thrown error'),
     promise_rejects(t, thrownError, reader.closed,
