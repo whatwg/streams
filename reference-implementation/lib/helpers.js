@@ -44,6 +44,10 @@ exports.IsFiniteNonNegativeNumber = v => {
   return true;
 };
 
+function Call(F, V, args) {
+  return Function.prototype.apply.call(F, V, args);
+}
+
 exports.InvokeOrNoop = (O, P, args) => {
   assert(O !== undefined);
   assert(IsPropertyKey(P));
@@ -58,7 +62,7 @@ exports.InvokeOrNoop = (O, P, args) => {
     throw new TypeError(`${P} is not a function`);
   }
 
-  return method.apply(O, args);
+  return Call(method, O, args);
 };
 
 exports.PromiseInvokeOrNoop = (O, P, args) => {
@@ -94,7 +98,7 @@ exports.PromiseInvokeOrPerformFallback = (O, P, args, F, argsF) => {
   }
 
   try {
-    return Promise.resolve(method.apply(O, args));
+    return Promise.resolve(Call(method, O, args));
   } catch (e) {
     return Promise.reject(e);
   }
