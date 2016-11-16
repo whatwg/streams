@@ -20,6 +20,12 @@ class WritableStream {
     // producer without waiting for the queued writes to finish.
     this._writeRequests = [];
 
+    // Write requests are removed from _writeRequests when write() is called on the underlying sink. This prevents
+    // them from being erroneously rejected on error. If a write() call is pending, the request is stored here.
+    this._pendingWriteRequest = undefined;
+
+    this._pendingCloseRequest = undefined;
+
     const type = underlyingSink.type;
 
     if (type !== undefined) {
@@ -143,6 +149,11 @@ function WritableStreamError(stream, e) {
   }
   stream._writeRequests = [];
 
+  if (stream._pendingCloseRequest !== undefined) {
+    stream._pendingCloseRequest._reject(e);
+    stream._pendingCloseRequest = undefined;
+  }
+
   const writer = stream._writer;
   if (writer !== undefined) {
     defaultWriterClosedPromiseReject(writer, e);
@@ -167,13 +178,6 @@ function WritableStreamFinishClose(stream) {
   stream._state = 'closed';
 
   defaultWriterClosedPromiseResolve(stream._writer);
-}
-
-function WritableStreamFulfillWriteRequest(stream) {
-  assert(stream._writeRequests.length > 0);
-
-  const writeRequest = stream._writeRequests.shift();
-  writeRequest._resolve(undefined);
 }
 
 function WritableStreamUpdateBackpressure(stream, backpressure) {
@@ -355,7 +359,14 @@ function WritableStreamDefaultWriterClose(writer) {
 
   assert(state === 'writable');
 
-  const promise = WritableStreamAddWriteRequest(stream);
+  const promise = new Promise((resolve, reject) => {
+    const closeRequest = {
+      _resolve: resolve,
+      _reject: reject
+    };
+
+    stream._pendingCloseRequest = closeRequest;
+  });
 
   if (WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
     defaultWriterReadyPromiseResolve(writer);
@@ -629,10 +640,16 @@ function WritableStreamDefaultControllerProcessClose(controller) {
         return;
       }
 
-      WritableStreamFulfillWriteRequest(stream);
+      assert(stream._pendingCloseRequest !== undefined);
+      stream._pendingCloseRequest._resolve(undefined);
+      stream._pendingCloseRequest = undefined;
+
       WritableStreamFinishClose(stream);
     },
     r => {
+      assert(stream._pendingCloseRequest !== undefined);
+      stream._pendingCloseRequest._reject(r);
+      stream._pendingCloseRequest = undefined;
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);
     }
   )
@@ -642,18 +659,22 @@ function WritableStreamDefaultControllerProcessClose(controller) {
 function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   controller._writing = true;
 
+  const stream = controller._controlledWritableStream;
+
+  assert(stream._pendingWriteRequest === undefined);
+  assert(stream._writeRequests.length !== 0);
+  stream._pendingWriteRequest = stream._writeRequests.shift();
   const sinkWritePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'write', [chunk, controller]);
   sinkWritePromise.then(
     () => {
-      const stream = controller._controlledWritableStream;
+      const stream = controller._controlledWritableStream; // eslint-disable-line no-shadow
       const state = stream._state;
-      if (state === 'errored' || state === 'closed') {
-        return;
-      }
 
       controller._writing = false;
 
-      WritableStreamFulfillWriteRequest(stream);
+      assert(stream._pendingWriteRequest !== undefined);
+      stream._pendingWriteRequest._resolve(undefined);
+      stream._pendingWriteRequest = undefined;
 
       const lastBackpressure = WritableStreamDefaultControllerGetBackpressure(controller);
       DequeueValue(controller._queue);
@@ -667,6 +688,9 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
     },
     r => {
+      assert(stream._pendingWriteRequest !== undefined);
+      stream._pendingWriteRequest._reject(r);
+      stream._pendingWriteRequest = undefined;
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);
     }
   )
