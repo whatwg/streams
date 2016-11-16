@@ -45,8 +45,8 @@ exports.IsFiniteNonNegativeNumber = v => {
 };
 
 function Call(F, V, args) {
-  if (typeof method !== 'function') {
-    throw new TypeError(`${P} is not a function`);
+  if (typeof F !== 'function') {
+    throw new TypeError('Argument is not a function');
   }
 
   return Function.prototype.apply.call(F, V, args);
