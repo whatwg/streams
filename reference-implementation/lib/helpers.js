@@ -45,6 +45,10 @@ exports.IsFiniteNonNegativeNumber = v => {
 };
 
 function Call(F, V, args) {
+  if (typeof method !== 'function') {
+    throw new TypeError(`${P} is not a function`);
+  }
+
   return Function.prototype.apply.call(F, V, args);
 }
 
@@ -56,10 +60,6 @@ exports.InvokeOrNoop = (O, P, args) => {
   const method = O[P];
   if (method === undefined) {
     return undefined;
-  }
-
-  if (typeof method !== 'function') {
-    throw new TypeError(`${P} is not a function`);
   }
 
   return Call(method, O, args);
@@ -91,10 +91,6 @@ exports.PromiseInvokeOrPerformFallback = (O, P, args, F, argsF) => {
 
   if (method === undefined) {
     return F(...argsF);
-  }
-
-  if (typeof method !== 'function') {
-    return Promise.reject(new TypeError(`${P} is not a function`));
   }
 
   try {
