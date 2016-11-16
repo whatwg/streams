@@ -284,4 +284,20 @@ promise_test(() => {
   });
 }, 'Transform stream should call transformer methods as methods');
 
+promise_test(() => {
+  function functionWithOverloads() {}
+  functionWithOverloads.apply = () => assert_unreached('apply() should not be called');
+  functionWithOverloads.call = () => assert_unreached('call() should not be called');
+  const ts = new TransformStream({
+    start: functionWithOverloads,
+    transform: functionWithOverloads,
+    flush: functionWithOverloads
+  });
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close();
+
+  return readableStreamToArray(ts.readable);
+}, 'methods should not not have .apply() or .call() called');
+
 done();

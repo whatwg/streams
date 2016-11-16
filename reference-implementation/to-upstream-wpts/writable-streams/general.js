@@ -152,6 +152,41 @@ promise_test(() => {
       .then(thisValue => assert_equals(thisValue, theSink, 'abort should be called as a method'));
 }, 'WritableStream should call underlying sink methods as methods');
 
+promise_test(t => {
+  function functionWithOverloads() {}
+  functionWithOverloads.apply = () => assert_unreached('apply() should not be called');
+  functionWithOverloads.call = () => assert_unreached('call() should not be called');
+  const underlyingSink = {
+    start: functionWithOverloads,
+    write: functionWithOverloads,
+    close: functionWithOverloads,
+    abort: functionWithOverloads
+  };
+  // Test start(), write(), close().
+  const ws1 = new WritableStream(underlyingSink);
+  const writer1 = ws1.getWriter();
+  writer1.write('a');
+  writer1.close();
+
+  // Test abort().
+  const ws2 = new WritableStream(underlyingSink);
+  const writer2 = ws2.getWriter();
+  writer2.abort();
+
+  // Test PromiseInvokeOrFallbackOrNoop.
+  const ws3 = new WritableStream({
+    start: functionWithOverloads,
+    write: functionWithOverloads,
+    close: functionWithOverloads
+  });
+  const writer3 = ws3.getWriter();
+  writer3.abort();
+
+  return writer1.closed
+      .then(() => promise_rejects(t, new TypeError(), writer2.closed, 'writer2.closed should be rejected'))
+      .then(() => promise_rejects(t, new TypeError(), writer3.closed, 'writer3.closed should be rejected'));
+}, 'methods should not not have .apply() or .call() called');
+
 promise_test(() => {
   const ws = new WritableStream();
   const writer1 = ws.getWriter();
