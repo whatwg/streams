@@ -611,8 +611,7 @@ promise_test(t => {
   const ws = recordingWritableStream({
     write() {
       resolveWriteCalled();
-      // never settles, which normally would hang the pipe, except we error via the controller.
-      return new Promise(() => {});
+      return flushAsyncEvents();
     }
   });
 
@@ -629,6 +628,6 @@ promise_test(t => {
     assert_array_equals(ws.events, ['write', 'a']);
   });
 
-}, 'Errors must be propagated backward: erroring via the controller errors a slow write');
+}, 'Errors must be propagated backward: erroring via the controller errors once pending write completes');
 
 done();

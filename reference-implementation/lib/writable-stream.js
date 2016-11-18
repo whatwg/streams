@@ -676,6 +676,9 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       stream._pendingWriteRequest._resolve(undefined);
       stream._pendingWriteRequest = undefined;
 
+      if (state === 'errored') {
+        return;
+      }
       const lastBackpressure = WritableStreamDefaultControllerGetBackpressure(controller);
       DequeueValue(controller._queue);
       if (state !== 'closing') {
