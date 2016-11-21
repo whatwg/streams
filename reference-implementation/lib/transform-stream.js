@@ -173,7 +173,10 @@ function TransformStreamTransform(transformStream, chunk) {
 
       return TransformStreamReadableReadyPromise(transformStream);
     },
-    e => TransformStreamErrorIfNeeded(transformStream, e));
+    e => {
+      TransformStreamErrorIfNeeded(transformStream, e);
+      return Promise.reject(e);
+    });
 }
 
 function IsTransformStreamDefaultController(x) {
