@@ -265,11 +265,73 @@ promise_test(t => {
     let closedResolved = false;
     return Promise.all([
       writePromise.then(() => assert_false(closedResolved, '.closed should not resolve before write()')),
-      promise_rejects(t, new TypeError(), writer.closed, '.closed should reject with passedError')
+      promise_rejects(t, new TypeError(), writer.closed, '.closed should reject')
           .then(() => {
             closedResolved = true;
           })]);
   });
-}, 'when aborting, .closed should not resolve before write()');
+}, '.closed should not resolve before write()');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    write() {
+      return Promise.reject(new Error());
+    }
+  });
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
+    const writePromise = writer.write('a');
+    writer.abort(new Error());
+    let closedResolved = false;
+    return Promise.all([
+      promise_rejects(t, new Error(), writePromise, 'write() should reject')
+          .then(() => assert_false(closedResolved, '.closed should not resolve before write()')),
+      promise_rejects(t, new TypeError(), writer.closed, '.closed should reject')
+          .then(() => {
+            closedResolved = true;
+          })]);
+  });
+}, '.closed should not resolve before rejected write()');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    write() {
+      return delay(0);
+    }
+  }, new CountQueuingStrategy(4));
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
+    const resolveOrder = [];
+    return Promise.all([
+      writer.write('1').then(() => resolveOrder.push(1)),
+      promise_rejects(t, new TypeError(), writer.write('2'), 'first queued write should be rejected')
+          .then(() => resolveOrder.push(2)),
+      promise_rejects(t, new TypeError(), writer.write('3'), 'second queued write should be rejected')
+          .then(() => resolveOrder.push(3)),
+      writer.abort(new Error())
+    ]).then(() => assert_array_equals([1, 2, 3], resolveOrder, 'writes should be satisfied in order'));
+  });
+}, 'writes should be satisfied in order when aborting');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    write() {
+      return Promise.reject(new Error());
+    }
+  }, new CountQueuingStrategy(4));
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
+    const resolveOrder = [];
+    return Promise.all([
+      promise_rejects(t, new Error(), writer.write('1'), 'pending write should be rejected')
+          .then(() => resolveOrder.push(1)),
+      promise_rejects(t, new TypeError(), writer.write('2'), 'first queued write should be rejected')
+          .then(() => resolveOrder.push(2)),
+      promise_rejects(t, new TypeError(), writer.write('3'), 'second queued write should be rejected')
+          .then(() => resolveOrder.push(3)),
+      writer.abort(new Error())
+    ]).then(() => assert_array_equals([1, 2, 3], resolveOrder, 'writes should be satisfied in order'));
+  });
+}, 'writes should be satisfied in order after rejected write when aborting');
 
 done();

@@ -144,23 +144,14 @@ function WritableStreamError(stream, e) {
   const state = stream._state;
   assert(state === 'writable' || state === 'closing');
 
-  for (const writeRequest of stream._writeRequests) {
-    writeRequest._reject(e);
-  }
-  stream._writeRequests = [];
+  stream._storedError = e;
 
-  if (stream._pendingCloseRequest !== undefined) {
-    stream._pendingCloseRequest._reject(e);
-    stream._pendingCloseRequest = undefined;
+  if (stream._pendingWriteRequest === undefined) {
+    WritableStreamRejectUnresolvedPromises(stream);
   }
 
   const writer = stream._writer;
   if (writer !== undefined) {
-    if (stream._pendingWriteRequest === undefined) {
-      defaultWriterClosedPromiseReject(writer, e);
-      writer._closedPromise.catch(() => {});
-    }
-
     if (state === 'writable' &&
         WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
       defaultWriterReadyPromiseReject(writer, e);
@@ -171,7 +162,6 @@ function WritableStreamError(stream, e) {
   }
 
   stream._state = 'errored';
-  stream._storedError = e;
 }
 
 function WritableStreamFinishClose(stream) {
@@ -180,6 +170,28 @@ function WritableStreamFinishClose(stream) {
   stream._state = 'closed';
 
   defaultWriterClosedPromiseResolve(stream._writer);
+}
+
+function WritableStreamRejectUnresolvedPromises(stream) {
+  const state = stream._state;
+  assert(state === 'writable' || state === 'closing' || state === 'errored');
+
+  const storedError = stream._storedError;
+  for (const writeRequest of stream._writeRequests) {
+    writeRequest._reject(storedError);
+  }
+  stream._writeRequests = [];
+
+  if (stream._pendingCloseRequest !== undefined) {
+    stream._pendingCloseRequest._reject(storedError);
+    stream._pendingCloseRequest = undefined;
+  }
+
+  const writer = stream._writer;
+  if (writer !== undefined) {
+    defaultWriterClosedPromiseReject(writer, storedError);
+    writer._closedPromise.catch(() => {});
+  }
 }
 
 function WritableStreamUpdateBackpressure(stream, backpressure) {
@@ -679,9 +691,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       stream._pendingWriteRequest = undefined;
 
       if (state === 'errored') {
-        const writer = stream._writer;
-        defaultWriterClosedPromiseReject(writer, stream._storedError);
-        writer._closedPromise.catch(() => {});
+        WritableStreamRejectUnresolvedPromises(stream);
         return;
       }
       const lastBackpressure = WritableStreamDefaultControllerGetBackpressure(controller);
@@ -700,9 +710,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       stream._pendingWriteRequest._reject(r);
       stream._pendingWriteRequest = undefined;
       if (stream._state === 'errored') {
-        const writer = stream._writer;
-        defaultWriterClosedPromiseReject(writer, stream._storedError);
-        writer._closedPromise.catch(() => {});
+        WritableStreamRejectUnresolvedPromises(stream);
       }
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);
     }
