@@ -681,7 +681,6 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   const sinkWritePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'write', [chunk, controller]);
   sinkWritePromise.then(
     () => {
-      const stream = controller._controlledWritableStream; // eslint-disable-line no-shadow
       const state = stream._state;
 
       controller._writing = false;
