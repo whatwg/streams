@@ -156,8 +156,10 @@ function WritableStreamError(stream, e) {
 
   const writer = stream._writer;
   if (writer !== undefined) {
-    defaultWriterClosedPromiseReject(writer, e);
-    writer._closedPromise.catch(() => {});
+    if (stream._pendingWriteRequest === undefined) {
+      defaultWriterClosedPromiseReject(writer, e);
+      writer._closedPromise.catch(() => {});
+    }
 
     if (state === 'writable' &&
         WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
@@ -677,6 +679,9 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       stream._pendingWriteRequest = undefined;
 
       if (state === 'errored') {
+        const writer = stream._writer;
+        defaultWriterClosedPromiseReject(writer, stream._storedError);
+        writer._closedPromise.catch(() => {});
         return;
       }
       const lastBackpressure = WritableStreamDefaultControllerGetBackpressure(controller);
@@ -694,6 +699,11 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       assert(stream._pendingWriteRequest !== undefined);
       stream._pendingWriteRequest._reject(r);
       stream._pendingWriteRequest = undefined;
+      if (stream._state === 'errored') {
+        const writer = stream._writer;
+        defaultWriterClosedPromiseReject(writer, stream._storedError);
+        writer._closedPromise.catch(() => {});
+      }
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);
     }
   )

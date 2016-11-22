@@ -252,4 +252,24 @@ promise_test(() => {
   return writer.abort().then(() => assert_true(thenCalled, 'then() should be called'));
 }, 'returning a thenable from abort() should work');
 
+promise_test(t => {
+  const ws = new WritableStream({
+    write() {
+      return flushAsyncEvents();
+    }
+  });
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
+    const writePromise = writer.write('a');
+    writer.abort(new Error());
+    let closedResolved = false;
+    return Promise.all([
+      writePromise.then(() => assert_false(closedResolved, '.closed should not resolve before write()')),
+      promise_rejects(t, new TypeError(), writer.closed, '.closed should reject with passedError')
+          .then(() => {
+            closedResolved = true;
+          })]);
+  });
+}, 'when aborting, .closed should not resolve before write()');
+
 done();
