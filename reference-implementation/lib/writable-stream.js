@@ -141,9 +141,9 @@ function WritableStreamAddWriteRequest(stream) {
 }
 
 function WritableStreamError(stream, e) {
-  const state = stream._state;
-  assert(state === 'writable' || state === 'closing');
-
+  const oldState = stream._state;
+  assert(oldState === 'writable' || oldState === 'closing');
+  stream._state = 'errored';
   stream._storedError = e;
 
   if (stream._pendingWriteRequest === undefined) {
@@ -152,7 +152,7 @@ function WritableStreamError(stream, e) {
 
   const writer = stream._writer;
   if (writer !== undefined) {
-    if (state === 'writable' &&
+    if (oldState === 'writable' &&
         WritableStreamDefaultControllerGetBackpressure(stream._writableStreamController) === true) {
       defaultWriterReadyPromiseReject(writer, e);
     } else {
@@ -160,8 +160,6 @@ function WritableStreamError(stream, e) {
     }
     writer._readyPromise.catch(() => {});
   }
-
-  stream._state = 'errored';
 }
 
 function WritableStreamFinishClose(stream) {
@@ -173,8 +171,8 @@ function WritableStreamFinishClose(stream) {
 }
 
 function WritableStreamRejectUnresolvedPromises(stream) {
-  const state = stream._state;
-  assert(state === 'writable' || state === 'closing' || state === 'errored');
+  assert(stream._state === 'errored');
+  assert(stream._pendingWriteRequest === undefined);
 
   const storedError = stream._storedError;
   for (const writeRequest of stream._writeRequests) {

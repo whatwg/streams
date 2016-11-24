@@ -261,30 +261,30 @@ promise_test(t => {
   const writer = ws.getWriter();
   return writer.ready.then(() => {
     const writePromise = writer.write('a');
-    writer.abort(new Error());
+    writer.abort(error1);
     let closedResolved = false;
     return Promise.all([
       writePromise.then(() => assert_false(closedResolved, '.closed should not resolve before write()')),
-      promise_rejects(t, new TypeError(), writer.closed, '.closed should reject')
-          .then(() => {
-            closedResolved = true;
-          })]);
+      promise_rejects(t, new TypeError(), writer.closed, '.closed should reject').then(() => {
+        closedResolved = true;
+      })
+    ]);
   });
-}, '.closed should not resolve before write()');
+}, '.closed should not resolve before fulfilled write()');
 
 promise_test(t => {
   const ws = new WritableStream({
     write() {
-      return Promise.reject(new Error());
+      return Promise.reject(error1);
     }
   });
   const writer = ws.getWriter();
   return writer.ready.then(() => {
     const writePromise = writer.write('a');
-    writer.abort(new Error());
+    writer.abort(error1);
     let closedResolved = false;
     return Promise.all([
-      promise_rejects(t, new Error(), writePromise, 'write() should reject')
+      promise_rejects(t, error1, writePromise, 'write() should reject')
           .then(() => assert_false(closedResolved, '.closed should not resolve before write()')),
       promise_rejects(t, new TypeError(), writer.closed, '.closed should reject')
           .then(() => {
@@ -296,41 +296,41 @@ promise_test(t => {
 promise_test(t => {
   const ws = new WritableStream({
     write() {
-      return delay(0);
+      return flushAsyncEvents();
     }
   }, new CountQueuingStrategy(4));
   const writer = ws.getWriter();
   return writer.ready.then(() => {
-    const resolveOrder = [];
+    const settlementOrder = [];
     return Promise.all([
-      writer.write('1').then(() => resolveOrder.push(1)),
+      writer.write('1').then(() => settlementOrder.push(1)),
       promise_rejects(t, new TypeError(), writer.write('2'), 'first queued write should be rejected')
-          .then(() => resolveOrder.push(2)),
+          .then(() => settlementOrder.push(2)),
       promise_rejects(t, new TypeError(), writer.write('3'), 'second queued write should be rejected')
-          .then(() => resolveOrder.push(3)),
-      writer.abort(new Error())
-    ]).then(() => assert_array_equals([1, 2, 3], resolveOrder, 'writes should be satisfied in order'));
+          .then(() => settlementOrder.push(3)),
+      writer.abort(error1)
+    ]).then(() => assert_array_equals([1, 2, 3], settlementOrder, 'writes should be satisfied in order'));
   });
 }, 'writes should be satisfied in order when aborting');
 
 promise_test(t => {
   const ws = new WritableStream({
     write() {
-      return Promise.reject(new Error());
+      return Promise.reject(error1);
     }
   }, new CountQueuingStrategy(4));
   const writer = ws.getWriter();
   return writer.ready.then(() => {
-    const resolveOrder = [];
+    const settlementOrder = [];
     return Promise.all([
-      promise_rejects(t, new Error(), writer.write('1'), 'pending write should be rejected')
-          .then(() => resolveOrder.push(1)),
+      promise_rejects(t, error1, writer.write('1'), 'pending write should be rejected')
+          .then(() => settlementOrder.push(1)),
       promise_rejects(t, new TypeError(), writer.write('2'), 'first queued write should be rejected')
-          .then(() => resolveOrder.push(2)),
+          .then(() => settlementOrder.push(2)),
       promise_rejects(t, new TypeError(), writer.write('3'), 'second queued write should be rejected')
-          .then(() => resolveOrder.push(3)),
-      writer.abort(new Error())
-    ]).then(() => assert_array_equals([1, 2, 3], resolveOrder, 'writes should be satisfied in order'));
+          .then(() => settlementOrder.push(3)),
+      writer.abort(error1)
+    ]).then(() => assert_array_equals([1, 2, 3], settlementOrder, 'writes should be satisfied in order'));
   });
 }, 'writes should be satisfied in order after rejected write when aborting');
 
