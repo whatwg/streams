@@ -139,4 +139,18 @@ promise_test(t => {
   return promise_rejects(t, rejection, ws.getWriter().close(), 'close() should return a rejection');
 }, 'returning a thenable from close() should work');
 
+promise_test(t => {
+  const ws = new WritableStream();
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
+    const closePromise = writer.close();
+    const closedPromise = writer.closed;
+    writer.releaseLock();
+    return Promise.all([
+      closePromise,
+      promise_rejects(t, new TypeError(), closedPromise, '.closed promise should be rejected')
+    ]);
+  });
+}, 'releaseLock() should not change the result of close()');
+
 done();
