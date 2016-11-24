@@ -707,6 +707,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       stream._pendingWriteRequest._reject(r);
       stream._pendingWriteRequest = undefined;
       if (stream._state === 'errored') {
+        stream._storedError = r;
         WritableStreamRejectUnresolvedPromises(stream);
       }
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);

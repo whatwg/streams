@@ -286,7 +286,7 @@ promise_test(t => {
     return Promise.all([
       promise_rejects(t, error1, writePromise, 'write() should reject')
           .then(() => assert_false(closedResolved, '.closed should not resolve before write()')),
-      promise_rejects(t, new TypeError(), writer.closed, '.closed should reject')
+      promise_rejects(t, error1, writer.closed, '.closed should reject')
           .then(() => {
             closedResolved = true;
           })]);
@@ -325,13 +325,29 @@ promise_test(t => {
     return Promise.all([
       promise_rejects(t, error1, writer.write('1'), 'pending write should be rejected')
           .then(() => settlementOrder.push(1)),
-      promise_rejects(t, new TypeError(), writer.write('2'), 'first queued write should be rejected')
+      promise_rejects(t, error1, writer.write('2'), 'first queued write should be rejected')
           .then(() => settlementOrder.push(2)),
-      promise_rejects(t, new TypeError(), writer.write('3'), 'second queued write should be rejected')
+      promise_rejects(t, error1, writer.write('3'), 'second queued write should be rejected')
           .then(() => settlementOrder.push(3)),
       writer.abort(error1)
     ]).then(() => assert_array_equals([1, 2, 3], settlementOrder, 'writes should be satisfied in order'));
   });
 }, 'writes should be satisfied in order after rejected write when aborting');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    write() {
+      return Promise.reject(error1);
+    }
+  });
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
+    return Promise.all([
+      promise_rejects(t, error1, writer.write('a'), 'writer.write() should reject with error from underlying write()'),
+      promise_rejects(t, error1, writer.close(), 'writer.close() should reject with error from underlying write()'),
+      writer.abort()
+    ]);
+  });
+}, 'close() should use error from underlying write() on abort');
 
 done();
