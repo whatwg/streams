@@ -151,6 +151,24 @@ promise_test(t => {
       promise_rejects(t, new TypeError(), closedPromise, '.closed promise should be rejected')
     ]);
   });
-}, 'releaseLock() should not change the result of close()');
+}, 'releaseLock() should not change the result of sync close()');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    close() {
+      return flushAsyncEvents();
+    }
+  });
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
+    const closePromise = writer.close();
+    const closedPromise = writer.closed;
+    writer.releaseLock();
+    return Promise.all([
+      closePromise,
+      promise_rejects(t, new TypeError(), closedPromise, '.closed promise should be rejected')
+    ]);
+  });
+}, 'releaseLock() should not change the result of async close()');
 
 done();
