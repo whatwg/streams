@@ -21,8 +21,7 @@ Use Dfn Panels: yes
 !Commits: <a href="https://github.com/whatwg/streams/commits">GitHub whatwg/streams/commits</a>
 !Commits: [SNAPSHOT-LINK]
 !Commits: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
-!Translation (non-normative): <a href="https://triple-underscore.github.io/Streams-ja.html" rel="alternate" title="Japanese" hreflang="jp" lang="jp">日本語</a>
-
+!Translation (non-normative): <a href="https://triple-underscore.github.io/Streams-ja.html" rel="alternate" title="Japanese" hreflang="ja" lang="ja">日本語</a>
 Opaque Elements: emu-alg
 Ignored Vars: e
 </pre>
