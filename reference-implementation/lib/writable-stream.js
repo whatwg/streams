@@ -164,10 +164,6 @@ function WritableStreamError(stream, e) {
 function WritableStreamFinishClose(stream) {
   assert(stream._state === 'closing');
 
-  // writer cannot be released while close() is ongoing. So, we can assert that
-  // there's an active writer.
-  assert(stream._writer !== undefined);
-
   stream._state = 'closed';
 
   defaultWriterClosedPromiseResolve(stream._writer);
