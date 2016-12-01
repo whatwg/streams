@@ -216,6 +216,7 @@ function WritableStreamRejectUnresolvedPromises(stream) {
   stream._writeRequests = [];
 
   if (stream._pendingCloseRequest !== undefined) {
+    assert(stream._writableStreamController._inClose === false);
     stream._pendingCloseRequest._reject(storedError);
     stream._pendingCloseRequest = undefined;
   }
