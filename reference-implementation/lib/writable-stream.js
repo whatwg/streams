@@ -126,7 +126,7 @@ function WritableStreamAbort(stream, reason) {
 
   const controller = stream._writableStreamController;
   assert(controller !== undefined);
-  if (controller._writing !== false || controller._inClose !== false) {
+  if (controller._writing === true || controller._inClose === true) {
     const promise = new Promise((resolve, reject) => {
       const abortRequest = {
         _resolve: resolve,
