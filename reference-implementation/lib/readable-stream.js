@@ -12,6 +12,7 @@ const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLo
 
 const InternalCancel = Symbol('[[Cancel]]');
 const InternalPull = Symbol('[[Pull]]');
+const InternalTranfer = Symbol('[[Transfer]]');
 
 class ReadableStream {
   constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
@@ -21,6 +22,7 @@ class ReadableStream {
     this._reader = undefined;
     this._storedError = undefined;
 
+    this._Detached = false;
     this._disturbed = false;
 
     // Initialize to undefined first because the constructor of the controller checks this
@@ -251,6 +253,26 @@ class ReadableStream {
     const branches = ReadableStreamTee(this, false);
     return createArrayFromList(branches);
   }
+
+  [InternalTranfer](/* targetRealm */) {
+    if (IsReadableStreamLocked(this) === true) {
+      throw new TypeError('Cannot transfer a locked stream');
+    }
+    if (this._state === 'errored') {
+      throw new TypeError('Cannot transfer an errored stream');
+    }
+    /* can't exactly polyfill realm-transfer */
+    const that = new ReadableStream();
+    that._state = this._state;
+    that._disturbed = this._disturbed;
+
+    const controller = this._readableStreamController;
+    controller._controlledReadableStream = that;
+    that._readableStreamController = controller;
+    this._Detached = true;
+
+    return that;
+  }
 }
 
 module.exports = {
@@ -293,6 +315,9 @@ function IsReadableStreamDisturbed(stream) {
 function IsReadableStreamLocked(stream) {
   assert(IsReadableStream(stream) === true, 'IsReadableStreamLocked should only be used on known readable streams');
 
+  if (stream._Detached === true) {
+    return true;
+  }
   if (stream._reader === undefined) {
     return false;
   }
@@ -469,6 +494,8 @@ function ReadableStreamAddReadRequest(stream) {
 }
 
 function ReadableStreamCancel(stream, reason) {
+  assert(stream._Detached === false);
+
   stream._disturbed = true;
 
   if (stream._state === 'closed') {
