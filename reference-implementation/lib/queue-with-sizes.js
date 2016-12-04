@@ -1,5 +1,7 @@
 'use strict';
 const assert = require('assert');
+/* structured clone is impossible to truly polyfill, but closest match */
+const StructuredClone = require('realistic-structured-clone');
 const { IsFiniteNonNegativeNumber } = require('./helpers.js');
 
 exports.DequeueValue = queue => {
@@ -11,10 +13,14 @@ exports.DequeueValue = queue => {
   return pair.value;
 };
 
-exports.EnqueueValueWithSize = (queue, value, size) => {
+exports.EnqueueValueWithSize = (queue, value, size, targetRealm) => {
   size = Number(size);
   if (!IsFiniteNonNegativeNumber(size)) {
     throw new RangeError('Size must be a finite, non-NaN, non-negative number.');
+  }
+
+  if (targetRealm !== undefined) {
+    value = StructuredClone(value/* , targetRealm*/);
   }
 
   queue.push({ value, size });

@@ -1,5 +1,7 @@
 'use strict';
 const assert = require('assert');
+/* structured clone is impossible to truly polyfill, but closest match */
+const StructuredClone = require('realistic-structured-clone');
 const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, PromiseInvokeOrNoop,
         SameRealmTransfer, ValidateAndNormalizeQueuingStrategy, ValidateAndNormalizeHighWaterMark } =
       require('./helpers.js');
@@ -35,11 +37,13 @@ class ReadableStream {
         highWaterMark = 0;
       }
       this._readableStreamController = new ReadableByteStreamController(this, underlyingSource, highWaterMark);
-    } else if (type === undefined) {
+    } else if (type === undefined || type === 'cloning') {
       if (highWaterMark === undefined) {
         highWaterMark = 1;
       }
-      this._readableStreamController = new ReadableStreamDefaultController(this, underlyingSource, size, highWaterMark);
+
+      this._readableStreamController =
+        new ReadableStreamDefaultController(this, underlyingSource, size, highWaterMark, type);
     } else {
       throw new RangeError('Invalid type is specified');
     }
@@ -261,14 +265,21 @@ class ReadableStream {
     if (this._state === 'errored') {
       throw new TypeError('Cannot transfer an errored stream');
     }
+    const controller = this._readableStreamController;
+    if (controller._targetRealm === undefined) {
+      throw new TypeError('Only cloning streams are transferable');
+    }
     /* can't exactly polyfill realm-transfer */
     const that = new ReadableStream();
     that._state = this._state;
     that._disturbed = this._disturbed;
 
-    const controller = this._readableStreamController;
     controller._controlledReadableStream = that;
     that._readableStreamController = controller;
+    for (const pair of controller._queue) {
+      pair.value = StructuredClone(pair.value/* , targetRealm*/);
+    }
+    controller._targetRealm = that; // controller.[[targetRealm]] = targetRealm
     this._Detached = true;
 
     return that;
@@ -866,7 +877,7 @@ function ReadableStreamDefaultReaderRead(reader) {
 // Controllers
 
 class ReadableStreamDefaultController {
-  constructor(stream, underlyingSource, size, highWaterMark) {
+  constructor(stream, underlyingSource, size, highWaterMark, type) {
     if (IsReadableStream(stream) === false) {
       throw new TypeError('ReadableStreamDefaultController can only be constructed with a ReadableStream instance');
     }
@@ -885,6 +896,12 @@ class ReadableStreamDefaultController {
     this._closeRequested = false;
     this._pullAgain = false;
     this._pulling = false;
+    this._targetRealm = undefined;
+
+    if (type === 'cloning') {
+      /* no way to represent a Realm Record in polyfill */
+      this._targetRealm = stream; // set this.[[targetRealm]] to current Realm Record
+    }
 
     const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
     this._strategySize = normalizedStrategy.size;
@@ -1089,6 +1106,14 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
   assert(stream._state === 'readable');
 
   if (IsReadableStreamLocked(stream) === true && ReadableStreamGetNumReadRequests(stream) > 0) {
+    if (controller._targetRealm !== undefined) {
+      try {
+        chunk = StructuredClone(chunk/* , controller._targetRealm */);
+      } catch (cloneE) {
+        ReadableStreamDefaultControllerErrorIfNeeded(controller, cloneE);
+        throw cloneE;
+      }
+    }
     ReadableStreamFulfillReadRequest(stream, chunk, false);
   } else {
     let chunkSize = 1;
@@ -1103,7 +1128,7 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
     }
 
     try {
-      EnqueueValueWithSize(controller._queue, chunk, chunkSize);
+      EnqueueValueWithSize(controller._queue, chunk, chunkSize, controller._targetRealm);
     } catch (enqueueE) {
       ReadableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
       throw enqueueE;

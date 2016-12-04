@@ -461,10 +461,10 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
     1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be *0*.
     1. Set *this*.[[readableStreamController]] to ? Construct(`<a idl>ReadableByteStreamController</a>`, « *this*,
        _underlyingSource_, _highWaterMark_ »).
-  1. Otherwise, if _type_ is *undefined*,
+  1. Otherwise, if _type_ is *undefined* or _type_ is `"cloning"`,
     1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be *1*.
     1. Set *this*.[[readableStreamController]] to ? Construct(`<a idl>ReadableStreamDefaultController</a>`, « *this*,
-       _underlyingSource_, _size_, _highWaterMark_ »).
+       _underlyingSource_, _size_, _highWaterMark_, _type_ »).
   1. Otherwise, throw a *RangeError* exception.
 </emu-alg>
 
@@ -747,12 +747,17 @@ The following internal method is implemented by each {{ReadableStream}} instance
 <emu-alg>
   1. If ! IsReadableStreamLocked(*this*) is *true*, throw a *TypeError* exception.
   1. If *this*.[[state]] is `"errored"`, throw a *TypeError* exception.
+  1. Let _controller_ be *this*.[[readableStreamController]].
+  1. If _controller_.[[targetRealm]] is *undefined*, throw a *TypeError* exception.
   1. Let _that_ be a new instance of <a idl>ReadableStream</a> in _targetRealm_.
   1. Set _that_.[[state]] to  *this*.[[state]].
   1. Set _that_.[[disturbed]] to *this*.[[disturbed]].
-  1. Let _controller_ be *this*.[[readableStreamController]].
   1. Set _controller_.[[controlledReadableStream]] to _that_.
   1. Set _that_.[[readableStreamController]] to _controller_.
+  1. Let _queue_ be _controller_.[[queue]].
+  1. Repeat for each Record {[[value]], [[size]]} _pair_ that is an element of _queue_,
+    1. Set _pair_.[[value]] to ! <a abstract-op>StructuredClone</a>(_pair_.[[value]], _targetRealm_).
+  1. Set _controller_.[[targetRealm]] to _targetRealm_.
   1. Set _this_.[[Detached]] to *true*.
   1. Return _that_.
 </emu-alg>
@@ -1473,6 +1478,12 @@ Instances of {{ReadableStreamDefaultController}} are created with the internal s
     </tr>
   </thead>
   <tr>
+    <td>\[[targetRealm]]
+    <td>Either *undefined*, or a Realm Record. If set to a Realm Record, ReadableStreamDefaultControllerEnqueue
+      will perform the structured clone algorithm on passed chunks, cloning them into the targetRealm
+      and enqueueing the result.
+  </tr>
+  <tr>
     <td>\[[closeRequested]]
     <td>A boolean flag indicating whether the stream has been closed by its <a>underlying source</a>, but still has
       <a>chunks</a> in its internal queue that have not yet been read
@@ -1520,7 +1531,7 @@ Instances of {{ReadableStreamDefaultController}} are created with the internal s
 <h4 id="rs-default-controller-constructor" constructor for="ReadableStreamDefaultController"
 lt="ReadableStreamDefaultController(stream, underlyingSource, size, highWaterMark)">new
 ReadableStreamDefaultController(<var>stream</var>, <var>underlyingSource</var>, <var>size</var>,
-<var>highWaterMark</var>)</h4>
+<var>highWaterMark</var>, <var>type</var>)</h4>
 
 <div class="note">
   The <code>ReadableStreamDefaultController</code> constructor cannot be used directly; it only works on a
@@ -1534,6 +1545,8 @@ ReadableStreamDefaultController(<var>stream</var>, <var>underlyingSource</var>, 
   1. Set *this*.[[underlyingSource]] to _underlyingSource_.
   1. Set *this*.[[queue]] to a new empty List.
   1. Set *this*.[[started]], *this*.[[closeRequested]], *this*.[[pullAgain]], and *this*.[[pulling]] to *false*.
+  1. Set *this*.[[targetRealm]] to *undefined*.
+  1. If _type_ is `"cloning"`, set *this*.[[targetRealm]] to the current Realm Record.
   1. Let _normalizedStrategy_ be ? ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
   1. Set *this*.[[strategySize]] to _normalizedStrategy_.[[size]] and *this*.[[strategyHWM]] to
      _normalizedStrategy_.[[highWaterMark]].
@@ -1707,8 +1720,14 @@ asserts).
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
   1. Assert: _controller_.[[closeRequested]] is *false*.
   1. Assert: _stream_.[[state]] is `"readable"`.
-  1. If ! IsReadableStreamLocked(_stream_) is *true* and ! ReadableStreamGetNumReadRequests(_stream_) > *0*, perform
-     ! ReadableStreamFulfillReadRequest(_stream_, _chunk_, *false*).
+  1. If ! IsReadableStreamLocked(_stream_) is *true* and ! ReadableStreamGetNumReadRequests(_stream_) > *0*,
+    1. If _controller_.[[targetRealm]] is not *undefined*,
+      1. Let _chunk_ be <a abstract-op>StructuredClone</a>(_chunk_, _controller_.[[targetRealm]]).
+      1. If _chunk_ is an abrupt completion,
+        1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _chunk_.[[Value]]).
+        1. Return _chunk_.
+      1. Let _chunk_ be _chunk_.[[Value]].
+    1. Perform ! ReadableStreamFulfillReadRequest(_stream_, _chunk_, *false*).
   1. Otherwise,
     1. Let _chunkSize_ be *1*.
     1. If _controller_.[[strategySize]] is not *undefined*,
@@ -3615,11 +3634,13 @@ throughout the rest of this standard.
 </emu-alg>
 
 <h4 id="enqueue-value-with-size" aoid="EnqueueValueWithSize" throws>EnqueueValueWithSize ( <var>queue</var>,
-<var>value</var>, <var>size</var> )</h4>
+<var>value</var>, <var>size</var>, <var>targetRealm</var> )</h4>
 
 <emu-alg>
+  1. If _targetRealm_ was not passed, let _targetRealm_ be *undefined*.
   1. Let _size_ be ? ToNumber(_size_).
   1. If ! IsFiniteNonNegativeNumber(_size_) is *false*, throw a *RangeError* exception.
+  1. If _targetRealm_ is not *undefined*, let _value_ be the result of ? StructuredClone(_value_, _targetRealm_).
   1. Append Record {[[value]]: _value_, [[size]]: _size_} as the last element of _queue_.
 </emu-alg>
 
