@@ -755,7 +755,7 @@ This abstract operation is meant to be called from other specifications that may
 reader</a> for a given stream.
 
 <emu-alg>
-  1. Return ? Construct(`<a idl>ReadableStreamDefaultReader</a>`, « ‍_stream_ »).
+  1. Return ? Construct(`<a idl>ReadableStreamDefaultReader</a>`, « _stream_ »).
 </emu-alg>
 
 <h4 id="is-readable-stream" aoid="IsReadableStream" nothrow>IsReadableStream ( <var>x</var> )</h4>
@@ -1686,7 +1686,7 @@ asserts).
   1. Otherwise,
     1. Let _chunkSize_ be *1*.
     1. If _controller_.[[strategySize]] is not *undefined*,
-      1. Set _chunkSize_ to Call(_controller_.[[strategySize]], *undefined*, « ‍_chunk_ »).
+      1. Set _chunkSize_ to Call(_controller_.[[strategySize]], *undefined*, « _chunk_ »).
       1. If _chunkSize_ is an abrupt completion,
         1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _chunkSize_.[[Value]]).
         1. Return _chunkSize_.
@@ -2108,7 +2108,7 @@ nothrow>ReadableByteStreamControllerCallPullIfNeeded ( <var>controller</var> )</
     1. Return.
   1. Assert: _controller_.[[pullAgain]] is *false*.
   1. Set _controller_.[[pulling]] to *true*.
-  1. Let _pullPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingByteSource]], `"pull"`, « ‍_controller_ »).
+  1. Let _pullPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingByteSource]], `"pull"`, « _controller_ »).
   1. <a>Upon fulfillment</a> of _pullPromise_,
     1. Set _controller_.[[pulling]] to *false*.
     1. If _controller_.[[pullAgain]] is *true*,
@@ -3363,9 +3363,9 @@ nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk
   1. Assert: _stream_.[[state]] is `"writable"`.
   1. Let _chunkSize_ be *1*.
   1. If _controller_.[[strategySize]] is not *undefined*,
-    1. Set _chunkSize_ to Call(_controller_.[[strategySize]], *undefined*, « ‍_chunk_ »).
+    1. Set _chunkSize_ to Call(_controller_.[[strategySize]], *undefined*, « _chunk_ »).
     1. If _chunkSize_ is an abrupt completion,
-      1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_,‍ _chunkSize_.[[Value]]).
+      1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _chunkSize_.[[Value]]).
       1. Return.
   1. Let _writeRecord_ be Record {[[chunk]]: _chunk_}.
   1. Let _lastBackpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
@@ -3411,7 +3411,7 @@ nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h
   1. Perform ! DequeueValue(_controller_.[[queue]]).
   1. Assert: _controller_.[[queue]] is empty.
   1. Set _controller_.[[InClose]] to *true*.
-  1. Let _sinkClosePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"close"`, « ‍_controller_ »).
+  1. Let _sinkClosePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"close"`, « _controller_ »).
   1. <a>Upon fulfillment</a> of _sinkClosePromise_,
     1. Assert: _controller_.[[inClose]] is *true*.
     1. Set  _controller_.[[inClose]] to *false*.
@@ -3444,7 +3444,7 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
   1. Remove _writeRequest_ from _stream_.[[writeRequests]], shifting all other elements downward (so that the second
   becomes the first, and so on).
   1. Set _stream_.[[pendingWriteRequest]] to _writeRequest_.
-  1. Let _sinkWritePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"write"`, « ‍_chunk_,
+  1. Let _sinkWritePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"write"`, « _chunk_,
   _controller_ »).
   1. <a>Upon fulfillment</a> of _sinkWritePromise_,
     1. Let _state_ be _stream_.[[state]].
