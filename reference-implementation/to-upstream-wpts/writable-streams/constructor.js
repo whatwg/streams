@@ -36,7 +36,7 @@ promise_test(t => {
   const writer = ws.getWriter();
 
   return Promise.all([
-    promise_rejects(t, error1, writer.write('a'), 'write() should reject with the error'),
+    writer.write('a'),
     promise_rejects(t, error1, writer.closed, 'controller.error() in write() should errored the stream')
   ]);
 }, 'controller argument should be passed to write method');
@@ -51,7 +51,7 @@ promise_test(t => {
   const writer = ws.getWriter();
 
   return Promise.all([
-    promise_rejects(t, error1, writer.close(), 'close() should reject with the error'),
+    writer.close(),
     promise_rejects(t, error1, writer.closed, 'controller.error() in close() should error the stream')
   ]);
 }, 'controller argument should be passed to close method');

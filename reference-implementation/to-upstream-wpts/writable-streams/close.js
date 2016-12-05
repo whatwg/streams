@@ -33,7 +33,7 @@ promise_test(t => {
   const writer = ws.getWriter();
 
   return Promise.all([
-    promise_rejects(t, passedError, writer.close(), 'close() should be rejected with the passed error'),
+    writer.close(),
     delay(10).then(() => controller.error(passedError)),
     promise_rejects(t, passedError, writer.closed,
                     'closed promise should be rejected with the passed error'),
@@ -51,8 +51,7 @@ promise_test(t => {
 
   const writer = ws.getWriter();
 
-  return promise_rejects(t, passedError, writer.close(), 'close promise should be rejected with the passed error')
-      .then(() => promise_rejects(t, passedError, writer.closed, 'closed should stay rejected'));
+  return writer.close().then(() => promise_rejects(t, passedError, writer.closed, 'closed should stay rejected'));
 }, 'when sink calls error synchronously while closing, the stream should become errored');
 
 promise_test(() => {
