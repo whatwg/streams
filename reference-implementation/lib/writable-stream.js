@@ -172,7 +172,7 @@ function WritableStreamError(stream, e) {
   // This method can be called during the construction of the controller, in which case "controller" will be undefined
   // but the flags are guaranteed to be false anyway.
   if (controller === undefined || controller._writing === false && controller._inClose === false) {
-    WritableStreamRejectUnresolvedPromises(stream);
+    WritableStreamRejectPromisesInReactionToError(stream);
   }
 
   const writer = stream._writer;
@@ -205,7 +205,7 @@ function WritableStreamFinishClose(stream) {
   }
 }
 
-function WritableStreamRejectUnresolvedPromises(stream) {
+function WritableStreamRejectPromisesInReactionToError(stream) {
   assert(stream._state === 'errored');
   assert(stream._pendingWriteRequest === undefined);
 
@@ -735,7 +735,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       stream._pendingWriteRequest = undefined;
 
       if (state === 'errored') {
-        WritableStreamRejectUnresolvedPromises(stream);
+        WritableStreamRejectPromisesInReactionToError(stream);
 
         if (stream._pendingAbortRequest !== undefined) {
           stream._pendingAbortRequest._resolve();
@@ -763,7 +763,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       stream._pendingWriteRequest = undefined;
       if (stream._state === 'errored') {
         stream._storedError = r;
-        WritableStreamRejectUnresolvedPromises(stream);
+        WritableStreamRejectPromisesInReactionToError(stream);
       }
       if (stream._pendingAbortRequest !== undefined) {
         stream._pendingAbortRequest._reject(r);
