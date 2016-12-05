@@ -3167,7 +3167,8 @@ nothrow>WritableStreamDefaultWriterRelease ( <var>writer</var> )</h4>
   1. Assert: _stream_.[[writer]] is _writer_.
   1. Let _releasedError_ be a new *TypeError*.
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"writable"` or `"closing"`, <a>reject</a> _writer_.[[closedPromise]] with _releasedError_.
+  1. If _state_ is `"writable"` or `"closing"`, or _stream_.[[pendingAbortRequest]] is not *undefined*, <a>reject</a>
+  _writer_.[[closedPromise]] with _releasedError_.
   1. Otherwise, set _writer_.[[closedPromise]] to <a>a promise rejected with</a> _releasedError_.
   1. Set _writer_.[[closedPromise]].[[PromiseIsHandled]] to *true*.
   1. If _state_ is `"writable"` and !

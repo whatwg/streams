@@ -467,4 +467,63 @@ promise_test(t => {
   });
 }, 'writer.ready should reject on controller error without waiting for underlying write');
 
+promise_test(t => {
+  let resolveWrite;
+  const ws = new WritableStream({
+    write() {
+      return new Promise(resolve => {
+        resolveWrite = resolve;
+      });
+    }
+  });
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
+    const writePromise = writer.write('a');
+    const closed = writer.closed;
+    const abortPromise = writer.abort();
+    writer.releaseLock();
+    resolveWrite();
+    return Promise.all([writePromise,
+                        abortPromise,
+                        promise_rejects(t, new TypeError(), closed, 'closed should reject')]);
+  });
+}, 'releaseLock() while aborting should reject the original promise');
+
+promise_test(t => {
+  let resolveWrite;
+  let resolveAbort;
+  let resolveAbortStarted;
+  let abortStarted = new Promise(resolve => {
+    resolveAbortStarted = resolve;
+  });
+  const ws = new WritableStream({
+    write() {
+      return new Promise(resolve => {
+        resolveWrite = resolve;
+      });
+    },
+    abort() {
+      resolveAbortStarted();
+      return new Promise(resolve => {
+        resolveAbort = resolve;
+      });
+    }
+  });
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
+    const writePromise = writer.write('a');
+    const closed = writer.closed;
+    const abortPromise = writer.abort();
+    resolveWrite();
+    return abortStarted.then(() => {
+      writer.releaseLock();
+      assert_not_equals(writer.closed, closed, 'closed promise should have changed');
+      resolveAbort();
+      return Promise.all([abortPromise,
+                          promise_rejects(t, new TypeError(), closed, 'original closed should reject'),
+                          promise_rejects(t, new TypeError(), writer.closed, 'new closed should reject')]);
+    });
+  });
+}, 'releaseLock() during delayed async abort() should create a new rejected promise');
+
 done();
