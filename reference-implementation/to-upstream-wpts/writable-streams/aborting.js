@@ -483,9 +483,10 @@ promise_test(t => {
     const abortPromise = writer.abort();
     writer.releaseLock();
     resolveWrite();
-    return Promise.all([writePromise,
-                        abortPromise,
-                        promise_rejects(t, new TypeError(), closed, 'closed should reject')]);
+    return Promise.all([
+      writePromise,
+      abortPromise,
+      promise_rejects(t, new TypeError(), closed, 'closed should reject')]);
   });
 }, 'releaseLock() while aborting should reject the original promise');
 
@@ -493,7 +494,7 @@ promise_test(t => {
   let resolveWrite;
   let resolveAbort;
   let resolveAbortStarted;
-  let abortStarted = new Promise(resolve => {
+  const abortStarted = new Promise(resolve => {
     resolveAbortStarted = resolve;
   });
   const ws = new WritableStream({
@@ -519,9 +520,11 @@ promise_test(t => {
       writer.releaseLock();
       assert_not_equals(writer.closed, closed, 'closed promise should have changed');
       resolveAbort();
-      return Promise.all([abortPromise,
-                          promise_rejects(t, new TypeError(), closed, 'original closed should reject'),
-                          promise_rejects(t, new TypeError(), writer.closed, 'new closed should reject')]);
+      return Promise.all([
+        writePromise,
+        abortPromise,
+        promise_rejects(t, new TypeError(), closed, 'original closed should reject'),
+        promise_rejects(t, new TypeError(), writer.closed, 'new closed should reject')]);
     });
   });
 }, 'releaseLock() during delayed async abort() should create a new rejected promise');
