@@ -26,11 +26,16 @@ process.on('rejectionHandled', promise => {
   rejections.delete(promise);
 });
 
+let patterns;
+if (process.argv.length >= 3) {
+  patterns = process.argv.slice(2);
+}
+
 let totalFailures = 0;
-wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup })
+wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup, patterns })
   .then(failures => {
     totalFailures += failures;
-    return wptRunner(testsPath, { rootURL: 'streams/', setup });
+    return wptRunner(testsPath, { rootURL: 'streams/', setup, patterns });
   })
   .then(failures => {
     totalFailures += failures;
