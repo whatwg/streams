@@ -471,7 +471,7 @@ function WritableStreamDefaultWriterRelease(writer) {
     'Writer was released and can no longer be used to monitor the stream\'s closedness');
   const state = stream._state;
 
-  if (state === 'writable' || state === 'closing') {
+  if (state === 'writable' || state === 'closing' || stream._pendingAbortRequest !== undefined) {
     defaultWriterClosedPromiseReject(writer, releasedError);
   } else {
     defaultWriterClosedPromiseResetToRejected(writer, releasedError);
