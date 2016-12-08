@@ -488,7 +488,7 @@ promise_test(t => {
       abortPromise,
       promise_rejects(t, new TypeError(), closed, 'closed should reject')]);
   });
-}, 'releaseLock() while aborting should reject the original promise');
+}, 'releaseLock() while aborting should reject the original closed promise');
 
 promise_test(t => {
   let resolveWrite;
@@ -527,6 +527,6 @@ promise_test(t => {
         promise_rejects(t, new TypeError(), writer.closed, 'new closed should reject')]);
     });
   });
-}, 'releaseLock() during delayed async abort() should create a new rejected promise');
+}, 'releaseLock() during delayed async abort() should create a new rejected closed promise');
 
 done();
