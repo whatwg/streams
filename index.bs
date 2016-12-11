@@ -4138,7 +4138,7 @@ an individual write succeeded or failed.
 
       write(chunk) {
         return fs.write(fd, chunk, 0, chunk.length);
-      }
+      },
 
       close() {
         return fs.close(fd);
