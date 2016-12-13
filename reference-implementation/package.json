@@ -15,6 +15,9 @@
     "Takeshi Yoshino <tyoshino@chromium.org>"
   ],
   "license": "(CC0-1.0 OR MIT)",
+  "dependencies": {
+    "realistic-structured-clone": "^0.0.3"
+  },
   "devDependencies": {
     "eslint": "^3.2.2",
     "glob": "^7.0.3",
