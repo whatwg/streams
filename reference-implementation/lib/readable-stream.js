@@ -258,7 +258,7 @@ class ReadableStream {
     return createArrayFromList(branches);
   }
 
-  [InternalTransfer](/* targetRealm */) {
+  [InternalTransfer](targetRealm) {
     if (IsReadableStreamLocked(this) === true) {
       throw new TypeError('Cannot transfer a locked stream');
     }
@@ -269,8 +269,8 @@ class ReadableStream {
     if (controller._targetRealm === undefined) {
       throw new TypeError('Only cloning streams are transferable');
     }
-    /* can't exactly polyfill realm-transfer */
-    const that = new ReadableStream();
+    /* at least approximate realm-transfer */
+    const that = new targetRealm.ReadableStream();
     that._state = this._state;
     that._disturbed = this._disturbed;
 
@@ -279,7 +279,7 @@ class ReadableStream {
     for (const pair of controller._queue) {
       pair.value = StructuredClone(pair.value/* , targetRealm*/);
     }
-    controller._targetRealm = that; // controller.[[targetRealm]] = targetRealm
+    controller._targetRealm = targetRealm;
     this._Detached = true;
 
     return that;
@@ -899,8 +899,8 @@ class ReadableStreamDefaultController {
     this._targetRealm = undefined;
 
     if (type === 'cloning') {
-      /* no way to represent a Realm Record in polyfill */
-      this._targetRealm = stream; // set this.[[targetRealm]] to current Realm Record
+      /* can't access self/window/worker settings object from inside node module */
+      this._targetRealm = global; // set this.[[targetRealm]] to current Realm Record
     }
 
     const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
