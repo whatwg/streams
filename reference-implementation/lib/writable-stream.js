@@ -1,14 +1,32 @@
 'use strict';
 const assert = require('assert');
+const StructuredClone = require('realistic-structured-clone');
 const { InvokeOrNoop, PromiseInvokeOrNoop, PromiseInvokeOrFallbackOrNoop, ValidateAndNormalizeQueuingStrategy,
         typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } = require('./queue-with-sizes.js');
 
+const InternalTransfer = Symbol('[[Transfer]]');
+
+// XXX: tentative helper, move into utils.js
+function CloneOrError(e, targetRealm) {
+  try {
+    e = StructuredClone(e/* , targetRealm */);
+  } catch (cloneE) {
+    // nodejs has no DataCloneError of its own, so...
+    e = new targetRealm.Error('DataCloneError: ' + String(e));
+    e.name = 'DataCloneError';
+  }
+  return e;
+}
+
 class WritableStream {
   constructor(underlyingSink = {}, { size, highWaterMark = 1 } = {}) {
     this._state = 'writable';
     this._storedError = undefined;
+    this._Detached = false;
+    this._clone = false;
+    this._realm = global; // Let this.[[realm]] be the current Realm Record.
 
     this._writer = undefined;
 
@@ -67,6 +85,30 @@ class WritableStream {
 
     return AcquireWritableStreamDefaultWriter(this);
   }
+
+  [InternalTransfer](targetRealm) {
+    if (IsWritableStreamLocked(this) === true) {
+      throw new TypeError('Cannot transfer a locked stream');
+    }
+    const controller = this._writableStreamController;
+    /* at least approximate realm-transfer */
+    const that = new targetRealm.WritableStream();
+    that._realm = targetRealm;
+    that._state = this._state;
+    that._storedError = CloneOrError(this._storedError, targetRealm);
+
+    that._writeRequests = this._writeRequests;
+    that._pendingWriteRequest = this._pendingWriteRequest;
+    that._pendingCloseRequest = this._pendingCloseRequest;
+    that._pendingAbortRequest = this._pendingAbortRequest;
+
+    controller._controlledWritableStream = that;
+    that._writableStreamController = controller;
+    this._Detached = true;
+    that._clone = true;
+
+    return that;
+  }
 }
 
 module.exports = {
@@ -102,6 +144,10 @@ function IsWritableStream(x) {
 function IsWritableStreamLocked(stream) {
   assert(IsWritableStream(stream) === true, 'IsWritableStreamLocked should only be used on known writable streams');
 
+  if (stream._Detached === true) {
+    return true;
+  }
+
   if (stream._writer === undefined) {
     return false;
   }
@@ -126,6 +172,11 @@ function WritableStreamAbort(stream, reason) {
 
   const controller = stream._writableStreamController;
   assert(controller !== undefined);
+
+  if (stream._clone === true) {
+    reason = CloneOrError(reason, controller._realm);
+  }
+
   if (controller._writing === true || controller._inClose === true) {
     const promise = new Promise((resolve, reject) => {
       const abortRequest = {
@@ -141,7 +192,7 @@ function WritableStreamAbort(stream, reason) {
     return promise;
   }
 
-  return WritableStreamDefaultControllerAbort(stream._writableStreamController, reason);
+  return WritableStreamDefaultControllerAbort(controller, reason);
 }
 
 // WritableStream API exposed for controllers.
@@ -503,9 +554,23 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
 
   assert(state === 'writable');
 
+  const controller = stream._writableStreamController;
+
+  if (stream._clone === true) {
+    try {
+      chunk = StructuredClone(chunk);
+    } catch (cloneE) {
+      WritableStreamError(stream, cloneE);
+      WritableStreamDefaultControllerAbort(controller, CloneOrError(cloneE, controller._realm));
+      return Promise.reject(cloneE);
+    }
+  }
+
   const promise = WritableStreamAddWriteRequest(stream);
 
-  WritableStreamDefaultControllerWrite(stream._writableStreamController, chunk);
+  // XXX: This calls controller.[[strategySize]] synchronously, and therefore blocks.
+  // Perform this op asynchronously?
+  WritableStreamDefaultControllerWrite(controller, chunk);
 
   return promise;
 }
@@ -529,6 +594,7 @@ class WritableStreamDefaultController {
     this._started = false;
     this._writing = false;
     this._inClose = false;
+    this._realm = global; // Let this.[[realm]] be the current Realm Record.
 
     const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
     this._strategySize = normalizedStrategy.size;
@@ -675,7 +741,7 @@ function WritableStreamDefaultControllerErrorIfNeeded(controller, e) {
 }
 
 function WritableStreamDefaultControllerProcessClose(controller) {
-  const stream = controller._controlledWritableStream;
+  let stream = controller._controlledWritableStream;
 
   assert(stream._state === 'closing', 'can\'t process final write record unless already closed');
 
@@ -686,6 +752,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
   const sinkClosePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'close', [controller]);
   sinkClosePromise.then(
     () => {
+      stream = controller._controlledWritableStream;
       assert(controller._inClose === true);
       controller._inClose = false;
       if (stream._state !== 'closing' && stream._state !== 'errored') {
@@ -717,7 +784,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
 function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   controller._writing = true;
 
-  const stream = controller._controlledWritableStream;
+  let stream = controller._controlledWritableStream;
 
   assert(stream._pendingWriteRequest === undefined);
   assert(stream._writeRequests.length !== 0);
@@ -725,6 +792,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   const sinkWritePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'write', [chunk, controller]);
   sinkWritePromise.then(
     () => {
+      stream = controller._controlledWritableStream;
       const state = stream._state;
 
       assert(controller._writing === true);
@@ -786,6 +854,10 @@ function WritableStreamDefaultControllerError(controller, e) {
   const stream = controller._controlledWritableStream;
 
   assert(stream._state === 'writable' || stream._state === 'closing');
+
+  if (stream._clone === true) {
+    e = CloneOrError(e, stream._realm);
+  }
 
   WritableStreamError(stream, e);
 
