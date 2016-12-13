@@ -14,7 +14,7 @@ const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLo
 
 const InternalCancel = Symbol('[[Cancel]]');
 const InternalPull = Symbol('[[Pull]]');
-const InternalTranfer = Symbol('[[Transfer]]');
+const InternalTransfer = Symbol('[[Transfer]]');
 
 class ReadableStream {
   constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
@@ -258,7 +258,7 @@ class ReadableStream {
     return createArrayFromList(branches);
   }
 
-  [InternalTranfer](/* targetRealm */) {
+  [InternalTransfer](/* targetRealm */) {
     if (IsReadableStreamLocked(this) === true) {
       throw new TypeError('Cannot transfer a locked stream');
     }
