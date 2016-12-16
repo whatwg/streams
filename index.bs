@@ -2664,15 +2664,6 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
   behavior will be the same as a {{CountQueuingStrategy}} with a <a>high water mark</a> of 1.
 </div>
 
-<div class="note">
-  Due to the way writable streams asynchronously close, it is possible for both <code>close</code> and
-  <code>abort</code> to be called, in cases where the <a>producer</a> aborts the stream while it is in the
-  <code>"closing"</code> state. Notably, since a stream always spends at least one turn in the <code>"closing"</code>
-  state, code like <code>ws.close(); ws.abort(...);</code> will cause both to be called, even if the <code>close</code>
-  method itself has no asynchronous behavior. A well-designed <a>underlying sink</a> object should be able to deal with
-  this.
-</div>
-
 <emu-alg>
   1. Set *this*.[[state]] to `"writable"`.
   1. Set *this*.[[storedError]], *this*.[[writer]], and *this*.[[writableStreamController]] to *undefined*.
@@ -2765,12 +2756,14 @@ writable stream is <a>locked to a writer</a>.
 
 <emu-alg>
   1. Let _state_ be _stream_.[[state]].
+  1. Let _controller_ be _stream_.[[writableStreamController]].
   1. If _state_ is `"closed"`, return <a>a promise resolved with</a> *undefined*.
   1. If _state_ is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Assert: _state_ is `"writable"` or `"closing"`.
+  1. If _state_ is `"closing"`, and either _controller_.[[queue]] is empty or PeekQueueValue(_controller_.[[queue]]) is
+  `"close"`, return <a>a promise resolved with</a> *undefined*.
   1. Let _error_ be a new *TypeError* indicating that the stream has been aborted.
   1. Perform ! WritableStreamError(_stream_, _error_).
-  1. Let _controller_ be _stream_.[[writableStreamController]].
   1. Assert: _controller_ is not *undefined*.
   1. If _controller_.[[writing]] is *true* or _controller_.[[inClose]] is *true*,
     1. Set _stream_.[[pendingAbortRequest]] to <a>a new promise</a>.

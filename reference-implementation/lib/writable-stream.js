@@ -111,6 +111,8 @@ function IsWritableStreamLocked(stream) {
 
 function WritableStreamAbort(stream, reason) {
   const state = stream._state;
+  const controller = stream._writableStreamController;
+
   if (state === 'closed') {
     return Promise.resolve(undefined);
   }
@@ -120,11 +122,14 @@ function WritableStreamAbort(stream, reason) {
 
   assert(state === 'writable' || state === 'closing');
 
+  if (state === 'closing' && (controller._queue.length === 0 || PeekQueueValue(controller._queue) === 'close')) {
+    return Promise.resolve(undefined);
+  }
+
   const error = new TypeError('Aborted');
 
   WritableStreamError(stream, error);
 
-  const controller = stream._writableStreamController;
   assert(controller !== undefined);
   if (controller._writing === true || controller._inClose === true) {
     const promise = new Promise((resolve, reject) => {
