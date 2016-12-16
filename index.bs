@@ -3478,7 +3478,7 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
       1. Perform ! WritableStreamRejectPromisesInReactionToError(_stream_).
     1. If _stream_.[[pendingAbortRequest]] is not *undefined*,
       1. <a>Reject</a>  _stream_.[[pendingAbortRequest]] with _r_.
-      1. Set _stream_.[[pendingAbortRequest]] to *undefined*.      
+      1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
     1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
 </emu-alg>
 
@@ -4296,6 +4296,7 @@ Mihai Potra,
 Simon Menke,
 Stephen Sugden,
 Tab Atkins,
+Tanguy Krotoff,
 Thorsten Lorenz,
 Tim Caswell,
 Trevor Norris,
