@@ -4,6 +4,7 @@
 'use strict';
 const path = require('path');
 const wptRunner = require('wpt-runner');
+const minimatch = require('minimatch');
 
 const { ReadableStream } = require('./lib/readable-stream.js');
 const { WritableStream } = require('./lib/writable-stream.js');
@@ -13,6 +14,11 @@ const CountQueuingStrategy = require('./lib/count-queuing-strategy.js');
 
 const testsPath = path.resolve(__dirname, 'web-platform-tests/streams');
 const toUpstreamTestsPath = path.resolve(__dirname, 'to-upstream-wpts');
+
+const filterGlobs = process.argv.length >= 3 ? process.argv.slice(2) : ['**/*.html'];
+function filter(testPath) {
+  return filterGlobs.some(glob => minimatch(testPath, glob));
+}
 
 // wpt-runner does not yet support unhandled rejection tracking a la
 // https://github.com/w3c/testharness.js/commit/7716e2581a86dfd9405a9c00547a7504f0c7fe94
@@ -27,10 +33,10 @@ process.on('rejectionHandled', promise => {
 });
 
 let totalFailures = 0;
-wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup })
+wptRunner(toUpstreamTestsPath, { rootURL: 'streams/', setup, filter })
   .then(failures => {
     totalFailures += failures;
-    return wptRunner(testsPath, { rootURL: 'streams/', setup });
+    return wptRunner(testsPath, { rootURL: 'streams/', setup, filter });
   })
   .then(failures => {
     totalFailures += failures;

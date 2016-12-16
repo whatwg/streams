@@ -18,12 +18,13 @@
   "devDependencies": {
     "eslint": "^3.2.2",
     "glob": "^7.0.3",
+    "minimatch": "^3.0.3",
     "nyc": "^8.4.0",
     "opener": "^1.4.2",
     "tap-spec": "^4.1.1",
     "tape": "^4.5.1",
     "tape-catch": "^1.0.5",
-    "wpt-runner": "^2.1.1"
+    "wpt-runner": "^2.2.0"
   },
   "nyc": {
     "include": [
