@@ -3411,7 +3411,7 @@ nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h
   1. Assert: _stream_.[[state]] is `"closing"`.
   1. Perform ! DequeueValue(_controller_.[[queue]]).
   1. Assert: _controller_.[[queue]] is empty.
-  1. Set _controller_.[[InClose]] to *true*.
+  1. Set _controller_.[[inClose]] to *true*.
   1. Let _sinkClosePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"close"`, « _controller_ »).
   1. <a>Upon fulfillment</a> of _sinkClosePromise_,
     1. Assert: _controller_.[[inClose]] is *true*.
@@ -3422,8 +3422,8 @@ nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h
     1. Set _stream_.[[pendingCloseRequest]] to *undefined*.
     1. Perform ! WritableStreamFinishClose(_stream_).
   1. <a>Upon rejection</a> of _sinkClosePromise_ with reason _r_,
-    1. Assert: _controller_.[[inClose]] it *true*.
-    1. Set  _controller_.[[InClose]] to *false*.
+    1. Assert: _controller_.[[inClose]] is *true*.
+    1. Set  _controller_.[[inClose]] to *false*.
     1. Assert: _stream_.[[pendingCloseRequest]] is not *undefined*.
     1. <a>Reject</a> _stream_.[[pendingCloseRequest]] with _r_.
     1. Set _stream_.[[pendingCloseRequest]] to *undefined*.
