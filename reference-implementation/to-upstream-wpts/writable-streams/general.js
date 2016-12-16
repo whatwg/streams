@@ -173,7 +173,9 @@ promise_test(t => {
   const writer2 = ws2.getWriter();
   writer2.abort();
 
-  // Test PromiseInvokeOrFallbackOrNoop.
+  // Test abort() with a close underlying sink method present. (Historical; see
+  // https://github.com/whatwg/streams/issues/620#issuecomment-263483953 for what used to be
+  // tested here. But more coverage can't hurt.)
   const ws3 = new WritableStream({
     start: functionWithOverloads,
     write: functionWithOverloads,

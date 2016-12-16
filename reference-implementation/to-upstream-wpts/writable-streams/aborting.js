@@ -250,15 +250,14 @@ promise_test(() => {
 }, 'Aborting a WritableStream after it is closed is a no-op');
 
 promise_test(t => {
+  // Testing that per https://github.com/whatwg/streams/issues/620#issuecomment-263483953 the fallback to close was
+  // removed.
+
   // Cannot use recordingWritableStream since it always has an abort
-  let controller;
-  let closeArgs;
+  let closeCalled = false;
   const ws = new WritableStream({
-    start(c) {
-      controller = c;
-    },
-    close(...args) {
-      closeArgs = args;
+    close() {
+      closeCalled = true;
     }
   });
 
@@ -267,9 +266,9 @@ promise_test(t => {
   writer.abort();
 
   return promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError').then(() => {
-    assert_array_equals(closeArgs, [controller], 'close must have been called, with the controller as its argument');
+    assert_false(closeCalled, 'close must not have been called');
   });
-}, 'WritableStream should call underlying sink\'s close if no abort is supplied');
+}, 'WritableStream should NOT call underlying sink\'s close if no abort is supplied (historical)');
 
 promise_test(() => {
   let thenCalled = false;

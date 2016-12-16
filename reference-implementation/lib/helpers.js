@@ -100,16 +100,6 @@ exports.PromiseInvokeOrPerformFallback = (O, P, args, F, argsF) => {
   }
 };
 
-exports.PromiseInvokeOrFallbackOrNoop = (O, P1, args1, P2, args2) => {
-  assert(O !== undefined);
-  assert(IsPropertyKey(P1));
-  assert(Array.isArray(args1));
-  assert(IsPropertyKey(P2));
-  assert(Array.isArray(args2));
-
-  return exports.PromiseInvokeOrPerformFallback(O, P1, args1, exports.PromiseInvokeOrNoop, [O, P2, args2]);
-};
-
 // Not implemented correctly
 exports.SameRealmTransfer = O => O;
 

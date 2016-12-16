@@ -2649,7 +2649,7 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
       and put it in an errored state. It should clean up any held resources, much like <code>close</code>, but perhaps
       with some custom handling. Unlike <code>close</code>, <code>abort</code> will be called even if writes are queued
       up; those <a>chunks</a> will be thrown away. If this process is asynchronous, it can return a promise to signal
-      success or failure. If no abort method is passed, by default the <code>close</code> method will be called instead.
+      success or failure.
   </ul>
 
   The <code>controller</code> object passed to <code>start</code>, <code>write</code> and <code>close</code> is an
@@ -3321,8 +3321,8 @@ nothrow>WritableStreamDefaultControllerAbort ( <var>controller</var>, <var>reaso
 
 <emu-alg>
   1. Set _controller_.[[queue]] to a new empty List.
-  1. Let _sinkAbortPromise_ be ! PromiseInvokeOrFallbackOrNoop(_controller_.[[underlyingSink]],
-     `"abort"`, « _reason_ », `"close"`, « _controller_ »).
+  1. Let _sinkAbortPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"abort"`, «
+    _reason_ »).
   1. Return the result of transforming _sinkAbortPromise_ by a fulfillment handler that returns
     *undefined*.
 </emu-alg>
@@ -3720,30 +3720,6 @@ A few abstract operations are used in this specification for utility purposes. W
   1. If _v_ is *+∞*, return *false*.
   1. If _v_ < *0*, return *false*.
   1. Return *true*.
-</emu-alg>
-
-<h4 id="promise-invoke-or-fallback-or-noop" aoid="PromiseInvokeOrFallbackOrNoop" nothrow>PromiseInvokeOrFallbackOrNoop (
-<var>O</var>, <var>P1</var>, <var>args1</var>, <var>P2</var>, <var>args2</var> )</h4>
-
-<div class="note">
-  PromiseInvokeOrFallbackOrNoop is a specialized version of <a>promise-calling</a> that works on methods, calls a
-  fallback method if the first method is not present, and returns a promise for <emu-val>undefined</emu-val> when
-  neither method is present.
-</div>
-
-<emu-alg>
-  1. Assert: _O_ is not *undefined*.
-  1. Assert: ! IsPropertyKey(_P1_) is *true*.
-  1. Assert: _args1_ is a List.
-  1. Assert: ! IsPropertyKey(_P2_) is *true*.
-  1. Assert: _args2_ is a List.
-  1. Let _method_ be GetV(_O_, _P1_).
-  1. If _method_ is an abrupt completion, return <a>a promise rejected with</a> _method_.[[Value]].
-  1. Let _method_ be _method_.[[Value]].
-  1. If _method_ is *undefined*, return ! PromiseInvokeOrNoop(_O_, _P2_, _args2_).
-  1. Let _returnValue_ be Call(_method_, _O_, _args1_).
-  1. If _returnValue_ is an abrupt completion, return <a>a promise rejected with</a> _returnValue_.[[Value]].
-  1. Otherwise, return <a>a promise resolved with</a> _returnValue_.[[Value]].
 </emu-alg>
 
 <h4 id="promise-invoke-or-noop" aoid="PromiseInvokeOrNoop" nothrow>PromiseInvokeOrNoop ( <var>O</var>, <var>P</var>,
