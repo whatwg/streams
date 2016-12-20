@@ -136,12 +136,12 @@ function WritableStreamAbort(stream, reason) {
       stream._pendingAbortRequest = abortRequest;
     });
     if (controller._writing === true) {
-      return promise.then(() => WritableStreamDefaultControllerAbort(stream._writableStreamController, reason));
+      return promise.then(() => WritableStreamDefaultControllerAbort(controller, reason));
     }
     return promise;
   }
 
-  return WritableStreamDefaultControllerAbort(stream._writableStreamController, reason);
+  return WritableStreamDefaultControllerAbort(controller, reason);
 }
 
 // WritableStream API exposed for controllers.
@@ -725,8 +725,6 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   const sinkWritePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'write', [chunk, controller]);
   sinkWritePromise.then(
     () => {
-      const state = stream._state;
-
       assert(controller._writing === true);
       controller._writing = false;
 
@@ -734,6 +732,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       stream._pendingWriteRequest._resolve(undefined);
       stream._pendingWriteRequest = undefined;
 
+      const state = stream._state;
       if (state === 'errored') {
         WritableStreamRejectPromisesInReactionToError(stream);
 

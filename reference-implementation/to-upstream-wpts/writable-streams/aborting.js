@@ -9,6 +9,9 @@ if (self.importScripts) {
 const error1 = new Error('error1');
 error1.name = 'error1';
 
+const error2 = new Error('error2');
+error2.name = 'error2';
+
 promise_test(t => {
   const ws = new WritableStream({
     write() {
@@ -287,7 +290,7 @@ promise_test(t => {
   const writer = ws.getWriter();
   return writer.ready.then(() => {
     const writePromise = writer.write('a');
-    const abortPromise = writer.abort(error1);
+    const abortPromise = writer.abort(error2);
     let closedResolved = false;
     return Promise.all([
       promise_rejects(t, error1, writePromise, 'write() should reject')
@@ -298,7 +301,7 @@ promise_test(t => {
           }),
       promise_rejects(t, error1, abortPromise, 'abort() should reject')]);
   });
-}, '.closed should not resolve before rejected write()');
+}, '.closed should not resolve before rejected write(); write() error should overwrite abort() error');
 
 promise_test(t => {
   const ws = new WritableStream({

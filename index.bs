@@ -2590,6 +2590,18 @@ Instances of {{WritableStream}} are created with the internal slots described in
     </tr>
   </thead>
   <tr>
+    <td>\[[pendingAbortRequest]]
+    <td>The promise for a pending abort operation
+  </tr>
+  <tr>
+    <td>\[[pendingCloseRequest]]
+    <td>The promise returned from the writer {{WritableStreamDefaultWriter/close()}} method
+  </tr>
+  <tr>
+    <td>\[[pendingWriteRequest]]
+    <td>The promise for the current pending write operation
+  </tr>
+  <tr>
     <td>\[[state]]
     <td>A string containing the stream's current state, used internally; one of <code>"writable"</code>,
     <code>"closing"</code>, <code>"closed"</code>, or <code>"errored"</code>
@@ -2612,18 +2624,6 @@ Instances of {{WritableStream}} are created with the internal slots described in
   <tr>
     <td>\[[writeRequests]]
     <td>A List of promises representing the stream's internal queue of pending writes
-  </tr>
-  <tr>
-    <td>\[[pendingWriteRequest]]
-    <td>The promise for the current pending write operation
-  </tr>
-  <tr>
-    <td>\[[pendingCloseRequest]]
-    <td>The promise returned from the writer {{WritableStreamDefaultWriter/close()}} method
-  </tr>
-  <tr>
-    <td>\[[pendingAbortRequest]]
-    <td>The promise for a pending abort operation
   </tr>
 </table>
 
@@ -2675,7 +2675,8 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
 
 <emu-alg>
   1. Set *this*.[[state]] to `"writable"`.
-  1. Set *this*.[[storedError]], *this*.[[writer]], and *this*.[[writableStreamController]] to *undefined*.
+  1. Set *this*.[[storedError]], *this*.[[writer]], *this*.[[writableStreamController]], *this*.[[pendingAbortRequest]],
+     *this*.[[pendingCloseRequest]], and *this*.[[pendingWriteRequest]] to *undefined*.
   1. Set *this*.[[writeRequests]] to a new empty List.
   1. Let _type_ be ? GetV(_underlyingSink_, `"type"`).
   1. If _type_ is not *undefined*, throw a *RangeError* exception. <p class="note">This is to allow us to add new
@@ -2775,10 +2776,9 @@ writable stream is <a>locked to a writer</a>.
   1. If _controller_.[[writing]] is *true* or _controller_.[[inClose]] is *true*,
     1. Set _stream_.[[pendingAbortRequest]] to <a>a new promise</a>.
     1. If _controller_.[[writing]] is *true*, return the result of transforming _stream_.[[pendingAbortRequest]] by a
-    fulfillment handler that returns !
-    WritableStreamDefaultControllerAbort(_stream_.[[writableStreamController]], _reason_).
+    fulfillment handler that returns ! WritableStreamDefaultControllerAbort(_controller_, _reason_).
     1. Otherwise, return _stream_.[[pendingAbortRequest]].
-  1. Return ! WritableStreamDefaultControllerAbort(_stream_.[[writableStreamController]], _reason_).
+  1. Return ! WritableStreamDefaultControllerAbort(_controller_, _reason_).
 </emu-alg>
 
 <h3 id="ws-abstract-ops-used-by-controllers">Writable Stream Abstract Operations Used by Controllers</h3>
@@ -2829,14 +2829,13 @@ visible through the {{WritableStream}}'s public API.
 
 <emu-alg>
   1. Assert: _stream_.[[state]] is `"closing"` or `"errored"`.
-  1. Assert: _stream_.[[writer]] is not *undefined*.
   1. If _stream_.[[state]] is `"closing"`,
-    1. <a>Resolve</a> _writer_.[[closedPromise]] with *undefined*.
+    1. <a>Resolve</a> _stream_.[[writer]].[[closedPromise]] with *undefined*.
     1. Set _stream_.[[state]] to `"closed"`.
   1. Otherwise,
     1. Assert: _stream_.[[state]] is `"errored"`.
-    1. <a>Reject</a> _writer_.[[closedPromise]] with _stream_.[[storedError]].
-    1. Set _writer_.[[closedPromise]].[[PromiseIsHandled]] to *true*.
+    1. <a>Reject</a> _stream_.[[writer]].[[closedPromise]] with _stream_.[[storedError]].
+    1. Set _stream_.[[writer]].[[closedPromise]].[[PromiseIsHandled]] to *true*.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*,
     1. <a>Resolve</a> _stream_.[[pendingAbortRequest]] with *undefined*.
     1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
@@ -2860,17 +2859,6 @@ nothrow>WritableStreamRejectPromisesInReactionToError ( <var>stream</var> )</h4>
   1. If _writer_ is not undefined,
     1. <a>Reject</a> _writer_.[[closedPromise]] with _storedError_.
     1. Set _writer_.[[closedPromise]].[[PromiseIsHandled]] to *true*.
-</emu-alg>
-
-<h4 id="writable-stream-fulfill-write-request" aoid="WritableStreamFulfillWriteRequest"
-nothrow>WritableStreamFulfillWriteRequest ( <var>stream</var> )</h4>
-
-<emu-alg>
-  1. Assert: _stream_.[[writeRequests]] is not empty.
-  1. Let _writeRequest_ be the first element of _stream_.[[writeRequests]].
-  1. Remove _writeRequest_ from _stream_.[[writeRequests]], shifting all other elements downward (so that the second
-  becomes the first, and so on).
-  1. <a>Resolve</a> _writeRequest_ with *undefined*.
 </emu-alg>
 
 <h4 id="writable-stream-update-backpressure" aoid="WritableStreamUpdateBackpressure"
@@ -3232,6 +3220,12 @@ Instances of {{WritableStreamDefaultController}} are created with the internal s
     <td>The {{WritableStream}} instance controlled
   </tr>
   <tr>
+    <td>\[[inClose]]
+    <td>A boolean flag set to <emu-val>true</emu-val> while the <a>underlying sink</a>'s <code>close</code> method is
+      executing and has not yet fulfilled, used to prevent the {{WritableStreamDefaultWriter/abort()}} method from
+      interrupting close
+  </tr>
+  <tr>
     <td>\[[queue]]
     <td>A List representing the stream's internal queue of <a>chunks</a>
   </tr>
@@ -3259,11 +3253,6 @@ Instances of {{WritableStreamDefaultController}} are created with the internal s
     <td>A boolean flag set to <emu-val>true</emu-val> while the <a>underlying sink</a>'s <code>write</code> method is
       executing and has not yet fulfilled, used to prevent reentrant calls
   </tr>
-  <tr>
-    <td>\[[inClose]]
-    <td>A boolean flag set to <emu-val>true</emu-val> while the <a>underlying sink</a>'s <code>close</code> method is
-      executing and has not yet fulfilled, used to prevent the {{WritableStreamDefaultWriter/abort()}} method from
-      interrupting close
 </table>
 
 <h4 id="ws-default-controller-constructor" constructor for="WritableStreamDefaultController"
@@ -3448,12 +3437,12 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
   1. Let _sinkWritePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"write"`, « _chunk_,
   _controller_ »).
   1. <a>Upon fulfillment</a> of _sinkWritePromise_,
-    1. Let _state_ be _stream_.[[state]].
     1. Assert: _controller_.[[writing]] is *true*.
     1. Set _controller_.[[writing]] to *false*.
     1. Assert: _stream_.[[pendingWriteRequest]] is not *undefined*.
     1. <a>Resolve</a> _stream_.[[pendingWriteRequest]] with *undefined*.
     1. Set _stream_.[[pendingWriteRequest]] to *undefined*.
+    1. Let _state_ be _stream_.[[state]].
     1. If _state_ is `"errored"`,
       1. Perform ! WritableStreamRejectPromisesInReactionToError(_stream_).
       1. If _stream_.[[pendingAbortRequest]] is not *undefined*,
