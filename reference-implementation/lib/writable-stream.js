@@ -597,8 +597,9 @@ function WritableStreamDefaultControllerWrite(controller, chunk) {
   let chunkSize = 1;
 
   if (controller._strategySize !== undefined) {
+    const strategySize = controller._strategySize;
     try {
-      chunkSize = controller._strategySize(chunk);
+      chunkSize = strategySize(chunk);
     } catch (chunkSizeE) {
       // TODO: Should we notify the sink of this error?
       WritableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);

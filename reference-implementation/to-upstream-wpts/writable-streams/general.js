@@ -188,6 +188,21 @@ promise_test(t => {
 }, 'methods should not not have .apply() or .call() called');
 
 promise_test(() => {
+  const strategy = {
+    size() {
+      if (this !== undefined) {
+        throw new Error('size called as a method');
+      }
+      return 1;
+    }
+  };
+
+  const ws = new WritableStream({}, strategy);
+  const writer = ws.getWriter();
+  return writer.write('a');
+}, 'WritableStream\'s strategy.size should not be called as a method');
+
+promise_test(() => {
   const ws = new WritableStream();
   const writer1 = ws.getWriter();
   assert_equals(undefined, writer1.releaseLock(), 'releaseLock() should return undefined');
