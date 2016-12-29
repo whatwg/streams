@@ -77,6 +77,8 @@ else
     rm $WEB_ROOT/index.intermediate.html
 
     cp service-worker.js $WEB_ROOT/service-worker.js
+    cp manifest.json $WEB_ROOT/manifest.json
+
     echo "Living standard output to $WEB_ROOT"
 fi
 
