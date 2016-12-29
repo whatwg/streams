@@ -21,23 +21,23 @@ self.onfetch = e => {
   }
 
   e.respondWith(
-    caches.match(e.request).then(cachedResponse => {
-      // Respond with the cached response if it exists, but still do the network fetch in order to refresh the cache.
-      // Ignore network fetch errors; they just mean we won't be able to cache.
-      const networkFetchPromise = fetch(e.request).then(refreshCacheFromNetworkResponse).catch(() => {});
+    // Since this is a Living Standard, it is imperative that you see the freshest content, so we use a
+    // network-then-cache strategy.
+    fetch(e.request).then(res => {
+      if (!res.ok) {
+        throw new Error(`${res.url} is responding with ${res.status}; falling back to cache if possible`);
+      }
 
-      return cachedResponse || networkFetchPromise;
+      const responseForCache = res.clone();
+      // Do not return this promise; it's OK if caching fails, and we don't want to block on it.
+      caches.open(cacheKey).then(cache => cache.put(e.request, responseForCache));
+
+      return res;
+    })
+    .catch(() => {
+      return caches.match(e.request);
     })
   );
-
-  function refreshCacheFromNetworkResponse(response) {
-    const responseForCache = response.clone();
-
-    // Ignore any errors while caching.
-    caches.open(cacheKey).then(cache => cache.put(e.request, responseForCache));
-
-    return response;
-  }
 };
 
 self.onactivate = e => {
