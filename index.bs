@@ -60,7 +60,6 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
 </style>
 <script src="https://resources.whatwg.org/file-issue.js" async></script>
 <script src="https://resources.whatwg.org/commit-snapshot-shortcut-key.js" async></script>
-<link rel="manifest" href="/manifest.json">
 
 
 <h2 id="intro">Introduction</h2>
