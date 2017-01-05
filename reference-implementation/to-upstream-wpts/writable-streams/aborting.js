@@ -388,7 +388,7 @@ promise_test(t => {
 
 promise_test(() => {
   let resolveWrite;
-  let abort_called = false;
+  let abortCalled = false;
   const ws = new WritableStream({
     write() {
       return new Promise(resolve => {
@@ -396,7 +396,7 @@ promise_test(() => {
       });
     },
     abort() {
-      abort_called = true;
+      abortCalled = true;
     }
   });
 
@@ -405,16 +405,16 @@ promise_test(() => {
     writer.write('a');
     const abortPromise = writer.abort();
     return flushAsyncEvents().then(() => {
-      assert_false(abort_called, 'abort should not be called while write is pending');
+      assert_false(abortCalled, 'abort should not be called while write is pending');
       resolveWrite();
-      return abortPromise.then(() => assert_true(abort_called, 'abort should be called'));
+      return abortPromise.then(() => assert_true(abortCalled, 'abort should be called'));
     });
   });
 }, 'underlying abort() should not be called until underlying write() completes');
 
 promise_test(() => {
   let resolveClose;
-  let abort_called = false;
+  let abortCalled = false;
   const ws = new WritableStream({
     close() {
       return new Promise(resolve => {
@@ -422,7 +422,7 @@ promise_test(() => {
       });
     },
     abort() {
-      abort_called = true;
+      abortCalled = true;
     }
   });
 
@@ -431,16 +431,49 @@ promise_test(() => {
     writer.close();
     const abortPromise = writer.abort();
     return flushAsyncEvents().then(() => {
-      assert_false(abort_called, 'abort should not be called while close is pending');
+      assert_false(abortCalled, 'underlying abort should not be called while close is pending');
       resolveClose();
-      return abortPromise.then(() => assert_false(abort_called, 'abort should not be called after close completes'));
+      return abortPromise.then(() => {
+        assert_false(abortCalled, 'underlying abort should not be called after close completes');
+      });
     });
   });
 }, 'underlying abort() should not be called if underlying close() has started');
 
 promise_test(t => {
+  let rejectClose;
+  let abortCalled = false;
+  const ws = new WritableStream({
+    close() {
+      return new Promise((resolve, reject) => {
+        rejectClose = reject;
+      });
+    },
+    abort() {
+      abortCalled = true;
+    }
+  });
+
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
+    const closePromise = writer.close();
+    const abortPromise = writer.abort();
+    return flushAsyncEvents().then(() => {
+      assert_false(abortCalled, 'underlying abort should not be called while close is pending');
+      rejectClose(error1);
+      return promise_rejects(t, error1, abortPromise, 'abort should reject with the same reason').then(() => {
+        return promise_rejects(t, error1, closePromise, 'close should reject with the same reason');
+      }).then(() => {
+        assert_false(abortCalled, 'underlying abort should not be called after close completes');
+      });
+    });
+  });
+}, 'if underlying close() has started and then rejects, the abort() and close() promises should reject with the ' +
+   'underlying close rejection reason');
+
+promise_test(t => {
   let resolveWrite;
-  let abort_called = false;
+  let abortCalled = false;
   const ws = new WritableStream({
     write() {
       return new Promise(resolve => {
@@ -448,7 +481,7 @@ promise_test(t => {
       });
     },
     abort() {
-      abort_called = true;
+      abortCalled = true;
     }
   });
 
@@ -458,10 +491,10 @@ promise_test(t => {
     const closePromise = writer.close();
     const abortPromise = writer.abort();
     return flushAsyncEvents().then(() => {
-      assert_false(abort_called, 'abort should not be called while write is pending');
+      assert_false(abortCalled, 'abort should not be called while write is pending');
       resolveWrite();
       return abortPromise.then(() => {
-        assert_true(abort_called, 'abort should be called after write completes');
+        assert_true(abortCalled, 'abort should be called after write completes');
         return promise_rejects(t, new TypeError(), closePromise, 'promise returned by close() should be rejected');
       });
     });
