@@ -143,6 +143,32 @@ promise_test(t => {
     'rejection reason of abortPromise must be the error thrown by abort');
 }, 'WritableStream if sink\'s abort throws, the promise returned by ws.abort() rejects');
 
+promise_test(t => {
+  let resolveWritePromise;
+  const ws = new WritableStream({
+    write() {
+      return new Promise(resolve => {
+        resolveWritePromise = resolve;
+      });
+    },
+    abort() {
+      throw error1;
+    }
+  });
+
+  const writer = ws.getWriter();
+
+  writer.write().catch(() => {});
+  return flushAsyncEvents().then(() => {
+    const abortPromise = writer.abort(undefined);
+
+    resolveWritePromise();
+    return promise_rejects(t, error1, abortPromise,
+      'rejection reason of abortPromise must be the error thrown by abort');
+  });
+}, 'WritableStream if sink\'s abort throws, for an abort performed during a write, the promise returned by ' +
+   'ws.abort() rejects');
+
 test(() => {
   const ws = recordingWritableStream();
   const writer = ws.getWriter();
