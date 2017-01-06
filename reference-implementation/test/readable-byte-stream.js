@@ -2196,3 +2196,31 @@ test('ReadableStream with byte source: Throwing in pull in response to read(view
     });
   });
 });
+
+test('ReadableStreamByobReader can be constructed directly', t => {
+  const ReadableStreamByobReader = new ReadableStream({ type: 'bytes' }).getReader({ mode: 'byob' }).constructor;
+  const stream = new ReadableStream({ type: 'bytes' });
+  new ReadableStreamByobReader(stream);
+  t.end();
+});
+
+test('ReadableStreamByobReader constructor requires a ReadableStream argument', t => {
+  const ReadableStreamByobReader = new ReadableStream({ type: 'bytes' }).getReader({ mode: 'byob' }).constructor;
+  t.throws(() => new ReadableStreamByobReader({}), TypeError, 'constructor must throw');
+  t.end();
+});
+
+test('ReadableStreamByobReader constructor requires an unlocked ReadableStream', t => {
+  const ReadableStreamByobReader = new ReadableStream({ type: 'bytes' }).getReader({ mode: 'byob' }).constructor;
+  const stream = new ReadableStream({ type: 'bytes' });
+  stream.getReader();
+  t.throws(() => new ReadableStreamByobReader(stream), TypeError, 'constructor must throw');
+  t.end();
+});
+
+test('ReadableStreamByobReader constructor requires a ReadableStream with type "bytes"', t => {
+  const ReadableStreamByobReader = new ReadableStream({ type: 'bytes' }).getReader({ mode: 'byob' }).constructor;
+  const stream = new ReadableStream();
+  t.throws(() => new ReadableStreamByobReader(stream), TypeError, 'constructor must throw');
+  t.end();
+});
