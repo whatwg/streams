@@ -69,10 +69,6 @@ class ReadableStream {
     }
 
     if (mode === 'byob') {
-      if (IsReadableByteStreamController(this._readableStreamController) === false) {
-        throw new TypeError('Cannot get a ReadableStreamBYOBReader for a stream not constructed with a byte source');
-      }
-
       return AcquireReadableStreamBYOBReader(this);
     }
 
@@ -664,6 +660,10 @@ class ReadableStreamBYOBReader {
     if (!IsReadableStream(stream)) {
       throw new TypeError('ReadableStreamBYOBReader can only be constructed with a ReadableStream instance given a ' +
           'byte source');
+    }
+    if (IsReadableByteStreamController(stream._readableStreamController) === false) {
+      throw new TypeError('Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte ' +
+          'source');
     }
     if (IsReadableStreamLocked(stream)) {
       throw new TypeError('This stream has already been locked for exclusive reading by another reader');

@@ -514,10 +514,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 
 <emu-alg>
   1. If ! IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. If _mode_ is `"byob"`,
-    1. If ! IsReadableByteStreamController(*this*.[[readableStreamController]]) is *false*, throw a *TypeError*
-       exception.
-    1. Return ? AcquireReadableStreamBYOBReader(*this*).
+  1. If _mode_ is `"byob"`, return ? AcquireReadableStreamBYOBReader(*this*).
   1. If _mode_ is *undefined*, return ? AcquireReadableStreamDefaultReader(*this*).
   1. Throw a *RangeError* exception.
 </emu-alg>
@@ -1247,6 +1244,7 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
 
 <emu-alg>
   1. If ! IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If ! IsReadableByteStreamController(_stream_.[[readableStreamController]]) is *false*, throw a *TypeError* exception.
   1. If ! IsReadableStreamLocked(_stream_) is *true*, throw a *TypeError* exception.
   1. Perform ! ReadableStreamReaderGenericInitialize(*this*, _stream_).
   1. Set *this*.[[readIntoRequests]] to a new empty List.
@@ -4287,6 +4285,7 @@ Stephen Sugden,
 Tab Atkins,
 Tanguy Krotoff,
 Thorsten Lorenz,
+Till Schneidereit,
 Tim Caswell,
 Trevor Norris,
 tzik,
