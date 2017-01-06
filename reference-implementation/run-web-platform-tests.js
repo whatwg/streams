@@ -16,8 +16,9 @@ const testsPath = path.resolve(__dirname, 'web-platform-tests/streams');
 const toUpstreamTestsPath = path.resolve(__dirname, 'to-upstream-wpts');
 
 const filterGlobs = process.argv.length >= 3 ? process.argv.slice(2) : ['**/*.html'];
+const workerTestPattern = /\.(?:dedicated|shared|service)worker(?:\.https)?\.html$/;
 function filter(testPath) {
-  return testPath.endsWith('.https.html') && // ignore the worker versions
+  return !workerTestPattern.test(testPath) && // ignore the worker versions
          filterGlobs.some(glob => minimatch(testPath, glob));
 }
 
