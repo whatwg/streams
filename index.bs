@@ -4061,7 +4061,14 @@ promises returned by its <a lt="writable stream writer">writer</a>'s {{WritableS
       close() {
         return new Promise((resolve, reject) => {
           ws.onclose = resolve;
-          ws.close();
+          ws.close(1000);
+        });
+      },
+
+      abort(reason) {
+        return new Promise((resolve, reject) => {
+          ws.onclose = resolve;
+          ws.close(4000, reason && reason.message);
         });
       }
     });
@@ -4104,6 +4111,10 @@ an individual write succeeded or failed.
       },
 
       close() {
+        return fs.close(fd);
+      },
+
+      abort() {
         return fs.close(fd);
       }
     });
@@ -4199,7 +4210,14 @@ source abstractions.
         this._ws.close();
       });
     }
-  });
+
+    abort(reason) {
+      return new Promise((resolve, reject) => {
+        ws.onclose = resolve;
+        ws.close(4000, reason && reason.message);
+      });
+    }
+  }
 </code></pre>
 
 We can then use the objects created by this function to communicate with a remote web socket, using the standard stream
