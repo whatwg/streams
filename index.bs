@@ -514,10 +514,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 
 <emu-alg>
   1. If ! IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. If _mode_ is `"byob"`,
-    1. If ! IsReadableByteStreamController(*this*.[[readableStreamController]]) is *false*, throw a *TypeError*
-       exception.
-    1. Return ? AcquireReadableStreamBYOBReader(*this*).
+  1. If _mode_ is `"byob"`, return ? AcquireReadableStreamBYOBReader(*this*).
   1. If _mode_ is *undefined*, return ? AcquireReadableStreamDefaultReader(*this*).
   1. Throw a *RangeError* exception.
 </emu-alg>
