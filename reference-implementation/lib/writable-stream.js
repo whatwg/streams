@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('assert');
-const { InvokeOrNoop, PromiseInvokeOrNoop, PromiseInvokeOrFallbackOrNoop, ValidateAndNormalizeQueuingStrategy,
-        typeIsObject } = require('./helpers.js');
+const { InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeQueuingStrategy, typeIsObject } =
+  require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize, PeekQueueValue } = require('./queue-with-sizes.js');
 
@@ -574,8 +574,7 @@ class WritableStreamDefaultController {
 function WritableStreamDefaultControllerAbort(controller, reason) {
   controller._queue = [];
 
-  const sinkAbortPromise = PromiseInvokeOrFallbackOrNoop(controller._underlyingSink, 'abort', [reason],
-                                                         'close', [controller]);
+  const sinkAbortPromise = PromiseInvokeOrNoop(controller._underlyingSink, 'abort', [reason]);
   return sinkAbortPromise.then(() => undefined);
 }
 
