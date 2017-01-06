@@ -689,10 +689,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
     () => {
       assert(controller._inClose === true);
       controller._inClose = false;
-      if (stream._state !== 'closing' && stream._state !== 'errored') {
-        return;
-      }
-
+      assert(stream._state === 'closing' || stream._state === 'errored');
       assert(stream._pendingCloseRequest !== undefined);
       stream._pendingCloseRequest._resolve(undefined);
       stream._pendingCloseRequest = undefined;
