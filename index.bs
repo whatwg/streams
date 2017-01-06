@@ -3405,7 +3405,7 @@ nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h
   1. <a>Upon fulfillment</a> of _sinkClosePromise_,
     1. Assert: _controller_.[[inClose]] is *true*.
     1. Set  _controller_.[[inClose]] to *false*.
-    1. If _stream_.[[state]] is not `"closing"` or `"errored"`, return.
+    1. Assert: _stream_.[[state]] is `"closing"` or `"errored"`.
     1. Assert: _stream_.[[pendingCloseRequest]] is not *undefined*.
     1. <a>Resolve</a> _stream_.[[pendingCloseRequest]] with *undefined*.
     1. Set _stream_.[[pendingCloseRequest]] to *undefined*.
