@@ -188,7 +188,14 @@ function WritableStreamError(stream, e) {
 }
 
 function WritableStreamFinishClose(stream) {
-  assert(stream._state === 'closing' || stream._state === 'errored');
+  assert(stream._pendingCloseRequest !== undefined);
+  stream._pendingCloseRequest._resolve(undefined);
+  stream._pendingCloseRequest = undefined;
+
+  if (stream._pendingAbortRequest !== undefined) {
+    stream._pendingAbortRequest._resolve();
+    stream._pendingAbortRequest = undefined;
+  }
 
   const writer = stream._writer;
   if (stream._state === 'closing') {
@@ -196,14 +203,26 @@ function WritableStreamFinishClose(stream) {
       defaultWriterClosedPromiseResolve(writer);
     }
     stream._state = 'closed';
-  } else if (writer !== undefined) {
-    assert(stream._state === 'errored');
-    defaultWriterClosedPromiseReject(writer, stream._storedError);
-    writer._closedPromise.catch(() => {});
+    return;
   }
 
+  assert(stream._state === 'errored');
+
+  if (writer === undefined) {
+    return;
+  }
+
+  defaultWriterClosedPromiseReject(writer, stream._storedError);
+  writer._closedPromise.catch(() => {});
+}
+
+function WritableStreamFinishCloseWithError(stream, e) {
+  assert(stream._pendingCloseRequest !== undefined);
+  stream._pendingCloseRequest._reject(e);
+  stream._pendingCloseRequest = undefined;
+
   if (stream._pendingAbortRequest !== undefined) {
-    stream._pendingAbortRequest._resolve();
+    stream._pendingAbortRequest._reject(e);
     stream._pendingAbortRequest = undefined;
   }
 }
@@ -692,22 +711,15 @@ function WritableStreamDefaultControllerProcessClose(controller) {
       assert(controller._inClose === true);
       controller._inClose = false;
       assert(stream._state === 'closing' || stream._state === 'errored');
-      assert(stream._pendingCloseRequest !== undefined);
-      stream._pendingCloseRequest._resolve(undefined);
-      stream._pendingCloseRequest = undefined;
 
       WritableStreamFinishClose(stream);
     },
     r => {
       assert(controller._inClose === true);
       controller._inClose = false;
-      assert(stream._pendingCloseRequest !== undefined);
-      stream._pendingCloseRequest._reject(r);
-      stream._pendingCloseRequest = undefined;
-      if (stream._pendingAbortRequest !== undefined) {
-        stream._pendingAbortRequest._reject(r);
-        stream._pendingAbortRequest = undefined;
-      }
+
+      WritableStreamFinishCloseWithError(stream, r);
+
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);
     }
   )

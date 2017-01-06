@@ -2826,17 +2826,32 @@ visible through the {{WritableStream}}'s public API.
 <var>stream</var> )</h4>
 
 <emu-alg>
-  1. Assert: _stream_.[[state]] is `"closing"` or `"errored"`.
+  1. Assert: _stream_.[[pendingCloseRequest]] is not *undefined*.
+  1. <a>Resolve</a> _stream_.[[pendingCloseRequest]] with *undefined*.
+  1. Set _stream_.[[pendingCloseRequest]] to *undefined*.
+  1. If _stream_.[[pendingAbortRequest]] is not *undefined*,
+    1. <a>Resolve</a> _stream_.[[pendingAbortRequest]] with *undefined*.
+    1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
   1. Let _writer_ be _stream_.[[writer]].
   1. If _stream_.[[state]] is `"closing"`,
     1. If _writer_ is not *undefined*, <a>resolve</a> _writer_.[[closedPromise]] with *undefined*.
     1. Set _stream_.[[state]] to `"closed"`.
-  1. Otherwise if _writer_ is not *undefined*,
-    1. Assert: _stream_.[[state]] is `"errored"`.
-    1. <a>Reject</a> _writer_.[[closedPromise]] with _stream_.[[storedError]].
-    1. Set _writer_.[[closedPromise]].[[PromiseIsHandled]] to *true*.
+    1. Return.
+  1. Assert: _stream_.[[state]] is `"errored"`.
+  1. If _writer_ is *undefined*, return.
+  1. <a>Reject</a> _writer_.[[closedPromise]] with _stream_.[[storedError]].
+  1. Set _writer_.[[closedPromise]].[[PromiseIsHandled]] to *true*.
+</emu-alg>
+
+<h4 id="writable-stream-finish-close-with-error" aoid="WritableStreamFinishCloseWithError" nothrow>
+WritableStreamFinishCloseWithError (<var>stream</var>, <var>e</var> )</h4>
+
+<emu-alg>
+  1. Assert: _stream_.[[pendingCloseRequest]] is not *undefined*.
+  1. <a>Reject</a> _stream_.[[pendingCloseRequest]] with _e_.
+  1. Set _stream_.[[pendingCloseRequest]] to *undefined*.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*,
-    1. <a>Resolve</a> _stream_.[[pendingAbortRequest]] with *undefined*.
+    1. <a>Reject</a> _stream_.[[pendingAbortRequest]] with _e_.
     1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
 </emu-alg>
 
@@ -2943,7 +2958,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   1. Let _state_ be _stream_.[[state]].
   1. If _state_ is `"writable"` or `"closing"`,
     1. Set *this*.[[closedPromise]] to <a>a new promise</a>.
-  1. Otherwise if _state_ is `"closed"`,
+  1. Otherwise, if _state_ is `"closed"`,
     1. Set *this*.[[closedPromise]] to <a>a promise resolved with</a> *undefined*.
   1. Otherwise,
     1. Assert: _state_ is `"errored"`.
@@ -3405,19 +3420,11 @@ nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h
     1. Assert: _controller_.[[inClose]] is *true*.
     1. Set  _controller_.[[inClose]] to *false*.
     1. Assert: _stream_.[[state]] is `"closing"` or `"errored"`.
-    1. Assert: _stream_.[[pendingCloseRequest]] is not *undefined*.
-    1. <a>Resolve</a> _stream_.[[pendingCloseRequest]] with *undefined*.
-    1. Set _stream_.[[pendingCloseRequest]] to *undefined*.
     1. Perform ! WritableStreamFinishClose(_stream_).
   1. <a>Upon rejection</a> of _sinkClosePromise_ with reason _r_,
     1. Assert: _controller_.[[inClose]] is *true*.
     1. Set  _controller_.[[inClose]] to *false*.
-    1. Assert: _stream_.[[pendingCloseRequest]] is not *undefined*.
-    1. <a>Reject</a> _stream_.[[pendingCloseRequest]] with _r_.
-    1. Set _stream_.[[pendingCloseRequest]] to *undefined*.
-    1. If _stream_.[[pendingAbortRequest]] is not *undefined*,
-      1. <a>Reject</a> _stream_.[[pendingAbortRequest]] with _r_.
-      1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
+    1. Perform ! WritableStreamFinishCloseWithError(_stream_, _r_).
     1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
 </emu-alg>
 
