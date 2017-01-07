@@ -2437,7 +2437,7 @@ throws>ReadableByteStreamControllerRespondWithNewView ( <var>controller</var>, <
   1. Let _firstDescriptor_ be the first element of _controller_.[[pendingPullIntos]].
   1. If _firstDescriptor_.[[byteOffset]] + _firstDescriptor_.[[bytesFilled]] is not _view_.[[ByteOffset]], throw a
      *RangeError* exception.
-  1. If _firstDescriptor_.[[byteLength]] is not _view_.[[ByteOffset]], throw a *RangeError* exception.
+  1. If _firstDescriptor_.[[byteLength]] is not _view_.[[ByteLength]], throw a *RangeError* exception.
   1. Set _firstDescriptor_.[[buffer]] to _view_.[[ViewedArrayBuffer]].
   1. Perform ? ReadableByteStreamControllerRespondInternal(_controller_, _view_.[[ByteLength]]).
 </emu-alg>
