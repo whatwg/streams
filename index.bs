@@ -2153,7 +2153,7 @@ aoid="ReadableByteStreamControllerCommitPullIntoDescriptor" nothrow>ReadableByte
   1. Assert: _stream_.[[state]] is not `"errored"`.
   1. Let _done_ be *false*.
   1. If _stream_.[[state]] is `"closed"`,
-    1. Assert: _pullIntoDescriptor_.[[bytesFilled]] is not *0*.
+    1. Assert: _pullIntoDescriptor_.[[bytesFilled]] is *0*.
     1. Set _done_ to *true*.
   1. Let _filledView_ be ! ReadableByteStreamControllerConvertPullIntoDescriptor(_pullIntoDescriptor_).
   1. If _pullIntoDescriptor_.[[readerType]] is `"default"`,
