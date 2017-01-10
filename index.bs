@@ -2346,7 +2346,7 @@ nothrow>ReadableByteStreamControllerPullInto ( <var>controller</var>, <var>view<
     1. Append _pullIntoDescriptor_ as the last element of _controller_.[[pendingPullIntos]].
     1. Return ! ReadableStreamAddReadIntoRequest(_stream_).
   1. If _stream_.[[state]] is `"closed"`,
-    1. Let _emptyView_ be ! Construct(_ctor_, « _view_.[[buffer]], _view_.[[byteOffset]], *0* »).
+    1. Let _emptyView_ be ! Construct(_ctor_, « _pullIntoDescriptor_.[[buffer]], _pullIntoDescriptor_.[[byteOffset]], *0* »).
     1. Return <a>a promise resolved with</a> ! CreateIterResultObject(_emptyView_, *true*).
   1. If _controller_.[[totalQueuedBytes]] > *0*,
     1. If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
