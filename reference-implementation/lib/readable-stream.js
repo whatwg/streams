@@ -1580,7 +1580,7 @@ function ReadableByteStreamControllerPullInto(controller, view) {
   }
 
   if (stream._state === 'closed') {
-    const emptyView = new view.constructor(view.buffer, view.byteOffset, 0);
+    const emptyView = new view.constructor(pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, 0);
     return Promise.resolve(CreateIterResultObject(emptyView, true));
   }
 
