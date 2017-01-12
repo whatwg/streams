@@ -2827,13 +2827,14 @@ visible through the {{WritableStream}}'s public API.
 
 <emu-alg>
   1. Assert: _stream_.[[state]] is `"closing"` or `"errored"`.
+  1. Let _writer_ be _stream_.[[writer]].
   1. If _stream_.[[state]] is `"closing"`,
-    1. <a>Resolve</a> _stream_.[[writer]].[[closedPromise]] with *undefined*.
+    1. If _writer_ is not *undefined*, <a>resolve</a> _writer_.[[closedPromise]] with *undefined*.
     1. Set _stream_.[[state]] to `"closed"`.
-  1. Otherwise,
+  1. Otherwise if _writer_ is not *undefined*,
     1. Assert: _stream_.[[state]] is `"errored"`.
-    1. <a>Reject</a> _stream_.[[writer]].[[closedPromise]] with _stream_.[[storedError]].
-    1. Set _stream_.[[writer]].[[closedPromise]].[[PromiseIsHandled]] to *true*.
+    1. <a>Reject</a> _writer_.[[closedPromise]] with _stream_.[[storedError]].
+    1. Set _writer_.[[closedPromise]].[[PromiseIsHandled]] to *true*.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*,
     1. <a>Resolve</a> _stream_.[[pendingAbortRequest]] with *undefined*.
     1. Set _stream_.[[pendingAbortRequest]] to *undefined*.

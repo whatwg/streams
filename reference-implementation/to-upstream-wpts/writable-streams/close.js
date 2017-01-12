@@ -170,4 +170,47 @@ promise_test(t => {
   });
 }, 'releaseLock() should not change the result of async close()');
 
+promise_test(() => {
+  let resolveClose;
+  const ws = new WritableStream({
+    close() {
+      const promise = new Promise(resolve => {
+        resolveClose = resolve;
+      });
+      return promise;
+    }
+  });
+  const writer = ws.getWriter();
+  const closePromise = writer.close();
+  writer.releaseLock();
+  return delay(0).then(() => {
+    resolveClose();
+    return closePromise.then(() => {
+      assert_equals(ws.getWriter().desiredSize, 0, 'desiredSize should be 0');
+    });
+  });
+}, 'close() should set state to CLOSED even if writer has detached');
+
+promise_test(() => {
+  let resolveClose;
+  const ws = new WritableStream({
+    close() {
+      const promise = new Promise(resolve => {
+        resolveClose = resolve;
+      });
+      return promise;
+    }
+  });
+  const writer = ws.getWriter();
+  writer.close();
+  writer.releaseLock();
+  return delay(0).then(() => {
+    const abortingWriter = ws.getWriter();
+    const abortPromise = abortingWriter.abort();
+    abortingWriter.releaseLock();
+    resolveClose();
+    return abortPromise;
+  });
+}, 'the promise returned by async abort during close should resolve');
+
 done();

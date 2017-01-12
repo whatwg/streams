@@ -190,13 +190,16 @@ function WritableStreamError(stream, e) {
 function WritableStreamFinishClose(stream) {
   assert(stream._state === 'closing' || stream._state === 'errored');
 
+  const writer = stream._writer;
   if (stream._state === 'closing') {
-    defaultWriterClosedPromiseResolve(stream._writer);
+    if (writer !== undefined) {
+      defaultWriterClosedPromiseResolve(writer);
+    }
     stream._state = 'closed';
-  } else {
+  } else if (writer !== undefined) {
     assert(stream._state === 'errored');
-    defaultWriterClosedPromiseReject(stream._writer, stream._storedError);
-    stream._writer._closedPromise.catch(() => {});
+    defaultWriterClosedPromiseReject(writer, stream._storedError);
+    writer._closedPromise.catch(() => {});
   }
 
   if (stream._pendingAbortRequest !== undefined) {
