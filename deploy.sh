@@ -68,8 +68,7 @@ if [ $BRANCH != "master" ] ; then
     node_modules/.bin/emu-algify --throwing-indicators < $BRANCH_DIR/index.intermediate.html > $BRANCH_DIR/index.html
     rm $BRANCH_DIR/index.intermediate.html
     echo "Branch snapshot output to $WEB_ROOT/$BRANCHES_DIR/$BRANCH"
-fi
-#else
+else
     # Living standard, if master
     curl https://api.csswg.org/bikeshed/ -f -F file=@index.bs \
          -F md-Text-Macro="SNAPSHOT-LINK $SNAPSHOT_LINK" \
@@ -79,7 +78,7 @@ fi
 
     cp service-worker.js $WEB_ROOT/service-worker.js
     echo "Living standard output to $WEB_ROOT"
-#fi
+fi
 
 echo ""
 find $WEB_ROOT -print
