@@ -24,7 +24,7 @@ self.onfetch = e => {
     // network-then-cache strategy for the main content.
     e.respondWith(
       fetch(e.request).then(res => {
-        refreshCacheFromNetworkResponse(e.request, res);
+        e.waitUntil(refreshCacheFromNetworkResponse(e.request, res));
         return res;
       })
       .catch(() => {
@@ -38,9 +38,11 @@ self.onfetch = e => {
         const networkFetchPromise = fetch(e.request);
 
         // Ignore network fetch or caching errors; they just mean we won't be able to refresh the cache.
-        networkFetchPromise
-          .then(res => refreshCacheFromNetworkResponse(e.request, res))
-          .catch(() => {});
+        e.waitUntil(
+          networkFetchPromise
+            .then(res => refreshCacheFromNetworkResponse(e.request, res))
+            .catch(() => {})
+        );
 
         return cachedResponse || networkFetchPromise;
       })
@@ -61,11 +63,51 @@ function refreshCacheFromNetworkResponse(req, res) {
 
   const resForCache = res.clone();
 
-  // Do not return this promise; it's OK if caching fails, and we don't want to block on it.
-  caches.open(cacheKey).then(cache => cache.put(req, resForCache));
+  return caches.open(cacheKey).then(cache => cache.put(req, resForCache));
 }
 
 function needsToBeFresh(req) {
   const requestURL = new URL(req.url);
   return requestURL.origin === location.origin && requestURL.pathname === "/";
+}
+
+// From https://github.com/jakearchibald/async-waituntil-polyfill
+// Apache 2 License: https://github.com/jakearchibald/async-waituntil-polyfill/blob/master/LICENSE
+{
+  const waitUntil = ExtendableEvent.prototype.waitUntil;
+  const respondWith = FetchEvent.prototype.respondWith;
+  const promisesMap = new WeakMap();
+
+  ExtendableEvent.prototype.waitUntil = function(promise) {
+    const extendableEvent = this;
+    let promises = promisesMap.get(extendableEvent);
+
+    if (promises) {
+      promises.push(Promise.resolve(promise));
+      return;
+    }
+
+    promises = [Promise.resolve(promise)];
+    promisesMap.set(extendableEvent, promises);
+
+    // call original method
+    return waitUntil.call(extendableEvent, Promise.resolve().then(function processPromises() {
+      const len = promises.length;
+
+      // wait for all to settle
+      return Promise.all(promises.map(p => p.catch(()=>{}))).then(() => {
+        // have new items been added? If so, wait again
+        if (promises.length != len) return processPromises();
+        // we're done!
+        promisesMap.delete(extendableEvent);
+        // reject if one of the promises rejected
+        return Promise.all(promises);
+      });
+    }));
+  };
+
+  FetchEvent.prototype.respondWith = function(promise) {
+    this.waitUntil(promise);
+    return respondWith.call(this, promise);
+  };
 }
