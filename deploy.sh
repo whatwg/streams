@@ -75,6 +75,8 @@ else
          > $WEB_ROOT/index.intermediate.html
     node_modules/.bin/emu-algify --throwing-indicators < $WEB_ROOT/index.intermediate.html > $WEB_ROOT/index.html
     rm $WEB_ROOT/index.intermediate.html
+
+    cp service-worker.js $WEB_ROOT/service-worker.js
     echo "Living standard output to $WEB_ROOT"
 fi
 

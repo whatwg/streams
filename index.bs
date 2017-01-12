@@ -4308,3 +4308,10 @@ This standard is written by <a href="https://domenic.me/">Domenic Denicola</a>
 <a href="mailto:tyoshino@chromium.org">tyoshino@chromium.org</a>).
 
 Per <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a>, to the extent possible under law, the editor has waived all copyright and related or neighboring rights to this work.
+
+<script>
+"use strict";
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/service-worker.js");
+}
+</script>
