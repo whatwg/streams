@@ -14,10 +14,9 @@ env:
     - secure: "Ga/n9txTxjBDFxsyhbthRZyqVTZA1cOmhH5WaQEWoMcG9yU+RvAdEjqdFmUFHE7SArHIKovyzoupQ9FELESeu8/lkbDtin3MZn3Aj6QXHioBSMihGbduHsGK8yJ1WyjDYXC3fN8XdwNQRZrVFq0ocauPkml/w8uauEsiMo3PX8A="
 before_install:
   - cd reference-implementation
-install:
-  - curl -O https://sideshowbarker.net/nightlies/jar/vnu.jar
 script:
   - npm test
   - cd ..
+  - curl -O https://sideshowbarker.net/nightlies/jar/vnu.jar && /usr/lib/jvm/java-8-oracle/jre/bin/java -jar vnu.jar --skip-non-html /home/travis/build/whatwg/streams
+after_success:
   - bash ./deploy.sh
-  - /usr/lib/jvm/java-8-oracle/jre/bin/java -jar vnu.jar --skip-non-html /home/travis/build/whatwg/streams
