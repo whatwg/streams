@@ -1595,7 +1595,7 @@ polymorphic dispatch from the readable stream implementation to either these or 
 
 <emu-alg>
   1. Let _stream_ be *this*.[[controlledReadableStream]].
-  1. If *this*[[queue]] is not empty,
+  1. If *this*.[[queue]] is not empty,
     1. Let _chunk_ be ! DequeueValue(*this*.[[queue]]).
     1. If *this*.[[closeRequested]] is *true* and *this*.[[queue]] is empty, perform ! ReadableStreamClose(_stream_).
     1. Otherwise, perform ! ReadableStreamDefaultControllerCallPullIfNeeded(*this*).
@@ -1969,7 +1969,7 @@ dispatch from the readable stream implementation to either these or their counte
 <emu-alg>
   1. Let _stream_ be *this*.[[controlledReadableStream]].
   1. If ! ReadableStreamGetNumReadRequests(_stream_) is *0*,
-    1. If *this*[[totalQueuedBytes]] > *0*,
+    1. If *this*.[[totalQueuedBytes]] > *0*,
       1. Let _entry_ be the first element of *this*.[[queue]].
       1. Remove _entry_ from *this*.[[queue]], shifting all other elements downward (so that the second becomes the
          first, and so on).
