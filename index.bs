@@ -185,7 +185,7 @@ until eventually the original source is told to stop producing chunks so fast. T
 the original source according to how fast the chain can process chunks is called <dfn>backpressure</dfn>.
 
 When <a lt="tee a readable stream">teeing</a> a readable stream, the <a>backpressure</a> signals from its two
-<a href="branches of a readable stream tee">branches</a> will aggregate, such that if neither branch is read from, a
+<a lt="branches of a readable stream tee">branches</a> will aggregate, such that if neither branch is read from, a
 backpressure signal will be sent to the <a>underlying source</a> of the original stream.
 
 <!-- TODO when we have writable stream writers
