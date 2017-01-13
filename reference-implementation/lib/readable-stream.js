@@ -1301,6 +1301,7 @@ class ReadableByteStreamController {
 
   [InternalPull]() {
     const stream = this._controlledReadableStream;
+    assert(ReadableStreamHasDefaultReader(stream) === true);
 
     if (ReadableStreamGetNumReadRequests(stream) === 0) {
       if (this._totalQueuedBytes > 0) {
