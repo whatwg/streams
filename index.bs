@@ -15,7 +15,6 @@ Abstract: build higher-level abstractions, such as filesystem or socket APIs, wh
 Abstract: users can use the supplied tools to build their own streams which integrate well with those
 Abstract: of the web platform.
 Logo: https://resources.whatwg.org/logo-streams.svg
-Use Dfn Panels: yes
 !Participate: <a href="https://github.com/whatwg/streams">GitHub whatwg/streams</a> (<a href="https://github.com/whatwg/streams/issues/new">new issue</a>, <a href="https://github.com/whatwg/streams/issues">open issues</a>)
 !Participate: <a href="https://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
 !Commits: <a href="https://github.com/whatwg/streams/commits">GitHub whatwg/streams/commits</a>
@@ -60,7 +59,7 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
 </style>
 <script src="https://resources.whatwg.org/file-issue.js" async></script>
 <script src="https://resources.whatwg.org/commit-snapshot-shortcut-key.js" async></script>
-
+<script src="https://resources.whatwg.org/dfn.js" defer></script>
 
 <h2 id="intro">Introduction</h2>
 
