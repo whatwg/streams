@@ -17,6 +17,5 @@ before_install:
 script:
   - npm test
   - cd ..
-  - curl -O https://sideshowbarker.net/nightlies/jar/vnu.jar && /usr/lib/jvm/java-8-oracle/jre/bin/java -jar vnu.jar --skip-non-html /home/travis/build/whatwg/streams
-after_success:
   - bash ./deploy.sh
+  - curl -O https://sideshowbarker.net/nightlies/jar/vnu.jar && /usr/lib/jvm/java-8-oracle/jre/bin/java -jar vnu.jar --skip-non-html /home/travis/build/whatwg/streams/streams.spec.whatwg.org
