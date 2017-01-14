@@ -1311,21 +1311,20 @@ class ReadableByteStreamController {
 
     if (this._totalQueuedBytes > 0) {
       assert(ReadableStreamGetNumReadRequests(stream) === 0);
-      {
-        const entry = this._queue.shift();
-        this._totalQueuedBytes -= entry.byteLength;
 
-        ReadableByteStreamControllerHandleQueueDrain(this);
+      const entry = this._queue.shift();
+      this._totalQueuedBytes -= entry.byteLength;
 
-        let view;
-        try {
-          view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
-        } catch (viewE) {
-          return Promise.reject(viewE);
-        }
+      ReadableByteStreamControllerHandleQueueDrain(this);
 
-        return Promise.resolve(CreateIterResultObject(view, false));
+      let view;
+      try {
+        view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
+      } catch (viewE) {
+        return Promise.reject(viewE);
       }
+
+      return Promise.resolve(CreateIterResultObject(view, false));
     }
 
     const autoAllocateChunkSize = this._autoAllocateChunkSize;
