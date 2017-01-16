@@ -213,4 +213,97 @@ promise_test(() => {
   });
 }, 'the promise returned by async abort during close should resolve');
 
+// Though the order of the promises is not important, we're checking it for interoperability. We can change the order
+// as long as we file bugs on all implementers to update to the latest tests to keep them interoperable.
+
+promise_test(() => {
+  const ws = new WritableStream({});
+
+  const writer = ws.getWriter();
+
+  const closePromise = writer.close();
+
+  const events = [];
+  return Promise.all([
+    closePromise.then(() => {
+      events.push('closePromise');
+    }),
+    writer.closed.then(() => {
+      events.push('closed');
+    })
+  ]).then(() => {
+    assert_array_equals(events, ['closePromise', 'closed'],
+                        'promises should be fulfilled/rejected in the expected order');
+  });
+}, 'promises should be fulfilled/rejected in the expected order on closure');
+
+promise_test(() => {
+  const ws = new WritableStream({});
+
+  // Wait until the WritableStream starts so that the close() call gets processed. Otherwise, abort() will be
+  // processed without waiting for completion of the close().
+  return delay(0).then(() => {
+    const writer = ws.getWriter();
+
+    const closePromise = writer.close();
+    const abortPromise = writer.abort();
+
+    const events = [];
+    return Promise.all([
+      closePromise.then(() => {
+        events.push('closePromise');
+      }),
+      abortPromise.then(() => {
+        events.push('abortPromise');
+      }),
+      writer.closed.then(() => {
+        assert_unreached('writer.closed fulfilled unexpectedly');
+      }, () => {
+        events.push('closed');
+      })
+    ]).then(() => {
+      assert_array_equals(events, ['closePromise', 'abortPromise', 'closed'],
+                          'promises should be fulfilled/rejected in the expected order');
+    });
+  });
+}, 'promises should be fulfilled/rejected in the expected order on aborted closure');
+
+promise_test(() => {
+  const ws = new WritableStream({
+    close() {
+      return Promise.reject();
+    }
+  });
+
+  // Wait until the WritableStream starts so that the close() call gets processed.
+  return delay(0).then(() => {
+    const writer = ws.getWriter();
+
+    const closePromise = writer.close();
+    const abortPromise = writer.abort();
+
+    const events = [];
+    return Promise.all([
+      closePromise.then(() => {
+        assert_unreached('closePromise fulfilled unexpectedly');
+      }, () => {
+        events.push('closePromise');
+      }),
+      abortPromise.then(() => {
+        assert_unreached('abortPromise fulfilled unexpectedly');
+      }, () => {
+        events.push('abortPromise');
+      }),
+      writer.closed.then(() => {
+        assert_unreached('writer.closed fulfilled unexpectedly');
+      }, () => {
+        events.push('closed');
+      })
+    ]).then(() => {
+      assert_array_equals(events, ['closePromise', 'abortPromise', 'closed'],
+                          'promises should be fulfilled/rejected in the expected order');
+    });
+  });
+}, 'promises should be fulfilled/rejected in the expected order on aborted and errored closure');
+
 done();

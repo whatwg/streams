@@ -32,7 +32,7 @@ promise_test(t => {
     promise_rejects(t, new TypeError(), readyPromise, 'the ready promise should reject with a TypeError'),
     promise_rejects(t, new TypeError(), writePromise, 'the write() promise should reject with a TypeError')
   ]);
-}, 'Aborting a WritableStream should cause the writer\'s unsettled ready promise to reject');
+}, 'Aborting a WritableStream before it starts should cause the writer\'s unsettled ready promise to reject');
 
 promise_test(t => {
   const ws = new WritableStream();
@@ -231,10 +231,11 @@ promise_test(t => {
   const closePromise = writer.close();
 
   return delay(0).then(() => {
-    writer.abort(error1);
+    const abortPromise = writer.abort(error1);
     resolveClose();
     return Promise.all([
       promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError'),
+      abortPromise,
       closePromise
     ]);
   });
