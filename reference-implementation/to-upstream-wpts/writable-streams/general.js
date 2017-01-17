@@ -215,4 +215,22 @@ promise_test(() => {
   return writer2.ready;
 }, 'redundant releaseLock() is no-op');
 
+promise_test(() => {
+  const strategy = {
+    size(x) {
+      return x;
+    },
+    highWaterMark: 0
+  };
+  const ws = new WritableStream({}, strategy);
+
+  const writer = ws.getWriter();
+  assert_equals(writer.desiredSize, 0, 'desiredSize should be 0');
+
+  return Promise.all([
+    writer.write(2),
+    writer.write(Number.MAX_SAFE_INTEGER)])
+  .then(() => assert_equals(writer.desiredSize, 0, 'desiredSize should be 0 again after queue empties'));
+}, 'desiredSize of an empty queue must always equal highWaterMark');
+
 done();
