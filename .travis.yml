@@ -6,6 +6,7 @@ addons:
   apt:
     packages:
     - sshpass
+    - oracle-java8-set-default
 
 env:
   global:
@@ -17,3 +18,4 @@ script:
   - npm test
   - cd ..
   - bash ./deploy.sh
+  - curl -O https://sideshowbarker.net/nightlies/jar/vnu.jar && /usr/lib/jvm/java-8-oracle/jre/bin/java -jar vnu.jar --skip-non-html /home/travis/build/whatwg/streams/streams.spec.whatwg.org
