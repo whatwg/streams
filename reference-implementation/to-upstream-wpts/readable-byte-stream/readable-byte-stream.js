@@ -5,6 +5,9 @@ if (self.importScripts) {
   self.importScripts('/resources/testharness.js');
 }
 
+const error1 = new Error('error1');
+error1.name = 'error1';
+
 test(() => {
   assert_throws(new TypeError(), () => new ReadableStream().getReader({ mode: 'byob' }));
 }, 'getReader({mode: "byob"}) throws on non-bytes streams');
@@ -15,9 +18,14 @@ test(() => {
   new ReadableStream({ type: 'bytes' });
 }, 'ReadableStream with byte source can be constructed with no errors');
 
-async_test(t => {
+promise_test(() => {
   let startCalled = false;
   let controller;
+
+  let resolveTestPromise;
+  const testPromise = new Promise(resolve => {
+    resolveTestPromise = resolve;
+  });
 
   new ReadableStream({
     start(c) {
@@ -27,19 +35,25 @@ async_test(t => {
     pull() {
       assert_true(startCalled, 'start has been called');
       assert_equals(controller.desiredSize, 256, 'desiredSize');
-      t.done();
+      resolveTestPromise();
     },
     type: 'bytes'
   }, {
     highWaterMark: 256
   });
 
+  return testPromise;
+
 }, 'ReadableStream with byte source: Construct and expect start and pull being called');
 
-async_test(t => {
+promise_test(() => {
   let pullCount = 0;
   let checkedNoPull = false;
 
+  let resolveTestPromise;
+  const testPromise = new Promise(resolve => {
+    resolveTestPromise = resolve;
+  });
   let resolveStartPromise;
 
   new ReadableStream({
@@ -50,7 +64,7 @@ async_test(t => {
     },
     pull() {
       if (checkedNoPull) {
-        t.done();
+        resolveTestPromise();
       }
 
       ++pullCount;
@@ -66,25 +80,24 @@ async_test(t => {
     resolveStartPromise();
   });
 
+  return testPromise;
+
 }, 'ReadableStream with byte source: No automatic pull call if start doesn\'t finish');
 
-async_test(t => {
+promise_test(() => {
   new ReadableStream({
     pull() {
       assert_unreached('pull must not be called');
-      t.done();
     },
     type: 'bytes'
   }, {
     highWaterMark: 0
   });
 
-  Promise.resolve().then(() => {
-    t.done();
-  });
+  return Promise.resolve().then(() => {});
 }, 'ReadableStream with byte source: Construct with highWaterMark of 0');
 
-async_test(t => {
+promise_test(t => {
   const stream = new ReadableStream({
     type: 'bytes'
   });
@@ -92,15 +105,10 @@ async_test(t => {
   const reader = stream.getReader();
   reader.releaseLock();
 
-  reader.closed.then(() => {
-    assert_unreached('closed must be rejected');
-    t.done();
-  }).catch(() => {
-    t.done();
-  });
+  return promise_rejects(t, new TypeError(), reader.closed, 'closed must reject');
 }, 'ReadableStream with byte source: getReader(), then releaseLock()');
 
-async_test(t => {
+promise_test(t => {
   const stream = new ReadableStream({
     type: 'bytes'
   });
@@ -108,115 +116,82 @@ async_test(t => {
   const reader = stream.getReader({ mode: 'byob' });
   reader.releaseLock();
 
-  reader.closed.then(() => {
-    assert_unreached('closed must be rejected');
-    t.done();
-  }).catch(() => {
-    t.done();
-  });
+  return promise_rejects(t, new TypeError(), reader.closed, 'closed must reject');
 }, 'ReadableStream with byte source: getReader() with mode set to byob, then releaseLock()');
 
-async_test(t => {
+promise_test(() => {
   const stream = new ReadableStream({
     start(c) {
       c.close();
     },
     pull() {
       assert_unreached('pull must not be called');
-      t.done();
     },
     type: 'bytes'
   });
 
   const reader = stream.getReader();
 
-  reader.closed.then(() => {
+  return reader.closed.then(() => {
     assert_throws(new TypeError(), () => stream.getReader(), 'getReader() must throw');
-    t.done();
-  }).catch(e => {
-    assert_unreached(e);
-    t.done();
   });
 }, 'ReadableStream with byte source: Test that closing a stream does not release a reader automatically');
 
-async_test(t => {
+promise_test(() => {
   const stream = new ReadableStream({
     start(c) {
       c.close();
     },
     pull() {
       assert_unreached('pull must not be called');
-      t.done();
     },
     type: 'bytes'
   });
 
   const reader = stream.getReader({ mode: 'byob' });
 
-  reader.closed.then(() => {
+  return reader.closed.then(() => {
     assert_throws(new TypeError(), () => stream.getReader({ mode: 'byob' }), 'getReader() must throw');
-    t.done();
-  }).catch(e => {
-    assert_unreached(e);
-    t.done();
   });
 }, 'ReadableStream with byte source: Test that closing a stream does not release a BYOB reader automatically');
 
-async_test(t => {
-  const passedError = new TypeError('foo');
-
+promise_test(t => {
   const stream = new ReadableStream({
     start(c) {
-      c.error(passedError);
+      c.error(error1);
     },
     pull() {
       assert_unreached('pull must not be called');
-      t.done();
     },
     type: 'bytes'
   });
 
   const reader = stream.getReader();
 
-  reader.closed.then(() => {
-    assert_unreached('closed must be rejected');
-    t.done();
-  }, e => {
-    assert_equals(e, passedError);
-
+  return promise_rejects(t, error1, reader.closed, 'closed must reject').then(() => {
     assert_throws(new TypeError(), () => stream.getReader(), 'getReader() must throw');
-    t.done();
   });
 }, 'ReadableStream with byte source: Test that erroring a stream does not release a reader automatically');
 
-async_test(t => {
-  const passedError = new TypeError('foo');
-
+promise_test(t => {
   const stream = new ReadableStream({
     start(c) {
-      c.error(passedError);
+      c.error(error1);
     },
     pull() {
       assert_unreached('pull must not be called');
-      t.done();
     },
     type: 'bytes'
   });
 
   const reader = stream.getReader({ mode: 'byob' });
 
-  reader.closed.then(() => {
-    assert_unreached('closed must be rejected');
-    t.done();
-  }, e => {
-    assert_equals(e, passedError);
-
+  return promise_rejects(t, error1, reader.closed, 'closed must reject').then(() => {
     assert_throws(new TypeError(), () => stream.getReader({ mode: 'byob' }), 'getReader() must throw');
-    t.done();
   });
 }, 'ReadableStream with byte source: Test that erroring a stream does not release a BYOB reader automatically');
 
-async_test(t => {
+test(() => {
   const stream = new ReadableStream({
     type: 'bytes'
   });
@@ -224,10 +199,9 @@ async_test(t => {
   const reader = stream.getReader();
   reader.read();
   assert_throws(new TypeError(), () => reader.releaseLock(), 'reader.releaseLock() must throw');
-  t.done();
 }, 'ReadableStream with byte source: releaseLock() on ReadableStreamReader with pending read() must throw');
 
-async_test(t => {
+promise_test(() => {
   let pullCount = 0;
 
   const stream = new ReadableStream({
@@ -243,14 +217,12 @@ async_test(t => {
 
   assert_equals(pullCount, 0, 'No pull as start() just finished and is not yet reflected to the state of the stream');
 
-  Promise.resolve().then(() => {
+  return Promise.resolve().then(() => {
     assert_equals(pullCount, 1, 'pull must be invoked');
-
-    t.done();
   });
 }, 'ReadableStream with byte source: Automatic pull() after start()');
 
-async_test(t => {
+promise_test(() => {
   let pullCount = 0;
 
   const stream = new ReadableStream({
@@ -267,10 +239,8 @@ async_test(t => {
 
   assert_equals(pullCount, 0, 'No pull as start() just finished and is not yet reflected to the state of the stream');
 
-  Promise.resolve().then(() => {
+  return Promise.resolve().then(() => {
     assert_equals(pullCount, 1, 'pull must be invoked');
-
-    t.done();
   });
 }, 'ReadableStream with byte source: Automatic pull() after start() and read()');
 
@@ -1763,11 +1733,9 @@ promise_test(t => {
 }, 'ReadableStream with byte source: Even read(view) with passing ArrayBufferView like object as view must fail');
 
 promise_test(t => {
-  const passedError = new TypeError('foo');
-
   const stream = new ReadableStream({
     start(c) {
-      c.error(passedError);
+      c.error(error1);
     },
     pull() {
       assert_unreached('pull must not be called');
@@ -1777,12 +1745,10 @@ promise_test(t => {
 
   const reader = stream.getReader();
 
-  return promise_rejects(t, passedError, reader.read(), 'read() must fail');
+  return promise_rejects(t, error1, reader.read(), 'read() must fail');
 }, 'ReadableStream with byte source: read() on an errored stream');
 
 promise_test(t => {
-  const passedError = new TypeError('foo');
-
   let controller;
 
   const stream = new ReadableStream({
@@ -1794,19 +1760,17 @@ promise_test(t => {
 
   const reader = stream.getReader();
 
-  const promise = promise_rejects(t, passedError, reader.read(), 'read() must fail');
+  const promise = promise_rejects(t, error1, reader.read(), 'read() must fail');
 
-  controller.error(passedError);
+  controller.error(error1);
 
   return promise;
 }, 'ReadableStream with byte source: read(), then error()');
 
 promise_test(t => {
-  const passedError = new TypeError('foo');
-
   const stream = new ReadableStream({
     start(c) {
-      c.error(passedError);
+      c.error(error1);
     },
     pull() {
       assert_unreached('pull must not be called');
@@ -1816,12 +1780,10 @@ promise_test(t => {
 
   const reader = stream.getReader({ mode: 'byob' });
 
-  return promise_rejects(t, passedError, reader.read(new Uint8Array(1)), 'read() must fail');
+  return promise_rejects(t, error1, reader.read(new Uint8Array(1)), 'read() must fail');
 }, 'ReadableStream with byte source: read(view) on an errored stream');
 
 promise_test(t => {
-  const passedError = new TypeError('foo');
-
   let controller;
 
   const stream = new ReadableStream({
@@ -1833,9 +1795,9 @@ promise_test(t => {
 
   const reader = stream.getReader({ mode: 'byob' });
 
-  const promise = promise_rejects(t, passedError, reader.read(new Uint8Array(1)), 'read() must fail');
+  const promise = promise_rejects(t, error1, reader.read(new Uint8Array(1)), 'read() must fail');
 
-  controller.error(passedError);
+  controller.error(error1);
 
   return promise;
 }, 'ReadableStream with byte source: read(view), then error()');
@@ -1863,8 +1825,6 @@ promise_test(t => {
 }, 'ReadableStream with byte source: Throwing in pull function must error the stream');
 
 promise_test(t => {
-  const passedError = new TypeError('foo');
-
   let controller;
 
   const stream = new ReadableStream({
@@ -1873,7 +1833,7 @@ promise_test(t => {
     },
     pull() {
       assert_equals(controller.byobRequest, undefined, 'byobRequest must be undefined');
-      controller.error(passedError);
+      controller.error(error1);
       throw new TypeError('foo');
     },
     type: 'bytes'
@@ -1881,8 +1841,9 @@ promise_test(t => {
 
   const reader = stream.getReader();
 
-  const promise = promise_rejects(t, passedError, reader.read(), 'read() must fail');
-  return promise_rejects(t, passedError, promise.then(() => reader.closed));
+  return promise_rejects(t, error1, reader.read(), 'read() must fail').then(() => {
+    return promise_rejects(t, error1, reader.closed, 'closed must fail');
+  });
 }, 'ReadableStream with byte source: Throwing in pull in response to read() must be ignored if the stream is ' +
    'errored in it');
 
@@ -1909,8 +1870,6 @@ promise_test(t => {
 }, 'ReadableStream with byte source: Throwing in pull in response to read(view) function must error the stream');
 
 promise_test(t => {
-  const passedError = new TypeError('foo');
-
   let controller;
 
   const stream = new ReadableStream({
@@ -1919,7 +1878,7 @@ promise_test(t => {
     },
     pull() {
       assert_not_equals(controller.byobRequest, undefined, 'byobRequest must not be undefined');
-      controller.error(passedError);
+      controller.error(error1);
       throw new TypeError('foo');
     },
     type: 'bytes'
@@ -1927,8 +1886,9 @@ promise_test(t => {
 
   const reader = stream.getReader({ mode: 'byob' });
 
-  const promise = promise_rejects(t, passedError, reader.read(new Uint8Array(1)), 'read(view) must fail');
-  return promise_rejects(t, passedError, promise.then(() => reader.closed));
+  return promise_rejects(t, error1, reader.read(new Uint8Array(1)), 'read(view) must fail').then(() => {
+    return promise_rejects(t, error1, reader.closed, 'closed must fail');
+  });
 }, 'ReadableStream with byte source: Throwing in pull in response to read(view) must be ignored if the stream is ' +
    'errored in it');
 
