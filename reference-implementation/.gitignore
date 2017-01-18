@@ -1,7 +1,5 @@
 node_modules/
 npm-debug.log
 
-web-platform-tests/
-
 .nyc_output/
 coverage/
