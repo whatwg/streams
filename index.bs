@@ -30,6 +30,7 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
     text: %Uint8Array%; url: #sec-typedarray-objects; type: constructor
     text: ArrayBuffer; url: #sec-arraybuffer-objects; type: interface
     text: DataView; url: #sec-dataview-objects; type: interface
+    text: Number; url: #sec-ecmascript-language-types-number-type; type: interface
     text: Uint8Array; url: #sec-typedarray-objects; type: interface
     text: typed array; url: #sec-typedarray-objects; type: dfn
     text: the typed array constructors table; url: #table-49; type: dfn
@@ -1470,6 +1471,10 @@ Instances of {{ReadableStreamDefaultController}} are created with the internal s
     <td>A List representing the stream's internal queue of <a>chunks</a>
   </tr>
   <tr>
+    <td>\[[queueTotalSize]]
+    <td>The total size of all the chunks stored in \[[queue]] (see [[#queue-with-sizes]])
+  </tr>
+  <tr>
     <td>\[[started]]
     <td>A boolean flag indicating whether the <a>underlying source</a> has finished starting
   </tr>
@@ -1505,7 +1510,7 @@ ReadableStreamDefaultController(<var>stream</var>, <var>underlyingSource</var>, 
   1. If _stream_.[[readableStreamController]] is not *undefined*, throw a *TypeError* exception.
   1. Set *this*.[[controlledReadableStream]] to _stream_.
   1. Set *this*.[[underlyingSource]] to _underlyingSource_.
-  1. Set *this*.[[queue]] to a new empty List.
+  1. Perform ! ResetQueue(*this*).
   1. Set *this*.[[started]], *this*.[[closeRequested]], *this*.[[pullAgain]], and *this*.[[pulling]] to *false*.
   1. Let _normalizedStrategy_ be ? ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
   1. Set *this*.[[strategySize]] to _normalizedStrategy_.[[size]] and *this*.[[strategyHWM]] to
@@ -1588,7 +1593,7 @@ polymorphic dispatch from the readable stream implementation to either these or 
 <h5 id="rs-default-controller-private-cancel">\[[Cancel]](<var>reason</var>)</h5>
 
 <emu-alg>
-  1. Set *this*.[[queue]] to a new empty List.
+  1. Perform ! ResetQueue(*this*).
   1. Return ! PromiseInvokeOrNoop(*this*.[[underlyingSource]], `"cancel"`, « _reason_ »)
 </emu-alg>
 
@@ -1597,7 +1602,7 @@ polymorphic dispatch from the readable stream implementation to either these or 
 <emu-alg>
   1. Let _stream_ be *this*.[[controlledReadableStream]].
   1. If *this*.[[queue]] is not empty,
-    1. Let _chunk_ be ! DequeueValue(*this*.[[queue]]).
+    1. Let _chunk_ be ! DequeueValue(*this*).
     1. If *this*.[[closeRequested]] is *true* and *this*.[[queue]] is empty, perform ! ReadableStreamClose(_stream_).
     1. Otherwise, perform ! ReadableStreamDefaultControllerCallPullIfNeeded(*this*).
     1. Return <a>a promise resolved with</a> ! CreateIterResultObject(_chunk_, *false*).
@@ -1690,7 +1695,7 @@ asserts).
         1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _chunkSize_.[[Value]]).
         1. Return _chunkSize_.
       1. Let _chunkSize_ be _chunkSize_.[[Value]].
-    1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_.[[queue]], _chunk_, _chunkSize_).
+    1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_, _chunk_, _chunkSize_).
     1. If _enqueueResult_ is an abrupt completion,
       1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _enqueueResult_.[[Value]]).
       1. Return _enqueueResult_.
@@ -1716,7 +1721,7 @@ an assert).
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
   1. Assert: _stream_.[[state]] is `"readable"`.
-  1. Set _controller_.[[queue]] to a new empty List.
+  1. Perform ! ResetQueue(_controller_).
   1. Perform ! ReadableStreamError(_stream_, _e_).
 </emu-alg>
 
@@ -1737,8 +1742,11 @@ the {{ReadableStreamDefaultController/desiredSize}} property of the stream's ass
 Specifications should <em>not</em> use this on streams they did not create.
 
 <emu-alg>
-  1. Let _queueSize_ be ! GetTotalQueueSize(_controller_.[[queue]]).
-  1. Return _controller_.[[strategyHWM]] − _queueSize_.
+  1. Let _stream_ be _controller_.[[controlledReadableStream]].
+  1. Let _state_ be _stream_.[[state]].
+  1. If _state_ is `"errored"`, return *null*.
+  1. If _state_ is `"closed"`, return *0*.
+  1. Return _controller_.[[strategyHWM]] − _controller_.[[queueTotalSize]].
 </emu-alg>
 
 <h3 id="rbs-controller-class" interface lt="ReadableByteStreamController">Class
@@ -1817,6 +1825,10 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
     <td>A List representing the stream's internal queue of <a>chunks</a>
   </tr>
   <tr>
+    <td>\[[queueTotalSize]]
+    <td>The total size (in bytes) of all the chunks stored in \[[queue]]
+  </tr>
+  <tr>
     <td>\[[started]]
     <td>A boolean flag indicating whether the <a>underlying source</a> has finished starting
   </tr>
@@ -1826,15 +1838,19 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
       which the stream will apply <a>backpressure</a> to its <a>underlying byte source</a>
   </tr>
   <tr>
-    <td>\[[totalQueuedBytes]]
-    <td>The number of bytes stored in \[[queue]]
-  </tr>
-  <tr>
     <td>\[[underlyingByteSource]]
     <td>An object representation of the stream's <a>underlying byte source</a>;
       also used for the <a href="#is-readable-byte-stream-controller">IsReadableByteStreamController</a> brand check
   </tr>
 </table>
+
+<div class="note">
+  <p>Although {{ReadableByteStreamController}} instances have \[[queue]] and \[[queueTotalSize]] slots, we do not use
+  most of the abstract operations in [[#queue-with-sizes]] on them, as the way in which we manipulate this queue is
+  rather different than the others in the spec. Instead, we update the two slots together manually.</p>
+
+  <p>This might be cleaned up in a future spec refactoring.</p>
+</div>
 
 <h4 id="rbs-controller-constructor" constructor for="ReadableByteStreamController"
 lt="ReadableByteStreamController(stream, underlyingByteSource, highWaterMark)">new
@@ -1852,9 +1868,8 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
   1. Set *this*.[[underlyingByteSource]] to _underlyingByteSource_.
   1. Set *this*.[[pullAgain]], and *this*.[[pulling]] to *false*.
   1. Perform ! ReadableByteStreamControllerClearPendingPullIntos(*this*).
-  1. Set *this*.[[queue]] to a new empty List.
-  1. Set *this*.[[totalQueuedBytes]] to *0*.
-  1. Set *this*.[[started]], and *this*.[[closeRequested]] to *false*.
+  1. Perform ! ResetQueue(*this*).
+  1. Set *this*.[[started]] and *this*.[[closeRequested]] to *false*.
   1. Set *this*.[[strategyHWM]] to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
   1. Let _autoAllocateChunkSize_ be ? GetV(_underlyingByteSource_, `"autoAllocateChunkSize"`).
   1. If _autoAllocateChunkSize_ is not *undefined*,
@@ -1960,8 +1975,7 @@ dispatch from the readable stream implementation to either these or their counte
   1. If *this*.[[pendingPullIntos]] is not empty,
     1. Let _firstDescriptor_ be the first element of *this*.[[pendingPullIntos]].
     1. Set _firstDescriptor_.[[bytesFilled]] to *0*.
-  1. Set *this*.[[queue]] to a new empty List.
-  1. Set *this*.[[totalQueuedBytes]] to *0*.
+  1. Perform ! ResetQueue(*this*).
   1. Return ! PromiseInvokeOrNoop(*this*.[[underlyingByteSource]], `"cancel"`, « _reason_ »)
 </emu-alg>
 
@@ -1970,12 +1984,12 @@ dispatch from the readable stream implementation to either these or their counte
 <emu-alg>
   1. Let _stream_ be *this*.[[controlledReadableStream]].
   1. Assert: ! ReadableStreamHasDefaultReader(_stream_) is *true*.
-  1. If *this*.[[totalQueuedBytes]] > *0*,
+  1. If *this*.[[queueTotalSize]] > *0*,
     1. Assert: ! ReadableStreamGetNumReadRequests(_stream_) is *0*.
     1. Let _entry_ be the first element of *this*.[[queue]].
     1. Remove _entry_ from *this*.[[queue]], shifting all other elements downward (so that the second becomes the
        first, and so on).
-    1. Set *this*.[[totalQueuedBytes]] to *this*.[[totalQueuedBytes]] − _entry_.[[byteLength]].
+    1. Set *this*.[[queueTotalSize]] to *this*.[[queueTotalSize]] − _entry_.[[byteLength]].
     1. Perform ! ReadableByteStreamControllerHandleQueueDrain(*this*).
     1. Let _view_ be ! Construct(<a idl>%Uint8Array%</a>, « _entry_.[[buffer]], _entry_.[[byteOffset]],
        _entry_.[[byteLength]] »).
@@ -2133,7 +2147,7 @@ throws>ReadableByteStreamControllerClose ( <var>controller</var> )</h4>
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
   1. Assert: _controller_.[[closeRequested]] is *false*.
   1. Assert: _stream_.[[state]] is `"readable"`.
-  1. If _controller_.[[totalQueuedBytes]] > *0*,
+  1. If _controller_.[[queueTotalSize]] > *0*,
     1. Set _controller_.[[closeRequested]] to *true*.
     1. Return.
   1. If _controller_.[[pendingPullIntos]] is not empty,
@@ -2213,7 +2227,7 @@ nothrow>ReadableByteStreamControllerEnqueueChunkToQueue ( <var>controller</var>,
 <emu-alg>
   1. Append Record {[[buffer]]: _buffer_, [[byteOffset]]: _byteOffset_, [[byteLength]]: _byteLength_} as the last
      element of _controller_.[[queue]].
-  1. Add _byteLength_ to _controller_.[[totalQueuedBytes]].
+  1. Add _byteLength_ to _controller_.[[queueTotalSize]].
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-error" aoid="ReadableByteStreamControllerError"
@@ -2223,7 +2237,7 @@ nothrow>ReadableByteStreamControllerError ( <var>controller</var>, <var>e</var> 
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
   1. Assert: _stream_.[[state]] is `"readable"`.
   1. Perform ! ReadableByteStreamControllerClearPendingPullIntos(_controller_).
-  1. Let _controller_.[[queue]] be a new empty List.
+  1. Perform ! ResetQueue(_controller_).
   1. Perform ! ReadableStreamError(_stream_, _e_).
 </emu-alg>
 
@@ -2248,7 +2262,7 @@ nothrow>ReadableByteStreamControllerFillPullIntoDescriptorFromQueue ( <var>contr
   1. Let _elementSize_ be _pullIntoDescriptor_.[[elementSize]].
   1. Let _currentAlignedBytes_ be _pullIntoDescriptor_.[[bytesFilled]] − (_pullIntoDescriptor_.[[bytesFilled]] mod
      _elementSize_).
-  1. Let _maxBytesToCopy_ be min(_controller_.[[totalQueuedBytes]], _pullIntoDescriptor_.[[byteLength]] −
+  1. Let _maxBytesToCopy_ be min(_controller_.[[queueTotalSize]], _pullIntoDescriptor_.[[byteLength]] −
      _pullIntoDescriptor_.[[bytesFilled]]).
   1. Let _maxBytesFilled_ be _pullIntoDescriptor_.[[bytesFilled]] + _maxBytesToCopy_.
   1. Let _maxAlignedBytes_ be _maxBytesFilled_ − (_maxBytesFilled_ mod _elementSize_).
@@ -2270,12 +2284,12 @@ nothrow>ReadableByteStreamControllerFillPullIntoDescriptorFromQueue ( <var>contr
     1. Otherwise,
       1. Set _headOfQueue_.[[byteOffset]] to _headOfQueue_.[[byteOffset]] + _bytesToCopy_.
       1. Set _headOfQueue_.[[byteLength]] to _headOfQueue_.[[byteLength]] − _bytesToCopy_.
-    1. Set _controller_.[[totalQueuedBytes]] to _controller_.[[totalQueuedBytes]] − _bytesToCopy_.
+    1. Set _controller_.[[queueTotalSize]] to _controller_.[[queueTotalSize]] − _bytesToCopy_.
     1. Perform ! ReadableByteStreamControllerFillHeadPullIntoDescriptor(_controller_, _bytesToCopy_,
        _pullIntoDescriptor_).
     1. Set _totalBytesToCopyRemaining_ to _totalBytesToCopyRemaining_ − _bytesToCopy_.
   1. If _ready_ is *false*,
-    1. Assert: _controller_.[[totalQueuedBytes]] is *0*.
+    1. Assert: _controller_.[[queueTotalSize]] is *0*.
     1. Assert: _pullIntoDescriptor_.[[bytesFilled]] > *0*.
     1. Assert: _pullIntoDescriptor_.[[bytesFilled]] < _pullIntoDescriptor_.[[elementSize]].
   1. Return _ready_.
@@ -2285,7 +2299,11 @@ nothrow>ReadableByteStreamControllerFillPullIntoDescriptorFromQueue ( <var>contr
 nothrow>ReadableByteStreamControllerGetDesiredSize ( <var>controller</var> )</h4>
 
 <emu-alg>
-  1. Return _controller_.[[strategyHWM]] − _controller_.[[totalQueuedBytes]].
+  1. Let _stream_ be _controller_.[[controlledReadableStream]].
+  1. Let _state_ be _stream_.[[state]].
+  1. If _state_ is `"errored"`, return *null*.
+  1. If _state_ is `"closed"`, return *0*.
+  1. Return _controller_.[[strategyHWM]] − _controller_.[[queueTotalSize]].
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-handle-queue-drain" aoid="ReadableByteStreamControllerHandleQueueDrain"
@@ -2293,7 +2311,7 @@ nothrow>ReadableByteStreamControllerHandleQueueDrain ( <var>controller</var> )</
 
 <emu-alg>
   1. Assert: _controller_.[[controlledReadableStream]].[[state]] is `"readable"`.
-  1. If _controller_.[[totalQueuedBytes]] is *0* and _controller_.[[closeRequested]] is *true*,
+  1. If _controller_.[[queueTotalSize]] is *0* and _controller_.[[closeRequested]] is *true*,
     1. Perform ! ReadableStreamClose(_controller_.[[controlledReadableStream]]).
   1. Otherwise,
     1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
@@ -2317,7 +2335,7 @@ nothrow>ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue ( <var>
 <emu-alg>
   1. Assert: _controller_.[[closeRequested]] is *false*.
   1. Repeat the following steps while _controller_.[[pendingPullIntos]] is not empty,
-    1. If _controller_.[[totalQueuedBytes]] is *0*, return.
+    1. If _controller_.[[queueTotalSize]] is *0*, return.
     1. Let _pullIntoDescriptor_ be the first element of _controller_.[[pendingPullIntos]].
     1. If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
       1. Perform ! ReadableByteStreamControllerShiftPendingPullInto(_controller_).
@@ -2348,7 +2366,7 @@ nothrow>ReadableByteStreamControllerPullInto ( <var>controller</var>, <var>view<
   1. If _stream_.[[state]] is `"closed"`,
     1. Let _emptyView_ be ! Construct(_ctor_, « _pullIntoDescriptor_.[[buffer]], _pullIntoDescriptor_.[[byteOffset]], *0* »).
     1. Return <a>a promise resolved with</a> ! CreateIterResultObject(_emptyView_, *true*).
-  1. If _controller_.[[totalQueuedBytes]] > *0*,
+  1. If _controller_.[[queueTotalSize]] > *0*,
     1. If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
       1. Let _filledView_ be ! ReadableByteStreamControllerConvertPullIntoDescriptor(_pullIntoDescriptor_).
       1. Perform ! ReadableByteStreamControllerHandleQueueDrain(_controller_).
@@ -3353,6 +3371,10 @@ Instances of {{WritableStreamDefaultController}} are created with the internal s
     <td>A List representing the stream's internal queue of <a>chunks</a>
   </tr>
   <tr>
+    <td>\[[queueTotalSize]]
+    <td>The total size of all the chunks stored in \[[queue]] (see [[#queue-with-sizes]])
+  </tr>
+  <tr>
     <td>\[[started]]
     <td>A boolean flag indicating whether the <a>underlying sink</a> has finished starting
   </tr>
@@ -3393,8 +3415,8 @@ WritableStreamDefaultController(<var>stream</var>, <var>underlyingSink</var>, <v
   1. If _stream_.[[writableStreamController]] is not *undefined*, throw a *TypeError* exception.
   1. Set *this*.[[controlledWritableStream]] to _stream_.
   1. Set *this*.[[underlyingSink]] to _underlyingSink_.
-  1. Set *this*.[[queue]] to a new empty List.
-  1. Set *this*.[[started]] and *this*.[[writing]] and *this*.[[inClose]] to *false*.
+  1. Perform ! ResetQueue(*this*).
+  1. Set *this*.[[started]], *this*.[[writing]] and *this*.[[inClose]] to *false*.
   1. Let _normalizedStrategy_ be ? ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
   1. Set *this*.[[strategySize]] to _normalizedStrategy_.[[size]] and *this*.[[strategyHWM]] to
      _normalizedStrategy_.[[highWaterMark]].
@@ -3445,7 +3467,7 @@ nothrow>IsWritableStreamDefaultController ( <var>x</var> )</h4>
 nothrow>WritableStreamDefaultControllerAbort ( <var>controller</var>, <var>reason</var> )</h4>
 
 <emu-alg>
-  1. Set _controller_.[[queue]] to a new empty List.
+  1. Perform ! ResetQueue(_controller_).
   1. Let _sinkAbortPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"abort"`, «
     _reason_ »).
   1. Return the result of <a>transforming</a> _sinkAbortPromise_ with a fulfillment handler that returns
@@ -3456,7 +3478,7 @@ nothrow>WritableStreamDefaultControllerAbort ( <var>controller</var>, <var>reaso
 nothrow>WritableStreamDefaultControllerClose ( <var>controller</var> )</h4>
 
 <emu-alg>
-  1. Perform ! EnqueueValueWithSize(_controller_.[[queue]], `"close"`, *0*).
+  1. Perform ! EnqueueValueWithSize(_controller_, `"close"`, *0*).
   1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
 </emu-alg>
 
@@ -3464,8 +3486,7 @@ nothrow>WritableStreamDefaultControllerClose ( <var>controller</var> )</h4>
 nothrow>WritableStreamDefaultControllerGetDesiredSize ( <var>controller</var> )</h4>
 
 <emu-alg>
-  1. Let _queueSize_ be ! GetTotalQueueSize(_controller_.[[queue]]).
-  1. Return _controller_.[[strategyHWM]] − _queueSize_.
+  1. Return _controller_.[[strategyHWM]] − _controller_.[[queueTotalSize]].
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-update-backpressure-if-needed"
@@ -3494,7 +3515,7 @@ nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk
       1. Return.
   1. Let _writeRecord_ be Record {[[chunk]]: _chunk_}.
   1. Let _oldBackpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
-  1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_.[[queue]], _writeRecord_, _chunkSize_).
+  1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_, _writeRecord_, _chunkSize_).
   1. If _enqueueResult_ is an abrupt completion,
     1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _enqueueResult_.[[Value]]).
     1. Return.
@@ -3511,7 +3532,7 @@ aoid="WritableStreamDefaultControllerAdvanceQueueIfNeeded" nothrow>WritableStrea
   1. If _controller_.[[started]] is *false*, return.
   1. If _controller_.[[writing]] is *true*, return.
   1. If _controller_.[[queue]] is empty, return.
-  1. Let _writeRecord_ be ! PeekQueueValue(_controller_.[[queue]]).
+  1. Let _writeRecord_ be ! PeekQueueValue(_controller_).
   1. If _writeRecord_ is `"close"`, perform WritableStreamDefaultControllerProcessClose(_controller_).
   1. Otherwise, perform WritableStreamDefaultControllerProcessWrite(_controller_, _writeRecord_.[[chunk]]).
 </emu-alg>
@@ -3530,7 +3551,7 @@ nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledWritableStream]].
   1. Assert: _stream_.[[state]] is `"closing"`.
-  1. Perform ! DequeueValue(_controller_.[[queue]]).
+  1. Perform ! DequeueValue(_controller_).
   1. Assert: _controller_.[[queue]] is empty.
   1. Set _controller_.[[inClose]] to *true*.
   1. Let _sinkClosePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"close"`, « _controller_ »).
@@ -3562,7 +3583,7 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
     1. If _state_ is `"errored"`, return.
     1. Assert: _state_ is `"closing"` or `"writable"`.
     1. Let _oldBackpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
-    1. Perform ! DequeueValue(_controller_.[[queue]]).
+    1. Perform ! DequeueValue(_controller_).
     1. Perform ! WritableStreamDefaultControllerUpdateBackpressureIfNeeded(_controller_, _oldBackpressure_).
     1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
   1. <a>Upon rejection</a> of _sinkWritePromise_ with _reason_,
@@ -3599,7 +3620,7 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>e</va
        _readyPromiseIsPending_ to *true*.
     1. Perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejectedWith(_stream_.[[writer]], _e_,
        _readyPromiseIsPending_).
-  1. Set _controller_.[[queue]] to a new empty List.
+  1. Perform ! ResetQueue(_controller_).
   1. If _controller_.[[writing]] is *false* and _controller_.[[inClose]] is *false*,
      perform ! WritableStreamRejectPromisesInReactionToError(_stream_).
 </emu-alg>
@@ -3767,46 +3788,55 @@ CountQueuingStrategy({ <var>highWaterMark</var> })</h4>
 <h3 id="queue-with-sizes">Queue-with-Sizes Operations</h3>
 
 The streams in this specification use a "queue-with-sizes" data structure to store queued up values, along with their
-determined sizes. A queue-with-sizes is a List of Records with \[[value]] and \[[size]] fields (although in
-implementations it would of course be backed by a more efficient data structure).
+determined sizes. Various specification objects contain a queue-with-sizes, represented by the object having two paired
+internal slots, always named \[[queue]] and \[[queueTotalSize]]. \[[queue]] is a List of Records with \[[value]] and
+\[[size]] fields, and \[[queueTotalSize]] is a JavaScript {{Number}}, i.e. a double-precision floating point number.
 
-A number of abstract operations are specified here to make working with queues-with-sizes more pleasant, and used
-throughout the rest of this standard.
+The following abstract operations are used when operating on objects that contain queues-with-sizes, in order to ensure
+that the two internal slots stay synchronized.
 
-<h4 id="dequeue-value" aoid="DequeueValue" nothrow>DequeueValue ( <var>queue</var> )</h4>
+<p class="warning">Due to the vagaries of floating point arithmetic, the framework specified here, of keeping a running
+total in the \[[queueTotalSize]] slot, is <em>not</em> equivalent to adding up the size of all <a>chunks</a> in
+\[[queue]]. This is most apparent when the total size is very small or very large.</p>
+
+<h4 id="dequeue-value" aoid="DequeueValue" nothrow>DequeueValue ( <var>container</var> )</h4>
 
 <emu-alg>
-  1. Assert: _queue_ is not empty.
-  1. Let _pair_ be the first element of _queue_.
-  1. Remove _pair_ from _queue_, shifting all other elements downward (so that the second becomes the first, and so on).
+  1. Assert: _container_ has [[queue]] and [[queueTotalSize]] internal slots.
+  1. Assert: _container_.[[queue]] is not empty.
+  1. Let _pair_ be the first element of _container_.[[queue]].
+  1. Remove _pair_ from _container_.[[queue]], shifting all other elements downward (so that the second becomes the
+     first, and so on).
+  1. Set _container_.[[queueTotalSize]] to _container_.[[queueTotalSize]] − _pair_.[[size]].
   1. Return _pair_.[[value]].
 </emu-alg>
 
-<h4 id="enqueue-value-with-size" aoid="EnqueueValueWithSize" throws>EnqueueValueWithSize ( <var>queue</var>,
+<h4 id="enqueue-value-with-size" aoid="EnqueueValueWithSize" throws>EnqueueValueWithSize ( <var>container</var>,
 <var>value</var>, <var>size</var> )</h4>
 
 <emu-alg>
+  1. Assert: _container_ has [[queue]] and [[queueTotalSize]] internal slots.
   1. Let _size_ be ? ToNumber(_size_).
   1. If ! IsFiniteNonNegativeNumber(_size_) is *false*, throw a *RangeError* exception.
-  1. Append Record {[[value]]: _value_, [[size]]: _size_} as the last element of _queue_.
+  1. Append Record {[[value]]: _value_, [[size]]: _size_} as the last element of _container_.[[queue]].
+  1. Set _container_.[[queueTotalSize]] to _container_.[[queueTotalSize]] + _size_.
 </emu-alg>
 
-<h4 id="get-total-queue-size" aoid="GetTotalQueueSize" nothrow>GetTotalQueueSize ( <var>queue</var> )</h4>
+<h4 id="peek-queue-value" aoid="PeekQueueValue" nothrow>PeekQueueValue ( <var>container</var> )</h4>
 
 <emu-alg>
-  1. Let _totalSize_ be *0*.
-  1. Repeat for each Record {[[value]], [[size]]} _pair_ that is an element of _queue_,
-    1. Assert: _pair_.[[size]] is a finite, non-*NaN* number.
-    1. Set _totalSize_ to _totalSize_ + _pair_.[[size]].
-  1. Return _totalSize_.
-</emu-alg>
-
-<h4 id="peek-queue-value" aoid="PeekQueueValue" nothrow>PeekQueueValue ( <var>queue</var> )</h4>
-
-<emu-alg>
-  1. Assert: _queue_ is not empty.
-  1. Let _pair_ be the first element of _queue_.
+  1. Assert: _container_ has [[queue]] and [[queueTotalSize]] internal slots.
+  1. Assert: _container_.[[queue]] is not empty.
+  1. Let _pair_ be the first element of _container_.[[queue]].
   1. Return _pair_.[[value]].
+</emu-alg>
+
+<h4 id="reset-queue" aoid="ResetQueue" nothrow>ResetQueue ( <var>container</var> )</h4>
+
+<emu-alg>
+  1. Assert: _container_ has [[queue]] and [[queueTotalSize]] internal slots.
+  1. Set _container_.[[queue]] to a new empty List.
+  1. Set _container_.[[queueTotalSize]] to *0*.
 </emu-alg>
 
 <h3 id="misc-abstract-ops">Miscellaneous Operations</h3>
@@ -4370,6 +4400,9 @@ itself will evolve in these ways.
   <li> We use the shorthand phrases from the [[!PROMISES-GUIDE]] to operate on promises at a higher level than the
     ECMAScript spec does.
 </ul>
+
+It's also worth noting that, as in [[!ECMASCRIPT]], all numbers are represented as double-precision floating point
+values, and all arithmetic operations performed on them must be done in the usual way for such values.
 
 <h2 id="acks" class="no-num">Acknowledgments</h2>
 
