@@ -2,7 +2,7 @@
   "private": true,
   "description": "Reference implementation and tests for the WHATWG Streams Standard",
   "scripts": {
-    "pretest": "git submodule init && git submodule update",
+    "pretest": "git submodule update --init",
     "test": "npm run lint && npm run legacy-test && npm run wpt",
     "legacy-test": "node --expose_gc run-tests.js | tap-spec",
     "wpt": "node --expose_gc run-web-platform-tests.js",

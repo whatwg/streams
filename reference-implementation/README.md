@@ -19,7 +19,7 @@ To run all tests (and the lint step), run `npm test` in this folder.
 The original tests are written using the [tape](https://github.com/substack/tape) framework. They live in the `test` subfolder of this folder.
 
 - To run them, type `npm run legacy-test` in this folder.
-- To run a specific test file, type e.g. `node run-tests.js test/readable-stream.js`.
+- To run a specific test file, type e.g. `node run-tests.js test/abstract-ops.js`.
 - To run a specific test, change the source file's `test(...)` call to `test.only(...)`, then run `npm test`.
 
 ### Web platform tests
