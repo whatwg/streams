@@ -17,7 +17,8 @@ const toUpstreamTestsPath = path.resolve(__dirname, 'to-upstream-wpts');
 
 const filterGlobs = process.argv.length >= 3 ? process.argv.slice(2) : ['**/*.html'];
 function filter(testPath) {
-  return filterGlobs.some(glob => minimatch(testPath, glob));
+  return testPath.endsWith('.https.html') && // ignore the worker versions
+         filterGlobs.some(glob => minimatch(testPath, glob));
 }
 
 // wpt-runner does not yet support unhandled rejection tracking a la
