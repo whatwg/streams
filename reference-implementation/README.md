@@ -43,6 +43,8 @@ git submodule update --remote web-platform-tests
 
 and then staging and commiting the submodule update.
 
+If you are working on a spec change and need to modify or add to these tests, what you can do is work directly in the `web-platform-tests` subdirectory. Create a branch there, where you modify the tests. You can then modify the spec and reference implementation to match your branch. Finally, you can use that branch to send a pull request to the web-platform-tests project.
+
 #### To-upstream web platform tests
 
 For parts of the spec that are still baking, we develop the tests alongside the spec in this repository, inside the `to-upstream-wpts` subfolder of this folder. Files can be added here alongside spec commits, and then one of the maintainers will take care of upstreaming to the web-platform-tests repository once the relevant part of the spec is mostly stable.
@@ -52,5 +54,5 @@ Some of the files in there, in `to-upstream-wpts/resources`, are duplicated from
 Note that when creating a new test file, you should generate the four wrapper environments to run it in by using the following command:
 
 ```
-node web-platform-tests/streams/generate-test-wrappers.js my-test-file.js
+node web-platform-tests/streams/generate-test-wrappers.js to-upstream-wpts/my-test-file.js
 ```
