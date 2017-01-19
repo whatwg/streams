@@ -1,5 +1,5 @@
 'use strict';
-// This file already exists upstream. We are duplicating and updating it here. Be sure to override the existing one
+// This file already exists upstream. We are duplicating and updating it here. Be sure to merge with the existing one
 // when upstreaming.
 
 (function () {

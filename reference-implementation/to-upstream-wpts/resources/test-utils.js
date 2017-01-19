@@ -1,5 +1,5 @@
 'use strict';
-// This file already exists upstream. We are duplicating and updating it here. Be sure to override the existing one
+// This file already exists upstream. We are duplicating and updating it here. Be sure to merge with the existing one
 // when upstreaming.
 
 self.getterRejects = (t, obj, getterName, target) => {
@@ -49,5 +49,4 @@ self.delay = ms => new Promise(resolve => step_timeout(resolve, ms));
 // loop, and use flushAsyncEvents().then(() => assert_array_equals(...));
 // Some tests include promise resolutions which may mean the test code takes a couple of event loop visits itself. So go
 // around an extra 2 times to avoid complicating those tests.
-// TODO(ricea): Upstream this function to w3c repository.
 self.flushAsyncEvents = () => delay(0).then(() => delay(0)).then(() => delay(0)).then(() => delay(0));
