@@ -31,6 +31,8 @@ After we started implementing this in browsers, we realized that we should proba
 
 The test runner here is a Node.js emulated-DOM environment, with the reference implementation loaded into it.
 
+**To sync your local web-platform-tests checkout with the one tracked by this repository**, type `npm run sync-wpt`. However, note that this will override any local modifications you've made, e.g. in the process of working on a spec change. It's thus good to do this before you start working on such a change.
+
 #### Upstream web platform tests
 
 The web platform tests for streams are found in the [streams directory](https://github.com/w3c/web-platform-tests/tree/master/streams) of the web platform tests repository, and maintained via pull requests to that repository. They are then pulled into this repository via a [Git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules).

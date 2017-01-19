@@ -4,7 +4,8 @@
   "scripts": {
     "test": "npm run lint && npm run legacy-test && npm run wpt",
     "legacy-test": "node --expose_gc run-tests.js | tap-spec",
-    "wpt": "git submodule update --init && node --expose_gc run-web-platform-tests.js",
+    "wpt": "node --expose_gc run-web-platform-tests.js",
+    "sync-wpt": "git submodule update --init",
     "lint": "eslint \"**/*.js\"",
     "coverage": "nyc --reporter=lcov npm test && opener coverage/lcov-report/index.html"
   },
