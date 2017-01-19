@@ -48,3 +48,9 @@ and then staging and commiting the submodule update.
 For parts of the spec that are still baking, we develop the tests alongside the spec in this repository, inside the `to-upstream-wpts` subfolder of this folder. Files can be added here alongside spec commits, and then one of the maintainers will take care of upstreaming to the web-platform-tests repository once the relevant part of the spec is mostly stable.
 
 Some of the files in there, in `to-upstream-wpts/resources`, are duplicated from upstream, and care needs to be taken to synchronize them both ways.
+
+Note that when creating a new test file, you should generate the four wrapper environments to run it in by using the following command:
+
+```
+node web-platform-tests/streams/generate-test-wrappers.js my-test-file.js
+```
