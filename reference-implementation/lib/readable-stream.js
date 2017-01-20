@@ -80,7 +80,13 @@ class ReadableStream {
   }
 
   pipeThrough({ writable, readable }, options) {
-    this.pipeTo(writable, options);
+    const promise = this.pipeTo(writable, options);
+
+    // Can't actually do a promise brand check here, so instanceof is close enough.
+    if (typeIsObject(promise) && promise instanceof Promise) {
+      promise.catch(() => {});
+    }
+
     return readable;
   }
 
