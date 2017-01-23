@@ -838,8 +838,8 @@ a ReadableStreamTee pull function <var>F</var> is called, it performs the follow
 <emu-alg>
   1. Let _reader_ be _F_.[[reader]], _branch1_ be _F_.[[branch1]], _branch2_ be _F_.[[branch2]], _teeState_ be
      _F_.[[teeState]], and _cloneForBranch2_ be _F_.[[cloneForBranch2]].
-  1. Return the result of transforming ! ReadableStreamDefaultReaderRead(_reader_) by a fulfillment handler which takes
-     the argument _result_ and performs the following steps:
+  1. Return the result of <a>transforming</a> ! ReadableStreamDefaultReaderRead(_reader_) with a fulfillment handler
+     which takes the argument _result_ and performs the following steps:
     1. Assert: Type(_result_) is Object.
     1. Let _value_ be ? Get(_result_, `"value"`).
     1. Let _done_ be ? Get(_result_, `"done"`).
@@ -943,7 +943,7 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
   1. If _stream_.[[state]] is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Perform ! ReadableStreamClose(_stream_).
   1. Let _sourceCancelPromise_ be ! _stream_.[[readableStreamController]].[[Cancel]](_reason_).
-  1. Return the result of transforming _sourceCancelPromise_ by a fulfillment handler that returns *undefined*.
+  1. Return the result of <a>transforming</a> _sourceCancelPromise_ with a fulfillment handler that returns *undefined*.
 </emu-alg>
 
 <h4 id="readable-stream-close" aoid="ReadableStreamClose" nothrow>ReadableStreamClose ( <var>stream</var> )</h4>
@@ -2775,8 +2775,8 @@ writable stream is <a>locked to a writer</a>.
   1. Assert: _controller_ is not *undefined*.
   1. If _controller_.[[writing]] is *true* or _controller_.[[inClose]] is *true*,
     1. Set _stream_.[[pendingAbortRequest]] to <a>a new promise</a>.
-    1. If _controller_.[[writing]] is *true*, return the result of transforming _stream_.[[pendingAbortRequest]] by a
-    fulfillment handler that returns ! WritableStreamDefaultControllerAbort(_controller_, _reason_).
+    1. If _controller_.[[writing]] is *true*, return the result of <a>transforming</a> _stream_.[[pendingAbortRequest]]
+       with a fulfillment handler that returns ! WritableStreamDefaultControllerAbort(_controller_, _reason_).
     1. Otherwise, return _stream_.[[pendingAbortRequest]].
   1. Return ! WritableStreamDefaultControllerAbort(_controller_, _reason_).
 </emu-alg>
@@ -3326,8 +3326,8 @@ nothrow>WritableStreamDefaultControllerAbort ( <var>controller</var>, <var>reaso
   1. Set _controller_.[[queue]] to a new empty List.
   1. Let _sinkAbortPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"abort"`, «
     _reason_ »).
-  1. Return the result of transforming _sinkAbortPromise_ by a fulfillment handler that returns
-    *undefined*.
+  1. Return the result of <a>transforming</a> _sinkAbortPromise_ with a fulfillment handler that returns
+     *undefined*.
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-close" aoid="WritableStreamDefaultControllerClose"
