@@ -55,3 +55,5 @@ promise_test(t => {
                     'writable\'s closed should be rejected with the thrown error')
   ]);
 }, 'TransformStream errors thrown in flush put the writable and readable in an errored state');
+
+done();
