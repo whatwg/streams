@@ -2774,7 +2774,7 @@ writable stream is <a>locked to a writer</a>.
   1. Assert: _state_ is `"writable"` or `"closing"`.
   1. Let _controller_ be _stream_.[[writableStreamController]].
   1. Assert: _controller_ is not *undefined*.
-  1. Let _readyPromiseIsPending_ be WritableStreamIsReadyPromisePending(_stream_, _oldState_, *false*).
+  1. Let _readyPromiseIsPending_ be ! WritableStreamIsReadyPromisePending(_stream_, _oldState_, *false*).
   1. If _controller_.[[writing]] is *false* and _controller_.[[inClose]] is *false*,
     1. If _stream_.[[writer]] is not *undefined*, perform !
        WritableStreamDefaultWriterEnsureReadyPromiseRejectedWith(_stream_.[[writer]], _error_, _readyPromiseIsPending_).
@@ -2855,7 +2855,7 @@ nothrow>WritableStreamFinishPendingWriteWithError ( <var>stream</var>, <var>reas
   1. Let _state_ be _stream_.[[state]].
   1. Let _wasAborted_ be *false*.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*, set _wasAborted_ to *true*.
-  1. Let _readyPromiseIsPending_ be WritableStreamIsReadyPromisePending(_stream_, _oldState_, _wasAborted_).
+  1. Let _readyPromiseIsPending_ be ! WritableStreamIsReadyPromisePending(_stream_, _oldState_, _wasAborted_).
   1. If _wasAborted_ is *true*,
     1. <a>Reject</a>  _stream_.[[pendingAbortRequest]] with _reason_.
     1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
@@ -2909,7 +2909,7 @@ nothrow>WritableStreamFinishPendingCloseWithError ( <var>stream</var>, <var>reas
   1. Let _state_ be _stream_.[[state]].
   1. Let _wasAborted_ be *false*.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*, set _wasAborted_ to *true*.
-  1. Let _readyPromiseIsPending_ be WritableStreamIsReadyPromisePending(_stream_, _oldState_, _wasAborted_).
+  1. Let _readyPromiseIsPending_ be ! WritableStreamIsReadyPromisePending(_stream_, _oldState_, _wasAborted_).
   1. If _wasAborted_ is *true*,
     1. <a>Reject</a>  _stream_.[[pendingAbortRequest]] with _reason_.
     1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
@@ -3280,7 +3280,7 @@ nothrow>WritableStreamDefaultWriterRelease ( <var>writer</var> )</h4>
   1. Let _controller_ be _stream_.[[writableStreamController]].
   1. Let _wasAborted_ be *false*.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*, set _wasAborted_ to *true*.
-  1. Let _readyPromiseIsPending_ be WritableStreamIsReadyPromisePending(_stream_, _state_, _wasAborted_).
+  1. Let _readyPromiseIsPending_ be ! WritableStreamIsReadyPromisePending(_stream_, _state_, _wasAborted_).
   1. If _state_ is `"writable"` or `"closing"` or _controller_.[[inClose]] is *true* or _controller_.[[writing]] is
      *true*, <a>reject</a> _writer_.[[closedPromise]] with _releasedError_.
   1. Otherwise, set _writer_.[[closedPromise]] to <a>a promise rejected with</a> _releasedError_.
@@ -3599,7 +3599,7 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>e</va
   1. Assert: _state_ is `"writable"` or `"closing"`.
   1. Let _wasAborted_ be *false*.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*, set _wasAborted_ to *true*.
-  1. Let _readyPromiseIsPending_ be WritableStreamIsReadyPromisePending(_stream_, _state_, _wasAborted_).
+  1. Let _readyPromiseIsPending_ be ! WritableStreamIsReadyPromisePending(_stream_, _state_, _wasAborted_).
   1. Set _stream_.[[state]] to `"errored"`.
   1. Set _stream_.[[storedError]] to _e_.
   1. If _wasAborted_ is *false* and _stream_.[[writer]] is not *undefined*,
