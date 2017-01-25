@@ -99,10 +99,6 @@ class ReadableStream {
         new TypeError('ReadableStream.prototype.pipeTo\'s first argument must be a WritableStream'));
     }
 
-    preventClose = Boolean(preventClose);
-    preventAbort = Boolean(preventAbort);
-    preventCancel = Boolean(preventCancel);
-
     if (IsReadableStreamLocked(this) === true) {
       return Promise.reject(new TypeError('ReadableStream.prototype.pipeTo cannot be used on a locked ReadableStream'));
     }
@@ -110,7 +106,86 @@ class ReadableStream {
       return Promise.reject(new TypeError('ReadableStream.prototype.pipeTo cannot be used on a locked WritableStream'));
     }
 
-    const reader = AcquireReadableStreamDefaultReader(this);
+    preventClose = Boolean(preventClose);
+    preventAbort = Boolean(preventAbort);
+    preventCancel = Boolean(preventCancel);
+
+    const options = { preventClose, preventAbort, preventCancel };
+
+    return ReadableStreamPipeTo(this, dest, options);
+  }
+
+  tee() {
+    if (IsReadableStream(this) === false) {
+      throw streamBrandCheckException('tee');
+    }
+
+    const branches = ReadableStreamTee(this, false);
+    return createArrayFromList(branches);
+  }
+}
+
+module.exports = {
+  ReadableStream,
+  IsReadableStreamDisturbed,
+  ReadableStreamDefaultControllerClose,
+  ReadableStreamDefaultControllerEnqueue,
+  ReadableStreamDefaultControllerError,
+  ReadableStreamDefaultControllerGetDesiredSize
+};
+
+// Abstract operations for the ReadableStream.
+
+function AcquireReadableStreamBYOBReader(stream) {
+  return new ReadableStreamBYOBReader(stream);
+}
+
+function AcquireReadableStreamDefaultReader(stream) {
+  return new ReadableStreamDefaultReader(stream);
+}
+
+function IsReadableStream(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_readableStreamController')) {
+    return false;
+  }
+
+  return true;
+}
+
+function IsReadableStreamDisturbed(stream) {
+  assert(IsReadableStream(stream) === true, 'IsReadableStreamDisturbed should only be used on known readable streams');
+
+  return stream._disturbed;
+}
+
+function IsReadableStreamLocked(stream) {
+  assert(IsReadableStream(stream) === true, 'IsReadableStreamLocked should only be used on known readable streams');
+
+  if (stream._reader === undefined) {
+    return false;
+  }
+
+  return true;
+}
+
+function ReadableStreamPipeTo(source, dest, options) {
+    assert(IsReadableStream(source) === true, 'source must be a ReadableStream');
+    assert(IsWritableStream(dest) === true, 'dest must be a WritableStream');
+
+    assert(IsReadableStreamLocked(source) === false, 'piped streams must not be locked already');
+    assert(IsWritableStreamLocked(dest) === false, 'piped streams must not be locked already');
+
+    if (options === undefined) {
+      options = { preventClose: false, preventAbort: false, preventCancel: false };
+    }
+
+    const { preventClose, preventAbort, preventCancel } = options;
+
+    const reader = AcquireReadableStreamDefaultReader(source);
     const writer = AcquireWritableStreamDefaultWriter(dest);
 
     let shuttingDown = false;
@@ -119,7 +194,7 @@ class ReadableStream {
     let currentWrite = Promise.resolve();
 
     return new Promise((resolve, reject) => {
-      // Using reader and writer, read all chunks from this and write them to dest
+      // Using reader and writer, read all chunks from source and write them to dest
       // - Backpressure must be enforced
       // - Shutdown must stop all activity
       function pipeLoop() {
@@ -143,7 +218,7 @@ class ReadableStream {
       }
 
       // Errors must be propagated forward
-      isOrBecomesErrored(this, reader._closedPromise, storedError => {
+      isOrBecomesErrored(source, reader._closedPromise, storedError => {
         if (preventAbort === false) {
           shutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
         } else {
@@ -154,14 +229,14 @@ class ReadableStream {
       // Errors must be propagated backward
       isOrBecomesErrored(dest, writer._closedPromise, storedError => {
         if (preventCancel === false) {
-          shutdownWithAction(() => ReadableStreamCancel(this, storedError), true, storedError);
+          shutdownWithAction(() => ReadableStreamCancel(source, storedError), true, storedError);
         } else {
           shutdown(true, storedError);
         }
       });
 
       // Closing must be propagated forward
-      isOrBecomesClosed(this, reader._closedPromise, () => {
+      isOrBecomesClosed(source, reader._closedPromise, () => {
         if (preventClose === false) {
           shutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
         } else {
@@ -174,7 +249,7 @@ class ReadableStream {
         const destClosed = new TypeError('the destination writable stream closed before all data could be piped to it');
 
         if (preventCancel === false) {
-          shutdownWithAction(() => ReadableStreamCancel(this, destClosed), true, destClosed);
+          shutdownWithAction(() => ReadableStreamCancel(source, destClosed), true, destClosed);
         } else {
           shutdown(true, destClosed);
         }
@@ -244,63 +319,6 @@ class ReadableStream {
       }
     });
   }
-
-  tee() {
-    if (IsReadableStream(this) === false) {
-      throw streamBrandCheckException('tee');
-    }
-
-    const branches = ReadableStreamTee(this, false);
-    return createArrayFromList(branches);
-  }
-}
-
-module.exports = {
-  ReadableStream,
-  IsReadableStreamDisturbed,
-  ReadableStreamDefaultControllerClose,
-  ReadableStreamDefaultControllerEnqueue,
-  ReadableStreamDefaultControllerError,
-  ReadableStreamDefaultControllerGetDesiredSize
-};
-
-// Abstract operations for the ReadableStream.
-
-function AcquireReadableStreamBYOBReader(stream) {
-  return new ReadableStreamBYOBReader(stream);
-}
-
-function AcquireReadableStreamDefaultReader(stream) {
-  return new ReadableStreamDefaultReader(stream);
-}
-
-function IsReadableStream(x) {
-  if (!typeIsObject(x)) {
-    return false;
-  }
-
-  if (!Object.prototype.hasOwnProperty.call(x, '_readableStreamController')) {
-    return false;
-  }
-
-  return true;
-}
-
-function IsReadableStreamDisturbed(stream) {
-  assert(IsReadableStream(stream) === true, 'IsReadableStreamDisturbed should only be used on known readable streams');
-
-  return stream._disturbed;
-}
-
-function IsReadableStreamLocked(stream) {
-  assert(IsReadableStream(stream) === true, 'IsReadableStreamLocked should only be used on known readable streams');
-
-  if (stream._reader === undefined) {
-    return false;
-  }
-
-  return true;
-}
 
 function ReadableStreamTee(stream, cloneForBranch2) {
   assert(IsReadableStream(stream) === true);
