@@ -173,152 +173,152 @@ function IsReadableStreamLocked(stream) {
 }
 
 function ReadableStreamPipeTo(source, dest, options) {
-    assert(IsReadableStream(source) === true, 'source must be a ReadableStream');
-    assert(IsWritableStream(dest) === true, 'dest must be a WritableStream');
+  assert(IsReadableStream(source) === true, 'source must be a ReadableStream');
+  assert(IsWritableStream(dest) === true, 'dest must be a WritableStream');
 
-    assert(IsReadableStreamLocked(source) === false, 'piped streams must not be locked already');
-    assert(IsWritableStreamLocked(dest) === false, 'piped streams must not be locked already');
+  assert(IsReadableStreamLocked(source) === false, 'piped streams must not be locked already');
+  assert(IsWritableStreamLocked(dest) === false, 'piped streams must not be locked already');
 
-    if (options === undefined) {
-      options = { preventClose: false, preventAbort: false, preventCancel: false };
-    }
+  if (options === undefined) {
+    options = { preventClose: false, preventAbort: false, preventCancel: false };
+  }
 
-    const { preventClose, preventAbort, preventCancel } = options;
+  const { preventClose, preventAbort, preventCancel } = options;
 
-    const reader = AcquireReadableStreamDefaultReader(source);
-    const writer = AcquireWritableStreamDefaultWriter(dest);
+  const reader = AcquireReadableStreamDefaultReader(source);
+  const writer = AcquireWritableStreamDefaultWriter(dest);
 
-    let shuttingDown = false;
+  let shuttingDown = false;
 
     // This is used to keep track of the spec's requirement that we wait for ongoing writes during shutdown.
-    let currentWrite = Promise.resolve();
+  let currentWrite = Promise.resolve();
 
-    return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
       // Using reader and writer, read all chunks from source and write them to dest
       // - Backpressure must be enforced
       // - Shutdown must stop all activity
-      function pipeLoop() {
-        currentWrite = Promise.resolve();
+    function pipeLoop() {
+      currentWrite = Promise.resolve();
 
-        if (shuttingDown === true) {
-          return Promise.resolve();
-        }
-
-        return writer._readyPromise.then(() => {
-          return ReadableStreamDefaultReaderRead(reader).then(({ value, done }) => {
-            if (done === true) {
-              return undefined;
-            }
-
-            currentWrite = WritableStreamDefaultWriterWrite(writer, value);
-            return currentWrite;
-          });
-        })
-        .then(pipeLoop);
+      if (shuttingDown === true) {
+        return Promise.resolve();
       }
+
+      return writer._readyPromise.then(() => {
+        return ReadableStreamDefaultReaderRead(reader).then(({ value, done }) => {
+          if (done === true) {
+            return undefined;
+          }
+
+          currentWrite = WritableStreamDefaultWriterWrite(writer, value);
+          return currentWrite;
+        });
+      })
+        .then(pipeLoop);
+    }
 
       // Errors must be propagated forward
-      isOrBecomesErrored(source, reader._closedPromise, storedError => {
-        if (preventAbort === false) {
-          shutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
-        } else {
-          shutdown(true, storedError);
-        }
-      });
+    isOrBecomesErrored(source, reader._closedPromise, storedError => {
+      if (preventAbort === false) {
+        shutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
+      } else {
+        shutdown(true, storedError);
+      }
+    });
 
       // Errors must be propagated backward
-      isOrBecomesErrored(dest, writer._closedPromise, storedError => {
-        if (preventCancel === false) {
-          shutdownWithAction(() => ReadableStreamCancel(source, storedError), true, storedError);
-        } else {
-          shutdown(true, storedError);
-        }
-      });
+    isOrBecomesErrored(dest, writer._closedPromise, storedError => {
+      if (preventCancel === false) {
+        shutdownWithAction(() => ReadableStreamCancel(source, storedError), true, storedError);
+      } else {
+        shutdown(true, storedError);
+      }
+    });
 
       // Closing must be propagated forward
-      isOrBecomesClosed(source, reader._closedPromise, () => {
-        if (preventClose === false) {
-          shutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
-        } else {
-          shutdown();
-        }
-      });
+    isOrBecomesClosed(source, reader._closedPromise, () => {
+      if (preventClose === false) {
+        shutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
+      } else {
+        shutdown();
+      }
+    });
 
       // Closing must be propagated backward
-      if (dest._state === 'closing' || dest._state === 'closed') {
-        const destClosed = new TypeError('the destination writable stream closed before all data could be piped to it');
+    if (dest._state === 'closing' || dest._state === 'closed') {
+      const destClosed = new TypeError('the destination writable stream closed before all data could be piped to it');
 
-        if (preventCancel === false) {
-          shutdownWithAction(() => ReadableStreamCancel(source, destClosed), true, destClosed);
-        } else {
-          shutdown(true, destClosed);
-        }
+      if (preventCancel === false) {
+        shutdownWithAction(() => ReadableStreamCancel(source, destClosed), true, destClosed);
+      } else {
+        shutdown(true, destClosed);
       }
+    }
 
-      pipeLoop().catch(err => {
-        currentWrite = Promise.resolve();
-        rethrowAssertionErrorRejection(err);
-      });
+    pipeLoop().catch(err => {
+      currentWrite = Promise.resolve();
+      rethrowAssertionErrorRejection(err);
+    });
 
-      function isOrBecomesErrored(stream, promise, action) {
-        if (stream._state === 'errored') {
-          action(stream._storedError);
-        } else {
-          promise.catch(action).catch(rethrowAssertionErrorRejection);
-        }
+    function isOrBecomesErrored(stream, promise, action) {
+      if (stream._state === 'errored') {
+        action(stream._storedError);
+      } else {
+        promise.catch(action).catch(rethrowAssertionErrorRejection);
       }
+    }
 
-      function isOrBecomesClosed(stream, promise, action) {
-        if (stream._state === 'closed') {
-          action();
-        } else {
-          promise.then(action).catch(rethrowAssertionErrorRejection);
-        }
+    function isOrBecomesClosed(stream, promise, action) {
+      if (stream._state === 'closed') {
+        action();
+      } else {
+        promise.then(action).catch(rethrowAssertionErrorRejection);
       }
+    }
 
-      function waitForCurrentWrite() {
-        return currentWrite.catch(() => {});
+    function waitForCurrentWrite() {
+      return currentWrite.catch(() => {});
+    }
+
+    function shutdownWithAction(action, originalIsError, originalError) {
+      if (shuttingDown === true) {
+        return;
       }
+      shuttingDown = true;
 
-      function shutdownWithAction(action, originalIsError, originalError) {
-        if (shuttingDown === true) {
-          return;
-        }
-        shuttingDown = true;
-
-        waitForCurrentWrite().then(() => {
-          return action().then(
+      waitForCurrentWrite().then(() => {
+        return action().then(
             () => finalize(originalIsError, originalError),
             newError => finalize(true, newError)
           );
-        })
+      })
         .catch(rethrowAssertionErrorRejection);
+    }
+
+    function shutdown(isError, error) {
+      if (shuttingDown === true) {
+        return;
       }
+      shuttingDown = true;
 
-      function shutdown(isError, error) {
-        if (shuttingDown === true) {
-          return;
-        }
-        shuttingDown = true;
-
-        waitForCurrentWrite().then(() => {
-          finalize(isError, error);
-        })
+      waitForCurrentWrite().then(() => {
+        finalize(isError, error);
+      })
         .catch(rethrowAssertionErrorRejection);
-      }
+    }
 
-      function finalize(isError, error) {
-        WritableStreamDefaultWriterRelease(writer);
-        ReadableStreamReaderGenericRelease(reader);
+    function finalize(isError, error) {
+      WritableStreamDefaultWriterRelease(writer);
+      ReadableStreamReaderGenericRelease(reader);
 
-        if (isError) {
-          reject(error);
-        } else {
-          resolve(undefined);
-        }
+      if (isError) {
+        reject(error);
+      } else {
+        resolve(undefined);
       }
-    });
-  }
+    }
+  });
+}
 
 function ReadableStreamTee(stream, cloneForBranch2) {
   assert(IsReadableStream(stream) === true);
