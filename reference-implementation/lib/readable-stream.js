@@ -1309,46 +1309,44 @@ class ReadableByteStreamController {
     const stream = this._controlledReadableStream;
     assert(ReadableStreamHasDefaultReader(stream) === true);
 
-    if (ReadableStreamGetNumReadRequests(stream) === 0) {
-      if (this._totalQueuedBytes > 0) {
-        const entry = this._queue.shift();
-        this._totalQueuedBytes -= entry.byteLength;
+    if (this._totalQueuedBytes > 0) {
+      assert(ReadableStreamGetNumReadRequests(stream) === 0);
 
-        ReadableByteStreamControllerHandleQueueDrain(this);
+      const entry = this._queue.shift();
+      this._totalQueuedBytes -= entry.byteLength;
 
-        let view;
-        try {
-          view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
-        } catch (viewE) {
-          return Promise.reject(viewE);
-        }
+      ReadableByteStreamControllerHandleQueueDrain(this);
 
-        return Promise.resolve(CreateIterResultObject(view, false));
+      let view;
+      try {
+        view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
+      } catch (viewE) {
+        return Promise.reject(viewE);
       }
 
-      const autoAllocateChunkSize = this._autoAllocateChunkSize;
-      if (autoAllocateChunkSize !== undefined) {
-        let buffer;
-        try {
-          buffer = new ArrayBuffer(autoAllocateChunkSize);
-        } catch (bufferE) {
-          return Promise.reject(bufferE);
-        }
+      return Promise.resolve(CreateIterResultObject(view, false));
+    }
 
-        const pullIntoDescriptor = {
-          buffer,
-          byteOffset: 0,
-          byteLength: autoAllocateChunkSize,
-          bytesFilled: 0,
-          elementSize: 1,
-          ctor: Uint8Array,
-          readerType: 'default'
-        };
-
-        this._pendingPullIntos.push(pullIntoDescriptor);
+    const autoAllocateChunkSize = this._autoAllocateChunkSize;
+    if (autoAllocateChunkSize !== undefined) {
+      let buffer;
+      try {
+        buffer = new ArrayBuffer(autoAllocateChunkSize);
+      } catch (bufferE) {
+        return Promise.reject(bufferE);
       }
-    } else {
-      assert(this._autoAllocateChunkSize === undefined);
+
+      const pullIntoDescriptor = {
+        buffer,
+        byteOffset: 0,
+        byteLength: autoAllocateChunkSize,
+        bytesFilled: 0,
+        elementSize: 1,
+        ctor: Uint8Array,
+        readerType: 'default'
+      };
+
+      this._pendingPullIntos.push(pullIntoDescriptor);
     }
 
     const promise = ReadableStreamAddReadRequest(stream);

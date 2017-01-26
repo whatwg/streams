@@ -1970,26 +1970,24 @@ dispatch from the readable stream implementation to either these or their counte
 <emu-alg>
   1. Let _stream_ be *this*.[[controlledReadableStream]].
   1. Assert: ! ReadableStreamHasDefaultReader(_stream_) is *true*.
-  1. If ! ReadableStreamGetNumReadRequests(_stream_) is *0*,
-    1. If *this*.[[totalQueuedBytes]] > *0*,
-      1. Let _entry_ be the first element of *this*.[[queue]].
-      1. Remove _entry_ from *this*.[[queue]], shifting all other elements downward (so that the second becomes the
-         first, and so on).
-      1. Set *this*.[[totalQueuedBytes]] to *this*.[[totalQueuedBytes]] − _entry_.[[byteLength]].
-      1. Perform ! ReadableByteStreamControllerHandleQueueDrain(*this*).
-      1. Let _view_ be ! Construct(<a idl>%Uint8Array%</a>, « _entry_.[[buffer]], _entry_.[[byteOffset]],
-         _entry_.[[byteLength]] »).
-      1. Return <a>a promise resolved with</a> ! CreateIterResultObject(_view_, *false*).
-    1. Let _autoAllocateChunkSize_ be *this*.[[autoAllocateChunkSize]].
-    1. If _autoAllocateChunkSize_ is not *undefined*,
-      1. Let _buffer_ be Construct(%ArrayBuffer%, « _autoAllocateChunkSize_ »).
-      1. If _buffer_ is an abrupt completion, return <a>a promise rejected with</a> _buffer_.[[Value]].
-      1. Let _pullIntoDescriptor_ be Record {[[buffer]]: _buffer_.[[Value]], [[byteOffset]]: *0*, [[byteLength]]:
-         _autoAllocateChunkSize_, [[bytesFilled]]: *0*, [[elementSize]]: *1*, [[ctor]]: <a idl>%Uint8Array%</a>,
-         [[readerType]]: `"default"`}.
-      1. Append _pullIntoDescriptor_ as the last element of *this*.[[pendingPullIntos]].
-  1. Otherwise,
-    1. Assert: *this*.[[autoAllocateChunkSize]] is *undefined*.
+  1. If *this*.[[totalQueuedBytes]] > *0*,
+    1. Assert: ! ReadableStreamGetNumReadRequests(_stream_) is *0*.
+    1. Let _entry_ be the first element of *this*.[[queue]].
+    1. Remove _entry_ from *this*.[[queue]], shifting all other elements downward (so that the second becomes the
+       first, and so on).
+    1. Set *this*.[[totalQueuedBytes]] to *this*.[[totalQueuedBytes]] − _entry_.[[byteLength]].
+    1. Perform ! ReadableByteStreamControllerHandleQueueDrain(*this*).
+    1. Let _view_ be ! Construct(<a idl>%Uint8Array%</a>, « _entry_.[[buffer]], _entry_.[[byteOffset]],
+       _entry_.[[byteLength]] »).
+    1. Return <a>a promise resolved with</a> ! CreateIterResultObject(_view_, *false*).
+  1. Let _autoAllocateChunkSize_ be *this*.[[autoAllocateChunkSize]].
+  1. If _autoAllocateChunkSize_ is not *undefined*,
+    1. Let _buffer_ be Construct(%ArrayBuffer%, « _autoAllocateChunkSize_ »).
+    1. If _buffer_ is an abrupt completion, return <a>a promise rejected with</a> _buffer_.[[Value]].
+    1. Let _pullIntoDescriptor_ be Record {[[buffer]]: _buffer_.[[Value]], [[byteOffset]]: *0*, [[byteLength]]:
+       _autoAllocateChunkSize_, [[bytesFilled]]: *0*, [[elementSize]]: *1*, [[ctor]]: <a idl>%Uint8Array%</a>,
+       [[readerType]]: `"default"`}.
+    1. Append _pullIntoDescriptor_ as the last element of *this*.[[pendingPullIntos]].
   1. Let _promise_ be ! ReadableStreamAddReadRequest(_stream_).
   1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(*this*).
   1. Return _promise_.
