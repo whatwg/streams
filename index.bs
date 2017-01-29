@@ -376,7 +376,7 @@ Instances of {{ReadableStream}} are created with the internal slots described in
     </tr>
   </thead>
   <tr>
-    <td>\[[Detached]]
+    <td>{{[[Detached]]}}</a>
     <td>A boolean flag set to <emu-val>true</emu-val> when the stream has been transferred away to another realm
   </tr>
   <tr>
@@ -452,7 +452,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 <emu-alg>
   1. Set *this*.[[state]] to `"readable"`.
   1. Set *this*.[[reader]] and *this*.[[storedError]] to *undefined*.
-  1. Set *this*.[[Detached]] to *false*.
+  1. Set *this*.<a idl>[[Detached]]</a> to *false*.
   1. Set *this*.[[disturbed]] to *false*.
   1. Set *this*.[[readableStreamController]] to *undefined*.
   1. Let _type_ be ? GetV(_underlyingSource_, `"type"`).
@@ -742,7 +742,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 
 The following internal method is implemented by each {{ReadableStream}} instance.
 
-<h5 id="rs-internal-method-transfer">\[[Transfer]](<var>targetRealm</var>)</h5>
+<h5 id="rs-internal-method-transfer"><a idl lt="[[Transfer]]()">\[[Transfer]](<var>targetRealm</var>)</a></h5>
 
 <emu-alg>
   1. If ! IsReadableStreamLocked(*this*) is *true*, throw a *TypeError* exception.
@@ -758,7 +758,7 @@ The following internal method is implemented by each {{ReadableStream}} instance
   1. Repeat for each Record {[[value]], [[size]]} _pair_ that is an element of _queue_,
     1. Set _pair_.[[value]] to ! <a abstract-op>StructuredClone</a>(_pair_.[[value]], _targetRealm_).
   1. Set _controller_.[[targetRealm]] to _targetRealm_.
-  1. Set _this_.[[Detached]] to *true*.
+  1. Set _this_.<a idl>[[Detached]]</a> to *true*.
   1. Return _that_.
 </emu-alg>
 
@@ -814,7 +814,7 @@ readable stream is <a>locked to a reader</a> or has been transferred away to ano
 
 <emu-alg>
   1. Assert: ! IsReadableStream(_stream_) is *true*.
-  1. If _stream_.[[Detached]] is *true*, return *true*.
+  1. If _stream_.<a idl>[[Detached]]</a> is *true*, return *true*.
   1. If _stream_.[[reader]] is *undefined*, return *false*.
   1. Return *true*.
 </emu-alg>
@@ -970,7 +970,7 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
 <var>reason</var> )</h4>
 
 <emu-alg>
-  1. Assert: _stream_.[[Detached]] is *false*.
+  1. Assert: _stream_.<a idl>[[Detached]]</a> is *false*.
   1. Set _stream_.[[disturbed]] to *true*.
   1. If _stream_.[[state]] is `"closed"`, return <a>a promise resolved with</a> *undefined*.
   1. If _stream_.[[state]] is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
