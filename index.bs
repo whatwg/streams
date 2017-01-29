@@ -376,7 +376,7 @@ Instances of {{ReadableStream}} are created with the internal slots described in
     </tr>
   </thead>
   <tr>
-    <td>{{[[Detached]]}}</a>
+    <td>{{[[Detached]]}}
     <td>A boolean flag set to <emu-val>true</emu-val> when the stream has been transferred away to another realm
   </tr>
   <tr>
