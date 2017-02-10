@@ -505,14 +505,8 @@ class WritableStreamDefaultWriter {
       return Promise.reject(defaultWriterBrandCheckException('write'));
     }
 
-    const stream = this._ownerWritableStream;
-
-    if (stream === undefined) {
+    if (this._ownerWritableStream === undefined) {
       return Promise.reject(defaultWriterLockException('write to'));
-    }
-
-    if (stream._state === 'closing') {
-      return Promise.reject(new TypeError('Cannot write to an already-closed stream'));
     }
 
     return WritableStreamDefaultWriterWrite(this, chunk);
@@ -656,8 +650,16 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
 
   assert(stream !== undefined);
 
+  const controller = stream._writableStreamController;
+
+  const chunkSize = WritableStreamDefaultControllerGetChunkSize(controller, chunk);
+
+  if (stream !== writer._ownerWritableStream) {
+    return Promise.reject(defaultWriterLockException('write to'));
+  }
+
   const state = stream._state;
-  if (state === 'closed' || state === 'errored') {
+  if (state !== 'writable') {
     return Promise.reject(new TypeError(
       `The stream (in ${state} state) is not in the writable state and cannot be written to`));
   }
@@ -665,11 +667,9 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
     return Promise.reject(new TypeError('Aborted'));
   }
 
-  assert(state === 'writable');
-
   const promise = WritableStreamAddWriteRequest(stream);
 
-  WritableStreamDefaultControllerWrite(stream._writableStreamController, chunk);
+  WritableStreamDefaultControllerWrite(controller, chunk, chunkSize);
 
   return promise;
 }
@@ -750,6 +750,21 @@ function WritableStreamDefaultControllerClose(controller) {
   WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
 }
 
+function WritableStreamDefaultControllerGetChunkSize(controller, chunk) {
+  const strategySize = controller._strategySize;
+
+  if (strategySize === undefined) {
+    return 1;
+  }
+
+  try {
+    return strategySize(chunk);
+  } catch (chunkSizeE) {
+    WritableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
+    return 1;
+  }
+}
+
 function WritableStreamDefaultControllerGetDesiredSize(controller) {
   return controller._strategyHWM - controller._queueTotalSize;
 }
@@ -766,23 +781,10 @@ function WritableStreamDefaultControllerUpdateBackpressureIfNeeded(controller, o
   }
 }
 
-function WritableStreamDefaultControllerWrite(controller, chunk) {
+function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
   const stream = controller._controlledWritableStream;
 
   assert(stream._state === 'writable');
-
-  let chunkSize = 1;
-
-  if (controller._strategySize !== undefined) {
-    const strategySize = controller._strategySize;
-    try {
-      chunkSize = strategySize(chunk);
-    } catch (chunkSizeE) {
-      // TODO: Should we notify the sink of this error?
-      WritableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
-      return;
-    }
-  }
 
   const writeRecord = { chunk };
 
