@@ -3286,7 +3286,7 @@ nothrow>WritableStreamDefaultWriterRelease ( <var>writer</var> )</h4>
   1. Perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejectedWith(_writer_, _releasedError_,
      _readyPromiseIsPending_).
   1. Set _stream_.[[writer]] to *undefined*.
-  1. Set _writer_.[[ownerReadableStream]] to *undefined*.
+  1. Set _writer_.[[ownerWritableStream]] to *undefined*.
 </emu-alg>
 
 <h4 id="writable-stream-default-writer-write" aoid="WritableStreamDefaultWriterWrite"
