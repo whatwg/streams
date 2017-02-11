@@ -3600,7 +3600,7 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>e</va
     1. Perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejectedWith(_stream_.[[writer]], _e_,
        _readyPromiseIsPending_).
   1. Set _controller_.[[queue]] to a new empty List.
-  1. If _controller_ is *undefined* or _controller_.[[writing]] is *false* or _controller_.[[inClose]] is *false*,
+  1. If _controller_.[[writing]] is *false* and _controller_.[[inClose]] is *false*,
      perform ! WritableStreamRejectPromisesInReactionToError(_stream_).
 </emu-alg>
 
