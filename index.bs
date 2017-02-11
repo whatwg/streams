@@ -3595,7 +3595,7 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>e</va
   1. If _stream_.[[pendingAbortRequest]] is *undefined* and _stream_.[[writer]] is not *undefined*,
     1. Let _readyPromiseIsPending_ be *false*.
     1. If _oldState_ is `"writable"` and !
-       WritableStreamDefaultControllerGetBackpressure(_stream_.[[writableStreamController]]) is *true*, set
+       WritableStreamDefaultControllerGetBackpressure(_controller_) is *true*, set
        _readyPromiseIsPending_ to *true*.
     1. Perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejectedWith(_stream_.[[writer]], _e_,
        _readyPromiseIsPending_).
