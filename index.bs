@@ -3808,6 +3808,8 @@ total in the \[[queueTotalSize]] slot, is <em>not</em> equivalent to adding up t
   1. Remove _pair_ from _container_.[[queue]], shifting all other elements downward (so that the second becomes the
      first, and so on).
   1. Set _container_.[[queueTotalSize]] to _container_.[[queueTotalSize]] − _pair_.[[size]].
+  1. If _container_.[[queueTotalSize]] < *0*, set _container_.[[queueTotalSize]] to *0*. (This can occur due to
+     floating-point arithmetic.)
   1. Return _pair_.[[value]].
 </emu-alg>
 

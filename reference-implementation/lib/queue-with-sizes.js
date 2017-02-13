@@ -9,6 +9,9 @@ exports.DequeueValue = container => {
 
   const pair = container._queue.shift();
   container._queueTotalSize -= pair.size;
+  if (container._queueTotalSize < 0) {
+    container._queueTotalSize = 0;
+  }
 
   return pair.value;
 };
