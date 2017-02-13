@@ -946,9 +946,7 @@ function WritableStreamDefaultControllerError(controller, e) {
 
   controller._queue = [];
 
-  // This method can be called during the construction of the controller, in which case "controller" will be undefined
-  // but the flags are guaranteed to be false anyway.
-  if (controller === undefined || controller._writing === false && controller._inClose === false) {
+  if (controller._writing === false && controller._inClose === false) {
     WritableStreamRejectPromisesInReactionToError(stream);
   }
 }
