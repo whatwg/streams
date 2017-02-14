@@ -5,7 +5,7 @@ const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, Invo
       require('./helpers.js');
 const { createArrayFromList, createDataProperty, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
-const { DequeueValue, EnqueueValueWithSize, GetTotalQueueSize } = require('./queue-with-sizes.js');
+const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
         WritableStreamAbort, WritableStreamDefaultWriterCloseWithErrorPropagation,
         WritableStreamDefaultWriterRelease, WritableStreamDefaultWriterWrite } = require('./writable-stream.js');
@@ -859,7 +859,11 @@ class ReadableStreamDefaultController {
 
     this._underlyingSource = underlyingSource;
 
-    this._queue = [];
+    // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
+    this._queue = undefined;
+    this._queueTotalSize = undefined;
+    ResetQueue(this);
+
     this._started = false;
     this._closeRequested = false;
     this._pullAgain = false;
@@ -944,8 +948,7 @@ class ReadableStreamDefaultController {
   }
 
   [InternalCancel](reason) {
-    this._queue = [];
-
+    ResetQueue(this);
     return PromiseInvokeOrNoop(this._underlyingSource, 'cancel', [reason]);
   }
 
@@ -953,7 +956,7 @@ class ReadableStreamDefaultController {
     const stream = this._controlledReadableStream;
 
     if (this._queue.length > 0) {
-      const chunk = DequeueValue(this._queue);
+      const chunk = DequeueValue(this);
 
       if (this._closeRequested === true && this._queue.length === 0) {
         ReadableStreamClose(stream);
@@ -1083,7 +1086,7 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
     }
 
     try {
-      EnqueueValueWithSize(controller._queue, chunk, chunkSize);
+      EnqueueValueWithSize(controller, chunk, chunkSize);
     } catch (enqueueE) {
       ReadableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
       throw enqueueE;
@@ -1100,7 +1103,7 @@ function ReadableStreamDefaultControllerError(controller, e) {
 
   assert(stream._state === 'readable');
 
-  controller._queue = [];
+  ResetQueue(controller);
 
   ReadableStreamError(stream, e);
 }
@@ -1112,8 +1115,17 @@ function ReadableStreamDefaultControllerErrorIfNeeded(controller, e) {
 }
 
 function ReadableStreamDefaultControllerGetDesiredSize(controller) {
-  const queueSize = GetTotalQueueSize(controller._queue);
-  return controller._strategyHWM - queueSize;
+  const stream = controller._controlledReadableStream;
+  const state = stream._state;
+
+  if (state === 'errored') {
+    return null;
+  }
+  if (state === 'closed') {
+    return 0;
+  }
+
+  return controller._strategyHWM - controller._queueTotalSize;
 }
 
 class ReadableStreamBYOBRequest {
@@ -1177,11 +1189,11 @@ class ReadableByteStreamController {
 
     ReadableByteStreamControllerClearPendingPullIntos(this);
 
-    this._queue = [];
-    this._totalQueuedBytes = 0;
+    // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
+    this._queue = this._queueTotalSize = undefined;
+    ResetQueue(this);
 
     this._closeRequested = false;
-
     this._started = false;
 
     this._strategyHWM = ValidateAndNormalizeHighWaterMark(highWaterMark);
@@ -1299,8 +1311,7 @@ class ReadableByteStreamController {
       firstDescriptor.bytesFilled = 0;
     }
 
-    this._queue = [];
-    this._totalQueuedBytes = 0;
+    ResetQueue(this);
 
     return PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
   }
@@ -1309,11 +1320,11 @@ class ReadableByteStreamController {
     const stream = this._controlledReadableStream;
     assert(ReadableStreamHasDefaultReader(stream) === true);
 
-    if (this._totalQueuedBytes > 0) {
+    if (this._queueTotalSize > 0) {
       assert(ReadableStreamGetNumReadRequests(stream) === 0);
 
       const entry = this._queue.shift();
-      this._totalQueuedBytes -= entry.byteLength;
+      this._queueTotalSize -= entry.byteLength;
 
       ReadableByteStreamControllerHandleQueueDrain(this);
 
@@ -1456,7 +1467,7 @@ function ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescripto
 
 function ReadableByteStreamControllerEnqueueChunkToQueue(controller, buffer, byteOffset, byteLength) {
   controller._queue.push({ buffer, byteOffset, byteLength });
-  controller._totalQueuedBytes += byteLength;
+  controller._queueTotalSize += byteLength;
 }
 
 function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
@@ -1464,7 +1475,7 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
 
   const currentAlignedBytes = pullIntoDescriptor.bytesFilled - pullIntoDescriptor.bytesFilled % elementSize;
 
-  const maxBytesToCopy = Math.min(controller._totalQueuedBytes,
+  const maxBytesToCopy = Math.min(controller._queueTotalSize,
                                   pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled);
   const maxBytesFilled = pullIntoDescriptor.bytesFilled + maxBytesToCopy;
   const maxAlignedBytes = maxBytesFilled - maxBytesFilled % elementSize;
@@ -1492,7 +1503,7 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
       headOfQueue.byteOffset += bytesToCopy;
       headOfQueue.byteLength -= bytesToCopy;
     }
-    controller._totalQueuedBytes -= bytesToCopy;
+    controller._queueTotalSize -= bytesToCopy;
 
     ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesToCopy, pullIntoDescriptor);
 
@@ -1500,7 +1511,7 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
   }
 
   if (ready === false) {
-    assert(controller._totalQueuedBytes === 0, 'queue must be empty');
+    assert(controller._queueTotalSize === 0, 'queue must be empty');
     assert(pullIntoDescriptor.bytesFilled > 0);
     assert(pullIntoDescriptor.bytesFilled < pullIntoDescriptor.elementSize);
   }
@@ -1518,7 +1529,7 @@ function ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, size
 function ReadableByteStreamControllerHandleQueueDrain(controller) {
   assert(controller._controlledReadableStream._state === 'readable');
 
-  if (controller._totalQueuedBytes === 0 && controller._closeRequested === true) {
+  if (controller._queueTotalSize === 0 && controller._closeRequested === true) {
     ReadableStreamClose(controller._controlledReadableStream);
   } else {
     ReadableByteStreamControllerCallPullIfNeeded(controller);
@@ -1539,7 +1550,7 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
   assert(controller._closeRequested === false);
 
   while (controller._pendingPullIntos.length > 0) {
-    if (controller._totalQueuedBytes === 0) {
+    if (controller._queueTotalSize === 0) {
       return;
     }
 
@@ -1589,7 +1600,7 @@ function ReadableByteStreamControllerPullInto(controller, view) {
     return Promise.resolve(CreateIterResultObject(emptyView, true));
   }
 
-  if (controller._totalQueuedBytes > 0) {
+  if (controller._queueTotalSize > 0) {
     if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) === true) {
       const filledView = ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor);
 
@@ -1720,7 +1731,7 @@ function ReadableByteStreamControllerClose(controller) {
   assert(controller._closeRequested === false);
   assert(stream._state === 'readable');
 
-  if (controller._totalQueuedBytes > 0) {
+  if (controller._queueTotalSize > 0) {
     controller._closeRequested = true;
 
     return;
@@ -1776,13 +1787,22 @@ function ReadableByteStreamControllerError(controller, e) {
 
   ReadableByteStreamControllerClearPendingPullIntos(controller);
 
-  controller._queue = [];
-
+  ResetQueue(controller);
   ReadableStreamError(stream, e);
 }
 
 function ReadableByteStreamControllerGetDesiredSize(controller) {
-  return controller._strategyHWM - controller._totalQueuedBytes;
+  const stream = controller._controlledReadableStream;
+  const state = stream._state;
+
+  if (state === 'errored') {
+    return null;
+  }
+  if (state === 'closed') {
+    return 0;
+  }
+
+  return controller._strategyHWM - controller._queueTotalSize;
 }
 
 function ReadableByteStreamControllerRespond(controller, bytesWritten) {
