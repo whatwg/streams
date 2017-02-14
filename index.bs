@@ -3795,9 +3795,10 @@ internal slots, always named \[[queue]] and \[[queueTotalSize]]. \[[queue]] is a
 The following abstract operations are used when operating on objects that contain queues-with-sizes, in order to ensure
 that the two internal slots stay synchronized.
 
-<p class="warning">Due to the vagaries of floating point arithmetic, the framework specified here, of keeping a running
-total in the \[[queueTotalSize]] slot, is <em>not</em> equivalent to adding up the size of all <a>chunks</a> in
-\[[queue]]. This is most apparent when the total size is very small or very large.</p>
+<p class="warning">Due to the limited precision of floating-point arithmetic, the framework specified here, of keeping a
+running total in the \[[queueTotalSize]] slot, is <em>not</em> equivalent to adding up the size of all <a>chunks</a> in
+\[[queue]]. (However, this only makes a difference when there is a huge (~10<sup>15</sup>) variance in size between
+chunks, or when trillions of chunks are enqueued.)</p>
 
 <h4 id="dequeue-value" aoid="DequeueValue" nothrow>DequeueValue ( <var>container</var> )</h4>
 
@@ -3809,7 +3810,7 @@ total in the \[[queueTotalSize]] slot, is <em>not</em> equivalent to adding up t
      first, and so on).
   1. Set _container_.[[queueTotalSize]] to _container_.[[queueTotalSize]] − _pair_.[[size]].
   1. If _container_.[[queueTotalSize]] < *0*, set _container_.[[queueTotalSize]] to *0*. (This can occur due to
-     floating-point arithmetic.)
+     rounding errors.)
   1. Return _pair_.[[value]].
 </emu-alg>
 
@@ -4404,7 +4405,7 @@ itself will evolve in these ways.
 </ul>
 
 It's also worth noting that, as in [[!ECMASCRIPT]], all numbers are represented as double-precision floating point
-values, and all arithmetic operations performed on them must be done in the usual way for such values.
+values, and all arithmetic operations performed on them must be done in the standard way for such values.
 
 <h2 id="acks" class="no-num">Acknowledgments</h2>
 

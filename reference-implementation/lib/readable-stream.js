@@ -860,7 +860,8 @@ class ReadableStreamDefaultController {
     this._underlyingSource = underlyingSource;
 
     // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
-    this._queue = this._queueTotalSize = undefined;
+    this._queue = undefined;
+    this._queueTotalSize = undefined;
     ResetQueue(this);
 
     this._started = false;
