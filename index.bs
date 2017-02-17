@@ -3200,9 +3200,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 
 <emu-alg>
   1. If ! IsWritableStreamDefaultWriter(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
-  1. Let _stream_ be *this*.[[ownerWritableStream]].
-  1. If _stream_ is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
-  1. If _stream_.[[state]] is `"closing"`, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If *this*.[[ownerWritableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! WritableStreamDefaultWriterWrite(*this*, _chunk_).
 </emu-alg>
 
@@ -3313,13 +3311,16 @@ nothrow>WritableStreamDefaultWriterWrite ( <var>writer</var>, <var>chunk</var> )
 <emu-alg>
   1. Let _stream_ be _writer_.[[ownerWritableStream]].
   1. Assert: _stream_ is not *undefined*.
+  1. Let _controller_ be _stream_.[[writableStreamController]].
+  1. Let _chunkSize_ be ! WritableStreamDefaultControllerGetChunkSize(_controller_, _chunk_).
+  1. If _stream_ is not equal to _writer_.[[ownerWritableStream]], return <a>a promise rejected with</a> a *TypeError*
+     exception.
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"closed"` or `"errored"`, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If _state_ is not `"writable"`, return <a>a promise rejected with</a> a *TypeError* exception.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*, return <a>a promise rejected with</a> a *TypeError*
      indicating that the stream has been aborted.
-  1. Assert: _state_ is `"writable"`.
   1. Let _promise_ be ! WritableStreamAddWriteRequest(_stream_).
-  1. Perform ! WritableStreamDefaultControllerWrite(_stream_.[[writableStreamController]], _chunk_).
+  1. Perform ! WritableStreamDefaultControllerWrite(_controller_, _chunk_, _chunkSize_).
   1. Return _promise_.
 </emu-alg>
 
@@ -3482,6 +3483,19 @@ nothrow>WritableStreamDefaultControllerClose ( <var>controller</var> )</h4>
   1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
 </emu-alg>
 
+<h4 id="writable-stream-default-controller-get-chunk-size" aoid="WritableStreamDefaultControllerGetChunkSize"
+nothrow>WritableStreamDefaultControllerGetChunkSize ( <var>controller</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+  1. Let _strategySize_ be _controller_.[[strategySize]].
+  1. If _strategySize_ is *undefined*, return 1.
+  1. Let _returnValue_ be Call(_strategySize_, *undefined*, « _chunk_ »).
+  1. If _returnValue_ is an abrupt completion,
+    1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _returnValue_.[[Value]]).
+    1. Return 1.
+  1. Return _returnValue_.[[Value]].
+</emu-alg>
+
 <h4 id="writable-stream-default-controller-get-desired-size" aoid="WritableStreamDefaultControllerGetDesiredSize"
 nothrow>WritableStreamDefaultControllerGetDesiredSize ( <var>controller</var> )</h4>
 
@@ -3502,17 +3516,11 @@ nothrow>WritableStreamDefaultControllerUpdateBackpressureIfNeeded ( <var>control
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-write" aoid="WritableStreamDefaultControllerWrite"
-nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk</var> )</h4>
+nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk</var>, <var>chunkSize</var> )</h4>
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledWritableStream]].
   1. Assert: _stream_.[[state]] is `"writable"`.
-  1. Let _chunkSize_ be *1*.
-  1. If _controller_.[[strategySize]] is not *undefined*,
-    1. Set _chunkSize_ to Call(_controller_.[[strategySize]], *undefined*, « _chunk_ »).
-    1. If _chunkSize_ is an abrupt completion,
-      1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _chunkSize_.[[Value]]).
-      1. Return.
   1. Let _writeRecord_ be Record {[[chunk]]: _chunk_}.
   1. Let _oldBackpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
   1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_, _writeRecord_, _chunkSize_).
