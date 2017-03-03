@@ -47,7 +47,7 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
   emu-alg > ol ol ol, emu-alg > ol ol ol ol ol ol { list-style-type: lower-roman; }
   emu-alg li { margin: 0; }
 
-  .heading[aoid] .annotation {
+  .heading .annotation {
     background-color: beige;
     border: 1px solid black;
     border-radius: 3px;
