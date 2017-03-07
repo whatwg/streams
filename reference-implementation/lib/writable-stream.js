@@ -147,7 +147,7 @@ function WritableStreamAbort(stream, reason) {
     writer._readyPromise.catch(() => {});
   }
 
-  if (WritableStreamHasOperationMarkedInFlight(stream) === false) {
+  if (WritableStreamHasOperationMarkedInFlight(stream) === false && controller._started === true) {
     WritableStreamFinishAbort(stream);
     return WritableStreamDefaultControllerAbort(controller, reason);
   }
@@ -337,6 +337,13 @@ function WritableStreamFinishInFlightCloseWithError(stream, reason) {
   }
 
   WritableStreamRejectClosedPromiseInReactionToError(stream);
+}
+
+function WritableStreamFinishStartInErroredState(stream) {
+  if (stream._pendingAbortRequest !== undefined) {
+    stream._pendingAbortRequest._reject(stream._storedError);
+    stream._pendingAbortRequest = undefined;
+  }
 }
 
 function WritableStreamCloseQueuedOrInFlight(stream) {
@@ -788,13 +795,48 @@ function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
 
 function WritableStreamDefaultControllerStart(controller) {
   const startResult = InvokeOrNoop(controller._underlyingSink, 'start', [controller]);
+  const stream = controller._controlledWritableStream;
+
   Promise.resolve(startResult).then(
     () => {
       controller._started = true;
-      WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
+
+      const state = stream._state;
+      if (state === 'errored') {
+        WritableStreamFinishStartInErroredState(stream);
+        return;
+      }
+
+      const abortRequest = stream._pendingAbortRequest;
+      if (abortRequest === undefined) {
+        WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
+        return;
+      }
+
+      WritableStreamFinishAbort(stream);
+
+      stream._pendingAbortRequest = undefined;
+      const promise = WritableStreamDefaultControllerAbort(stream._writableStreamController, abortRequest._reason);
+      promise.then(
+          abortRequest._resolve,
+          abortRequest._reject
+      );
     },
     r => {
-      WritableStreamDefaultControllerErrorIfNeeded(controller, r);
+      const state = stream._state;
+      if (state === 'errored') {
+        WritableStreamFinishStartInErroredState(stream);
+        return;
+      }
+
+      assert(state === 'writable');
+
+      WritableStreamDefaultControllerError(controller, r);
+
+      if (stream._pendingAbortRequest !== undefined) {
+        stream._pendingAbortRequest._reject(stream._storedError);
+        stream._pendingAbortRequest = undefined;
+      }
     }
   )
   .catch(rethrowAssertionErrorRejection);
