@@ -300,4 +300,36 @@ promise_test(() => {
   return readableStreamToArray(ts.readable);
 }, 'methods should not not have .apply() or .call() called');
 
+promise_test(t => {
+  const transformer = {
+    transform() {
+      transformer.transform = undefined;
+      throw new TypeError();
+    }
+  };
+  const ts = new TransformStream(transformer);
+  return Promise.all([
+    promise_rejects(t, new TypeError(), ts.writable.getWriter().write('a'), 'write() should throw'),
+    promise_rejects(t, new TypeError(), ts.readable.getReader().read(), 'read() should throw')
+  ]);
+}, 'transformer.transform should be checked for undefined before being called');
+
+promise_test(() => {
+  let transformGetterCalls = 0;
+  const ts = new TransformStream({
+    get transform() {
+      ++transformGetterCalls;
+      return (chunk, controller) => controller.enqueue(chunk);
+    }
+  });
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close();
+  return readableStreamToArray(ts.readable)
+      .then(chunks => {
+        assert_array_equals(chunks, ['a'], 'all chunks should be transformed');
+        assert_equals(transformGetterCalls, 1, 'transform should only be looked up once');
+      });
+}, 'transformer.transform should only be looked up once');
+
 done();
