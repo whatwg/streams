@@ -2970,7 +2970,7 @@ WritableStreamRejectClosedPromiseIfAny ( <var>stream</var> )</h4>
     1. Set _writer_.[[closedPromise]].[[PromiseIsHandled]] to *true*.
 </emu-alg>
 
-<h4 id="writable-stream-reject-unresolved-promises" aoid="WritableStreamRejectPromisesInReactionToError"
+<h4 id="writable-stream-reject-promises-in-reaction-to-error" aoid="WritableStreamRejectPromisesInReactionToError"
 nothrow>WritableStreamRejectPromisesInReactionToError ( <var>stream</var> )</h4>
 
 <emu-alg>
