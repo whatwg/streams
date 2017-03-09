@@ -316,7 +316,7 @@ promise_test(t => {
   //   return TransformStreamDefaultTransform(chunk, controller);
 
   const transformer = {
-    transform(chunk, controller) {
+    transform() {
       transformer.transform = undefined;
       throw thrownError;
     }
@@ -360,7 +360,7 @@ promise_test(() => {
   });
   const writer = ts.writable.getWriter();
   writer.write('a');
-  writer.write('b)');
+  writer.write('b');
   writer.close();
   return readableStreamToArray(ts.readable)
       .then(chunks => {
