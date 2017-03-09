@@ -6,6 +6,9 @@ if (self.importScripts) {
   self.importScripts('../resources/rs-utils.js');
 }
 
+const thrownError = new Error('bad things are happening!');
+thrownError.name = 'error1';
+
 test(() => {
   new TransformStream({ transform() { } });
 }, 'TransformStream can be constructed with a transform function');
@@ -301,18 +304,51 @@ promise_test(() => {
 }, 'methods should not not have .apply() or .call() called');
 
 promise_test(t => {
+  // Test for erroneous optimisations like:
+  //
+  //   try {
+  //     return Promise.resolve(transformer.transform(chunk, controller));
+  //   } catch (e) {
+  //     if (transformer.transform !== undefined) {
+  //       return Promise.reject(e);
+  //     }
+  //   }
+  //   return TransformStreamDefaultTransform(chunk, controller);
+
   const transformer = {
-    transform() {
+    transform(chunk, controller) {
       transformer.transform = undefined;
-      throw new TypeError();
+      throw thrownError;
     }
   };
   const ts = new TransformStream(transformer);
+  // If the implementation performs the undefined check only if attempting to call the transform() method throws, then
+  // the calls to write() and read() will erroneously succeed.
   return Promise.all([
-    promise_rejects(t, new TypeError(), ts.writable.getWriter().write('a'), 'write() should throw'),
-    promise_rejects(t, new TypeError(), ts.readable.getReader().read(), 'read() should throw')
+    promise_rejects(t, thrownError, ts.writable.getWriter().write('a'), 'write() should throw'),
+    promise_rejects(t, thrownError, ts.readable.getReader().read(), 'read() should throw')
   ]);
-}, 'transformer.transform should be checked for undefined before being called');
+}, 'implementation should not fallback if transformer.transform() sets itself to undefined and throws');
+
+promise_test(() => {
+  // This tests for a more advanced version of the erroneous optimisation above where the origin of the exception is
+  // checked. The optimisation is still wrong because it looks up the "transform" attribute twice.
+  let transformGetterCalls = 0;
+  const ts = new TransformStream({
+    get transform() {
+      ++transformGetterCalls;
+      return undefined;
+    }
+  });
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close();
+  return readableStreamToArray(ts.readable)
+      .then(chunks => {
+        assert_array_equals(chunks, ['a'], 'all chunks should be transformed');
+        assert_equals(transformGetterCalls, 1, 'transform should only be looked up once');
+      });
+}, 'transformer.transform should be looked up exactly once per chunk when undefined');
 
 promise_test(() => {
   let transformGetterCalls = 0;
@@ -324,12 +360,13 @@ promise_test(() => {
   });
   const writer = ts.writable.getWriter();
   writer.write('a');
+  writer.write('b)');
   writer.close();
   return readableStreamToArray(ts.readable)
       .then(chunks => {
-        assert_array_equals(chunks, ['a'], 'all chunks should be transformed');
-        assert_equals(transformGetterCalls, 1, 'transform should only be looked up once');
+        assert_array_equals(chunks, ['a', 'b'], 'all chunks should be transformed');
+        assert_equals(transformGetterCalls, 2, 'transform should be looked up twice');
       });
-}, 'transformer.transform should only be looked up once');
+}, 'transformer.transform should be looked up exactly once per chunk');
 
 done();
