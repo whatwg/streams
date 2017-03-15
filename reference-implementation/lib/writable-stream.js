@@ -190,6 +190,18 @@ function WritableStreamAddWriteRequest(stream) {
   return promise;
 }
 
+function WritableStreamFinishAbortAndPendingAbortRequest(stream) {
+  WritableStreamFinishAbort(stream);
+
+  const abortRequest = stream._pendingAbortRequest;
+  stream._pendingAbortRequest = undefined;
+  const promise = WritableStreamDefaultControllerAbort(stream._writableStreamController, abortRequest._reason);
+  promise.then(
+    abortRequest._resolve,
+    abortRequest._reject
+  );
+}
+
 function WritableStreamFinishInFlightWrite(stream) {
   assert(stream._inFlightWriteRequest !== undefined);
   stream._inFlightWriteRequest._resolve(undefined);
@@ -208,15 +220,7 @@ function WritableStreamFinishInFlightWrite(stream) {
     return;
   }
 
-  WritableStreamFinishAbort(stream);
-
-  const abortRequest = stream._pendingAbortRequest;
-  stream._pendingAbortRequest = undefined;
-  const promise = WritableStreamDefaultControllerAbort(stream._writableStreamController, abortRequest._reason);
-  promise.then(
-    abortRequest._resolve,
-    abortRequest._reject
-  );
+  WritableStreamFinishAbortAndPendingAbortRequest(stream);
 }
 
 function WritableStreamFinishInFlightWriteInErroredState(stream) {
@@ -799,31 +803,19 @@ function WritableStreamDefaultControllerStart(controller) {
         return;
       }
 
-      const abortRequest = stream._pendingAbortRequest;
-      if (abortRequest === undefined) {
+      if (stream._pendingAbortRequest === undefined) {
         WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
         return;
       }
 
-      WritableStreamFinishAbort(stream);
-
-      stream._pendingAbortRequest = undefined;
-      const promise = WritableStreamDefaultControllerAbort(stream._writableStreamController, abortRequest._reason);
-      promise.then(
-          abortRequest._resolve,
-          abortRequest._reject
-      );
+      WritableStreamFinishAbortAndPendingAbortRequest(stream);
     },
     r => {
       const state = stream._state;
-      if (state === 'errored') {
-        WritableStreamRejectPendingAbortRequestIfNeeded(stream);
-        return;
+      assert(state === 'writable' || state === 'errored');
+      if (state === 'writable') {
+        WritableStreamDefaultControllerError(controller, r);
       }
-
-      assert(state === 'writable');
-
-      WritableStreamDefaultControllerError(controller, r);
 
       WritableStreamRejectPendingAbortRequestIfNeeded(stream);
     }
