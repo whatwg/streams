@@ -220,11 +220,7 @@ function WritableStreamFinishInFlightWrite(stream) {
 }
 
 function WritableStreamFinishInFlightWriteInErroredState(stream) {
-  if (stream._pendingAbortRequest !== undefined) {
-    stream._pendingAbortRequest._reject(stream._storedError);
-    stream._pendingAbortRequest = undefined;
-  }
-
+  WritableStreamRejectPendingAbortRequestIfNeeded(stream);
   WritableStreamRejectPromisesInReactionToError(stream);
 }
 
@@ -300,11 +296,7 @@ function WritableStreamFinishInFlightClose(stream) {
 }
 
 function WritableStreamFinishInFlightCloseInErroredState(stream) {
-  if (stream._pendingAbortRequest !== undefined) {
-    stream._pendingAbortRequest._reject(stream._storedError);
-    stream._pendingAbortRequest = undefined;
-  }
-
+  WritableStreamRejectPendingAbortRequestIfNeeded(stream);
   WritableStreamRejectClosedPromiseInReactionToError(stream);
 }
 
@@ -337,13 +329,6 @@ function WritableStreamFinishInFlightCloseWithError(stream, reason) {
   }
 
   WritableStreamRejectClosedPromiseInReactionToError(stream);
-}
-
-function WritableStreamFinishStartInErroredState(stream) {
-  if (stream._pendingAbortRequest !== undefined) {
-    stream._pendingAbortRequest._reject(stream._storedError);
-    stream._pendingAbortRequest = undefined;
-  }
 }
 
 function WritableStreamCloseQueuedOrInFlight(stream) {
@@ -380,6 +365,13 @@ function WritableStreamRejectClosedPromiseInReactionToError(stream) {
   if (writer !== undefined) {
     defaultWriterClosedPromiseReject(writer, stream._storedError);
     writer._closedPromise.catch(() => {});
+  }
+}
+
+function WritableStreamRejectPendingAbortRequestIfNeeded(stream) {
+  if (stream._pendingAbortRequest !== undefined) {
+    stream._pendingAbortRequest._reject(stream._storedError);
+    stream._pendingAbortRequest = undefined;
   }
 }
 
@@ -803,7 +795,7 @@ function WritableStreamDefaultControllerStart(controller) {
 
       const state = stream._state;
       if (state === 'errored') {
-        WritableStreamFinishStartInErroredState(stream);
+        WritableStreamRejectPendingAbortRequestIfNeeded(stream);
         return;
       }
 
@@ -825,7 +817,7 @@ function WritableStreamDefaultControllerStart(controller) {
     r => {
       const state = stream._state;
       if (state === 'errored') {
-        WritableStreamFinishStartInErroredState(stream);
+        WritableStreamRejectPendingAbortRequestIfNeeded(stream);
         return;
       }
 
@@ -833,10 +825,7 @@ function WritableStreamDefaultControllerStart(controller) {
 
       WritableStreamDefaultControllerError(controller, r);
 
-      if (stream._pendingAbortRequest !== undefined) {
-        stream._pendingAbortRequest._reject(stream._storedError);
-        stream._pendingAbortRequest = undefined;
-      }
+      WritableStreamRejectPendingAbortRequestIfNeeded(stream);
     }
   )
   .catch(rethrowAssertionErrorRejection);
