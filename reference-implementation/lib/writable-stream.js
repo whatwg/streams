@@ -190,7 +190,11 @@ function WritableStreamAddWriteRequest(stream) {
   return promise;
 }
 
-function WritableStreamFinishAbortAndIssuePendingAbortRequest(stream) {
+function WritableStreamHandleAbortRequestIfPending(stream) {
+  if (stream._pendingAbortRequest === undefined) {
+    return;
+  }
+
   WritableStreamFinishAbort(stream);
 
   const abortRequest = stream._pendingAbortRequest;
@@ -216,15 +220,11 @@ function WritableStreamFinishInFlightWrite(stream) {
 
   assert(state === 'writable');
 
-  if (stream._pendingAbortRequest === undefined) {
-    return;
-  }
-
-  WritableStreamFinishAbortAndIssuePendingAbortRequest(stream);
+  WritableStreamHandleAbortRequestIfPending(stream);
 }
 
 function WritableStreamFinishInFlightWriteInErroredState(stream) {
-  WritableStreamRejectPendingAbortRequestIfNeeded(stream);
+  WritableStreamRejectAbortRequestIfPending(stream);
   WritableStreamRejectPromisesInReactionToError(stream);
 }
 
@@ -300,7 +300,7 @@ function WritableStreamFinishInFlightClose(stream) {
 }
 
 function WritableStreamFinishInFlightCloseInErroredState(stream) {
-  WritableStreamRejectPendingAbortRequestIfNeeded(stream);
+  WritableStreamRejectAbortRequestIfPending(stream);
   WritableStreamRejectClosedPromiseInReactionToError(stream);
 }
 
@@ -372,7 +372,7 @@ function WritableStreamRejectClosedPromiseInReactionToError(stream) {
   }
 }
 
-function WritableStreamRejectPendingAbortRequestIfNeeded(stream) {
+function WritableStreamRejectAbortRequestIfPending(stream) {
   if (stream._pendingAbortRequest !== undefined) {
     stream._pendingAbortRequest._reject(stream._storedError);
     stream._pendingAbortRequest = undefined;
@@ -797,24 +797,20 @@ function WritableStreamDefaultControllerStart(controller) {
     () => {
       controller._started = true;
 
-      const state = stream._state;
-      if (state === 'errored') {
-        WritableStreamRejectPendingAbortRequestIfNeeded(stream);
+      if (stream._state === 'errored') {
+        WritableStreamRejectAbortRequestIfPending(stream);
         return;
       }
 
-      if (stream._pendingAbortRequest === undefined) {
-        WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
-        return;
-      }
+      WritableStreamHandleAbortRequestIfPending(stream);
 
-      WritableStreamFinishAbortAndIssuePendingAbortRequest(stream);
+      // This is a no-op if the stream was errored by abort().
+      WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
     },
     r => {
-      const state = stream._state;
-      assert(state === 'writable' || state === 'errored');
+      assert(stream._state === 'writable' || stream._state === 'errored');
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);
-      WritableStreamRejectPendingAbortRequestIfNeeded(stream);
+      WritableStreamRejectAbortRequestIfPending(stream);
     }
   )
   .catch(rethrowAssertionErrorRejection);
