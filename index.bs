@@ -3454,7 +3454,6 @@ WritableStreamDefaultController(<var>stream</var>, <var>underlyingSink</var>, <v
   1. Set *this*.[[strategySize]] to _normalizedStrategy_.[[size]] and *this*.[[strategyHWM]] to
      _normalizedStrategy_.[[highWaterMark]].
   1. Let _backpressure_ be ! WritableStreamDefaultControllerGetBackpressure(*this*).
-  1. If _backpressure_ is *true*, perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
   1. Perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
 </emu-alg>
 
