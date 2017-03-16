@@ -190,7 +190,7 @@ function WritableStreamAddWriteRequest(stream) {
   return promise;
 }
 
-function WritableStreamFinishAbortAndPendingAbortRequest(stream) {
+function WritableStreamFinishAbortAndIssuePendingAbortRequest(stream) {
   WritableStreamFinishAbort(stream);
 
   const abortRequest = stream._pendingAbortRequest;
@@ -220,7 +220,7 @@ function WritableStreamFinishInFlightWrite(stream) {
     return;
   }
 
-  WritableStreamFinishAbortAndPendingAbortRequest(stream);
+  WritableStreamFinishAbortAndIssuePendingAbortRequest(stream);
 }
 
 function WritableStreamFinishInFlightWriteInErroredState(stream) {
@@ -808,15 +808,12 @@ function WritableStreamDefaultControllerStart(controller) {
         return;
       }
 
-      WritableStreamFinishAbortAndPendingAbortRequest(stream);
+      WritableStreamFinishAbortAndIssuePendingAbortRequest(stream);
     },
     r => {
       const state = stream._state;
       assert(state === 'writable' || state === 'errored');
-      if (state === 'writable') {
-        WritableStreamDefaultControllerError(controller, r);
-      }
-
+      WritableStreamDefaultControllerErrorIfNeeded(controller, r);
       WritableStreamRejectPendingAbortRequestIfNeeded(stream);
     }
   )
