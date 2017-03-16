@@ -1642,11 +1642,11 @@ function ReadableByteStreamControllerRespondInClosedState(controller, firstDescr
   assert(firstDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
 
   const stream = controller._controlledReadableStream;
-
-  while (ReadableStreamGetNumReadIntoRequests(stream) > 0) {
-    const pullIntoDescriptor = ReadableByteStreamControllerShiftPendingPullInto(controller);
-
-    ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDescriptor);
+  if (ReadableStreamHasBYOBReader(stream) === true) {
+    while (ReadableStreamGetNumReadIntoRequests(stream) > 0) {
+      const pullIntoDescriptor = ReadableByteStreamControllerShiftPendingPullInto(controller);
+      ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDescriptor);
+    }
   }
 }
 
@@ -1717,11 +1717,11 @@ function ReadableByteStreamControllerShouldCallPull(controller) {
     return false;
   }
 
-  if (ReadableStreamHasDefaultReader(stream) && ReadableStreamGetNumReadRequests(stream) > 0) {
+  if (ReadableStreamHasDefaultReader(stream) === true && ReadableStreamGetNumReadRequests(stream) > 0) {
     return true;
   }
 
-  if (ReadableStreamHasBYOBReader(stream) && ReadableStreamGetNumReadIntoRequests(stream) > 0) {
+  if (ReadableStreamHasBYOBReader(stream) === true && ReadableStreamGetNumReadIntoRequests(stream) > 0) {
     return true;
   }
 

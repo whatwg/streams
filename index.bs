@@ -2412,9 +2412,10 @@ nothrow>ReadableByteStreamControllerRespondInClosedState ( <var>controller</var>
   1. Set _firstDescriptor_.[[buffer]] to ! TransferArrayBuffer(_firstDescriptor_.[[buffer]]).
   1. Assert: _firstDescriptor_.[[bytesFilled]] is *0*.
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
-  1. Repeat the following steps while ! ReadableStreamGetNumReadIntoRequests(_stream_) > *0*,
-    1. Let _pullIntoDescriptor_ be ! ReadableByteStreamControllerShiftPendingPullInto(_controller_).
-    1. Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(_stream_, _pullIntoDescriptor_).
+  1. If ReadableStreamHasBYOBReader(_stream_) is *true*,
+    1. Repeat the following steps while ! ReadableStreamGetNumReadIntoRequests(_stream_) > *0*,
+      1. Let _pullIntoDescriptor_ be ! ReadableByteStreamControllerShiftPendingPullInto(_controller_).
+      1. Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(_stream_, _pullIntoDescriptor_).
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-respond-in-readable-state"
@@ -4476,6 +4477,7 @@ Marcos Caceres,
 Marvin Hagemeister,
 Michael Mior,
 Mihai Potra,
+Romain, <!-- rombel on GitHub -->
 Simon Menke,
 Stephen Sugden,
 Tab Atkins,
