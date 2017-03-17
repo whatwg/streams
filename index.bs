@@ -3568,8 +3568,8 @@ aoid="WritableStreamDefaultControllerAdvanceQueueIfNeeded" nothrow>WritableStrea
   1. If _stream_.[[inFlightWriteRequest]] is not *undefined*, return.
   1. If _controller_.[[queue]] is empty, return.
   1. Let _writeRecord_ be ! PeekQueueValue(_controller_).
-  1. If _writeRecord_ is `"close"`, perform WritableStreamDefaultControllerProcessClose(_controller_).
-  1. Otherwise, perform WritableStreamDefaultControllerProcessWrite(_controller_, _writeRecord_.[[chunk]]).
+  1. If _writeRecord_ is `"close"`, perform ! WritableStreamDefaultControllerProcessClose(_controller_).
+  1. Otherwise, perform ! WritableStreamDefaultControllerProcessWrite(_controller_, _writeRecord_.[[chunk]]).
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-error-if-needed" aoid="WritableStreamDefaultControllerErrorIfNeeded"
