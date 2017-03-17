@@ -147,7 +147,7 @@ function WritableStreamAbort(stream, reason) {
     writer._readyPromise.catch(() => {});
   }
 
-  if (WritableStreamHasOperationMarkedInFlight(stream) === false) {
+  if (WritableStreamHasOperationMarkedInFlight(stream) === false && controller._started === true) {
     WritableStreamFinishAbort(stream);
     return WritableStreamDefaultControllerAbort(controller, reason);
   }
@@ -204,27 +204,11 @@ function WritableStreamFinishInFlightWrite(stream) {
 
   assert(state === 'writable');
 
-  if (stream._pendingAbortRequest === undefined) {
-    return;
-  }
-
-  WritableStreamFinishAbort(stream);
-
-  const abortRequest = stream._pendingAbortRequest;
-  stream._pendingAbortRequest = undefined;
-  const promise = WritableStreamDefaultControllerAbort(stream._writableStreamController, abortRequest._reason);
-  promise.then(
-    abortRequest._resolve,
-    abortRequest._reject
-  );
+  WritableStreamHandleAbortRequestIfPending(stream);
 }
 
 function WritableStreamFinishInFlightWriteInErroredState(stream) {
-  if (stream._pendingAbortRequest !== undefined) {
-    stream._pendingAbortRequest._reject(stream._storedError);
-    stream._pendingAbortRequest = undefined;
-  }
-
+  WritableStreamRejectAbortRequestIfPending(stream);
   WritableStreamRejectPromisesInReactionToError(stream);
 }
 
@@ -300,11 +284,7 @@ function WritableStreamFinishInFlightClose(stream) {
 }
 
 function WritableStreamFinishInFlightCloseInErroredState(stream) {
-  if (stream._pendingAbortRequest !== undefined) {
-    stream._pendingAbortRequest._reject(stream._storedError);
-    stream._pendingAbortRequest = undefined;
-  }
-
+  WritableStreamRejectAbortRequestIfPending(stream);
   WritableStreamRejectClosedPromiseInReactionToError(stream);
 }
 
@@ -347,6 +327,22 @@ function WritableStreamCloseQueuedOrInFlight(stream) {
   return true;
 }
 
+function WritableStreamHandleAbortRequestIfPending(stream) {
+  if (stream._pendingAbortRequest === undefined) {
+    return;
+  }
+
+  WritableStreamFinishAbort(stream);
+
+  const abortRequest = stream._pendingAbortRequest;
+  stream._pendingAbortRequest = undefined;
+  const promise = WritableStreamDefaultControllerAbort(stream._writableStreamController, abortRequest._reason);
+  promise.then(
+    abortRequest._resolve,
+    abortRequest._reject
+  );
+}
+
 function WritableStreamHasOperationMarkedInFlight(stream) {
   if (stream._inFlightWriteRequest === undefined && stream._inFlightCloseRequest === undefined) {
     return false;
@@ -373,6 +369,13 @@ function WritableStreamRejectClosedPromiseInReactionToError(stream) {
   if (writer !== undefined) {
     defaultWriterClosedPromiseReject(writer, stream._storedError);
     writer._closedPromise.catch(() => {});
+  }
+}
+
+function WritableStreamRejectAbortRequestIfPending(stream) {
+  if (stream._pendingAbortRequest !== undefined) {
+    stream._pendingAbortRequest._reject(stream._storedError);
+    stream._pendingAbortRequest = undefined;
   }
 }
 
@@ -788,13 +791,25 @@ function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
 
 function WritableStreamDefaultControllerStart(controller) {
   const startResult = InvokeOrNoop(controller._underlyingSink, 'start', [controller]);
+  const stream = controller._controlledWritableStream;
+
   Promise.resolve(startResult).then(
     () => {
       controller._started = true;
+
+      if (stream._state === 'errored') {
+        WritableStreamRejectAbortRequestIfPending(stream);
+      } else {
+        WritableStreamHandleAbortRequestIfPending(stream);
+      }
+
+      // This is a no-op if the stream was errored above.
       WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
     },
     r => {
+      assert(stream._state === 'writable' || stream._state === 'errored');
       WritableStreamDefaultControllerErrorIfNeeded(controller, r);
+      WritableStreamRejectAbortRequestIfPending(stream);
     }
   )
   .catch(rethrowAssertionErrorRejection);
