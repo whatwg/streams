@@ -799,12 +799,11 @@ function WritableStreamDefaultControllerStart(controller) {
 
       if (stream._state === 'errored') {
         WritableStreamRejectAbortRequestIfPending(stream);
-        return;
+      } else {
+        WritableStreamHandleAbortRequestIfPending(stream);
       }
 
-      WritableStreamHandleAbortRequestIfPending(stream);
-
-      // This is a no-op if the stream was errored by abort().
+      // This is a no-op if the stream was errored above.
       WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
     },
     r => {

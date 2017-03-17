@@ -3565,10 +3565,8 @@ WritableStreamDefaultControllerStart ( <var>controller</var> )</h4>
   1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
     1. <a>Upon fulfillment</a>  of _startPromise_,
       1. Set _controller_.[[started]] to *true*.
-      1. If _stream_.[[state]] is `"errored"`,
-        1. Perform ! WritableStreamRejectAbortRequestIfPending(_stream_).
-        1. Return.
-      1. Perform ! WritableStreamHandleAbortRequestIfPending(_stream_).
+      1. If _stream_.[[state]] is `"errored"`, perform ! WritableStreamRejectAbortRequestIfPending(_stream_).
+      1. Otherwise, perform ! WritableStreamHandleAbortRequestIfPending(_stream_).
       1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
     1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
       1. Assert: _stream_.[[state]] is `"writable"` or `"errored"`.
