@@ -2918,7 +2918,7 @@ nothrow>WritableStreamFinishInFlightClose ( <var>stream</var> )</h4>
     1. Return.
   1. <a>Resolve</a> _stream_.[[pendingAbortRequest]] with *undefined*.
   1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
-  1. Let _error_ to a new *TypeError* indicating that the stream was requested to abort but has been closed.
+  1. Let _error_ be a new *TypeError* indicating that the stream was requested to abort but has been closed.
   1. Set _stream_.[[state]] to `"errored"`.
   1. Set _stream_.[[storedError]] to _error_.
   1. Perform ! WritableStreamRejectClosedPromiseInReactionToError(_stream_).
