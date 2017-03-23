@@ -2153,7 +2153,7 @@ throws>ReadableByteStreamControllerClose ( <var>controller</var> )</h4>
     1. Return.
   1. If _controller_.[[pendingPullIntos]] is not empty,
     1. Let _firstPendingPullInto_ be the first element of _controller_.[[pendingPullIntos]].
-    1. If  _firstPendingPullInto_.[[bytesFilled]] > *0*,
+    1. If _firstPendingPullInto_.[[bytesFilled]] > *0*,
       1. Let _e_ be a new *TypeError* exception.
       1. Perform ! ReadableByteStreamControllerError(_controller_, _e_).
       1. Throw _e_.
@@ -3025,7 +3025,7 @@ nothrow>WritableStreamRejectAbortRequestIfPending ( <var>stream</var> )</h4>
 
 <emu-alg>
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*,
-    1. <a>Reject</a> _stream_.[[pendingAbortRequest]] with  _stream_.[[storedError]].
+    1. <a>Reject</a> _stream_.[[pendingAbortRequest]] with _stream_.[[storedError]].
     1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
 </emu-alg>
 
@@ -3320,7 +3320,7 @@ nothrow>WritableStreamDefaultWriterCloseWithErrorPropagation ( <var>writer</var>
   1. Let _stream_ be _writer_.[[ownerWritableStream]].
   1. Assert: _stream_ is not *undefined*.
   1. Let _state_ be _stream_.[[state]].
-  1. If ! WritableStreamCloseQueuedOrInFlight(_stream_) is *true* or  _state_ is `"closed"`, return
+  1. If ! WritableStreamCloseQueuedOrInFlight(_stream_) is *true* or _state_ is `"closed"`, return
      <a>a promise resolved with</a> *undefined*.
   1. If _state_ is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Assert: _state_ is `"writable"`.
