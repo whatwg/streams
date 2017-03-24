@@ -137,11 +137,6 @@ function WritableStreamAbort(stream, reason) {
   const controller = stream._writableStreamController;
   assert(controller !== undefined, 'controller must not be undefined');
 
-  if (WritableStreamHasOperationMarkedInFlight(stream) === false && controller._started === true) {
-    WritableStreamFinishAbort(stream);
-    return WritableStreamDefaultControllerAbort(controller, reason);
-  }
-
   const writer = stream._writer;
   if (writer !== undefined) {
     if (WritableStreamCloseQueuedOrInFlight(stream) === false && stream._backpressure === true) {
@@ -150,6 +145,11 @@ function WritableStreamAbort(stream, reason) {
       defaultWriterReadyPromiseResetToRejected(writer, error);
     }
     writer._readyPromise.catch(() => {});
+  }
+
+  if (WritableStreamHasOperationMarkedInFlight(stream) === false && controller._started === true) {
+    WritableStreamFinishAbort(stream);
+    return WritableStreamDefaultControllerAbort(controller, reason);
   }
 
   const promise = new Promise((resolve, reject) => {
