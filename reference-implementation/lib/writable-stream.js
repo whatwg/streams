@@ -952,6 +952,9 @@ function WritableStreamDefaultControllerError(controller, e) {
       }
       writer._readyPromise.catch(() => {});
     }
+  } else {
+    stream._pendingAbortRequest._reject(e);
+    stream._pendingAbortRequest = undefined;
   }
 
   WritableStreamError(stream, e);
