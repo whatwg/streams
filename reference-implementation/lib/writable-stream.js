@@ -919,7 +919,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
 
       assert(stream._state === 'errored');
       if (wasErrored === false) {
-        controller._queue = [];
+        ResetQueue(controller);
       }
     }
   )
