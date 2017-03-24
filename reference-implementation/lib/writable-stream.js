@@ -267,23 +267,17 @@ function WritableStreamFinishInFlightClose(stream) {
 
   assert(state === 'writable');
 
-  if (stream._pendingAbortRequest === undefined) {
-    stream._state = 'closed';
+  stream._state = 'closed';
 
-    const writer = stream._writer;
-    if (writer !== undefined) {
-      defaultWriterClosedPromiseResolve(writer);
-    }
-
-    return;
+  const writer = stream._writer;
+  if (writer !== undefined) {
+    defaultWriterClosedPromiseResolve(writer);
   }
 
-  stream._pendingAbortRequest._resolve();
-  stream._pendingAbortRequest = undefined;
-
-  const error = new TypeError('Requested to abort but has been closed');
-
-  WritableStreamError(stream, error);
+  if (stream._pendingAbortRequest !== undefined) {
+    stream._pendingAbortRequest._resolve();
+    stream._pendingAbortRequest = undefined;
+  }
 }
 
 function WritableStreamFinishInFlightCloseInErroredState(stream) {
