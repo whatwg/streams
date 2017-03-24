@@ -180,9 +180,6 @@ function WritableStreamError(stream, error) {
       }
       writer._readyPromise.catch(() => {});
     }
-  } else {
-    stream._pendingAbortRequest._reject(error);
-    stream._pendingAbortRequest = undefined;
   }
 
   if (WritableStreamHasOperationMarkedInFlight(stream) === false) {
@@ -251,6 +248,7 @@ function WritableStreamFinishInFlightWriteWithError(stream, reason) {
   assert(state === 'writable');
 
   WritableStreamError(stream, reason);
+  WritableStreamRejectAbortRequestIfPending(stream);
 }
 
 function WritableStreamFinishInFlightClose(stream) {
@@ -300,6 +298,7 @@ function WritableStreamFinishInFlightCloseWithError(stream, reason) {
   assert(state === 'writable');
 
   WritableStreamError(stream, reason);
+  WritableStreamRejectAbortRequestIfPending(stream);
 }
 
 function WritableStreamCloseQueuedOrInFlight(stream) {
@@ -315,6 +314,8 @@ function WritableStreamHandleAbortRequestIfPending(stream) {
     return;
   }
 
+  WritableStreamFinishAbort(stream);
+
   const abortRequest = stream._pendingAbortRequest;
   stream._pendingAbortRequest = undefined;
   const promise = WritableStreamDefaultControllerAbort(stream._writableStreamController, abortRequest._reason);
@@ -322,9 +323,6 @@ function WritableStreamHandleAbortRequestIfPending(stream) {
     abortRequest._resolve,
     abortRequest._reject
   );
-  stream._backpressure = false;
-
-  WritableStreamFinishAbort(stream);
 }
 
 function WritableStreamHasOperationMarkedInFlight(stream) {
@@ -923,6 +921,7 @@ function WritableStreamDefaultControllerError(controller, e) {
   assert(stream._state === 'writable');
 
   WritableStreamError(stream, e);
+  WritableStreamRejectAbortRequestIfPending(stream);
 }
 
 // Helper functions for the WritableStream.
