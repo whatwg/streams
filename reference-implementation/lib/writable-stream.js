@@ -163,13 +163,22 @@ function WritableStreamAbort(stream, reason) {
   return promise;
 }
 
-function WritableStreamFinishAbort(stream) {
-  const error = new TypeError('Aborted');
-
+function WritableStreamError(stream, error) {
   stream._state = 'errored';
   stream._storedError = error;
 
-  WritableStreamRejectPromisesInReactionToError(stream);
+  // TODO: layering violation?
+  ResetQueue(stream._writableStreamController);
+
+  if (WritableStreamHasOperationMarkedInFlight(stream) === false) {
+    WritableStreamRejectPromisesInReactionToError(stream);
+  }
+}
+
+function WritableStreamFinishAbort(stream) {
+  const error = new TypeError('Aborted');
+
+  WritableStreamError(stream, error);
 }
 
 // WritableStream API exposed for controllers.
@@ -226,9 +235,6 @@ function WritableStreamFinishInFlightWriteWithError(stream, reason) {
 
   assert(state === 'writable');
 
-  stream._state = 'errored';
-  stream._storedError = reason;
-
   if (stream._pendingAbortRequest === undefined) {
     const writer = stream._writer;
     if (writer !== undefined) {
@@ -244,7 +250,7 @@ function WritableStreamFinishInFlightWriteWithError(stream, reason) {
     stream._pendingAbortRequest = undefined;
   }
 
-  WritableStreamRejectPromisesInReactionToError(stream);
+  WritableStreamError(stream, reason);
 }
 
 function WritableStreamFinishInFlightClose(stream) {
@@ -277,10 +283,7 @@ function WritableStreamFinishInFlightClose(stream) {
 
   const error = new TypeError('Requested to abort but has been closed');
 
-  stream._state = 'errored';
-  stream._storedError = error;
-
-  WritableStreamRejectClosedPromiseInReactionToError(stream);
+  WritableStreamError(stream, error);
 }
 
 function WritableStreamFinishInFlightCloseInErroredState(stream) {
@@ -302,9 +305,6 @@ function WritableStreamFinishInFlightCloseWithError(stream, reason) {
 
   assert(state === 'writable');
 
-  stream._state = 'errored';
-  stream._storedError = reason;
-
   if (stream._pendingAbortRequest === undefined) {
     const writer = stream._writer;
     if (writer !== undefined) {
@@ -316,7 +316,7 @@ function WritableStreamFinishInFlightCloseWithError(stream, reason) {
     stream._pendingAbortRequest = undefined;
   }
 
-  WritableStreamRejectClosedPromiseInReactionToError(stream);
+  WritableStreamError(stream, reason);
 }
 
 function WritableStreamCloseQueuedOrInFlight(stream) {
@@ -938,9 +938,6 @@ function WritableStreamDefaultControllerError(controller, e) {
 
   assert(stream._state === 'writable');
 
-  stream._state = 'errored';
-  stream._storedError = e;
-
   const writer = stream._writer;
   if (stream._pendingAbortRequest === undefined && writer !== undefined) {
     if (WritableStreamCloseQueuedOrInFlight(stream) === false && stream._backpressure === true) {
@@ -951,11 +948,7 @@ function WritableStreamDefaultControllerError(controller, e) {
     writer._readyPromise.catch(() => {});
   }
 
-  ResetQueue(controller);
-
-  if (WritableStreamHasOperationMarkedInFlight(stream) === false) {
-    WritableStreamRejectPromisesInReactionToError(stream);
-  }
+  WritableStreamError(stream, e);
 }
 
 // Helper functions for the WritableStream.
