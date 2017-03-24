@@ -164,6 +164,12 @@ function WritableStreamAbort(stream, reason) {
 }
 
 function WritableStreamError(stream, error) {
+  stream._state = 'errored';
+  stream._storedError = error;
+
+  // TODO: layering violation?
+  ResetQueue(stream._writableStreamController);
+
   if (stream._pendingAbortRequest === undefined) {
     const writer = stream._writer;
     if (writer !== undefined) {
@@ -178,12 +184,6 @@ function WritableStreamError(stream, error) {
     stream._pendingAbortRequest._reject(error);
     stream._pendingAbortRequest = undefined;
   }
-
-  stream._state = 'errored';
-  stream._storedError = error;
-
-  // TODO: layering violation?
-  ResetQueue(stream._writableStreamController);
 
   if (WritableStreamHasOperationMarkedInFlight(stream) === false) {
     WritableStreamRejectPromisesInReactionToError(stream);
