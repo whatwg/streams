@@ -308,7 +308,11 @@ function WritableStreamFinishInFlightCloseWithError(stream, reason) {
   if (stream._pendingAbortRequest === undefined) {
     const writer = stream._writer;
     if (writer !== undefined) {
-      defaultWriterReadyPromiseResetToRejected(writer, reason);
+      if (WritableStreamCloseQueuedOrInFlight(stream) === false && stream._backpressure === true) {
+        defaultWriterReadyPromiseReject(writer, reason);
+      } else {
+        defaultWriterReadyPromiseResetToRejected(writer, reason);
+      }
       writer._readyPromise.catch(() => {});
     }
   } else {
@@ -938,14 +942,16 @@ function WritableStreamDefaultControllerError(controller, e) {
 
   assert(stream._state === 'writable');
 
-  const writer = stream._writer;
-  if (stream._pendingAbortRequest === undefined && writer !== undefined) {
-    if (WritableStreamCloseQueuedOrInFlight(stream) === false && stream._backpressure === true) {
-      defaultWriterReadyPromiseReject(writer, e);
-    } else {
-      defaultWriterReadyPromiseResetToRejected(writer, e);
+  if (stream._pendingAbortRequest === undefined) {
+    const writer = stream._writer;
+    if (writer !== undefined) {
+      if (WritableStreamCloseQueuedOrInFlight(stream) === false && stream._backpressure === true) {
+        defaultWriterReadyPromiseReject(writer, e);
+      } else {
+        defaultWriterReadyPromiseResetToRejected(writer, e);
+      }
+      writer._readyPromise.catch(() => {});
     }
-    writer._readyPromise.catch(() => {});
   }
 
   WritableStreamError(stream, e);
