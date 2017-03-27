@@ -148,12 +148,7 @@ function WritableStreamAbort(stream, reason) {
 
   const writer = stream._writer;
   if (writer !== undefined) {
-    if (WritableStreamCloseQueuedOrInFlight(stream) === false && stream._backpressure === true) {
-      defaultWriterReadyPromiseReject(writer, error);
-    } else {
-      defaultWriterReadyPromiseResetToRejected(writer, error);
-    }
-    writer._readyPromise.catch(() => {});
+    WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error);
   }
 
   const promise = new Promise((resolve, reject) => {
@@ -176,12 +171,7 @@ function WritableStreamError(stream, error) {
   if (stream._pendingAbortRequest === undefined) {
     const writer = stream._writer;
     if (writer !== undefined) {
-      if (WritableStreamCloseQueuedOrInFlight(stream) === false && stream._backpressure === true) {
-        defaultWriterReadyPromiseReject(writer, error);
-      } else {
-        defaultWriterReadyPromiseResetToRejected(writer, error);
-      }
-      writer._readyPromise.catch(() => {});
+      WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error);
     }
   }
 
@@ -288,11 +278,14 @@ function WritableStreamFinishInFlightCloseInErroredState(stream) {
 
 function WritableStreamFinishInFlightCloseWithError(stream, reason) {
   assert(stream._inFlightCloseRequest !== undefined);
+  stream._inFlightCloseRequest._reject(reason);
+  stream._inFlightCloseRequest = undefined;
 
   const state = stream._state;
 
   if (state === 'errored') {
     WritableStreamFinishInFlightCloseInErroredState(stream);
+
     return;
   }
 
@@ -300,9 +293,6 @@ function WritableStreamFinishInFlightCloseWithError(stream, reason) {
 
   WritableStreamError(stream, reason);
   WritableStreamRejectAbortRequestIfPending(stream);
-
-  stream._inFlightCloseRequest._reject(reason);
-  stream._inFlightCloseRequest = undefined;
 }
 
 function WritableStreamCloseQueuedOrInFlight(stream) {
@@ -607,6 +597,15 @@ function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
   return WritableStreamDefaultWriterClose(writer);
 }
 
+function WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error) {
+  if (writer._readyPromiseStatus === 'pending') {
+    defaultWriterReadyPromiseReject(writer, error);
+  } else {
+    defaultWriterReadyPromiseResetToRejected(writer, error);
+  }
+  writer._readyPromise.catch(() => {});
+}
+
 function WritableStreamDefaultWriterGetDesiredSize(writer) {
   const stream = writer._ownerWritableStream;
   const state = stream._state;
@@ -631,13 +630,7 @@ function WritableStreamDefaultWriterRelease(writer) {
     'Writer was released and can no longer be used to monitor the stream\'s closedness');
   const state = stream._state;
 
-  if (state === 'writable' && WritableStreamCloseQueuedOrInFlight(stream) === false &&
-      stream._pendingAbortRequest === undefined && stream._backpressure === true) {
-    defaultWriterReadyPromiseReject(writer, releasedError);
-  } else {
-    defaultWriterReadyPromiseResetToRejected(writer, releasedError);
-  }
-  writer._readyPromise.catch(() => {});
+  WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, releasedError);
 
   if (state === 'writable' || WritableStreamHasOperationMarkedInFlight(stream) === true) {
     defaultWriterClosedPromiseReject(writer, releasedError);
@@ -998,18 +991,21 @@ function defaultWriterReadyPromiseInitialize(writer) {
     writer._readyPromise_resolve = resolve;
     writer._readyPromise_reject = reject;
   });
+  writer._readyPromiseStatus = 'pending';
 }
 
 function defaultWriterReadyPromiseInitializeAsRejected(writer, reason) {
   writer._readyPromise = Promise.reject(reason);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
+  writer._readyPromiseStatus = 'rejected';
 }
 
 function defaultWriterReadyPromiseInitializeAsResolved(writer) {
   writer._readyPromise = Promise.resolve(undefined);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
+  writer._readyPromiseStatus = 'fulfilled';
 }
 
 function defaultWriterReadyPromiseReject(writer, reason) {
@@ -1019,6 +1015,7 @@ function defaultWriterReadyPromiseReject(writer, reason) {
   writer._readyPromise_reject(reason);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
+  writer._readyPromiseStatus = 'rejected';
 }
 
 function defaultWriterReadyPromiseReset(writer) {
@@ -1029,6 +1026,7 @@ function defaultWriterReadyPromiseReset(writer) {
     writer._readyPromise_resolve = resolve;
     writer._readyPromise_reject = reject;
   });
+  writer._readyPromiseStatus = 'pending';
 }
 
 function defaultWriterReadyPromiseResetToRejected(writer, reason) {
@@ -1036,6 +1034,7 @@ function defaultWriterReadyPromiseResetToRejected(writer, reason) {
   assert(writer._readyPromise_reject === undefined);
 
   writer._readyPromise = Promise.reject(reason);
+  writer._readyPromiseStatus = 'rejected';
 }
 
 function defaultWriterReadyPromiseResolve(writer) {
@@ -1045,4 +1044,5 @@ function defaultWriterReadyPromiseResolve(writer) {
   writer._readyPromise_resolve(undefined);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
+  writer._readyPromiseStatus = 'fulfilled';
 }
