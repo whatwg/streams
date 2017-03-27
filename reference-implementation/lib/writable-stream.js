@@ -715,6 +715,16 @@ class WritableStreamDefaultController {
     WritableStreamDefaultControllerError(this, e);
   }
 
+  [AbortSteps](reason) {
+    ResetQueue(this);
+    const sinkAbortPromise = PromiseInvokeOrNoop(this._underlyingSink, 'abort', [reason]);
+    return sinkAbortPromise.then(() => undefined);
+  }
+
+  [ErrorSteps]() {
+    ResetQueue(this);
+  }
+
   [StartSteps]() {
     const startResult = InvokeOrNoop(this._underlyingSink, 'start', [this]);
     const stream = this._controlledWritableStream;
@@ -739,16 +749,6 @@ class WritableStreamDefaultController {
       }
     )
     .catch(rethrowAssertionErrorRejection);
-  }
-
-  [AbortSteps](reason) {
-    ResetQueue(this);
-    const sinkAbortPromise = PromiseInvokeOrNoop(this._underlyingSink, 'abort', [reason]);
-    return sinkAbortPromise.then(() => undefined);
-  }
-
-  [ErrorSteps]() {
-    ResetQueue(this);
   }
 }
 

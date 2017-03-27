@@ -3498,6 +3498,12 @@ used polymorphically.
      *undefined*.
 </emu-alg>
 
+<h5 id="ws-default-controller-private-error">\[[ErrorSteps]]()</h5>
+
+<emu-alg>
+  1. Perform ! ResetQueue(*this*).
+</emu-alg>
+
 <h5 id="ws-default-controller-private-start" oldids="writable-stream-default-controller-start">\[[StartSteps]]()</h5>
 
 <emu-alg>
