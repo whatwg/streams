@@ -226,9 +226,9 @@ function WritableStreamFinishInFlightWriteInErroredState(stream) {
   WritableStreamRejectPromisesInReactionToError(stream);
 }
 
-function WritableStreamFinishInFlightWriteWithError(stream, reason) {
+function WritableStreamFinishInFlightWriteWithError(stream, error) {
   assert(stream._inFlightWriteRequest !== undefined);
-  stream._inFlightWriteRequest._reject(reason);
+  stream._inFlightWriteRequest._reject(error);
   stream._inFlightWriteRequest = undefined;
 
   const state = stream._state;
@@ -240,7 +240,7 @@ function WritableStreamFinishInFlightWriteWithError(stream, reason) {
 
   assert(state === 'writable');
 
-  WritableStreamError(stream, reason);
+  WritableStreamError(stream, error);
   WritableStreamRejectAbortRequestIfPending(stream);
 }
 
@@ -276,22 +276,21 @@ function WritableStreamFinishInFlightCloseInErroredState(stream) {
   WritableStreamRejectClosedPromiseInReactionToError(stream);
 }
 
-function WritableStreamFinishInFlightCloseWithError(stream, reason) {
+function WritableStreamFinishInFlightCloseWithError(stream, error) {
   assert(stream._inFlightCloseRequest !== undefined);
-  stream._inFlightCloseRequest._reject(reason);
+  stream._inFlightCloseRequest._reject(error);
   stream._inFlightCloseRequest = undefined;
 
   const state = stream._state;
 
   if (state === 'errored') {
     WritableStreamFinishInFlightCloseInErroredState(stream);
-
     return;
   }
 
   assert(state === 'writable');
 
-  WritableStreamError(stream, reason);
+  WritableStreamError(stream, error);
   WritableStreamRejectAbortRequestIfPending(stream);
 }
 
@@ -598,7 +597,7 @@ function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
 }
 
 function WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error) {
-  if (writer._readyPromiseStatus === 'pending') {
+  if (writer._readyPromiseState === 'pending') {
     defaultWriterReadyPromiseReject(writer, error);
   } else {
     defaultWriterReadyPromiseResetToRejected(writer, error);
@@ -840,9 +839,9 @@ function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
   }
 }
 
-function WritableStreamDefaultControllerErrorIfNeeded(controller, e) {
+function WritableStreamDefaultControllerErrorIfNeeded(controller, error) {
   if (controller._controlledWritableStream._state === 'writable') {
-    WritableStreamDefaultControllerError(controller, e);
+    WritableStreamDefaultControllerError(controller, error);
   }
 }
 
@@ -916,12 +915,12 @@ function WritableStreamDefaultControllerGetBackpressure(controller) {
 
 // A client of WritableStreamDefaultController may use these functions directly to bypass state check.
 
-function WritableStreamDefaultControllerError(controller, e) {
+function WritableStreamDefaultControllerError(controller, error) {
   const stream = controller._controlledWritableStream;
 
   assert(stream._state === 'writable');
 
-  WritableStreamError(stream, e);
+  WritableStreamError(stream, error);
   WritableStreamRejectAbortRequestIfPending(stream);
 }
 
@@ -991,21 +990,21 @@ function defaultWriterReadyPromiseInitialize(writer) {
     writer._readyPromise_resolve = resolve;
     writer._readyPromise_reject = reject;
   });
-  writer._readyPromiseStatus = 'pending';
+  writer._readyPromiseState = 'pending';
 }
 
 function defaultWriterReadyPromiseInitializeAsRejected(writer, reason) {
   writer._readyPromise = Promise.reject(reason);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
-  writer._readyPromiseStatus = 'rejected';
+  writer._readyPromiseState = 'rejected';
 }
 
 function defaultWriterReadyPromiseInitializeAsResolved(writer) {
   writer._readyPromise = Promise.resolve(undefined);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
-  writer._readyPromiseStatus = 'fulfilled';
+  writer._readyPromiseState = 'fulfilled';
 }
 
 function defaultWriterReadyPromiseReject(writer, reason) {
@@ -1015,7 +1014,7 @@ function defaultWriterReadyPromiseReject(writer, reason) {
   writer._readyPromise_reject(reason);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
-  writer._readyPromiseStatus = 'rejected';
+  writer._readyPromiseState = 'rejected';
 }
 
 function defaultWriterReadyPromiseReset(writer) {
@@ -1026,7 +1025,7 @@ function defaultWriterReadyPromiseReset(writer) {
     writer._readyPromise_resolve = resolve;
     writer._readyPromise_reject = reject;
   });
-  writer._readyPromiseStatus = 'pending';
+  writer._readyPromiseState = 'pending';
 }
 
 function defaultWriterReadyPromiseResetToRejected(writer, reason) {
@@ -1034,7 +1033,7 @@ function defaultWriterReadyPromiseResetToRejected(writer, reason) {
   assert(writer._readyPromise_reject === undefined);
 
   writer._readyPromise = Promise.reject(reason);
-  writer._readyPromiseStatus = 'rejected';
+  writer._readyPromiseState = 'rejected';
 }
 
 function defaultWriterReadyPromiseResolve(writer) {
@@ -1044,5 +1043,5 @@ function defaultWriterReadyPromiseResolve(writer) {
   writer._readyPromise_resolve(undefined);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
-  writer._readyPromiseStatus = 'fulfilled';
+  writer._readyPromiseState = 'fulfilled';
 }
