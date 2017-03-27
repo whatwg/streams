@@ -288,8 +288,6 @@ function WritableStreamFinishInFlightCloseInErroredState(stream) {
 
 function WritableStreamFinishInFlightCloseWithError(stream, reason) {
   assert(stream._inFlightCloseRequest !== undefined);
-  stream._inFlightCloseRequest._reject(reason);
-  stream._inFlightCloseRequest = undefined;
 
   const state = stream._state;
 
@@ -302,6 +300,9 @@ function WritableStreamFinishInFlightCloseWithError(stream, reason) {
 
   WritableStreamError(stream, reason);
   WritableStreamRejectAbortRequestIfPending(stream);
+
+  stream._inFlightCloseRequest._reject(reason);
+  stream._inFlightCloseRequest = undefined;
 }
 
 function WritableStreamCloseQueuedOrInFlight(stream) {
