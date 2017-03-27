@@ -716,7 +716,6 @@ class WritableStreamDefaultController {
   }
 
   [AbortSteps](reason) {
-    ResetQueue(this);
     const sinkAbortPromise = PromiseInvokeOrNoop(this._underlyingSink, 'abort', [reason]);
     return sinkAbortPromise.then(() => undefined);
   }

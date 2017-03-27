@@ -3492,7 +3492,6 @@ used polymorphically.
 <h5 id="ws-default-controller-private-abort" oldids="writable-stream-default-controller-abort">\[[AbortSteps]]()</h5>
 
 <emu-alg>
-  1. Perform ! ResetQueue(*this*).
   1. Let _sinkAbortPromise_ be ! PromiseInvokeOrNoop(*this*.[[underlyingSink]], `"abort"`, « _reason_ »).
   1. Return the result of <a>transforming</a> _sinkAbortPromise_ with a fulfillment handler that returns
      *undefined*.
