@@ -921,7 +921,6 @@ function WritableStreamDefaultControllerError(controller, error) {
   assert(stream._state === 'writable');
 
   WritableStreamError(stream, error);
-  WritableStreamRejectAbortRequestIfPending(stream);
 }
 
 // Helper functions for the WritableStream.

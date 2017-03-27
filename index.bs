@@ -3652,7 +3652,6 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>error
   1. Let _stream_ be _controller_.[[controlledWritableStream]].
   1. Assert: _stream_.[[state]] is `"writable"`.
   1. Perform ! WritableStreamError(_stream_, _error_).
-  1. Perform ! WritableStreamRejectAbortRequestIfPending(_stream_).
 </emu-alg>
 
 <h2 id="ts">Transform Streams</h2>
