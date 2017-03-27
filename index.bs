@@ -2709,7 +2709,7 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
      potential types in the future, without backward-compatibility concerns.</p>
   1. Set *this*.[[writableStreamController]] to ? Construct(`<a idl>WritableStreamDefaultController</a>`, « *this*,
      _underlyingSink_, _size_, _highWaterMark_ »).
-  1. Perform ? WritableStreamDefaultControllerStart(*this*.[[writableStreamController]]).
+  1. Perform ? *this*.[[writableStreamController]].[[StartSteps]]().
 </emu-alg>
 
 <h4 id="ws-prototype">Properties of the {{WritableStream}} Prototype</h4>
@@ -2800,18 +2800,30 @@ writable stream is <a>locked to a writer</a>.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*, return <a>a promise rejected with</a> _error_.
   1. Let _controller_ be _stream_.[[writableStreamController]].
   1. Assert: _controller_ is not *undefined*.
-  1. Let _writer_ be _stream_.[[writer]].
-  1. If _writer_ is not *undefined*,
-    1. If ! WritableStreamCloseQueuedOrInFlight(_stream_) is *false* and _stream_.[[backpressure]] is *true*,
-       <a>reject</a> _writer_.[[readyPromise]] with _error_.
-    1. Otherwise, set _writer_.[[readyPromise]] to <a>a promise rejected with</a> _error_.
-    1. Set _writer_.[[readyPromise]].[[PromiseIsHandled]] to *true*.
   1. If ! WritableStreamHasOperationMarkedInFlight(_stream_) is *false* and _controller_.[[started]] is *true*,
     1. Perform ! WritableStreamFinishAbort(_stream_).
-    1. Return ! WritableStreamDefaultControllerAbort(_controller_, _reason_).
+    1. Return ! _controller_.[[AbortSteps]](_reason_).
+  1. Let _writer_ be _stream_.[[writer]].
+  1. If _writer_ is not *undefined*,
+    1. Perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejected(_writer_, _error_).
   1. Let _promise_ be <a>a new promise</a>.
   1. Set _stream_.[[pendingAbortRequest]] to Record {[[promise]]: _promise_, [[reason]]: _reason_}.
   1. Return _promise_.
+</emu-alg>
+
+<h4 id="writable-stream-error" aoid="WritableStreamError" nothrow>WritableStreamError ( <var>stream</var>,
+<var>error</var> )</h4>
+
+<emu-alg>
+  1. Set _stream_.[[state]] to `"errored"`.
+  1. Set _stream_.[[storedError]] to _error_.
+  1. Perform ! _stream_.[[writableStreamController]].[[ErrorSteps]]().
+  1. If _stream_.[[pendingAbortRequest]] is *undefined*,
+    1. Let _writer_ be _stream_.[[writer]].
+    1. If _writer_ is not *undefined*,
+      1. Perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejected(_writer_, _error_).
+  1. If ! WritableStreamHasOperationMarkedInFlight(_stream_) is *false*, perform !
+     WritableStreamRejectPromisesInReactionToError(_stream_).
 </emu-alg>
 
 <h4 id="writable-stream-finish-abort" aoid="WritableStreamFinishAbort" nothrow>WritableStreamFinishAbort (
@@ -2819,8 +2831,6 @@ writable stream is <a>locked to a writer</a>.
 
 <emu-alg>
   1. Let _error_ be a new *TypeError* indicating that the stream has been aborted.
-  1. Set _stream_.[[state]] to `"errored"`.
-  1. Set _stream_.[[storedError]] to _error_.
   1. Perform ! WritableStreamRejectPromisesInReactionToError(_stream_).
 </emu-alg>
 
@@ -2871,30 +2881,19 @@ nothrow>WritableStreamFinishInFlightWriteInErroredState ( <var>stream</var> )</h
 </emu-alg>
 
 <h4 id="writable-stream-finish-in-flight-write-with-error" aoid="WritableStreamFinishInFlightWriteWithError"
-nothrow>WritableStreamFinishInFlightWriteWithError ( <var>stream</var>, <var>reason</var> )</h4>
+nothrow>WritableStreamFinishInFlightWriteWithError ( <var>stream</var>, <var>error</var> )</h4>
 
 <emu-alg>
   1. Assert: _stream_.[[inFlightWriteRequest]] is not *undefined*.
-  1. <a>Reject</a> _stream_.[[inFlightWriteRequest]] with _reason_.
+  1. <a>Reject</a> _stream_.[[inFlightWriteRequest]] with _error_.
   1. Set _stream_.[[inFlightWriteRequest]] to *undefined*.
   1. Let _state_ be _stream_.[[state]].
   1. If _state_ is `"errored"`,
     1. Perform ! WritableStreamFinishInFlightWriteInErroredState(_stream_).
     1. Return.
   1. Assert: _state_ is `"writable"`.
-  1. Set _stream_.[[state]] to `"errored"`.
-  1. Set _stream_.[[storedError]] to _reason_.
-  1. If _stream_.[[pendingAbortRequest]] is *undefined*,
-    1. Let _writer_ be _stream_.[[writer]].
-    1. If _writer_ is not *undefined*,
-      1. If ! WritableStreamCloseQueuedOrInFlight(_stream_) is *false* and _stream_.[[backpressure]] is *true*,
-         <a>reject</a> _writer_.[[readyPromise]] with _reason_.
-      1. Otherwise, set _writer_.[[readyPromise]] to <a>a promise rejected with</a> _reason_.
-      1. Set _writer_.[[readyPromise]].[[PromiseIsHandled]] to *true*.
-  1. Otherwise,
-    1. <a>Reject</a> _stream_.[[pendingAbortRequest]] with _reason_.
-    1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
-  1. Perform ! WritableStreamRejectPromisesInReactionToError(_stream_).
+  1. Perform ! WritableStreamError(_stream_, _error_).
+  1. Perform ! WritableStreamRejectAbortRequestIfPending(_stream_).
 </emu-alg>
 
 <h4 id="writable-stream-finish-in-flight-close" aoid="WritableStreamFinishInFlightClose"
@@ -2909,17 +2908,12 @@ nothrow>WritableStreamFinishInFlightClose ( <var>stream</var> )</h4>
     1. Perform ! WritableStreamFinishInFlightCloseInErroredState(_stream_).
     1. Return.
   1. Assert: _state_ is `"writable"`.
-  1. If _stream_.[[pendingAbortRequest]] is *undefined*,
-    1. Set _stream_.[[state]] to `"closed"`.
-    1. Let _writer_ be _stream_.[[writer]].
-    1. If _writer_ is not *undefined*, <a>resolve</a> _writer_.[[closedPromise]] with *undefined*.
-    1. Return.
-  1. <a>Resolve</a> _stream_.[[pendingAbortRequest]] with *undefined*.
-  1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
-  1. Let _error_ be a new *TypeError* indicating that the stream was requested to abort but has been closed.
-  1. Set _stream_.[[state]] to `"errored"`.
-  1. Set _stream_.[[storedError]] to _error_.
-  1. Perform ! WritableStreamRejectClosedPromiseInReactionToError(_stream_).
+  1. Set _stream_.[[state]] to `"closed"`.
+  1. Let _writer_ be _stream_.[[writer]].
+  1. If _writer_ is not *undefined*, <a>resolve</a> _writer_.[[closedPromise]] with *undefined*.
+  1. If _stream_.[[pendingAbortRequest]] is not *undefined*,
+    1. <a>Resolve</a> _stream_.[[pendingAbortRequest]] with *undefined*.
+    1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
 </emu-alg>
 
 <h4 id="writable-stream-finish-in-flight-close-in-errored-state" aoid="WritableStreamFinishInFlightCloseInErroredState"
@@ -2931,28 +2925,19 @@ nothrow>WritableStreamFinishInFlightCloseInErroredState ( <var>stream</var> )</h
 </emu-alg>
 
 <h4 id="writable-stream-finish-in-flight-close-with-error" aoid="WritableStreamFinishInFlightCloseWithError"
-nothrow>WritableStreamFinishInFlightCloseWithError ( <var>stream</var>, <var>reason</var> )</h4>
+nothrow>WritableStreamFinishInFlightCloseWithError ( <var>stream</var>, <var>error</var> )</h4>
 
 <emu-alg>
   1. Assert: _stream_.[[inFlightCloseRequest]] is not *undefined*.
-  1. <a>Reject</a> _stream_.[[inFlightCloseRequest]] with _reason_.
+  1. <a>Reject</a> _stream_.[[inFlightCloseRequest]] with _error_.
   1. Set _stream_.[[inFlightCloseRequest]] to *undefined*.
   1. Let _state_ be _stream_.[[state]].
   1. If _state_ is `"errored"`,
     1. Perform ! WritableStreamFinishInFlightCloseInErroredState(_stream_).
     1. Return.
   1. Assert: _state_ is `"writable"`.
-  1. Set _stream_.[[state]] to `"errored"`.
-  1. Set _stream_.[[storedError]] to _reason_.
-  1. If _stream_.[[pendingAbortRequest]] is *undefined*,
-    1. Let _writer_ be _stream_.[[writer]].
-    1. If _writer_ is not *undefined*,
-      1. Set _writer_.[[readyPromise]] to <a>a promise rejected with</a> _reason_.
-      1. Set _writer_.[[readyPromise]].[[PromiseIsHandled]] to *true*.
-  1. Otherwise,
-    1. <a>Reject</a>  _stream_.[[pendingAbortRequest]] with _reason_.
-    1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
-  1. Perform ! WritableStreamRejectClosedPromiseInReactionToError(_stream_).
+  1. Perform ! WritableStreamError(_stream_, _error_).
+  1. Perform ! WritableStreamRejectAbortRequestIfPending(_stream_).
 </emu-alg>
 
 <h4 id="writable-stream-close-queued-or-in-flight" aoid="WritableStreamCloseQueuedOrInFlight" nothrow>
@@ -2971,8 +2956,7 @@ nothrow>WritableStreamHandleAbortRequestIfPending ( <var>stream</var> )</h4>
   1. Perform ! WritableStreamFinishAbort(_stream_).
   1. Let _abortRequest_ be _stream_.[[pendingAbortRequest]].
   1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
-  1. Let _promise_ be ! WritableStreamDefaultControllerAbort(_stream_.[[writableStreamController]],
-     _abortRequest_.[[reason]]).
+  1. Let _promise_ be ! _stream_.[[writableStreamController]].[[AbortSteps]](_abortRequest_.[[reason]]).
   1. <a>Upon fulfillment</a> of _promise_ with value _result_, <a>resolve</a> _abortRequest_.[[promise]] with _result_.
   1. <a>Upon rejection</a> of _promise_ with reason _reason_, <a>reject</a> _abortRequest_.[[promise]] with _reason_.
 </emu-alg>
@@ -3325,6 +3309,16 @@ nothrow>WritableStreamDefaultWriterCloseWithErrorPropagation ( <var>writer</var>
   1. Return ! WritableStreamDefaultWriterClose(_writer_).
 </emu-alg>
 
+<h4 id="writable-stream-default-writer-ensure-ready-promise-rejected"
+aoid="WritableStreamDefaultWriterEnsureReadyPromiseRejected"
+nothrow>WritableStreamDefaultWriterEnsureReadyPromiseRejected( <var>writer</var>, <var>error</var> )</h4>
+
+<emu-alg>
+  1. If _writer_.[[readyPromise]].[[PromiseState]] is `"pending"`, <a>reject</a> _writer.[[readyPromise]] with _error_.
+  1. Otherwise, set _writer_.[[readyPromise]] to <a>a promise rejected with</a> _error_.
+  1. Set _writer_.[[readyPromise]].[[PromiseIsHandled]] to *true*.
+</emu-alg>
+
 <h4 id="writable-stream-default-writer-get-desired-size" aoid="WritableStreamDefaultWriterGetDesiredSize"
 nothrow>WritableStreamDefaultWriterGetDesiredSize ( <var>writer</var> )</h4>
 
@@ -3345,11 +3339,7 @@ nothrow>WritableStreamDefaultWriterRelease ( <var>writer</var> )</h4>
   1. Assert: _stream_.[[writer]] is _writer_.
   1. Let _releasedError_ be a new *TypeError*.
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"writable"` and ! WritableStreamCloseQueuedOrInFlight(_stream_) is *false* and
-     _stream_.[[pendingAbortRequest]] is *undefined* and _stream_.[[backpressure]] is *true*, <a>reject</a>
-     _writer_.[[readyPromise]] with _releasedError_.
-  1. Otherwise, set _writer_.[[readyPromise]] to <a>a promise rejected with</a> _releasedError_.
-  1. Set _writer_.[[readyPromise]].[[PromiseIsHandled]] to *true*.
+  1. Perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejected(_writer_, _releasedError_).
   1. If _state_ is `"writable"` or ! WritableStreamHasOperationMarkedInFlight(_stream_) is *true*,
      <a>reject</a> _writer_.[[closedPromise]] with _releasedError_.
   1. Otherwise, set _writer_.[[closedPromise]] to <a>a promise rejected with</a> _releasedError_.
@@ -3488,6 +3478,48 @@ WritableStreamDefaultController(<var>stream</var>, <var>underlyingSink</var>, <v
   1. Perform ! WritableStreamDefaultControllerError(*this*, _e_).
 </emu-alg>
 
+<h4 id="ws-default-controller-internal-methods">Writable Stream Default Controller Internal Methods</h4>
+
+The following are additional internal methods implemented by each {{WritableStreamDefaultController}} instance. The
+writable stream implementation will call into these.
+
+<p class="note">The reason these are in method form, instead of as abstract operations, is to make it clear that the
+writable stream implementation is decoupled from the controller implementation, and could in the future be expanded with
+other controllers, as long as those controllers implemented such internal methods. A similar scenario is seen for
+readable streams, where there actually are multiple controller types and as such the counterpart internal methods are
+used polymorphically.
+
+<h5 id="ws-default-controller-private-abort" oldids="writable-stream-default-controller-abort">\[[AbortSteps]]()</h5>
+
+<emu-alg>
+  1. Let _sinkAbortPromise_ be ! PromiseInvokeOrNoop(*this*.[[underlyingSink]], `"abort"`, « _reason_ »).
+  1. Return the result of <a>transforming</a> _sinkAbortPromise_ with a fulfillment handler that returns
+     *undefined*.
+</emu-alg>
+
+<h5 id="ws-default-controller-private-error">\[[ErrorSteps]]()</h5>
+
+<emu-alg>
+  1. Perform ! ResetQueue(*this*).
+</emu-alg>
+
+<h5 id="ws-default-controller-private-start" oldids="writable-stream-default-controller-start">\[[StartSteps]]()</h5>
+
+<emu-alg>
+  1. Let _startResult_ be ? InvokeOrNoop(*this*.[[underlyingSink]], `"start"`, « *this* »).
+  1. Let _stream_ be *this*.[[controlledWritableStream]].
+  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
+    1. <a>Upon fulfillment</a>  of _startPromise_,
+      1. Set *this*.[[started]] to *true*.
+      1. If _stream_.[[state]] is `"errored"`, perform ! WritableStreamRejectAbortRequestIfPending(_stream_).
+      1. Otherwise, perform ! WritableStreamHandleAbortRequestIfPending(_stream_).
+      1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(*this*).
+    1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
+      1. Assert: _stream_.[[state]] is `"writable"` or `"errored"`.
+      1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(*this*, _r_).
+      1. Perform ! WritableStreamRejectAbortRequestIfPending(_stream_).
+</emu-alg>
+
 <h3 id="ws-default-controller-abstract-ops">Writable Stream Default Controller Abstract Operations</h3>
 
 <h4 id="is-writable-stream-default-controller" aoid="IsWritableStreamDefaultController"
@@ -3497,17 +3529,6 @@ nothrow>IsWritableStreamDefaultController ( <var>x</var> )</h4>
   1. If Type(_x_) is not Object, return *false*.
   1. If _x_ does not have an [[underlyingSink]] internal slot, return *false*.
   1. Return *true*.
-</emu-alg>
-
-<h4 id="writable-stream-default-controller-abort" aoid="WritableStreamDefaultControllerAbort"
-nothrow>WritableStreamDefaultControllerAbort ( <var>controller</var>, <var>reason</var> )</h4>
-
-<emu-alg>
-  1. Perform ! ResetQueue(_controller_).
-  1. Let _sinkAbortPromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"abort"`, «
-    _reason_ »).
-  1. Return the result of <a>transforming</a> _sinkAbortPromise_ with a fulfillment handler that returns
-     *undefined*.
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-close" aoid="WritableStreamDefaultControllerClose"
@@ -3554,24 +3575,6 @@ nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk
   1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
 </emu-alg>
 
-<h4 id="writable-stream-default-controller-start" aoid="WritableStreamDefaultControllerStart" throws>
-WritableStreamDefaultControllerStart ( <var>controller</var> )</h4>
-
-<emu-alg>
-  1. Let _startResult_ be ? InvokeOrNoop(_controller_.[[underlyingSink]], `"start"`, « _controller_ »).
-  1. Let _stream_ be _controller_.[[controlledWritableStream]].
-  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
-    1. <a>Upon fulfillment</a>  of _startPromise_,
-      1. Set _controller_.[[started]] to *true*.
-      1. If _stream_.[[state]] is `"errored"`, perform ! WritableStreamRejectAbortRequestIfPending(_stream_).
-      1. Otherwise, perform ! WritableStreamHandleAbortRequestIfPending(_stream_).
-      1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
-    1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
-      1. Assert: _stream_.[[state]] is `"writable"` or `"errored"`.
-      1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
-      1. Perform ! WritableStreamRejectAbortRequestIfPending(_stream_).
-</emu-alg>
-
 <h4 id="writable-stream-default-controller-advance-queue-if-needed"
 aoid="WritableStreamDefaultControllerAdvanceQueueIfNeeded" nothrow>WritableStreamDefaultControllerAdvanceQueueIfNeeded (
 <var>controller</var> )</h4>
@@ -3589,11 +3592,11 @@ aoid="WritableStreamDefaultControllerAdvanceQueueIfNeeded" nothrow>WritableStrea
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-error-if-needed" aoid="WritableStreamDefaultControllerErrorIfNeeded"
-nothrow>WritableStreamDefaultControllerErrorIfNeeded ( <var>controller</var>, <var>e</var> )</h4>
+nothrow>WritableStreamDefaultControllerErrorIfNeeded ( <var>controller</var>, <var>error</var> )</h4>
 
 <emu-alg>
   1. If _controller_.[[controlledWritableStream]].[[state]] is `"writable"`, perform !
-     WritableStreamDefaultControllerError(_controller_, _e_).
+     WritableStreamDefaultControllerError(_controller_, _error_).
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-process-close" aoid="WritableStreamDefaultControllerProcessClose"
@@ -3646,22 +3649,12 @@ nothrow>WritableStreamDefaultControllerGetBackpressure ( <var>controller</var> )
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-error" aoid="WritableStreamDefaultControllerError"
-nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>e</var> )</h4>
+nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>error</var> )</h4>
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledWritableStream]].
   1. Assert: _stream_.[[state]] is `"writable"`.
-  1. Set _stream_.[[state]] to `"errored"`.
-  1. Set _stream_.[[storedError]] to _e_.
-  1. Let _writer_ be _stream_.[[writer]].
-  1. If _stream_.[[pendingAbortRequest]] is *undefined* and _writer_ is not *undefined*,
-    1. If ! WritableStreamCloseQueuedOrInFlight(_stream_) is *false* and _stream_.[[backpressure]] is *true*,
-       <a>reject</a> _writer_.[[readyPromise]] with _e_.
-    1. Otherwise, set _writer_.[[readypromise]] to <a>a promise rejected with</a> _e_.
-    1. Set _writer_.[[readyPromise]].[[PromiseIsHandled]] to *true*.
-  1. Perform ! ResetQueue(_controller_).
-  1. If ! WritableStreamHasOperationMarkedInFlight(_stream_) is *false*,
-     perform ! WritableStreamRejectPromisesInReactionToError(_stream_).
+  1. Perform ! WritableStreamError(_stream_, _error_).
 </emu-alg>
 
 <h2 id="ts">Transform Streams</h2>
