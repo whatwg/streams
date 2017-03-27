@@ -3153,8 +3153,9 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   fill the stream's internal queue</a>. It can be negative, if the queue is over-full. A <a>producer</a> should use this
   information to determine the right amount of data to write.
 
-  It will be <emu-val>null</emu-val> if the stream is errored, or zero if the stream is closed. The getter will throw an
-  exception if invoked when the writer's lock is <a lt="release a write lock">released</a>.
+  It will be <emu-val>null</emu-val> if the stream cannot be successfully written to (due to either being errored, or
+  having an abort queued up). It will return zero if the stream is closed. The getter will throw an exception if invoked
+  when the writer's lock is <a lt="release a write lock">released</a>.
 </div>
 
 <emu-alg>
@@ -3172,8 +3173,8 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   queue">desired size to fill the stream's internal queue</a> dips back to zero or below, the getter will return a new
   promise that stays pending until the next transition.
 
-  If the stream becomes errored, or the writer's lock is <a lt="release a write lock">released</a>, is the returned
-  promise will become rejected.
+  If the stream becomes errored or aborted, or the writer's lock is <a lt="release a write lock">released</a>, the
+  returned promise will become rejected.
 </div>
 
 <emu-alg>
