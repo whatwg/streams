@@ -944,7 +944,7 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
   1. If _stream_.[[state]] is `"closed"`, return <a>a promise resolved with</a> *undefined*.
   1. If _stream_.[[state]] is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Perform ! ReadableStreamClose(_stream_).
-  1. Let _sourceCancelPromise_ be ! _stream_.[[readableStreamController]].[[Cancel]](_reason_).
+  1. Let _sourceCancelPromise_ be ! _stream_.[[readableStreamController]].[[CancelSteps]](_reason_).
   1. Return the result of <a>transforming</a> _sourceCancelPromise_ with a fulfillment handler that returns *undefined*.
 </emu-alg>
 
@@ -1407,7 +1407,7 @@ export>ReadableStreamDefaultReaderRead ( <var>reader</var> )</h4>
      *true*).
   1. If _stream_.[[state]] is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Assert: _stream_.[[state]] is `"readable"`.
-  1. Return ! _stream_.[[readableStreamController]].[[Pull]]().
+  1. Return ! _stream_.[[readableStreamController]].[[PullSteps]]().
 </emu-alg>
 
 <h3 id="rs-default-controller-class" interface lt="ReadableStreamDefaultController">Class
@@ -1587,18 +1587,17 @@ desiredSize</h5>
 
 <h4 id="rs-default-controller-internal-methods">Readable Stream Default Controller Internal Methods</h4>
 
-The following are additional internal methods implemented by each {{ReadableStreamDefaultController}} instance.
-They are similar to the supporting abstract operations in the following section, but are in method form to allow
-polymorphic dispatch from the readable stream implementation to either these or their counterparts for BYOB controllers.
+The following are additional internal methods implemented by each {{ReadableStreamDefaultController}} instance. The
+readable stream implementation will polymorphically call to either these or their counterparts for BYOB controllers.
 
-<h5 id="rs-default-controller-private-cancel">\[[Cancel]](<var>reason</var>)</h5>
+<h5 id="rs-default-controller-private-cancel">\[[CancelSteps]](<var>reason</var>)</h5>
 
 <emu-alg>
   1. Perform ! ResetQueue(*this*).
   1. Return ! PromiseInvokeOrNoop(*this*.[[underlyingSource]], `"cancel"`, « _reason_ »)
 </emu-alg>
 
-<h5 id="rs-default-controller-private-pull">\[[Pull]]()</h5>
+<h5 id="rs-default-controller-private-pull">\[[PullSteps]]()</h5>
 
 <emu-alg>
   1. Let _stream_ be *this*.[[controlledReadableStream]].
@@ -1966,11 +1965,10 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
 
 <h4 id="rbs-controller-internal-methods">Readable Stream BYOB Controller Internal Methods</h4>
 
-The following are additional internal methods implemented by each {{ReadableByteStreamController}} instance. They are
-similar to the supporting abstract operations in the following section, but are in method form to allow polymorphic
-dispatch from the readable stream implementation to either these or their counterparts for default controllers.
+The following are additional internal methods implemented by each {{ReadableByteStreamController}} instance. The
+readable stream implementation will polymorphically call to either these or their counterparts for default controllers.
 
-<h5 id="rbs-controller-private-cancel">\[[Cancel]](<var>reason</var>)</h5>
+<h5 id="rbs-controller-private-cancel">\[[CancelSteps]](<var>reason</var>)</h5>
 
 <emu-alg>
   1. If *this*.[[pendingPullIntos]] is not empty,
@@ -1980,7 +1978,7 @@ dispatch from the readable stream implementation to either these or their counte
   1. Return ! PromiseInvokeOrNoop(*this*.[[underlyingByteSource]], `"cancel"`, « _reason_ »)
 </emu-alg>
 
-<h5 id="rbs-controller-private-pull">\[[Pull]]()</h5>
+<h5 id="rbs-controller-private-pull">\[[PullSteps]]()</h5>
 
 <emu-alg>
   1. Let _stream_ be *this*.[[controlledReadableStream]].

@@ -11,8 +11,8 @@ const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLo
         WritableStreamDefaultWriterRelease, WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight } =
       require('./writable-stream.js');
 
-const InternalCancel = Symbol('[[Cancel]]');
-const InternalPull = Symbol('[[Pull]]');
+const CancelSteps = Symbol('[[CancelSteps]]');
+const PullSteps = Symbol('[[PullSteps]]');
 
 class ReadableStream {
   constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
@@ -483,7 +483,7 @@ function ReadableStreamCancel(stream, reason) {
 
   ReadableStreamClose(stream);
 
-  const sourceCancelPromise = stream._readableStreamController[InternalCancel](reason);
+  const sourceCancelPromise = stream._readableStreamController[CancelSteps](reason);
   return sourceCancelPromise.then(() => undefined);
 }
 
@@ -840,7 +840,7 @@ function ReadableStreamDefaultReaderRead(reader) {
 
   assert(stream._state === 'readable');
 
-  return stream._readableStreamController[InternalPull]();
+  return stream._readableStreamController[PullSteps]();
 }
 
 // Controllers
@@ -948,12 +948,12 @@ class ReadableStreamDefaultController {
     ReadableStreamDefaultControllerError(this, e);
   }
 
-  [InternalCancel](reason) {
+  [CancelSteps](reason) {
     ResetQueue(this);
     return PromiseInvokeOrNoop(this._underlyingSource, 'cancel', [reason]);
   }
 
-  [InternalPull]() {
+  [PullSteps]() {
     const stream = this._controlledReadableStream;
 
     if (this._queue.length > 0) {
@@ -1306,7 +1306,7 @@ class ReadableByteStreamController {
     ReadableByteStreamControllerError(this, e);
   }
 
-  [InternalCancel](reason) {
+  [CancelSteps](reason) {
     if (this._pendingPullIntos.length > 0) {
       const firstDescriptor = this._pendingPullIntos[0];
       firstDescriptor.bytesFilled = 0;
@@ -1317,7 +1317,7 @@ class ReadableByteStreamController {
     return PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
   }
 
-  [InternalPull]() {
+  [PullSteps]() {
     const stream = this._controlledReadableStream;
     assert(ReadableStreamHasDefaultReader(stream) === true);
 
