@@ -5,9 +5,9 @@ const { InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeQueuingStrategy, 
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 
-const StartSteps = Symbol('[[Start]]');
-const AbortSteps = Symbol('[[Abort]]');
-const ErrorSteps = Symbol('[[Error]]');
+const StartSteps = Symbol('[[StartSteps]]');
+const AbortSteps = Symbol('[[AbortSteps]]');
+const ErrorSteps = Symbol('[[ErrorSteps]]');
 
 class WritableStream {
   constructor(underlyingSink = {}, { size, highWaterMark = 1 } = {}) {

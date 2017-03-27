@@ -3515,8 +3515,6 @@ used polymorphically.
       1. Perform ! WritableStreamRejectAbortRequestIfPending(_stream_).
 </emu-alg>
 
-
-
 <h3 id="ws-default-controller-abstract-ops">Writable Stream Default Controller Abstract Operations</h3>
 
 <h4 id="is-writable-stream-default-controller" aoid="IsWritableStreamDefaultController"
