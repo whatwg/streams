@@ -5,6 +5,10 @@ const { InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeQueuingStrategy, 
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 
+const StartSteps = Symbol('[[Start]]');
+const AbortSteps = Symbol('[[Abort]]');
+const ErrorSteps = Symbol('[[Error]]');
+
 class WritableStream {
   constructor(underlyingSink = {}, { size, highWaterMark = 1 } = {}) {
     this._state = 'writable';
@@ -45,7 +49,7 @@ class WritableStream {
     }
 
     this._writableStreamController = new WritableStreamDefaultController(this, underlyingSink, size, highWaterMark);
-    WritableStreamDefaultControllerStart(this._writableStreamController);
+    this._writableStreamController[StartSteps]();
   }
 
   get locked() {
@@ -139,7 +143,7 @@ function WritableStreamAbort(stream, reason) {
 
   if (WritableStreamHasOperationMarkedInFlight(stream) === false && controller._started === true) {
     WritableStreamFinishAbort(stream);
-    return WritableStreamDefaultControllerAbort(controller, reason);
+    return controller[AbortSteps](reason);
   }
 
   const writer = stream._writer;
@@ -167,8 +171,7 @@ function WritableStreamError(stream, error) {
   stream._state = 'errored';
   stream._storedError = error;
 
-  // TODO: layering violation?
-  ResetQueue(stream._writableStreamController);
+  stream._writableStreamController[ErrorSteps]();
 
   if (stream._pendingAbortRequest === undefined) {
     const writer = stream._writer;
@@ -318,7 +321,7 @@ function WritableStreamHandleAbortRequestIfPending(stream) {
 
   const abortRequest = stream._pendingAbortRequest;
   stream._pendingAbortRequest = undefined;
-  const promise = WritableStreamDefaultControllerAbort(stream._writableStreamController, abortRequest._reason);
+  const promise = stream._writableStreamController[AbortSteps](abortRequest._reason);
   promise.then(
     abortRequest._resolve,
     abortRequest._reject
@@ -718,15 +721,45 @@ class WritableStreamDefaultController {
 
     WritableStreamDefaultControllerError(this, e);
   }
+
+  [StartSteps]() {
+    const startResult = InvokeOrNoop(this._underlyingSink, 'start', [this]);
+    const stream = this._controlledWritableStream;
+
+    Promise.resolve(startResult).then(
+      () => {
+        this._started = true;
+
+        if (stream._state === 'errored') {
+          WritableStreamRejectAbortRequestIfPending(stream);
+        } else {
+          WritableStreamHandleAbortRequestIfPending(stream);
+        }
+
+        // This is a no-op if the stream was errored above.
+        WritableStreamDefaultControllerAdvanceQueueIfNeeded(this);
+      },
+      r => {
+        assert(stream._state === 'writable' || stream._state === 'errored');
+        WritableStreamDefaultControllerErrorIfNeeded(this, r);
+        WritableStreamRejectAbortRequestIfPending(stream);
+      }
+    )
+    .catch(rethrowAssertionErrorRejection);
+  }
+
+  [AbortSteps](reason) {
+    ResetQueue(this);
+    const sinkAbortPromise = PromiseInvokeOrNoop(this._underlyingSink, 'abort', [reason]);
+    return sinkAbortPromise.then(() => undefined);
+  }
+
+  [ErrorSteps]() {
+    ResetQueue(this);
+  }
 }
 
 // Abstract operations implementing interface required by the WritableStream.
-
-function WritableStreamDefaultControllerAbort(controller, reason) {
-  ResetQueue(controller);
-  const sinkAbortPromise = PromiseInvokeOrNoop(controller._underlyingSink, 'abort', [reason]);
-  return sinkAbortPromise.then(() => undefined);
-}
 
 function WritableStreamDefaultControllerClose(controller) {
   EnqueueValueWithSize(controller, 'close', 0);
@@ -769,32 +802,6 @@ function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
   }
 
   WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
-}
-
-function WritableStreamDefaultControllerStart(controller) {
-  const startResult = InvokeOrNoop(controller._underlyingSink, 'start', [controller]);
-  const stream = controller._controlledWritableStream;
-
-  Promise.resolve(startResult).then(
-    () => {
-      controller._started = true;
-
-      if (stream._state === 'errored') {
-        WritableStreamRejectAbortRequestIfPending(stream);
-      } else {
-        WritableStreamHandleAbortRequestIfPending(stream);
-      }
-
-      // This is a no-op if the stream was errored above.
-      WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
-    },
-    r => {
-      assert(stream._state === 'writable' || stream._state === 'errored');
-      WritableStreamDefaultControllerErrorIfNeeded(controller, r);
-      WritableStreamRejectAbortRequestIfPending(stream);
-    }
-  )
-  .catch(rethrowAssertionErrorRejection);
 }
 
 // Abstract operations for the WritableStreamDefaultController.
