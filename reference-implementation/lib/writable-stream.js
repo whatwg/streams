@@ -659,7 +659,7 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
   if (state === 'errored') {
     return Promise.reject(stream._storedError);
   }
-  if (state === 'closed' || WritableStreamCloseQueuedOrInFlight(stream) === true) {
+  if (WritableStreamCloseQueuedOrInFlight(stream) === true || state === 'closed') {
     return Promise.reject(new TypeError('The stream is closing or closed and cannot be written to'));
   }
 
