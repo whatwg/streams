@@ -2488,11 +2488,6 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
 
 <h2 id="ws">Writable Streams</h2>
 
-<div class="warning" id="ws-not-ready-yet">
-  The writable stream spec is still stabilizing, although it has recently improved a lot and is more aligned with our
-  vision. Still, it is not quite yet ready to ship.
-</div>
-
 <h3 id="ws-intro">Using Writable Streams</h3>
 
 <div class="example" id="example-basic-pipe-to-2">
