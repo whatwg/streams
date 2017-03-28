@@ -4230,7 +4230,10 @@ promises returned by its <a lt="writable stream writer">writer</a>'s {{WritableS
 
     return new WritableStream({
       start(controller) {
-        ws.onerror = () => controller.error(new Error("The WebSocket errored!"));
+        ws.onerror = () => {
+          controller.error(new Error("The WebSocket errored!"));
+          ws.onclose = null;
+        };
         ws.onclose = () => controller.error(new Error("The server closed the connection unexpectedly!"));
         return new Promise(resolve => ws.onopen = resolve);
       },
@@ -4386,6 +4389,7 @@ source abstractions.
       this._ws.onclose = () => controller.error(new Error("The server closed the connection unexpectedly!"));
       this._ws.addEventListener("error", () => {
         controller.error(new Error("The WebSocket errored!"));
+        this._ws.onclose = null;
       });
 
       return new Promise(resolve => this._ws.onopen = resolve);
