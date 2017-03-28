@@ -3489,7 +3489,8 @@ other controllers, as long as those controllers implemented such internal method
 readable streams, where there actually are multiple controller types and as such the counterpart internal methods are
 used polymorphically.
 
-<h5 id="ws-default-controller-private-abort" oldids="writable-stream-default-controller-abort">\[[AbortSteps]]()</h5>
+<h5 id="ws-default-controller-private-abort"
+oldids="writable-stream-default-controller-abort">\[[AbortSteps]]( <var>reason</var> )</h5>
 
 <emu-alg>
   1. Let _sinkAbortPromise_ be ! PromiseInvokeOrNoop(*this*.[[underlyingSink]], `"abort"`, « _reason_ »).
