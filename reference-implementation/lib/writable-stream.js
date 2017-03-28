@@ -656,12 +656,17 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
   }
 
   const state = stream._state;
-  if (state !== 'writable' || WritableStreamCloseQueuedOrInFlight(stream) === true) {
-    return Promise.reject(new TypeError(
-      `The stream (in ${state} state) is not in the writable state and cannot be written to`));
+  if (state === 'errored') {
+    return Promise.reject(stream._storedError);
   }
+  if (state === 'closed' || WritableStreamCloseQueuedOrInFlight(stream) === true) {
+    return Promise.reject(new TypeError('The stream is closing or closed and cannot be written to'));
+  }
+
+  assert(state === 'writable');
+
   if (stream._pendingAbortRequest !== undefined) {
-    return Promise.reject(new TypeError('Requested to abort'));
+    return Promise.reject(new TypeError('The stream is being aborted and cannot be written to'));
   }
 
   const promise = WritableStreamAddWriteRequest(stream);

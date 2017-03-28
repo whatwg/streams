@@ -3357,10 +3357,12 @@ nothrow>WritableStreamDefaultWriterWrite ( <var>writer</var>, <var>chunk</var> )
   1. If _stream_ is not equal to _writer_.[[ownerWritableStream]], return <a>a promise rejected with</a> a *TypeError*
      exception.
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is not `"writable"` or ! WritableStreamCloseQueuedOrInFlight(_stream_) is *true*, return
-     <a>a promise rejected with</a> a *TypeError* exception.
+  1. If _state_ is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
+  1. If ! WritableStreamCloseQueuedOrInFlight(_stream_) is *true* or _state_ is `"closed"`, return
+     <a>a promise rejected with</a> a *TypeError* exception indicating that the stream is closing or closed.
+  1. Assert: _state_ is `"writable"`.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*, return <a>a promise rejected with</a> a *TypeError*
-     indicating that the stream has been requested to abort.
+     indicating that the stream is in the process of being aborted.
   1. Let _promise_ be ! WritableStreamAddWriteRequest(_stream_).
   1. Perform ! WritableStreamDefaultControllerWrite(_controller_, _chunk_, _chunkSize_).
   1. Return _promise_.
