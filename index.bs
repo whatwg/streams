@@ -2625,7 +2625,9 @@ Instances of {{WritableStream}} are created with the internal slots described in
   </tr>
   <tr>
     <td>\[[pendingAbortRequest]]
-    <td>The promise for a pending abort operation
+    <td>A Record containing the promise returned from
+      {{WritableStreamDefaultWriter/abort()}} and the <var>reason</var> passed to
+      {{WritableStreamDefaultWriter/abort()}}
   </tr>
   <tr>
     <td>\[[state]]
@@ -2912,7 +2914,7 @@ nothrow>WritableStreamFinishInFlightClose ( <var>stream</var> )</h4>
   1. Let _writer_ be _stream_.[[writer]].
   1. If _writer_ is not *undefined*, <a>resolve</a> _writer_.[[closedPromise]] with *undefined*.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*,
-    1. <a>Resolve</a> _stream_.[[pendingAbortRequest]] with *undefined*.
+    1. <a>Resolve</a> _stream_.[[pendingAbortRequest]].[[promise]] with *undefined*.
     1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
 </emu-alg>
 
@@ -3007,7 +3009,7 @@ nothrow>WritableStreamRejectAbortRequestIfPending ( <var>stream</var> )</h4>
 
 <emu-alg>
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*,
-    1. <a>Reject</a> _stream_.[[pendingAbortRequest]] with _stream_.[[storedError]].
+    1. <a>Reject</a> _stream_.[[pendingAbortRequest]].[[promise]] with _stream_.[[storedError]].
     1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
 </emu-alg>
 
