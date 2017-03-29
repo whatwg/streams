@@ -417,7 +417,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
       promise, then <code>pull</code> will not be called again until that promise fulfills; if the promise rejects, the
       stream will become errored.
     <li> <code>cancel(reason)</code> is called when the consumer signals that they are no longer interested in the
-      stream. It should perform any actions necessary to release access to the <a>underlying source</a>. If this
+      stream. It can perform any actions necessary to release access to the <a>underlying source</a>. If this
       process is asynchronous, it can return a promise to signal success or failure.
   </ul>
 
@@ -481,7 +481,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 <div class="note">
   The <code>cancel</code> method <a lt="cancel a readable stream">cancels</a> the stream, signaling a loss of interest
   in the stream by a consumer. The supplied <code>reason</code> argument will be given to the underlying source, which
-  may or may not use it.
+  might or might not use it.
 </div>
 
 <emu-alg>
@@ -705,7 +705,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 
   Note that the <a>chunks</a> seen in each branch will be the same object. If the chunks are not immutable, this could
   allow interference between the two branches. (<a href="https://github.com/whatwg/streams/issues/new">Let us know</a>
-  if you think we should add an option to <code>tee</code> that creates <a abstract-op lt="StructuredClone">structured
+  if you think we ought to add an option to <code>tee</code> that creates <a abstract-op lt="StructuredClone">structured
   clones</a> of the chunks for each branch.)
 </div>
 
@@ -1106,7 +1106,7 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
 
 <div class="note">
   The <code>ReadableStreamDefaultReader</code> constructor is generally not meant to be used directly; instead, a
-  stream's {{ReadableStream/getReader()}} method should be used.
+  stream's {{ReadableStream/getReader()}} method ought to be be used.
 </div>
 
 <emu-alg>
@@ -1242,7 +1242,7 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
 
 <div class="note">
   The <code>ReadableStreamBYOBReader</code> constructor is generally not meant to be used directly; instead, a stream's
-  {{ReadableStream/getReader()}} method should be used.
+  {{ReadableStream/getReader()}} method ought to be used.
 </div>
 
 <emu-alg>
@@ -1536,7 +1536,7 @@ desiredSize</h5>
 <div class="note">
   The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size
   to fill the controlled stream's internal queue</a>. It can be negative, if the queue is over-full. An <a>underlying
-  source</a> should use this information to determine when and how to apply <a>backpressure</a>.
+  source</a> ought to use this information to determine when and how to apply <a>backpressure</a>.
 </div>
 
 <emu-alg>
@@ -1912,7 +1912,7 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
 <div class="note">
   The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size
   to fill the controlled stream's internal queue</a>. It can be negative, if the queue is over-full. An <a>underlying
-  source</a> should use this information to determine when and how to apply <a>backpressure</a>.
+  source</a> ought to use this information to determine when and how to apply <a>backpressure</a>.
 </div>
 
 <emu-alg>
@@ -2665,7 +2665,7 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
   how the constructed stream instance behaves:
 
   <ul>
-    <li> <code>start(controller)</code> is called immediately, and should perform any actions necessary to acquire
+    <li> <code>start(controller)</code> is called immediately, and can perform any actions necessary to acquire
       access to the <a>underlying sink</a>. If this process is asynchronous, it can return a promise to signal success
       or failure.
     <li> <code>write(chunk, controller)</code> is called when a new <a>chunk</a> of data is ready to be written to the
@@ -2673,12 +2673,12 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
       implementation guarantees that this method will be called only after previous writes have succeeded, and never
       after <code>close</code> or <code>abort</code> is called.
     <li> <code>close(controller)</code> is called after the producer signals that they are done writing chunks to the
-      stream, and all queued-up writes successfully complete. It should perform any actions necessary to finalize writes
+      stream, and all queued-up writes successfully complete. It can perform any actions necessary to finalize writes
       to the <a>underlying sink</a>, and release access to it. If this process is asynchronous, it can return a promise
       to signal success or failure. The stream implementation guarantees that this method will be called only after all
       queued-up writes have succeeded.
     <li> <code>abort(reason)</code> is called when the producer signals they wish to abruptly close the stream
-      and put it in an errored state. It should clean up any held resources, much like <code>close</code>, but perhaps
+      and put it in an errored state. It can clean up any held resources, much like <code>close</code>, but perhaps
       with some custom handling. Unlike <code>close</code>, <code>abort</code> will be called even if writes are queued
       up; those <a>chunks</a> will be thrown away. If this process is asynchronous, it can return a promise to signal
       success or failure.
@@ -2726,7 +2726,7 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
 
 <div class="note">
   The <code>abort</code> method <a lt="abort a writable stream">aborts</a> the stream, signaling that the producer can
-  no longer successfully write to the stream and it should be immediately moved to an errored state, with any queued-up
+  no longer successfully write to the stream and it is to be immediately moved to an errored state, with any queued-up
   writes discarded. This will also execute any abort mechanism of the <a>underlying sink</a>.
 </div>
 
@@ -3096,7 +3096,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 
 <div class="note">
   The <code>WritableStreamDefaultWriter</code> constructor is generally not meant to be used directly; instead, a
-  stream's {{WritableStream/getWriter()}} method should be used.
+  stream's {{WritableStream/getWriter()}} method ought to be be used.
 </div>
 
 <emu-alg>
@@ -3145,7 +3145,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 
 <div class="note">
   The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size to
-  fill the stream's internal queue</a>. It can be negative, if the queue is over-full. A <a>producer</a> should use this
+  fill the stream's internal queue</a>. It can be negative, if the queue is over-full. A <a>producer</a> can use this
   information to determine the right amount of data to write.
 
   It will be <emu-val>null</emu-val> if the stream cannot be successfully written to (due to either being errored, or
@@ -3220,7 +3220,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   the writer will appear closed.
 
   Note that the lock can still be released even if some ongoing writes have not yet finished (i.e. even if the promises
-  returned from previous calls to {{WritableStreamDefaultWriter/write()}} have not yet settled). It's not required to
+  returned from previous calls to {{WritableStreamDefaultWriter/write()}} have not yet settled). It's not necessary to
   hold the lock on the writer for the duration of the write; the lock instead simply prevents other <a>producers</a>
   from writing in an interleaved manner.
 </div>
@@ -3241,7 +3241,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   promise that fulfills with <emu-val>undefined</emu-val> upon a successful write, or rejects if the write fails or
   stream becomes errored before the writing process is initiated.
 
-  Note that what "success" means is up to the <a>underlying sink</a>; it may indicate simply that the <a>chunk</a> has
+  Note that what "success" means is up to the <a>underlying sink</a>; it might indicate simply that the <a>chunk</a> has
   been accepted, and not necessarily that it is safely saved to its ultimate destination.
 </div>
 
