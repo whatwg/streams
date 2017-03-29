@@ -2568,6 +2568,43 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
   writeRandomBytesForever(myWritableStream).catch(e => console.error("Something broke", e));
   </code></pre>
 </div>
+
+<h3 id="ws-design-philosopy">Design Philosophy</h3>
+
+<div>While sharing the principles for streams in general, a number of additional principles have informed the design of
+the WritableStream class.</div>
+
+<ul>
+  <li><p>Only one sink method can ever be executing at a time.
+  <li><p>Sink methods are treated as atomic.
+    <ul>
+      <li><p>"Atomic" here means that the time between a sink method being called and the returned Promise resolving or
+        rejecting is treated as indivisible.
+      <li><p>A new sink method will never be called until the Promise from the previous one has resolved.
+      <li><p>State changes do not take effect until any in-flight sink method has completed.
+    </ul>
+  <li><p>Exception: If something has happened that will error the stream, for example writer.abort() has been called, then
+      new calls to writer.write() will start failing immediately. There's no user benefit in waiting for the current operation
+      to complete before informing the user that writer.write() has failed.
+  <li><p>The writer.ready promise and the value of writer.desiredSize reflect whether a write() performed right
+  now would be effective.
+      <ul>
+        <li>writer.ready and writer.desiredSize will change even in the middle of executing a sink method, as soon as we
+        know that calling writer.write() won't work any more.
+          <div class=note>Because promises are dispatched asynchronously, the state can still change between
+          writer.ready becoming fulfilled and write() being called.</div>
+        <li>The value of writer.desiredSize decreases synchronously with every call to writer.write(). This implies that
+        strategy.size() is executed synchronously.
+       </ul>
+   <li><p>The writer.closed promise and the promises returned by writer.close() and writer.abort() do not resolve or
+   reject until no sink methods are executing and no further sink methods will be executing.
+       <ul>
+         <li>If the user of the WritableStream wants to retry against the same underlying data item, it is important to
+         have confidence that all other operations have ceased.
+         <li>This principle also applies to the ReadableStream pipeTo() method.
+       </ul>
+</ul>
+
 <h3 id="ws-class" interface lt="WritableStream">Class <code>WritableStream</code></h3>
 
 <h4 id="ws-class-definition">Class Definition</h4>
