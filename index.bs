@@ -4231,7 +4231,11 @@ promises returned by its <a lt="writable stream writer">writer</a>'s {{WritableS
 
     return new WritableStream({
       start(controller) {
-        ws.onerror = () => controller.error(new Error("The WebSocket errored!"));
+        ws.onerror = () => {
+          controller.error(new Error("The WebSocket errored!"));
+          ws.onclose = null;
+        };
+        ws.onclose = () => controller.error(new Error("The server closed the connection unexpectedly!"));
         return new Promise(resolve => ws.onopen = resolve);
       },
 
@@ -4242,19 +4246,26 @@ promises returned by its <a lt="writable stream writer">writer</a>'s {{WritableS
       },
 
       close() {
-        return new Promise((resolve, reject) => {
-          ws.onclose = resolve;
-          ws.close(1000);
-        });
+        return closeWS(1000);
       },
 
       abort(reason) {
-        return new Promise((resolve, reject) => {
-          ws.onclose = resolve;
-          ws.close(4000, reason && reason.message);
-        });
-      }
+        return closeWS(4000, reason && reason.message);
+      },
     });
+
+    function closeWS(code, reasonString) {
+      return new Promise((resolve, reject) => {
+        ws.onclose = e => {
+          if (e.wasClean) {
+            resolve();
+          } else {
+            reject(new Error("The connection was not closed cleanly"));
+          }
+        };
+        ws.close(code, reasonString);
+      });
+    }
   }
 </code></pre>
 
@@ -4376,8 +4387,10 @@ source abstractions.
     }
 
     start(controller) {
+      this._ws.onclose = () => controller.error(new Error("The server closed the connection unexpectedly!"));
       this._ws.addEventListener("error", () => {
         controller.error(new Error("The WebSocket errored!"));
+        this._ws.onclose = null;
       });
 
       return new Promise(resolve => this._ws.onopen = resolve);
@@ -4388,16 +4401,23 @@ source abstractions.
     }
 
     close() {
-      return new Promise((resolve, reject) => {
-        this._ws.onclose = resolve;
-        this._ws.close();
-      });
+      return this._closeWS(1000);
     }
 
     abort(reason) {
+      return this._closeWS(4000, reason && reason.message);
+    }
+
+    _closeWS(code, reason) {
       return new Promise((resolve, reject) => {
-        ws.onclose = resolve;
-        ws.close(4000, reason && reason.message);
+        this._ws.onclose = e => {
+          if (e.wasClean) {
+            resolve();
+          } else {
+            reject(new Error("The connection was not closed cleanly"));
+          }
+        };
+        this._ws.close(code, reasonString);
       });
     }
   }
