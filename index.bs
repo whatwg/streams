@@ -2603,7 +2603,12 @@ the WritableStream class.</div>
          have confidence that all other operations have ceased.
          <li>This principle also applies to the ReadableStream pipeTo() method.
        </ul>
+    <li><p>Promises resolve or reject in consistent order. In particular, writer.ready always resolves before
+    writer.closed, even in cases where they both resolve "at the same time".
 </ul>
+
+<div>Some of these design decisions improve predictability, ease-of-use and safety for developers at the expense of
+making implementations more complex.</div>
 
 <h3 id="ws-class" interface lt="WritableStream">Class <code>WritableStream</code></h3>
 
