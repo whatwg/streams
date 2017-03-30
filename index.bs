@@ -2569,7 +2569,7 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
   </code></pre>
 </div>
 
-<h3 id="ws-design-philosopy">Design Of The State Machine</h3>
+<h3 id="ws-design-of-the-state-machine">Design Of The State Machine</h3>
 
 <p>In addition to the principles for streams in general, a number of additional considerations have informed the design of
 the WritableStream state machine.
