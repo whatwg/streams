@@ -642,9 +642,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
        * While WritableStreamDefaultWriterGetDesiredSize(_writer_) is ≤ *0* or is *null*, the user agent must not read
          from _reader_.
        * If _reader_ is a <a>BYOB reader</a>, WritableStreamDefaultWriterGetDesiredSize(_writer_) should be used to
-         determine the size of the chunks read from _reader_. Otherwise, the desired size may be used to determine the
-         flow rate heuristically, e.g. by delaying reads while the desired size is judged to be "low" compared to the
-         size of <a>chunks</a> that have been typically read.
+         determine the size of the chunks read from _reader_.
        * After taking into account these backpressure signals, reading and writing should be done promptly; other
          signals should not be used to delay the continual reading/writing.
          <p class="example" id="example-bad-backpressure">An implementation that waits for each write to successfully complete before proceeding to
