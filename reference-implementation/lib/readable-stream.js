@@ -133,11 +133,10 @@ class ReadableStream {
         return writer._readyPromise.then(() => {
           return ReadableStreamDefaultReaderRead(reader).then(({ value, done }) => {
             if (done === true) {
-              return undefined;
+              return;
             }
 
-            currentWrite = WritableStreamDefaultWriterWrite(writer, value);
-            return currentWrite;
+            currentWrite = WritableStreamDefaultWriterWrite(writer, value).catch(() => {});
           });
         })
         .then(pipeLoop);
@@ -202,17 +201,13 @@ class ReadableStream {
         }
       }
 
-      function waitForCurrentWrite() {
-        return currentWrite.catch(() => {});
-      }
-
       function shutdownWithAction(action, originalIsError, originalError) {
         if (shuttingDown === true) {
           return;
         }
         shuttingDown = true;
 
-        waitForCurrentWrite().then(() => {
+        currentWrite.then(() => {
           return action().then(
             () => finalize(originalIsError, originalError),
             newError => finalize(true, newError)
@@ -227,7 +222,7 @@ class ReadableStream {
         }
         shuttingDown = true;
 
-        waitForCurrentWrite().then(() => {
+        currentWrite.then(() => {
           finalize(isError, error);
         })
         .catch(rethrowAssertionErrorRejection);
