@@ -645,8 +645,8 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
          determine the size of the chunks read from _reader_. Otherwise, the desired size may be used to determine the
          flow rate heuristically, e.g. by delaying reads while the desired size is judged to be "low" compared to the
          size of <a>chunks</a> that have been typically read.
-       * After taking into account these backpressure signals, reading and writing should be done as fast as possible;
-         other signals should not be used to delay the continual reading/writing.
+       * After taking into account these backpressure signals, reading and writing should be done promptly; other
+         signals should not be used to delay the continual reading/writing.
          <p class="example" id="example-bad-backpressure">An implementation that waits for each write to successfully complete before proceeding to
          the next read/write operation violates this recommendation. In doing so, such an implementation makes the
          <a>internal queue</a> of _dest_ useless, as it ensures _dest_ always contains at most one queued
