@@ -643,12 +643,11 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
          from _reader_.
        * If _reader_ is a <a>BYOB reader</a>, WritableStreamDefaultWriterGetDesiredSize(_writer_) should be used to
          determine the size of the chunks read from _reader_.
-       * After taking into account these backpressure signals, reading and writing should be done promptly; other
-         signals should not be used to delay the continual reading/writing.
-         <p class="example" id="example-bad-backpressure">An implementation that waits for each write to successfully complete before proceeding to
-         the next read/write operation violates this recommendation. In doing so, such an implementation makes the
-         <a>internal queue</a> of _dest_ useless, as it ensures _dest_ always contains at most one queued
-         <a>chunk</a>.</p>
+       * Reads or writes should not be delayed for reasons other than these backpressure signals.
+         <p class="example" id="example-bad-backpressure">An implementation that waits for each write to successfully
+         complete before proceeding to the next read/write operation violates this recommendation. In doing so, such an
+         implementation makes the <a>internal queue</a> of _dest_ useless, as it ensures _dest_ always contains at most
+         one queued <a>chunk</a>.</p>
      * <strong>Shutdown must stop all activity:</strong> if _shuttingDown_ becomes *true*, the user agent must not
        initiate further reads from _reader_ or writes to _writer_. (Ongoing reads and writes may finish.) In particular,
        the user agent must check the below conditions on *this*.[[state]] and _dest_.[[state]] before performing any
