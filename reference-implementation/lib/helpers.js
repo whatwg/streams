@@ -101,7 +101,7 @@ exports.PromiseInvokeOrPerformFallback = (O, P, args, F, argsF) => {
 };
 
 // Not implemented correctly
-exports.SameRealmTransfer = O => O;
+exports.TransferArrayBuffer = O => O;
 
 exports.ValidateAndNormalizeHighWaterMark = highWaterMark => {
   highWaterMark = Number(highWaterMark);
