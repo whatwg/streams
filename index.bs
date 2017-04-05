@@ -2526,13 +2526,12 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
 
 <div class="example" id="example-manual-write-with-error-handling">
   In the previous example we only paid attention to the success or failure of the entire stream, by looking at the
-  promise returned by its {{WritableStreamDefaultWriter/close()}} method. That promise (which can also be accessed using
-  the {{WritableStreamDefaultWriter/closed}} getter) will reject if anything goes wrong with the stream—initializing it,
-  writing to it, or closing it. And it will fulfill once the stream is successfully closed. Often this is all you care
-  about.
+  promise returned by the writer's {{WritableStreamDefaultWriter/close()}} method. That promise will reject if anything
+  goes wrong with the stream—initializing it, writing to it, or closing it. And it will fulfill once the stream is
+  successfully closed. Often this is all you care about.
 
   However, if you care about the success of writing a specific <a>chunk</a>, you can use the promise returned by the
-  stream's {{WritableStreamDefaultWriter/write()}} method:
+  writer's {{WritableStreamDefaultWriter/write()}} method:
 
   <pre><code class="lang-javascript">
     writer.write("i am a chunk of data")
@@ -3200,7 +3199,6 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 
   The method returns a promise that is fulfilled with <emu-val>undefined</emu-val> if all remaining <a>chunks</a> are
   successfully written and the stream successfully closes, or rejects if an error is encountered during this process.
-  (This is the same promise as is returned by {{WritableStreamDefaultWriter/closed}}.)
 </div>
 
 <emu-alg>
