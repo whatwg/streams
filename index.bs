@@ -1695,7 +1695,7 @@ asserts).
         1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _chunkSize_.[[Value]]).
         1. Return _chunkSize_.
       1. Let _chunkSize_ be _chunkSize_.[[Value]].
-    1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_, _chunk_, _chunkSize_).
+    1. Let _enqueueResult_ be EnqueueValueWithSize(_controller_, _chunk_, _chunkSize_).
     1. If _enqueueResult_ is an abrupt completion,
       1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _enqueueResult_.[[Value]]).
       1. Return _enqueueResult_.
@@ -3565,7 +3565,7 @@ nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk
 
 <emu-alg>
   1. Let _writeRecord_ be Record {[[chunk]]: _chunk_}.
-  1. Let _enqueueResult_ be ! EnqueueValueWithSize(_controller_, _writeRecord_, _chunkSize_).
+  1. Let _enqueueResult_ be EnqueueValueWithSize(_controller_, _writeRecord_, _chunkSize_).
   1. If _enqueueResult_ is an abrupt completion,
     1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _enqueueResult_.[[Value]]).
     1. Return.
