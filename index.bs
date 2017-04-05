@@ -798,7 +798,7 @@ stream">tee</a> a given readable stream.
 The second argument, <var>cloneForBranch2</var>, governs whether or not the data from the original stream will be cloned
 (using HTML's <a>serializable objects</a> framework) before appearing in the second of the returned branches. This is
 useful for scenarios where both branches are to be consumed in such a way that they might otherwise interfere with each
-other, such as by <a href="#transfer-array-buffer">transferring</a> their <a>chunks</a>. However, it does introduce a
+other, such as by <a lt="transferable objects">transferring</a> their <a>chunks</a>. However, it does introduce a
 noticable asymmetry between the two branches, and limits the possible <a>chunks</a> to serializable ones. [[!HTML]]
 
 <p class="note">In this standard ReadableStreamTee is always called with <var>cloneForBranch2</var> set to
