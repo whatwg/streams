@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('assert');
 const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, PromiseInvokeOrNoop,
-        SameRealmTransfer, ValidateAndNormalizeQueuingStrategy, ValidateAndNormalizeHighWaterMark } =
+        TransferArrayBuffer, ValidateAndNormalizeQueuingStrategy, ValidateAndNormalizeHighWaterMark } =
       require('./helpers.js');
 const { createArrayFromList, createDataProperty, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
@@ -383,9 +383,9 @@ function create_ReadableStreamTeePullFunction() {
       const value2 = value;
 
       // There is no way to access the cloning code right now in the reference implementation.
-      // If we add one then we'll need an implementation for StructuredClone.
+      // If we add one then we'll need an implementation for serializable objects.
       // if (teeState.canceled2 === false && cloneForBranch2 === true) {
-      //   value2 = StructuredClone(value2);
+      //   value2 = StructuredDeserialize(StructuredSerialize(value2));
       // }
 
       if (teeState.canceled1 === false) {
@@ -1581,7 +1581,7 @@ function ReadableByteStreamControllerPullInto(controller, view) {
   };
 
   if (controller._pendingPullIntos.length > 0) {
-    pullIntoDescriptor.buffer = SameRealmTransfer(pullIntoDescriptor.buffer);
+    pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
     controller._pendingPullIntos.push(pullIntoDescriptor);
 
     // No ReadableByteStreamControllerCallPullIfNeeded() call since:
@@ -1613,7 +1613,7 @@ function ReadableByteStreamControllerPullInto(controller, view) {
     }
   }
 
-  pullIntoDescriptor.buffer = SameRealmTransfer(pullIntoDescriptor.buffer);
+  pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
   controller._pendingPullIntos.push(pullIntoDescriptor);
 
   const promise = ReadableStreamAddReadIntoRequest(stream);
@@ -1624,7 +1624,7 @@ function ReadableByteStreamControllerPullInto(controller, view) {
 }
 
 function ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor) {
-  firstDescriptor.buffer = SameRealmTransfer(firstDescriptor.buffer);
+  firstDescriptor.buffer = TransferArrayBuffer(firstDescriptor.buffer);
 
   assert(firstDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
 
@@ -1658,7 +1658,7 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
     ReadableByteStreamControllerEnqueueChunkToQueue(controller, remainder, 0, remainder.byteLength);
   }
 
-  pullIntoDescriptor.buffer = SameRealmTransfer(pullIntoDescriptor.buffer);
+  pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
   pullIntoDescriptor.bytesFilled -= remainderSize;
   ReadableByteStreamControllerCommitPullIntoDescriptor(controller._controlledReadableStream, pullIntoDescriptor);
 
@@ -1755,7 +1755,7 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
   const buffer = chunk.buffer;
   const byteOffset = chunk.byteOffset;
   const byteLength = chunk.byteLength;
-  const transferredBuffer = SameRealmTransfer(buffer);
+  const transferredBuffer = TransferArrayBuffer(buffer);
 
   if (ReadableStreamHasDefaultReader(stream) === true) {
     if (ReadableStreamGetNumReadRequests(stream) === 0) {
