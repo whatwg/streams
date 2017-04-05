@@ -69,12 +69,14 @@ class ReadableStream {
       throw streamBrandCheckException('getReader');
     }
 
-    if (mode === 'byob') {
-      return AcquireReadableStreamBYOBReader(this);
-    }
-
     if (mode === undefined) {
       return AcquireReadableStreamDefaultReader(this);
+    }
+
+    mode = String(mode);
+
+    if (mode === 'byob') {
+      return AcquireReadableStreamBYOBReader(this);
     }
 
     throw new RangeError('Invalid mode is specified');
