@@ -187,6 +187,13 @@ class ReadableStream {
         rethrowAssertionErrorRejection(err);
       });
 
+      function waitForWritesToFinish() {
+        // Another write may have started while we were waiting on this currentWrite, so we have to be sure to wait
+        // for that too.
+        const oldCurrentWrite = currentWrite;
+        return currentWrite.then(() => oldCurrentWrite !== currentWrite ? waitForWritesToFinish() : undefined);
+      }
+
       function isOrBecomesErrored(stream, promise, action) {
         if (stream._state === 'errored') {
           action(stream._storedError);
@@ -209,13 +216,19 @@ class ReadableStream {
         }
         shuttingDown = true;
 
-        currentWrite.then(() => {
-          return action().then(
+        if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
+          waitForWritesToFinish().then(doTheRest);
+        } else {
+          doTheRest();
+        }
+
+        function doTheRest() {
+          action().then(
             () => finalize(originalIsError, originalError),
             newError => finalize(true, newError)
-          );
-        })
-        .catch(rethrowAssertionErrorRejection);
+          )
+          .catch(rethrowAssertionErrorRejection);
+        }
       }
 
       function shutdown(isError, error) {
@@ -224,10 +237,11 @@ class ReadableStream {
         }
         shuttingDown = true;
 
-        currentWrite.then(() => {
+        if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
+          waitForWritesToFinish().then(() => finalize(isError, error)).catch(rethrowAssertionErrorRejection);
+        } else {
           finalize(isError, error);
-        })
-        .catch(rethrowAssertionErrorRejection);
+        }
       }
 
       function finalize(isError, error) {
