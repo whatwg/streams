@@ -187,6 +187,16 @@ class ReadableStream {
         rethrowAssertionErrorRejection(err);
       });
 
+      function waitForWritesToFinish() {
+        if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
+          // Another write may have started while we were waiting on this currentWrite, so we have to be sure to wait
+          // for that too.
+          const before = currentWrite;
+          return currentWrite.then(() => before !== currentWrite ? waitForWritesToFinish() : undefined);
+        }
+        return Promise.resolve();
+      }
+
       function isOrBecomesErrored(stream, promise, action) {
         if (stream._state === 'errored') {
           action(stream._storedError);
@@ -209,7 +219,7 @@ class ReadableStream {
         }
         shuttingDown = true;
 
-        currentWrite.then(() => {
+        waitForWritesToFinish().then(() => {
           return action().then(
             () => finalize(originalIsError, originalError),
             newError => finalize(true, newError)
@@ -224,7 +234,7 @@ class ReadableStream {
         }
         shuttingDown = true;
 
-        currentWrite.then(() => {
+        waitForWritesToFinish().then(() => {
           finalize(isError, error);
         })
         .catch(rethrowAssertionErrorRejection);
