@@ -4477,7 +4477,7 @@ Marcos Caceres,
 Marvin Hagemeister,
 Michael Mior,
 Mihai Potra,
-Romain, <!-- rombel on GitHub -->
+Romain Bellessort, <!-- rombel on GitHub -->
 Simon Menke,
 Stephen Sugden,
 Tab Atkins,
