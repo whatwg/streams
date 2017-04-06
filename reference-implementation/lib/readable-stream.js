@@ -191,8 +191,8 @@ class ReadableStream {
         if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
           // Another write may have started while we were waiting on this currentWrite, so we have to be sure to wait
           // for that too.
-          const before = currentWrite;
-          return currentWrite.then(() => before !== currentWrite ? waitForWritesToFinish() : undefined);
+          const oldCurrentWrite = currentWrite;
+          return currentWrite.then(() => oldCurrentWrite !== currentWrite ? waitForWritesToFinish() : undefined);
         }
         return Promise.resolve();
       }
