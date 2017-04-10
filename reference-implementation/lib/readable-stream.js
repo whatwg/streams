@@ -85,8 +85,7 @@ class ReadableStream {
   pipeThrough({ writable, readable }, options) {
     const promise = this.pipeTo(writable, options);
 
-    // Can't actually do a promise brand check here, so instanceof is close enough.
-    if (typeIsObject(promise) && promise instanceof Promise) {
+    if (typeIsObject(promise) && hasPromiseIsHandledInternalSlot(promise)) {
       promise.catch(() => {});
     }
 
@@ -1934,4 +1933,17 @@ function byobRequestBrandCheckException(name) {
 function byteStreamControllerBrandCheckException(name) {
   return new TypeError(
     `ReadableByteStreamController.prototype.${name} can only be used on a ReadableByteStreamController`);
+}
+
+// Helper function for ReadableStream pipeThrough
+
+function hasPromiseIsHandledInternalSlot(promise) {
+  try {
+    // This relies on the brand-check that is enforced by Promise.prototype.then(). As with the rest of the reference
+    // implementation, it doesn't attempt to do the right thing if someone has modified the global environment.
+    Promise.prototype.then.call(promise, undefined, () => {});
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
