@@ -3644,7 +3644,7 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
     1. If _stream_.[[state]] is `"errored"`, set _wasErrored_ to *true*.
     1. Perform ! WritableStreamFinishInFlightWriteWithError(_stream_, _reason_).
     1. Assert: _stream_.[[state]] is `"errored"`.
-    1. If _wasErrored_ is *false*, set _controller_.[[queue]] to an empty List.
+    1. If _wasErrored_ is *false*, perform ! ResetQueue(_controller_).
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-get-backpressure" aoid="WritableStreamDefaultControllerGetBackpressure"
