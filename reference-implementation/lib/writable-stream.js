@@ -212,18 +212,13 @@ function WritableStreamFinishInFlightWrite(stream) {
   const state = stream._state;
 
   if (state === 'errored') {
-    WritableStreamFinishInFlightWriteInErroredState(stream);
+    WritableStreamRejectPromisesInReactionToError(stream);
     return;
   }
 
   assert(state === 'writable');
 
   WritableStreamHandleAbortRequestIfPending(stream);
-}
-
-function WritableStreamFinishInFlightWriteInErroredState(stream) {
-  WritableStreamRejectAbortRequestIfPending(stream);
-  WritableStreamRejectPromisesInReactionToError(stream);
 }
 
 function WritableStreamFinishInFlightWriteWithError(stream, error) {
@@ -234,14 +229,13 @@ function WritableStreamFinishInFlightWriteWithError(stream, error) {
   const state = stream._state;
 
   if (state === 'errored') {
-    WritableStreamFinishInFlightWriteInErroredState(stream);
+    WritableStreamRejectPromisesInReactionToError(stream);
     return;
   }
 
   assert(state === 'writable');
 
-  WritableStreamError(stream, error);
-  WritableStreamRejectAbortRequestIfPending(stream);
+  WritableStreamErrorNotForAbort(stream, error);
 }
 
 function WritableStreamFinishInFlightClose(stream) {
@@ -252,7 +246,7 @@ function WritableStreamFinishInFlightClose(stream) {
   const state = stream._state;
 
   if (state === 'errored') {
-    WritableStreamFinishInFlightCloseInErroredState(stream);
+    WritableStreamRejectClosedPromiseInReactionToError(stream);
     return;
   }
 
@@ -271,11 +265,6 @@ function WritableStreamFinishInFlightClose(stream) {
   }
 }
 
-function WritableStreamFinishInFlightCloseInErroredState(stream) {
-  WritableStreamRejectAbortRequestIfPending(stream);
-  WritableStreamRejectClosedPromiseInReactionToError(stream);
-}
-
 function WritableStreamFinishInFlightCloseWithError(stream, error) {
   assert(stream._inFlightCloseRequest !== undefined);
   stream._inFlightCloseRequest._reject(error);
@@ -284,14 +273,13 @@ function WritableStreamFinishInFlightCloseWithError(stream, error) {
   const state = stream._state;
 
   if (state === 'errored') {
-    WritableStreamFinishInFlightCloseInErroredState(stream);
+    WritableStreamRejectClosedPromiseInReactionToError(stream);
     return;
   }
 
   assert(state === 'writable');
 
-  WritableStreamError(stream, error);
-  WritableStreamRejectAbortRequestIfPending(stream);
+  WritableStreamErrorNotForAbort(stream, error);
 }
 
 function WritableStreamCloseQueuedOrInFlight(stream) {
@@ -347,7 +335,9 @@ function WritableStreamRejectClosedPromiseInReactionToError(stream) {
   }
 }
 
-function WritableStreamRejectAbortRequestIfPending(stream) {
+function WritableStreamErrorNotForAbort(stream, error) {
+  WritableStreamError(stream, error);
+
   if (stream._pendingAbortRequest !== undefined) {
     stream._pendingAbortRequest._reject(stream._storedError);
     stream._pendingAbortRequest = undefined;
@@ -737,9 +727,7 @@ class WritableStreamDefaultController {
       () => {
         this._started = true;
 
-        if (stream._state === 'errored') {
-          WritableStreamRejectAbortRequestIfPending(stream);
-        } else {
+        if (stream._state !== 'errored') {
           WritableStreamHandleAbortRequestIfPending(stream);
         }
 
@@ -749,7 +737,6 @@ class WritableStreamDefaultController {
       r => {
         assert(stream._state === 'writable' || stream._state === 'errored');
         WritableStreamDefaultControllerErrorIfNeeded(this, r);
-        WritableStreamRejectAbortRequestIfPending(stream);
       }
     )
     .catch(rethrowAssertionErrorRejection);
@@ -924,7 +911,7 @@ function WritableStreamDefaultControllerError(controller, error) {
 
   assert(stream._state === 'writable');
 
-  WritableStreamError(stream, error);
+  WritableStreamErrorNotForAbort(stream, error);
 }
 
 // Helper functions for the WritableStream.
