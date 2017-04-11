@@ -85,9 +85,7 @@ class ReadableStream {
   pipeThrough({ writable, readable }, options) {
     const promise = this.pipeTo(writable, options);
 
-    if (typeIsObject(promise) && hasPromiseIsHandledInternalSlot(promise)) {
-      promise.catch(() => {});
-    }
+    ifIsObjectAndHasAPromiseIsHandledInternalSlotSetPromiseIsHandledToTrue(promise);
 
     return readable;
   }
@@ -1937,13 +1935,12 @@ function byteStreamControllerBrandCheckException(name) {
 
 // Helper function for ReadableStream pipeThrough
 
-function hasPromiseIsHandledInternalSlot(promise) {
+function ifIsObjectAndHasAPromiseIsHandledInternalSlotSetPromiseIsHandledToTrue(promise) {
   try {
     // This relies on the brand-check that is enforced by Promise.prototype.then(). As with the rest of the reference
     // implementation, it doesn't attempt to do the right thing if someone has modified the global environment.
     Promise.prototype.then.call(promise, undefined, () => {});
-    return true;
   } catch (e) {
-    return false;
+    // The brand check failed, therefore the internal slot is not present and there's nothing further to do.
   }
 }
