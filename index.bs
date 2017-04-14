@@ -2842,7 +2842,7 @@ nothrow>WritableStreamDealWithRejection ( <var>stream</var>, <var>error</var> )<
 <emu-alg>
   1. Let _state_ be _stream_.[[state]].
   1. If _state_ is `"writable"`,
-    1. Perform ! WritableStreamStartErroring(_stream_).
+    1. Perform ! WritableStreamStartErroring(_stream_, _error_).
     1. Return.
   1. Assert: _state_ is `"erroring"`.
   1. Perform ! WritableStreamFinishErroring(_stream_).
@@ -2876,7 +2876,7 @@ nothrow>WritableStreamDealWithRejection ( <var>stream</var>, <var>error</var> )<
   1. Let _storedError_ be _stream_.[[storedError]].
   1. Repeat for each _writeRequest_ that is an element of _stream_.[[writeRequests]],
     1. <a>Reject</a> _writeRequest_ with _storedError_.
-  1. Set _stream_.[[writeRequest]] to an empty List.
+  1. Set _stream_.[[writeRequests]] to an empty List.
   1. if _stream_.[[pendingAbortRequest]] is *undefined*,
     1. Perform !  WritableStreamRejectCloseAndClosedPromiseIfNeeded(_stream_).
     1. Return.
