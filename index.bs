@@ -653,25 +653,26 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
        initiate further reads from _reader_, and must only perform writes of already-read <a>chunks</a>, as described
        below. In particular, the user agent must check the below conditions before performing any reads or writes,
        since they might lead to immediate shutdown.
-     * <strong>Errors must be propagated forward:</strong> if *this*.[[state]] is or becomes `"errored"`, then
-       1. If _preventAbort_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">shutdown with an action</a> of !
-          WritableStreamAbort(_dest_, *this*.[[storedError]]) and with *this*.[[storedError]].
-       1. Otherwise, <a href="#rs-pipeTo-shutdown">shutdown</a> with *this*.[[storedError]].
-     * <strong>Errors must be propagated backward:</strong> if _dest_.[[state]] is or becomes `"errored"`, then
-       1. If _preventCancel_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">shutdown with an action</a> of !
-          ReadableStreamCancel(*this*, _dest_.[[storedError]]) and with _dest_.[[storedError]].
-       1. Otherwise, <a href="#rs-pipeTo-shutdown">shutdown</a> with _dest_.[[storedError]].
-     * <strong>Closing must be propagated forward:</strong> if *this*.[[state]] is or becomes `"closed"`, then
-       1. If _preventClose_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">shutdown with an action</a> of !
-          WritableStreamDefaultWriterCloseWithErrorPropagation(_writer_).
-       1. Otherwise, <a href="#rs-pipeTo-shutdown">shutdown</a>.
-     * <strong>Closing must be propagated backward:</strong> if ! WritableStreamCloseQueuedOrInFlight(_dest_) is *true*
-       or _dest_.[[state]] is `"closed"`, then
-       1. Assert: no <a>chunks</a> have been read or written.
-       1. Let _destClosed_ be a new *TypeError*.
-       1. If _preventCancel_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">shutdown with an action</a> of !
-          ReadableStreamCancel(*this*, _destClosed_) and with _destClosed_.
-       1. Otherwise, <a href="#rs-pipeTo-shutdown">shutdown</a> with _destClosed_.
+     * <strong>Error and close states must be propagated:</strong> the following conditions must be applied in order.
+       1. <strong>Errors must be propagated forward:</strong> if *this*.[[state]] is or becomes `"errored"`, then
+         1. If _preventAbort_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">shutdown with an action</a> of !
+            WritableStreamAbort(_dest_, *this*.[[storedError]]) and with *this*.[[storedError]].
+         1. Otherwise, <a href="#rs-pipeTo-shutdown">shutdown</a> with *this*.[[storedError]].
+       1. <strong>Errors must be propagated backward:</strong> if _dest_.[[state]] is or becomes `"errored"`, then
+         1. If _preventCancel_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">shutdown with an action</a> of !
+            ReadableStreamCancel(*this*, _dest_.[[storedError]]) and with _dest_.[[storedError]].
+         1. Otherwise, <a href="#rs-pipeTo-shutdown">shutdown</a> with _dest_.[[storedError]].
+       1. <strong>Closing must be propagated forward:</strong> if *this*.[[state]] is or becomes `"closed"`, then
+         1. If _preventClose_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">shutdown with an action</a> of !
+            WritableStreamDefaultWriterCloseWithErrorPropagation(_writer_).
+         1. Otherwise, <a href="#rs-pipeTo-shutdown">shutdown</a>.
+       1. <strong>Closing must be propagated backward:</strong> if ! WritableStreamCloseQueuedOrInFlight(_dest_) is *true*
+         or _dest_.[[state]] is `"closed"`, then
+         1. Assert: no <a>chunks</a> have been read or written.
+         1. Let _destClosed_ be a new *TypeError*.
+         1. If _preventCancel_ is *false*, <a href="#rs-pipeTo-shutdown-with-action">shutdown with an action</a> of !
+            ReadableStreamCancel(*this*, _destClosed_) and with _destClosed_.
+         1. Otherwise, <a href="#rs-pipeTo-shutdown">shutdown</a> with _destClosed_.
      * <i id="rs-pipeTo-shutdown-with-action">Shutdown with an action</i>: if any of the above requirements ask to
        shutdown with an action _action_, optionally with an error _originalError_, then:
        1. If _dest_.[[state]] is `"writable"` and ! WritableStreamCloseQueuedOrInFlight(dest) is *false*,
