@@ -1912,13 +1912,7 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
 
 <emu-alg>
   1. If IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
-  1. If *this*.[[byobRequest]] is *undefined* and *this*.[[pendingPullIntos]] is not empty,
-    1. Let _firstDescriptor_ be the first element of *this*.[[pendingPullIntos]].
-    1. Let _view_ be ! Construct(<a idl>%Uint8Array%</a>, « _firstDescriptor_.[[buffer]],
-       _firstDescriptor_.[[byteOffset]] + _firstDescriptor_.[[bytesFilled]], _firstDescriptor_.[[byteLength]] −
-       _firstDescriptor_.[[bytesFilled]] »).
-    1. Set *this*.[[byobRequest]] to ! Construct(`<a idl>ReadableStreamBYOBRequest</a>`, « *this*, _view_ »).
-  1. Return *this*.[[byobRequest]].
+  1. Return ! ReadableByteStreamControllerGetBYOBRequest(*this*).
 </emu-alg>
 
 <h5 id="rbs-controller-desired-size" attribute for="ReadableByteStreamController" lt="desiredSize">get desiredSize</h5>
@@ -2306,6 +2300,20 @@ nothrow>ReadableByteStreamControllerFillPullIntoDescriptorFromQueue ( <var>contr
     1. Assert: _pullIntoDescriptor_.[[bytesFilled]] > *0*.
     1. Assert: _pullIntoDescriptor_.[[bytesFilled]] < _pullIntoDescriptor_.[[elementSize]].
   1. Return _ready_.
+</emu-alg>
+
+<h4 id="readable-byte-stream-controller-get-byob-request" aoid="ReadableByteStreamControllerGetBYOBRequest"
+nothrow>ReadableByteStreamControllerGetBYOBRequest ( <var>controller</var> )</h4>
+
+<emu-alg>
+  1. If _controller_.[[byobRequest]] is *undefined* and _controller_.[[pendingPullIntos]] is not empty,
+    1. Let _firstDescriptor_ be the first element of _controller_.[[pendingPullIntos]].
+    1. Let _view_ be ! Construct(<a idl>%Uint8Array%</a>, « _firstDescriptor_.[[buffer]],
+       _firstDescriptor_.[[byteOffset]] + _firstDescriptor_.[[bytesFilled]], _firstDescriptor_.[[byteLength]] −
+       _firstDescriptor_.[[bytesFilled]] »).
+    1. Set _controller_.[[byobRequest]] to ! Construct(`<a idl>ReadableStreamBYOBRequest</a>`,
+       « _controller_, _view_ »).
+  1. Return _controller_.[[byobRequest]].
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-get-desired-size" aoid="ReadableByteStreamControllerGetDesiredSize"
