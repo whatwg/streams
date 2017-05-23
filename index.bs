@@ -2289,8 +2289,8 @@ nothrow>ReadableByteStreamControllerFillPullIntoDescriptorFromQueue ( <var>contr
     1. Let _headOfQueue_ be the first element of _queue_.
     1. Let _bytesToCopy_ be min(_totalBytesToCopyRemaining_, _headOfQueue_.[[byteLength]]).
     1. Let _destStart_ be _pullIntoDescriptor_.[[byteOffset]] + _pullIntoDescriptor_.[[bytesFilled]].
-    1. Perform ! CopyDataBlockBytes(_headOfQueue_.[[buffer]].[[ArrayBufferData]], _headOfQueue_.[[byteOffset]],
-       _pullIntoDescriptor_.[[buffer]].[[ArrayBufferData]], _destStart_, _bytesToCopy_).
+    1. Perform ! CopyDataBlockBytes(_pullIntoDescriptor_.[[buffer]].[[ArrayBufferData]], _destStart_,
+       _headOfQueue_.[[buffer]].[[ArrayBufferData]], _headOfQueue_.[[byteOffset]], _bytesToCopy_).
     1. If _headOfQueue_.[[byteLength]] is _bytesToCopy_,
       1. Remove the first element of _queue_, shifting all other elements downward (so that the second becomes the
          first, and so on).
