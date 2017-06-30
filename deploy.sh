@@ -77,6 +77,7 @@ else
     rm $WEB_ROOT/index.intermediate.html
 
     cp service-worker.js $WEB_ROOT/service-worker.js
+    rsync --recursive --delete demos $WEB_ROOT
     echo "Living standard output to $WEB_ROOT"
 fi
 
