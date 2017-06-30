@@ -34,7 +34,7 @@ const targetDiv = document.querySelector('#target');
 
 // BEGIN SOURCE TO VIEW
 async function streamDirectlyIntoDOM() {
-  const response = await fetch('data/commits.html',
+  const response = await fetch('data/commits.include',
                                {
                                  mode: 'same-origin',
                                  headers: {
