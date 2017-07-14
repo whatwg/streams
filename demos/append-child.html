@@ -69,12 +69,12 @@ async function fetchThenJSONToDOM() {
   });
 
   const response = await fetch('data/commits.json',
-                             {
-                               mode: 'same-origin',
-                               headers: {
-                                 'Cache-Control': 'no-cache, no-store'
-                               }
-                             });
+                               {
+                                 mode: 'same-origin',
+                                 headers: {
+                                   'Cache-Control': 'no-cache, no-store'
+                                 }
+                               });
 
   const table = createTable(targetDiv);
   return response.body
