@@ -1600,8 +1600,9 @@ function ReadableByteStreamControllerPullInto(controller, view) {
 
   const ctor = view.constructor;
 
+  const buffer = TransferArrayBuffer(view.buffer);
   const pullIntoDescriptor = {
-    buffer: view.buffer,
+    buffer,
     byteOffset: view.byteOffset,
     byteLength: view.byteLength,
     bytesFilled: 0,
@@ -1611,7 +1612,6 @@ function ReadableByteStreamControllerPullInto(controller, view) {
   };
 
   if (controller._pendingPullIntos.length > 0) {
-    pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
     controller._pendingPullIntos.push(pullIntoDescriptor);
 
     // No ReadableByteStreamControllerCallPullIfNeeded() call since:
@@ -1643,7 +1643,6 @@ function ReadableByteStreamControllerPullInto(controller, view) {
     }
   }
 
-  pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
   controller._pendingPullIntos.push(pullIntoDescriptor);
 
   const promise = ReadableStreamAddReadIntoRequest(stream);

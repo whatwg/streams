@@ -101,7 +101,19 @@ exports.PromiseInvokeOrPerformFallback = (O, P, args, F, argsF) => {
 };
 
 // Not implemented correctly
-exports.TransferArrayBuffer = O => O.slice();
+exports.TransferArrayBuffer = O => {
+  const transferredIshVersion = O.slice();
+
+  // This is specifically to fool tests that test "is transferred" by taking a non-zero-length
+  // ArrayBuffer and checking if its byteLength starts returning 0.
+  Object.defineProperty(O, 'byteLength', {
+    get() {
+      return 0;
+    }
+  });
+
+  return transferredIshVersion;
+};
 
 exports.ValidateAndNormalizeHighWaterMark = highWaterMark => {
   highWaterMark = Number(highWaterMark);

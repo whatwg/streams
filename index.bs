@@ -2471,11 +2471,11 @@ nothrow>ReadableByteStreamControllerPullInto ( <var>controller</var>, <var>view<
        _view_.[[TypedArrayName]].
     1. Set _ctor_ to the constructor specified in <a>the typed array constructors table</a> for
        _view_.[[TypedArrayName]].
-  1. Let _pullIntoDescriptor_ be Record {[[buffer]]: _view_.[[ViewedArrayBuffer]], [[byteOffset]]:
+  1. Let _buffer_ be ! TransferArrayBuffer(_view_.[[ViewedArrayBuffer]]).
+  1. Let _pullIntoDescriptor_ be Record {[[buffer]]: _buffer_, [[byteOffset]]:
      _view_.[[ByteOffset]], [[byteLength]]: _view_.[[ByteLength]], [[bytesFilled]]: *0*, [[elementSize]]: _elementSize_,
      [[ctor]]: _ctor_, [[readerType]]: `"byob"`}.
   1. If _controller_.[[pendingPullIntos]] is not empty,
-    1. Set _pullIntoDescriptor_.[[buffer]] to ! TransferArrayBuffer(_pullIntoDescriptor_.[[buffer]]).
     1. Append _pullIntoDescriptor_ as the last element of _controller_.[[pendingPullIntos]].
     1. Return ! ReadableStreamAddReadIntoRequest(_stream_).
   1. If _stream_.[[state]] is `"closed"`,
@@ -2490,7 +2490,6 @@ nothrow>ReadableByteStreamControllerPullInto ( <var>controller</var>, <var>view<
       1. Let _e_ be a *TypeError* exception.
       1. Perform ! ReadableByteStreamControllerError(_controller_, _e_).
       1. Return <a>a promise rejected with</a> _e_.
-  1. Set _pullIntoDescriptor_.[[buffer]] to ! TransferArrayBuffer(_pullIntoDescriptor_.[[buffer]]).
   1. Append _pullIntoDescriptor_ as the last element of _controller_.[[pendingPullIntos]].
   1. Let _promise_ be ! ReadableStreamAddReadIntoRequest(_stream_).
   1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
