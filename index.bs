@@ -568,6 +568,12 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 </div>
 
 <emu-alg>
+  1. If _writable_ is *undefined* or _readable_ is *undefined*, throw a *TypeError* exception indicating that undefined
+     values are not permitted.
+     <p class="note"><emu-val>undefined</emu-val> is special-cased here to make it easier to debug errors such as
+     <code>rs.pipeThrough(writable, readable)</code> which otherwise would silently do nothing. <code><a
+     lt="pipeThrough()" for="ReadableStream">pipeThrough()</a></code> is
+     otherwise agnostic about the values that it passes through.</p>
   1. Let _promise_ be ? Invoke(*this*, `"pipeTo"`, « _writable_, _options_ »).
   1. If Type(_promise_) is Object and _promise_ has a [[PromiseIsHandled]] internal slot, set
      _promise_.[[PromiseIsHandled]] to *true*.

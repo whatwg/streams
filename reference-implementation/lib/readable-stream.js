@@ -83,6 +83,10 @@ class ReadableStream {
   }
 
   pipeThrough({ writable, readable }, options) {
+    if (writable === undefined || readable === undefined) {
+      throw new TypeError('readable and writable arguments must be defined');
+    }
+
     const promise = this.pipeTo(writable, options);
 
     ifIsObjectAndHasAPromiseIsHandledInternalSlotSetPromiseIsHandledToTrue(promise);
