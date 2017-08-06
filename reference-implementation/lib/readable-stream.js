@@ -271,6 +271,11 @@ class ReadableStream {
 module.exports = {
   ReadableStream,
   IsReadableStreamDisturbed,
+  ReadableByteStreamControllerClose,
+  ReadableByteStreamControllerEnqueue,
+  ReadableByteStreamControllerError,
+  ReadableByteStreamControllerGetBYOBRequest,
+  ReadableByteStreamControllerGetDesiredSize,
   ReadableStreamDefaultControllerClose,
   ReadableStreamDefaultControllerEnqueue,
   ReadableStreamDefaultControllerError,
@@ -1247,16 +1252,7 @@ class ReadableByteStreamController {
       throw byteStreamControllerBrandCheckException('byobRequest');
     }
 
-    if (this._byobRequest === undefined && this._pendingPullIntos.length > 0) {
-      const firstDescriptor = this._pendingPullIntos[0];
-      const view = new Uint8Array(firstDescriptor.buffer,
-                                  firstDescriptor.byteOffset + firstDescriptor.bytesFilled,
-                                  firstDescriptor.byteLength - firstDescriptor.bytesFilled);
-
-      this._byobRequest = new ReadableStreamBYOBRequest(this, view);
-    }
-
-    return this._byobRequest;
+    return ReadableByteStreamControllerGetBYOBRequest(this);
   }
 
   get desiredSize() {
@@ -1768,6 +1764,7 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
 
   assert(controller._closeRequested === false);
   assert(stream._state === 'readable');
+  assert(ArrayBuffer.isView(chunk) === true);
 
   const buffer = chunk.buffer;
   const byteOffset = chunk.byteOffset;
@@ -1802,6 +1799,19 @@ function ReadableByteStreamControllerError(controller, e) {
 
   ResetQueue(controller);
   ReadableStreamError(stream, e);
+}
+
+function ReadableByteStreamControllerGetBYOBRequest(controller) {
+  if (controller._byobRequest === undefined && controller._pendingPullIntos.length > 0) {
+    const firstDescriptor = controller._pendingPullIntos[0];
+    const view = new Uint8Array(firstDescriptor.buffer,
+                                firstDescriptor.byteOffset + firstDescriptor.bytesFilled,
+                                firstDescriptor.byteLength - firstDescriptor.bytesFilled);
+
+    controller._byobRequest = new ReadableStreamBYOBRequest(controller, view);
+  }
+
+  return controller._byobRequest;
 }
 
 function ReadableByteStreamControllerGetDesiredSize(controller) {
