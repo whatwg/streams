@@ -2,6 +2,7 @@
 
 if (self.importScripts) {
   self.importScripts('/resources/testharness.js');
+  self.importScripts('../resources/test-utils.js');
 }
 
 const thrownError = new Error('bad things are happening!');
@@ -56,89 +57,66 @@ promise_test(t => {
   ]);
 }, 'TransformStream errors thrown in flush put the writable and readable in an errored state');
 
-async_test(t => {
+test(() => {
   new TransformStream({
     start(c) {
-      t.step(() => {
-        c.enqueue('a');
-        c.error(new Error('generic error'));
-        assert_throws(new TypeError(), () => c.enqueue('b'), 'Errored TransformStream cannot enqueue new chunks');
-        t.done();
-      });
-    },
-    transform() {
+      c.enqueue('a');
+      c.error(new Error('generic error'));
+      assert_throws(new TypeError(), () => c.enqueue('b'), 'enqueue() should throw');
     }
   });
-}, 'TransformStream cannot be used after becoming errored');
+}, 'errored TransformStream should not enqueue new chunks');
 
-async_test(t => {
+promise_test(t => {
   const ts = new TransformStream({
     start() {
-      return new Promise(resolve => setTimeout(resolve, 90))
-        .then(() => { throw thrownError; });
+      return flushAsyncEvents().then(() => {
+        throw thrownError;
+      });
     },
-    transform() {
-      t.step(() => assert_unreached('transform must never be called if start() fails'));
-    },
-    flush() {
-      t.step(() => assert_unreached('flush must never be called if start() fails'));
-    }
+    transform: t.unreached_func('transform should not be called'),
+    flush: t.unreached_func('flush should not be called')
   });
 
   const writer = ts.writable.getWriter();
-  writer.write('a').then(t.step_func(() => {
-    assert_unreached('writer should be errored if start() fails');
-  }))
-  .catch(t.step_func(e => assert_equals(e, thrownError, 'writer rejects with same error')));
-  writer.close().then(t.step_func(() => {
-    assert_unreached('writer should be errored if start() fails');
-  }))
-  .catch(t.step_func(e => assert_equals(e, thrownError, 'writer rejects with same error')));
-
   const reader = ts.readable.getReader();
+  return Promise.all([
+    promise_rejects(t, thrownError, writer.write('a'), 'writer should reject with thrownError'),
+    promise_rejects(t, thrownError, writer.close(), 'close() should reject with thrownError'),
+    promise_rejects(t, thrownError, reader.read(), 'reader should reject with thrownError')
+  ]);
+}, 'TransformStream transformer.start() rejected promise should error the stream');
 
-  reader.read().catch(t.step_func_done(e => {
-    assert_equals(e, thrownError, 'reader rejects with same error');
-  }));
-}, 'TransformStream transformer.start() rejected promise errors the stream');
-
-async_test(t => {
+promise_test(t => {
   const controllerError = new Error('start failure');
+  controllerError.name = 'controllerError';
   const ts = new TransformStream({
     start(c) {
-      return new Promise(resolve => setTimeout(resolve, 90))
+      return flushAsyncEvents()
         .then(() => {
           c.error(controllerError);
           throw new Error('ignored error');
         });
     },
-    transform() {
-      t.step(() => assert_unreached('transform must never be called if start() fails'));
-    },
-    flush() {
-      t.step(() => assert_unreached('flush must never be called if start() fails'));
-    }
+    transform: t.unreached_func('transform should never be called if start() fails'),
+    flush: t.unreached_func('flush should never be called if start() fails')
   });
 
   const writer = ts.writable.getWriter();
-  writer.write('a').then(t.unreached_func('writer should be errored if start() fails'))
-  .catch(t.step_func(e => assert_equals(e, controllerError, 'writer rejects with same error')));
-  writer.close().then(t.unreached_func('writer should be errored if start() fails'))
-  .catch(t.step_func(e => assert_equals(e, controllerError, 'writer rejects with same error')));
-
   const reader = ts.readable.getReader();
-
-  reader.read().catch(t.step_func_done(e => {
-    assert_equals(e, controllerError, 'reader rejects with same error');
-  }));
-}, 'TransformStream both calling controller.error and rejecting a promise');
+  return Promise.all([
+    promise_rejects(t, controllerError, writer.write('a'), 'writer should reject with controllerError'),
+    promise_rejects(t, controllerError, writer.close(), 'close should reject with same error'),
+    promise_rejects(t, controllerError, reader.read(), 'reader should reject with same error')
+  ]);
+}, 'when controller.error is followed by a rejection, the error reason should come from controller.error');
 
 test(() => {
   assert_throws(new URIError(), () => new TransformStream({
     start() { throw new URIError('start thrown error'); },
     transform() {}
-  }), 'TransformStream constructor throws when start does');
-}, 'TransformStream throw in transformer.start');
+  }), 'constructor should throw');
+}, 'TransformStream constructor should throw when start does');
 
 test(() => {
   const strategy = {
@@ -150,8 +128,8 @@ test(() => {
       c.enqueue('a');
     },
     transform() {}
-  }, undefined, strategy), 'throws same error strategy.size throws');
-}, 'TransformStream throw in readableStrategy.size');
+  }, undefined, strategy), 'constructor should throw the same error strategy.size throws');
+}, 'when strategy.size throws inside start(), the constructor should throw the same error');
 
 test(() => {
   const controllerError = new URIError('controller.error');
@@ -170,7 +148,7 @@ test(() => {
       c.enqueue('a');
     },
     transform() {}
-  }, undefined, strategy), 'first error gets thrown');
-}, 'TransformStream throw in tricky readableStrategy.size');
+  }, undefined, strategy), 'the first error should be thrown');
+}, 'when strategy.size calls controller.error() then throws, the constructor should throw the first error');
 
 done();
