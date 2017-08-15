@@ -312,18 +312,18 @@ async_test(t => {
         .then(() => { startDone = true; });
     },
     transform() {
-      t.step(() => {
+      return t.step(() => {
         assert_true(startDone, 'startPromise must resolve before transform is called');
+        return new Promise(resolve => setTimeout(resolve, 30))
+            .then(() => { transformDone = true; });
       });
-      return new Promise(resolve => setTimeout(resolve, 30))
-          .then(() => { transformDone = true; });
     },
     flush() {
-      t.step(() => {
+      return t.step(() => {
         assert_true(transformDone, 'pending transform promise must resolve before flush is called');
+        return new Promise(resolve => setTimeout(resolve, 50))
+            .then(() => { flushDone = true; });
       });
-      return new Promise(resolve => setTimeout(resolve, 50))
-        .then(() => { flushDone = true; });
     }
   });
 
@@ -331,11 +331,10 @@ async_test(t => {
 
   const writer = ts.writable.getWriter();
   writer.write('a');
-  writer.close().then(t.step_func(() => {
+  writer.close().then(t.step_func_done(() => {
     assert_true(flushDone, 'flushPromise resolved');
-    t.done();
   }))
-  .catch(t.step_func(e => assert_unreached(e)));
+  .catch(t.unreached_func('close() should not throw'));
 }, 'TransformStream start, transform, and flush are strictly ordered');
 
 done();

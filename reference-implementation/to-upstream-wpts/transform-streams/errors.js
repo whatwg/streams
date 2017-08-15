@@ -97,9 +97,8 @@ async_test(t => {
 
   const reader = ts.readable.getReader();
 
-  reader.read().catch(t.step_func(e => {
+  reader.read().catch(t.step_func_done(e => {
     assert_equals(e, thrownError, 'reader rejects with same error');
-    t.done();
   }));
 }, 'TransformStream transformer.start() rejected promise errors the stream');
 
@@ -122,16 +121,15 @@ async_test(t => {
   });
 
   const writer = ts.writable.getWriter();
-  writer.write('a').then(t.step_func(() => assert_unreached('writer should be errored if start() fails')))
+  writer.write('a').then(t.unreached_func('writer should be errored if start() fails'))
   .catch(t.step_func(e => assert_equals(e, controllerError, 'writer rejects with same error')));
-  writer.close().then(t.step_func(() => assert_unreached('writer should be errored if start() fails')))
+  writer.close().then(t.unreached_func('writer should be errored if start() fails'))
   .catch(t.step_func(e => assert_equals(e, controllerError, 'writer rejects with same error')));
 
   const reader = ts.readable.getReader();
 
-  reader.read().catch(t.step_func(e => {
+  reader.read().catch(t.step_func_done(e => {
     assert_equals(e, controllerError, 'reader rejects with same error');
-    t.done();
   }));
 }, 'TransformStream both calling controller.error and rejecting a promise');
 
