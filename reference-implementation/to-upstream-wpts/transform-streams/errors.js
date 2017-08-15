@@ -89,11 +89,11 @@ async_test(t => {
   writer.write('a').then(t.step_func(() => {
     assert_unreached('writer should be errored if start() fails');
   }))
-  .catch(e => assert_equals(e, thrownError, 'writer rejects with same error'));
+  .catch(t.step_func(e => assert_equals(e, thrownError, 'writer rejects with same error')));
   writer.close().then(t.step_func(() => {
     assert_unreached('writer should be errored if start() fails');
   }))
-  .catch(e => assert_equals(e, thrownError, 'writer rejects with same error'));
+  .catch(t.step_func(e => assert_equals(e, thrownError, 'writer rejects with same error')));
 
   const reader = ts.readable.getReader();
 
@@ -122,13 +122,9 @@ async_test(t => {
   });
 
   const writer = ts.writable.getWriter();
-  writer.write('a').then(() => {
-    t.step(() => assert_unreached('writer should be errored if start() fails'));
-  })
+  writer.write('a').then(t.step_func(() => assert_unreached('writer should be errored if start() fails')))
   .catch(t.step_func(e => assert_equals(e, controllerError, 'writer rejects with same error')));
-  writer.close().then(() => {
-    t.step(() => assert_unreached('writer should be errored if start() fails'));
-  })
+  writer.close().then(t.step_func(() => assert_unreached('writer should be errored if start() fails')))
   .catch(t.step_func(e => assert_equals(e, controllerError, 'writer rejects with same error')));
 
   const reader = ts.readable.getReader();
