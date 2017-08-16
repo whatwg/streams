@@ -35,11 +35,11 @@ class TransformStream {
       startPromise_resolve = resolve;
     });
 
-    const source = new TransformStreamSource(this, startPromise);
+    const source = new TransformStreamDefaultSource(this, startPromise);
 
     this._readable = new ReadableStream(source, readableStrategy);
 
-    const sink = new TransformStreamSink(this, startPromise);
+    const sink = new TransformStreamDefaultSink(this, startPromise);
 
     this._writable = new WritableStream(sink, writableStrategy);
 
@@ -198,7 +198,7 @@ function TransformStreamErrorInternal(transformStream, e) {
   }
 }
 
-// Used for preventing the next write() call on TransformStreamSink until there
+// Used for preventing the next write() call on TransformStreamDefaultSink until there
 // is no longer backpressure.
 function TransformStreamReadableReadyPromise(transformStream) {
   assert(transformStream._backpressureChangePromise !== undefined,
@@ -331,9 +331,9 @@ function IsTransformStreamDefaultController(x) {
   return true;
 }
 
-// Class TransformStreamSink
+// Class TransformStreamDefaultSink
 
-class TransformStreamSink {
+class TransformStreamDefaultSink {
   constructor(transformStream, startPromise) {
     this._transformStream = transformStream;
     this._startPromise = startPromise;
@@ -348,7 +348,7 @@ class TransformStreamSink {
   }
 
   write(chunk) {
-    // console.log('TransformStreamSink.write()');
+    // console.log('TransformStreamDefaultSink.write()');
 
     const transformStream = this._transformStream;
 
@@ -362,7 +362,7 @@ class TransformStreamSink {
   }
 
   close() {
-    // console.log('TransformStreamSink.close()');
+    // console.log('TransformStreamDefaultSink.close()');
 
     const transformStream = this._transformStream;
 
@@ -388,9 +388,9 @@ class TransformStreamSink {
   }
 }
 
-// Class TransformStreamSource
+// Class TransformStreamDefaultSource
 
-class TransformStreamSource {
+class TransformStreamDefaultSource {
   constructor(transformStream, startPromise) {
     this._transformStream = transformStream;
     this._startPromise = startPromise;
@@ -418,7 +418,7 @@ class TransformStreamSource {
   }
 
   pull() {
-    // console.log('TransformStreamSource.pull()');
+    // console.log('TransformStreamDefaultSource.pull()');
 
     const transformStream = this._transformStream;
 
