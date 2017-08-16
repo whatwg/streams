@@ -300,4 +300,41 @@ promise_test(() => {
   return readableStreamToArray(ts.readable);
 }, 'methods should not not have .apply() or .call() called');
 
+async_test(t => {
+  let startCalled = false;
+  let startDone = false;
+  let transformDone = false;
+  let flushDone = false;
+  const ts = new TransformStream({
+    start() {
+      startCalled = true;
+      return new Promise(resolve => setTimeout(resolve, 90))
+        .then(() => { startDone = true; });
+    },
+    transform() {
+      return t.step(() => {
+        assert_true(startDone, 'startPromise must resolve before transform is called');
+        return new Promise(resolve => setTimeout(resolve, 30))
+            .then(() => { transformDone = true; });
+      });
+    },
+    flush() {
+      return t.step(() => {
+        assert_true(transformDone, 'pending transform promise must resolve before flush is called');
+        return new Promise(resolve => setTimeout(resolve, 50))
+            .then(() => { flushDone = true; });
+      });
+    }
+  });
+
+  assert_true(startCalled, 'start is called synchronously');
+
+  const writer = ts.writable.getWriter();
+  writer.write('a');
+  writer.close().then(t.step_func_done(() => {
+    assert_true(flushDone, 'flushPromise resolved');
+  }))
+  .catch(t.unreached_func('close() should not throw'));
+}, 'TransformStream start, transform, and flush are strictly ordered');
+
 done();
