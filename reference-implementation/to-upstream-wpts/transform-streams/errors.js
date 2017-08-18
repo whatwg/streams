@@ -149,7 +149,8 @@ test(() => {
     start(c) {
       c.enqueue('a');
     },
-    transform() {},
+    transform() {}
+  }, {
     readableStrategy: strategy
   }), 'throws same error strategy.size throws');
 }, 'TransformStream throw in readableStrategy.size');
@@ -170,7 +171,8 @@ test(() => {
       controller = c;
       c.enqueue('a');
     },
-    transform() {},
+    transform() {}
+  }, {
     readableStrategy: strategy
   }), 'first error gets thrown');
 }, 'TransformStream throw in tricky readableStrategy.size');
