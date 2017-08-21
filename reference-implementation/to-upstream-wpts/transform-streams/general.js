@@ -345,4 +345,19 @@ promise_test(t => {
   });
 }, 'TransformStream start, transform, and flush should be strictly ordered');
 
+promise_test(() => {
+  let transformCalled = false;
+  const ts = new TransformStream({
+    transform() {
+      transformCalled = true;
+    }
+  }, undefined, { highWaterMark: Infinity });
+  // transform() is only called synchronously when there is no backpressure and all microtasks have run.
+  return delay(0).then(() => {
+    const writePromise = ts.writable.getWriter().write();
+    assert_true(transformCalled, 'transform() should have been called');
+    return writePromise;
+  });
+}, 'it should be possible to call transform() synchronously');
+
 done();
