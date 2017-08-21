@@ -13,6 +13,7 @@ const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLo
 
 const CancelSteps = Symbol('[[CancelSteps]]');
 const PullSteps = Symbol('[[PullSteps]]');
+const HasBackpressure = Symbol('[[HasBackpressure]]');
 
 class ReadableStream {
   constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
@@ -274,7 +275,8 @@ module.exports = {
   ReadableStreamDefaultControllerClose,
   ReadableStreamDefaultControllerEnqueue,
   ReadableStreamDefaultControllerError,
-  ReadableStreamDefaultControllerGetDesiredSize
+  ReadableStreamDefaultControllerGetDesiredSize,
+  HasBackpressure
 };
 
 // Abstract operations for the ReadableStream.
@@ -965,6 +967,10 @@ class ReadableStreamDefaultController {
     return PromiseInvokeOrNoop(this._underlyingSource, 'cancel', [reason]);
   }
 
+  [HasBackpressure]() {
+    return ReadableStreamDefaultControllerShouldCallPull(this) === false;
+  }
+
   [PullSteps]() {
     const stream = this._controlledReadableStream;
 
@@ -1327,6 +1333,10 @@ class ReadableByteStreamController {
     ResetQueue(this);
 
     return PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
+  }
+
+  [HasBackpressure]() {
+    return ReadableByteStreamControllerShouldCallPull(this) === false;
   }
 
   [PullSteps]() {
