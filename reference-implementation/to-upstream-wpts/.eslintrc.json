@@ -56,7 +56,9 @@
     "flushAsyncEvents": true,
     "methodRejects": true,
     "readableStreamToArray": true,
+    "recordingIdentityTransformStream": true,
     "recordingReadableStream": true,
+    "recordingTransformStream": true,
     "recordingWritableStream": true,
     "sequentialReadableStream": true
   }
