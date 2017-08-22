@@ -26,6 +26,8 @@ test(() => {
   assert_equals(writableStream.set, undefined, 'writable should not have a setter');
   assert_true(writableStream.configurable, 'writable should be configurable');
   assert_true(ts.writable instanceof WritableStream, 'writable is an instance of WritableStream');
+  assert_not_equals(WritableStream.prototype.getWriter.call(ts.writable), undefined,
+                    'writable should pass WritableStream brand check');
 
   const readableStream = Object.getOwnPropertyDescriptor(proto, 'readable');
   assert_true(readableStream !== undefined, 'it has a readable property');
@@ -33,7 +35,9 @@ test(() => {
   assert_equals(typeof readableStream.get, 'function', 'readable should have a getter');
   assert_equals(readableStream.set, undefined, 'readable should not have a setter');
   assert_true(readableStream.configurable, 'readable should be configurable');
-  assert_true(ts.writable instanceof WritableStream, 'writable is an instance of WritableStream');
+  assert_true(ts.readable instanceof ReadableStream, 'readable is an instance of ReadableStream');
+  assert_not_equals(ReadableStream.prototype.getReader.call(ts.readable), undefined,
+                    'readable should pass ReadableStream brand check');
 }, 'TransformStream instances must have writable and readable properties of the correct types');
 
 test(() => {
