@@ -177,4 +177,14 @@ test(() => {
   }), 'first error gets thrown');
 }, 'TransformStream throw in tricky readableStrategy.size');
 
+test(t => {
+  const ts = new TransformStream();
+  const writer = ts.writable.getWriter();
+  const closedPromise = writer.closed;
+  return Promise.all([
+    ts.readable.cancel(thrownError),
+    promise_rejects(t, new TypeError(), closedPromise, 'closed should throw a TypeError')
+  ]);
+}, 'cancelling the readable side should error the writable');
+
 done();
