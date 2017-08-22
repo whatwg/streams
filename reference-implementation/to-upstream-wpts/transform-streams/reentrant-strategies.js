@@ -50,7 +50,7 @@ promise_test(() => {
   }, undefined, {
     size() {
       // The readable queue is empty.
-      controller.close();
+      controller.terminate();
       // The readable state has gone from "readable" to "closed".
       return 1;
       // This chunk will be enqueued, but will be impossible to read because the state is already "closed".
@@ -63,7 +63,7 @@ promise_test(() => {
       .then(array => assert_array_equals(array, [], 'array should contain no chunks'));
   // The chunk 'a' is still in readable's queue. readable is closed so 'a' cannot be read. writable's queue is empty and
   // it is still writable.
-}, 'close() inside size() should work');
+}, 'terminate() inside size() should work');
 
 promise_test(t => {
   let controller;
@@ -141,7 +141,7 @@ promise_test(() => {
     return delay(0);
   }).then(() => {
     assert_array_equals(ws.events, ['write', 'a'], 'first chunk should have been written');
-    controller.close();
+    controller.terminate();
     return pipeToPromise;
   }).then(() => {
     assert_array_equals(ws.events, ['write', 'a', 'close'], 'target should have been closed');

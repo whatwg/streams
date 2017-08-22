@@ -375,11 +375,11 @@ promise_test(() => {
 test(() => {
   new TransformStream({
     start(controller) {
-      controller.close();
+      controller.terminate();
       assert_throws(new TypeError(), () => controller.enqueue(), 'enqueue should throw');
     }
   });
-}, 'enqueue() should throw after controller.close()');
+}, 'enqueue() should throw after controller.terminate()');
 
 promise_test(() => {
   let controller;
@@ -396,11 +396,11 @@ promise_test(() => {
 test(() => {
   new TransformStream({
     start(controller) {
-      controller.close();
-      assert_throws(new TypeError(), () => controller.close(), 'close should throw');
+      controller.terminate();
+      assert_throws(new TypeError(), () => controller.terminate(), 'terminate should throw');
     }
   });
-}, 'controller.close() should throw the second time it is called');
+}, 'controller.terminate() should throw the second time it is called');
 
 promise_test(() => {
   let controller;
@@ -410,9 +410,9 @@ promise_test(() => {
     }
   });
   const cancelPromise = ts.readable.cancel();
-  assert_throws(new TypeError(), () => controller.close(), 'close should throw');
+  assert_throws(new TypeError(), () => controller.terminate(), 'terminate should throw');
   return cancelPromise;
-}, 'close() should throw after readable.cancel()');
+}, 'terminate() should throw after readable.cancel()');
 
 promise_test(() => {
   let calls = 0;

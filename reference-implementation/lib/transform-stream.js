@@ -145,12 +145,12 @@ class TransformStreamDefaultController {
     TransformStreamDefaultControllerEnqueue(this, chunk);
   }
 
-  close() {
+  terminate() {
     if (IsTransformStreamDefaultController(this) === false) {
       throw defaultControllerBrandCheckException('close');
     }
 
-    TransformStreamDefaultControllerClose(this);
+    TransformStreamDefaultControllerTerminate(this);
   }
 
   error(reason) {
@@ -180,15 +180,22 @@ function IsTransformStreamDefaultController(x) {
   return true;
 }
 
-function TransformStreamDefaultControllerClose(controller) {
-  // console.log('TransformStreamDefaultControllerClose()');
+function TransformStreamDefaultControllerTerminate(controller) {
+  // console.log('TransformStreamDefaultControllerTerminate()');
 
-  const readableController = controller._controlledTransformStream._readable._readableStreamController;
+  const stream = controller._controlledTransformStream;
+  const readableController = stream._readable._readableStreamController;
   if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === false) {
     throw new TypeError('Readable side is not in a state that can be closed');
   }
 
   ReadableStreamDefaultControllerClose(readableController);
+  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController,
+                                               new TypeError('TransformStream terminated'));
+  if (stream._backpressure === true) {
+    // Permit any pending write() or start() calls to complete.
+    TransformStreamSetBackpressure(stream, false);
+  }
 }
 
 function TransformStreamDefaultControllerEnqueue(controller, chunk) {

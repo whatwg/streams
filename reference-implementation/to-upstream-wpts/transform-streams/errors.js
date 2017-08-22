@@ -183,7 +183,7 @@ promise_test(t => {
   const ts = new TransformStream({
     transform(chunk, controller) {
       controller.enqueue(chunk);
-      controller.close();
+      controller.terminate();
       throw thrownError;
     }
   }, undefined, { highWaterMark: 1 });
@@ -193,7 +193,7 @@ promise_test(t => {
     promise_rejects(t, thrownError, writePromise, 'write() should reject'),
     promise_rejects(t, thrownError, closedPromise, 'reader.closed should reject')
   ]);
-}, 'an exception from transform() should error the stream if close has been requested but not completed');
+}, 'an exception from transform() should error the stream if terminate has been requested but not completed');
 
 promise_test(t => {
   const ts = new TransformStream();
