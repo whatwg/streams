@@ -150,9 +150,7 @@ test(() => {
       c.enqueue('a');
     },
     transform() {}
-  }, {
-    readableStrategy: strategy
-  }), 'throws same error strategy.size throws');
+  }, undefined, strategy), 'throws same error strategy.size throws');
 }, 'TransformStream throw in readableStrategy.size');
 
 test(() => {
@@ -172,9 +170,7 @@ test(() => {
       c.enqueue('a');
     },
     transform() {}
-  }, {
-    readableStrategy: strategy
-  }), 'first error gets thrown');
+  }, undefined, strategy), 'first error gets thrown');
 }, 'TransformStream throw in tricky readableStrategy.size');
 
 done();

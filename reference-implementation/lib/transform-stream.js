@@ -9,7 +9,7 @@ const { WritableStream, WritableStreamDefaultControllerError } = require('./writ
 // Class TransformStream
 
 class TransformStream {
-  constructor(transformer = {}, { readableStrategy, writableStrategy } = {}) {
+  constructor(transformer = {}, writableStrategy = undefined, readableStrategy = undefined) {
     this._transformer = transformer;
 
     this._transforming = false;
