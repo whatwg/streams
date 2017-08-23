@@ -54,7 +54,7 @@ test(() => {
 test(() => {
   constructorThrowsForAll(TransformStreamDefaultController,
                           [fakeTS(), realTS(), realTSDefaultController(), undefined, null]);
-}, 'TransformStreamDefaultConstructor enforces a brand check and doesn\'t permit independant construction');
+}, 'TransformStreamDefaultConstructor enforces a brand check and doesn\'t permit independent construction');
 
 test(() => {
   getterThrowsForAll(TransformStreamDefaultController.prototype, 'desiredSize',
