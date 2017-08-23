@@ -53,8 +53,13 @@
     "add_completion_callback": false,
 
     "delay": true,
+    "constructorThrowsForAll": true,
     "flushAsyncEvents": true,
+    "getterThrowsForAll": true,
+    "getterRejectsForAll": true,
     "methodRejects": true,
+    "methodRejectsForAll": true,
+    "methodThrowsForAll": true,
     "readableStreamToArray": true,
     "recordingReadableStream": true,
     "recordingWritableStream": true,
