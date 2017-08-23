@@ -111,6 +111,8 @@ self.recordingTransformStream = (extras = {}, writableStrategy, readableStrategy
         return extras.transform(chunk, controller);
       }
 
+      controller.enqueue(chunk);
+
       return undefined;
     },
 
@@ -128,14 +130,5 @@ self.recordingTransformStream = (extras = {}, writableStrategy, readableStrategy
   stream.controller = controllerToCopyOver;
   stream.events = [];
 
-  return stream;
-};
-
-self.recordingIdentityTransformStream = (writableStrategy, readableStrategy) => {
-  const stream = self.recordingTransformStream({
-    transform(chunk, controller) {
-      controller.enqueue(chunk);
-    }
-  }, writableStrategy, readableStrategy);
   return stream;
 };

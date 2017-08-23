@@ -1,22 +1,32 @@
 'use strict';
 
 if (self.importScripts) {
-  self.importScripts('/resources/testharness.js', '../resources/recording-streams.js', '../resources/test-utils.js');
+  self.importScripts('/resources/testharness.js');
+  self.importScripts('../resources/recording-streams.js');
+  self.importScripts('../resources/test-utils.js');
 }
 
 promise_test(() => {
-  const ts = recordingIdentityTransformStream();
+  const ts = recordingTransformStream();
   const writer = ts.writable.getWriter();
+  // This call to write() never resolves, because it causes backpressure to occur on the readable side that is never
+  // resolved.
   writer.write('a');
+  // This call to write() never gets passed to the underlying sink because the previous call did not resolve.
   writer.write('b');
   return delay(0).then(() => {
     assert_array_equals(ts.events, ['transform', 'a'], 'transform should be called once');
   });
-}, 'transform() should be called once with default identity transform');
+}, 'backpressure only allows one transform() with a default identity transform and no reader');
 
 promise_test(() => {
   // Without a transform() implementation, recordingTransformStream() never enqueues anything.
-  const ts = recordingTransformStream();
+  const ts = recordingTransformStream({
+    transform() {
+      // Discard all chunks. As a result, the readable side is never full enough to exert backpressure and transform()
+      // keeps being called.
+    }
+  });
   const writer = ts.writable.getWriter();
   const writePromises = [];
   for (let i = 0; i < 4; ++i) {
@@ -59,7 +69,7 @@ promise_test(() => {
 }, 'writes should not resolve until backpressure clears');
 
 promise_test(() => {
-  const ts = new TransformStream({}, {}, { highWaterMark: 0 });
+  const ts = new TransformStream(undefined, undefined, { highWaterMark: 0 });
   const writer = ts.writable.getWriter();
   const reader = ts.readable.getReader();
   const readPromise = reader.read();
