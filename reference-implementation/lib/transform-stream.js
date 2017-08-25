@@ -46,7 +46,7 @@ class TransformStream {
     assert(this._writableController !== undefined);
     assert(this._readableController !== undefined);
 
-    TransformStreamSetBackpressure(this, ReadableStreamDefaultControllerHasBackpressure(this._readableController));
+    TransformStreamSetBackpressure(this, true);
 
     const transformStream = this;
     const startResult = InvokeOrNoop(transformer, 'start',
@@ -391,20 +391,7 @@ class TransformStreamDefaultSource {
 
     transformStream._readableController = c;
 
-    return this._startPromise.then(() => {
-      // Prevent the first pull() call until there is backpressure.
-
-      assert(transformStream._backpressureChangePromise !== undefined,
-             '_backpressureChangePromise should have been initialized');
-
-      if (transformStream._backpressure === true) {
-        return Promise.resolve();
-      }
-
-      assert(transformStream._backpressure === false, '_backpressure should have been initialized');
-
-      return transformStream._backpressureChangePromise;
-    });
+    return this._startPromise;
   }
 
   pull() {
