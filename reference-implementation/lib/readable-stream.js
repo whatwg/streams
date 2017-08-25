@@ -13,7 +13,6 @@ const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLo
 
 const CancelSteps = Symbol('[[CancelSteps]]');
 const PullSteps = Symbol('[[PullSteps]]');
-const HasBackpressure = Symbol('[[HasBackpressure]]');
 
 class ReadableStream {
   constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
@@ -276,7 +275,7 @@ module.exports = {
   ReadableStreamDefaultControllerEnqueue,
   ReadableStreamDefaultControllerError,
   ReadableStreamDefaultControllerGetDesiredSize,
-  HasBackpressure
+  ReadableStreamDefaultControllerHasBackpressure
 };
 
 // Abstract operations for the ReadableStream.
@@ -967,10 +966,6 @@ class ReadableStreamDefaultController {
     return PromiseInvokeOrNoop(this._underlyingSource, 'cancel', [reason]);
   }
 
-  [HasBackpressure]() {
-    return ReadableStreamDefaultControllerShouldCallPull(this) === false;
-  }
-
   [PullSteps]() {
     const stream = this._controlledReadableStream;
 
@@ -1145,6 +1140,15 @@ function ReadableStreamDefaultControllerGetDesiredSize(controller) {
   }
 
   return controller._strategyHWM - controller._queueTotalSize;
+}
+
+// This is used in the implementation of TransformStream.
+function ReadableStreamDefaultControllerHasBackpressure(controller) {
+  if (ReadableStreamDefaultControllerShouldCallPull(controller) === true) {
+    return false;
+  }
+
+  return true;
 }
 
 class ReadableStreamBYOBRequest {
@@ -1333,10 +1337,6 @@ class ReadableByteStreamController {
     ResetQueue(this);
 
     return PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
-  }
-
-  [HasBackpressure]() {
-    return ReadableByteStreamControllerShouldCallPull(this) === false;
   }
 
   [PullSteps]() {

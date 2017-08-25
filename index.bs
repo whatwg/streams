@@ -1618,16 +1618,6 @@ readable stream implementation will polymorphically call to either these or thei
   1. Return ! PromiseInvokeOrNoop(*this*.[[underlyingSource]], `"cancel"`, « _reason_ »)
 </emu-alg>
 
-<h5 id="rs-default-controller-private-has-backpressure">\[[HasBackpressure]]()</h5>
-
-<div class="note">
-  This method is used in the implementation of TransformStream.
-</div>
-
-<emu-alg>
-  1. If ! ReadableStreamDefaultControllerShouldCallPull(*this*) is *true*, return *false*.
-  1. Otherwise, return *true*.
-</emu-alg>
 
 <h5 id="rs-default-controller-private-pull">\[[PullSteps]]()</h5>
 
@@ -1779,6 +1769,18 @@ Specifications should <em>not</em> use this on streams they did not create.
   1. If _state_ is `"errored"`, return *null*.
   1. If _state_ is `"closed"`, return *0*.
   1. Return _controller_.[[strategyHWM]] − _controller_.[[queueTotalSize]].
+</emu-alg>
+
+<h4 id="rs-default-controller-has-backpressure" aoid="ReadableStreamDefaultControllerHasBackpressure"
+nothrow>ReadableStreamDefaultControllerHasBackpressure ( <var>controller</var> )</h4>
+
+<div class="note">
+  This method is used in the implementation of TransformStream.
+</div>
+
+<emu-alg>
+  1. If ! ReadableStreamDefaultControllerShouldCallPull(_controller_) is *true*, return *false*.
+  1. Otherwise, return *true*.
 </emu-alg>
 
 <h3 id="rbs-controller-class" interface lt="ReadableByteStreamController">Class
@@ -2008,17 +2010,6 @@ readable stream implementation will polymorphically call to either these or thei
     1. Set _firstDescriptor_.[[bytesFilled]] to *0*.
   1. Perform ! ResetQueue(*this*).
   1. Return ! PromiseInvokeOrNoop(*this*.[[underlyingByteSource]], `"cancel"`, « _reason_ »)
-</emu-alg>
-
-<h5 id="rbs-controller-private-has-backpressure">\[[HasBackpressure]]()</h5>
-
-<div class="note">
-  This method is used in the implementation of TransformStream.
-</div>
-
-<emu-alg>
-  1. If ! ReadableByteStreamControllerShouldCallPull(*this*) is *true*, return *false*.
-  1. Otherwise, return *true*.
 </emu-alg>
 
 <h5 id="rbs-controller-private-pull">\[[PullSteps]]()</h5>

@@ -1,9 +1,10 @@
 'use strict';
 const assert = require('assert');
 const { InvokeOrNoop, PromiseInvokeOrPerformFallback, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
-const { HasBackpressure, ReadableStream, ReadableStreamDefaultControllerClose,
+const { ReadableStream, ReadableStreamDefaultControllerClose,
         ReadableStreamDefaultControllerEnqueue, ReadableStreamDefaultControllerError,
-        ReadableStreamDefaultControllerGetDesiredSize } = require('./readable-stream.js');
+        ReadableStreamDefaultControllerGetDesiredSize,
+        ReadableStreamDefaultControllerHasBackpressure } = require('./readable-stream.js');
 const { WritableStream, WritableStreamDefaultControllerError } = require('./writable-stream.js');
 
 // Class TransformStream
@@ -45,7 +46,7 @@ class TransformStream {
     assert(this._writableController !== undefined);
     assert(this._readableController !== undefined);
 
-    TransformStreamSetBackpressure(this, this._readableController[HasBackpressure]());
+    TransformStreamSetBackpressure(this, ReadableStreamDefaultControllerHasBackpressure(this._readableController));
 
     const transformStream = this;
     const startResult = InvokeOrNoop(transformer, 'start',
@@ -151,9 +152,9 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
     throw transformStream._storedError;
   }
 
-  const backpressure = controller[HasBackpressure]();
+  const backpressure = ReadableStreamDefaultControllerHasBackpressure(controller);
   if (backpressure !== transformStream._backpressure) {
-    TransformStreamSetBackpressure(transformStream, controller[HasBackpressure]());
+    TransformStreamSetBackpressure(transformStream, backpressure);
   }
 }
 
