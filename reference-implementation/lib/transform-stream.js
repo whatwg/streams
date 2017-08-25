@@ -433,10 +433,10 @@ class TransformStreamDefaultSource {
     return transformStream._backpressureChangePromise;
   }
 
-  cancel() {
+  cancel(reason) {
     const transformStream = this._transformStream;
     transformStream._readableClosed = true;
-    TransformStreamErrorInternal(transformStream, new TypeError('Readable side canceled'));
+    TransformStreamErrorInternal(transformStream, reason);
   }
 }
 
