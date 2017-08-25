@@ -183,7 +183,7 @@ test(t => {
   const closedPromise = writer.closed;
   return Promise.all([
     ts.readable.cancel(thrownError),
-    promise_rejects(t, new TypeError(), closedPromise, 'closed should throw a TypeError')
+    promise_rejects(t, thrownError, closedPromise, 'closed should throw a TypeError')
   ]);
 }, 'cancelling the readable side should error the writable');
 
