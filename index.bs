@@ -8,12 +8,8 @@ Inline Github Issues: title
 Status: LS
 Boilerplate: omit conformance, omit feedback-header
 No Editor: true
-Abstract: This specification provides APIs for creating, composing, and consuming streams of data.
-Abstract: These streams are designed to map efficiently to low-level I/O primitives, and allow easy
-Abstract: composition with built-in backpressure and queuing. On top of streams, the web platform can
-Abstract: build higher-level abstractions, such as filesystem or socket APIs, while at the same time
-Abstract: users can use the supplied tools to build their own streams which integrate well with those
-Abstract: of the web platform.
+Abstract: This specification provides APIs for creating, composing, and consuming streams of data that map efficiently
+Abstract: to low-level I/O primitives.
 Logo: https://resources.whatwg.org/logo-streams.svg
 !Participate: <a href="https://github.com/whatwg/streams">GitHub whatwg/streams</a> (<a href="https://github.com/whatwg/streams/issues/new">new issue</a>, <a href="https://github.com/whatwg/streams/issues">open issues</a>)
 !Participate: <a href="https://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
@@ -68,32 +64,40 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
 
 <em>This section is non-normative.</em>
 
+<div class="non-normative">
+
 Large swathes of the web platform are built on streaming data: that is, data that is created, processed, and consumed
 in an incremental fashion, without ever reading all of it into memory. The Streams Standard provides a common set of
 APIs for creating and interfacing with such streaming data, embodied in <a>readable streams</a>,
 <a>writable streams</a>, and <a>transform streams</a>.
 
+These APIs have been designed to efficiently map to low-level I/O primitives, including specializations for byte streams
+where appropriate. They allow easy composition of multiple streams into <a>pipe chains</a>, or can be used directly via
+<a>readers</a> and <a>writers</a>. Finally, they are designed to automatically provide <a>backpressure</a> and queuing.
+
 This standard provides the base stream primitives which other parts of the web platform can use to expose their
-streaming data. For example, [[FETCH]] could expose request bodies as a writable stream, or response bodies as a
-readable stream. More generally, the platform is full of streaming abstractions waiting to be expressed as streams:
-multimedia streams, file streams, interprocess communication, and more benefit from being able to process data
-incrementally instead of buffering it all into memory and processing it in one go. By providing the foundation for
-these streams to be exposed to developers, the Streams Standard enables use cases like:
+streaming data. For example, [[FETCH]] exposes {{Response}} bodies as {{ReadableStream}} instances. More generally, the
+platform is full of streaming abstractions waiting to be expressed as streams: multimedia streams, file streams,
+inter-global communication, and more benefit from being able to process data incrementally instead of buffering it all
+into memory and processing it in one go. By providing the foundation for these streams to be exposed to developers, the
+Streams Standard enables use cases like:
 
 <ul>
   <li> Video effects: piping a readable video stream through a transform stream that applies effects in real time.
   <li> Decompression: piping a file stream through a transform stream that selectively decompresses files from a
-    <kbd>.tgz</kbd> archive, turning them into <code>img</code> elements as the user scrolls through an image gallery.
+    <kbd>.tgz</kbd> archive, turning them into <{img}> elements as the user scrolls through an image gallery.
   <li> Image decoding: piping an HTTP response stream through a transform stream that decodes bytes into bitmap data,
-    and then through another transform that translates bitmaps into PNGs. If installed inside the <code>fetch</code>
-    hook of a service worker [[SERVICE-WORKERS]], this would allow developers to transparently polyfill new image
-    formats.
+    and then through another transform that translates bitmaps into PNGs. If installed inside the
+    {{ServiceWorkerGlobalScope/fetch}} hook of a service worker, this would allow developers to
+    transparently polyfill new image formats. [[SERVICE-WORKERS]]
 </ul>
 
-The APIs described here provide unifying abstraction for all such streams, encouraging an ecosystem to grow around
-these shared and composable interfaces. At the same time, they have been carefully designed to map efficiently to
-low-level I/O concerns, and to encapsulate the trickier issues (such as <a>backpressure</a>) that come along for the
-ride.
+Web developers can also use the APIs described here to create their own streams, with the same APIs as those provided by
+the platform. Other developers can then transparently compose platform-provided streams with those supplied by
+libraries. In this way, the APIs described here provide unifying abstraction for all streams, encouraging an
+ecosystem to grow around these shared and composable interfaces.
+
+</div>
 
 <h2 id="model">Model</h2>
 
@@ -105,7 +109,7 @@ bytes.
 <h3 id="rs-model">Readable Streams</h3>
 
 A <dfn>readable stream</dfn> represents a source of data, from which you can read. In other words, data comes
-<em>out</em> of a readable stream.
+<em>out</em> of a readable stream. Concretely, a readable stream is an instance of the {{ReadableStream}} class.
 
 Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O source,
 called the <dfn>underlying source</dfn>. There are two types of underlying source: push sources and pull sources.
@@ -118,49 +122,64 @@ constantly being pushed from the OS level, at a rate that can be controlled by c
 synchronously, e.g. if it is held by the operating system's in-memory buffers, or asynchronously, e.g. if it has to be
 read from disk. An example pull source is a file handle, where you seek to specific locations and read specific amounts.
 
-Readable streams are designed to wrap both types of sources behind a single, unified interface.
+Readable streams are designed to wrap both types of sources behind a single, unified interface. The implementation
+details of a source are provided by an object containing certain methods and properties that is passed to the
+{{ReadableStream()}} constructor.
 
 <a>Chunks</a> are enqueued into the stream by the stream's <a>underlying source</a>. They can then be read one at a
-time via the stream's public interface.
+time via the stream's public interface, in particular by using a <a>readable stream reader</a> acquired using the
+stream's {{ReadableStream/getReader()}} method.
 
 Code that reads from a readable stream using its public interface is known as a <dfn>consumer</dfn>.
 
-Consumers also have the ability to <dfn lt="cancel a readable stream">cancel</dfn> a readable stream. This indicates
-that the consumer has lost interest in the stream, and will immediately close the stream, throw away any queued
-<a>chunks</a>, and execute any cancellation mechanism of the <a>underlying source</a>.
+Consumers also have the ability to <dfn lt="cancel a readable stream">cancel</dfn> a readable stream, using its
+{{ReadableStream/cancel()}} method. This indicates that the consumer has lost interest in the stream, and will
+immediately close the stream, throw away any queued <a>chunks</a>, and execute any cancellation mechanism of the
+<a>underlying source</a>.
 
-Consumers can also <dfn lt="tee a readable stream">tee</dfn> a readable stream. This will
-<a lt="locked to a reader">lock</a> the stream, making it no longer directly usable; however, it will create two new
-streams, called <dfn lt="branches of a readable stream tee">branches</dfn>, which can be consumed independently.
+Consumers can also <dfn lt="tee a readable stream">tee</dfn> a readable stream using its {{ReadableStream/tee()}}
+method. This will <a lt="locked to a reader">lock</a> the stream, making it no longer directly usable; however, it will
+create two new streams, called <dfn lt="branches of a readable stream tee">branches</dfn>, which can be consumed
+independently.
 
 For streams representing bytes, an extended version of the <a>readable stream</a> is provided to handle bytes
 efficiently, in particular by minimizing copies. The <a>underlying source</a> for such a readable stream is called
 a <dfn>underlying byte source</dfn>. A readable stream whose underlying source is an underlying byte source is sometimes
-called a <dfn>readable byte stream</dfn>.
+called a <dfn>readable byte stream</dfn>. Consumers of a readable byte stream can acquire a <a>BYOB reader</a> using
+the stream's {{ReadableStream/getReader()}} method.
 
 <h3 id="ws-model">Writable Streams</h3>
 
 A <dfn>writable stream</dfn> represents a destination for data, into which you can write. In other words, data goes
-<em>in</em> to a writable stream.
+<em>in</em> to a writable stream. Concretely, a writable stream is an instance of the {{WritableStream}} class.
 
 Analogously to readable streams, most writable streams wrap a lower-level I/O sink, called the
 <dfn>underlying sink</dfn>. Writable streams work to abstract away some of the complexity of the underlying sink, by
 queuing subsequent writes and only delivering them to the underlying sink one by one.
 
 <a>Chunks</a> are written to the stream via its public interface, and are passed one at a time to the stream's
-<a>underlying sink</a>.
+<a>underlying sink</a>. The implementation details of the sink are provided by an object containing certain methods that
+is passed to the {{WritableStream()}} constructor.
 
 Code that writes into a writable stream using its public interface is known as a <dfn>producer</dfn>.
 
-Producers also have the ability to <dfn lt="abort a writable stream">abort</dfn> a writable stream. This indicates that
-the producer believes something has gone wrong, and that future writes should be discontinued. It puts the stream in an
-errored state, even without a signal from the <a>underlying sink</a>.
+Producers also have the ability to <dfn lt="abort a writable stream">abort</dfn> a writable stream, using its
+{{WritableStream/abort()}} method. This indicates that the producer believes something has gone wrong, and that future
+writes should be discontinued. It puts the stream in an errored state, even without a signal from the <a>underlying
+sink</a>.
 
 <h3 id="ts-model">Transform Streams</h3>
 
+<p class="warning">Transform streams are not yet fully developed. We are iterating on their design using a JavaScript
+reference implementation and test suite; you can follow that work <a
+href="https://github.com/whatwg/streams/labels/transform%20streams">on the issue tracker</a>. Until then, this section
+gives a brief overview of their intended design, even though the details of their API is not yet determined.</p>
+
 A <dfn>transform stream</dfn> consists of a pair of streams: a writable stream, and a readable stream.
 In a manner specific to the transform stream in question, writes to the writable side result in new data being made
-available for reading from the readable side.
+available for reading from the readable side. Concretely, any object with a <code>writable</code> property and a
+<code>readable</code> property can serve as a transform stream. However, we plan to provide a
+<code>TransformStream</code> class which makes it much easier to create such a pair that is properly entangled.
 
 Some examples of transform streams include:
 
@@ -175,24 +194,25 @@ Some examples of transform streams include:
 <h3 id="pipe-chains">Pipe Chains and Backpressure</h3>
 
 Streams are primarily used by <dfn>piping</dfn> them to each other. A readable stream can be piped directly to a
-writable stream, or it can be piped through one or more transform streams first.
+writable stream, using its {{ReadableStream/pipeTo()}} method, or it can be piped through one or more transform streams
+first, using its {{ReadableStream/pipeThrough()}} method.
 
 A set of streams piped together in this way is referred to as a <dfn>pipe chain</dfn>. In a pipe chain, the
 <dfn>original source</dfn> is the <a>underlying source</a> of the first readable stream in the chain; the
 <dfn>ultimate sink</dfn> is the <a>underlying sink</a> of the final writable stream in the chain.
 
-Once a pipe chain is constructed, it can be used to propagate signals regarding how fast <a>chunks</a> should flow
-through it. If any step in the chain cannot yet accept chunks, it propagates a signal backwards through the pipe chain,
-until eventually the original source is told to stop producing chunks so fast. This process of normalizing flow from
-the original source according to how fast the chain can process chunks is called <dfn>backpressure</dfn>.
+Once a pipe chain is constructed, it will propagate signals regarding how fast <a>chunks</a> should flow through it. If
+any step in the chain cannot yet accept chunks, it propagates a signal backwards through the pipe chain, until
+eventually the original source is told to stop producing chunks so fast. This process of normalizing flow from the
+original source according to how fast the chain can process chunks is called <dfn>backpressure</dfn>.
 
 When <a lt="tee a readable stream">teeing</a> a readable stream, the <a>backpressure</a> signals from its two
 <a lt="branches of a readable stream tee">branches</a> will aggregate, such that if neither branch is read from, a
 backpressure signal will be sent to the <a>underlying source</a> of the original stream.
 
-<!-- TODO when we have writable stream writers
-Piping a readable stream <a href="locked to a reader">locks</a> the readable stream, preventing it from being accessed
--->
+Piping <a>locks</a> the readable and writable streams, preventing them from being manipulated for the duration of the
+pipe operation. This allows the implementation to perform important optimizations, such as directly shuttling data from
+the underlying source to the underlying sink while bypassing many of the intermediate queues.
 
 <h3 id="queuing-strategies">Internal Queues and Queuing Strategies</h3>
 
@@ -212,36 +232,48 @@ For readable streams, an underlying source can use this desired size as a backpr
 generation so as to try to keep the desired size above or at zero. For writable streams, a producer can behave
 similarly, avoiding writes that would cause the desired size to go negative.
 
+Concretely, a queueing strategy is given by any JavaScript object with a <code>highWaterMark</code> property and a
+<code>size()</code> method. <!-- TODO: https://github.com/whatwg/streams/issues/427 -->
+
 <div class="example" id="example-simple-queuing-strategy">
   A simple example of a queuing strategy would be one that assigns a size of one to each chunk, and has a high water
   mark of three. This would mean that up to three chunks could be enqueued in a readable stream, or three chunks
   written to a writable stream, before the streams are considered to be applying backpressure.
+
+  In JavaScript, such a strategy could be written manually as <code>{ highWaterMark: 3, size() { return 1; }}</code>,
+  or using the built-in {{CountQueuingStrategy}} class, as <code>new CountQueuingStrategy({ highWaterMark: 3 })</code>.
 </div>
 
 <h3 id="locking">Locking</h3>
 
-A <dfn>readable stream reader</dfn>, or simply reader, is an object that allows direct reading of <a>chunks</a> from a
-<a>readable stream</a>. Without a reader, a <a>consumer</a> can only perform high-level operations on the readable
-stream: <a lt="cancel a readable stream">canceling</a> the stream, or <a>piping</a> the readable stream to a writable
-stream.
-
-Similarly, a <dfn>writable stream writer</dfn>, or simply writer, is an object that allows direct writing of
-<a>chunks</a> to a <a>writable stream</a>. Without a writer, a <a>producer</a> can only perform the high-level
-operations of <a lt="abort a writable stream">aborting</a> the stream or <a>piping</a> a readable stream to the writable
-stream.
-
-(Under the covers, these high-level operations actually use a reader or writer themselves.)
-
-A given readable or writable stream only has at most one reader or writer at a time. We say in this case the stream is
-<dfn lt="locked to a reader|locked to a writer">locked</dfn>, and that the reader or writer is <dfn
-lt="active|active reader|active writer">active</dfn>.
-
-A reader or writer also has the capability to <dfn lt="release a lock|release a read lock|release a write lock">release
-its lock</dfn>, which makes it no longer active, and allows further readers or writers to be acquired.
+A <dfn lt="reader|readable stream reader">readable stream reader</dfn>, or simply reader, is an object that allows
+direct reading of <a>chunks</a> from a <a>readable stream</a>. Without a reader, a <a>consumer</a> can only perform
+high-level operations on the readable stream: <a lt="cancel a readable stream">canceling</a> the stream, or
+<a>piping</a> the readable stream to a writable stream. A reader is acquired via the stream's
+{{ReadableStream/getReader()}} method.
 
 A <a>readable byte stream</a> has the ability to vend two types of readers: <dfn>default readers</dfn> and <dfn>BYOB
 readers</dfn>. BYOB ("bring your own buffer") readers allow reading into a developer-supplied buffer, thus minimizing
-copies.
+copies. A non-byte readable stream can only vend default readers. Default readers are instances of the
+{{ReadableStreamDefaultReader}} class, while BYOB readers are instances of {{ReadableStreamBYOBReader}}.
+
+Similarly, a <dfn lt="writer|writable stream writer">writable stream writer</dfn>, or simply writer, is an object that
+allows direct writing of <a>chunks</a> to a <a>writable stream</a>. Without a writer, a <a>producer</a> can only perform
+the high-level operations of <a lt="abort a writable stream">aborting</a> the stream or <a>piping</a> a readable stream
+to the writable stream. Writers are represented by the {{WritableStreamDefaultWriter}} class.
+
+<p class="note">Under the covers, these high-level operations actually use a reader or writer themselves.</p>
+
+A given readable or writable stream only has at most one reader or writer at a time. We say in this case the stream is
+<dfn lt="lock|locked to a reader|locked to a writer">locked</dfn>, and that the reader or writer is <dfn
+lt="active|active reader|active writer">active</dfn>. This state can be determined using the
+{{ReadableStream/locked|readableStream.locked}} or {{WritableStream/locked|writableStream.locked}} properties.
+
+A reader or writer also has the capability to <dfn lt="release a lock|release a read lock|release a write lock">release
+its lock</dfn>, which makes it no longer active, and allows further readers or writers to be acquired. This is done via
+the {{ReadableStreamDefaultReader/releaseLock()|defaultReader.releaseLock()}},
+{{ReadableStreamBYOBReader/releaseLock()|byobReader.releaseLock()}}, or
+{{WritableStreamDefaultWriter/releaseLock()|writer.releaseLock()}} method, as appropriate.
 
 <h2 id="rs">Readable Streams</h2>
 
@@ -282,9 +314,9 @@ copies.
 </div>
 
 <div class="example" id="example-manual-read">
-  Although readable streams will usually be used by piping them to a writable stream, you can also read them directly
-  by acquiring a <a lt="readable stream reader">reader</a> and using its <code>read()</code> method to get successive
-  chunks. For example, this code logs the next <a>chunk</a> in the stream, if available:
+  Although readable streams will usually be used by piping them to a writable stream, you can also read them directly by
+  acquiring a <a>reader</a> and using its <code>read()</code> method to get successive chunks. For example, this code
+  logs the next <a>chunk</a> in the stream, if available:
 
   <pre><code class="lang-javascript">
     const reader = readableStream.getReader();
@@ -2522,7 +2554,7 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
 </div>
 
 <div class="example" id="example-manual-write-batch">
-  You can also write directly to writable streams by acquiring a <a lt="writable stream writer">writer</a> and using its
+  You can also write directly to writable streams by acquiring a <a>writer</a> and using its
   {{WritableStreamDefaultWriter/write()}} and {{WritableStreamDefaultWriter/close()}} methods. Since writable streams
   queue any incoming writes, and take care internally to forward them to the <a>underlying sink</a> in sequence, you can
   indiscriminately write to a writable stream without much ceremony:
@@ -2756,9 +2788,9 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
 <h5 id="ws-get-writer" method for="WritableStream">getWriter()</h5>
 
 <div class="note">
-  The <code>getWriter</code> method creates a <a lt="writable stream writer">writer</a> (an instance of
-  {{WritableStreamDefaultWriter}}) and <a lt="locked to a writer">locks</a> the stream to the new writer. While the
-  stream is locked, no other writer can be acquired until this one is <a lt="release a write lock">released</a>.
+  The <code>getWriter</code> method creates a <a>writer</a> (an instance of {{WritableStreamDefaultWriter}}) and <a
+  lt="locked to a writer">locks</a> the stream to the new writer. While the stream is locked, no other writer can be
+  acquired until this one is <a lt="release a write lock">released</a>.
 
   This functionality is especially useful for creating abstractions that desire the ability to write to a stream without
   interruption or interleaving. By getting a writer for the stream, you can ensure nobody else can write at the same
@@ -4226,7 +4258,7 @@ The following function returns a <a>writable stream</a> that wraps a {{WebSocket
 any way to tell when a given chunk of data has been successfully sent (without awkward polling of
 {{WebSocket/bufferedAmount}}, which we leave as an exercise to the reader). As such, this writable stream has no ability
 to communicate accurate <a>backpressure</a> signals or write success/failure to its <a>producers</a>. That is, the
-promises returned by its <a lt="writable stream writer">writer</a>'s {{WritableStreamDefaultWriter/write()}} method and
+promises returned by its <a>writer</a>'s {{WritableStreamDefaultWriter/write()}} method and
 {{WritableStreamDefaultWriter/ready}} getter will always fulfill immediately.
 
 <pre><code class="lang-javascript">
