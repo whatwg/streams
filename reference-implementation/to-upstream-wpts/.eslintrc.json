@@ -62,6 +62,7 @@
     "methodThrowsForAll": true,
     "readableStreamToArray": true,
     "recordingReadableStream": true,
+    "recordingTransformStream": true,
     "recordingWritableStream": true,
     "sequentialReadableStream": true
   }
