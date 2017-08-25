@@ -1618,7 +1618,6 @@ readable stream implementation will polymorphically call to either these or thei
   1. Return ! PromiseInvokeOrNoop(*this*.[[underlyingSource]], `"cancel"`, « _reason_ »)
 </emu-alg>
 
-
 <h5 id="rs-default-controller-private-pull">\[[PullSteps]]()</h5>
 
 <emu-alg>
