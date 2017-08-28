@@ -1770,6 +1770,18 @@ Specifications should <em>not</em> use this on streams they did not create.
   1. Return _controller_.[[strategyHWM]] − _controller_.[[queueTotalSize]].
 </emu-alg>
 
+<h4 id="rs-default-controller-has-backpressure" aoid="ReadableStreamDefaultControllerHasBackpressure"
+nothrow>ReadableStreamDefaultControllerHasBackpressure ( <var>controller</var> )</h4>
+
+<div class="note">
+  This method is used in the implementation of TransformStream.
+</div>
+
+<emu-alg>
+  1. If ! ReadableStreamDefaultControllerShouldCallPull(_controller_) is *true*, return *false*.
+  1. Otherwise, return *true*.
+</emu-alg>
+
 <h3 id="rbs-controller-class" interface lt="ReadableByteStreamController">Class
 <code>ReadableByteStreamController</code></h3>
 

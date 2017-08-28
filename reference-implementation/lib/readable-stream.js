@@ -274,7 +274,8 @@ module.exports = {
   ReadableStreamDefaultControllerClose,
   ReadableStreamDefaultControllerEnqueue,
   ReadableStreamDefaultControllerError,
-  ReadableStreamDefaultControllerGetDesiredSize
+  ReadableStreamDefaultControllerGetDesiredSize,
+  ReadableStreamDefaultControllerHasBackpressure
 };
 
 // Abstract operations for the ReadableStream.
@@ -1139,6 +1140,15 @@ function ReadableStreamDefaultControllerGetDesiredSize(controller) {
   }
 
   return controller._strategyHWM - controller._queueTotalSize;
+}
+
+// This is used in the implementation of TransformStream.
+function ReadableStreamDefaultControllerHasBackpressure(controller) {
+  if (ReadableStreamDefaultControllerShouldCallPull(controller) === true) {
+    return false;
+  }
+
+  return true;
 }
 
 class ReadableStreamBYOBRequest {

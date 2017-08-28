@@ -3,7 +3,8 @@ const assert = require('assert');
 const { InvokeOrNoop, PromiseInvokeOrPerformFallback, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
 const { ReadableStream, ReadableStreamDefaultControllerClose,
         ReadableStreamDefaultControllerEnqueue, ReadableStreamDefaultControllerError,
-        ReadableStreamDefaultControllerGetDesiredSize } = require('./readable-stream.js');
+        ReadableStreamDefaultControllerGetDesiredSize,
+        ReadableStreamDefaultControllerHasBackpressure } = require('./readable-stream.js');
 const { WritableStream, WritableStreamDefaultControllerError } = require('./writable-stream.js');
 
 // Class TransformStream
@@ -45,10 +46,7 @@ class TransformStream {
     assert(this._writableController !== undefined);
     assert(this._readableController !== undefined);
 
-    const desiredSize = ReadableStreamDefaultControllerGetDesiredSize(this._readableController);
-    // Set _backpressure based on desiredSize. As there is no read() at this point, we can just interpret
-    // desiredSize being non-positive as backpressure.
-    TransformStreamSetBackpressure(this, desiredSize <= 0);
+    TransformStreamSetBackpressure(this, true);
 
     const transformStream = this;
     const startResult = InvokeOrNoop(transformer, 'start',
@@ -154,16 +152,9 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
     throw transformStream._storedError;
   }
 
-  const desiredSize = ReadableStreamDefaultControllerGetDesiredSize(controller);
-  const maybeBackpressure = desiredSize <= 0;
-
-  if (maybeBackpressure === true && transformStream._backpressure === false) {
-    // This allows pull() again. When desiredSize is 0, it's possible that a pull() will happen immediately (but
-    // asynchronously) after this because of pending read()s and set _backpressure back to false.
-    //
-    // If pull() could be called from inside enqueue(), then this logic would be wrong. This cannot happen
-    // because there is always a promise pending from start() or pull() when _backpressure is false.
-    TransformStreamSetBackpressure(transformStream, true);
+  const backpressure = ReadableStreamDefaultControllerHasBackpressure(controller);
+  if (backpressure !== transformStream._backpressure) {
+    TransformStreamSetBackpressure(transformStream, backpressure);
   }
 }
 
@@ -400,20 +391,7 @@ class TransformStreamDefaultSource {
 
     transformStream._readableController = c;
 
-    return this._startPromise.then(() => {
-      // Prevent the first pull() call until there is backpressure.
-
-      assert(transformStream._backpressureChangePromise !== undefined,
-             '_backpressureChangePromise should have been initialized');
-
-      if (transformStream._backpressure === true) {
-        return Promise.resolve();
-      }
-
-      assert(transformStream._backpressure === false, '_backpressure should have been initialized');
-
-      return transformStream._backpressureChangePromise;
-    });
+    return this._startPromise;
   }
 
   pull() {
