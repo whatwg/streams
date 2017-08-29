@@ -62,9 +62,9 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
 
 <h2 id="intro">Introduction</h2>
 
-<em>This section is non-normative.</em>
-
 <div class="non-normative">
+
+<em>This section is non-normative.</em>
 
 Large swathes of the web platform are built on streaming data: that is, data that is created, processed, and consumed
 in an incremental fashion, without ever reading all of it into memory. The Streams Standard provides a common set of
@@ -411,27 +411,29 @@ Instances of {{ReadableStream}} are created with the internal slots described in
   </thead>
   <tr>
     <td>\[[disturbed]]
-    <td>A boolean flag set to <emu-val>true</emu-val> when the stream has been read from or canceled
+    <td class="non-normative">A boolean flag set to <emu-val>true</emu-val> when the stream has been read from or
+      canceled
   </tr>
   <tr>
     <td>\[[readableStreamController]]
-    <td>A {{ReadableStreamDefaultController}} or {{ReadableByteStreamController}} created with the ability to control
-    the state and queue of this stream; also used for the IsReadableStream brand check
+    <td class="non-normative">A {{ReadableStreamDefaultController}} or {{ReadableByteStreamController}} created with
+    the ability to control the state and queue of this stream; also used for the <a
+    href="#is-readable-stream">IsReadableStream</a> brand check
   </tr>
   <tr>
     <td>\[[reader]]
-    <td>A {{ReadableStreamDefaultReader}} or {{ReadableStreamBYOBReader}} instance, if the stream is <a>locked to a
-      reader</a>, or <emu-val>undefined</emu-val> if it is not
+    <td class="non-normative">A {{ReadableStreamDefaultReader}} or {{ReadableStreamBYOBReader}} instance, if the stream
+      is <a>locked to a reader</a>, or <emu-val>undefined</emu-val> if it is not
   </tr>
   <tr>
     <td>\[[state]]
-    <td>A string containing the stream's current state, used internally; one of <code>"readable"</code>,
-      <code>"closed"</code>, or <code>"errored"</code>
+    <td class="non-normative">A string containing the stream's current state, used internally; one of
+      <code>"readable"</code>, <code>"closed"</code>, or <code>"errored"</code>
   </tr>
   <tr>
     <td>\[[storedError]]
-    <td>A value indicating how the stream failed, to be given as a failure reason or exception when trying to operate
-      on an errored stream
+    <td class="non-normative">A value indicating how the stream failed, to be given as a failure reason or exception
+      when trying to operate on an errored stream
   </tr>
 </table>
 
@@ -1110,6 +1112,8 @@ The {{ReadableStreamDefaultReader}} class represents a <a>default reader</a> des
 
 <h4 id="default-reader-class-definition">Class Definition</h4>
 
+<div class="non-normative">
+
 <em>This section is non-normative.</em>
 
 If one were to write the {{ReadableStreamDefaultReader}} class in something close to the syntax of [[!ECMASCRIPT]], it
@@ -1127,6 +1131,8 @@ would look like
   }
 </code></pre>
 
+</div>
+
 <h4 id="default-reader-internal-slots">Internal Slots</h4>
 
 Instances of {{ReadableStreamDefaultReader}} are created with the internal slots described in the following table:
@@ -1140,17 +1146,18 @@ Instances of {{ReadableStreamDefaultReader}} are created with the internal slots
   </thead>
   <tr>
     <td>\[[closedPromise]]
-    <td>A promise returned by the reader's {{ReadableStreamDefaultReader/closed}} getter
+    <td class="non-normative">A promise returned by the reader's {{ReadableStreamDefaultReader/closed}} getter
   </tr>
   <tr>
     <td>\[[ownerReadableStream]]
-    <td>A {{ReadableStream}} instance that owns this reader
+    <td class="non-normative">A {{ReadableStream}} instance that owns this reader
   </tr>
   <tr>
     <td>\[[readRequests]]
-    <td>A List of promises returned by calls to the reader's {{ReadableStreamDefaultReader/read()}} method that have
-      not yet been resolved, due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available; also
-      used for the <a href="#is-readable-stream-default-reader">IsReadableStreamDefaultReader</a> brand check
+    <td class="non-normative">A List of promises returned by calls to the reader's
+      {{ReadableStreamDefaultReader/read()}} method that have not yet been resolved, due to the <a>consumer</a>
+      requesting <a>chunks</a> sooner than they are available; also used for the <a
+      href="#is-readable-stream-default-reader">IsReadableStreamDefaultReader</a> brand check
   </tr>
 </table>
 
@@ -1246,6 +1253,8 @@ instance.
 
 <h4 id="byob-reader-class-definition">Class Definition</h4>
 
+<div class="non-normative">
+
 <em>This section is non-normative.</em>
 
 If one were to write the {{ReadableStreamBYOBReader}} class in something close to the syntax of [[!ECMASCRIPT]], it
@@ -1263,6 +1272,8 @@ would look like
   }
 </code></pre>
 
+</div>
+
 <h4 id="byob-reader-internal-slots">Internal Slots</h4>
 
 Instances of {{ReadableStreamBYOBReader}} are created with the internal slots described in the following table:
@@ -1276,17 +1287,18 @@ Instances of {{ReadableStreamBYOBReader}} are created with the internal slots de
   </thead>
   <tr>
     <td>\[[closedPromise]]
-    <td>A promise returned by the reader's {{ReadableStreamBYOBReader/closed}} getter
+    <td class="non-normative">A promise returned by the reader's {{ReadableStreamBYOBReader/closed}} getter
   </tr>
   <tr>
     <td>\[[ownerReadableStream]]
-    <td>A {{ReadableStream}} instance that owns this reader
+    <td class="non-normative">A {{ReadableStream}} instance that owns this reader
   </tr>
   <tr>
     <td>\[[readIntoRequests]]
-    <td>A List of promises returned by calls to the reader's {{ReadableStreamBYOBReader/read(view)}} method that have
-      not yet been resolved, due to the <a>consumer</a> requesting <a>chunks</a> sooner than they are available; also
-      used for the <a href="#is-readable-stream-byob-reader">IsReadableStreamBYOBReader</a> brand check
+    <td class="non-normative">A List of promises returned by calls to the reader's
+      {{ReadableStreamBYOBReader/read(view)}} method that have not yet been resolved, due to the <a>consumer</a>
+      requesting <a>chunks</a> sooner than they are available; also used for the <a
+      href="#is-readable-stream-byob-reader">IsReadableStreamBYOBReader</a> brand check
   </tr>
 </table>
 
@@ -1472,6 +1484,8 @@ The {{ReadableStreamDefaultController}} class has methods that allow control of 
 
 <h4 id="rs-default-controller-class-definition">Class Definition</h4>
 
+<div class="non-normative">
+
 <em>This section is non-normative.</em>
 
 If one were to write the {{ReadableStreamDefaultController}} class in something close to the syntax of [[!ECMASCRIPT]],
@@ -1489,6 +1503,8 @@ it would look like
   }
 </code></pre>
 
+</div>
+
 <h4 id="rs-default-controller-internal-slots">Internal Slots</h4>
 
 Instances of {{ReadableStreamDefaultController}} are created with the internal slots described in the following table:
@@ -1502,50 +1518,50 @@ Instances of {{ReadableStreamDefaultController}} are created with the internal s
   </thead>
   <tr>
     <td>\[[closeRequested]]
-    <td>A boolean flag indicating whether the stream has been closed by its <a>underlying source</a>, but still has
-      <a>chunks</a> in its internal queue that have not yet been read
+    <td class="non-normative">A boolean flag indicating whether the stream has been closed by its <a>underlying
+      source</a>, but still has <a>chunks</a> in its internal queue that have not yet been read
   </tr>
   <tr>
     <td>\[[controlledReadableStream]]
-    <td>The {{ReadableStream}} instance controlled
+    <td class="non-normative">The {{ReadableStream}} instance controlled
   </tr>
   <tr>
     <td>\[[pullAgain]]
-    <td>A boolean flag set to <emu-val>true</emu-val> if the stream's mechanisms requested a call to the underlying
-      source's <code>pull</code> method to pull more data, but the pull could not yet be done since a previous call is
-      still executing
+    <td class="non-normative">A boolean flag set to <emu-val>true</emu-val> if the stream's mechanisms requested a call
+      to the underlying source's <code>pull</code> method to pull more data, but the pull could not yet be done since a
+      previous call is still executing
   </tr>
   <tr>
     <td>\[[pulling]]
-    <td>A boolean flag set to <emu-val>true</emu-val> while the <a>underlying source</a>'s <code>pull</code> method is
-      executing and has not yet fulfilled, used to prevent reentrant calls
+    <td class="non-normative">A boolean flag set to <emu-val>true</emu-val> while the <a>underlying source</a>'s
+      <code>pull</code> method is executing and has not yet fulfilled, used to prevent reentrant calls
   </tr>
   <tr>
     <td>\[[queue]]
-    <td>A List representing the stream's internal queue of <a>chunks</a>
+    <td class="non-normative">A List representing the stream's internal queue of <a>chunks</a>
   </tr>
   <tr>
     <td>\[[queueTotalSize]]
-    <td>The total size of all the chunks stored in \[[queue]] (see [[#queue-with-sizes]])
+    <td class="non-normative">The total size of all the chunks stored in \[[queue]] (see [[#queue-with-sizes]])
   </tr>
   <tr>
     <td>\[[started]]
-    <td>A boolean flag indicating whether the <a>underlying source</a> has finished starting
+    <td class="non-normative">A boolean flag indicating whether the <a>underlying source</a> has finished starting
   </tr>
   <tr>
     <td>\[[strategyHWM]]
-    <td>A number supplied to the constructor as part of the stream's <a>queuing strategy</a>, indicating the point at
-      which the stream will apply <a>backpressure</a> to its <a>underlying source</a>
+    <td class="non-normative">A number supplied to the constructor as part of the stream's <a>queuing strategy</a>,
+      indicating the point at which the stream will apply <a>backpressure</a> to its <a>underlying source</a>
   </tr>
   <tr>
     <td>\[[strategySize]]
-    <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
-      the size of enqueued <a>chunks</a>; can be <emu-val>undefined</emu-val> for the default behavior
+    <td class="non-normative">A function supplied to the constructor as part of the stream's <a>queuing strategy</a>,
+      designed to calculate the size of enqueued <a>chunks</a>; can be <emu-val>undefined</emu-val> for the default behavior
   </tr>
   <tr>
     <td>\[[underlyingSource]]
-    <td>An object representation of the stream's <a>underlying source</a>; also
-      used for the <a href="#is-readable-stream-default-controller">IsReadableStreamDefaultController</a> brand check
+    <td class="non-normative">An object representation of the stream's <a>underlying source</a>; also used for the <a
+    href="#is-readable-stream-default-controller">IsReadableStreamDefaultController</a> brand check
   </tr>
 </table>
 
@@ -1811,6 +1827,8 @@ corresponding {{ReadableByteStreamController}} instance to manipulate.
 
 <h4 id="rbs-controller-class-definition">Class Definition</h4>
 
+<div class="non-normative">
+
 <em>This section is non-normative.</em>
 
 If one were to write the {{ReadableByteStreamController}} class in something close to the syntax of [[!ECMASCRIPT]], it
@@ -1829,6 +1847,8 @@ would look like
   }
 </code></pre>
 
+</div>
+
 <h4 id="rbs-controller-internal-slots">Internal Slots</h4>
 
 Instances of {{ReadableByteStreamController}} are created with the internal slots described in the following table:
@@ -1842,57 +1862,57 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
   </thead>
   <tr>
     <td>\[[autoAllocateChunkSize]]
-    <td>A positive integer, when the automatic buffer allocation feature is enabled. In that case, this value
-      specifies the size of buffer to allocate. It is <emu-val>undefined</emu-val> otherwise.
+    <td class="non-normative">A positive integer, when the automatic buffer allocation feature is enabled. In that case,
+      this value specifies the size of buffer to allocate. It is <emu-val>undefined</emu-val> otherwise.
   </tr>
   <tr>
     <td>\[[closeRequested]]
-    <td>A boolean flag indicating whether the stream has been closed by its <a>underlying byte source</a>, but still has
-      <a>chunks</a> in its internal queue that have not yet been read
+    <td class="non-normative">A boolean flag indicating whether the stream has been closed by its <a>underlying byte
+      source</a>, but still has <a>chunks</a> in its internal queue that have not yet been read
   </tr>
   <tr>
     <td>\[[controlledReadableStream]]
-    <td>The {{ReadableStream}} instance controlled
+    <td class="non-normative">The {{ReadableStream}} instance controlled
   </tr>
   <tr>
     <td>\[[pullAgain]]
-    <td>A boolean flag set to <emu-val>true</emu-val> if the stream's mechanisms requested a call to the
-      <a>underlying byte source</a>'s <code>pull</code> method to pull more data, but the pull could not yet be done
-      since a previous call is still executing
+    <td class="non-normative">A boolean flag set to <emu-val>true</emu-val> if the stream's mechanisms requested a call
+      to the <a>underlying byte source</a>'s <code>pull</code> method to pull more data, but the pull could not yet be
+      done since a previous call is still executing
   </tr>
   <tr>
     <td>\[[pulling]]
-    <td>A boolean flag set to <emu-val>true</emu-val> while the <a>underlying byte source</a>'s <code>pull</code>
-      method is executing and has not yet fulfilled, used to prevent reentrant calls
+    <td class="non-normative">A boolean flag set to <emu-val>true</emu-val> while the <a>underlying byte source</a>'s
+      <code>pull</code> method is executing and has not yet fulfilled, used to prevent reentrant calls
   </tr>
   <tr>
     <td>\[[byobRequest]]
-    <td>A {{ReadableStreamBYOBRequest}} instance representing the current BYOB pull request
+    <td class="non-normative">A {{ReadableStreamBYOBRequest}} instance representing the current BYOB pull request
   </tr>
   <tr>
     <td>\[[pendingPullIntos]]
-    <td>A List of descriptors representing pending BYOB pull requests
+    <td class="non-normative">A List of descriptors representing pending BYOB pull requests
   </tr>
   <tr>
     <td>\[[queue]]
-    <td>A List representing the stream's internal queue of <a>chunks</a>
+    <td class="non-normative">A List representing the stream's internal queue of <a>chunks</a>
   </tr>
   <tr>
     <td>\[[queueTotalSize]]
-    <td>The total size (in bytes) of all the chunks stored in \[[queue]]
+    <td class="non-normative">The total size (in bytes) of all the chunks stored in \[[queue]]
   </tr>
   <tr>
     <td>\[[started]]
-    <td>A boolean flag indicating whether the <a>underlying source</a> has finished starting
+    <td class="non-normative">A boolean flag indicating whether the <a>underlying source</a> has finished starting
   </tr>
   <tr>
     <td>\[[strategyHWM]]
-    <td>A number supplied to the constructor as part of the stream's <a>queuing strategy</a>, indicating the point at
-      which the stream will apply <a>backpressure</a> to its <a>underlying byte source</a>
+    <td class="non-normative">A number supplied to the constructor as part of the stream's <a>queuing strategy</a>,
+      indicating the point at which the stream will apply <a>backpressure</a> to its <a>underlying byte source</a>
   </tr>
   <tr>
     <td>\[[underlyingByteSource]]
-    <td>An object representation of the stream's <a>underlying byte source</a>;
+    <td class="non-normative">An object representation of the stream's <a>underlying byte source</a>;
       also used for the <a href="#is-readable-byte-stream-controller">IsReadableByteStreamController</a> brand check
   </tr>
 </table>
@@ -2066,6 +2086,8 @@ The {{ReadableStreamBYOBRequest}} class represents a pull into request in a {{Re
 
 <h4 id="rs-byob-request-class-definition">Class Definition</h4>
 
+<div class="non-normative">
+
 <em>This section is non-normative.</em>
 
 If one were to write the {{ReadableStreamBYOBRequest}} class in something close to the syntax of [[!ECMASCRIPT]], it
@@ -2082,6 +2104,8 @@ would look like
   }
 </code></pre>
 
+</div>
+
 <h4 id="rs-byob-request-internal-slots">Internal Slots</h4>
 
 Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots described in the following table:
@@ -2095,11 +2119,12 @@ Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots d
   </thead>
   <tr>
     <td>\[[associatedReadableByteStreamController]]
-    <td>The parent {{ReadableByteStreamController}} instance
+    <td class="non-normative">The parent {{ReadableByteStreamController}} instance
   </tr>
   <tr>
     <td>\[[view]]
-    <td>A <a>typed array</a> representing the destination region to which the controller may write generated data
+    <td class="non-normative">A <a>typed array</a> representing the destination region to which the controller can write
+      generated data
   </tr>
 </table>
 
@@ -2617,9 +2642,12 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
   writeRandomBytesForever(myWritableStream).catch(e => console.error("Something broke", e));
   </code></pre>
 </div>
+
 <h3 id="ws-class" interface lt="WritableStream">Class <code>WritableStream</code></h3>
 
 <h4 id="ws-class-definition">Class Definition</h4>
+
+<div class="non-normative">
 
 <em>This section is non-normative.</em>
 
@@ -2637,6 +2665,8 @@ like
   }
 </code></pre>
 
+</div>
+
 <h4 id="ws-internal-slots">Internal Slots</h4>
 
 Instances of {{WritableStream}} are created with the internal slots described in the following table:
@@ -2650,53 +2680,54 @@ Instances of {{WritableStream}} are created with the internal slots described in
   </thead>
   <tr>
     <td>\[[backpressure]]
-    <td>The backpressure signal set by the controller
+    <td class="non-normative">The backpressure signal set by the controller
   </tr>
   <tr>
     <td>\[[closeRequest]]
-    <td>The promise returned from the writer {{WritableStreamDefaultWriter/close()}} method
+    <td class="non-normative">The promise returned from the writer {{WritableStreamDefaultWriter/close()}} method
   </tr>
   <tr>
     <td>\[[inFlightWriteRequest]]
-    <td>A slot set to the promise for the current in-flight write operation while the <a>underlying sink</a>'s
-      <code>write</code> method is executing and has not yet fulfilled, used to prevent reentrant calls
+    <td class="non-normative">A slot set to the promise for the current in-flight write operation while the
+      <a>underlying sink</a>'s <code>write</code> method is executing and has not yet fulfilled, used to prevent
+      reentrant calls
   </tr>
   <tr>
     <td>\[[inFlightCloseRequest]]
-    <td>A slot set to the promise for the current in-flight close operation while the <a>underlying sink</a>'s
-      <code>close</code> method is executing and has not yet fulfilled, used to prevent the
+    <td class="non-normative">A slot set to the promise for the current in-flight close operation while the
+      <a>underlying sink</a>'s <code>close</code> method is executing and has not yet fulfilled, used to prevent the
       {{WritableStreamDefaultWriter/abort()}} method from interrupting close
   </tr>
   <tr>
     <td>\[[pendingAbortRequest]]
-    <td>A Record containing the promise returned from
+    <td class="non-normative">A Record containing the promise returned from
       {{WritableStreamDefaultWriter/abort()}} and the <var>reason</var> passed to
       {{WritableStreamDefaultWriter/abort()}}
   </tr>
   <tr>
     <td>\[[state]]
-    <td>A string containing the stream's current state, used internally; one of <code>"writable"</code>,
-    <code>"closed"</code>, or <code>"errored"</code>
+    <td class="non-normative">A string containing the stream's current state, used internally; one of
+      <code>"writable"</code>, <code>"closed"</code>, or <code>"errored"</code>
   </tr>
   <tr>
     <td>\[[storedError]]
-    <td>A value indicating how the stream failed, to be given as a failure reason or exception when trying to operate
-      on the stream while in the <code>"errored"</code> state
+    <td class="non-normative">A value indicating how the stream failed, to be given as a failure reason or exception
+      when trying to operate on the stream while in the <code>"errored"</code> state
   </tr>
   <tr>
     <td>\[[writableStreamController]]
-    <td>A {{WritableStreamDefaultController}} created with the ability to control the state and queue of this stream;
-    also used for the IsWritableStream brand check
+    <td class="non-normative">A {{WritableStreamDefaultController}} created with the ability to control the state and
+      queue of this stream; also used for the <a href="#is-writable-stream">IsWritableStream</a> brand check
   </tr>
   <tr>
     <td>\[[writer]]
-    <td>A {{WritableStreamDefaultWriter}} instance, if the stream is <a>locked to a writer</a>, or
-    <emu-val>undefined</emu-val> if it is not
+    <td class="non-normative">A {{WritableStreamDefaultWriter}} instance, if the stream is <a>locked to a writer</a>, or
+      <emu-val>undefined</emu-val> if it is not
   </tr>
   <tr>
     <td>\[[writeRequests]]
-    <td>A List of promises representing the stream's internal queue of write requests not yet processed by the
-      <a>underlying sink</a>.
+    <td class="non-normative">A List of promises representing the stream's internal queue of write requests not yet
+      processed by the <a>underlying sink</a>.
   </tr>
 </table>
 
@@ -3069,6 +3100,8 @@ The {{WritableStreamDefaultWriter}} class represents a <a>writable stream writer
 
 <h4 id="default-writer-class-definition">Class Definition</h4>
 
+<div class="non-normative">
+
 <em>This section is non-normative.</em>
 
 If one were to write the {{WritableStreamDefaultWriter}} class in something close to the syntax of [[!ECMASCRIPT]], it
@@ -3089,6 +3122,8 @@ would look like
   }
 </code></pre>
 
+</div>
+
 <h4 id="default-writer-internal-slots">Internal Slots</h4>
 
 Instances of {{WritableStreamDefaultWriter}} are created with the internal slots described in the following table:
@@ -3102,15 +3137,15 @@ Instances of {{WritableStreamDefaultWriter}} are created with the internal slots
   </thead>
   <tr>
     <td>\[[closedPromise]]
-    <td>A promise returned by the writer's {{WritableStreamDefaultWriter/closed}} getter
+    <td class="non-normative">A promise returned by the writer's {{WritableStreamDefaultWriter/closed}} getter
   </tr>
   <tr>
     <td>\[[ownerWritableStream]]
-    <td>A {{WritableStream}} instance that owns this writer
+    <td class="non-normative">A {{WritableStream}} instance that owns this writer
   </tr>
   <tr>
     <td>\[[readyPromise]]
-    <td>A promise returned by the writer's {{WritableStreamDefaultWriter/ready}} getter
+    <td class="non-normative">A promise returned by the writer's {{WritableStreamDefaultWriter/ready}} getter
   </tr>
 </table>
 
@@ -3404,6 +3439,8 @@ constructing a {{WritableStream}}, the <a>underlying sink</a> is given a corresp
 
 <h4 id="ws-default-controller-class-definition">Class Definition</h4>
 
+<div class="non-normative">
+
 <em>This section is non-normative.</em>
 
 If one were to write the {{WritableStreamDefaultController}} class in something close to the syntax of [[!ECMASCRIPT]],
@@ -3416,6 +3453,8 @@ it would look like
     error(e)
   }
 </code></pre>
+
+</div>
 
 <h4 id="ws-default-controller-internal-slots">Internal Slots</h4>
 
@@ -3430,34 +3469,35 @@ Instances of {{WritableStreamDefaultController}} are created with the internal s
   </thead>
   <tr>
     <td>\[[controlledWritableStream]]
-    <td>The {{WritableStream}} instance controlled
+    <td class="non-normative">The {{WritableStream}} instance controlled
   </tr>
   <tr>
     <td>\[[queue]]
-    <td>A List representing the stream's internal queue of <a>chunks</a>
+    <td class="non-normative">A List representing the stream's internal queue of <a>chunks</a>
   </tr>
   <tr>
     <td>\[[queueTotalSize]]
-    <td>The total size of all the chunks stored in \[[queue]] (see [[#queue-with-sizes]])
+    <td class="non-normative">The total size of all the chunks stored in \[[queue]] (see [[#queue-with-sizes]])
   </tr>
   <tr>
     <td>\[[started]]
-    <td>A boolean flag indicating whether the <a>underlying sink</a> has finished starting
+    <td class="non-normative">A boolean flag indicating whether the <a>underlying sink</a> has finished starting
   </tr>
   <tr>
     <td>\[[strategyHWM]]
-    <td>A number supplied to the constructor as part of the stream's <a>queuing strategy</a>, indicating the point at
-      which the stream will apply <a>backpressure</a> to its <a>underlying sink</a>
+    <td class="non-normative">A number supplied to the constructor as part of the stream's <a>queuing strategy</a>,
+      indicating the point at which the stream will apply <a>backpressure</a> to its <a>underlying sink</a>
   </tr>
   <tr>
     <td>\[[strategySize]]
-    <td>A function supplied to the constructor as part of the stream's <a>queuing strategy</a>, designed to calculate
-      the size of enqueued <a>chunks</a>; can be <emu-val>undefined</emu-val> for the default behavior
+    <td class="non-normative">A function supplied to the constructor as part of the stream's <a>queuing strategy</a>,
+      designed to calculate the size of enqueued <a>chunks</a>; can be <emu-val>undefined</emu-val> for the default
+      behavior
   </tr>
   <tr>
     <td>\[[underlyingSink]]
-    <td>An object representation of the stream's <a>underlying sink</a>; also
-      used for the <a href="#is-writable-stream-default-controller">IsWritableStreamDefaultController</a> brand check
+    <td class="non-normative">An object representation of the stream's <a>underlying sink</a>; also used for the <a
+    href="#is-writable-stream-default-controller">IsWritableStreamDefaultController</a> brand check
   </tr>
 </table>
 
@@ -3723,6 +3763,8 @@ properties of the incoming <a>chunks</a> reaches a specified high-water mark. As
 
 <h4 id="blqs-class-definition">Class Definition</h4>
 
+<div class="non-normative">
+
 <em>This section is non-normative.</em>
 
 If one were to write the {{ByteLengthQueuingStrategy}} class in something close to the syntax of [[!ECMASCRIPT]], it
@@ -3737,6 +3779,8 @@ would look like
 
 Each {{ByteLengthQueuingStrategy}} instance will additionally have an own data property
 <code>highWaterMark</code> set by its constructor.
+
+</div>
 
 <h4 id="blqs-constructor" constructor for="ByteLengthQueuingStrategy" lt="ByteLengthQueuingStrategy(options)">new
 ByteLengthQueuingStrategy({ <var>highWaterMark</var> })</h4>
@@ -3798,6 +3842,8 @@ strategy is also provided out of the box.
 
 <h4 id="cqs-class-definition">Class Definition</h4>
 
+<div class="non-normative">
+
 <em>This section is non-normative.</em>
 
 If one were to write the {{CountQueuingStrategy}} class in something close to the syntax of [[!ECMASCRIPT]], it would
@@ -3812,6 +3858,8 @@ look like
 
 Each {{CountQueuingStrategy}} instance will additionally have an own data property <code>highWaterMark</code>
 set by its constructor.
+
+</div>
 
 <h4 id="cqs-constructor" constructor for="CountQueuingStrategy" lt="CountQueuingStrategy(options)">new
 CountQueuingStrategy({ <var>highWaterMark</var> })</h4>
@@ -3998,6 +4046,8 @@ The attributes of these properties must be { \[[Writable]]: <emu-val>true</emu-v
 </div>
 
 <h2 id="creating-examples">Examples of Creating Streams</h2>
+
+<div class="non-normative">
 
 <em>This section, and all its subsections, are non-normative.</em>
 
@@ -4368,7 +4418,8 @@ We can then use this function to create a writable stream for a file, and write 
 Note that if a particular call to <code>fs.write</code> takes a longer time, the returned promise will fulfill later.
 In the meantime, additional writes can be queued up, which are stored in the stream's internal queue. The accumulation
 of chunks in this queue can change the stream to return a pending promise from the {{WritableStreamDefaultWriter/ready}}
-getter, which is a signal to <a>producers</a> that they should back off and stop writing if possible.
+getter, which is a signal to <a>producers</a> that they would benefit from backing off and stopping writing, if
+possible.
 
 The way in which the writable stream queues up writes is especially important in this case, since as stated in
 <a href="https://nodejs.org/api/fs.html#fs_fs_write_fd_data_position_encoding_callback">the documentation for
@@ -4477,6 +4528,8 @@ APIs:
 
 Note how in this setup canceling the <code>readable</code> side will implicitly close the <code>writable</code> side,
 and similarly, closing or aborting the <code>writable</code> side will implicitly close the <code>readable</code> side.
+
+</div>
 
 <h2 id="conventions" class="no-num">Conventions</h2>
 
