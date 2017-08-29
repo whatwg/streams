@@ -1,10 +1,10 @@
 'use strict';
 const assert = require('assert');
 const { InvokeOrNoop, PromiseInvokeOrPerformFallback, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
-const { ReadableStream, ReadableStreamDefaultControllerClose,
-        ReadableStreamDefaultControllerEnqueue, ReadableStreamDefaultControllerError,
-        ReadableStreamDefaultControllerGetDesiredSize,
-        ReadableStreamDefaultControllerHasBackpressure } = require('./readable-stream.js');
+const { ReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
+        ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
+        ReadableStreamDefaultControllerHasBackpressure,
+        ReadableStreamDefaultControllerCanCloseOrEnqueue } = require('./readable-stream.js');
 const { WritableStream, WritableStreamDefaultControllerError } = require('./writable-stream.js');
 
 // Class TransformStream
@@ -21,7 +21,6 @@ class TransformStream {
     this._transformStreamController = undefined;
 
     this._writableDone = false;
-    this._readableClosed = false;
 
     this._backpressure = undefined;
     this._backpressureChangePromise = undefined;
@@ -98,7 +97,7 @@ function TransformStreamCloseReadable(transformStream) {
     throw new TypeError('TransformStream is already errored');
   }
 
-  if (transformStream._readableClosed === true) {
+  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(transformStream._readableController) === false) {
     throw new TypeError('Readable side is already closed');
   }
 
@@ -107,15 +106,13 @@ function TransformStreamCloseReadable(transformStream) {
 
 function TransformStreamCloseReadableInternal(transformStream) {
   assert(transformStream._errored === false);
-  assert(transformStream._readableClosed === false);
+  assert(ReadableStreamDefaultControllerCanCloseOrEnqueue(transformStream._readableController) === true);
 
   try {
     ReadableStreamDefaultControllerClose(transformStream._readableController);
   } catch (e) {
     assert(false);
   }
-
-  transformStream._readableClosed = true;
 }
 
 function TransformStreamDefaultTransform(chunk, transformStreamController) {
@@ -131,7 +128,7 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
     throw new TypeError('TransformStream is already errored');
   }
 
-  if (transformStream._readableClosed === true) {
+  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(transformStream._readableController) === false) {
     throw new TypeError('Readable side is already closed');
   }
 
@@ -144,8 +141,6 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
     ReadableStreamDefaultControllerEnqueue(controller, chunk);
   } catch (e) {
     // This happens when readableStrategy.size() throws.
-    // The ReadableStream has already errored itself.
-    transformStream._readableClosed = true;
     TransformStreamErrorIfNeeded(transformStream, e);
 
     throw transformStream._storedError;
@@ -182,7 +177,7 @@ function TransformStreamErrorInternal(transformStream, e) {
   if (transformStream._writableDone === false) {
     WritableStreamDefaultControllerError(transformStream._writableController, e);
   }
-  if (transformStream._readableClosed === false) {
+  if (transformStream._readable._state === 'readable') {
     ReadableStreamDefaultControllerError(transformStream._readableController, e);
   }
   if (transformStream._backpressure === true) {
@@ -290,7 +285,7 @@ class TransformStreamDefaultController {
   }
 }
 
-// Writable Stream Default Controller Abstract Operations
+// Transform Stream Default Controller Abstract Operations
 
 function IsTransformStreamDefaultController(x) {
   if (!typeIsObject(x)) {
@@ -353,7 +348,7 @@ class TransformStreamDefaultSink {
       if (transformStream._errored === true) {
         return Promise.reject(transformStream._storedError);
       }
-      if (transformStream._readableClosed === false) {
+      if (ReadableStreamDefaultControllerCanCloseOrEnqueue(transformStream._readableController) === true) {
         TransformStreamCloseReadableInternal(transformStream);
       }
       return Promise.resolve();
@@ -399,7 +394,6 @@ class TransformStreamDefaultSource {
 
   cancel(reason) {
     const transformStream = this._transformStream;
-    transformStream._readableClosed = true;
     TransformStreamErrorInternal(transformStream, reason);
   }
 }
