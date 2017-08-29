@@ -195,4 +195,41 @@ promise_test(t => {
   ]);
 }, 'an exception from transform() should error the stream if close has been requested but not completed');
 
+promise_test(t => {
+  const ts = new TransformStream();
+  const writer = ts.writable.getWriter();
+  // The microtask following transformer.start() hasn't completed yet, so the abort is queued and not notified to the
+  // TransformStream yet.
+  const abortPromise = writer.abort(thrownError);
+  const cancelPromise = ts.readable.cancel(new Error('cancel reason'));
+  return Promise.all([
+    abortPromise,
+    cancelPromise,
+    promise_rejects(t, new TypeError(), writer.closed, 'writer.closed should reject with a TypeError')]);
+}, 'abort should set the close reason for the writable when it happens first during start');
+
+promise_test(t => {
+  let resolveTransform;
+  const transformPromise = new Promise(resolve => {
+    resolveTransform = resolve;
+  });
+  const ts = new TransformStream({
+    transform() {
+      return transformPromise;
+    }
+  }, { highWaterMark: 2 });
+  const writer = ts.writable.getWriter();
+  return delay(0).then(() => {
+    const writePromise = writer.write();
+    const abortPromise = writer.abort(thrownError);
+    const cancelPromise = ts.readable.cancel(new Error('cancel reason'));
+    resolveTransform();
+    return Promise.all([
+      writePromise,
+      abortPromise,
+      cancelPromise,
+      promise_rejects(t, new TypeError(), writer.closed, 'writer.closed should reject with a TypeError')]);
+  });
+}, 'abort should set the close reason for the writable when it happens first during underlying sink write');
+
 done();

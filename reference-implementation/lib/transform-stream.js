@@ -5,7 +5,7 @@ const { ReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefa
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
         ReadableStreamDefaultControllerCanCloseOrEnqueue } = require('./readable-stream.js');
-const { WritableStream, WritableStreamDefaultControllerError } = require('./writable-stream.js');
+const { WritableStream, WritableStreamDefaultControllerErrorIfNeeded } = require('./writable-stream.js');
 
 // Class TransformStream
 
@@ -19,8 +19,6 @@ class TransformStream {
     this._writableController = undefined;
     this._readableController = undefined;
     this._transformStreamController = undefined;
-
-    this._writableDone = false;
 
     this._backpressure = undefined;
     this._backpressureChangePromise = undefined;
@@ -174,9 +172,7 @@ function TransformStreamErrorInternal(transformStream, e) {
   transformStream._errored = true;
   transformStream._storedError = e;
 
-  if (transformStream._writableDone === false) {
-    WritableStreamDefaultControllerError(transformStream._writableController, e);
-  }
+  WritableStreamDefaultControllerErrorIfNeeded(transformStream._writableController, e);
   if (transformStream._readable._state === 'readable') {
     ReadableStreamDefaultControllerError(transformStream._readableController, e);
   }
@@ -330,16 +326,15 @@ class TransformStreamDefaultSink {
 
   abort() {
     const transformStream = this._transformStream;
-    transformStream._writableDone = true;
-    TransformStreamErrorInternal(transformStream, new TypeError('Writable side aborted'));
+    // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
+    // errored.
+    TransformStreamErrorIfNeeded(transformStream, new TypeError('Writable side aborted'));
   }
 
   close() {
     // console.log('TransformStreamDefaultSink.close()');
 
     const transformStream = this._transformStream;
-
-    transformStream._writableDone = true;
 
     const flushPromise = PromiseInvokeOrNoop(transformStream._transformer,
                          'flush', [transformStream._transformStreamController]);
