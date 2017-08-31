@@ -22,8 +22,9 @@ promise_test(() => {
     writer.write(i);
   }
   return delay(0).then(() => {
-    assert_array_equals(ts.events, ['transform', 0, 'transform', 1, 'transform', 2, 'transform', 3, 'transform', 4,
-                                    'transform', 5, 'transform', 6, 'transform', 7, 'transform', 8],
+    assert_array_equals(ts.events, [
+      'transform', 0, 'transform', 1, 'transform', 2, 'transform', 3, 'transform', 4,
+      'transform', 5, 'transform', 6, 'transform', 7, 'transform', 8],
                         'transform() should have been called 9 times');
   });
 }, 'readableStrategy highWaterMark works');
@@ -31,10 +32,12 @@ promise_test(() => {
 promise_test(t => {
   let writableSizeCalled = false;
   let readableSizeCalled = false;
+  let transformCalled = false;
   const ts = new TransformStream(
     {
       transform(chunk, controller) {
         t.step(() => {
+          transformCalled = true;
           assert_true(writableSizeCalled, 'writableStrategy.size() should have been called');
           assert_false(readableSizeCalled, 'readableStrategy.size() should not have been called');
           controller.enqueue(chunk);
@@ -55,7 +58,9 @@ promise_test(t => {
       },
       highWaterMark: Infinity
     });
-  return ts.writable.getWriter().write();
+  return ts.writable.getWriter().write().then(() => {
+    assert_true(transformCalled, 'transform() should be called');
+  });
 }, 'writable has the correct size() function');
 
 done();
