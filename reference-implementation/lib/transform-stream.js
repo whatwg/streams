@@ -188,21 +188,6 @@ function TransformStreamErrorInternal(transformStream, e) {
   }
 }
 
-// Used for preventing the next write() call on TransformStreamDefaultSink until there
-// is no longer backpressure.
-function TransformStreamReadableReadyPromise(transformStream) {
-  assert(transformStream._backpressureChangePromise !== undefined,
-         '_backpressureChangePromise should have been initialized');
-
-  if (transformStream._backpressure === false) {
-    return Promise.resolve();
-  }
-
-  assert(transformStream._backpressure === true, '_backpressure should have been initialized');
-
-  return transformStream._backpressureChangePromise;
-}
-
 function TransformStreamSetBackpressure(transformStream, backpressure) {
   // console.log(`TransformStreamSetBackpressure(${backpressure})`);
 
@@ -245,8 +230,6 @@ function TransformStreamTransform(transformStream, chunk) {
   return transformPromise.then(
     () => {
       transformStream._transforming = false;
-
-      return TransformStreamReadableReadyPromise(transformStream);
     },
     e => {
       TransformStreamErrorIfNeeded(transformStream, e);
@@ -334,13 +317,18 @@ class TransformStreamDefaultSink {
 
     transformStream._writableController = c;
 
-    return this._startPromise.then(() => TransformStreamReadableReadyPromise(transformStream));
+    return this._startPromise;
   }
 
   write(chunk) {
     // console.log('TransformStreamDefaultSink.write()');
 
     const transformStream = this._transformStream;
+
+    if (transformStream._backpressure === true) {
+      return transformStream._backpressureChangePromise
+          .then(() => TransformStreamTransform(transformStream, chunk));
+    }
 
     return TransformStreamTransform(transformStream, chunk);
   }

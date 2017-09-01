@@ -9,10 +9,9 @@ if (self.importScripts) {
 promise_test(() => {
   const ts = recordingTransformStream();
   const writer = ts.writable.getWriter();
-  // This call to write() never resolves, because it causes backpressure to occur on the readable side that is never
-  // resolved.
+  // This call to write() resolves asynchronously.
   writer.write('a');
-  // This call to write() never gets passed to the underlying sink because the previous call did not resolve.
+  // This call to write() waits for backpressure that is never relieved and never calls transform().
   writer.write('b');
   return delay(0).then(() => {
     assert_array_equals(ts.events, ['transform', 'a'], 'transform should be called once');
@@ -43,30 +42,29 @@ promise_test(() => {
   const writer = ts.writable.getWriter();
   const reader = ts.readable.getReader();
   const events = [];
-  writer.write('a').then(() => events.push('a'));
-  writer.write('b').then(() => events.push('b'));
-  writer.close().then(() => events.push('closed'));
-  return flushAsyncEvents().then(() => {
-    assert_array_equals(events, [], 'no writes should have resolved yet');
+  const writerPromises = [
+    writer.write('a').then(() => events.push('a')),
+    writer.write('b').then(() => events.push('b')),
+    writer.close().then(() => events.push('closed'))];
+  return delay(0).then(() => {
+    assert_array_equals(events, ['a'], 'the first write should have resolved');
     return reader.read();
   }).then(({ value, done }) => {
     assert_false(done, 'done should not be true');
     assert_equals('a', value, 'value should be "a"');
     return delay(0);
   }).then(() => {
-    assert_array_equals(events, ['a'], 'the first write should have resolved');
+    assert_array_equals(events, ['a', 'b', 'closed'], 'both writes and close() should have resolved');
     return reader.read();
   }).then(({ value, done }) => {
     assert_false(done, 'done should still not be true');
     assert_equals('b', value, 'value should be "b"');
-    return delay(0);
-  }).then(() => {
-    assert_array_equals(events, ['a', 'b', 'closed'], 'the second write and close should be resolved');
     return reader.read();
   }).then(({ done }) => {
     assert_true(done, 'done should be true');
+    return writerPromises;
   });
-}, 'writes should not resolve until backpressure clears');
+}, 'writes should resolve as soon as transform completes');
 
 promise_test(() => {
   const ts = new TransformStream(undefined, undefined, { highWaterMark: 0 });
@@ -91,7 +89,7 @@ promise_test(() => {
   const writer = ts.writable.getWriter();
   reader = ts.readable.getReader();
   return writer.write('a');
-}, 'read from within transform() clears backpressure');
+}, 'transform() should be able to read the chunk it just enqueued');
 
 promise_test(() => {
   let resolveTransform;
