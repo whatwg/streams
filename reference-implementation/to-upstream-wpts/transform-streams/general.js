@@ -360,4 +360,13 @@ promise_test(() => {
   });
 }, 'it should be possible to call transform() synchronously');
 
+promise_test(() => {
+  const ts = new TransformStream({}, undefined, { highWaterMark: 0 });
+
+  const writer = ts.writable.getWriter();
+  writer.close();
+
+  return Promise.all([writer.closed, ts.readable.getReader().closed]);
+}, 'closing the writable should closes the readable when there are no queued chunks, even with backpressure');
+
 done();
