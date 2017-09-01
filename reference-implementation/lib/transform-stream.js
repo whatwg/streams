@@ -13,7 +13,6 @@ class TransformStream {
   constructor(transformer = {}, writableStrategy = undefined, readableStrategy = undefined) {
     this._transformer = transformer;
 
-    this._transforming = false;
     this._errored = false;
     this._storedError = undefined;
 
@@ -222,10 +221,7 @@ function TransformStreamTransform(transformStream, chunk) {
   // console.log('TransformStreamTransform()');
 
   assert(transformStream._errored === false);
-  assert(transformStream._transforming === false);
   assert(transformStream._backpressure === false);
-
-  transformStream._transforming = true;
 
   const transformer = transformStream._transformer;
   const controller = transformStream._transformStreamController;
@@ -234,13 +230,11 @@ function TransformStreamTransform(transformStream, chunk) {
                              TransformStreamDefaultTransform, [chunk, controller]);
 
   return transformPromise.then(
-    () => {
-      transformStream._transforming = false;
-    },
-    e => {
-      TransformStreamErrorIfNeeded(transformStream, e);
-      return Promise.reject(e);
-    });
+      undefined,
+      e => {
+        TransformStreamErrorIfNeeded(transformStream, e);
+        return Promise.reject(e);
+      });
 }
 
 // Class TransformStreamDefaultController
@@ -349,8 +343,6 @@ class TransformStreamDefaultSink {
     // console.log('TransformStreamDefaultSink.close()');
 
     const transformStream = this._transformStream;
-
-    assert(transformStream._transforming === false);
 
     transformStream._writableDone = true;
 
