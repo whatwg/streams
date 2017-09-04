@@ -126,7 +126,7 @@ promise_test(t => {
   const ts = new TransformStream();
   ts.readable.cancel(error1);
   return promise_rejects(t, error1, ts.writable.getWriter().closed, 'closed should reject');
-}, 'writer.closed should resolve after readable is cancelled during start');
+}, 'writer.closed should resolve after readable is canceled during start');
 
 promise_test(t => {
   const ts = new TransformStream({}, undefined, { highWaterMark: 0 });
@@ -134,7 +134,7 @@ promise_test(t => {
     ts.readable.cancel(error1);
     return promise_rejects(t, error1, ts.writable.getWriter().closed, 'closed should reject');
   });
-}, 'writer.closed should resolve after readable is cancelled with no backpressure');
+}, 'writer.closed should resolve after readable is canceled with no backpressure');
 
 promise_test(() => {
   const ts = new TransformStream();
