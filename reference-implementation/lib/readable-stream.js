@@ -1153,11 +1153,19 @@ function ReadableStreamDefaultControllerHasBackpressure(controller) {
 
 class ReadableStreamBYOBRequest {
   constructor(controller, view) {
+    if (IsReadableByteStreamController(controller) === false) {
+      throw new TypeError('Cannot construct a ReadableStreamBYOBRequest without a ReadableByteStreamController');
+    }
+
     this._associatedReadableByteStreamController = controller;
     this._view = view;
   }
 
   get view() {
+    if (IsReadableStreamBYOBRequest(this) === false) {
+      throw byobRequestBrandCheckException('view');
+    }
+
     return this._view;
   }
 
