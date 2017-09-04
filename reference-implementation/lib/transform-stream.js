@@ -186,6 +186,12 @@ function TransformStreamErrorInternal(transformStream, e) {
   if (transformStream._readableClosed === false) {
     ReadableStreamDefaultControllerError(transformStream._readableController, e);
   }
+  if (transformStream._backpressure === true) {
+    // Pretend that pull() was called to permit any pending write() or start() calls to complete.
+    // TransformStreamSetBackpressure() cannot be called from enqueue() or pull() once the ReadableStream is errored,
+    // so this will will be the final time _backpressure is set.
+    TransformStreamSetBackpressure(transformStream, false);
+  }
 }
 
 function TransformStreamSetBackpressure(transformStream, backpressure) {

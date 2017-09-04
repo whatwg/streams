@@ -6,6 +6,9 @@ if (self.importScripts) {
   self.importScripts('../resources/test-utils.js');
 }
 
+const error1 = new Error('error1 message');
+error1.name = 'error1';
+
 promise_test(() => {
   const ts = recordingTransformStream();
   const writer = ts.writable.getWriter();
@@ -116,5 +119,64 @@ promise_test(() => {
     assert_equals(writer.desiredSize, 1, 'desiredSize should be 1');
   });
 }, 'blocking transform() should cause backpressure');
+
+promise_test(t => {
+  const ts = new TransformStream();
+  ts.readable.cancel(error1);
+  return promise_rejects(t, error1, ts.writable.getWriter().closed, 'closed should reject');
+}, 'writer.closed should resolve after readable is canceled during start');
+
+promise_test(t => {
+  const ts = new TransformStream({}, undefined, { highWaterMark: 0 });
+  return delay(0).then(() => {
+    ts.readable.cancel(error1);
+    return promise_rejects(t, error1, ts.writable.getWriter().closed, 'closed should reject');
+  });
+}, 'writer.closed should resolve after readable is canceled with no backpressure');
+
+promise_test(() => {
+  const ts = new TransformStream();
+  const writer = ts.writable.getWriter();
+  return delay(0).then(() => {
+    const writePromise = writer.write('a');
+    ts.readable.cancel(error1);
+    return writePromise;
+  });
+}, 'cancelling the readable should cause a pending write to resolve');
+
+promise_test(t => {
+  const rs = new ReadableStream();
+  const ts = new TransformStream();
+  const pipePromise = rs.pipeTo(ts.writable);
+  ts.readable.cancel(error1);
+  return promise_rejects(t, error1, pipePromise, 'promise returned from pipeTo() should be rejected');
+}, 'cancelling the readable side of a TransformStream should abort an empty pipe');
+
+promise_test(t => {
+  const rs = new ReadableStream();
+  const ts = new TransformStream();
+  const pipePromise = rs.pipeTo(ts.writable);
+  return delay(0).then(() => {
+    ts.readable.cancel(error1);
+    return promise_rejects(t, error1, pipePromise, 'promise returned from pipeTo() should be rejected');
+  });
+}, 'cancelling the readable side of a TransformStream should abort an empty pipe after startup');
+
+promise_test(t => {
+  const rs = new ReadableStream({
+    start(controller) {
+      controller.enqueue('a');
+      controller.enqueue('b');
+      controller.enqueue('c');
+    }
+  });
+  const ts = new TransformStream();
+  const pipePromise = rs.pipeTo(ts.writable);
+  // Allow data to flow into the pipe.
+  return delay(0).then(() => {
+    ts.readable.cancel(error1);
+    return promise_rejects(t, error1, pipePromise, 'promise returned from pipeTo() should be rejected');
+  });
+}, 'cancelling the readable side of a TransformStream should abort a full pipe');
 
 done();
