@@ -2145,6 +2145,7 @@ lt="ReadableStreamBYOBRequest(controller, view)">new
 ReadableStreamBYOBRequest(<var>controller</var>, <var>view</var>)</h4>
 
 <emu-alg>
+  1. If ! IsReadableByteStreamController(_controller_) is *false*, throw a *TypeError* exception.
   1. Set *this*.[[associatedReadableByteStreamController]] to _controller_.
   1. Set *this*.[[view]] to _view_.
 </emu-alg>
