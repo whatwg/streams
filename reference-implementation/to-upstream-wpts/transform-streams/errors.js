@@ -151,7 +151,7 @@ test(() => {
   }, undefined, strategy), 'the first error should be thrown');
 }, 'when strategy.size calls controller.error() then throws, the constructor should throw the first error');
 
-test(t => {
+promise_test(t => {
   const ts = new TransformStream();
   const writer = ts.writable.getWriter();
   const closedPromise = writer.closed;
@@ -160,5 +160,39 @@ test(t => {
     promise_rejects(t, thrownError, closedPromise, 'closed should throw a TypeError')
   ]);
 }, 'cancelling the readable side should error the writable');
+
+promise_test(t => {
+  let controller;
+  const ts = new TransformStream({
+    start(c) {
+      controller = c;
+    }
+  });
+  const writer = ts.writable.getWriter();
+  const reader = ts.readable.getReader();
+  const writePromise = writer.write('a');
+  const closePromise = writer.close();
+  controller.error(thrownError);
+  return Promise.all([
+    promise_rejects(t, thrownError, reader.closed, 'reader.closed should reject'),
+    promise_rejects(t, thrownError, writePromise, 'writePromise should reject'),
+    promise_rejects(t, thrownError, closePromise, 'closePromise should reject')]);
+}, 'it should be possible to error the readable between close requested and complete');
+
+promise_test(t => {
+  const ts = new TransformStream({
+    transform(chunk, controller) {
+      controller.enqueue(chunk);
+      controller.close();
+      throw thrownError;
+    }
+  });
+  const writePromise = ts.writable.getWriter().write('a');
+  const closedPromise = ts.readable.getReader().closed;
+  return Promise.all([
+    promise_rejects(t, thrownError, writePromise, 'write() should reject'),
+    promise_rejects(t, thrownError, closedPromise, 'reader.closed should reject')
+  ]);
+}, 'an exception from transform() should error the stream if close has been requested but not completed');
 
 done();

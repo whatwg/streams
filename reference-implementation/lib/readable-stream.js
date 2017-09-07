@@ -275,7 +275,8 @@ module.exports = {
   ReadableStreamDefaultControllerEnqueue,
   ReadableStreamDefaultControllerError,
   ReadableStreamDefaultControllerGetDesiredSize,
-  ReadableStreamDefaultControllerHasBackpressure
+  ReadableStreamDefaultControllerHasBackpressure,
+  ReadableStreamDefaultControllerCanCloseOrEnqueue
 };
 
 // Abstract operations for the ReadableStream.
@@ -919,13 +920,8 @@ class ReadableStreamDefaultController {
       throw defaultControllerBrandCheckException('close');
     }
 
-    if (this._closeRequested === true) {
-      throw new TypeError('The stream has already been closed; do not close it again!');
-    }
-
-    const state = this._controlledReadableStream._state;
-    if (state !== 'readable') {
-      throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be closed`);
+    if (ReadableStreamDefaultControllerCanCloseOrEnqueue(this) === false) {
+      throw new TypeError('The stream is not in a state that permits close');
     }
 
     ReadableStreamDefaultControllerClose(this);
@@ -936,13 +932,8 @@ class ReadableStreamDefaultController {
       throw defaultControllerBrandCheckException('enqueue');
     }
 
-    if (this._closeRequested === true) {
-      throw new TypeError('stream is closed or draining');
-    }
-
-    const state = this._controlledReadableStream._state;
-    if (state !== 'readable') {
-      throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be enqueued to`);
+    if (ReadableStreamDefaultControllerCanCloseOrEnqueue(this) === false) {
+      throw new TypeError('The stream is not in a state that permits enqueue');
     }
 
     return ReadableStreamDefaultControllerEnqueue(this, chunk);
@@ -1039,11 +1030,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
 function ReadableStreamDefaultControllerShouldCallPull(controller) {
   const stream = controller._controlledReadableStream;
 
-  if (stream._state === 'closed' || stream._state === 'errored') {
-    return false;
-  }
-
-  if (controller._closeRequested === true) {
+  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) === false) {
     return false;
   }
 
@@ -1068,8 +1055,7 @@ function ReadableStreamDefaultControllerShouldCallPull(controller) {
 function ReadableStreamDefaultControllerClose(controller) {
   const stream = controller._controlledReadableStream;
 
-  assert(controller._closeRequested === false);
-  assert(stream._state === 'readable');
+  assert(ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) === true);
 
   controller._closeRequested = true;
 
@@ -1081,8 +1067,7 @@ function ReadableStreamDefaultControllerClose(controller) {
 function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
   const stream = controller._controlledReadableStream;
 
-  assert(controller._closeRequested === false);
-  assert(stream._state === 'readable');
+  assert(ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) === true);
 
   if (IsReadableStreamLocked(stream) === true && ReadableStreamGetNumReadRequests(stream) > 0) {
     ReadableStreamFulfillReadRequest(stream, chunk, false);
@@ -1149,6 +1134,16 @@ function ReadableStreamDefaultControllerHasBackpressure(controller) {
   }
 
   return true;
+}
+
+function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
+  const state = controller._controlledReadableStream._state;
+
+  if (controller._closeRequested === false && state === 'readable') {
+    return true;
+  }
+
+  return false;
 }
 
 class ReadableStreamBYOBRequest {

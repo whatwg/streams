@@ -1622,8 +1622,7 @@ desiredSize</h5>
 
 <emu-alg>
   1. If ! IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
-  1. If *this*.[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. If *this*.[[controlledReadableStream]].[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(*this*) is *false*, throw a *TypeError* exception.
   1. Perform ! ReadableStreamDefaultControllerClose(*this*).
 </emu-alg>
 
@@ -1635,8 +1634,7 @@ desiredSize</h5>
 
 <emu-alg>
   1. If ! IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
-  1. If *this*.[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. If *this*.[[controlledReadableStream]].[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(*this*) is *false*, throw a *TypeError* exception.
   1. Return ? ReadableStreamDefaultControllerEnqueue(*this*, _chunk_).
 </emu-alg>
 
@@ -1717,8 +1715,7 @@ nothrow>ReadableStreamDefaultControllerShouldCallPull ( <var>controller</var> )<
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
-  1. If _stream_.[[state]] is `"closed"` or _stream_.[[state]] is `"errored"`, return *false*.
-  1. If _controller_.[[closeRequested]] is *true*, return *false*.
+  1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_controller_) is *false*, return *false*.
   1. If _controller_.[[started]] is *false*, return *false*.
   1. If ! IsReadableStreamLocked(_stream_) is *true* and ! ReadableStreamGetNumReadRequests(_stream_) > *0*, return
      *true*.
@@ -1736,8 +1733,7 @@ this to streams they did not create, and must ensure they have obeyed the precon
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
-  1. Assert: _controller_.[[closeRequested]] is *false*.
-  1. Assert: _stream_.[[state]] is `"readable"`.
+  1. Assert: ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_controller_) is *true*.
   1. Set _controller_.[[closeRequested]] to *true*.
   1. If _controller_.[[queue]] is empty, perform ! ReadableStreamClose(_stream_).
 </emu-alg>
@@ -1752,8 +1748,7 @@ asserts).
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
-  1. Assert: _controller_.[[closeRequested]] is *false*.
-  1. Assert: _stream_.[[state]] is `"readable"`.
+  1. Assert: ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_controller_) is *true*.
   1. If ! IsReadableStreamLocked(_stream_) is *true* and ! ReadableStreamGetNumReadRequests(_stream_) > *0*, perform
      ! ReadableStreamFulfillReadRequest(_stream_, _chunk_, *false*).
   1. Otherwise,
@@ -1821,13 +1816,20 @@ Specifications should <em>not</em> use this on streams they did not create.
 <h4 id="rs-default-controller-has-backpressure" aoid="ReadableStreamDefaultControllerHasBackpressure"
 nothrow>ReadableStreamDefaultControllerHasBackpressure ( <var>controller</var> )</h4>
 
-<div class="note">
-  This method is used in the implementation of TransformStream.
-</div>
+This abstract operation is used in the implementation of TransformStream.
 
 <emu-alg>
   1. If ! ReadableStreamDefaultControllerShouldCallPull(_controller_) is *true*, return *false*.
   1. Otherwise, return *true*.
+</emu-alg>
+
+<h4 id="readable-stream-default-controller-can-close-or-enqueue" aoid="ReadableStreamDefaultControllerCanCloseOrEnqueue"
+nothrow>ReadableStreamDefaultControllerCanCloseOrEnqueue ( <var>controller</var> )</h4>
+
+<emu-alg>
+  1. Let _state_ be _controller_.[[controlledReadableStream]].[[state]].
+  1. If _controller_.[[closeRequested]] is *false* and _state_ is `"readable"`, return *true*.
+  1. Otherwise, return *false*.
 </emu-alg>
 
 <h3 id="rbs-controller-class" interface lt="ReadableByteStreamController">Class
