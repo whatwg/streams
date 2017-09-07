@@ -921,7 +921,7 @@ class ReadableStreamDefaultController {
     }
 
     if (ReadableStreamDefaultControllerCanCloseOrEnqueue(this) === false) {
-      throw new TypeError('The stream is not in a state that can be closed');
+      throw new TypeError('The stream is not in a state that permits close');
     }
 
     ReadableStreamDefaultControllerClose(this);
