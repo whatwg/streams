@@ -4581,18 +4581,23 @@ values, and all arithmetic operations performed on them must be done in the stan
 
 <h2 id="acks" class="no-num">Acknowledgments</h2>
 
-The editor would like to thank
-Adam Rice,
+The editors would like to thank
 Anne van Kesteren,
 Ben Kelly,
+Bert Belder,
 Brian di Palma,
 Calvin Metcalf,
 Dominic Tarr,
 Ed Hager,
 Forbes Lindesay,
+Forrest Norvell,
+Gorgi Kosev,
 贺师俊 (hax),
+Isaac Schlueter,
 isonmad,
 Jake Archibald,
+Jake Verbaten,
+Janessa Det,
 Jens Nockert,
 Mangala Sadhu Sangeet Singh Khalsa,
 Marcos Caceres,
@@ -4609,30 +4614,21 @@ Till Schneidereit,
 Tim Caswell,
 Trevor Norris,
 tzik,
+Will Chan,
 Youenn Fablet,
+平野裕 (Yutaka Hirano),
 and
 Xabier Rodríguez
-for their contributions to this specification.
+for their contributions to this specification. Community involvement in this specification has been above and beyond; we
+couldn't have done it without you.
 
-Special thanks to:
-Bert Belder for bringing up <a href="https://github.com/whatwg/streams/issues/253">implementation concerns</a> that led
-  to crucial API changes;
-Forrest Norvell for his work on the initial reference implementation;
-Gorgi Kosev for his breakthrough idea of separating piping into two methods, thus resolving
-  <a href="https://github.com/whatwg/streams/issues/44">a major sticking point</a>;
-Isaac Schlueter for his pioneering work on JavaScript streams in Node.js;
-Jake Verbaten for his early involvement and support;
-Janessa Det for the logo;
-Will Chan for his help ensuring that the API allows high-performance network streaming;
-and
-平野裕 (Yutaka Hirano) for his help with the readable stream reader design.
+This standard is written by Adam Rice (<a href="https://google.com">Google</a>, <a
+href="mailto:ricea@chromium.org">ricea@chromium.org</a>), <a href="https://domenic.me/">Domenic Denicola</a> (<a
+href="https://google.com">Google</a>, <a href="mailto:d@domenic.me">d@domenic.me</a>), and 吉野剛史 (Takeshi Yoshino, <a
+href="https://google.com">Google</a>, <a href="mailto:tyoshino@chromium.org">tyoshino@chromium.org</a>).
 
-This standard is written by <a href="https://domenic.me/">Domenic Denicola</a>
-(<a href="https://google.com">Google</a>, <a href="mailto:d@domenic.me">d@domenic.me</a>) and
-吉野剛史 (Takeshi Yoshino, <a href="https://google.com">Google</a>,
-<a href="mailto:tyoshino@chromium.org">tyoshino@chromium.org</a>).
-
-Per <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a>, to the extent possible under law, the editor has waived all copyright and related or neighboring rights to this work.
+Per <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a>, to the extent possible under law, the editors
+have waived all copyright and related or neighboring rights to this work.
 
 <script>
 "use strict";
