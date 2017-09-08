@@ -954,7 +954,7 @@ called with argument <var>reason</var>, it performs the following steps:
   methods for these functions, with the state stored as instance variables.
 </div>
 
-<h3 id="rs-abstract-ops-used-by-controllers">Readable Stream Abstract Operations Used by Controllers</h3>
+<h3 id="rs-abstract-ops-used-by-controllers">The Interface Between Readable Streams and Controllers</h3>
 
 In terms of specification factoring, the way that the {{ReadableStream}} class encapsulates the behavior of
 both simple readable streams and <a>readable byte streams</a> into a single class is by centralizing most of the
@@ -963,9 +963,24 @@ potentially-varying logic inside the two controller classes, {{ReadableStreamDef
 operations for how a stream's <a>internal queue</a> is managed and how it interfaces with its <a>underlying source</a>
 or <a>underlying byte source</a>.
 
-The abstract operations in this section are interfaces that are used by the controller implementations to affect their
-associated {{ReadableStream}} object, translating those internal state changes into developer-facing results
-visible through the {{ReadableStream}}'s public API.
+Each controller class defines two internal methods, which are called by the {{ReadableStream}} algorithms:
+
+<dl>
+  <dt><dfn abstract-op lt="[[CancelSteps]]">\[[CancelSteps]](<var>reason</var>)</dfn></dt>
+  <dd>The controller's steps that run in reaction to the stream being <a lt="cancel a readable stream">canceled</a>,
+  used to clean up the state stored in the controller and inform the <a>underlying source</a>.</dd>
+
+  <dt><dfn abstract-op lt="[[PullSteps]]">\[[PullSteps]]()</dfn></dt>
+  <dd>The controller's steps that run when a <a>default reader</a> is read from, used to pull from the controller any
+  queued <a>chunks</a>, or pull from the <a>underlying source</a> to get more chunks.</dd>
+</dl>
+
+(These are defined as internal methods, instead of as abstract operations, so that they can be called polymorphically by
+the {{ReadableStream}} algorithms, without having to branch on which type of controller is present.)
+
+The rest of this section concerns abstract operations that go in the other direction: they are  used by the controller
+implementations to affect their associated {{ReadableStream}} object. This translates internal state changes of the
+controller into developer-facing results visible through the {{ReadableStream}}'s public API.
 
 <h4 id="readable-stream-add-read-into-request" aoid="ReadableStreamAddReadIntoRequest"
 nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
@@ -999,7 +1014,7 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
   1. If _stream_.[[state]] is `"closed"`, return <a>a promise resolved with</a> *undefined*.
   1. If _stream_.[[state]] is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Perform ! ReadableStreamClose(_stream_).
-  1. Let _sourceCancelPromise_ be ! _stream_.[[readableStreamController]].[[CancelSteps]](_reason_).
+  1. Let _sourceCancelPromise_ be ! _stream_.[[readableStreamController]].<a abstract-op>[[CancelSteps]]</a>(_reason_).
   1. Return the result of <a>transforming</a> _sourceCancelPromise_ with a fulfillment handler that returns *undefined*.
 </emu-alg>
 
@@ -1472,7 +1487,7 @@ export>ReadableStreamDefaultReaderRead ( <var>reader</var> )</h4>
      *true*).
   1. If _stream_.[[state]] is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Assert: _stream_.[[state]] is `"readable"`.
-  1. Return ! _stream_.[[readableStreamController]].[[PullSteps]]().
+  1. Return ! _stream_.[[readableStreamController]].<a abstract-op>[[PullSteps]]</a>().
 </emu-alg>
 
 <h3 id="rs-default-controller-class" interface lt="ReadableStreamDefaultController">Class
@@ -1657,14 +1672,14 @@ desiredSize</h5>
 The following are additional internal methods implemented by each {{ReadableStreamDefaultController}} instance. The
 readable stream implementation will polymorphically call to either these or their counterparts for BYOB controllers.
 
-<h5 id="rs-default-controller-private-cancel">\[[CancelSteps]](<var>reason</var>)</h5>
+<h5 id="rs-default-controller-private-cancel"><a abstract-op>\[[CancelSteps]]</a>(<var>reason</var>)</h5>
 
 <emu-alg>
   1. Perform ! ResetQueue(*this*).
   1. Return ! PromiseInvokeOrNoop(*this*.[[underlyingSource]], `"cancel"`, « _reason_ »)
 </emu-alg>
 
-<h5 id="rs-default-controller-private-pull">\[[PullSteps]]()</h5>
+<h5 id="rs-default-controller-private-pull"><a abstract-op>\[[PullSteps]]</a>()</h5>
 
 <emu-alg>
   1. Let _stream_ be *this*.[[controlledReadableStream]].
@@ -2055,7 +2070,7 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
 The following are additional internal methods implemented by each {{ReadableByteStreamController}} instance. The
 readable stream implementation will polymorphically call to either these or their counterparts for default controllers.
 
-<h5 id="rbs-controller-private-cancel">\[[CancelSteps]](<var>reason</var>)</h5>
+<h5 id="rbs-controller-private-cancel"><a abstract-op>\[[CancelSteps]]</a>(<var>reason</var>)</h5>
 
 <emu-alg>
   1. If *this*.[[pendingPullIntos]] is not empty,
@@ -2065,7 +2080,7 @@ readable stream implementation will polymorphically call to either these or thei
   1. Return ! PromiseInvokeOrNoop(*this*.[[underlyingByteSource]], `"cancel"`, « _reason_ »)
 </emu-alg>
 
-<h5 id="rbs-controller-private-pull">\[[PullSteps]]()</h5>
+<h5 id="rbs-controller-private-pull"><a abstract-op>\[[PullSteps]]</a>()</h5>
 
 <emu-alg>
   1. Let _stream_ be *this*.[[controlledReadableStream]].
