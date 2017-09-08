@@ -411,4 +411,16 @@ promise_test(() => {
   return cancelPromise;
 }, 'close() should throw after readable.cancel()');
 
+promise_test(() => {
+  let calls = 0;
+  new TransformStream({
+    start() {
+      ++calls;
+    }
+  });
+  return flushAsyncEvents().then(() => {
+    assert_equals(calls, 1, 'start() should have been called exactly once');
+  });
+}, 'start() should not be called twice');
+
 done();
