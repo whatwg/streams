@@ -168,17 +168,17 @@ promise_test(() => {
   });
   reader = ts.readable.getReader();
   const writer = ts.writable.getWriter();
-  let writeCalled = false;
+  let writeResolved = false;
   const writePromise = writer.write('b').then(() => {
-    writeCalled = true;
+    writeResolved = true;
   });
   return flushAsyncEvents().then(() => {
-    assert_false(writeCalled);
+    assert_false(writeResolved);
     controller.enqueue('a');
     assert_equals(calls, 1, 'size() should have been called once');
     return delay(0);
   }).then(() => {
-    assert_true(writeCalled);
+    assert_true(writeResolved);
     assert_equals(calls, 1, 'size() should only be called once');
     return readPromise;
   }).then(({ value, done }) => {
