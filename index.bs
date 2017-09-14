@@ -34,6 +34,7 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
     text: the typed array constructors table; url: #table-49; type: dfn
     text: TypeError; url: #sec-native-error-types-used-in-this-standard-typeerror; type: exception
     text: Invoke; url: #sec-invoke; type: abstract-op
+    text: DestructuringAssignmentEvaluation; url: #sec-runtime-semantics-destructuringassignmentevaluation; type: abstract-op
 </pre>
 
 <style>
@@ -4563,14 +4564,24 @@ and similarly, closing or aborting the <code>writable</code> side will implicitl
 
 <h2 id="conventions" class="no-num">Conventions</h2>
 
-This specification uses algorithm conventions very similar to those of [[!ECMASCRIPT]]. However, it deviates in the
-following ways, mostly for brevity. It is hoped (and vaguely planned) that eventually the conventions of ECMAScript
-itself will evolve in these ways.
+This specification uses algorithm conventions very similar to those of [[!ECMASCRIPT]], whose rules should be used to
+interpret it (apart from the exceptions enumerated below). In particular, the objects specified here should be treated
+as <a href="https://tc39.github.io/ecma262/#sec-ecmascript-standard-built-in-objects">built-in objects</a>. For example,
+their <code>name</code> and <code>length</code> properties are derived as described by that specification, as are the
+default property descriptor values and the treatment of missing, <emu-val>undefined</emu-val>, or surplus arguments.
+
+We also depart from the [[!ECMASCRIPT]] conventions in the following ways, mostly for brevity. It is hoped (and vaguely
+planned) that the conventions of ECMAScript itself will evolve in these ways.
 
 <ul>
-  <li> We use destructuring notation in function and method declarations, and assume that the destructuring assignment
-    procedure was performed before the algorithm starts.
-  <li> We similarly use the default argument notation <code>= {}</code> in a couple of cases.
+  <li> We prefix section headings with <code>new</code> to indicate they are defining constructors; when doing so, we
+  assume that NewTarget will be checked before the algorithm starts.
+  <li> We use the default argument notation <code>= {}</code> in a couple of cases, meaning that before the algorithm
+    starts, <emu-val>undefined</emu-val> (including the implicit <emu-val>undefined</emu-val> when no argument is
+    provided) is instead treated as a new object created as if by ObjectCreate(%ObjectPrototype%). (This object may then
+    be destructured, if combined with the below destructuring convention.)
+  <li> We use destructuring notation in function and method declarations, and assume that <a
+    abstract-op>DestructuringAssignmentEvaluation</a> was performed appropriately before the algorithm starts.
   <li> We use "<emu-val>this</emu-val>" instead of "<emu-val>this</emu-val> value".
   <li> We use the shorthand phrases from the [[!PROMISES-GUIDE]] to operate on promises at a higher level than the
     ECMAScript spec does.
