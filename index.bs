@@ -207,6 +207,14 @@ any step in the chain cannot yet accept chunks, it propagates a signal backwards
 eventually the original source is told to stop producing chunks so fast. This process of normalizing flow from the
 original source according to how fast the chain can process chunks is called <dfn>backpressure</dfn>.
 
+Concretely, the <a>original source</a> is given the
+{{ReadableStreamDefaultController/desiredSize|controller.desiredSize}} (or
+{{ReadableByteStreamController/desiredSize|byteController.desiredSize}}) value, and can then adjust its rate of data
+flow accordingly. This value is derived from the {{WritableStreamDefaultWriter/desiredSize|writer.desiredSize}}
+corresponding to the <a>ultimate sink</a>, which gets updated as the ultimate sink finishes writing <a>chunks</a>. The
+{{ReadableStream/pipeTo()}} method used to construct the chain automatically ensures this information propagates back
+through the <a>pipe chain</a>.
+
 When <a lt="tee a readable stream">teeing</a> a readable stream, the <a>backpressure</a> signals from its two
 <a lt="branches of a readable stream tee">branches</a> will aggregate, such that if neither branch is read from, a
 backpressure signal will be sent to the <a>underlying source</a> of the original stream.
