@@ -41,9 +41,6 @@ promise_test(() => {
       .then(array => assert_array_equals(array, ['b', 'a'], 'array should contain two chunks'));
 }, 'enqueue() inside size() should work');
 
-// The behaviour in this test may seem strange, but it is logical. The call to controller.close() happens while the
-// readable queue is still empty, so the readable transitions to the "closed" state immediately, and the chunk is left
-// stranded in the readable's queue.
 promise_test(() => {
   let controller;
   const ts = new TransformStream({
@@ -52,8 +49,11 @@ promise_test(() => {
     }
   }, undefined, {
     size() {
+      // The readable queue is empty.
       controller.close();
+      // The readable state has gone from "readable" to "closed".
       return 1;
+      // This chunk will be enqueued, but will be impossible to read because the state is already "closed".
     },
     highWaterMark: Infinity
   });
@@ -61,6 +61,8 @@ promise_test(() => {
   return writer.write('a')
       .then(() => readableStreamToArray(ts.readable))
       .then(array => assert_array_equals(array, [], 'array should contain no chunks'));
+  // The chunk 'a' is still in readable's queue. readable is closed so 'a' cannot be read. writable's queue is empty and
+  // it is still writable.
 }, 'close() inside size() should work');
 
 promise_test(t => {
@@ -185,6 +187,7 @@ promise_test(() => {
     assert_false(done, 'done should be false');
     // See https://github.com/whatwg/streams/issues/794 for why this chunk is not 'a'.
     assert_equals(value, 'b', 'chunk should have been read');
+    assert_equals(calls, 1, 'calls should still be 1');
     return writePromise;
   });
 }, 'read() inside of size() should work');
@@ -215,6 +218,7 @@ promise_test(() => {
     return readableStreamToArray(ts.readable);
   }).then(array => {
     assert_array_equals(array, ['b', 'a'], 'both chunks should have been enqueued');
+    assert_equals(calls, 2, 'calls should still be 2');
   });
 }, 'writer.write() inside size() should work');
 
@@ -250,6 +254,7 @@ promise_test(() => {
     // Because one call to enqueue() is nested inside the other, they finish in the opposite order that they were
     // called, so the chunks end up reverse order.
     assert_array_equals(array, ['a', 'b'], 'both chunks should have been enqueued');
+    assert_equals(calls, 2, 'calls should still be 2');
   });
 }, 'synchronous writer.write() inside size() should work');
 
