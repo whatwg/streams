@@ -1,6 +1,8 @@
 'use strict';
 const assert = require('assert');
 
+const isFakeDetached = Symbol('is "detached" for our purposes');
+
 function IsPropertyKey(argument) {
   return typeof argument === 'string' || typeof argument === 'symbol';
 }
@@ -102,6 +104,7 @@ exports.PromiseInvokeOrPerformFallback = (O, P, args, F, argsF) => {
 
 // Not implemented correctly
 exports.TransferArrayBuffer = O => {
+  assert(!exports.IsDetachedBuffer(O), 'Cannot transfer a previously detached ArrayBuffer');
   const transferredIshVersion = O.slice();
 
   // This is specifically to fool tests that test "is transferred" by taking a non-zero-length
@@ -111,8 +114,14 @@ exports.TransferArrayBuffer = O => {
       return 0;
     }
   });
+  O[isFakeDetached] = true;
 
   return transferredIshVersion;
+};
+
+// Not implemented correctly
+exports.IsDetachedBuffer = O => {
+  return isFakeDetached in O;
 };
 
 exports.ValidateAndNormalizeHighWaterMark = highWaterMark => {

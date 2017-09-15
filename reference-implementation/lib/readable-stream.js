@@ -1,8 +1,8 @@
 'use strict';
 const assert = require('assert');
-const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, PromiseInvokeOrNoop,
-        TransferArrayBuffer, ValidateAndNormalizeQueuingStrategy, ValidateAndNormalizeHighWaterMark } =
-      require('./helpers.js');
+const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, IsDetachedBuffer,
+        PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeQueuingStrategy,
+        ValidateAndNormalizeHighWaterMark } = require('./helpers.js');
 const { createArrayFromList, createDataProperty, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
@@ -728,6 +728,10 @@ class ReadableStreamBYOBReader {
       return Promise.reject(new TypeError('view must be an array buffer view'));
     }
 
+    if (IsDetachedBuffer(view.buffer) === true) {
+      return Promise.reject(new TypeError('Cannot read into a view onto a detached ArrayBuffer'));
+    }
+
     if (view.byteLength === 0) {
       return Promise.reject(new TypeError('view must have non-zero byteLength'));
     }
@@ -1173,6 +1177,10 @@ class ReadableStreamBYOBRequest {
       throw new TypeError('This BYOB request has been invalidated');
     }
 
+    if (IsDetachedBuffer(this._view.buffer) === true) {
+      throw new TypeError('The BYOB request\'s buffer has been detached and so cannot be used as a response');
+    }
+
     ReadableByteStreamControllerRespond(this._associatedReadableByteStreamController, bytesWritten);
   }
 
@@ -1187,6 +1195,10 @@ class ReadableStreamBYOBRequest {
 
     if (!ArrayBuffer.isView(view)) {
       throw new TypeError('You can only respond with array buffer views');
+    }
+
+    if (IsDetachedBuffer(view.buffer) === true) {
+      throw new TypeError('The supplied view\'s buffer has been detached and so cannot be used as a response');
     }
 
     ReadableByteStreamControllerRespondWithNewView(this._associatedReadableByteStreamController, view);
@@ -1313,6 +1325,10 @@ class ReadableByteStreamController {
 
     if (!ArrayBuffer.isView(chunk)) {
       throw new TypeError('You can only enqueue array buffer views when using a ReadableByteStreamController');
+    }
+
+    if (IsDetachedBuffer(chunk.buffer) === true) {
+      throw new TypeError('Cannot enqueue a view onto a detached ArrayBuffer');
     }
 
     ReadableByteStreamControllerEnqueue(this, chunk);
