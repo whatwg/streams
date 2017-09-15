@@ -367,6 +367,48 @@ promise_test(() => {
   writer.close();
 
   return Promise.all([writer.closed, ts.readable.getReader().closed]);
-}, 'closing the writable should closes the readable when there are no queued chunks, even with backpressure');
+}, 'closing the writable should close the readable when there are no queued chunks, even with backpressure');
+
+test(() => {
+  new TransformStream({
+    start(controller) {
+      controller.close();
+      assert_throws(new TypeError(), () => controller.enqueue(), 'enqueue should throw');
+    }
+  });
+}, 'enqueue() should throw after controller.close()');
+
+promise_test(() => {
+  let controller;
+  const ts = new TransformStream({
+    start(c) {
+      controller = c;
+    }
+  });
+  const cancelPromise = ts.readable.cancel();
+  assert_throws(new TypeError(), () => controller.enqueue(), 'enqueue should throw');
+  return cancelPromise;
+}, 'enqueue() should throw after readable.cancel()');
+
+test(() => {
+  new TransformStream({
+    start(controller) {
+      controller.close();
+      assert_throws(new TypeError(), () => controller.close(), 'close should throw');
+    }
+  });
+}, 'controller.close() should throw the second time it is called');
+
+promise_test(() => {
+  let controller;
+  const ts = new TransformStream({
+    start(c) {
+      controller = c;
+    }
+  });
+  const cancelPromise = ts.readable.cancel();
+  assert_throws(new TypeError(), () => controller.close(), 'close should throw');
+  return cancelPromise;
+}, 'close() should throw after readable.cancel()');
 
 done();
