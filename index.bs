@@ -2919,11 +2919,9 @@ writable stream is <a>locked to a writer</a>.
 
 <h3 id="ws-abstract-ops-used-by-controllers">Writable Stream Abstract Operations Used by Controllers</h3>
 
-To allow future flexibility to add different writable stream behaviors (similar to the distinction between simple
+To allow future flexibility to add different writable stream behaviors (similar to the distinction between default
 readable streams and <a>readable byte streams</a>), much of the internal state of a <a>writable stream</a> is
-encapsulated by the {{WritableStreamDefaultController}} class. At this point in time the division of work between the
-stream and its controller may seems somewhat arbitrary, but centralizing much of the logic in the controller is a useful
-structure for the future.
+encapsulated by the {{WritableStreamDefaultController}} class.
 
 The abstract operations in this section are interfaces that are used by the controller implementation to affect its
 associated {{WritableStream}} object, translating the controller's internal state changes into developer-facing results
