@@ -282,4 +282,30 @@ promise_test(t => {
   });
 }, 'controller.error() should throw after a transformer method has thrown an exception');
 
+promise_test(t => {
+  let controller;
+  let calls = 0;
+  const ts = new TransformStream({
+    start(c) {
+      controller = c;
+    },
+    transform() {
+      ++calls;
+    }
+  }, undefined, { highWaterMark: 1 });
+  return delay(0).then(() => {
+    // Create backpressure.
+    controller.enqueue('a');
+    const writer = ts.writable.getWriter();
+    // transform() will not be called until backpressure is relieved.
+    const writePromise = writer.write('b');
+    assert_equals(calls, 0, 'transform() should not have been called');
+    controller.error(thrownError);
+    // Now backpressure has been relieved and the write can proceed.
+    return promise_rejects(t, thrownError, writePromise, 'write() should reject').then(() => {
+      assert_equals(calls, 0, 'transform() should not be called');
+    });
+  });
+}, 'erroring during write with backpressure should result in the write failing');
+
 done();

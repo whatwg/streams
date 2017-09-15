@@ -318,7 +318,12 @@ class TransformStreamDefaultSink {
 
     if (transformStream._backpressure === true) {
       return transformStream._backpressureChangePromise
-          .then(() => TransformStreamTransform(transformStream, chunk));
+          .then(() => {
+            if (transformStream._errored === true) {
+              return Promise.reject(transformStream._storedError);
+            }
+            return TransformStreamTransform(transformStream, chunk);
+          });
     }
 
     return TransformStreamTransform(transformStream, chunk);
