@@ -1390,7 +1390,10 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
   1. If ! IsReadableStreamBYOBReader(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. If *this*.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. If Type(_view_) is not Object, return <a>a promise rejected with</a> a *TypeError* exception.
-  1. If _view_ does not have a [[ViewedArrayBuffer]] internal slot, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If _view_ does not have a [[ViewedArrayBuffer]] internal slot, return <a>a promise rejected with</a> a *TypeError*
+     exception.
+  1. If ! IsDetachedBuffer(_view_.[[ViewedArrayBuffer]]) is *true*, return <a>a promise rejected with</a> a *TypeError*
+     exception.
   1. If _view_.[[ByteLength]] is *0*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! ReadableStreamBYOBReaderRead(*this*, _view_).
 </emu-alg>
@@ -2057,6 +2060,7 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
   1. If *this*.[[controlledReadableStream]].[[state]] is not `"readable"`, throw a *TypeError* exception.
   1. If Type(_chunk_) is not Object, throw a *TypeError* exception.
   1. If _chunk_ does not have a [[ViewedArrayBuffer]] internal slot, throw a *TypeError* exception.
+  1. If ! IsDetachedBuffer(_chunk_.[[ViewedArrayBuffer]]) is *true*, throw a *TypeError* exception.
   1. Return ! ReadableByteStreamControllerEnqueue(*this*, _chunk_).
 </emu-alg>
 
@@ -2190,6 +2194,7 @@ ReadableStreamBYOBRequest(<var>controller</var>, <var>view</var>)</h4>
 <emu-alg>
   1. If ! IsReadableStreamBYOBRequest(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*.[[associatedReadableByteStreamController]] is *undefined*, throw a *TypeError* exception.
+  1. If ! IsDetachedBuffer(*this*.[[view]].[[ViewedArrayBuffer]]) is *true*, throw a *TypeError* exception.
   1. Return ? ReadableByteStreamControllerRespond(*this*.[[associatedReadableByteStreamController]], _bytesWritten_).
 </emu-alg>
 
@@ -2201,6 +2206,7 @@ for="ReadableStreamBYOBRequest">respondWithNewView(<var>view</var>)</h5>
   1. If *this*.[[associatedReadableByteStreamController]] is *undefined*, throw a *TypeError* exception.
   1. If Type(_view_) is not Object, throw a *TypeError* exception.
   1. If _view_ does not have a [[ViewedArrayBuffer]] internal slot, throw a *TypeError* exception.
+  1. If ! IsDetachedBuffer(_view_.[[ViewedArrayBuffer]]) is *true*, throw a *TypeError* exception.
   1. Return ? ReadableByteStreamControllerRespondWithNewView(*this*.[[associatedReadableByteStreamController]], _view_).
 </emu-alg>
 
