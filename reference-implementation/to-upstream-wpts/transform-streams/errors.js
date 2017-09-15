@@ -186,7 +186,7 @@ promise_test(t => {
       controller.close();
       throw thrownError;
     }
-  });
+  }, undefined, { highWaterMark: 1 });
   const writePromise = ts.writable.getWriter().write('a');
   const closedPromise = ts.readable.getReader().closed;
   return Promise.all([

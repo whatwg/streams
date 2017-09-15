@@ -10,7 +10,7 @@ const { WritableStream, WritableStreamDefaultControllerErrorIfNeeded } = require
 // Class TransformStream
 
 class TransformStream {
-  constructor(transformer = {}, writableStrategy = undefined, readableStrategy = undefined) {
+  constructor(transformer = {}, writableStrategy = undefined, { size, highWaterMark } = {}) {
     this._transformer = transformer;
 
     this._writableController = undefined;
@@ -21,6 +21,11 @@ class TransformStream {
     this._backpressureChangePromise = undefined;
     this._backpressureChangePromise_resolve = undefined;
 
+    // Force default highWaterMark for readableStrategy to 0.
+    if (highWaterMark === undefined) {
+      highWaterMark = 0;
+    }
+
     this._transformStreamController = new TransformStreamDefaultController(this);
 
     let startPromise_resolve;
@@ -30,7 +35,7 @@ class TransformStream {
 
     const source = new TransformStreamDefaultSource(this, startPromise);
 
-    this._readable = new ReadableStream(source, readableStrategy);
+    this._readable = new ReadableStream(source, { size, highWaterMark });
 
     const sink = new TransformStreamDefaultSink(this, startPromise);
 

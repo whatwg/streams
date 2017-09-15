@@ -60,9 +60,7 @@ promise_test(() => {
       'result from reading the readable is the same as was written to writable');
     assert_false(result.done, 'stream should not be done');
 
-    return writer.ready.then(() => {
-      assert_equals(writer.desiredSize, 1, 'desiredSize should be 1 again');
-    });
+    return delay(0).then(() => assert_equals(writer.desiredSize, 1, 'desiredSize should be 1 again'));
   });
 }, 'Identity TransformStream: can read from readable what is put into writable');
 
@@ -180,11 +178,15 @@ promise_test(() => {
 }, 'TransformStream: by default, closing the writable closes the readable (when there are no queued writes)');
 
 promise_test(() => {
+  let transformResolve;
+  const transformPromise = new Promise(resolve => {
+    transformResolve = resolve;
+  });
   const ts = new TransformStream({
     transform() {
-      return delay(50);
+      return transformPromise;
     }
-  });
+  }, undefined, { highWaterMark: 1 });
 
   const writer = ts.writable.getWriter();
   writer.write('a');
@@ -197,6 +199,7 @@ promise_test(() => {
 
   return delay(0).then(() => {
     assert_equals(rsClosed, false, 'readable is not closed after a tick');
+    transformResolve();
 
     return writer.closed.then(() => {
       // TODO: Is this expectation correct?
@@ -333,7 +336,7 @@ promise_test(t => {
         });
       });
     }
-  });
+  }, undefined, { highWaterMark: 1 });
 
   assert_true(startCalled, 'start() should be called synchronously');
 

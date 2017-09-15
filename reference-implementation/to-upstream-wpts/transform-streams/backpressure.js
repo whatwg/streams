@@ -12,14 +12,24 @@ error1.name = 'error1';
 promise_test(() => {
   const ts = recordingTransformStream();
   const writer = ts.writable.getWriter();
+  // This call never resolves.
+  writer.write('a');
+  return flushAsyncEvents().then(() => {
+    assert_array_equals(ts.events, [], 'transform should not be called');
+  });
+}, 'backpressure allows no transforms with a default identity transform and no reader');
+
+promise_test(() => {
+  const ts = recordingTransformStream({}, undefined, { highWaterMark: 1 });
+  const writer = ts.writable.getWriter();
   // This call to write() resolves asynchronously.
   writer.write('a');
   // This call to write() waits for backpressure that is never relieved and never calls transform().
   writer.write('b');
-  return delay(0).then(() => {
+  return flushAsyncEvents().then(() => {
     assert_array_equals(ts.events, ['transform', 'a'], 'transform should be called once');
   });
-}, 'backpressure only allows one transform() with a default identity transform and no reader');
+}, 'backpressure only allows one transform() with a identity transform with a readable HWM of 1 and no reader');
 
 promise_test(() => {
   // Without a transform() implementation, recordingTransformStream() never enqueues anything.
@@ -28,7 +38,7 @@ promise_test(() => {
       // Discard all chunks. As a result, the readable side is never full enough to exert backpressure and transform()
       // keeps being called.
     }
-  });
+  }, undefined, { highWaterMark: 1 });
   const writer = ts.writable.getWriter();
   const writePromises = [];
   for (let i = 0; i < 4; ++i) {
@@ -41,7 +51,7 @@ promise_test(() => {
 }, 'transform() should keep being called as long as there is no backpressure');
 
 promise_test(() => {
-  const ts = new TransformStream();
+  const ts = new TransformStream({}, undefined, { highWaterMark: 1 });
   const writer = ts.writable.getWriter();
   const reader = ts.readable.getReader();
   const events = [];
@@ -88,7 +98,7 @@ promise_test(() => {
       controller.enqueue(chunk);
       return reader.read();
     }
-  });
+  }, undefined, { highWaterMark: 1 });
   const writer = ts.writable.getWriter();
   reader = ts.readable.getReader();
   return writer.write('a');
@@ -132,10 +142,18 @@ promise_test(t => {
     ts.readable.cancel(error1);
     return promise_rejects(t, error1, ts.writable.getWriter().closed, 'closed should reject');
   });
+}, 'writer.closed should resolve after readable is canceled with backpressure');
+
+promise_test(t => {
+  const ts = new TransformStream({}, undefined, { highWaterMark: 1 });
+  return delay(0).then(() => {
+    ts.readable.cancel(error1);
+    return promise_rejects(t, error1, ts.writable.getWriter().closed, 'closed should reject');
+  });
 }, 'writer.closed should resolve after readable is canceled with no backpressure');
 
 promise_test(() => {
-  const ts = new TransformStream();
+  const ts = new TransformStream({}, undefined, { highWaterMark: 1 });
   const writer = ts.writable.getWriter();
   return delay(0).then(() => {
     const writePromise = writer.write('a');
