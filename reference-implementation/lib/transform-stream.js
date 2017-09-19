@@ -106,11 +106,7 @@ function TransformStreamCloseReadableInternal(transformStream) {
   assert(transformStream._errored === false);
   assert(ReadableStreamDefaultControllerCanCloseOrEnqueue(transformStream._readableController) === true);
 
-  try {
-    ReadableStreamDefaultControllerClose(transformStream._readableController);
-  } catch (e) {
-    assert(false);
-  }
+  ReadableStreamDefaultControllerClose(transformStream._readableController);
 }
 
 function TransformStreamDefaultTransform(chunk, transformStreamController) {
