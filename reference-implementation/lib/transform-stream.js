@@ -36,8 +36,7 @@ class TransformStream {
 
     TransformStreamSetBackpressure(this, true);
 
-    const stream = this;
-    const startResult = InvokeOrNoop(transformer, 'start', [stream._transformStreamController]);
+    const startResult = InvokeOrNoop(transformer, 'start', [this._transformStreamController]);
     startPromise_resolve(startResult);
   }
 
@@ -134,9 +133,7 @@ class TransformStreamDefaultController {
       throw defaultControllerBrandCheckException('desiredSize');
     }
 
-    const stream = this._controlledTransformStream;
-    const readableController = stream._readable._readableStreamController;
-
+    const readableController = this._controlledTransformStream._readable._readableStreamController;
     return ReadableStreamDefaultControllerGetDesiredSize(readableController);
   }
 
@@ -186,26 +183,25 @@ function IsTransformStreamDefaultController(x) {
 function TransformStreamDefaultControllerClose(controller) {
   // console.log('TransformStreamDefaultControllerClose()');
 
-  const stream = controller._controlledTransformStream;
-  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(stream._readable._readableStreamController) === false) {
+  const readableController = controller._controlledTransformStream._readable._readableStreamController;
+  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === false) {
     throw new TypeError('Readable side is not in a state that can be closed');
   }
 
-  ReadableStreamDefaultControllerClose(stream._readable._readableStreamController);
+  ReadableStreamDefaultControllerClose(readableController);
 }
 
 function TransformStreamDefaultControllerEnqueue(controller, chunk) {
   // console.log('TransformStreamDefaultControllerEnqueue()');
 
   const stream = controller._controlledTransformStream;
-  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(stream._readable._readableStreamController) === false) {
+  const readableController = stream._readable._readableStreamController;
+  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === false) {
     throw new TypeError('Readable side is not in a state that permits enqueue');
   }
 
   // We throttle transformer.transform invocations based on the backpressure of the ReadableStream, but we still
   // accept TransformStreamDefaultControllerEnqueue() calls.
-
-  const readableController = stream._readable._readableStreamController;
 
   try {
     ReadableStreamDefaultControllerEnqueue(readableController, chunk);
@@ -250,9 +246,9 @@ class TransformStreamDefaultSink {
     assert(stream._writable._state === 'writable', 'stream.[[writable]].[[state]] is `"writable"`');
 
     if (stream._backpressure === true) {
-      assert(stream._backpressureChangePromise !== undefined,
-             '_backpressureChangePromise should have been initialized');
-      return stream._backpressureChangePromise
+      const backpressureChangePromise = stream._backpressureChangePromise;
+      assert(backpressureChangePromise !== undefined, '_backpressureChangePromise should have been initialized');
+      return backpressureChangePromise
           .then(() => {
             const writable = stream._writable;
             const state = writable._state;
@@ -268,10 +264,9 @@ class TransformStreamDefaultSink {
   }
 
   abort() {
-    const stream = this._ownerTransformStream;
     // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
     // errored.
-    TransformStreamError(stream, new TypeError('Writable side aborted'));
+    TransformStreamError(this._ownerTransformStream, new TypeError('Writable side aborted'));
   }
 
   close() {
@@ -279,19 +274,23 @@ class TransformStreamDefaultSink {
 
     const stream = this._ownerTransformStream;
 
+    // stream._readable cannot change after construction, so caching it across a call to user code is safe.
+    const readable = stream._readable;
+
     const flushPromise = PromiseInvokeOrNoop(stream._transformer, 'flush', [stream._transformStreamController]);
     // Return a promise that is fulfilled with undefined on success.
     return flushPromise.then(() => {
-      if (stream._readable._state === 'errored') {
-        return Promise.reject(stream._readable._storedError);
+      if (readable._state === 'errored') {
+        return Promise.reject(readable._storedError);
       }
-      if (ReadableStreamDefaultControllerCanCloseOrEnqueue(stream._readable._readableStreamController) === true) {
-        ReadableStreamDefaultControllerClose(stream._readable._readableStreamController);
+      const readableController = readable._readableStreamController;
+      if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === true) {
+        ReadableStreamDefaultControllerClose(readableController);
       }
       return Promise.resolve();
     }).catch(r => {
       TransformStreamError(stream, r);
-      return Promise.reject(stream._readable._storedError);
+      return Promise.reject(readable._storedError);
     });
   }
 }
@@ -309,10 +308,9 @@ function TransformStreamDefaultSinkTransform(sink, chunk) {
   assert(stream._readable._state !== 'errored');
   assert(stream._backpressure === false);
 
-  const transformer = stream._transformer;
   const controller = stream._transformStreamController;
 
-  const transformPromise = PromiseInvokeOrPerformFallback(transformer, 'transform', [chunk, controller],
+  const transformPromise = PromiseInvokeOrPerformFallback(stream._transformer, 'transform', [chunk, controller],
                              TransformStreamDefaultSinkDefaultTransform, [chunk, controller]);
 
   return transformPromise.then(
@@ -353,8 +351,7 @@ class TransformStreamDefaultSource {
   }
 
   cancel(reason) {
-    const stream = this._ownerTransformStream;
-    TransformStreamError(stream, reason);
+    TransformStreamError(this._ownerTransformStream, reason);
   }
 }
 
