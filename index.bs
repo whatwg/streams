@@ -2746,7 +2746,7 @@ Instances of {{WritableStream}} are created with the internal slots described in
   <tr>
     <td>\[[state]]
     <td class="non-normative">A string containing the stream's current state, used internally; one of
-      <code>"writable"</code>, <code>"closed"</code>, or <code>"errored"</code>
+      <code>"writable"</code>, <code>"closed"</code>, <code>"erroring"</code>, or <code>"errored"</code>
   </tr>
   <tr>
     <td>\[[storedError]]
@@ -2766,7 +2766,7 @@ Instances of {{WritableStream}} are created with the internal slots described in
   <tr>
     <td>\[[writeRequests]]
     <td class="non-normative">A List of promises representing the stream's internal queue of write requests not yet
-      processed by the <a>underlying sink</a>.
+      processed by the <a>underlying sink</a>
   </tr>
 </table>
 
