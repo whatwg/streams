@@ -290,9 +290,12 @@ class TransformStreamDefaultSink {
     if (transformStream._backpressure === true) {
       return transformStream._backpressureChangePromise
           .then(() => {
-            if (transformStream._errored === true) {
-              return Promise.reject(transformStream._storedError);
+            const writable = transformStream._writable;
+            const state = writable._state;
+            if (state === 'erroring') {
+              return Promise.reject(writable._storedError);
             }
+            assert(state === 'writable', 'state is `"writable"`');
             return TransformStreamTransform(transformStream, chunk);
           });
     }
