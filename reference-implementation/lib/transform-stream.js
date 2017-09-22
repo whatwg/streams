@@ -120,7 +120,7 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
     ReadableStreamDefaultControllerEnqueue(controller, chunk);
   } catch (e) {
     // This happens when readableStrategy.size() throws.
-    TransformStreamErrorInternal(transformStream, e);
+    TransformStreamError(transformStream, e);
 
     throw transformStream._readable._storedError;
   }
@@ -132,8 +132,8 @@ function TransformStreamEnqueueToReadable(transformStream, chunk) {
 }
 
 // This is a no-op if both sides are already errored.
-function TransformStreamErrorInternal(transformStream, e) {
-  // console.log('TransformStreamErrorInternal()');
+function TransformStreamError(transformStream, e) {
+  // console.log('TransformStreamError()');
 
   WritableStreamDefaultControllerErrorIfNeeded(transformStream._writableController, e);
   if (transformStream._readable._state === 'readable') {
@@ -186,7 +186,7 @@ function TransformStreamTransform(transformStream, chunk) {
   return transformPromise.then(
       undefined,
       e => {
-        TransformStreamErrorInternal(transformStream, e);
+        TransformStreamError(transformStream, e);
         return Promise.reject(e);
       });
 }
@@ -267,7 +267,7 @@ function TransformStreamDefaultControllerError(controller, e) {
 
   assert(transformStream._readable._state === 'readable', 'stream.[[readable]].[[state]] is "readable"');
 
-  TransformStreamErrorInternal(transformStream, e);
+  TransformStreamError(transformStream, e);
 }
 
 // Class TransformStreamDefaultSink
@@ -303,7 +303,7 @@ class TransformStreamDefaultSink {
     const transformStream = this._transformStream;
     // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
     // errored.
-    TransformStreamErrorInternal(transformStream, new TypeError('Writable side aborted'));
+    TransformStreamError(transformStream, new TypeError('Writable side aborted'));
   }
 
   close() {
@@ -323,7 +323,7 @@ class TransformStreamDefaultSink {
       }
       return Promise.resolve();
     }).catch(r => {
-      TransformStreamErrorInternal(transformStream, r);
+      TransformStreamError(transformStream, r);
       return Promise.reject(transformStream._readable._storedError);
     });
   }
@@ -364,7 +364,7 @@ class TransformStreamDefaultSource {
 
   cancel(reason) {
     const transformStream = this._transformStream;
-    TransformStreamErrorInternal(transformStream, reason);
+    TransformStreamError(transformStream, reason);
   }
 }
 
