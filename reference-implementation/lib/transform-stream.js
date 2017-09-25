@@ -94,8 +94,8 @@ function TransformStreamCloseReadableInternal(stream) {
   ReadableStreamDefaultControllerClose(stream._readableController);
 }
 
-function TransformStreamDefaultTransform(chunk, transformStreamController) {
-  const stream = transformStreamController._controlledTransformStream;
+function TransformStreamDefaultTransform(chunk, controller) {
+  const stream = controller._controlledTransformStream;
   TransformStreamEnqueueToReadable(stream, chunk);
   return Promise.resolve();
 }
