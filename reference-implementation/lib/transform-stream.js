@@ -123,7 +123,8 @@ function TransformStreamEnqueueToReadable(stream, chunk) {
 
   const backpressure = ReadableStreamDefaultControllerHasBackpressure(controller);
   if (backpressure !== stream._backpressure) {
-    TransformStreamSetBackpressure(stream, backpressure);
+    assert(backpressure === true, 'backpressure is *true*');
+    TransformStreamSetBackpressure(stream, true);
   }
 }
 
@@ -136,9 +137,9 @@ function TransformStreamError(stream, e) {
     ReadableStreamDefaultControllerError(stream._readableController, e);
   }
   if (stream._backpressure === true) {
-    // Pretend that pull() was called to permit any pending write() or start() calls to complete.
-    // TransformStreamSetBackpressure() cannot be called from enqueue() or pull() once the ReadableStream is errored,
-    // so this will will be the final time _backpressure is set.
+    // Pretend that pull() was called to permit any pending write() calls to complete. TransformStreamSetBackpressure()
+    // cannot be called from enqueue() or pull() once the ReadableStream is errored, so this will will be the final time
+    // _backpressure is set.
     TransformStreamSetBackpressure(stream, false);
   }
 }
@@ -286,8 +287,11 @@ class TransformStreamDefaultSink {
     // console.log('TransformStreamDefaultSink.write()');
 
     const stream = this._ownerTransformStream;
+    assert(stream._writable._state === 'writable', 'stream.[[writable]].[[state]] is `"writable"`');
 
     if (stream._backpressure === true) {
+      assert(stream._backpressureChangePromise !== undefined,
+             '_backpressureChangePromise should have been initialized');
       return stream._backpressureChangePromise
           .then(() => {
             const writable = stream._writable;
