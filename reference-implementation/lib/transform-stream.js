@@ -13,8 +13,6 @@ class TransformStream {
   constructor(transformer = {}, writableStrategy = undefined, readableStrategy = undefined) {
     this._transformer = transformer;
 
-    this._writableController = undefined;
-    this._readableController = undefined;
     this._transformStreamController = undefined;
 
     this._backpressure = undefined;
@@ -35,9 +33,6 @@ class TransformStream {
     const sink = new TransformStreamDefaultSink(this, startPromise);
 
     this._writable = new WritableStream(sink, writableStrategy);
-
-    assert(this._writableController !== undefined);
-    assert(this._readableController !== undefined);
 
     TransformStreamSetBackpressure(this, true);
 
@@ -81,7 +76,7 @@ function IsTransformStream(x) {
 function TransformStreamCloseReadable(stream) {
   // console.log('TransformStreamCloseReadable()');
 
-  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(stream._readableController) === false) {
+  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(stream._readable._readableStreamController) === false) {
     throw new TypeError('Readable side is not in a state that can be closed');
   }
 
@@ -89,9 +84,9 @@ function TransformStreamCloseReadable(stream) {
 }
 
 function TransformStreamCloseReadableInternal(stream) {
-  assert(ReadableStreamDefaultControllerCanCloseOrEnqueue(stream._readableController) === true);
+  assert(ReadableStreamDefaultControllerCanCloseOrEnqueue(stream._readable._readableStreamController) === true);
 
-  ReadableStreamDefaultControllerClose(stream._readableController);
+  ReadableStreamDefaultControllerClose(stream._readable._readableStreamController);
 }
 
 function TransformStreamDefaultTransform(chunk, controller) {
@@ -103,14 +98,14 @@ function TransformStreamDefaultTransform(chunk, controller) {
 function TransformStreamEnqueueToReadable(stream, chunk) {
   // console.log('TransformStreamEnqueueToReadable()');
 
-  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(stream._readableController) === false) {
+  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(stream._readable._readableStreamController) === false) {
     throw new TypeError('Readable side is not in a state that permits enqueue');
   }
 
   // We throttle transformer.transform invocation based on the backpressure of the ReadableStream, but we still
   // accept TransformStreamEnqueueToReadable() calls.
 
-  const controller = stream._readableController;
+  const controller = stream._readable._readableStreamController;
 
   try {
     ReadableStreamDefaultControllerEnqueue(controller, chunk);
@@ -131,9 +126,9 @@ function TransformStreamEnqueueToReadable(stream, chunk) {
 function TransformStreamError(stream, e) {
   // console.log('TransformStreamError()');
 
-  WritableStreamDefaultControllerErrorIfNeeded(stream._writableController, e);
+  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, e);
   if (stream._readable._state === 'readable') {
-    ReadableStreamDefaultControllerError(stream._readableController, e);
+    ReadableStreamDefaultControllerError(stream._readable._readableStreamController, e);
   }
   if (stream._backpressure === true) {
     // Pretend that pull() was called to permit any pending write() or start() calls to complete.
@@ -210,7 +205,7 @@ class TransformStreamDefaultController {
     }
 
     const stream = this._controlledTransformStream;
-    const readableController = stream._readableController;
+    const readableController = stream._readable._readableStreamController;
 
     return ReadableStreamDefaultControllerGetDesiredSize(readableController);
   }
@@ -274,11 +269,7 @@ class TransformStreamDefaultSink {
     this._startPromise = startPromise;
   }
 
-  start(c) {
-    const stream = this._ownerTransformStream;
-
-    stream._writableController = c;
-
+  start() {
     return this._startPromise;
   }
 
@@ -322,7 +313,7 @@ class TransformStreamDefaultSink {
       if (stream._readable._state === 'errored') {
         return Promise.reject(stream._readable._storedError);
       }
-      if (ReadableStreamDefaultControllerCanCloseOrEnqueue(stream._readableController) === true) {
+      if (ReadableStreamDefaultControllerCanCloseOrEnqueue(stream._readable._readableStreamController) === true) {
         TransformStreamCloseReadableInternal(stream);
       }
       return Promise.resolve();
@@ -341,11 +332,7 @@ class TransformStreamDefaultSource {
     this._startPromise = startPromise;
   }
 
-  start(c) {
-    const stream = this._ownerTransformStream;
-
-    stream._readableController = c;
-
+  start() {
     return this._startPromise;
   }
 
