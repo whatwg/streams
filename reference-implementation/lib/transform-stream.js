@@ -10,7 +10,7 @@ const { WritableStream, WritableStreamDefaultControllerErrorIfNeeded } = require
 // Class TransformStream
 
 class TransformStream {
-  constructor(transformer = {}, writableStrategy = undefined, readableStrategy = undefined) {
+  constructor(transformer = {}, writableStrategy = undefined, { size, highWaterMark = 0 } = {}) {
     this._transformer = transformer;
 
     this._transformStreamController = undefined;
@@ -28,7 +28,7 @@ class TransformStream {
 
     const source = new TransformStreamDefaultSource(this, startPromise);
 
-    this._readable = new ReadableStream(source, readableStrategy);
+    this._readable = new ReadableStream(source, { size, highWaterMark });
 
     const sink = new TransformStreamDefaultSink(this, startPromise);
 
