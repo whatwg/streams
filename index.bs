@@ -4507,6 +4507,7 @@ The following constructors must be exposed on the global object as data properti
 <ul class="brief">
   <li> {{ReadableStream}}
   <li> {{WritableStream}}
+  <li> {{TransformStream}}
   <li> {{ByteLengthQueuingStrategy}}
   <li> {{CountQueuingStrategy}}
 </ul>
@@ -4516,8 +4517,8 @@ The attributes of these properties must be { \[[Writable]]: <emu-val>true</emu-v
 
 <div class="note">
   The {{ReadableStreamDefaultReader}}, {{ReadableStreamBYOBReader}}, {{ReadableStreamDefaultController}},
-  {{ReadableByteStreamController}}, {{WritableStreamDefaultWriter}}, and {{WritableStreamDefaultController}} classes are
-  specifically not exposed, as they are not independently useful.
+  {{ReadableByteStreamController}}, {{WritableStreamDefaultWriter}}, {{WritableStreamDefaultController}}, and
+  {{TransformStreamDefaultController}} classes are specifically not exposed, as they are not independently useful.
 </div>
 
 <h2 id="creating-examples">Examples of Creating Streams</h2>
