@@ -4089,7 +4089,7 @@ Instances of {{TransformStreamDefaultSink}} are created with the internal slots 
 </table>
 
 <h4 id="ts-default-sink-constructor" constructor for="TransformStreamDefaultSink"
-lt="TransformStreamDefaultSink(stream)">new TransformStreamDefaultSink(<var>stream</var>, <var>startPromise</var>)</h4>
+lt="TransformStreamDefaultSink(stream, startPromise)">new TransformStreamDefaultSink(<var>stream</var>, <var>startPromise</var>)</h4>
 
 <emu-alg>
 <!-- TODO: constructor algorithm steps -->
@@ -4116,6 +4116,87 @@ lt="TransformStreamDefaultSink(stream)">new TransformStreamDefaultSink(<var>stre
 </emu-alg>
 
 <h5 id="ts-default-sink-close" method for="TransformStreamDefaultSink">close()</h5>
+
+<emu-alg>
+<!-- TODO: algo steps -->
+</emu-alg>
+
+<h3 id="ts-default-source-class" interface lt="TransformStreamDefaultSource">Class
+<code>TransformStreamDefaultSource</code></h3>
+
+The {{TransformStreamDefaultSource}} class is used internally as the <a>underlying source</a> that is passed to the
+{{ReadableStream}} constructor when constructing the \[[readable]] slot.
+
+<div class="note">
+  This specification uses the public API for transmitting events from the {{ReadableStream}} back to the
+  {{TransformStream}} implementation for simplicity. Since the {{TransformStreamDefaultSource}} class is not observable,
+  implementations are not required to implement it.
+</div>
+
+<h4 id="ts-default-source-class-definition">Class Definition</h4>
+
+<div class="non-normative">
+
+<em>This section is non-normative.</em>
+
+If one were to write the {{TransformStreamDefaultSource}} class in something close to the syntax of [[!ECMASCRIPT]],
+it would look like
+
+<pre><code class="lang-javascript">
+  class TransformStreamDefaultSource {
+    constructor(stream, startPromise)
+
+    start()
+    pull()
+    cancel(reason)
+  }
+</code></pre>
+
+</div>
+
+<h4 id="ts-default-source-internal-slots">Internal Slots</h4>
+
+Instances of {{TransformStreamDefaultSource}} are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[ownerTransformStream]]
+    <td class="non-normative">The {{TransformStream}} instance
+  </tr>
+  <tr>
+    <td>\[[startPromise]]
+    <td class="non-normative">The <code>startPromise</code> parameter that was passed to the constructor
+  </tr>
+</table>
+
+<h4 id="ts-default-source-constructor" constructor for="TransformStreamDefaultSource"
+lt="TransformStreamDefaultSource(stream, startPromise)">new TransformStreamDefaultSource(<var>stream</var>, <var>startPromise</var>)</h4>
+
+<emu-alg>
+<!-- TODO: constructor algorithm steps -->
+</emu-alg>
+
+<h4 id="ts-default-source-prototype">Properties of the {{TransformStreamDefaultSource}} Prototype</h4>
+
+<h5 id="ts-default-source-start" method for="TransformStreamDefaultSource">start()</h5>
+
+<emu-alg>
+<!-- TODO: algo steps -->
+</emu-alg>
+
+<h5 id="ts-default-source-pull" method for="TransformStreamDefaultSource">pull()</h5>
+
+<emu-alg>
+<!-- TODO: algo steps -->
+</emu-alg>
+
+<h5 id="ts-default-source-cancel" method for="TransformStreamDefaultSource">cancel()</h5>
 
 <emu-alg>
 <!-- TODO: algo steps -->
