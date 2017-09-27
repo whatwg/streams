@@ -3795,8 +3795,9 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>error
   buffering between <code>readableStream</code> and <code>writableStream</code>.
 
   <pre><code class="lang-javascript">
+    const writableStrategy = new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 1024 });
     readableStream
-      .pipeThrough(new TransformStream({}, new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 1024 }))
+      .pipeThrough(new TransformStream({}, writableStrategy))
       .pipeTo(writableStream);
   </code></pre>
 </div>
