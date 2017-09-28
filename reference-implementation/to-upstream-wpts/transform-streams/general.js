@@ -267,6 +267,7 @@ promise_test(() => {
 
     start(controller) {
       c = controller;
+      c.enqueue('start' + this.suffix);
     },
 
     transform(chunk) {
@@ -286,7 +287,7 @@ promise_test(() => {
 
   return writer.closed.then(() => {
     return readableChunks.then(chunks => {
-      assert_array_equals(chunks, ['a-suffix', 'flushed-suffix'], 'both enqueued chunks have suffixes');
+      assert_array_equals(chunks, ['start-suffix', 'a-suffix', 'flushed-suffix'], 'all enqueued chunks have suffixes');
     });
   });
 }, 'Transform stream should call transformer methods as methods');
