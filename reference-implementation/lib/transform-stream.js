@@ -95,17 +95,11 @@ function TransformStreamSetBackpressure(stream, backpressure) {
          'TransformStreamSetBackpressure() should be called only when backpressure is changed');
 
   if (stream._backpressureChangePromise !== undefined) {
-    // The fulfillment value is just for a sanity check.
-    stream._backpressureChangePromise_resolve(backpressure);
+    stream._backpressureChangePromise_resolve();
   }
 
   stream._backpressureChangePromise = new Promise(resolve => {
     stream._backpressureChangePromise_resolve = resolve;
-  });
-
-  stream._backpressureChangePromise.then(resolution => {
-    assert(resolution !== backpressure,
-           '_backpressureChangePromise should be fulfilled only when backpressure is changed');
   });
 
   stream._backpressure = backpressure;
