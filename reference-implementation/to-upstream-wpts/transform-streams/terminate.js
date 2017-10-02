@@ -88,4 +88,18 @@ promise_test(t => {
   ]);
 }, 'controller.error() after controller.terminate() without queued chunk should do nothing');
 
+promise_test(() => {
+  const ts = new TransformStream({
+    flush(controller) {
+      controller.terminate();
+    }
+  });
+  const writer = ts.writable.getWriter();
+  return Promise.all([
+    writer.close(),
+    writer.closed,
+    ts.readable.getReader().closed
+  ]);
+}, 'controller.terminate() inside flush() should not prevent writer.close() from succeeding');
+
 done();
