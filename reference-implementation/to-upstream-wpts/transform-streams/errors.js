@@ -308,4 +308,19 @@ promise_test(t => {
   });
 }, 'erroring during write with backpressure should result in the write failing');
 
+promise_test(t => {
+  const ts = new TransformStream({}, undefined, { highWaterMark: 0 });
+  return delay(0).then(() => {
+    const writer = ts.writable.getWriter();
+    // write should start synchronously
+    const writePromise = writer.write(0);
+    const abortPromise = writer.abort();
+    return promise_rejects(t, new TypeError(), ts.readable.getReader().read(), 'read() should reject')
+        .then(() => Promise.all([
+          promise_rejects(t, new TypeError(), writePromise, 'write() should reject'),
+          abortPromise
+        ]));
+  });
+}, 'a write() that was waiting for backpressure should reject if the writable is aborted');
+
 done();
