@@ -19,6 +19,18 @@ class TransformStream {
     this._backpressureChangePromise = undefined;
     this._backpressureChangePromise_resolve = undefined;
 
+    const readableType = transformer.readableType;
+
+    if (readableType !== undefined) {
+      throw new RangeError('Invalid readable type specified');
+    }
+
+    const writableType = transformer.writableType;
+
+    if (writableType !== undefined) {
+      throw new RangeError('Invalid writable type specified');
+    }
+
     this._transformStreamController = new TransformStreamDefaultController(this);
 
     let startPromise_resolve;
