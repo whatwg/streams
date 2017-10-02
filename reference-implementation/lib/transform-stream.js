@@ -253,7 +253,7 @@ class TransformStreamDefaultSink {
             const writable = stream._writable;
             const state = writable._state;
             if (state === 'erroring') {
-              return Promise.reject(writable._storedError);
+              throw writable._storedError;
             }
             assert(state === 'writable', 'state is `"writable"`');
             return TransformStreamDefaultSinkTransform(this, chunk);
@@ -281,16 +281,15 @@ class TransformStreamDefaultSink {
     // Return a promise that is fulfilled with undefined on success.
     return flushPromise.then(() => {
       if (readable._state === 'errored') {
-        return Promise.reject(readable._storedError);
+        throw readable._storedError;
       }
       const readableController = readable._readableStreamController;
       if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === true) {
         ReadableStreamDefaultControllerClose(readableController);
       }
-      return Promise.resolve();
     }).catch(r => {
       TransformStreamError(stream, r);
-      return Promise.reject(readable._storedError);
+      throw readable._storedError;
     });
   }
 }
@@ -317,7 +316,7 @@ function TransformStreamDefaultSinkTransform(sink, chunk) {
       undefined,
       e => {
         TransformStreamError(stream, e);
-        return Promise.reject(e);
+        throw e;
       });
 }
 
