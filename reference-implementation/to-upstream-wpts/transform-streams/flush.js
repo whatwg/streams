@@ -115,4 +115,16 @@ promise_test(() => {
   ]);
 }, 'TransformStream flush gets a chance to enqueue more into the readable, and can then async close');
 
+const error1 = new Error('error1');
+error1.name = 'error1';
+
+promise_test(t => {
+  const ts = new TransformStream({
+    flush(controller) {
+      controller.error(error1);
+    }
+  });
+  return promise_rejects(t, error1, ts.writable.getWriter().close(), 'close() should reject');
+}, 'error() during flush should cause writer.close() to reject');
+
 done();
