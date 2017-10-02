@@ -4000,8 +4000,6 @@ desiredSize</h5>
 <!-- TODO: algo steps -->
 </emu-alg>
 
-<!-- TODO: close method once its final name is decided -->
-
 <h5 id="ts-default-controller-enqueue" method for="TransformStreamDefaultController">enqueue(<var>chunk</var>)</h5>
 
 <div class="note">
@@ -4017,6 +4015,17 @@ desiredSize</h5>
 <div class="note">
   The <code>error</code> method will error both the controlled readable stream and the controlled writable stream,
   making all future interactions fail with the given <code>reason</code>.
+</div>
+
+<emu-alg>
+<!-- TODO: algo steps -->
+</emu-alg>
+
+<h5 id="ts-default-controller-terminate" method for="TransformStreamDefaultController">terminate()</h5>
+
+<div class="note">
+  The <code>terminate</code> method will close both the controlled readable stream and error the controlled writable
+  stream. This is useful when the <a>transformer</a> only needs to consume a portion of the input.
 </div>
 
 <emu-alg>
