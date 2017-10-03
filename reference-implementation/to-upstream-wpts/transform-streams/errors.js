@@ -314,12 +314,15 @@ promise_test(t => {
     const writer = ts.writable.getWriter();
     // write should start synchronously
     const writePromise = writer.write(0);
+    // The underlying sink's abort() is not called until the write() completes.
     const abortPromise = writer.abort();
-    return promise_rejects(t, new TypeError(), ts.readable.getReader().read(), 'read() should reject')
-        .then(() => Promise.all([
-          promise_rejects(t, new TypeError(), writePromise, 'write() should reject'),
-          abortPromise
-        ]));
+    // Perform a read to relieve backpressure and permit the write() to complete.
+    const readPromise = ts.readable.getReader().read();
+    return Promise.all([
+      promise_rejects(t, new TypeError(), readPromise, 'read() should reject'),
+      promise_rejects(t, new TypeError(), writePromise, 'write() should reject'),
+      abortPromise
+    ]);
   });
 }, 'a write() that was waiting for backpressure should reject if the writable is aborted');
 
