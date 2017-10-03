@@ -3926,6 +3926,18 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
   1. Return *true*.
 </emu-alg>
 
+<h4 id="transform-stream-error" aoid="TransformStreamError" nothrow>TransformStreamError ( <var>stream</var>, <var>e</var> )</h4>
+
+<emu-alg>
+<!-- TODO: write algo steps -->
+</emu-alg>
+
+<h4 id="transform-stream-set-backpressure" aoid="TransformStreamSetBackpressure" nothrow>TransformStreamSetBackpressure ( <var>stream</var>, <var>backpressure</var> )</h4>
+
+<emu-alg>
+<!-- TODO: write algo steps -->
+</emu-alg>
+
 <h3 id="ts-default-controller-class" interface lt="TransformStreamDefaultController">Class
 <code>TransformStreamDefaultController</code></h3>
 
