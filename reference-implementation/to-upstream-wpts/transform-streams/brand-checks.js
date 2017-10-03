@@ -67,9 +67,9 @@ test(() => {
 }, 'TransformStreamDefaultController.prototype.enqueue enforces a brand check');
 
 test(() => {
-  methodThrowsForAll(TransformStreamDefaultController.prototype, 'close',
+  methodThrowsForAll(TransformStreamDefaultController.prototype, 'terminate',
                      [fakeTSDefaultController(), realTS(), undefined, null]);
-}, 'TransformStreamDefaultController.prototype.close enforces a brand check');
+}, 'TransformStreamDefaultController.prototype.terminate enforces a brand check');
 
 test(() => {
   methodThrowsForAll(TransformStreamDefaultController.prototype, 'error',
