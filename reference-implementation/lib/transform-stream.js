@@ -164,10 +164,6 @@ class TransformStreamDefaultController {
       throw defaultControllerBrandCheckException('error');
     }
 
-    if (this._controlledTransformStream._readable._state !== 'readable') {
-      throw new TypeError('TransformStream is not in a state that can be errored');
-    }
-
     TransformStreamDefaultControllerError(this, reason);
   }
 }
@@ -191,11 +187,11 @@ function TransformStreamDefaultControllerTerminate(controller) {
 
   const stream = controller._controlledTransformStream;
   const readableController = stream._readable._readableStreamController;
-  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === false) {
-    throw new TypeError('Readable side is not in a state that can be closed');
+
+  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === true) {
+    ReadableStreamDefaultControllerClose(readableController);
   }
 
-  ReadableStreamDefaultControllerClose(readableController);
   WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController,
                                                new TypeError('TransformStream terminated'));
   if (stream._backpressure === true) {
@@ -234,8 +230,6 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
 
 function TransformStreamDefaultControllerError(controller, e) {
   const stream = controller._controlledTransformStream;
-
-  assert(stream._readable._state === 'readable', 'stream.[[readable]].[[state]] is "readable"');
 
   TransformStreamError(stream, e);
 }

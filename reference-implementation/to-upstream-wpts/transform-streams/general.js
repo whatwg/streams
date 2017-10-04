@@ -398,22 +398,26 @@ test(() => {
   new TransformStream({
     start(controller) {
       controller.terminate();
-      assert_throws(new TypeError(), () => controller.terminate(), 'terminate should throw');
+      controller.terminate();
     }
   });
-}, 'controller.terminate() should throw the second time it is called');
+}, 'controller.terminate() should do nothing the second time it is called');
 
-promise_test(() => {
+promise_test(t => {
   let controller;
   const ts = new TransformStream({
     start(c) {
       controller = c;
     }
   });
-  const cancelPromise = ts.readable.cancel();
-  assert_throws(new TypeError(), () => controller.terminate(), 'terminate should throw');
-  return cancelPromise;
-}, 'terminate() should throw after readable.cancel()');
+  const cancelReason = { name: 'cancelReason' };
+  const cancelPromise = ts.readable.cancel(cancelReason);
+  controller.terminate();
+  return Promise.all([
+    cancelPromise,
+    promise_rejects(t, cancelReason, ts.writable.getWriter().closed, 'closed should reject with cancelReason')
+  ]);
+}, 'terminate() should do nothing after readable.cancel()');
 
 promise_test(() => {
   let calls = 0;

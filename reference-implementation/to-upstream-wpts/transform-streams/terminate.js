@@ -74,13 +74,18 @@ promise_test(t => {
   ]);
 }, 'controller.error() after controller.terminate() with queued chunk should error the readable');
 
-test(() => {
-  new TransformStream({
+promise_test(t => {
+  const ts = new TransformStream({
     start(controller) {
       controller.terminate();
-      assert_throws(new TypeError(), () => controller.error(error1), 'error() should throw');
+      controller.error(error1);
     }
   });
-}, 'controller.error() after controller.terminate() without queued chunk should throw');
+  return Promise.all([
+    promise_rejects(t, new TypeError(), ts.writable.abort(), 'abort() should reject with a TypeError'),
+    ts.readable.cancel(),
+    ts.readable.getReader().closed
+  ]);
+}, 'controller.error() after controller.terminate() without queued chunk should do nothing');
 
 done();
