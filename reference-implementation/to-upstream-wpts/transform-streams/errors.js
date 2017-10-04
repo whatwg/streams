@@ -234,28 +234,35 @@ promise_test(t => {
 }, 'abort should set the close reason for the writable when it happens before cancel during underlying sink write, ' +
              'but cancel should still succeed');
 
-test(() => {
-  new TransformStream({
+const ignoredError = new Error('ignoredError');
+ignoredError.name = 'ignoredError';
+
+promise_test(t => {
+  const ts = new TransformStream({
     start(controller) {
       controller.error(thrownError);
-      assert_throws(new TypeError(), () => controller.error(), 'error() should throw');
+      controller.error(ignoredError);
     }
   });
-}, 'controller.error() should throw the second time it is called');
+  return promise_rejects(t, thrownError, ts.writable.abort(), 'abort() should reject with thrownError');
+}, 'controller.error() should do nothing the second time it is called');
 
-promise_test(() => {
+promise_test(t => {
   let controller;
   const ts = new TransformStream({
     start(c) {
       controller = c;
     }
   });
-  const cancelPromise = ts.readable.cancel();
-  assert_throws(new TypeError(), () => controller.error(), 'error() should throw');
-  return cancelPromise;
-}, 'controller.error() should throw after readable.cancel() but the cancel should still succeed');
+  const cancelPromise = ts.readable.cancel(thrownError);
+  controller.error(ignoredError);
+  return Promise.all([
+    cancelPromise,
+    promise_rejects(t, thrownError, ts.writable.getWriter().closed, 'closed should reject with thrownError')
+  ]);
+}, 'controller.error() should do nothing after readable.cancel()');
 
-promise_test(() => {
+promise_test(t => {
   let controller;
   const ts = new TransformStream({
     start(c) {
@@ -263,9 +270,10 @@ promise_test(() => {
     }
   });
   return ts.writable.abort().then(() => {
-    assert_throws(new TypeError(), () => controller.error(), 'error() should throw');
+    controller.error(ignoredError);
+    return promise_rejects(t, new TypeError(), ts.writable.getWriter().closed, 'closed should reject with a TypeError');
   });
-}, 'controller.error() should throw after writable.abort() has completed');
+}, 'controller.error() should do nothing after writable.abort() has completed');
 
 promise_test(t => {
   let controller;
@@ -277,10 +285,12 @@ promise_test(t => {
       throw thrownError;
     }
   }, undefined, { highWaterMark: Infinity });
-  return promise_rejects(t, thrownError, ts.writable.getWriter().write(), 'write() should reject').then(() => {
-    assert_throws(new TypeError(), () => controller.error(), 'error() should throw');
+  const writer = ts.writable.getWriter();
+  return promise_rejects(t, thrownError, writer.write(), 'write() should reject').then(() => {
+    controller.error();
+    return promise_rejects(t, thrownError, writer.closed, 'closed should reject with thrownError');
   });
-}, 'controller.error() should throw after a transformer method has thrown an exception');
+}, 'controller.error() should do nothing after a transformer method has thrown an exception');
 
 promise_test(t => {
   let controller;
