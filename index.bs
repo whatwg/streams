@@ -3929,13 +3929,20 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
 <h4 id="transform-stream-error" aoid="TransformStreamError" nothrow>TransformStreamError ( <var>stream</var>, <var>e</var> )</h4>
 
 <emu-alg>
-<!-- TODO: write algo steps -->
+  1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_stream_.[[writable]].[[writableStreamController]], _e_).
+  1. If _stream_.[[readable]].[[state]] is `"readable"`, perform !
+     ReadableStreamDefaultControllerError(_stream_.[[readable]].[[readableStreamController]], _e_).
+  1. If _stream_.[[backpressure]] is *true*, perform ! TransformStreamSetBackpressure(_stream_, *false*).
 </emu-alg>
 
 <h4 id="transform-stream-set-backpressure" aoid="TransformStreamSetBackpressure" nothrow>TransformStreamSetBackpressure ( <var>stream</var>, <var>backpressure</var> )</h4>
 
 <emu-alg>
-<!-- TODO: write algo steps -->
+  1. Assert: _stream_.[[backpressure]] is not _backpressure_.
+  1. If _stream_.[[backpressureChangePromise]] is not *undefined*, <a>resolve</a>
+     stream.[[backpressureChangePromise]] with *undefined*.
+  1. Set _stream_.[[backpressureChangePromise]] to <a>a new promise</a>.
+  1. Set _stream_.[[backpressure]] to _backpressure_.
 </emu-alg>
 
 <h3 id="ts-default-controller-class" interface lt="TransformStreamDefaultController">Class
