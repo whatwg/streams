@@ -4055,6 +4055,20 @@ nothrow>IsTransformStreamDefaultController ( <var>x</var> )</h4>
   1. Return *true*.
 </emu-alg>
 
+<h4 id="transform-stream-default-controller-enqueue" aoid="TransformStreamDefaultControllerEnqueue"
+nothrow>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+<!-- TODO: algo steps -->
+</emu-alg>
+
+<h4 id="transform-stream-default-controller-error" aoid="TransformStreamDefaultControllerError"
+nothrow>TransformStreamDefaultControllerError ( <var>controller</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+<!-- TODO: algo steps -->
+</emu-alg>
+
 <h3 id="ts-default-sink-class" interface lt="TransformStreamDefaultSink">Class
 <code>TransformStreamDefaultSink</code></h3>
 
