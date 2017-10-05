@@ -3960,7 +3960,7 @@ it would look like
 
     get desiredSize()
 
-    close()
+    terminate()
     enqueue(chunk)
     error(reason)
   }
@@ -4036,7 +4036,7 @@ desiredSize</h5>
 <h5 id="ts-default-controller-terminate" method for="TransformStreamDefaultController">terminate()</h5>
 
 <div class="note">
-  The <code>terminate</code> method will close both the controlled readable stream and error the controlled writable
+  The <code>terminate</code> method will close the controlled readable stream and error the controlled writable
   stream. This is useful when the <a>transformer</a> only needs to consume a portion of the input.
 </div>
 
