@@ -267,7 +267,8 @@ class TransformStreamDefaultSink {
   abort() {
     // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
     // errored.
-    TransformStreamError(this._ownerTransformStream, new TypeError('Writable side aborted'));
+    const e = new TypeError('Writable side aborted');
+    TransformStreamError(this._ownerTransformStream, e);
   }
 
   close() {
