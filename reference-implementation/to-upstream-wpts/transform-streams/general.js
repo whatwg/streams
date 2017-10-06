@@ -428,11 +428,11 @@ promise_test(() => {
 }, 'start() should not be called twice');
 
 test(() => {
-  assert_throws(new RangeError(), new TransformStream({ readableType: 'bytes' }), 'constructor should throw');
+  assert_throws(new RangeError(), () => new TransformStream({ readableType: 'bytes' }), 'constructor should throw');
 }, 'specifying a defined readableType should throw');
 
 test(() => {
-  assert_throws(new RangeError(), new TransformStream({ writableType: 'bytes' }), 'constructor should throw');
+  assert_throws(new RangeError(), () => new TransformStream({ writableType: 'bytes' }), 'constructor should throw');
 }, 'specifying a defined writableType should throw');
 
 done();
