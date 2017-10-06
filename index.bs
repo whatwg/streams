@@ -1793,14 +1793,6 @@ asserts).
   1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
 </emu-alg>
 
-<div class="note">
-  The case where <var>stream</var>.\[[state]] is <code>"closed"</code>, but <var>stream</var>.\[[closeRequested]]
-  is <emu-val>false</emu-val>, will happen if the stream was closed without its controller's close method ever being
-  called: i.e., if the stream was closed by a call to {{ReadableStream/cancel(reason)}}. In this case we allow the
-  controller's <code>enqueue</code> method to be called and silently do nothing, since the cancelation was outside the
-  control of the underlying source.
-</div>
-
 <h4 id="readable-stream-default-controller-error" aoid="ReadableStreamDefaultControllerError" nothrow
 export>ReadableStreamDefaultControllerError ( <var>controller</var>, <var>e</var> )</h4>
 
