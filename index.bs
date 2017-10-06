@@ -4002,7 +4002,9 @@ lt="TransformStreamDefaultController(stream)">new TransformStreamDefaultControll
 </div>
 
 <emu-alg>
-<!-- TODO: constructor algorithm steps -->
+  1. If ! IsTransformStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If _stream_.[[transformStreamController]] is not *undefined*, throw a *TypeError* exception.
+  1. Set *this*.[[controlledTransformStream]] to _stream_.
 </emu-alg>
 
 <h4 id="ts-default-controller-prototype">Properties of the {{TransformStreamDefaultController}} Prototype</h4>
@@ -4016,7 +4018,9 @@ desiredSize</h5>
 </div>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. If ! IsTransformStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _readableController_ be *this*.[[controlledTransformStream]].[[readable]].[[readableStreamController]].
+  1. Return ! ReadableStreamDefaultControllerGetDesiredSize(_readableController_).
 </emu-alg>
 
 <h5 id="ts-default-controller-enqueue" method for="TransformStreamDefaultController">enqueue(<var>chunk</var>)</h5>
@@ -4026,7 +4030,8 @@ desiredSize</h5>
 </div>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. If ! IsTransformStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. Perform ! TransformStreamDefaultControllerEnqueue(*this*, _chunk_).
 </emu-alg>
 
 <h5 id="ts-default-controller-error" method for="TransformStreamDefaultController">error(<var>reason</var>)</h5>
@@ -4066,7 +4071,18 @@ nothrow>IsTransformStreamDefaultController ( <var>x</var> )</h4>
 nothrow>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. Let _stream_ be _controller_.[[controlledTransformStream]].
+  1. Let _readableController_ be _stream_.[[readable]].[[readableStreamController]].
+  1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_readableController_) is *false*, throw a *TypeError*
+     exception.
+  1. Let _enqueueResult_ be ReadableStreamDefaultControllerEnqueue(_readableController_, _chunk_).
+  1. If _enqueueResult_ is an <a>abrupt completion</a>,
+    1. Perform ! TransformStreamError(_stream_, _e_).
+    1. Throw _stream_.[[readable]].[[storedError]].
+  1. Let _backpressure_ be ! ReadableStreamDefaultControllerHasBackpressure(_readableController_).
+  1. If _backpressure_ is not _stream_.[[backpressure]],
+    1. Assert: _backpressure_ is *true*.
+    1. Perform ! TransformStreamSetBackpressure(_stream_, *true*).
 </emu-alg>
 
 <h4 id="transform-stream-default-controller-error" aoid="TransformStreamDefaultControllerError"
@@ -4135,7 +4151,8 @@ Instances of {{TransformStreamDefaultSink}} are created with the internal slots 
 lt="TransformStreamDefaultSink(stream, startPromise)">new TransformStreamDefaultSink(<var>stream</var>, <var>startPromise</var>)</h4>
 
 <emu-alg>
-<!-- TODO: constructor algorithm steps -->
+  1. Set *this*.[[ownerTransformStream]] to _stream_.
+  1. Set *this*.[[startPromise]] to _startPromise_.
 </emu-alg>
 
 <h4 id="ts-default-sink-prototype">Properties of the {{TransformStreamDefaultSink}} Prototype</h4>
@@ -4143,25 +4160,51 @@ lt="TransformStreamDefaultSink(stream, startPromise)">new TransformStreamDefault
 <h5 id="ts-default-sink-start" method for="TransformStreamDefaultSink">start()</h5>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. Return *this*.[[startPromise]].
 </emu-alg>
 
 <h5 id="ts-default-sink-write" method for="TransformStreamDefaultSink">write(<var>chunk</var>)</h5>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. Let _stream_ be *this*.[[ownerTransformStream]].
+  1. Assert: _stream_.[[writable]].[[state]] is `"writable"`.
+  1. If _stream_.[[backpressure]] is *true*,
+    1. Let _backpressureChangePromise_ be _stream_.[[backpressureChangePromise]].
+    1. Assert: _backpressureChangePromise_ is not *undefined*.
+    1. Return the result of <a>transforming</a> _backpressureChangePromise_ with a fulfillment handler which performs
+       the following steps:
+      1. Let _writable_ be _stream_.[[writable]].
+      1. Let _state_ be _writable_.[[state]].
+      1. If _state_ is `"erroring"`, throw _writable_.[[storedError]].
+      1. Assert: _state_ is `"writable"`.
+      1. Return ! TransformStreamDefaultSinkTransform(*this*, _chunk_).
+  1. Return ! TransformStreamDefaultSinkTransform(*this*, _chunk_).
 </emu-alg>
 
 <h5 id="ts-default-sink-abort" method for="TransformStreamDefaultSink">abort()</h5>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. Let _e_ be a *TypeError* exception indicating that the writable stream was aborted.
+  1. Perform ! TransformStreamError(*this*.[[ownerTransformStream]], _e_).
 </emu-alg>
 
 <h5 id="ts-default-sink-close" method for="TransformStreamDefaultSink">close()</h5>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. Let _stream_ be *this*.[[ownerTransformStream]].
+  1. Let _readable_ be _stream_.[[readable]].
+  1. Let _flushPromise_ be ! PromiseInvokeOrNoop(_stream_.[[transformer]], 'flush', «
+     _stream_.[[transformStreamController]] »).
+  1. Return the result of <a>transforming</a> _flushPromise_ with:
+    1. A fulfullment handler that performs the following steps:
+      1. If _readable_.[[state]] is `"errored"`, throw _readable_.[[storedError]].
+      1. Let _readableController_ be _readable_.[[readableStreamController]].
+      1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_readableController_) is *true*, perform !
+         ReadableStreamDefaultControllerClose(_readableController_).
+    1. A rejection handler that, when called with argument _r_, performs the following steps:
+      1. Perform ! TransformStreamError(_stream_, _r_).
+      1. Throw _readable_.[[storedError]].
+
 </emu-alg>
 
 <h3 id="ts-default-source-class" interface lt="TransformStreamDefaultSource">Class
