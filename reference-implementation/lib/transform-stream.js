@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-const { InvokeOrNoop, PromiseInvokeOrPerformFallback, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
+const { Call, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
 const { ReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
@@ -307,9 +307,18 @@ class TransformStreamDefaultSink {
   }
 }
 
-function TransformStreamDefaultSinkDefaultTransform(chunk, controller) {
-  TransformStreamDefaultControllerEnqueue(controller, chunk);
-  return Promise.resolve();
+function TransformStreamDefaultSinkInvokeTransform(stream, chunk) {
+  const controller = stream._transformStreamController;
+  const transformer = stream._transformer;
+
+  const method = transformer.transform; // can throw
+
+  if (method === undefined) {
+    TransformStreamDefaultControllerEnqueue(controller, chunk); // can throw
+    return undefined;
+  }
+
+  return Call(method, transformer, [chunk, controller]); // can throw
 }
 
 function TransformStreamDefaultSinkTransform(sink, chunk) {
@@ -320,17 +329,20 @@ function TransformStreamDefaultSinkTransform(sink, chunk) {
   assert(stream._readable._state !== 'errored');
   assert(stream._backpressure === false);
 
-  const controller = stream._transformStreamController;
+  let transformPromise;
+  try {
+    // TransformStreamDefaultSinkInvokeTransform is a separate operation to permit consolidating the abrupt completion
+    // handling in one place in the text of the standard.
+    const transformResult = TransformStreamDefaultSinkInvokeTransform(stream, chunk);
+    transformPromise = Promise.resolve(transformResult);
+  } catch (e) {
+    transformPromise = Promise.reject(e);
+  }
 
-  const transformPromise = PromiseInvokeOrPerformFallback(stream._transformer, 'transform', [chunk, controller],
-                             TransformStreamDefaultSinkDefaultTransform, [chunk, controller]);
-
-  return transformPromise.then(
-      undefined,
-      e => {
-        TransformStreamError(stream, e);
-        throw e;
-      });
+  return transformPromise.catch(e => {
+    TransformStreamError(stream, e);
+    throw e;
+  });
 }
 
 // Class TransformStreamDefaultSource

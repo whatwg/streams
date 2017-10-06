@@ -54,6 +54,8 @@ function Call(F, V, args) {
   return Function.prototype.apply.call(F, V, args);
 }
 
+exports.Call = Call;
+
 exports.InvokeOrNoop = (O, P, args) => {
   assert(O !== undefined);
   assert(IsPropertyKey(P));
@@ -75,30 +77,6 @@ exports.PromiseInvokeOrNoop = (O, P, args) => {
     return Promise.resolve(exports.InvokeOrNoop(O, P, args));
   } catch (returnValueE) {
     return Promise.reject(returnValueE);
-  }
-};
-
-exports.PromiseInvokeOrPerformFallback = (O, P, args, F, argsF) => {
-  assert(O !== undefined);
-  assert(IsPropertyKey(P));
-  assert(Array.isArray(args));
-  assert(Array.isArray(argsF));
-
-  let method;
-  try {
-    method = O[P];
-  } catch (methodE) {
-    return Promise.reject(methodE);
-  }
-
-  if (method === undefined) {
-    return F(...argsF);
-  }
-
-  try {
-    return Promise.resolve(Call(method, O, args));
-  } catch (e) {
-    return Promise.reject(e);
   }
 };
 
