@@ -1,5 +1,9 @@
 'use strict';
 const assert = require('better-assert');
+
+// Calls to verbose() are purely for debugging the reference implementation and tests. They are not part of the standard
+// and do not appear in the standard text.
+const verbose = require('debug')('streams:transform-stream:verbose');
 const { Call, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
 const { ReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
@@ -85,7 +89,7 @@ function IsTransformStream(x) {
 
 // This is a no-op if both sides are already errored.
 function TransformStreamError(stream, e) {
-  // console.log('TransformStreamError()');
+  verbose('TransformStreamError()');
 
   WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, e);
   if (stream._readable._state === 'readable') {
@@ -100,7 +104,7 @@ function TransformStreamError(stream, e) {
 }
 
 function TransformStreamSetBackpressure(stream, backpressure) {
-  // console.log(`TransformStreamSetBackpressure(${backpressure})`);
+  verbose(`TransformStreamSetBackpressure(${backpressure})`);
 
   // Passes also when called during construction.
   assert(stream._backpressure !== backpressure);
@@ -182,7 +186,7 @@ function IsTransformStreamDefaultController(x) {
 }
 
 function TransformStreamDefaultControllerTerminate(controller) {
-  // console.log('TransformStreamDefaultControllerTerminate()');
+  verbose('TransformStreamDefaultControllerTerminate()');
 
   const stream = controller._controlledTransformStream;
   const readableController = stream._readable._readableStreamController;
@@ -200,7 +204,7 @@ function TransformStreamDefaultControllerTerminate(controller) {
 }
 
 function TransformStreamDefaultControllerEnqueue(controller, chunk) {
-  // console.log('TransformStreamDefaultControllerEnqueue()');
+  verbose('TransformStreamDefaultControllerEnqueue()');
 
   const stream = controller._controlledTransformStream;
   const readableController = stream._readable._readableStreamController;
@@ -246,7 +250,7 @@ class TransformStreamDefaultSink {
   }
 
   write(chunk) {
-    // console.log('TransformStreamDefaultSink.write()');
+    verbose('TransformStreamDefaultSink.write()');
 
     const stream = this._ownerTransformStream;
     assert(stream._writable._state === 'writable');
@@ -277,7 +281,7 @@ class TransformStreamDefaultSink {
   }
 
   close() {
-    // console.log('TransformStreamDefaultSink.close()');
+    verbose('TransformStreamDefaultSink.close()');
 
     const stream = this._ownerTransformStream;
 
@@ -316,7 +320,7 @@ function TransformStreamDefaultSinkInvokeTransform(stream, chunk) {
 }
 
 function TransformStreamDefaultSinkTransform(sink, chunk) {
-  // console.log('TransformStreamDefaultSinkTransform()');
+  verbose('TransformStreamDefaultSinkTransform()');
 
   const stream = sink._ownerTransformStream;
 
@@ -334,9 +338,9 @@ function TransformStreamDefaultSinkTransform(sink, chunk) {
   }
 
   return transformPromise.catch(e => {
-    TransformStreamError(stream, e);
-    throw e;
-  });
+        TransformStreamError(stream, e);
+        throw e;
+      });
 }
 
 // Class TransformStreamDefaultSource
@@ -352,7 +356,7 @@ class TransformStreamDefaultSource {
   }
 
   pull() {
-    // console.log('TransformStreamDefaultSource.pull()');
+    verbose('TransformStreamDefaultSource.pull()');
 
     const stream = this._ownerTransformStream;
 
