@@ -4076,7 +4076,7 @@ nothrow>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>ch
   1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_readableController_) is *false*, throw a *TypeError*
      exception.
   1. Let _enqueueResult_ be ReadableStreamDefaultControllerEnqueue(_readableController_, _chunk_).
-  1. If _enqueueResult_ is an <a>abrupt completion</a>,
+  1. If _enqueueResult_ is an abrupt completion,
     1. Perform ! TransformStreamError(_stream_, _e_).
     1. Throw _stream_.[[readable]].[[storedError]].
   1. Let _backpressure_ be ! ReadableStreamDefaultControllerHasBackpressure(_readableController_).
@@ -4265,7 +4265,8 @@ Instances of {{TransformStreamDefaultSource}} are created with the internal slot
 lt="TransformStreamDefaultSource(stream, startPromise)">new TransformStreamDefaultSource(<var>stream</var>, <var>startPromise</var>)</h4>
 
 <emu-alg>
-<!-- TODO: constructor algorithm steps -->
+  1. Set *this*.[[ownerTransformStream]] to _stream_.
+  1. Set *this*.[[startPromise]] to _startPromise_.
 </emu-alg>
 
 <h4 id="ts-default-source-prototype">Properties of the {{TransformStreamDefaultSource}} Prototype</h4>
@@ -4273,19 +4274,23 @@ lt="TransformStreamDefaultSource(stream, startPromise)">new TransformStreamDefau
 <h5 id="ts-default-source-start" method for="TransformStreamDefaultSource">start()</h5>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. Return *this*.[[startPromise]].
 </emu-alg>
 
 <h5 id="ts-default-source-pull" method for="TransformStreamDefaultSource">pull()</h5>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. Let _stream_ be *this*.[[ownerTransformStream]].
+  1. Assert: _stream_.[[backpressure]] is *true*.
+  1. Assert: _stream_.[[backpressureChangePromise]] is not *undefined*.
+  1. Perform ! TransformStreamSetBackpressure(_stream_, *false*).
+  1. Return _stream_.[[backpressureChangePromise]].
 </emu-alg>
 
-<h5 id="ts-default-source-cancel" method for="TransformStreamDefaultSource">cancel()</h5>
+<h5 id="ts-default-source-cancel" method for="TransformStreamDefaultSource">cancel(<var>reason</var>)</h5>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. Perform ! TransformStreamError(*this*.[[ownerTransformStream]], _reason_).
 </emu-alg>
 
 <h2 id="other-stuff">Other Stream APIs and Operations</h2>
