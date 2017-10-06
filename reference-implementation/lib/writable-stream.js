@@ -1,5 +1,5 @@
 'use strict';
-const assert = require('assert');
+const assert = require('better-assert');
 const { InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeQueuingStrategy, typeIsObject } =
   require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');

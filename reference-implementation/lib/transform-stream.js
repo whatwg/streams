@@ -1,5 +1,5 @@
 'use strict';
-const assert = require('assert');
+const assert = require('better-assert');
 const { Call, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
 const { ReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
