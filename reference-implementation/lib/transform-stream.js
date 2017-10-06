@@ -299,14 +299,14 @@ function TransformStreamDefaultSinkInvokeTransform(stream, chunk) {
   const controller = stream._transformStreamController;
   const transformer = stream._transformer;
 
-  const method = transformer.transform; // throws
+  const method = transformer.transform; // can throw
 
   if (method === undefined) {
-    TransformStreamDefaultControllerEnqueue(controller, chunk); // throws
-    return undefined; // explicit "undefined" to keep eslint happy.
+    TransformStreamDefaultControllerEnqueue(controller, chunk); // can throw
+    return undefined;
   }
 
-  return Call(method, transformer, [chunk, controller]); // throws
+  return Call(method, transformer, [chunk, controller]); // can throw
 }
 
 function TransformStreamDefaultSinkTransform(sink, chunk) {
