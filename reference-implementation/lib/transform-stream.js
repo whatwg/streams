@@ -104,7 +104,7 @@ function TransformStreamError(stream, e) {
 }
 
 function TransformStreamSetBackpressure(stream, backpressure) {
-  verbose(`TransformStreamSetBackpressure(${backpressure})`);
+  verbose(`TransformStreamSetBackpressure() [backpressure = ${backpressure}]`);
 
   // Passes also when called during construction.
   assert(stream._backpressure !== backpressure);
@@ -250,7 +250,7 @@ class TransformStreamDefaultSink {
   }
 
   write(chunk) {
-    verbose('TransformStreamDefaultSink.write()');
+    verbose('TransformStreamDefaultSink.prototype.write()');
 
     const stream = this._ownerTransformStream;
     assert(stream._writable._state === 'writable');
@@ -281,7 +281,7 @@ class TransformStreamDefaultSink {
   }
 
   close() {
-    verbose('TransformStreamDefaultSink.close()');
+    verbose('TransformStreamDefaultSink.prototype.close()');
 
     const stream = this._ownerTransformStream;
 
@@ -356,7 +356,7 @@ class TransformStreamDefaultSource {
   }
 
   pull() {
-    verbose('TransformStreamDefaultSource.pull()');
+    verbose('TransformStreamDefaultSource.prototype.pull()');
 
     const stream = this._ownerTransformStream;
 
