@@ -27,9 +27,9 @@ Writable streams shine in situations where:
 - Your sink has a way of acknowledging successful writes, or at least receipt of the data.
 - Your sink requires a "close" signal to release resources or similar.
 
-## Are streams only for binary data?
+## Are streams only for byte data?
 
-No! Although streams are designed around I/O use cases, the APIs in the Streams Standard accomodate other types of chunks flowing through the streams just as well. Although usually the original source of or ultimate sink for I/O deals in binary, there are many steps in between where streaming APIs are important, and they are meant to play well there too.
+No! Although streams are designed around I/O use cases, the APIs in the Streams Standard accomodate other types of chunks flowing through the streams just as well. Although usually the original source of or ultimate sink for I/O deals in bytes, there are many steps in between where streaming APIs are important, and they are meant to play well there too.
 
 For example, your program could easily have readable stream of JavaScript objects representing users. This stream was probably originally derived from a readable stream of bytes coming from a HTTP request; maybe there was even an intermediate stream of decoded text. But the same APIs work for all of these streams: it is only the chunk type that differs.
 
@@ -47,7 +47,7 @@ Readable streams and observables/EventTarget are not terribly related. Observabl
 
 Observables and readable streams both share the semantic of "zero or more chunks, followed by either an error or done signal". But beyond that, they are not very comparable.
 
-## How do readable streams related to [async iterables](https://github.com/zenparsing/async-iteration/)?
+## How do readable streams relate to [async iterables](https://github.com/zenparsing/async-iteration/)?
 
 Readable streams are conceptually a special case of async iterables, with a focus on I/O. The best analogy is something like "readable streams is to async iterable as array is to sync iterable." That is, just like arrays are a specialized type of iterable optimized for memory locality and random access, readable streams are a specialized type of async iterable optimized for things like off-main-thread data transfer and precise backpressure signaling.
 
