@@ -22,7 +22,7 @@ Diagnostic output is provided using the [debug](https://www.npmjs.com/package/de
 DEBUG=streams:* npm test
 ```
 
-See [lib/transform-stream.js](https://github.com/whatwg/streams/blob/master/reference-implementation/lib/transform-stream.js) for examples of how debug statements are used. Diagnostic coverage is sparse at the moment; we expect to add more diagnostics in an ad hoc manner as they are needed.
+See [lib/transform-stream.js](lib/transform-stream.js) for examples of how debug statements are used. Diagnostic coverage is sparse at the moment; we expect to add more diagnostics in an ad hoc manner as they are needed.
 
 ### Web platform tests
 
