@@ -338,9 +338,9 @@ function TransformStreamDefaultSinkTransform(sink, chunk) {
   }
 
   return transformPromise.catch(e => {
-        TransformStreamError(stream, e);
-        throw e;
-      });
+    TransformStreamError(stream, e);
+    throw e;
+  });
 }
 
 // Class TransformStreamDefaultSource
