@@ -302,13 +302,13 @@ function IsReadableStream(x) {
 }
 
 function IsReadableStreamDisturbed(stream) {
-  assert(IsReadableStream(stream) === true, 'IsReadableStreamDisturbed should only be used on known readable streams');
+  assert(IsReadableStream(stream) === true);
 
   return stream._disturbed;
 }
 
 function IsReadableStreamLocked(stream) {
-  assert(IsReadableStream(stream) === true, 'IsReadableStreamLocked should only be used on known readable streams');
+  assert(IsReadableStream(stream) === true);
 
   if (stream._reader === undefined) {
     return false;
@@ -525,8 +525,8 @@ function ReadableStreamClose(stream) {
 }
 
 function ReadableStreamError(stream, e) {
-  assert(IsReadableStream(stream) === true, 'stream must be ReadableStream');
-  assert(stream._state === 'readable', 'state must be readable');
+  assert(IsReadableStream(stream) === true);
+  assert(stream._state === 'readable');
 
   stream._state = 'errored';
   stream._storedError = e;
@@ -544,7 +544,7 @@ function ReadableStreamError(stream, e) {
 
     reader._readRequests = [];
   } else {
-    assert(IsReadableStreamBYOBReader(reader), 'reader must be ReadableStreamBYOBReader');
+    assert(IsReadableStreamBYOBReader(reader));
 
     for (const readIntoRequest of reader._readIntoRequests) {
       readIntoRequest._reject(e);
@@ -791,7 +791,7 @@ function ReadableStreamReaderGenericInitialize(reader, stream) {
   } else if (stream._state === 'closed') {
     defaultReaderClosedPromiseInitializeAsResolved(reader);
   } else {
-    assert(stream._state === 'errored', 'state must be errored');
+    assert(stream._state === 'errored');
 
     defaultReaderClosedPromiseInitializeAsRejected(reader, stream._storedError);
     reader._closedPromise.catch(() => {});
@@ -1479,7 +1479,7 @@ function ReadableByteStreamControllerClearPendingPullIntos(controller) {
 }
 
 function ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDescriptor) {
-  assert(stream._state !== 'errored', 'state must not be errored');
+  assert(stream._state !== 'errored');
 
   let done = false;
   if (stream._state === 'closed') {
@@ -1553,7 +1553,7 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
   }
 
   if (ready === false) {
-    assert(controller._queueTotalSize === 0, 'queue must be empty');
+    assert(controller._queueTotalSize === 0);
     assert(pullIntoDescriptor.bytesFilled > 0);
     assert(pullIntoDescriptor.bytesFilled < pullIntoDescriptor.elementSize);
   }
@@ -1671,7 +1671,7 @@ function ReadableByteStreamControllerPullInto(controller, view) {
 function ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor) {
   firstDescriptor.buffer = TransferArrayBuffer(firstDescriptor.buffer);
 
-  assert(firstDescriptor.bytesFilled === 0, 'bytesFilled must be 0');
+  assert(firstDescriptor.bytesFilled === 0);
 
   const stream = controller._controlledReadableStream;
   if (ReadableStreamHasBYOBReader(stream) === true) {
@@ -1816,7 +1816,7 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
     ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
     ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
   } else {
-    assert(IsReadableStreamLocked(stream) === false, 'stream must not be locked');
+    assert(IsReadableStreamLocked(stream) === false);
     ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
   }
 }
