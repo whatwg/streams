@@ -82,7 +82,7 @@ exports.PromiseInvokeOrNoop = (O, P, args) => {
 
 // Not implemented correctly
 exports.TransferArrayBuffer = O => {
-  assert(!exports.IsDetachedBuffer(O), 'Cannot transfer a previously detached ArrayBuffer');
+  assert(!exports.IsDetachedBuffer(O));
   const transferredIshVersion = O.slice();
 
   // This is specifically to fool tests that test "is transferred" by taking a non-zero-length

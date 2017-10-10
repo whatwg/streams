@@ -103,8 +103,7 @@ function TransformStreamSetBackpressure(stream, backpressure) {
   // console.log(`TransformStreamSetBackpressure(${backpressure})`);
 
   // Passes also when called during construction.
-  assert(stream._backpressure !== backpressure,
-         'TransformStreamSetBackpressure() should be called only when backpressure is changed');
+  assert(stream._backpressure !== backpressure);
 
   if (stream._backpressureChangePromise !== undefined) {
     stream._backpressureChangePromise_resolve();
@@ -223,7 +222,7 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
 
   const backpressure = ReadableStreamDefaultControllerHasBackpressure(readableController);
   if (backpressure !== stream._backpressure) {
-    assert(backpressure === true, 'backpressure is *true*');
+    assert(backpressure === true);
     TransformStreamSetBackpressure(stream, true);
   }
 }
@@ -250,11 +249,11 @@ class TransformStreamDefaultSink {
     // console.log('TransformStreamDefaultSink.write()');
 
     const stream = this._ownerTransformStream;
-    assert(stream._writable._state === 'writable', 'stream.[[writable]].[[state]] is `"writable"`');
+    assert(stream._writable._state === 'writable');
 
     if (stream._backpressure === true) {
       const backpressureChangePromise = stream._backpressureChangePromise;
-      assert(backpressureChangePromise !== undefined, '_backpressureChangePromise should have been initialized');
+      assert(backpressureChangePromise !== undefined);
       return backpressureChangePromise
           .then(() => {
             const writable = stream._writable;
@@ -262,7 +261,7 @@ class TransformStreamDefaultSink {
             if (state === 'erroring') {
               throw writable._storedError;
             }
-            assert(state === 'writable', 'state is `"writable"`');
+            assert(state === 'writable');
             return TransformStreamDefaultSinkTransform(this, chunk);
           });
     }
@@ -358,10 +357,9 @@ class TransformStreamDefaultSource {
     const stream = this._ownerTransformStream;
 
     // Invariant. Enforced by the promises returned by start() and pull().
-    assert(stream._backpressure === true, 'pull() should be never called while _backpressure is false');
+    assert(stream._backpressure === true);
 
-    assert(stream._backpressureChangePromise !== undefined,
-           '_backpressureChangePromise should have been initialized');
+    assert(stream._backpressureChangePromise !== undefined);
 
     TransformStreamSetBackpressure(stream, false);
 

@@ -3,9 +3,8 @@ const assert = require('better-assert');
 const { IsFiniteNonNegativeNumber } = require('./helpers.js');
 
 exports.DequeueValue = container => {
-  assert('_queue' in container && '_queueTotalSize' in container,
-    'Spec-level failure: DequeueValue should only be used on containers with [[queue]] and [[queueTotalSize]].');
-  assert(container._queue.length > 0, 'Spec-level failure: should never dequeue from an empty queue.');
+  assert('_queue' in container && '_queueTotalSize' in container);
+  assert(container._queue.length > 0);
 
   const pair = container._queue.shift();
   container._queueTotalSize -= pair.size;
@@ -17,9 +16,7 @@ exports.DequeueValue = container => {
 };
 
 exports.EnqueueValueWithSize = (container, value, size) => {
-  assert('_queue' in container && '_queueTotalSize' in container,
-    'Spec-level failure: EnqueueValueWithSize should only be used on containers with [[queue]] and ' +
-    '[[queueTotalSize]].');
+  assert('_queue' in container && '_queueTotalSize' in container);
 
   size = Number(size);
   if (!IsFiniteNonNegativeNumber(size)) {
@@ -31,17 +28,15 @@ exports.EnqueueValueWithSize = (container, value, size) => {
 };
 
 exports.PeekQueueValue = container => {
-  assert('_queue' in container && '_queueTotalSize' in container,
-    'Spec-level failure: PeekQueueValue should only be used on containers with [[queue]] and [[queueTotalSize]].');
-  assert(container._queue.length > 0, 'Spec-level failure: should never peek at an empty queue.');
+  assert('_queue' in container && '_queueTotalSize' in container);
+  assert(container._queue.length > 0);
 
   const pair = container._queue[0];
   return pair.value;
 };
 
 exports.ResetQueue = container => {
-  assert('_queue' in container && '_queueTotalSize' in container,
-    'Spec-level failure: ResetQueue should only be used on containers with [[queue]] and [[queueTotalSize]].');
+  assert('_queue' in container && '_queueTotalSize' in container);
 
   container._queue = [];
   container._queueTotalSize = 0;
