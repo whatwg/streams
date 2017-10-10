@@ -50,3 +50,13 @@ Note that when creating a new test file, you should generate the four wrapper en
 ```
 node web-platform-tests/streams/generate-test-wrappers.js to-upstream-wpts/my-test-file.js
 ```
+
+## Diagnostics
+
+Diagnostic output is provided using the [debug](https://www.npmjs.com/package/debug) package. It is useful to understand the behaviour of the reference implementation, particularly in tests that exercise asynchronous behaviour. To enable, set the DEBUG environment variable. For example, in Bash,
+
+```bash
+DEBUG=streams:* npm test
+```
+
+See [lib/transform-stream.js](lib/transform-stream.js) for examples of how debug statements are used. Diagnostic coverage is sparse at the moment; we expect to add more diagnostics in an ad-hoc manner as they are needed.
