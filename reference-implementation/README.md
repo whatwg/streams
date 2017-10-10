@@ -14,6 +14,16 @@ You can check the test coverage at any time by running `npm run coverage` in thi
 
 To run all tests (and the lint step), run `npm test` in this folder.
 
+## Diagnostics
+
+Diagnostic output is provided using the [debug](https://www.npmjs.com/package/debug) package. It is useful to understand the behaviour of the reference implementation, particularly in tests that exercise asynchronous behaviour. To enable, set the DEBUG environment variable. For example, in Bash,
+
+```bash
+DEBUG=streams:* npm test
+```
+
+See [lib/transform-stream.js](https://github.com/whatwg/streams/blob/master/reference-implementation/lib/transform-stream.js) for examples of how debug statements are used. Diagnostic coverage is sparse at the moment; we expect to add more diagnostics in an ad hoc manner as they are needed.
+
 ### Web platform tests
 
 The test suite for this standard is written in [web platform tests](https://github.com/w3c/web-platform-tests) format.
