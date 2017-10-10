@@ -16,7 +16,7 @@ To run all tests (and the lint step), run `npm test` in this folder.
 
 ### Web platform tests
 
-After we started implementing this in browsers, we realized that we should probably have written the tests in standard [web platform tests](https://github.com/w3c/web-platform-tests) format. Fixing this has been an ongoing effort, with major help from various community contributors.
+The test suite for this standard is written in [web platform tests](https://github.com/w3c/web-platform-tests) format.
 
 - To run the web platform tests (including both the upstream ones and the to-upstream ones), type `npm run wpt` in this folder.
 - To run specific test files, you can use a glob pattern, rooted at the streams directory: `npm run wpt -- "writable-streams/**"`
