@@ -3967,9 +3967,9 @@ it would look like
 
     get desiredSize()
 
-    terminate()
     enqueue(chunk)
     error(reason)
+    terminate()
   }
 </code></pre>
 
@@ -4087,6 +4087,13 @@ nothrow>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>ch
 
 <h4 id="transform-stream-default-controller-error" aoid="TransformStreamDefaultControllerError"
 nothrow>TransformStreamDefaultControllerError ( <var>controller</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+<!-- TODO: algo steps -->
+</emu-alg>
+
+<h4 id="transform-stream-default-controller-terminate" aoid="TransformStreamDefaultControllerTerminate"
+nothrow>TransformStreamDefaultControllerTerminate ( <var>controller</var> )</h4>
 
 <emu-alg>
 <!-- TODO: algo steps -->
