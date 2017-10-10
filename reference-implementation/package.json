@@ -2,30 +2,20 @@
   "private": true,
   "description": "Reference implementation and tests for the WHATWG Streams Standard",
   "scripts": {
-    "test": "npm run lint && npm run legacy-test && npm run wpt",
-    "legacy-test": "node --expose_gc run-tests.js | tap-spec",
+    "test": "npm run lint && npm run wpt",
     "wpt": "node --expose_gc run-web-platform-tests.js",
     "sync-wpt": "git submodule update --init",
     "lint": "eslint \"**/*.js\"",
     "coverage": "nyc --reporter=lcov npm test && opener coverage/lcov-report/index.html"
   },
   "author": "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
-  "contributors": [
-    "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
-    "Forrest L Norvell <ogd@aoaioxxysz.net>",
-    "Takeshi Yoshino <tyoshino@chromium.org>"
-  ],
   "license": "(CC0-1.0 OR MIT)",
   "devDependencies": {
     "better-assert": "^1.0.2",
     "eslint": "^3.2.2",
-    "glob": "^7.0.3",
-    "minimatch": "^3.0.3",
-    "nyc": "^8.4.0",
+    "minimatch": "^3.0.4",
+    "nyc": "^11.2.1",
     "opener": "^1.4.2",
-    "tap-spec": "^4.1.1",
-    "tape": "^4.5.1",
-    "tape-catch": "^1.0.5",
     "wpt-runner": "^2.2.0"
   },
   "nyc": {

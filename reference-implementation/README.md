@@ -14,17 +14,9 @@ You can check the test coverage at any time by running `npm run coverage` in thi
 
 To run all tests (and the lint step), run `npm test` in this folder.
 
-### Legacy tests
-
-The original tests are written using the [tape](https://github.com/substack/tape) framework. They live in the `test` subfolder of this folder.
-
-- To run them, type `npm run legacy-test` in this folder.
-- To run a specific test file, type e.g. `node run-tests.js test/abstract-ops.js`.
-- To run a specific test, change the source file's `test(...)` call to `test.only(...)`, then run `npm test`.
-
 ### Web platform tests
 
-After we started implementing this in browsers, we realized that we should probably have written the tests in standard [web platform tests](https://github.com/w3c/web-platform-tests) format. Fixing this has been an ongoing effort, with major help from various community contributors.
+The test suite for this standard is written in [web platform tests](https://github.com/w3c/web-platform-tests) format.
 
 - To run the web platform tests (including both the upstream ones and the to-upstream ones), type `npm run wpt` in this folder.
 - To run specific test files, you can use a glob pattern, rooted at the streams directory: `npm run wpt -- "writable-streams/**"`
