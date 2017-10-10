@@ -17,6 +17,7 @@
   ],
   "license": "(CC0-1.0 OR MIT)",
   "devDependencies": {
+    "better-assert": "^1.0.2",
     "eslint": "^3.2.2",
     "glob": "^7.0.3",
     "minimatch": "^3.0.3",

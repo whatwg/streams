@@ -1,5 +1,5 @@
 'use strict';
-const assert = require('assert');
+const assert = require('better-assert');
 const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, IsDetachedBuffer,
         PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeQueuingStrategy,
         ValidateAndNormalizeHighWaterMark } = require('./helpers.js');
