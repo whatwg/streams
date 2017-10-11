@@ -4056,7 +4056,8 @@ desiredSize</h5>
 </div>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. If ! IsTransformStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. Perform ! TransformStreamDefaultControllerError(*this*, _reason_).
 </emu-alg>
 
 <h5 id="ts-default-controller-terminate" method for="TransformStreamDefaultController">terminate()</h5>
@@ -4067,7 +4068,8 @@ desiredSize</h5>
 </div>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. If ! IsTransformStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. Perform ! TransformStreamDefaultControllerTerminate(*this*).
 </emu-alg>
 
 <h3 id="ws-default-controller-abstract-ops">Transform Stream Default Controller Abstract Operations</h3>
