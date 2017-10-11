@@ -1851,6 +1851,13 @@ nothrow>ReadableStreamDefaultControllerCanCloseOrEnqueue ( <var>controller</var>
   1. Otherwise, return *false*.
 </emu-alg>
 
+<div class="note">
+  The case where <var>stream</var>.\[[closeRequested]] is <emu-val>false</emu-val>, but <var>stream</var>.\[[state]] is
+  not <code>"readable"</code>, happens when the stream is errored via {{ReadableStreamDefaultController/error(e)}}, or
+  when it is closed without its controller's <code>close</code> method ever being called: e.g., if the stream was closed
+  by a call to {{ReadableStream/cancel(reason)}}.
+</div>
+
 <h3 id="rbs-controller-class" interface lt="ReadableByteStreamController">Class
 <code>ReadableByteStreamController</code></h3>
 
