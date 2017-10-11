@@ -229,8 +229,8 @@ function TransformStreamDefaultControllerTerminate(controller) {
     ReadableStreamDefaultControllerClose(readableController);
   }
 
-  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController,
-                                               new TypeError('TransformStream terminated'));
+  const error = new TypeError('TransformStream terminated');
+  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, error);
   if (stream._backpressure === true) {
     // Permit any pending write() or start() calls to complete.
     TransformStreamSetBackpressure(stream, false);
