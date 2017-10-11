@@ -154,20 +154,20 @@ class TransformStreamDefaultController {
     TransformStreamDefaultControllerEnqueue(this, chunk);
   }
 
-  terminate() {
-    if (IsTransformStreamDefaultController(this) === false) {
-      throw defaultControllerBrandCheckException('close');
-    }
-
-    TransformStreamDefaultControllerTerminate(this);
-  }
-
   error(reason) {
     if (IsTransformStreamDefaultController(this) === false) {
       throw defaultControllerBrandCheckException('error');
     }
 
     TransformStreamDefaultControllerError(this, reason);
+  }
+
+  terminate() {
+    if (IsTransformStreamDefaultController(this) === false) {
+      throw defaultControllerBrandCheckException('close');
+    }
+
+    TransformStreamDefaultControllerTerminate(this);
   }
 }
 
@@ -183,24 +183,6 @@ function IsTransformStreamDefaultController(x) {
   }
 
   return true;
-}
-
-function TransformStreamDefaultControllerTerminate(controller) {
-  verbose('TransformStreamDefaultControllerTerminate()');
-
-  const stream = controller._controlledTransformStream;
-  const readableController = stream._readable._readableStreamController;
-
-  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === true) {
-    ReadableStreamDefaultControllerClose(readableController);
-  }
-
-  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController,
-                                               new TypeError('TransformStream terminated'));
-  if (stream._backpressure === true) {
-    // Permit any pending write() or start() calls to complete.
-    TransformStreamSetBackpressure(stream, false);
-  }
 }
 
 function TransformStreamDefaultControllerEnqueue(controller, chunk) {
@@ -235,6 +217,24 @@ function TransformStreamDefaultControllerError(controller, e) {
   const stream = controller._controlledTransformStream;
 
   TransformStreamError(stream, e);
+}
+
+function TransformStreamDefaultControllerTerminate(controller) {
+  verbose('TransformStreamDefaultControllerTerminate()');
+
+  const stream = controller._controlledTransformStream;
+  const readableController = stream._readable._readableStreamController;
+
+  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === true) {
+    ReadableStreamDefaultControllerClose(readableController);
+  }
+
+  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController,
+                                               new TypeError('TransformStream terminated'));
+  if (stream._backpressure === true) {
+    // Permit any pending write() or start() calls to complete.
+    TransformStreamSetBackpressure(stream, false);
+  }
 }
 
 // Class TransformStreamDefaultSink
