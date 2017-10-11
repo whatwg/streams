@@ -3897,7 +3897,21 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
 </div>
 
 <emu-alg>
-<!-- TODO: write algo steps -->
+  1. Set *this*.[[transformer]] to _transformer_.
+  1. Set *this*.[[transformStreamController]] to *undefined*.
+  1. Set *this*.[[backpressure]] and *this*.[[backpressureChangePromise]] to *undefined*.
+  1. Set *this*.[[transformStreamController]] to ? Construct(`<a idl>TransformStreamDefaultController</a>`, « *this* »).
+  1. Let _startPromise_ be <a>a new promise</a>.
+  1. Let _source_ be ! Construct(`<a idl>TransformStreamDefaultSource</a>`, « *this*, _startPromise_ »).
+  1. Let _readableStrategy_ be a new object.
+  1. Set _readableStrategy_["size"] to _size_.
+  1. Set _readableStrategy_["highWaterMark"] to _highWaterMark_.
+  1. Set *this*.[[readable]] to ? Construct(`<a idl>ReadableStream</a>`, « _source_, _readableStrategy_ »).
+  1. Let _sink_ be ! Construct(`<a idl>TransformStreamDefaultSink</a>`, « *this*, _startPromise_ »).
+  1. Set *this*.[[writable]] to ? Construct(`<a idl>WritableStream</a>`, « _sink_, _writableStrategy_ »).
+  1. Perform ! TransformStreamSetBackpressure(*this*, *true*).
+  1. Let _startResult_ be ? InvokeOrNoop(_transformer_, 'start', « *this*.[[transformStreamController]] »).
+  1. Resolve _startPromise_ with _startResult_.
 </emu-alg>
 
 <h4 id="ts-prototype">Properties of the {{TransformStream}} Prototype</h4>
