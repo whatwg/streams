@@ -4235,7 +4235,39 @@ lt="TransformStreamDefaultSink(stream, startPromise)">new TransformStreamDefault
     1. A rejection handler that, when called with argument _r_, performs the following steps:
       1. Perform ! TransformStreamError(_stream_, _r_).
       1. Throw _readable_.[[storedError]].
+</emu-alg>
 
+<h3 id="ts-default-sink-abstract-ops">Transform Stream Default Sink Abstract Operations</h3>
+
+<h4 id="transform-stream-default-sink-invoke-transform" aoid="TransformStreamDefaultSinkInvokeTransform"
+throws>TransformStreamDefaultSinkInvokeTransform ( <var>stream</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+  1. Let _controller_ be _stream_.[[transformStreamController]].
+  1. Let _transformer_ be _stream_.[[transformer]].
+  1. Let _method_ be _transformer_.transform.
+  1. If _method_ is *undefined*,
+    1. Perform ? TransformStreamDefaultControllerEnqueue(_controller_, _chunk_).
+    1. Return *undefined*.
+  1. Return ? Call(_method_, _transformer_, « _chunk_, _controller_ »).
+</emu-alg>
+
+<h4 id="transform-stream-default-sink-transform" aoid="TransformStreamDefaultSinkTransform"
+nothrow>TransformStreamDefaultSinkTransform ( <var>sink</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _sink_.[[ownerTransformStream]].
+  1. Assert: _stream_.[[readable]].[[state]] is not `"errored"`.
+  1. Assert: _stream_.[[backpressure]] is *false*.
+  1. Let _transformPromise_ be *undefined*.
+  1. Let _transformResult_ be TransformStreamDefaultSinkInvokeTransform(_stream_, _chunk_).
+  1. If _transformResult_ is an abrupt completion, set _transformPromise_ to <a>a promise rejected with</a>
+     _transformResult_.[[Value]].
+  1. Otherwise, set _transformPromise_ to <a>a promise resolved with</a> _transformResult_.[[Value]].
+  1. Return the result of <a>transforming</a> _transformPromise_ with a rejection handler that, when called with
+     argument _e_, performs the following steps:
+    1. Perform ! TransformStreamError(_stream_, _e_).
+    1. Throw _e_.
 </emu-alg>
 
 <h3 id="ts-default-source-class" interface lt="TransformStreamDefaultSource">Class
