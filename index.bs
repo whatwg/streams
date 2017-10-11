@@ -4105,14 +4105,22 @@ nothrow>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>ch
 nothrow>TransformStreamDefaultControllerError ( <var>controller</var>, <var>chunk</var> )</h4>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. Let _stream_ be _controller_.[[controlledTransformStream]].
+  1. Perform ! TransformStreamError(_stream_, _e_).
 </emu-alg>
 
 <h4 id="transform-stream-default-controller-terminate" aoid="TransformStreamDefaultControllerTerminate"
 nothrow>TransformStreamDefaultControllerTerminate ( <var>controller</var> )</h4>
 
 <emu-alg>
-<!-- TODO: algo steps -->
+  1. Let _stream_ be _controller_.[[controlledTransformStream]].
+  1. Let _readableController_ be _stream_.[[readable]].[[readableStreamController]].
+  1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_readableController_) is *true*, perform !
+     ReadableStreamDefaultControllerClose(_readableController_).
+  1. Let _error_ be a *TypeError* exception indicating that the stream has been terminated.
+  1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_stream_.[[writable]].[[writableStreamController]],
+     _error_).
+  1. If _stream_.[[backpressure]] is *true*, perform ! TransformStreamSetBackpressure(_stream_, *false*).
 </emu-alg>
 
 <h3 id="ts-default-sink-class" interface lt="TransformStreamDefaultSink">Class
