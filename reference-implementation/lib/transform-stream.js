@@ -164,7 +164,7 @@ class TransformStreamDefaultController {
 
   terminate() {
     if (IsTransformStreamDefaultController(this) === false) {
-      throw defaultControllerBrandCheckException('close');
+      throw defaultControllerBrandCheckException('terminate');
     }
 
     TransformStreamDefaultControllerTerminate(this);
