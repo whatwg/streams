@@ -35,7 +35,8 @@ class TransformStream {
       throw new RangeError('Invalid writable type specified');
     }
 
-    this._transformStreamController = new TransformStreamDefaultController(this);
+    const controller = new TransformStreamDefaultController(this);
+    this._transformStreamController = controller;
 
     let startPromise_resolve;
     const startPromise = new Promise(resolve => {
@@ -52,7 +53,7 @@ class TransformStream {
 
     TransformStreamSetBackpressure(this, true);
 
-    const startResult = InvokeOrNoop(transformer, 'start', [this._transformStreamController]);
+    const startResult = InvokeOrNoop(transformer, 'start', [controller]);
     startPromise_resolve(startResult);
   }
 
