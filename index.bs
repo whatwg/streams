@@ -3901,22 +3901,22 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
   1. Set *this*.[[transformer]] to _transformer_.
   1. Set *this*.[[transformStreamController]] to *undefined*.
   1. Set *this*.[[backpressure]] and *this*.[[backpressureChangePromise]] to *undefined*.
-  1. Let _readableType_ be ? GetV(_transformer_, "readableType").
+  1. Let _readableType_ be ? GetV(_transformer_, `"readableType"`).
   1. If _readableType_ is not *undefined*, throw a *RangeError* exception.
-  1. Let _writableType_ be ? GetV(_transformer_, "writableType").
+  1. Let _writableType_ be ? GetV(_transformer_, `"writableType"`).
   1. If _writableType_ is not *undefined*, throw a *RangeError* exception.
   1. Let _controller_ be  ? Construct(`<a idl>TransformStreamDefaultController</a>`, « *this* »).
   1. Set *this*.[[transformStreamController]] to _controller_.
   1. Let _startPromise_ be <a>a new promise</a>.
   1. Let _source_ be ! Construct(`<a idl>TransformStreamDefaultSource</a>`, « *this*, _startPromise_ »).
   1. Let _readableStrategy_ be a new object.
-  1. Set _readableStrategy_["size"] to _size_.
-  1. Set _readableStrategy_["highWaterMark"] to _highWaterMark_.
+  1. Perform ! Set(_readableStrategy_, `"size"`, _size_, false).
+  1. Perform ! Set(_readableStrategy_, `"highWaterMark"`, _highWaterMark_, false).
   1. Set *this*.[[readable]] to ? Construct(`<a idl>ReadableStream</a>`, « _source_, _readableStrategy_ »).
   1. Let _sink_ be ! Construct(`<a idl>TransformStreamDefaultSink</a>`, « *this*, _startPromise_ »).
   1. Set *this*.[[writable]] to ? Construct(`<a idl>WritableStream</a>`, « _sink_, _writableStrategy_ »).
   1. Perform ! TransformStreamSetBackpressure(*this*, *true*).
-  1. Let _startResult_ be ? InvokeOrNoop(_transformer_, 'start', « _controller_ »).
+  1. Let _startResult_ be ? InvokeOrNoop(_transformer_, `"start"`, « _controller_ »).
   1. Resolve _startPromise_ with _startResult_.
 </emu-alg>
 
@@ -4088,7 +4088,7 @@ desiredSize</h5>
   1. Perform ! TransformStreamDefaultControllerTerminate(*this*).
 </emu-alg>
 
-<h3 id="ws-default-controller-abstract-ops">Transform Stream Default Controller Abstract Operations</h3>
+<h3 id="ts-default-controller-abstract-ops">Transform Stream Default Controller Abstract Operations</h3>
 
 <h4 id="is-transform-stream-default-controller" aoid="IsTransformStreamDefaultController"
 nothrow>IsTransformStreamDefaultController ( <var>x</var> )</h4>
@@ -4252,7 +4252,7 @@ lt="TransformStreamDefaultSink(stream, startPromise)">new TransformStreamDefault
 <emu-alg>
   1. Let _stream_ be *this*.[[ownerTransformStream]].
   1. Let _readable_ be _stream_.[[readable]].
-  1. Let _flushPromise_ be ! PromiseInvokeOrNoop(_stream_.[[transformer]], 'flush', «
+  1. Let _flushPromise_ be ! PromiseInvokeOrNoop(_stream_.[[transformer]], `"flush"`, «
      _stream_.[[transformStreamController]] »).
   1. Return the result of <a>transforming</a> _flushPromise_ with:
     1. A fulfullment handler that performs the following steps:
@@ -4273,7 +4273,7 @@ throws>TransformStreamDefaultSinkInvokeTransform ( <var>stream</var>, <var>chunk
 <emu-alg>
   1. Let _controller_ be _stream_.[[transformStreamController]].
   1. Let _transformer_ be _stream_.[[transformer]].
-  1. Let _method_ be ? GetV(_transformer_, "transform").
+  1. Let _method_ be ? GetV(_transformer_, `"transform"`).
   1. If _method_ is *undefined*,
     1. Perform ? TransformStreamDefaultControllerEnqueue(_controller_, _chunk_).
     1. Return *undefined*.
