@@ -171,14 +171,21 @@ sink</a>.
 
 <h3 id="ts-model">Transform Streams</h3>
 
-A <dfn>transform stream</dfn> consists of a pair of streams: a writable stream, and a readable stream. In a manner
-specific to the transform stream in question, writes to the writable side result in new data being made available for
-reading from the readable side. Concretely, any object with a <code>writable</code> property and a <code>readable</code>
-property can serve as a transform stream. However, the standard <code>TransformStream</code> class makes it much easier
-to create such a pair that is properly entangled. It wraps a <dfn>transformer</dfn> object which defines the specific
-transformation to be performed.
+A <dfn>transform stream</dfn> consists of a pair of streams: a <a>writable stream</a>, known as its <dfn>writable
+side</dfn>, and a <a>readable stream</a>, known as its <dfn>readable side</dfn>. In a manner specific to the transform
+stream in question, writes to the writable side result in new data being made available for reading from the readable
+side.
 
-Some examples of transform streams include:
+Concretely, any object with a <code>writable</code> property and a <code>readable</code> property can serve as a
+transform stream. However, the standard {{TransformStream}} class makes it much easier to create such a pair that is
+properly entangled. It wraps a <dfn>transformer</dfn> object which defines the specific transformation to be performed.
+
+An <dfn>identity transform stream</dfn> is a type of transform stream which forwards all <a>chunks</a> written to its
+<a>writable side</a> to its <a>readable side</a>, without any changes. This can be useful in <a
+href="#example-transform-identity">a variety of scenarios</a>. By default, the {{TransformStream}} constructor will
+create an identity transform stream, when no <code>transform</code> method is present on the <a>transformer</a> object.
+
+Some examples of potential transform streams include:
 
 <ul>
   <li>A GZIP compressor, to which uncompressed bytes are written and from which compressed bytes are read;</li>
@@ -450,14 +457,16 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   govern how the constructed stream instance behaves:
 
   <ul>
-    <li> <code>start(controller)</code> is called immediately, and is typically used to adapt a <a>push
+    <li><p><code>start(controller)</code> is called immediately, and is typically used to adapt a <a>push
       source</a> by setting up relevant event listeners, or to acquire access to a <a>pull source</a>. If this process
       is asynchronous, it can return a promise to signal success or failure.
-    <li> <code>pull(controller)</code> is called when the stream's <a>internal queue</a> of chunks is not full, and
+
+    <li><p><code>pull(controller)</code> is called when the stream's <a>internal queue</a> of chunks is not full, and
       will be called repeatedly until the queue reaches its <a>high water mark</a>. If <code>pull</code> returns a
       promise, then <code>pull</code> will not be called again until that promise fulfills; if the promise rejects, the
       stream will become errored.
-    <li> <code>cancel(reason)</code> is called when the consumer signals that they are no longer interested in the
+
+    <li><p><code>cancel(reason)</code> is called when the consumer signals that they are no longer interested in the
       stream. It can perform any actions necessary to release access to the <a>underlying source</a>. If this
       process is asynchronous, it can return a promise to signal success or failure.
   </ul>
@@ -2784,19 +2793,22 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
   how the constructed stream instance behaves:
 
   <ul>
-    <li> <code>start(controller)</code> is called immediately, and can perform any actions necessary to acquire
+    <li><p><code>start(controller)</code> is called immediately, and can perform any actions necessary to acquire
       access to the <a>underlying sink</a>. If this process is asynchronous, it can return a promise to signal success
       or failure.
-    <li> <code>write(chunk, controller)</code> is called when a new <a>chunk</a> of data is ready to be written to the
+
+    <li><p><code>write(chunk, controller)</code> is called when a new <a>chunk</a> of data is ready to be written to the
       <a>underlying sink</a>. It can return a promise to signal success or failure of the write operation. The stream
       implementation guarantees that this method will be called only after previous writes have succeeded, and never
       after <code>close</code> or <code>abort</code> is called.
-    <li> <code>close()</code> is called after the producer signals that they are done writing chunks to the
+
+    <li><p><code>close()</code> is called after the producer signals that they are done writing chunks to the
       stream, and all queued-up writes successfully complete. It can perform any actions necessary to finalize writes
       to the <a>underlying sink</a>, and release access to it. If this process is asynchronous, it can return a promise
       to signal success or failure. The stream implementation guarantees that this method will be called only after all
       queued-up writes have succeeded.
-    <li> <code>abort(reason)</code> is called when the producer signals they wish to abruptly close the stream
+
+    <li><p><code>abort(reason)</code> is called when the producer signals they wish to abruptly close the stream
       and put it in an errored state. It can clean up any held resources, much like <code>close</code>, but perhaps
       with some custom handling. Unlike <code>close</code>, <code>abort</code> will be called even if writes are queued
       up; those <a>chunks</a> will be thrown away. If this process is asynchronous, it can return a promise to signal
@@ -3763,41 +3775,54 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>error
 
 <div class="example" id="example-basic-pipe-through">
   The natural way to use a transform stream is place it in a <a lt="piping">pipe</a> between a <a>readable stream</a>
-  and a <a>writable stream</a>. Chunks that travel from the <a>readable stream</a> to the <a>writable stream</a> will be
-  transformed as they pass through the transform stream. <a>Backpressure</a> is respected, so data will not be read
-  faster than it can be transformed and consumed.
+  and a <a>writable stream</a>. <a>Chunks</a> that travel from the <a>readable stream</a> to the <a>writable stream</a>
+  will be transformed as they pass through the transform stream. <a>Backpressure</a> is respected, so data will not be
+  read faster than it can be transformed and consumed.
 
   <pre><code class="lang-javascript">
-    readableStream.pipeThrough(transformStream)
-                  .pipeTo(writableStream)
+    readableStream
+      .pipeThrough(transformStream)
+      .pipeTo(writableStream)
       .then(() => console.log("All data successfully transformed!"))
       .catch(e => console.error("Something went wrong!", e));
   </code></pre>
 </div>
 
-<div class="example" id="example-transform-stream-accessors">
-  You can also use the {{TransformStream/readable}} and {{TransformStream/writable}} accessors of a transform stream
-  directly with all the usual interfaces of a <a>readable stream</a> and <a>writable stream</a>. In this example we
+<div class="example" id="example-transform-stream-properties">
+  You can also use the {{TransformStream/readable}} and {{TransformStream/writable}} properties of a transform stream
+  directly to access the usual interfaces of a <a>readable stream</a> and <a>writable stream</a>. In this example we
   supply input data to the stream using the <a>writer</a> interface. The output is then piped to
   <code>anotherWritableStream</code>.
 
   <pre><code class="lang-javascript">
     const writer = transformStream.writable.getWriter();
-    writer.write('input chunk');
+    writer.write("input chunk");
     transformStream.readable.pipeTo(anotherWritableStream);
   </code></pre>
 </div>
 
 <div class="example" id="example-transform-identity">
-  An identity transform is a type of transform stream which forwards all input chunks unchanged to the output. This is
-  the default behaviour of {{TransformStream}} when no <code>transform</code> method is supplied to the
-  constructor. One use of identity transforms is to add additional buffering to a pipe. In this example we add extra
-  buffering between <code>readableStream</code> and <code>writableStream</code>.
+  One use of <a>identity transform streams</a> is to easily convert between readable and writable streams. For example,
+  the {{fetch()}} API accepts a readable stream <a for="request" lt="body">request body</a>, but it can be more
+  convenient to write data for uploading via a writable stream interface. Using an identity transform stream addresses
+  this:
+
+  <pre><code class="lang-javascript">
+    const { writable, readable } = new TransformStream();
+    fetch("...", { body: readable }).then(response => /* ... */);
+
+    writable.write(new Uint8Array([0x73, 0x74, 0x72, 0x65, 0x61, 0x6D, 0x73, 0x21]));
+    writable.close();
+  </code></pre>
+
+  Another use of identity transform streams is to add additional buffering to a <a>pipe</a>. In this example we add
+  extra buffering between <code>readableStream</code> and <code>writableStream</code>.
 
   <pre><code class="lang-javascript">
     const writableStrategy = new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 1024 });
+
     readableStream
-      .pipeThrough(new TransformStream({}, writableStrategy))
+      .pipeThrough(new TransformStream(undefined, writableStrategy))
       .pipeTo(writableStream);
   </code></pre>
 </div>
@@ -3871,30 +3896,36 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
   how the constructed stream instance behaves:
 
   <ul>
-    <li> <code>start(controller)</code> is called immediately, and is typically used to enqueue prefix data that appears
-      in the output but doesn't depend on the input. If this process is asynchronous, it can return a promise to signal
-      success or failure.
-    <li> <code>transform(chunk, controller)</code> is called when a new <a>chunk</a> of input data is ready to be
-      transformed. It can return a promise to signal success or failure of the transformation. The results of the
-      transformation can be appended to the output using the {{ReadableStreamDefaultController/enqueue(chunk)}} method.
-      This permits a single input chunk to result in zero or multiple output chunks. The stream implementation
-      guarantees that <code>transform</code> will be called only after previous transformations have succeeded, and
-      never before <code>start</code> has completed or after <code>flush</code> is called. When no
-      <code>transform</code> method is supplied the identity transform is used, which copies chunks unchanged from the
-      input to the output.
-    <li> <code>flush(controller)</code> is called after all input chunks have been transformed. It is typically used to
-      append a suffix to the output data. If this process is asynchronous, it can return a promise
-      to signal success or failure. On success, the {{readable}} side will be closed.
+    <li><p><code>start(controller)</code> is called immediately, and is typically used to enqueue prefix <a>chunks</a>
+      that appear in the <a>readable side</a> but doesn't depend on any writes to the <a>writable side</a>. If this
+      process is asynchronous, it can return a promise to signal success or failure.
+
+    <li>
+      <p><code>transform(chunk, controller)</code> is called when a new chunk originally written to the writable side is
+      ready to be transformed. It can return a promise to signal success or failure of the transformation. The results
+      of the transformation can be enqueued to the readable side using the
+      {{ReadableStreamDefaultController/enqueue(chunk)|controller.enqueue()}} method. This permits a single chunk
+      written to the writable side to result in zero or multiple chunks on the readable side.
+
+      <p>The stream implementation guarantees that <code>transform</code> will be called only after previous
+      transformations have succeeded, and never before <code>start</code> has completed or after <code>flush</code> is
+      called. When no <code>transform</code> method is supplied, the identity transform is used, which enqueues chunks
+      unchanged from the writable side to the readable side.
+
+    <li><p><code>flush(controller)</code> is called after all chunks written to the writable side have been
+      transformed and the writable side has been closed. It is typically used to enqueue suffix chunks to the
+      readable side, before that too becomes closed. If this process is asynchronous, it can return a promise
+      to signal success or failure.
   </ul>
 
   The <code>controller</code> object passed to <code>start</code>, <code>transform</code> and <code>flush</code> is an
-  instance of {{TransformStreamDefaultController}}, and has the ability to append data to the output, terminate or error
-  the stream.
+  instance of {{TransformStreamDefaultController}}, and has the ability to enqueue chunks to the readable side,
+  or to terminate or error the stream.
 
-  The second and third arguments to the constructor are the <a>queuing strategy</a> objects for the {{writable}} and
-  {{readable}} sides respectively. These are used in the construction of the {{WritableStream}} and {{ReadableStream}}
-  objects and can be used to add buffering to a {{TransformStream}}. They are useful to smooth out variations in the
-  speed of the transformation, or to increase the amount of buffering in a pipe.
+  The second and third arguments to the constructor are the <a>queuing strategy</a> objects for the writable and
+  readable sides respectively. These are used in the construction of the {{WritableStream}} and {{ReadableStream}}
+  objects and can be used to add buffering to a {{TransformStream}}, in order to smooth out variations in the speed of
+  the transformation, or to increase the amount of buffering in a <a>pipe</a>.
 </div>
 
 <emu-alg>
@@ -3925,8 +3956,7 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
 <h5 id="ts-readable" attribute for="TransformStream" lt="readable">get readable</h5>
 
 <div class="note">
-  The output from the transformation is read from the <a>readable stream</a> returned by the <code>readable</code>
-  accessor.
+  The <code>readable</code> getter gives access to the <a>readable side</a> of the transform stream.
 </div>
 
 <emu-alg>
@@ -3937,8 +3967,7 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
 <h5 id="ts-writable" attribute for="TransformStream" lt="writable">get writable</h5>
 
 <div class="note">
-  The input to the transformation is written to the <a>writable stream</a> returned by the <code>writable</code>
-  accessor.
+  The <code>writable</code> getter gives access to the <a>writable side</a> of the transform stream.
 </div>
 
 <emu-alg>
@@ -4044,7 +4073,7 @@ desiredSize</h5>
 
 <div class="note">
   The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size
-  to fill the controlled readable stream's internal queue</a>. It can be negative, if the queue is over-full.
+  to fill the readable side's internal queue</a>. It can be negative, if the queue is over-full.
 </div>
 
 <emu-alg>
@@ -4056,7 +4085,7 @@ desiredSize</h5>
 <h5 id="ts-default-controller-enqueue" method for="TransformStreamDefaultController">enqueue(<var>chunk</var>)</h5>
 
 <div class="note">
-  The <code>enqueue</code> method will enqueue a given <a>chunk</a> in the output readable stream.
+  The <code>enqueue</code> method will enqueue a given <a>chunk</a> in the <a>readable side</a>.
 </div>
 
 <emu-alg>
@@ -4067,8 +4096,9 @@ desiredSize</h5>
 <h5 id="ts-default-controller-error" method for="TransformStreamDefaultController">error(<var>reason</var>)</h5>
 
 <div class="note">
-  The <code>error</code> method will error both the controlled readable stream and the controlled writable stream,
-  making all future interactions fail with the given <code>reason</code>.
+  The <code>error</code> method will error both the <a>readable side</a> and the <a>writable side</a> of the controlled
+  <a>transform stream</a>, making all future interactions fail with the given <code>reason</code>. Any <a>chunks</a>
+  queued for transformation will be discarded.
 </div>
 
 <emu-alg>
@@ -4079,8 +4109,9 @@ desiredSize</h5>
 <h5 id="ts-default-controller-terminate" method for="TransformStreamDefaultController">terminate()</h5>
 
 <div class="note">
-  The <code>terminate</code> method will close the controlled readable stream and error the controlled writable
-  stream. This is useful when the <a>transformer</a> only needs to consume a portion of the input.
+  The <code>terminate</code> method will close the <a>readable side</a> and error the <a>writable side</a> of the
+  controlled <a>transform stream</a>. This is useful when the <a>transformer</a> only needs to consume a portion of the
+  <a>chunks</a> written to the <a>writable side</a>.
 </div>
 
 <emu-alg>
@@ -4102,8 +4133,8 @@ nothrow>IsTransformStreamDefaultController ( <var>x</var> )</h4>
 <h4 id="transform-stream-default-controller-enqueue" aoid="TransformStreamDefaultControllerEnqueue"
 throws>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
 
-This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in the output readable
-stream, in the same way a developer would enqueue chunks using the stream's associated controller object. Specifications
+This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in the <a>readable
+side</a>, in the same way a developer would enqueue chunks using the stream's associated controller object. Specifications
 should <em>not</em> do this to streams they did not create.
 
 <emu-alg>
@@ -4155,12 +4186,14 @@ this to streams they did not create.
 <code>TransformStreamDefaultSink</code></h3>
 
 The {{TransformStreamDefaultSink}} class is used internally as the <a>underlying sink</a> that is passed to the
-{{WritableStream}} constructor when constructing the \[[writable]] slot.
+{{WritableStream}} constructor when constructing the \[[writable]] slot of a {{TransformStream}}.
 
 <div class="note">
   This specification uses the public API for transmitting events from the {{WritableStream}} back to the
   {{TransformStream}} implementation for simplicity. Since the {{TransformStreamDefaultSink}} class is not observable,
-  implementations are not required to implement it.
+  implementations do not need to implement it, but could instead do something else observably equivalent. See <a
+  href="https://github.com/whatwg/streams/issues/813">#813</a> for an alternate specification approach that will make
+  this clearer in the future.
 </div>
 
 <h4 id="ts-default-sink-class-definition">Class Definition</h4>
@@ -4307,7 +4340,9 @@ The {{TransformStreamDefaultSource}} class is used internally as the <a>underlyi
 <div class="note">
   This specification uses the public API for transmitting events from the {{ReadableStream}} back to the
   {{TransformStream}} implementation for simplicity. Since the {{TransformStreamDefaultSource}} class is not observable,
-  implementations are not required to implement it.
+  implementations do not need to implement it, but could instead do something else observably equivalent. See <a
+  href="https://github.com/whatwg/streams/issues/813">#813</a> for an alternate specification approach that will make
+  this clearer in the future.
 </div>
 
 <h4 id="ts-default-source-class-definition">Class Definition</h4>
