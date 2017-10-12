@@ -3850,7 +3850,7 @@ Instances of {{TransformStream}} are created with the internal slots described i
   </tr>
   <tr>
     <td>\[[transformer]]
-    <td class="non-normative">The <code>transformer</code> object that was passed to the constructor
+    <td class="non-normative">The <var>transformer</var> object that was passed to the constructor
   </tr>
   <tr>
     <td>\[[transformStreamController]]
@@ -3876,23 +3876,24 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
       success or failure.
     <li> <code>transform(chunk, controller)</code> is called when a new <a>chunk</a> of input data is ready to be
       transformed. It can return a promise to signal success or failure of the transformation. The results of the
-      transformation can be appended to the output using the <!-- TODO: link -->controller.enqueue() method. This permits a
-      single input chunk to result in zero or multiple output chunks. The stream implementation guarantees that this
-      method will be called only after previous transformations have succeeded, and never before <code>start</code> has
-      completed or after <code>flush</code> is called. When no <code>transform</code> method is supplied the identity
-      transform is used, which copies chunks unchanged from the input to the output.
+      transformation can be appended to the output using the {{ReadableStreamDefaultController/enqueue(chunk)}} method.
+      This permits a single input chunk to result in zero or multiple output chunks. The stream implementation
+      guarantees that <code>transform</code> will be called only after previous transformations have succeeded, and
+      never before <code>start</code> has completed or after <code>flush</code> is called. When no
+      <code>transform</code> method is supplied the identity transform is used, which copies chunks unchanged from the
+      input to the output.
     <li> <code>flush(controller)</code> is called after all input chunks have been transformed. It is typically used to
       append a suffix to the output data. If this process is asynchronous, it can return a promise
-      to signal success or failure. On success, the <!-- TODO: link -->readable side will be closed.
+      to signal success or failure. On success, the {{readable}} side will be closed.
   </ul>
 
   The <code>controller</code> object passed to <code>start</code>, <code>transform</code> and <code>flush</code> is an
   instance of {{TransformStreamDefaultController}}, and has the ability to append data to the output, terminate or error
   the stream.
 
-  The second and third arguments to the constructor are the <a>queuing strategy</a> objects for the writable and
-  readable sides respectively. These are used in the construction of the {{WritableStream}} and {{ReadableStream}}
-  objects and can be used to add buffering to a {{TransformStream}}. These are useful to smooth out variations in the
+  The second and third arguments to the constructor are the <a>queuing strategy</a> objects for the {{writable}} and
+  {{readable}} sides respectively. These are used in the construction of the {{WritableStream}} and {{ReadableStream}}
+  objects and can be used to add buffering to a {{TransformStream}}. They are useful to smooth out variations in the
   speed of the transformation, or to increase the amount of buffering in a pipe.
 </div>
 
@@ -3900,7 +3901,12 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
   1. Set *this*.[[transformer]] to _transformer_.
   1. Set *this*.[[transformStreamController]] to *undefined*.
   1. Set *this*.[[backpressure]] and *this*.[[backpressureChangePromise]] to *undefined*.
-  1. Set *this*.[[transformStreamController]] to ? Construct(`<a idl>TransformStreamDefaultController</a>`, « *this* »).
+  1. Let _readableType_ be ? GetV(_transformer_, "readableType").
+  1. If _readableType_ is not *undefined*, throw a *RangeError* exception.
+  1. Let _writableType_ be ? GetV(_transformer_, "writableType").
+  1. If _writableType_ is not *undefined*, throw a *RangeError* exception.
+  1. Let _controller_ be  ? Construct(`<a idl>TransformStreamDefaultController</a>`, « *this* »).
+  1. Set *this*.[[transformStreamController]] to _controller_.
   1. Let _startPromise_ be <a>a new promise</a>.
   1. Let _source_ be ! Construct(`<a idl>TransformStreamDefaultSource</a>`, « *this*, _startPromise_ »).
   1. Let _readableStrategy_ be a new object.
@@ -3910,7 +3916,7 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
   1. Let _sink_ be ! Construct(`<a idl>TransformStreamDefaultSink</a>`, « *this*, _startPromise_ »).
   1. Set *this*.[[writable]] to ? Construct(`<a idl>WritableStream</a>`, « _sink_, _writableStrategy_ »).
   1. Perform ! TransformStreamSetBackpressure(*this*, *true*).
-  1. Let _startResult_ be ? InvokeOrNoop(_transformer_, 'start', « *this*.[[transformStreamController]] »).
+  1. Let _startResult_ be ? InvokeOrNoop(_transformer_, 'start', « _controller_ »).
   1. Resolve _startPromise_ with _startResult_.
 </emu-alg>
 
@@ -3918,12 +3924,22 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
 
 <h5 id="ts-readable" attribute for="TransformStream" lt="readable">get readable</h5>
 
+<div class="note">
+  The output from the transformation is read from the <a>readable stream</a> returned by the <code>readable</code>
+  accessor.
+</div>
+
 <emu-alg>
   1. If ! IsTransformStream(*this*) is *false*, throw a *TypeError* exception.
   1. Return *this*.[[readable]].
 </emu-alg>
 
 <h5 id="ts-writable" attribute for="TransformStream" lt="writable">get writable</h5>
+
+<div class="note">
+  The input to the transformation is written to the <a>writable stream</a> returned by the <code>writable</code>
+  accessor.
+</div>
 
 <emu-alg>
   1. If ! IsTransformStream(*this*) is *false*, throw a *TypeError* exception.
@@ -4045,7 +4061,7 @@ desiredSize</h5>
 
 <emu-alg>
   1. If ! IsTransformStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
-  1. Perform ! TransformStreamDefaultControllerEnqueue(*this*, _chunk_).
+  1. Perform ? TransformStreamDefaultControllerEnqueue(*this*, _chunk_).
 </emu-alg>
 
 <h5 id="ts-default-controller-error" method for="TransformStreamDefaultController">error(<var>reason</var>)</h5>
@@ -4084,7 +4100,11 @@ nothrow>IsTransformStreamDefaultController ( <var>x</var> )</h4>
 </emu-alg>
 
 <h4 id="transform-stream-default-controller-enqueue" aoid="TransformStreamDefaultControllerEnqueue"
-nothrow>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
+throws>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
+
+This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in the output readable
+stream, in the same way a developer would enqueue chunks using the stream's associated controller object. Specifications
+should <em>not</em> do this to streams they did not create.
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledTransformStream]].
@@ -4104,6 +4124,10 @@ nothrow>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>ch
 <h4 id="transform-stream-default-controller-error" aoid="TransformStreamDefaultControllerError"
 nothrow>TransformStreamDefaultControllerError ( <var>controller</var>, <var>chunk</var> )</h4>
 
+This abstract operation can be called by other specifications that wish to move a transform stream to an errored state,
+in the same way a developer would error a stream using its associated controller object. Specifications should
+<em>not</em> do this to streams they did not create.
+
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledTransformStream]].
   1. Perform ! TransformStreamError(_stream_, _e_).
@@ -4111,6 +4135,10 @@ nothrow>TransformStreamDefaultControllerError ( <var>controller</var>, <var>chun
 
 <h4 id="transform-stream-default-controller-terminate" aoid="TransformStreamDefaultControllerTerminate"
 nothrow>TransformStreamDefaultControllerTerminate ( <var>controller</var> )</h4>
+
+This abstract operation can be called by other specifications that wish to terminate a transform stream, in the same way
+a developer-created stream would be closed by its associated controller object. Specifications should <em>not</em> do
+this to streams they did not create.
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledTransformStream]].
@@ -4174,7 +4202,7 @@ Instances of {{TransformStreamDefaultSink}} are created with the internal slots 
   </tr>
   <tr>
     <td>\[[startPromise]]
-    <td class="non-normative">The <code>startPromise</code> parameter that was passed to the constructor
+    <td class="non-normative">The <var>startPromise</var> parameter that was passed to the constructor
   </tr>
 </table>
 
@@ -4245,7 +4273,7 @@ throws>TransformStreamDefaultSinkInvokeTransform ( <var>stream</var>, <var>chunk
 <emu-alg>
   1. Let _controller_ be _stream_.[[transformStreamController]].
   1. Let _transformer_ be _stream_.[[transformer]].
-  1. Let _method_ be _transformer_.transform.
+  1. Let _method_ be ? GetV(_transformer_, "transform").
   1. If _method_ is *undefined*,
     1. Perform ? TransformStreamDefaultControllerEnqueue(_controller_, _chunk_).
     1. Return *undefined*.
@@ -4320,7 +4348,7 @@ Instances of {{TransformStreamDefaultSource}} are created with the internal slot
   </tr>
   <tr>
     <td>\[[startPromise]]
-    <td class="non-normative">The <code>startPromise</code> parameter that was passed to the constructor
+    <td class="non-normative">The <var>startPromise</var> parameter that was passed to the constructor
   </tr>
 </table>
 
