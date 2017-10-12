@@ -43,8 +43,10 @@ class TransformStream {
     });
 
     const source = new TransformStreamDefaultSource(this, startPromise);
-
-    this._readable = new ReadableStream(source, { size, highWaterMark });
+    const readableStrategy = {};
+    readableStrategy.size = size;
+    readableStrategy.highWaterMark = highWaterMark;
+    this._readable = new ReadableStream(source, readableStrategy);
 
     const sink = new TransformStreamDefaultSink(this, startPromise);
 
