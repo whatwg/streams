@@ -3897,8 +3897,8 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
 
   <ul>
     <li><p><code>start(controller)</code> is called immediately, and is typically used to enqueue prefix <a>chunks</a>
-      that appear in the <a>readable side</a> but doesn't depend on any writes to the <a>writable side</a>. If this
-      process is asynchronous, it can return a promise to signal success or failure.
+      that will be read from the <a>readable side</a> but don't depend on any writes to the <a>writable side</a>. If
+      this process is asynchronous, it can return a promise to signal success or failure.
 
     <li>
       <p><code>transform(chunk, controller)</code> is called when a new chunk originally written to the writable side is
