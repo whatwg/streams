@@ -35,6 +35,7 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
     text: TypeError; url: #sec-native-error-types-used-in-this-standard-typeerror; type: exception
     text: Invoke; url: #sec-invoke; type: abstract-op
     text: DestructuringAssignmentEvaluation; url: #sec-runtime-semantics-destructuringassignmentevaluation; type: abstract-op
+    text: %ObjectProperty%; url: #sec-properties-of-the-object-prototype-object; type: dfn
 </pre>
 
 <style>
@@ -3940,9 +3941,9 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
   1. Set *this*.[[transformStreamController]] to _controller_.
   1. Let _startPromise_ be <a>a new promise</a>.
   1. Let _source_ be ! Construct(`<a idl>TransformStreamDefaultSource</a>`, « *this*, _startPromise_ »).
-  1. Let _readableStrategy_ be a new object.
-  1. Perform ! Set(_readableStrategy_, `"size"`, _size_, false).
-  1. Perform ! Set(_readableStrategy_, `"highWaterMark"`, _highWaterMark_, false).
+  1. Let _readableStrategy_ be ! ObjectCreate(<a>%ObjectProperty%</a>).
+  1. Perform ! CreateDataProperty(_readableStrategy_, `"size"`, _size_).
+  1. Perform ! CreateDataProperty(_readableStrategy_, `"highWaterMark"`, _highWaterMark_).
   1. Set *this*.[[readable]] to ? Construct(`<a idl>ReadableStream</a>`, « _source_, _readableStrategy_ »).
   1. Let _sink_ be ! Construct(`<a idl>TransformStreamDefaultSink</a>`, « *this*, _startPromise_ »).
   1. Set *this*.[[writable]] to ? Construct(`<a idl>WritableStream</a>`, « _sink_, _writableStrategy_ »).
