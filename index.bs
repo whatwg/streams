@@ -5149,6 +5149,51 @@ for the [promise]." But we don't have to worry about that when writing the <code
 function, since the stream implementation guarantees that the <a>underlying sink</a>'s <code>write</code> method will
 not be called until any promises returned by previous calls have fulfilled!
 
+<h3 id="example-ts-sync-one-to-one-transform-function-adaptor">A transform stream adaptor for a simple function</h3>
+
+The following function converts a synchronous transform function that takes one chunk and returns the transformed chunk,
+and wraps it into a transformer object that can be passed to the TransformStream constructor. This demonstrates that the
+API is concise even for trivial transforms.
+
+Although a synchronous transform never causes backpressure itself, it will only transform chunks as long as there is no
+backpressure, so resources will not be wasted.
+
+<pre><code class="lang-javascript">
+  function SyncOneToOneTransformFunctionAdaptor(transformFunction) {
+    return {
+      transform(chunk, controller) {
+        controller.enqueue(transformFunction(chunk));
+      }
+    };
+  }
+</code></pre>
+
+This adaptor can then be used to create TransformStreams like this:
+
+<pre><code class="lang-javascript">
+  const ts = new TransformStream(SyncOneToOneTransformFunctionAdaptor(chunk => chunk.toUpperCase()));
+
+  const writer = ts.writable.getWriter();
+  writer.write("No need to shout");
+
+  const reader = ts.readable.getReader();
+  // Logs "NO NEED TO SHOUT":
+  reader.read().then(({ value }) => console.log(value));
+</code></pre>
+
+Exceptions error the stream in a natural way:
+
+<pre><code class="lang-javascript">
+  const ts = new TransformStream(SyncOneToOneTransformFunctionAdaptor(chunk => JSON.parse(chunk)));
+
+  const writer = ts.writable.getWriter();
+  writer.write("[1, ");
+
+  const reader = ts.readable.getReader();
+  // Logs a SyntaxError:
+  reader.read().catch(e => console.error(e));
+</code></pre>
+
 <h3 id="example-both">A { readable, writable } stream pair wrapping the same underlying resource</h3>
 
 The following function returns an object of the form <code>{ readable, writable }</code>, with the
