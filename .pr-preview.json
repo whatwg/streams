@@ -1,0 +1,19 @@
+{
+    "src_file": "index.bs",
+    "type": "bikeshed",
+    "params": {
+        "md-status": "LS-COMMIT",
+        "md-warning": "Commit {{ sha }} {{ pull_request.head.repo.html_url }}/commit/{{ sha }} replaced by {{ config.ls_url }}",
+        "md-title": "{{ config.title }} (Pull Request Snapshot #{{ pull_request.number }})",
+        "md-Text-Macro": "SNAPSHOT-LINK {{ config.back_to_ls_link }}"
+    },
+    "ls_url": "https://streams.spec.whatwg.org/",
+    "title": "Streams Standard",
+    "back_to_ls_link": "<a href=\"https://streams.spec.whatwg.org/\" id=\"commit-snapshot-link\">Go to the living standard</a>",
+    "post_processing": {
+        "name": "emu-algify",
+        "options": {
+            "throwingIndicators": true
+        }
+    }
+}
