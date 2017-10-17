@@ -3775,7 +3775,7 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>error
 <h3 id="ts-intro">Using Transform Streams</h3>
 
 <div class="example" id="example-basic-pipe-through">
-  The natural way to use a transform stream is place it in a <a lt="piping">pipe</a> between a <a>readable stream</a>
+  The natural way to use a transform stream is to place it in a <a lt="piping">pipe</a> between a <a>readable stream</a>
   and a <a>writable stream</a>. <a>Chunks</a> that travel from the <a>readable stream</a> to the <a>writable stream</a>
   will be transformed as they pass through the transform stream. <a>Backpressure</a> is respected, so data will not be
   read faster than it can be transformed and consumed.
@@ -3890,7 +3890,7 @@ Instances of {{TransformStream}} are created with the internal slots described i
 </table>
 
 <h4 id="ts-constructor" constructor for="TransformStream" lt="TransformStream(transformer, writableStrategy, readableStrategy)">new
-TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <var>size</var>, <var>highWaterMark</var> = 0 } = {})</h4>
+TransformStream(<var>transformer</var> = {}, <var>writableStrategy</var> = undefined, { <var>size</var>, <var>highWaterMark</var> = 0 } = {})</h4>
 
 <div class="note">
   The <code>transformer</code> object passed to the constructor can implement any of the following methods to govern
@@ -3937,11 +3937,14 @@ TransformStream(<var>transformer</var> = {}, writableStrategy = undefined, { <va
   1. If _readableType_ is not *undefined*, throw a *RangeError* exception.
   1. Let _writableType_ be ? GetV(_transformer_, `"writableType"`).
   1. If _writableType_ is not *undefined*, throw a *RangeError* exception.
-  1. Let _controller_ be  ? Construct(`<a idl>TransformStreamDefaultController</a>`, « *this* »).
+  1. Let _controller_ be ? Construct(`<a idl>TransformStreamDefaultController</a>`, « *this* »).
   1. Set *this*.[[transformStreamController]] to _controller_.
   1. Let _startPromise_ be <a>a new promise</a>.
   1. Let _source_ be ! Construct(`<a idl>TransformStreamDefaultSource</a>`, « *this*, _startPromise_ »).
   1. Let _readableStrategy_ be ! ObjectCreate(<a>%ObjectProperty%</a>).
+     <p class="note"><var>readableStrategy</var> is created from scratch so that the default <a>high water mark</a> can
+     be overridden. This does not apply to <var>writableStrategy</var>, so it is passed through unchanged from the
+     second constructor argument.</p>
   1. Perform ! CreateDataProperty(_readableStrategy_, `"size"`, _size_).
   1. Perform ! CreateDataProperty(_readableStrategy_, `"highWaterMark"`, _highWaterMark_).
   1. Set *this*.[[readable]] to ? Construct(`<a idl>ReadableStream</a>`, « _source_, _readableStrategy_ »).
