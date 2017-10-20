@@ -35,7 +35,6 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
     text: TypeError; url: #sec-native-error-types-used-in-this-standard-typeerror; type: exception
     text: Invoke; url: #sec-invoke; type: abstract-op
     text: DestructuringAssignmentEvaluation; url: #sec-runtime-semantics-destructuringassignmentevaluation; type: abstract-op
-    text: %ObjectProperty%; url: #sec-properties-of-the-object-prototype-object; type: dfn
 </pre>
 
 <style>
@@ -3889,8 +3888,9 @@ Instances of {{TransformStream}} are created with the internal slots described i
   </tr>
 </table>
 
-<h4 id="ts-constructor" constructor for="TransformStream" lt="TransformStream(transformer, writableStrategy, readableStrategy)">new
-TransformStream(<var>transformer</var> = {}, <var>writableStrategy</var> = undefined, { <var>size</var>, <var>highWaterMark</var> = 0 } = {})</h4>
+<h4 id="ts-constructor" constructor for="TransformStream" lt="TransformStream(transformer, writableStrategy,
+readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writableStrategy</var> = undefined, {
+<var>size</var>, <var>highWaterMark</var> = 0 } = {})</h4>
 
 <div class="note">
   The <code>transformer</code> object passed to the constructor can implement any of the following methods to govern
@@ -3941,7 +3941,7 @@ TransformStream(<var>transformer</var> = {}, <var>writableStrategy</var> = undef
   1. Set *this*.[[transformStreamController]] to _controller_.
   1. Let _startPromise_ be <a>a new promise</a>.
   1. Let _source_ be ! Construct(`<a idl>TransformStreamDefaultSource</a>`, « *this*, _startPromise_ »).
-  1. Let _readableStrategy_ be ! ObjectCreate(<a>%ObjectProperty%</a>).
+  1. Let _readableStrategy_ be ! ObjectCreate(%ObjectPrototype%).
      <p class="note"><var>readableStrategy</var> is created from scratch so that the default <a>high water mark</a> can
      be overridden. This does not apply to <var>writableStrategy</var>, so it is passed through unchanged from the
      second constructor argument.</p>
@@ -3989,7 +3989,8 @@ TransformStream(<var>transformer</var> = {}, <var>writableStrategy</var> = undef
   1. Return *true*.
 </emu-alg>
 
-<h4 id="transform-stream-error" aoid="TransformStreamError" nothrow>TransformStreamError ( <var>stream</var>, <var>e</var> )</h4>
+<h4 id="transform-stream-error" aoid="TransformStreamError" nothrow>TransformStreamError ( <var>stream</var>,
+<var>e</var> )</h4>
 
 <emu-alg>
   1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_stream_.[[writable]].[[writableStreamController]], _e_).
@@ -3998,7 +3999,8 @@ TransformStream(<var>transformer</var> = {}, <var>writableStrategy</var> = undef
   1. If _stream_.[[backpressure]] is *true*, perform ! TransformStreamSetBackpressure(_stream_, *false*).
 </emu-alg>
 
-<h4 id="transform-stream-set-backpressure" aoid="TransformStreamSetBackpressure" nothrow>TransformStreamSetBackpressure ( <var>stream</var>, <var>backpressure</var> )</h4>
+<h4 id="transform-stream-set-backpressure" aoid="TransformStreamSetBackpressure" nothrow>TransformStreamSetBackpressure
+( <var>stream</var>, <var>backpressure</var> )</h4>
 
 <emu-alg>
   1. Assert: _stream_.[[backpressure]] is not _backpressure_.
@@ -4138,8 +4140,8 @@ nothrow>IsTransformStreamDefaultController ( <var>x</var> )</h4>
 throws>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
 
 This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in the <a>readable
-side</a>, in the same way a developer would enqueue chunks using the stream's associated controller object. Specifications
-should <em>not</em> do this to streams they did not create.
+side</a>, in the same way a developer would enqueue chunks using the stream's associated controller object.
+Specifications should <em>not</em> do this to streams they did not create.
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledTransformStream]].
@@ -4243,8 +4245,8 @@ Instances of {{TransformStreamDefaultSink}} are created with the internal slots 
   </tr>
 </table>
 
-<h4 id="ts-default-sink-constructor" constructor for="TransformStreamDefaultSink"
-lt="TransformStreamDefaultSink(stream, startPromise)">new TransformStreamDefaultSink(<var>stream</var>, <var>startPromise</var>)</h4>
+<h4 id="ts-default-sink-constructor" constructor for="TransformStreamDefaultSink" lt="TransformStreamDefaultSink(stream,
+startPromise)">new TransformStreamDefaultSink(<var>stream</var>, <var>startPromise</var>)</h4>
 
 <emu-alg>
   1. Set *this*.[[ownerTransformStream]] to _stream_.
@@ -4392,7 +4394,8 @@ Instances of {{TransformStreamDefaultSource}} are created with the internal slot
 </table>
 
 <h4 id="ts-default-source-constructor" constructor for="TransformStreamDefaultSource"
-lt="TransformStreamDefaultSource(stream, startPromise)">new TransformStreamDefaultSource(<var>stream</var>, <var>startPromise</var>)</h4>
+lt="TransformStreamDefaultSource(stream, startPromise)">new TransformStreamDefaultSource(<var>stream</var>,
+<var>startPromise</var>)</h4>
 
 <emu-alg>
   1. Set *this*.[[ownerTransformStream]] to _stream_.
@@ -4740,6 +4743,9 @@ The attributes of these properties must be { \[[Writable]]: <emu-val>true</emu-v
   The {{ReadableStreamDefaultReader}}, {{ReadableStreamBYOBReader}}, {{ReadableStreamDefaultController}},
   {{ReadableByteStreamController}}, {{WritableStreamDefaultWriter}}, {{WritableStreamDefaultController}}, and
   {{TransformStreamDefaultController}} classes are specifically not exposed, as they are not independently useful.
+
+  Similarly, the {{TransformStreamDefaultSource}} and {{TransformStreamDefaultSink}} classes are not exposed, as they
+  are unobservable specification details and never visible to web developers.
 </div>
 
 <h2 id="creating-examples">Examples of Creating Streams</h2>

@@ -336,8 +336,8 @@ function TransformStreamDefaultSinkTransform(sink, chunk) {
     // handling in one place in the text of the standard.
     const transformResult = TransformStreamDefaultSinkInvokeTransform(stream, chunk);
     transformPromise = Promise.resolve(transformResult);
-  } catch (e) {
-    transformPromise = Promise.reject(e);
+  } catch (transformResultE) {
+    transformPromise = Promise.reject(transformResultE);
   }
 
   return transformPromise.catch(e => {
