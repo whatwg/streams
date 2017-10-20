@@ -3792,8 +3792,8 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>error
 <div class="example" id="example-transform-stream-properties">
   You can also use the {{TransformStream/readable}} and {{TransformStream/writable}} properties of a transform stream
   directly to access the usual interfaces of a <a>readable stream</a> and <a>writable stream</a>. In this example we
-  supply input data to the stream using the <a>writer</a> interface. The output is then piped to
-  <code>anotherWritableStream</code>.
+  supply data to the <a>writable side</a> of the stream using its <a>writer</a> interface. The <a>readable side</a> is
+  then piped to <code>anotherWritableStream</code>.
 
   <pre><code class="lang-javascript">
     const writer = transformStream.writable.getWriter();
