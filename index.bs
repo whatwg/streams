@@ -35,6 +35,7 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
     text: TypeError; url: #sec-native-error-types-used-in-this-standard-typeerror; type: exception
     text: Invoke; url: #sec-invoke; type: abstract-op
     text: DestructuringAssignmentEvaluation; url: #sec-runtime-semantics-destructuringassignmentevaluation; type: abstract-op
+    text: map; url: #sec-array.prototype.map; type: method; for: Array.prototype
 </pre>
 
 <style>
@@ -5149,49 +5150,50 @@ for the [promise]." But we don't have to worry about that when writing the <code
 function, since the stream implementation guarantees that the <a>underlying sink</a>'s <code>write</code> method will
 not be called until any promises returned by previous calls have fulfilled!
 
-<h3 id="example-ts-sync-one-to-one-transform-function-adaptor">A transform stream adaptor for a simple function</h3>
+<h3 id="example-ts-sync-mapper">A transform stream created from a sync mapper function</h3>
 
-The following function converts a synchronous transform function that takes one chunk and returns the transformed chunk,
-and wraps it into a transformer object that can be passed to the TransformStream constructor. This demonstrates that the
-API is concise even for trivial transforms.
-
-Although a synchronous transform never causes backpressure itself, it will only transform chunks as long as there is no
-backpressure, so resources will not be wasted.
+The following function allows creating new {{TransformStream}} instances from synchronous "mapper" functions, of the
+type you would normally pass to {{Array.prototype/map|Array.prototype.map}}. It demonstrates that the API is concise
+even for trivial transforms.
 
 <pre><code class="lang-javascript">
-  function SyncOneToOneTransformFunctionAdaptor(transformFunction) {
-    return {
+  function mapperTransformStream(mapperFunction) {
+    return new TransformStream({
       transform(chunk, controller) {
-        controller.enqueue(transformFunction(chunk));
+        controller.enqueue(mapperFunction(chunk));
       }
-    };
+    });
   }
 </code></pre>
 
-This adaptor can then be used to create TransformStreams like this:
+This function can then be used to create a {{TransformStream}} that uppercases all its inputs:
 
 <pre><code class="lang-javascript">
-  const ts = new TransformStream(SyncOneToOneTransformFunctionAdaptor(chunk => chunk.toUpperCase()));
-
+  const ts = mapperTransformStream(chunk => chunk.toUpperCase());
   const writer = ts.writable.getWriter();
+  const reader = ts.readable.getReader();
+
   writer.write("No need to shout");
 
-  const reader = ts.readable.getReader();
   // Logs "NO NEED TO SHOUT":
   reader.read().then(({ value }) => console.log(value));
 </code></pre>
 
+Although a synchronous transform never causes backpressure itself, it will only transform chunks as long as there is no
+backpressure, so resources will not be wasted.
+
 Exceptions error the stream in a natural way:
 
 <pre><code class="lang-javascript">
-  const ts = new TransformStream(SyncOneToOneTransformFunctionAdaptor(chunk => JSON.parse(chunk)));
-
+  const ts = mapperTransformStream(chunk => JSON.parse(chunk));
   const writer = ts.writable.getWriter();
+  const reader = ts.readable.getReader();
+
   writer.write("[1, ");
 
-  const reader = ts.readable.getReader();
-  // Logs a SyntaxError:
+  // Logs a SyntaxError, twice:
   reader.read().catch(e => console.error(e));
+  writer.write("{}").catch(e => console.error(e));
 </code></pre>
 
 <h3 id="example-both">A { readable, writable } stream pair wrapping the same underlying resource</h3>
