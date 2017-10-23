@@ -94,10 +94,14 @@ function IsTransformStream(x) {
 function TransformStreamError(stream, e) {
   verbose('TransformStreamError()');
 
-  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, e);
   if (stream._readable._state === 'readable') {
     ReadableStreamDefaultControllerError(stream._readable._readableStreamController, e);
   }
+  TransformStreamErrorWritableAndUnblockWrite(stream, e);
+}
+
+function TransformStreamErrorWritableAndUnblockWrite(stream, e) {
+  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, e);
   if (stream._backpressure === true) {
     // Pretend that pull() was called to permit any pending write() calls to complete. TransformStreamSetBackpressure()
     // cannot be called from enqueue() or pull() once the ReadableStream is errored, so this will will be the final time
@@ -233,11 +237,7 @@ function TransformStreamDefaultControllerTerminate(controller) {
   }
 
   const error = new TypeError('TransformStream terminated');
-  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, error);
-  if (stream._backpressure === true) {
-    // Permit any pending write() or start() calls to complete.
-    TransformStreamSetBackpressure(stream, false);
-  }
+  TransformStreamErrorWritableAndUnblockWrite(stream, error);
 }
 
 // Class TransformStreamDefaultSink
@@ -375,8 +375,8 @@ class TransformStreamDefaultSource {
   }
 
   cancel(reason) {
-    // The readable side is closed before cancel() is called, so only the writable side is errored by TransformStreamError().
-    TransformStreamError(this._ownerTransformStream, reason);
+    // The readable side is closed before cancel() is called. Only the writable side should be errored.
+    TransformStreamErrorWritableAndUnblockWrite(this._ownerTransformStream, reason);
   }
 }
 

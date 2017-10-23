@@ -3993,9 +3993,16 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
 <var>e</var> )</h4>
 
 <emu-alg>
-  1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_stream_.[[writable]].[[writableStreamController]], _e_).
   1. If _stream_.[[readable]].[[state]] is `"readable"`, perform !
      ReadableStreamDefaultControllerError(_stream_.[[readable]].[[readableStreamController]], _e_).
+  1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _e_).
+</emu-alg>
+
+<h4 id="transform-stream-error-writable-and-unblock-write" aoid="TransformStreamErrorWritableAndUnblockWrite"
+nothrow>TransformStreamErrorWritableAndUnblockWrite ( <var>stream</var>, <var>e</var> )</h4>
+
+<emu-alg>
+  1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_stream_.[[writable]].[[writableStreamController]], _e_).
   1. If _stream_.[[backpressure]] is *true*, perform ! TransformStreamSetBackpressure(_stream_, *false*).
   <div class="note">The <a for="TransformStreamDefaultSink">write()</a> method of <a
     interface>TransformStreamDefaultSink</a> may be waiting for the promise stored in the [[backpressureChangePromise]]
@@ -4186,9 +4193,7 @@ this to streams they did not create.
   1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_readableController_) is *true*, perform !
      ReadableStreamDefaultControllerClose(_readableController_).
   1. Let _error_ be a *TypeError* exception indicating that the stream has been terminated.
-  1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_stream_.[[writable]].[[writableStreamController]],
-     _error_).
-  1. If _stream_.[[backpressure]] is *true*, perform ! TransformStreamSetBackpressure(_stream_, *false*).
+  1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _error_).
 </emu-alg>
 
 <h3 id="ts-default-sink-class" interface lt="TransformStreamDefaultSink">Class
@@ -4426,9 +4431,9 @@ lt="TransformStreamDefaultSource(stream, startPromise)">new TransformStreamDefau
 <h5 id="ts-default-source-cancel" method for="TransformStreamDefaultSource">cancel(<var>reason</var>)</h5>
 
 <emu-alg>
-  <div class="note">The <a>readable side</a> is closed before cancel() is called, so only the <a>writable side</a>
-  becomes errored.</div>
-  1. Perform ! TransformStreamError(*this*.[[ownerTransformStream]], _reason_).
+  <div class="note">The <a>readable side</a> is closed before cancel() is called. Only the <a>writable side</a>
+    becomes errored.</div>
+  1. Perform ! TransformStreamErrorWritableAndUnblockWrite(*this*.[[ownerTransformStream]], _reason_).
 </emu-alg>
 
 <h2 id="other-stuff">Other Stream APIs and Operations</h2>
