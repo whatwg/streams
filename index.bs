@@ -3997,6 +3997,9 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
   1. If _stream_.[[readable]].[[state]] is `"readable"`, perform !
      ReadableStreamDefaultControllerError(_stream_.[[readable]].[[readableStreamController]], _e_).
   1. If _stream_.[[backpressure]] is *true*, perform ! TransformStreamSetBackpressure(_stream_, *false*).
+  <div class="note">The <a for="TransformStreamDefaultSink">write()</a> method of <a
+    interface>TransformStreamDefaultSink</a> may be waiting for the promise stored in the [[backpressureChangePromise]]
+    slot to resolve. This call to TransformStreamSetBackpressure ensures that the promise always resolves.</div>
 </emu-alg>
 
 <h4 id="transform-stream-set-backpressure" aoid="TransformStreamSetBackpressure" nothrow>TransformStreamSetBackpressure
