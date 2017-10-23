@@ -375,6 +375,7 @@ class TransformStreamDefaultSource {
   }
 
   cancel(reason) {
+    // The readable side is closed before cancel() is called, so only the writable side is errored by TransformStreamError().
     TransformStreamError(this._ownerTransformStream, reason);
   }
 }

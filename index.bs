@@ -4423,6 +4423,8 @@ lt="TransformStreamDefaultSource(stream, startPromise)">new TransformStreamDefau
 <h5 id="ts-default-source-cancel" method for="TransformStreamDefaultSource">cancel(<var>reason</var>)</h5>
 
 <emu-alg>
+  <div class="note">The <a>readable side</a> is closed before cancel() is called, so only the <a>writable side</a>
+  becomes errored.</div>
   1. Perform ! TransformStreamError(*this*.[[ownerTransformStream]], _reason_).
 </emu-alg>
 
