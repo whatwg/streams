@@ -4,7 +4,7 @@ const assert = require('better-assert');
 // Calls to verbose() are purely for debugging the reference implementation and tests. They are not part of the standard
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:transform-stream:verbose');
-const { Call, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject } = require('./helpers.js');
+const { Call, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject, createDataProperty } = require('./helpers.js');
 const { ReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
@@ -44,8 +44,10 @@ class TransformStream {
     });
 
     const source = new TransformStreamDefaultSource(this, startPromise);
-
-    this._readable = new ReadableStream(source, { size, highWaterMark });
+    const readableStrategy = {};
+    createDataProperty(readableStrategy, 'size', size);
+    createDataProperty(readableStrategy, 'highWaterMark', highWaterMark);
+    this._readable = new ReadableStream(source, readableStrategy);
 
     const sink = new TransformStreamDefaultSink(this, startPromise);
 
