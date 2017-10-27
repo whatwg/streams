@@ -19,6 +19,8 @@ class TransformStream {
 
     this._transformStreamController = undefined;
 
+    // The [[backpressure]] slot is set to undefined here so that it can be initialised by
+    // TransformStreamSetBackpressure below.
     this._backpressure = undefined;
     this._backpressureChangePromise = undefined;
     this._backpressureChangePromise_resolve = undefined;
@@ -208,7 +210,7 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
     ReadableStreamDefaultControllerEnqueue(readableController, chunk);
   } catch (e) {
     // This happens when readableStrategy.size() throws.
-    TransformStreamError(stream, e);
+    TransformStreamErrorWritableAndUnblockWrite(stream, e);
 
     throw stream._readable._storedError;
   }

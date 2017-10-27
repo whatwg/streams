@@ -3933,6 +3933,10 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
   1. Set *this*.[[transformer]] to _transformer_.
   1. Set *this*.[[transformStreamController]] to *undefined*.
   1. Set *this*.[[backpressure]] and *this*.[[backpressureChangePromise]] to *undefined*.
+     <p class="note">The [[backpressure]] slot is set to *undefined* here so that it can be initialized by
+     TransformStreamSetBackpressure later in the constructor. Alternatively, implementations can use a strictly boolean
+     value for [[backpressure]] and change the way it is initialized. This will not be visible to user code so long as
+     the initialization is correctly completed before _transformer_.start() is called.</p>
   1. Let _readableType_ be ? GetV(_transformer_, `"readableType"`).
   1. If _readableType_ is not *undefined*, throw a *RangeError* exception.
   1. Let _writableType_ be ? GetV(_transformer_, `"writableType"`).
@@ -3992,6 +3996,9 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
 <h4 id="transform-stream-error" aoid="TransformStreamError" nothrow>TransformStreamError ( <var>stream</var>,
 <var>e</var> )</h4>
 
+<div class="note">This operation works correctly when one or both sides is already errored. As a result, other
+algorithms do not need to check stream states when responding to an error condition.</div>
+
 <emu-alg>
   1. If _stream_.[[readable]].[[state]] is `"readable"`, perform !
      ReadableStreamDefaultControllerError(_stream_.[[readable]].[[readableStreamController]], _e_).
@@ -4004,9 +4011,10 @@ nothrow>TransformStreamErrorWritableAndUnblockWrite ( <var>stream</var>, <var>e<
 <emu-alg>
   1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_stream_.[[writable]].[[writableStreamController]], _e_).
   1. If _stream_.[[backpressure]] is *true*, perform ! TransformStreamSetBackpressure(_stream_, *false*).
-  <div class="note">The <a for="TransformStreamDefaultSink">write()</a> method of <a
-    interface>TransformStreamDefaultSink</a> may be waiting for the promise stored in the [[backpressureChangePromise]]
-    slot to resolve. This call to TransformStreamSetBackpressure ensures that the promise always resolves.</div>
+  <p class="note">The <a for="TransformStreamDefaultSink">write()</a> method of <a
+    interface>TransformStreamDefaultSink</a> could be waiting for the promise stored in the
+    [[backpressureChangePromise]] slot to resolve. This call to TransformStreamSetBackpressure ensures that the promise
+    always resolves.</p>
 </emu-alg>
 
 <h4 id="transform-stream-set-backpressure" aoid="TransformStreamSetBackpressure" nothrow>TransformStreamSetBackpressure
@@ -4160,7 +4168,7 @@ Specifications should <em>not</em> do this to streams they did not create.
      exception.
   1. Let _enqueueResult_ be ReadableStreamDefaultControllerEnqueue(_readableController_, _chunk_).
   1. If _enqueueResult_ is an abrupt completion,
-    1. Perform ! TransformStreamError(_stream_, _e_).
+    1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _e_).
     1. Throw _stream_.[[readable]].[[storedError]].
   1. Let _backpressure_ be ! ReadableStreamDefaultControllerHasBackpressure(_readableController_).
   1. If _backpressure_ is not _stream_.[[backpressure]],
