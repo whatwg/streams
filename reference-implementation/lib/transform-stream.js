@@ -17,14 +17,6 @@ class TransformStream {
   constructor(transformer = {}, writableStrategy = undefined, { size, highWaterMark = 0 } = {}) {
     this._transformer = transformer;
 
-    this._transformStreamController = undefined;
-
-    // The [[backpressure]] slot is set to undefined here so that it can be initialised by
-    // TransformStreamSetBackpressure below.
-    this._backpressure = undefined;
-    this._backpressureChangePromise = undefined;
-    this._backpressureChangePromise_resolve = undefined;
-
     const readableType = transformer.readableType;
 
     if (readableType !== undefined) {
@@ -37,6 +29,7 @@ class TransformStream {
       throw new RangeError('Invalid writable type specified');
     }
 
+    this._transformStreamController = undefined;
     const controller = new TransformStreamDefaultController(this);
     this._transformStreamController = controller;
 
@@ -55,6 +48,10 @@ class TransformStream {
 
     this._writable = new WritableStream(sink, writableStrategy);
 
+    // The [[backpressure]] slot is set to undefined so that it can be initialised by TransformStreamSetBackpressure.
+    this._backpressure = undefined;
+    this._backpressureChangePromise = undefined;
+    this._backpressureChangePromise_resolve = undefined;
     TransformStreamSetBackpressure(this, true);
 
     const startResult = InvokeOrNoop(transformer, 'start', [controller]);
