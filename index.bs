@@ -4168,7 +4168,7 @@ Specifications should <em>not</em> do this to streams they did not create.
      exception.
   1. Let _enqueueResult_ be ReadableStreamDefaultControllerEnqueue(_readableController_, _chunk_).
   1. If _enqueueResult_ is an abrupt completion,
-    1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _e_).
+    1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _enqueueResult_.[[Value]]).
     1. Throw _stream_.[[readable]].[[storedError]].
   1. Let _backpressure_ be ! ReadableStreamDefaultControllerHasBackpressure(_readableController_).
   1. If _backpressure_ is not _stream_.[[backpressure]],
@@ -4177,15 +4177,14 @@ Specifications should <em>not</em> do this to streams they did not create.
 </emu-alg>
 
 <h4 id="transform-stream-default-controller-error" aoid="TransformStreamDefaultControllerError"
-nothrow>TransformStreamDefaultControllerError ( <var>controller</var>, <var>chunk</var> )</h4>
+nothrow>TransformStreamDefaultControllerError ( <var>controller</var>, <var>e</var> )</h4>
 
 This abstract operation can be called by other specifications that wish to move a transform stream to an errored state,
 in the same way a developer would error a stream using its associated controller object. Specifications should
 <em>not</em> do this to streams they did not create.
 
 <emu-alg>
-  1. Let _stream_ be _controller_.[[controlledTransformStream]].
-  1. Perform ! TransformStreamError(_stream_, _e_).
+  1. Perform ! TransformStreamError(_controller_.[[controlledTransformStream]], _e_).
 </emu-alg>
 
 <h4 id="transform-stream-default-controller-terminate" aoid="TransformStreamDefaultControllerTerminate"

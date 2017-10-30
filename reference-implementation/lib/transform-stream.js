@@ -223,9 +223,7 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
 }
 
 function TransformStreamDefaultControllerError(controller, e) {
-  const stream = controller._controlledTransformStream;
-
-  TransformStreamError(stream, e);
+  TransformStreamError(controller._controlledTransformStream, e);
 }
 
 function TransformStreamDefaultControllerTerminate(controller) {
