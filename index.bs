@@ -3951,9 +3951,9 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
   1. Set *this*.[[writable]] to ? Construct(`<a idl>WritableStream</a>`, « _sink_, _writableStrategy_ »).
   1. Set *this*.[[backpressure]] and *this*.[[backpressureChangePromise]] to *undefined*.
      <p class="note">The [[backpressure]] slot is set to *undefined* so that it can be initialized by
-     TransformStreamSetBackpressure. Alternatively, implementations can use a strictly boolean
-     value for [[backpressure]] and change the way it is initialized. This will not be visible to user code so long as
-     the initialization is correctly completed before _transformer_.start() is called.</p>
+     TransformStreamSetBackpressure. Alternatively, implementations can use a strictly boolean value for
+     [[backpressure]] and change the way it is initialized. This will not be visible to user code so long as the
+     initialization is correctly completed before _transformer_'s <code>start()</code> method is is called.</p>
   1. Perform ! TransformStreamSetBackpressure(*this*, *true*).
   1. Let _startResult_ be ? InvokeOrNoop(_transformer_, `"start"`, « _controller_ »).
   1. Resolve _startPromise_ with _startResult_.
@@ -3996,14 +3996,14 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
 <h4 id="transform-stream-error" aoid="TransformStreamError" nothrow>TransformStreamError ( <var>stream</var>,
 <var>e</var> )</h4>
 
-<div class="note">This operation works correctly when one or both sides is already errored. As a result, other
-algorithms do not need to check stream states when responding to an error condition.</div>
-
 <emu-alg>
   1. If _stream_.[[readable]].[[state]] is `"readable"`, perform !
      ReadableStreamDefaultControllerError(_stream_.[[readable]].[[readableStreamController]], _e_).
   1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _e_).
 </emu-alg>
+
+<p class="note">This operation works correctly when one or both sides are already errored. As a result, calling
+algorithms do not need to check stream states when responding to an error condition.</p>
 
 <h4 id="transform-stream-error-writable-and-unblock-write" aoid="TransformStreamErrorWritableAndUnblockWrite"
 nothrow>TransformStreamErrorWritableAndUnblockWrite ( <var>stream</var>, <var>e</var> )</h4>
@@ -4011,11 +4011,11 @@ nothrow>TransformStreamErrorWritableAndUnblockWrite ( <var>stream</var>, <var>e<
 <emu-alg>
   1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_stream_.[[writable]].[[writableStreamController]], _e_).
   1. If _stream_.[[backpressure]] is *true*, perform ! TransformStreamSetBackpressure(_stream_, *false*).
-  <p class="note">The <a for="TransformStreamDefaultSink">write()</a> method of <a
-    interface>TransformStreamDefaultSink</a> could be waiting for the promise stored in the
-    [[backpressureChangePromise]] slot to resolve. This call to TransformStreamSetBackpressure ensures that the promise
-    always resolves.</p>
 </emu-alg>
+
+<p class="note">The {{TransformStreamDefaultSink/write()}} method of {{TransformStreamDefaultSink}} could be waiting for
+the promise stored in the \[[backpressureChangePromise]] slot to resolve. This call to TransformStreamSetBackpressure
+ensures that the promise always resolves.</p>
 
 <h4 id="transform-stream-set-backpressure" aoid="TransformStreamSetBackpressure" nothrow>TransformStreamSetBackpressure
 ( <var>stream</var>, <var>backpressure</var> )</h4>
@@ -4438,10 +4438,11 @@ lt="TransformStreamDefaultSource(stream, startPromise)">new TransformStreamDefau
 <h5 id="ts-default-source-cancel" method for="TransformStreamDefaultSource">cancel(<var>reason</var>)</h5>
 
 <emu-alg>
-  <div class="note">The <a>readable side</a> is closed before cancel() is called. Only the <a>writable side</a>
-    becomes errored.</div>
   1. Perform ! TransformStreamErrorWritableAndUnblockWrite(*this*.[[ownerTransformStream]], _reason_).
 </emu-alg>
+
+<p class="note">The <a>readable side</a> is closed before <code>cancel()</code> is called. Only the <a>writable side</a>
+becomes errored.</p>
 
 <h2 id="other-stuff">Other Stream APIs and Operations</h2>
 
