@@ -5150,52 +5150,6 @@ for the [promise]." But we don't have to worry about that when writing the <code
 function, since the stream implementation guarantees that the <a>underlying sink</a>'s <code>write</code> method will
 not be called until any promises returned by previous calls have fulfilled!
 
-<h3 id="example-ts-sync-mapper">A transform stream created from a sync mapper function</h3>
-
-The following function allows creating new {{TransformStream}} instances from synchronous "mapper" functions, of the
-type you would normally pass to {{Array.prototype/map|Array.prototype.map}}. It demonstrates that the API is concise
-even for trivial transforms.
-
-<pre><code class="lang-javascript">
-  function mapperTransformStream(mapperFunction) {
-    return new TransformStream({
-      transform(chunk, controller) {
-        controller.enqueue(mapperFunction(chunk));
-      }
-    });
-  }
-</code></pre>
-
-This function can then be used to create a {{TransformStream}} that uppercases all its inputs:
-
-<pre><code class="lang-javascript">
-  const ts = mapperTransformStream(chunk => chunk.toUpperCase());
-  const writer = ts.writable.getWriter();
-  const reader = ts.readable.getReader();
-
-  writer.write("No need to shout");
-
-  // Logs "NO NEED TO SHOUT":
-  reader.read().then(({ value }) => console.log(value));
-</code></pre>
-
-Although a synchronous transform never causes backpressure itself, it will only transform chunks as long as there is no
-backpressure, so resources will not be wasted.
-
-Exceptions error the stream in a natural way:
-
-<pre><code class="lang-javascript">
-  const ts = mapperTransformStream(chunk => JSON.parse(chunk));
-  const writer = ts.writable.getWriter();
-  const reader = ts.readable.getReader();
-
-  writer.write("[1, ");
-
-  // Logs a SyntaxError, twice:
-  reader.read().catch(e => console.error(e));
-  writer.write("{}").catch(e => console.error(e));
-</code></pre>
-
 <h3 id="example-both">A { readable, writable } stream pair wrapping the same underlying resource</h3>
 
 The following function returns an object of the form <code>{ readable, writable }</code>, with the
@@ -5375,6 +5329,52 @@ The class would be used in code like:
 
 <div class="warning">For simplicity, <code>LipFuzzTransformer</code> performs unescaped text substitutions. In real
 applications, a template system that performs context-aware escaping is good practice for security and robustness.</div>
+
+<h3 id="example-ts-sync-mapper">A transform stream created from a sync mapper function</h3>
+
+The following function allows creating new {{TransformStream}} instances from synchronous "mapper" functions, of the
+type you would normally pass to {{Array.prototype/map|Array.prototype.map}}. It demonstrates that the API is concise
+even for trivial transforms.
+
+<pre><code class="lang-javascript">
+  function mapperTransformStream(mapperFunction) {
+    return new TransformStream({
+      transform(chunk, controller) {
+        controller.enqueue(mapperFunction(chunk));
+      }
+    });
+  }
+</code></pre>
+
+This function can then be used to create a {{TransformStream}} that uppercases all its inputs:
+
+<pre><code class="lang-javascript">
+  const ts = mapperTransformStream(chunk => chunk.toUpperCase());
+  const writer = ts.writable.getWriter();
+  const reader = ts.readable.getReader();
+
+  writer.write("No need to shout");
+
+  // Logs "NO NEED TO SHOUT":
+  reader.read().then(({ value }) => console.log(value));
+</code></pre>
+
+Although a synchronous transform never causes backpressure itself, it will only transform chunks as long as there is no
+backpressure, so resources will not be wasted.
+
+Exceptions error the stream in a natural way:
+
+<pre><code class="lang-javascript">
+  const ts = mapperTransformStream(chunk => JSON.parse(chunk));
+  const writer = ts.writable.getWriter();
+  const reader = ts.readable.getReader();
+
+  writer.write("[1, ");
+
+  // Logs a SyntaxError, twice:
+  reader.read().catch(e => console.error(e));
+  writer.write("{}").catch(e => console.error(e));
+</code></pre>
 
 <h2 id="conventions" class="no-num">Conventions</h2>
 
