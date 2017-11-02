@@ -5252,6 +5252,83 @@ and similarly, closing or aborting the <code>writable</code> side will implicitl
 
 </div>
 
+<h3 id="example-ts-lipfuzz">A transform stream that replaces template tags</h3>
+
+It's often useful to substitute tags with variables on a stream of data, where the parts that need to be replaced are
+small compared to the overall data size. This example presents a simple way to do that. It maps strings to strings,
+transforming a template like <code>"Time: \{{time}} Message: \{{message}}"</code> to <code>"Time: 15:36 Message:
+hello"</code> assuming that <code>{ time: "15:36", message: "hello" }</code> was passed in the
+<code>substitutions</code> parameter to <code>LipFuzzTransformer</code>.
+
+This example also demonstrates one way to deal with a situation where a chunk contains partial data that cannot be
+transformed until more data is received. In this case, a partial template tag will be accumulated in the
+<code>partialChunk</code> instance variable until either the end of the tag is found or the end of the stream is
+reached.
+
+<pre><code class="lang-javascript">
+  class LipFuzzTransformer {
+    constructor(substitutions) {
+      this.substitutions = substitutions;
+      this.partialChunk = '';
+      this.lastIndex = undefined;
+    }
+
+    transform(chunk, controller) {
+      chunk = this.partialChunk + chunk;
+      this.partialChunk = '';
+      // lastIndex is the index of the first character after the last substitution.
+      this.lastIndex = 0;
+      chunk = chunk.replace(/\{\{([a-zA-Z0-9_-]+)\}\}/g, this.replaceTag.bind(this));
+      // Regular expression for an incomplete template at the end of a string.
+      const partialAtEndRegexp = /\{(\{([a-zA-Z0-9_-]+(\})?)?)?$/g;
+      // Avoid looking at any characters that have already been substituted.
+      partialAtEndRegexp.lastIndex = this.lastIndex;
+      this.lastIndex = undefined;
+      const match = partialAtEndRegexp.exec(chunk);
+      if (match) {
+        this.partialChunk = chunk.substring(match.index);
+        chunk = chunk.substring(0, match.index);
+      }
+      controller.enqueue(chunk);
+    }
+
+    flush(controller) {
+      if (this.partialChunk.length > 0) {
+        controller.enqueue(this.partialChunk);
+      }
+    }
+
+    replaceTag(match, p1, offset) {
+      let replacement = this.substitutions[p1];
+      if (replacement === undefined) {
+        replacement = '';
+      }
+      this.lastIndex = offset + replacement.length;
+      return replacement;
+    }
+  }
+</code></pre>
+
+In this case we define the <a>transformer</a> to be passed to the {{TransformStream}} constructor as a class. This is
+useful when there is instance data to track.
+
+The class would be used in code like:
+
+<pre><code class="lang-javascript">
+  const data = { userName, displayName, icon, date };
+  const ts = new TransformStream(new LipFuzzTransformer(data));
+
+  fetchEvent.respondWith(
+    fetch(url).then(response => {
+      const transformedBody = response.body.pipeThrough(ts);
+      return new Response(transformedBody);
+    )
+  );
+</code></pre>
+
+<div class="warning">For simplicity, <code>LipFuzzTransformer</code> performs unescaped text substitutions. In real
+applications, a template system that performs context-aware escaping is good practice for security and robustness.</div>
+
 <h2 id="conventions" class="no-num">Conventions</h2>
 
 This specification uses algorithm conventions very similar to those of [[!ECMASCRIPT]], whose rules should be used to
