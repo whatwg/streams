@@ -20,7 +20,7 @@ test(() => {
   assert_not_equals(new TransformStream(), null, 'constructor should work');
 }, 'TransformStream constructor should not call setters for highWaterMark or size');
 
-test(() => {
+test(t => {
   /* eslint-disable no-native-reassign */
 
   const oldReadableStream = ReadableStream;
@@ -35,6 +35,10 @@ test(() => {
   WritableStream = function () {
     throw new Error('Called the global WritableStream constructor');
   };
+  t.add_cleanup(() => {
+    ReadableStream = oldReadableStream;
+    WritableStream = oldWritableStream;
+  });
 
   const ts = new TransformStream();
 
@@ -43,10 +47,6 @@ test(() => {
                     'getReader should work when called on ts.readable');
   assert_not_equals(getWriter.call(ts.writable), undefined,
                     'getWriter should work when called on ts.writable');
-
-  ReadableStream = oldReadableStream;
-  WritableStream = oldWritableStream;
-
   /* eslint-enable no-native-reassign */
 }, 'TransformStream should use the original value of ReadableStream and WritableStream');
 
