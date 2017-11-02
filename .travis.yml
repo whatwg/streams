@@ -2,20 +2,15 @@ language: node_js
 node_js: stable
 sudo: false
 
-addons:
-  apt:
-    packages:
-    - sshpass
-    - oracle-java8-set-default
-
 env:
   global:
-    - secure: "VayIJwnO14YDmIureSnEE8cNw2gEYJ1b4V8F3YDw+aRVgFB8CGf247JmnOYfEEfadxvjkItAmjAmRzwU+u9U9hosSKuBPSelZ9tmgo3g8LpJnaB578ODBRt/CbLOSSyQyAICxIYJjs/pgV/DJXwdWqW4becWNCw0wgGHqiwDNIQ="
-    - secure: "Ga/n9txTxjBDFxsyhbthRZyqVTZA1cOmhH5WaQEWoMcG9yU+RvAdEjqdFmUFHE7SArHIKovyzoupQ9FELESeu8/lkbDtin3MZn3Aj6QXHioBSMihGbduHsGK8yJ1WyjDYXC3fN8XdwNQRZrVFq0ocauPkml/w8uauEsiMo3PX8A="
+    - ENCRYPTION_LABEL="4a24edc7e7d1"
+    - DEPLOY_USER="ddenicola"
+    - POST_BUILD_STEP='node_modules/.bin/emu-algify --throwing-indicators < "$DIR/index.html" > "$DIR/index.tmp.html"; mv "$DIR/index.tmp.html" "$DIR/index.html"; cp -a demos "$DIR"'
 before_install:
   - cd reference-implementation
 script:
   - npm test
   - cd ..
-  - bash ./deploy.sh
-  - curl -O https://sideshowbarker.net/nightlies/jar/vnu.jar && /usr/lib/jvm/java-8-oracle/jre/bin/java -jar vnu.jar --skip-non-html /home/travis/build/whatwg/streams/streams.spec.whatwg.org
+  - npm install
+  - curl --remote-name --fail https://resources.whatwg.org/build/deploy.sh && bash ./deploy.sh
