@@ -17,12 +17,6 @@ class TransformStream {
   constructor(transformer = {}, writableStrategy = undefined, { size, highWaterMark = 0 } = {}) {
     this._transformer = transformer;
 
-    this._transformStreamController = undefined;
-
-    this._backpressure = undefined;
-    this._backpressureChangePromise = undefined;
-    this._backpressureChangePromise_resolve = undefined;
-
     const readableType = transformer.readableType;
 
     if (readableType !== undefined) {
@@ -35,6 +29,7 @@ class TransformStream {
       throw new RangeError('Invalid writable type specified');
     }
 
+    this._transformStreamController = undefined;
     const controller = new TransformStreamDefaultController(this);
     this._transformStreamController = controller;
 
@@ -53,6 +48,10 @@ class TransformStream {
 
     this._writable = new WritableStream(sink, writableStrategy);
 
+    // The [[backpressure]] slot is set to undefined so that it can be initialised by TransformStreamSetBackpressure.
+    this._backpressure = undefined;
+    this._backpressureChangePromise = undefined;
+    this._backpressureChangePromise_resolve = undefined;
     TransformStreamSetBackpressure(this, true);
 
     const startResult = InvokeOrNoop(transformer, 'start', [controller]);
@@ -94,10 +93,14 @@ function IsTransformStream(x) {
 function TransformStreamError(stream, e) {
   verbose('TransformStreamError()');
 
-  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, e);
   if (stream._readable._state === 'readable') {
     ReadableStreamDefaultControllerError(stream._readable._readableStreamController, e);
   }
+  TransformStreamErrorWritableAndUnblockWrite(stream, e);
+}
+
+function TransformStreamErrorWritableAndUnblockWrite(stream, e) {
+  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, e);
   if (stream._backpressure === true) {
     // Pretend that pull() was called to permit any pending write() calls to complete. TransformStreamSetBackpressure()
     // cannot be called from enqueue() or pull() once the ReadableStream is errored, so this will will be the final time
@@ -204,7 +207,7 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
     ReadableStreamDefaultControllerEnqueue(readableController, chunk);
   } catch (e) {
     // This happens when readableStrategy.size() throws.
-    TransformStreamError(stream, e);
+    TransformStreamErrorWritableAndUnblockWrite(stream, e);
 
     throw stream._readable._storedError;
   }
@@ -217,9 +220,7 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
 }
 
 function TransformStreamDefaultControllerError(controller, e) {
-  const stream = controller._controlledTransformStream;
-
-  TransformStreamError(stream, e);
+  TransformStreamError(controller._controlledTransformStream, e);
 }
 
 function TransformStreamDefaultControllerTerminate(controller) {
@@ -233,11 +234,7 @@ function TransformStreamDefaultControllerTerminate(controller) {
   }
 
   const error = new TypeError('TransformStream terminated');
-  WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, error);
-  if (stream._backpressure === true) {
-    // Permit any pending write() or start() calls to complete.
-    TransformStreamSetBackpressure(stream, false);
-  }
+  TransformStreamErrorWritableAndUnblockWrite(stream, error);
 }
 
 // Class TransformStreamDefaultSink
@@ -336,8 +333,8 @@ function TransformStreamDefaultSinkTransform(sink, chunk) {
     // handling in one place in the text of the standard.
     const transformResult = TransformStreamDefaultSinkInvokeTransform(stream, chunk);
     transformPromise = Promise.resolve(transformResult);
-  } catch (e) {
-    transformPromise = Promise.reject(e);
+  } catch (transformResultE) {
+    transformPromise = Promise.reject(transformResultE);
   }
 
   return transformPromise.catch(e => {
@@ -375,7 +372,8 @@ class TransformStreamDefaultSource {
   }
 
   cancel(reason) {
-    TransformStreamError(this._ownerTransformStream, reason);
+    // The readable side is closed before cancel() is called. Only the writable side should be errored.
+    TransformStreamErrorWritableAndUnblockWrite(this._ownerTransformStream, reason);
   }
 }
 

@@ -171,18 +171,21 @@ sink</a>.
 
 <h3 id="ts-model">Transform Streams</h3>
 
-<p class="warning">Transform streams are not yet fully developed. We are iterating on their design using a JavaScript
-reference implementation and test suite; you can follow that work <a
-href="https://github.com/whatwg/streams/labels/transform%20streams">on the issue tracker</a>. Until then, this section
-gives a brief overview of their intended design, even though the details of their API is not yet determined.</p>
+A <dfn>transform stream</dfn> consists of a pair of streams: a <a>writable stream</a>, known as its <dfn>writable
+side</dfn>, and a <a>readable stream</a>, known as its <dfn>readable side</dfn>. In a manner specific to the transform
+stream in question, writes to the writable side result in new data being made available for reading from the readable
+side.
 
-A <dfn>transform stream</dfn> consists of a pair of streams: a writable stream, and a readable stream.
-In a manner specific to the transform stream in question, writes to the writable side result in new data being made
-available for reading from the readable side. Concretely, any object with a <code>writable</code> property and a
-<code>readable</code> property can serve as a transform stream. However, we plan to provide a
-<code>TransformStream</code> class which makes it much easier to create such a pair that is properly entangled.
+Concretely, any object with a <code>writable</code> property and a <code>readable</code> property can serve as a
+transform stream. However, the standard {{TransformStream}} class makes it much easier to create such a pair that is
+properly entangled. It wraps a <dfn>transformer</dfn> object which defines the specific transformation to be performed.
 
-Some examples of transform streams include:
+An <dfn>identity transform stream</dfn> is a type of transform stream which forwards all <a>chunks</a> written to its
+<a>writable side</a> to its <a>readable side</a>, without any changes. This can be useful in <a
+href="#example-transform-identity">a variety of scenarios</a>. By default, the {{TransformStream}} constructor will
+create an identity transform stream, when no <code>transform</code> method is present on the <a>transformer</a> object.
+
+Some examples of potential transform streams include:
 
 <ul>
   <li>A GZIP compressor, to which uncompressed bytes are written and from which compressed bytes are read;</li>
@@ -454,14 +457,16 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   govern how the constructed stream instance behaves:
 
   <ul>
-    <li> <code>start(controller)</code> is called immediately, and is typically used to adapt a <a>push
+    <li><p><code>start(controller)</code> is called immediately, and is typically used to adapt a <a>push
       source</a> by setting up relevant event listeners, or to acquire access to a <a>pull source</a>. If this process
       is asynchronous, it can return a promise to signal success or failure.
-    <li> <code>pull(controller)</code> is called when the stream's <a>internal queue</a> of chunks is not full, and
+
+    <li><p><code>pull(controller)</code> is called when the stream's <a>internal queue</a> of chunks is not full, and
       will be called repeatedly until the queue reaches its <a>high water mark</a>. If <code>pull</code> returns a
       promise, then <code>pull</code> will not be called again until that promise fulfills; if the promise rejects, the
       stream will become errored.
-    <li> <code>cancel(reason)</code> is called when the consumer signals that they are no longer interested in the
+
+    <li><p><code>cancel(reason)</code> is called when the consumer signals that they are no longer interested in the
       stream. It can perform any actions necessary to release access to the <a>underlying source</a>. If this
       process is asynchronous, it can return a promise to signal success or failure.
   </ul>
@@ -2788,19 +2793,22 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
   how the constructed stream instance behaves:
 
   <ul>
-    <li> <code>start(controller)</code> is called immediately, and can perform any actions necessary to acquire
+    <li><p><code>start(controller)</code> is called immediately, and can perform any actions necessary to acquire
       access to the <a>underlying sink</a>. If this process is asynchronous, it can return a promise to signal success
       or failure.
-    <li> <code>write(chunk, controller)</code> is called when a new <a>chunk</a> of data is ready to be written to the
+
+    <li><p><code>write(chunk, controller)</code> is called when a new <a>chunk</a> of data is ready to be written to the
       <a>underlying sink</a>. It can return a promise to signal success or failure of the write operation. The stream
       implementation guarantees that this method will be called only after previous writes have succeeded, and never
       after <code>close</code> or <code>abort</code> is called.
-    <li> <code>close()</code> is called after the producer signals that they are done writing chunks to the
+
+    <li><p><code>close()</code> is called after the producer signals that they are done writing chunks to the
       stream, and all queued-up writes successfully complete. It can perform any actions necessary to finalize writes
       to the <a>underlying sink</a>, and release access to it. If this process is asynchronous, it can return a promise
       to signal success or failure. The stream implementation guarantees that this method will be called only after all
       queued-up writes have succeeded.
-    <li> <code>abort(reason)</code> is called when the producer signals they wish to abruptly close the stream
+
+    <li><p><code>abort(reason)</code> is called when the producer signals they wish to abruptly close the stream
       and put it in an errored state. It can clean up any held resources, much like <code>close</code>, but perhaps
       with some custom handling. Unlike <code>close</code>, <code>abort</code> will be called even if writes are queued
       up; those <a>chunks</a> will be thrown away. If this process is asynchronous, it can return a promise to signal
@@ -3763,10 +3771,678 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>error
 
 <h2 id="ts">Transform Streams</h2>
 
-Transform streams have been developed in the testable implementation, but not yet re-encoded in spec language.
-We are waiting to validate their design before doing so. In the meantime, see <a
-href="https://github.com/whatwg/streams/blob/master/reference-implementation/lib/transform-stream.js">reference-implementation/lib/transform-stream.js</a>.
+<h3 id="ts-intro">Using Transform Streams</h3>
 
+<div class="example" id="example-basic-pipe-through">
+  The natural way to use a transform stream is to place it in a <a lt="piping">pipe</a> between a <a>readable stream</a>
+  and a <a>writable stream</a>. <a>Chunks</a> that travel from the <a>readable stream</a> to the <a>writable stream</a>
+  will be transformed as they pass through the transform stream. <a>Backpressure</a> is respected, so data will not be
+  read faster than it can be transformed and consumed.
+
+  <pre><code class="lang-javascript">
+    readableStream
+      .pipeThrough(transformStream)
+      .pipeTo(writableStream)
+      .then(() => console.log("All data successfully transformed!"))
+      .catch(e => console.error("Something went wrong!", e));
+  </code></pre>
+</div>
+
+<div class="example" id="example-transform-stream-properties">
+  You can also use the {{TransformStream/readable}} and {{TransformStream/writable}} properties of a transform stream
+  directly to access the usual interfaces of a <a>readable stream</a> and <a>writable stream</a>. In this example we
+  supply data to the <a>writable side</a> of the stream using its <a>writer</a> interface. The <a>readable side</a> is
+  then piped to <code>anotherWritableStream</code>.
+
+  <pre><code class="lang-javascript">
+    const writer = transformStream.writable.getWriter();
+    writer.write("input chunk");
+    transformStream.readable.pipeTo(anotherWritableStream);
+  </code></pre>
+</div>
+
+<div class="example" id="example-transform-identity">
+  One use of <a>identity transform streams</a> is to easily convert between readable and writable streams. For example,
+  the {{fetch()}} API accepts a readable stream <a for="request" lt="body">request body</a>, but it can be more
+  convenient to write data for uploading via a writable stream interface. Using an identity transform stream addresses
+  this:
+
+  <pre><code class="lang-javascript">
+    const { writable, readable } = new TransformStream();
+    fetch("...", { body: readable }).then(response => /* ... */);
+
+    writable.write(new Uint8Array([0x73, 0x74, 0x72, 0x65, 0x61, 0x6D, 0x73, 0x21]));
+    writable.close();
+  </code></pre>
+
+  Another use of identity transform streams is to add additional buffering to a <a>pipe</a>. In this example we add
+  extra buffering between <code>readableStream</code> and <code>writableStream</code>.
+
+  <pre><code class="lang-javascript">
+    const writableStrategy = new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 1024 });
+
+    readableStream
+      .pipeThrough(new TransformStream(undefined, writableStrategy))
+      .pipeTo(writableStream);
+  </code></pre>
+</div>
+
+<h3 id="ts-class" interface lt="TransformStream">Class <code>TransformStream</code></h3>
+
+<h4 id="ts-class-definition">Class Definition</h4>
+
+<div class="non-normative">
+
+<em>This section is non-normative.</em>
+
+If one were to write the {{TransformStream}} class in something close to the syntax of [[!ECMASCRIPT]], it would look
+like
+
+<pre><code class="lang-javascript">
+  class TransformStream {
+    constructor(transformer = {}, writableStrategy = {}, readableStrategy = {})
+
+    get readable()
+    get writable()
+  }
+</code></pre>
+
+</div>
+
+<h4 id="ts-internal-slots">Internal Slots</h4>
+
+Instances of {{TransformStream}} are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[backpressure]]
+    <td class="non-normative">Whether there was backpressure on \[[readable]] the last time it was observed
+  </tr>
+  <tr>
+    <td>\[[backpressureChangePromise]]
+    <td class="non-normative">A promise which is fulfilled and replaced every time the value of \[[backpressure]]
+    changes
+  </tr>
+  <tr>
+    <td>\[[readable]]
+    <td class="non-normative">The {{ReadableStream}} instance controlled by this object
+  </tr>
+  <tr>
+    <td>\[[transformer]]
+    <td class="non-normative">The <var>transformer</var> object that was passed to the constructor
+  </tr>
+  <tr>
+    <td>\[[transformStreamController]]
+    <td class="non-normative">A {{TransformStreamDefaultController}} created with the ability to control \[[readable]]
+    and \[[writable]]; also used for the <a href="#is-transform-stream">IsTransformStream</a> brand check
+  </tr>
+  <tr>
+    <td>\[[writable]]
+    <td class="non-normative">The {{WritableStream}} instance controlled by this object
+  </tr>
+</table>
+
+<h4 id="ts-constructor" constructor for="TransformStream" lt="TransformStream(transformer, writableStrategy,
+readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writableStrategy</var> = undefined, {
+<var>size</var>, <var>highWaterMark</var> = 0 } = {})</h4>
+
+<div class="note">
+  The <code>transformer</code> object passed to the constructor can implement any of the following methods to govern
+  how the constructed stream instance behaves:
+
+  <ul>
+    <li><p><code>start(controller)</code> is called immediately, and is typically used to enqueue prefix <a>chunks</a>
+      that will be read from the <a>readable side</a> but don't depend on any writes to the <a>writable side</a>. If
+      this process is asynchronous, it can return a promise to signal success or failure.
+
+    <li>
+      <p><code>transform(chunk, controller)</code> is called when a new chunk originally written to the writable side is
+      ready to be transformed. It can return a promise to signal success or failure of the transformation. The results
+      of the transformation can be enqueued to the readable side using the
+      {{ReadableStreamDefaultController/enqueue(chunk)|controller.enqueue()}} method. This permits a single chunk
+      written to the writable side to result in zero or multiple chunks on the readable side.
+
+      <p>The stream implementation guarantees that <code>transform</code> will be called only after previous
+      transformations have succeeded, and never before <code>start</code> has completed or after <code>flush</code> is
+      called. When no <code>transform</code> method is supplied, the identity transform is used, which enqueues chunks
+      unchanged from the writable side to the readable side.
+
+    <li><p><code>flush(controller)</code> is called after all chunks written to the writable side have been
+      transformed and the writable side has been closed. It is typically used to enqueue suffix chunks to the
+      readable side, before that too becomes closed. If this process is asynchronous, it can return a promise
+      to signal success or failure.
+  </ul>
+
+  The <code>controller</code> object passed to <code>start</code>, <code>transform</code> and <code>flush</code> is an
+  instance of {{TransformStreamDefaultController}}, and has the ability to enqueue chunks to the readable side,
+  or to terminate or error the stream.
+
+  The second and third arguments to the constructor are the <a>queuing strategy</a> objects for the writable and
+  readable sides respectively. These are used in the construction of the {{WritableStream}} and {{ReadableStream}}
+  objects and can be used to add buffering to a {{TransformStream}}, in order to smooth out variations in the speed of
+  the transformation, or to increase the amount of buffering in a <a>pipe</a>.
+</div>
+
+<emu-alg>
+  1. Set *this*.[[transformer]] to _transformer_.
+  1. Let _readableType_ be ? GetV(_transformer_, `"readableType"`).
+  1. If _readableType_ is not *undefined*, throw a *RangeError* exception.
+  1. Let _writableType_ be ? GetV(_transformer_, `"writableType"`).
+  1. If _writableType_ is not *undefined*, throw a *RangeError* exception.
+  1. Set *this*.[[transformStreamController]] to *undefined*.
+  1. Let _controller_ be ? Construct(`<a idl>TransformStreamDefaultController</a>`, « *this* »).
+  1. Set *this*.[[transformStreamController]] to _controller_.
+  1. Let _startPromise_ be <a>a new promise</a>.
+  1. Let _source_ be ! Construct(`<a idl>TransformStreamDefaultSource</a>`, « *this*, _startPromise_ »).
+  1. Let _readableStrategy_ be ! ObjectCreate(%ObjectPrototype%).
+     <p class="note"><var>readableStrategy</var> is created from scratch so that the default <a>high water mark</a> can
+     be overridden. This does not apply to <var>writableStrategy</var>, so it is passed through unchanged from the
+     second constructor argument.</p>
+  1. Perform ! CreateDataProperty(_readableStrategy_, `"size"`, _size_).
+  1. Perform ! CreateDataProperty(_readableStrategy_, `"highWaterMark"`, _highWaterMark_).
+  1. Set *this*.[[readable]] to ? Construct(`<a idl>ReadableStream</a>`, « _source_, _readableStrategy_ »).
+  1. Let _sink_ be ! Construct(`<a idl>TransformStreamDefaultSink</a>`, « *this*, _startPromise_ »).
+  1. Set *this*.[[writable]] to ? Construct(`<a idl>WritableStream</a>`, « _sink_, _writableStrategy_ »).
+  1. Set *this*.[[backpressure]] and *this*.[[backpressureChangePromise]] to *undefined*.
+     <p class="note">The [[backpressure]] slot is set to *undefined* so that it can be initialized by
+     TransformStreamSetBackpressure. Alternatively, implementations can use a strictly boolean value for
+     [[backpressure]] and change the way it is initialized. This will not be visible to user code so long as the
+     initialization is correctly completed before _transformer_'s <code>start()</code> method is is called.</p>
+  1. Perform ! TransformStreamSetBackpressure(*this*, *true*).
+  1. Let _startResult_ be ? InvokeOrNoop(_transformer_, `"start"`, « _controller_ »).
+  1. Resolve _startPromise_ with _startResult_.
+</emu-alg>
+
+<h4 id="ts-prototype">Properties of the {{TransformStream}} Prototype</h4>
+
+<h5 id="ts-readable" attribute for="TransformStream" lt="readable">get readable</h5>
+
+<div class="note">
+  The <code>readable</code> getter gives access to the <a>readable side</a> of the transform stream.
+</div>
+
+<emu-alg>
+  1. If ! IsTransformStream(*this*) is *false*, throw a *TypeError* exception.
+  1. Return *this*.[[readable]].
+</emu-alg>
+
+<h5 id="ts-writable" attribute for="TransformStream" lt="writable">get writable</h5>
+
+<div class="note">
+  The <code>writable</code> getter gives access to the <a>writable side</a> of the transform stream.
+</div>
+
+<emu-alg>
+  1. If ! IsTransformStream(*this*) is *false*, throw a *TypeError* exception.
+  1. Return *this*.[[writable]].
+</emu-alg>
+
+<h3 id="ts-abstract-ops">General Transform Stream Abstract Operations</h3>
+
+<h4 id="is-transform-stream" aoid="IsTransformStream" nothrow>IsTransformStream ( <var>x</var> )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[transformStreamController]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="transform-stream-error" aoid="TransformStreamError" nothrow>TransformStreamError ( <var>stream</var>,
+<var>e</var> )</h4>
+
+<emu-alg>
+  1. If _stream_.[[readable]].[[state]] is `"readable"`, perform !
+     ReadableStreamDefaultControllerError(_stream_.[[readable]].[[readableStreamController]], _e_).
+  1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _e_).
+</emu-alg>
+
+<p class="note">This operation works correctly when one or both sides are already errored. As a result, calling
+algorithms do not need to check stream states when responding to an error condition.</p>
+
+<h4 id="transform-stream-error-writable-and-unblock-write" aoid="TransformStreamErrorWritableAndUnblockWrite"
+nothrow>TransformStreamErrorWritableAndUnblockWrite ( <var>stream</var>, <var>e</var> )</h4>
+
+<emu-alg>
+  1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_stream_.[[writable]].[[writableStreamController]], _e_).
+  1. If _stream_.[[backpressure]] is *true*, perform ! TransformStreamSetBackpressure(_stream_, *false*).
+</emu-alg>
+
+<p class="note">The {{TransformStreamDefaultSink/write()}} method of {{TransformStreamDefaultSink}} could be waiting for
+the promise stored in the \[[backpressureChangePromise]] slot to resolve. This call to TransformStreamSetBackpressure
+ensures that the promise always resolves.</p>
+
+<h4 id="transform-stream-set-backpressure" aoid="TransformStreamSetBackpressure" nothrow>TransformStreamSetBackpressure
+( <var>stream</var>, <var>backpressure</var> )</h4>
+
+<emu-alg>
+  1. Assert: _stream_.[[backpressure]] is not _backpressure_.
+  1. If _stream_.[[backpressureChangePromise]] is not *undefined*, <a>resolve</a>
+     stream.[[backpressureChangePromise]] with *undefined*.
+  1. Set _stream_.[[backpressureChangePromise]] to <a>a new promise</a>.
+  1. Set _stream_.[[backpressure]] to _backpressure_.
+</emu-alg>
+
+<h3 id="ts-default-controller-class" interface lt="TransformStreamDefaultController">Class
+<code>TransformStreamDefaultController</code></h3>
+
+The {{TransformStreamDefaultController}} class has methods that allow manipulation of the associated {{ReadableStream}}
+and {{WritableStream}}. When constructing a {{TransformStream}}, the <a>transformer</a> is given a corresponding
+{{TransformStreamDefaultController}} instance to manipulate.
+
+<h4 id="ts-default-controller-class-definition">Class Definition</h4>
+
+<div class="non-normative">
+
+<em>This section is non-normative.</em>
+
+If one were to write the {{TransformStreamDefaultController}} class in something close to the syntax of [[!ECMASCRIPT]],
+it would look like
+
+<pre><code class="lang-javascript">
+  class TransformStreamDefaultController {
+    constructor(stream)
+
+    get desiredSize()
+
+    enqueue(chunk)
+    error(reason)
+    terminate()
+  }
+</code></pre>
+
+</div>
+
+<h4 id="ts-default-controller-internal-slots">Internal Slots</h4>
+
+Instances of {{TransformStreamDefaultController}} are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[controlledTransformStream]]
+    <td class="non-normative">The {{TransformStream}} instance controlled; also used for the
+      IsTransformStreamDefaultController brand check
+  </tr>
+</table>
+
+<h4 id="ts-default-controller-constructor" constructor for="TransformStreamDefaultController"
+lt="TransformStreamDefaultController(stream)">new TransformStreamDefaultController(<var>stream</var>)</h4>
+
+<div class="note">
+  The <code>TransformStreamDefaultController</code> constructor cannot be used directly; it only works on a
+  {{TransformStream}} that is in the middle of being constructed.
+</div>
+
+<emu-alg>
+  1. If ! IsTransformStream(_stream_) is *false*, throw a *TypeError* exception.
+  1. If _stream_.[[transformStreamController]] is not *undefined*, throw a *TypeError* exception.
+  1. Set *this*.[[controlledTransformStream]] to _stream_.
+</emu-alg>
+
+<h4 id="ts-default-controller-prototype">Properties of the {{TransformStreamDefaultController}} Prototype</h4>
+
+<h5 id="ts-default-controller-desired-size" attribute for="TransformStreamDefaultController" lt="desiredSize">get
+desiredSize</h5>
+
+<div class="note">
+  The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size
+  to fill the readable side's internal queue</a>. It can be negative, if the queue is over-full.
+</div>
+
+<emu-alg>
+  1. If ! IsTransformStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _readableController_ be *this*.[[controlledTransformStream]].[[readable]].[[readableStreamController]].
+  1. Return ! ReadableStreamDefaultControllerGetDesiredSize(_readableController_).
+</emu-alg>
+
+<h5 id="ts-default-controller-enqueue" method for="TransformStreamDefaultController">enqueue(<var>chunk</var>)</h5>
+
+<div class="note">
+  The <code>enqueue</code> method will enqueue a given <a>chunk</a> in the <a>readable side</a>.
+</div>
+
+<emu-alg>
+  1. If ! IsTransformStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. Perform ? TransformStreamDefaultControllerEnqueue(*this*, _chunk_).
+</emu-alg>
+
+<h5 id="ts-default-controller-error" method for="TransformStreamDefaultController">error(<var>reason</var>)</h5>
+
+<div class="note">
+  The <code>error</code> method will error both the <a>readable side</a> and the <a>writable side</a> of the controlled
+  <a>transform stream</a>, making all future interactions fail with the given <code>reason</code>. Any <a>chunks</a>
+  queued for transformation will be discarded.
+</div>
+
+<emu-alg>
+  1. If ! IsTransformStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. Perform ! TransformStreamDefaultControllerError(*this*, _reason_).
+</emu-alg>
+
+<h5 id="ts-default-controller-terminate" method for="TransformStreamDefaultController">terminate()</h5>
+
+<div class="note">
+  The <code>terminate</code> method will close the <a>readable side</a> and error the <a>writable side</a> of the
+  controlled <a>transform stream</a>. This is useful when the <a>transformer</a> only needs to consume a portion of the
+  <a>chunks</a> written to the <a>writable side</a>.
+</div>
+
+<emu-alg>
+  1. If ! IsTransformStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
+  1. Perform ! TransformStreamDefaultControllerTerminate(*this*).
+</emu-alg>
+
+<h3 id="ts-default-controller-abstract-ops">Transform Stream Default Controller Abstract Operations</h3>
+
+<h4 id="is-transform-stream-default-controller" aoid="IsTransformStreamDefaultController"
+nothrow>IsTransformStreamDefaultController ( <var>x</var> )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have an [[controlledTransformStream]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="transform-stream-default-controller-enqueue" aoid="TransformStreamDefaultControllerEnqueue"
+throws>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
+
+This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in the <a>readable
+side</a>, in the same way a developer would enqueue chunks using the stream's associated controller object.
+Specifications should <em>not</em> do this to streams they did not create.
+
+<emu-alg>
+  1. Let _stream_ be _controller_.[[controlledTransformStream]].
+  1. Let _readableController_ be _stream_.[[readable]].[[readableStreamController]].
+  1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_readableController_) is *false*, throw a *TypeError*
+     exception.
+  1. Let _enqueueResult_ be ReadableStreamDefaultControllerEnqueue(_readableController_, _chunk_).
+  1. If _enqueueResult_ is an abrupt completion,
+    1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _enqueueResult_.[[Value]]).
+    1. Throw _stream_.[[readable]].[[storedError]].
+  1. Let _backpressure_ be ! ReadableStreamDefaultControllerHasBackpressure(_readableController_).
+  1. If _backpressure_ is not _stream_.[[backpressure]],
+    1. Assert: _backpressure_ is *true*.
+    1. Perform ! TransformStreamSetBackpressure(_stream_, *true*).
+</emu-alg>
+
+<h4 id="transform-stream-default-controller-error" aoid="TransformStreamDefaultControllerError"
+nothrow>TransformStreamDefaultControllerError ( <var>controller</var>, <var>e</var> )</h4>
+
+This abstract operation can be called by other specifications that wish to move a transform stream to an errored state,
+in the same way a developer would error a stream using its associated controller object. Specifications should
+<em>not</em> do this to streams they did not create.
+
+<emu-alg>
+  1. Perform ! TransformStreamError(_controller_.[[controlledTransformStream]], _e_).
+</emu-alg>
+
+<h4 id="transform-stream-default-controller-terminate" aoid="TransformStreamDefaultControllerTerminate"
+nothrow>TransformStreamDefaultControllerTerminate ( <var>controller</var> )</h4>
+
+This abstract operation can be called by other specifications that wish to terminate a transform stream, in the same way
+a developer-created stream would be closed by its associated controller object. Specifications should <em>not</em> do
+this to streams they did not create.
+
+<emu-alg>
+  1. Let _stream_ be _controller_.[[controlledTransformStream]].
+  1. Let _readableController_ be _stream_.[[readable]].[[readableStreamController]].
+  1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_readableController_) is *true*, perform !
+     ReadableStreamDefaultControllerClose(_readableController_).
+  1. Let _error_ be a *TypeError* exception indicating that the stream has been terminated.
+  1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _error_).
+</emu-alg>
+
+<h3 id="ts-default-sink-class" interface lt="TransformStreamDefaultSink">Class
+<code>TransformStreamDefaultSink</code></h3>
+
+The {{TransformStreamDefaultSink}} class is used internally as the <a>underlying sink</a> that is passed to the
+{{WritableStream}} constructor when constructing the \[[writable]] slot of a {{TransformStream}}.
+
+<div class="note">
+  This specification uses the public API for transmitting events from the {{WritableStream}} back to the
+  {{TransformStream}} implementation for simplicity. Since the {{TransformStreamDefaultSink}} class is not observable,
+  implementations do not need to implement it, but could instead do something else observably equivalent. See <a
+  href="https://github.com/whatwg/streams/issues/813">#813</a> for an alternate specification approach that will make
+  this clearer in the future.
+</div>
+
+<h4 id="ts-default-sink-class-definition">Class Definition</h4>
+
+<div class="non-normative">
+
+<em>This section is non-normative.</em>
+
+If one were to write the {{TransformStreamDefaultSink}} class in something close to the syntax of [[!ECMASCRIPT]],
+it would look like
+
+<pre><code class="lang-javascript">
+  class TransformStreamDefaultSink {
+    constructor(stream, startPromise)
+
+    start()
+    write(chunk)
+    abort()
+    close()
+  }
+</code></pre>
+
+</div>
+
+<h4 id="ts-default-sink-internal-slots">Internal Slots</h4>
+
+Instances of {{TransformStreamDefaultSink}} are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[ownerTransformStream]]
+    <td class="non-normative">The {{TransformStream}} instance
+  </tr>
+  <tr>
+    <td>\[[startPromise]]
+    <td class="non-normative">The <var>startPromise</var> parameter that was passed to the constructor
+  </tr>
+</table>
+
+<h4 id="ts-default-sink-constructor" constructor for="TransformStreamDefaultSink" lt="TransformStreamDefaultSink(stream,
+startPromise)">new TransformStreamDefaultSink(<var>stream</var>, <var>startPromise</var>)</h4>
+
+<emu-alg>
+  1. Set *this*.[[ownerTransformStream]] to _stream_.
+  1. Set *this*.[[startPromise]] to _startPromise_.
+</emu-alg>
+
+<h4 id="ts-default-sink-prototype">Properties of the {{TransformStreamDefaultSink}} Prototype</h4>
+
+<h5 id="ts-default-sink-start" method for="TransformStreamDefaultSink">start()</h5>
+
+<emu-alg>
+  1. Return *this*.[[startPromise]].
+</emu-alg>
+
+<h5 id="ts-default-sink-write" method for="TransformStreamDefaultSink">write(<var>chunk</var>)</h5>
+
+<emu-alg>
+  1. Let _stream_ be *this*.[[ownerTransformStream]].
+  1. Assert: _stream_.[[writable]].[[state]] is `"writable"`.
+  1. If _stream_.[[backpressure]] is *true*,
+    1. Let _backpressureChangePromise_ be _stream_.[[backpressureChangePromise]].
+    1. Assert: _backpressureChangePromise_ is not *undefined*.
+    1. Return the result of <a>transforming</a> _backpressureChangePromise_ with a fulfillment handler which performs
+       the following steps:
+      1. Let _writable_ be _stream_.[[writable]].
+      1. Let _state_ be _writable_.[[state]].
+      1. If _state_ is `"erroring"`, throw _writable_.[[storedError]].
+      1. Assert: _state_ is `"writable"`.
+      1. Return ! TransformStreamDefaultSinkTransform(*this*, _chunk_).
+  1. Return ! TransformStreamDefaultSinkTransform(*this*, _chunk_).
+</emu-alg>
+
+<h5 id="ts-default-sink-abort" method for="TransformStreamDefaultSink">abort()</h5>
+
+<emu-alg>
+  1. Let _e_ be a *TypeError* exception indicating that the writable stream was aborted.
+  1. Perform ! TransformStreamError(*this*.[[ownerTransformStream]], _e_).
+</emu-alg>
+
+<h5 id="ts-default-sink-close" method for="TransformStreamDefaultSink">close()</h5>
+
+<emu-alg>
+  1. Let _stream_ be *this*.[[ownerTransformStream]].
+  1. Let _readable_ be _stream_.[[readable]].
+  1. Let _flushPromise_ be ! PromiseInvokeOrNoop(_stream_.[[transformer]], `"flush"`, «
+     _stream_.[[transformStreamController]] »).
+  1. Return the result of <a>transforming</a> _flushPromise_ with:
+    1. A fulfullment handler that performs the following steps:
+      1. If _readable_.[[state]] is `"errored"`, throw _readable_.[[storedError]].
+      1. Let _readableController_ be _readable_.[[readableStreamController]].
+      1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_readableController_) is *true*, perform !
+         ReadableStreamDefaultControllerClose(_readableController_).
+    1. A rejection handler that, when called with argument _r_, performs the following steps:
+      1. Perform ! TransformStreamError(_stream_, _r_).
+      1. Throw _readable_.[[storedError]].
+</emu-alg>
+
+<h3 id="ts-default-sink-abstract-ops">Transform Stream Default Sink Abstract Operations</h3>
+
+<h4 id="transform-stream-default-sink-invoke-transform" aoid="TransformStreamDefaultSinkInvokeTransform"
+throws>TransformStreamDefaultSinkInvokeTransform ( <var>stream</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+  1. Let _controller_ be _stream_.[[transformStreamController]].
+  1. Let _transformer_ be _stream_.[[transformer]].
+  1. Let _method_ be ? GetV(_transformer_, `"transform"`).
+  1. If _method_ is *undefined*,
+    1. Perform ? TransformStreamDefaultControllerEnqueue(_controller_, _chunk_).
+    1. Return *undefined*.
+  1. Return ? Call(_method_, _transformer_, « _chunk_, _controller_ »).
+</emu-alg>
+
+<h4 id="transform-stream-default-sink-transform" aoid="TransformStreamDefaultSinkTransform"
+nothrow>TransformStreamDefaultSinkTransform ( <var>sink</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+  1. Let _stream_ be _sink_.[[ownerTransformStream]].
+  1. Assert: _stream_.[[readable]].[[state]] is not `"errored"`.
+  1. Assert: _stream_.[[backpressure]] is *false*.
+  1. Let _transformPromise_ be *undefined*.
+  1. Let _transformResult_ be TransformStreamDefaultSinkInvokeTransform(_stream_, _chunk_).
+  1. If _transformResult_ is an abrupt completion, set _transformPromise_ to <a>a promise rejected with</a>
+     _transformResult_.[[Value]].
+  1. Otherwise, set _transformPromise_ to <a>a promise resolved with</a> _transformResult_.[[Value]].
+  1. Return the result of <a>transforming</a> _transformPromise_ with a rejection handler that, when called with
+     argument _e_, performs the following steps:
+    1. Perform ! TransformStreamError(_stream_, _e_).
+    1. Throw _e_.
+</emu-alg>
+
+<h3 id="ts-default-source-class" interface lt="TransformStreamDefaultSource">Class
+<code>TransformStreamDefaultSource</code></h3>
+
+The {{TransformStreamDefaultSource}} class is used internally as the <a>underlying source</a> that is passed to the
+{{ReadableStream}} constructor when constructing the \[[readable]] slot.
+
+<div class="note">
+  This specification uses the public API for transmitting events from the {{ReadableStream}} back to the
+  {{TransformStream}} implementation for simplicity. Since the {{TransformStreamDefaultSource}} class is not observable,
+  implementations do not need to implement it, but could instead do something else observably equivalent. See <a
+  href="https://github.com/whatwg/streams/issues/813">#813</a> for an alternate specification approach that will make
+  this clearer in the future.
+</div>
+
+<h4 id="ts-default-source-class-definition">Class Definition</h4>
+
+<div class="non-normative">
+
+<em>This section is non-normative.</em>
+
+If one were to write the {{TransformStreamDefaultSource}} class in something close to the syntax of [[!ECMASCRIPT]],
+it would look like
+
+<pre><code class="lang-javascript">
+  class TransformStreamDefaultSource {
+    constructor(stream, startPromise)
+
+    start()
+    pull()
+    cancel(reason)
+  }
+</code></pre>
+
+</div>
+
+<h4 id="ts-default-source-internal-slots">Internal Slots</h4>
+
+Instances of {{TransformStreamDefaultSource}} are created with the internal slots described in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[ownerTransformStream]]
+    <td class="non-normative">The {{TransformStream}} instance
+  </tr>
+  <tr>
+    <td>\[[startPromise]]
+    <td class="non-normative">The <var>startPromise</var> parameter that was passed to the constructor
+  </tr>
+</table>
+
+<h4 id="ts-default-source-constructor" constructor for="TransformStreamDefaultSource"
+lt="TransformStreamDefaultSource(stream, startPromise)">new TransformStreamDefaultSource(<var>stream</var>,
+<var>startPromise</var>)</h4>
+
+<emu-alg>
+  1. Set *this*.[[ownerTransformStream]] to _stream_.
+  1. Set *this*.[[startPromise]] to _startPromise_.
+</emu-alg>
+
+<h4 id="ts-default-source-prototype">Properties of the {{TransformStreamDefaultSource}} Prototype</h4>
+
+<h5 id="ts-default-source-start" method for="TransformStreamDefaultSource">start()</h5>
+
+<emu-alg>
+  1. Return *this*.[[startPromise]].
+</emu-alg>
+
+<h5 id="ts-default-source-pull" method for="TransformStreamDefaultSource">pull()</h5>
+
+<emu-alg>
+  1. Let _stream_ be *this*.[[ownerTransformStream]].
+  1. Assert: _stream_.[[backpressure]] is *true*.
+  1. Assert: _stream_.[[backpressureChangePromise]] is not *undefined*.
+  1. Perform ! TransformStreamSetBackpressure(_stream_, *false*).
+  1. Return _stream_.[[backpressureChangePromise]].
+</emu-alg>
+
+<h5 id="ts-default-source-cancel" method for="TransformStreamDefaultSource">cancel(<var>reason</var>)</h5>
+
+<emu-alg>
+  1. Perform ! TransformStreamErrorWritableAndUnblockWrite(*this*.[[ownerTransformStream]], _reason_).
+</emu-alg>
+
+<p class="note">The <a>readable side</a> is closed before <code>cancel()</code> is called. Only the <a>writable side</a>
+becomes errored.</p>
 
 <h2 id="other-stuff">Other Stream APIs and Operations</h2>
 
@@ -4073,6 +4749,7 @@ The following constructors must be exposed on the global object as data properti
 <ul class="brief">
   <li> {{ReadableStream}}
   <li> {{WritableStream}}
+  <li> {{TransformStream}}
   <li> {{ByteLengthQueuingStrategy}}
   <li> {{CountQueuingStrategy}}
 </ul>
@@ -4082,8 +4759,11 @@ The attributes of these properties must be { \[[Writable]]: <emu-val>true</emu-v
 
 <div class="note">
   The {{ReadableStreamDefaultReader}}, {{ReadableStreamBYOBReader}}, {{ReadableStreamDefaultController}},
-  {{ReadableByteStreamController}}, {{WritableStreamDefaultWriter}}, and {{WritableStreamDefaultController}} classes are
-  specifically not exposed, as they are not independently useful.
+  {{ReadableByteStreamController}}, {{WritableStreamDefaultWriter}}, {{WritableStreamDefaultController}}, and
+  {{TransformStreamDefaultController}} classes are specifically not exposed, as they are not independently useful.
+
+  Similarly, the {{TransformStreamDefaultSource}} and {{TransformStreamDefaultSink}} classes are not exposed, as they
+  are unobservable specification details and never visible to web developers.
 </div>
 
 <h2 id="creating-examples">Examples of Creating Streams</h2>
