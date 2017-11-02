@@ -6,8 +6,7 @@ env:
   global:
     - ENCRYPTION_LABEL="4a24edc7e7d1"
     - DEPLOY_USER="ddenicola"
-    - EXTRA_FILES="demos"
-    - POST_BUILD_STEP='node_modules/.bin/emu-algify --throwing-indicators < "$DIR/index.html" > "$DIR/index.tmp.html"; mv "$DIR/index.tmp.html" "$DIR/index.html"'
+    - POST_BUILD_STEP='node_modules/.bin/emu-algify --throwing-indicators < "$DIR/index.html" > "$DIR/index.tmp.html"; mv "$DIR/index.tmp.html" "$DIR/index.html"; cp -a demos "$DIR"'
 before_install:
   - cd reference-implementation
 script:
