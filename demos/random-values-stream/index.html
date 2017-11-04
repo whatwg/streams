@@ -1,0 +1,53 @@
+<html>
+    <head>
+        <title>BackPressure built stream</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css">
+        <link rel="stylesheet" href="./styles.css">
+    </head>
+    <body>
+        <div class="header">
+            <h2>Random Cryptography Stream</h2>
+            <p>Demonstration for reading random values array generated through <a href="https://developer.mozilla.org/en/docs/Web/API/RandomSource/getRandomValues">WebCrypto getRandomValues function</a> from a <code>Readable Stream</code>, passing it through a <code>Transform Stream</code> which converts the chunk into a readable form and writing it to the UI in the <a href="#console">console</a> using a Writable Stream with backpressure implemented.
+                
+            <div class="source-code">
+                <h2>Source Code</h2>
+                <p>Read the the <a href="https://github.com/whatwg/streams/tree/master/demos/random-values-stream/">README.md</a> file for explaination about the source code</p>
+            </div>
+        </div>
+
+        <!-- Contains all the demo's container logic -->
+        <div class="demo-container">
+            <div class="controls">
+                <div class="pipe-controls">
+                    <h3>Readable Stream Pipe</h3>
+                    <p>Pipe readable stream through a transform stream to eventually write to a writable stream with an underlying sink that writes to the Web UI. Click the button below to start piping through the stream</p>
+                    <button id="pipe-through">Pipe Through Transform</button>
+                </div>
+            </div>
+    
+            <!--
+                Div tag where console values are going to appear after a certain period of 
+                time, requestAnimationFrame is also called to handle animations effectively,
+                if the amount of text to be written is a lot more
+            -->
+            <div class="output">
+                <div class="stream-status"></div>
+
+                <h4>Status</h4>
+                <div class="status-container">
+                    Logs the status of the Readable and Writable Streams and data written to them
+                </div>
+
+                <h3>Output</h3>
+                <!-- Container for the output provided by the writable stream -->
+                <div class="output-container">
+                    Output for the underlying sink will appear here
+                </div>
+            </div>
+        </div>
+        
+
+        <script src="../transforms/transform-stream-polyfill.js" type="text/javascript"></script>
+        <script src="index.js" type="text/javascript"></script>
+    </body>
+</html>

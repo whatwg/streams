@@ -1,0 +1,11 @@
+body {
+    margin: 2em auto ;
+    max-width: 970px;
+}
+
+.output .output-container {
+    background-color: yellow;
+    overflow: auto;
+    padding: 10px;
+    max-height: 400px;
+}
