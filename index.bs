@@ -1918,6 +1918,10 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
       this value specifies the size of buffer to allocate. It is <emu-val>undefined</emu-val> otherwise.
   </tr>
   <tr>
+    <td>\[[byobRequest]]
+    <td class="non-normative">A {{ReadableStreamBYOBRequest}} instance representing the current BYOB pull request
+  </tr>
+  <tr>
     <td>\[[closeRequested]]
     <td class="non-normative">A boolean flag indicating whether the stream has been closed by its <a>underlying byte
       source</a>, but still has <a>chunks</a> in its internal queue that have not yet been read
@@ -1936,10 +1940,6 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
     <td>\[[pulling]]
     <td class="non-normative">A boolean flag set to <emu-val>true</emu-val> while the <a>underlying byte source</a>'s
       <code>pull</code> method is executing and has not yet fulfilled, used to prevent reentrant calls
-  </tr>
-  <tr>
-    <td>\[[byobRequest]]
-    <td class="non-normative">A {{ReadableStreamBYOBRequest}} instance representing the current BYOB pull request
   </tr>
   <tr>
     <td>\[[pendingPullIntos]]
