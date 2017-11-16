@@ -24,9 +24,6 @@ class ReadableStream {
 
     this._disturbed = false;
 
-    // Initialize to undefined first because the constructor of the controller checks this
-    // variable to validate the caller.
-    this._readableStreamController = undefined;
     const type = underlyingSource.type;
     const typeString = String(type);
     if (typeString === 'bytes') {
@@ -36,12 +33,15 @@ class ReadableStream {
       if (highWaterMark === undefined) {
         highWaterMark = 0;
       }
+      // Initialize to undefined first because the constructor of the controller checks this
+      // variable to validate the caller.
+      this._readableStreamController = undefined;
       this._readableStreamController = new ReadableByteStreamController(this, underlyingSource, highWaterMark);
     } else if (type === undefined) {
       if (highWaterMark === undefined) {
         highWaterMark = 1;
       }
-      this._readableStreamController = new ReadableStreamDefaultController(this, underlyingSource, size, highWaterMark);
+      CreateReadableStreamDefaultControllerFromUnderlyingSourceObject(this, size, highWaterMark, underlyingSource);
     } else {
       throw new RangeError('Invalid type is specified');
     }
@@ -867,51 +867,8 @@ function ReadableStreamDefaultReaderRead(reader) {
 // Controllers
 
 class ReadableStreamDefaultController {
-  constructor(stream, underlyingSource, size, highWaterMark) {
-    if (IsReadableStream(stream) === false) {
-      throw new TypeError('ReadableStreamDefaultController can only be constructed with a ReadableStream instance');
-    }
-
-    if (stream._readableStreamController !== undefined) {
-      throw new TypeError(
-        'ReadableStreamDefaultController instances can only be created by the ReadableStream constructor');
-    }
-
-    this._controlledReadableStream = stream;
-
-    this._underlyingSource = underlyingSource;
-
-    // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
-    this._queue = undefined;
-    this._queueTotalSize = undefined;
-    ResetQueue(this);
-
-    this._started = false;
-    this._closeRequested = false;
-    this._pullAgain = false;
-    this._pulling = false;
-
-    const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
-    this._strategySize = normalizedStrategy.size;
-    this._strategyHWM = normalizedStrategy.highWaterMark;
-
-    const controller = this;
-
-    const startResult = InvokeOrNoop(underlyingSource, 'start', [this]);
-    Promise.resolve(startResult).then(
-      () => {
-        controller._started = true;
-
-        assert(controller._pulling === false);
-        assert(controller._pullAgain === false);
-
-        ReadableStreamDefaultControllerCallPullIfNeeded(controller);
-      },
-      r => {
-        ReadableStreamDefaultControllerErrorIfNeeded(controller, r);
-      }
-    )
-    .catch(rethrowAssertionErrorRejection);
+  constructor() {
+    throw new TypeError();
   }
 
   get desiredSize() {
@@ -961,7 +918,7 @@ class ReadableStreamDefaultController {
 
   [CancelSteps](reason) {
     ResetQueue(this);
-    return PromiseInvokeOrNoop(this._underlyingSource, 'cancel', [reason]);
+    return this._cancelAlgorithm(reason);
   }
 
   [PullSteps]() {
@@ -986,6 +943,72 @@ class ReadableStreamDefaultController {
 }
 
 // Abstract operations for the ReadableStreamDefaultController.
+
+function CreateReadableStreamDefaultControllerFromUnderlyingSourceObject(
+  stream, size, highWaterMark, underlyingSource) {
+  const controller = CreateReadableStreamDefaultControllerSharedSetup(stream, size, highWaterMark);
+
+  controller._pullAlgorithm = () => PromiseInvokeOrNoop(underlyingSource, 'pull', [controller]);
+  controller._cancelAlgorithm = reason => PromiseInvokeOrNoop(underlyingSource, 'cancel', [reason]);
+
+  const startResult = InvokeOrNoop(underlyingSource, 'start', [controller]);
+  Promise.resolve(startResult).then(
+    () => {
+      controller._started = true;
+
+      assert(controller._pulling === false);
+      assert(controller._pullAgain === false);
+
+      ReadableStreamDefaultControllerCallPullIfNeeded(controller);
+    },
+    r => {
+      ReadableStreamDefaultControllerErrorIfNeeded(controller, r);
+    }
+  )
+  .catch(rethrowAssertionErrorRejection);
+
+  return controller;
+}
+
+// function CreateReadableStreamDefaultControllerFromUnderlyingSourceAlgorithms(
+//   stream, size, highWaterMark, pullAlgorithm, cancelAlgorithm) {
+//   const controller = CreateReadableStreamDefaultControllerSharedSetup(stream, size, highWaterMark);
+
+//   controller._pullAlgorithm = pullAlgorithm;
+//   controller._cancelAlgorithm = cancelAlgorithm;
+
+//   process.nextTick(() => {
+//     controller._started = true;
+//     ReadableStreamDefaultControllerCallPullIfNeeded(controller);
+//   });
+
+//   return controller;
+// }
+
+function CreateReadableStreamDefaultControllerSharedSetup(stream, size, highWaterMark) {
+  assert(IsReadableStream(stream) === false);
+  assert(stream._readableStreamController === undefined);
+
+  const controller = Object.create(ReadableStreamDefaultController.prototype);
+  controller._controlledReadableStream = stream;
+
+  controller._queue = undefined;
+  controller._queueTotalSize = undefined;
+  ResetQueue(controller);
+
+  controller._started = false;
+  controller._closeRequested = false;
+  controller._pullAgain = false;
+  controller._pulling = false;
+
+  const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
+  controller._strategySize = normalizedStrategy.size;
+  controller._strategyHWM = normalizedStrategy.highWaterMark;
+
+  stream._readableStreamController = controller;
+
+  return controller;
+}
 
 function IsReadableStreamDefaultController(x) {
   if (!typeIsObject(x)) {
@@ -1014,7 +1037,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
 
   controller._pulling = true;
 
-  const pullPromise = PromiseInvokeOrNoop(controller._underlyingSource, 'pull', [controller]);
+  const pullPromise = controller._pullAlgorithm();
   pullPromise.then(
     () => {
       controller._pulling = false;
