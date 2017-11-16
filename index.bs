@@ -1724,7 +1724,7 @@ nothrow>IsReadableStreamDefaultController ( <var>x</var> )</h4>
 
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have an [[underlyingSource]] internal slot, return *false*.
+  1. If _x_ does not have a [[controlledReadableStream]] internal slot, return *false*.
   1. Return *true*.
 </emu-alg>
 
@@ -1927,7 +1927,7 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
       source</a>, but still has <a>chunks</a> in its internal queue that have not yet been read
   </tr>
   <tr>
-    <td>\[[controlledReadableStream]]
+    <td>\[[controlledReadableByteStream]]
     <td class="non-normative">The {{ReadableStream}} instance controlled
   </tr>
   <tr>
@@ -1989,7 +1989,7 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
 <emu-alg>
   1. If ! IsReadableStream(_stream_) is *false*, throw a *TypeError* exception.
   1. If _stream_.[[readableStreamController]] is not *undefined*, throw a *TypeError* exception.
-  1. Set *this*.[[controlledReadableStream]] to _stream_.
+  1. Set *this*.[[controlledReadableByteStream]] to _stream_.
   1. Set *this*.[[underlyingByteSource]] to _underlyingByteSource_.
   1. Set *this*.[[pullAgain]], and *this*.[[pulling]] to *false*.
   1. Perform ! ReadableByteStreamControllerClearPendingPullIntos(*this*).
@@ -2055,7 +2055,7 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
 <emu-alg>
   1. If ! IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*.[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. If *this*.[[controlledReadableStream]].[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. If *this*.[[controlledReadableByteStream]].[[state]] is not `"readable"`, throw a *TypeError* exception.
   1. Perform ? ReadableByteStreamControllerClose(*this*).
 </emu-alg>
 
@@ -2068,7 +2068,7 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
 <emu-alg>
   1. If ! IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
   1. If *this*.[[closeRequested]] is *true*, throw a *TypeError* exception.
-  1. If *this*.[[controlledReadableStream]].[[state]] is not `"readable"`, throw a *TypeError* exception.
+  1. If *this*.[[controlledReadableByteStream]].[[state]] is not `"readable"`, throw a *TypeError* exception.
   1. If Type(_chunk_) is not Object, throw a *TypeError* exception.
   1. If _chunk_ does not have a [[ViewedArrayBuffer]] internal slot, throw a *TypeError* exception.
   1. If ! IsDetachedBuffer(_chunk_.[[ViewedArrayBuffer]]) is *true*, throw a *TypeError* exception.
@@ -2084,7 +2084,7 @@ ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>,
 
 <emu-alg>
   1. If ! IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
-  1. Let _stream_ be *this*.[[controlledReadableStream]].
+  1. Let _stream_ be *this*.[[controlledReadableByteStream]].
   1. If _stream_.[[state]] is not `"readable"`, throw a *TypeError* exception.
   1. Perform ! ReadableByteStreamControllerError(*this*, _e_).
 </emu-alg>
@@ -2107,7 +2107,7 @@ readable stream implementation will polymorphically call to either these or thei
 <h5 id="rbs-controller-private-pull"><a abstract-op>\[[PullSteps]]</a>()</h5>
 
 <emu-alg>
-  1. Let _stream_ be *this*.[[controlledReadableStream]].
+  1. Let _stream_ be *this*.[[controlledReadableByteStream]].
   1. Assert: ! ReadableStreamHasDefaultReader(_stream_) is *true*.
   1. If *this*.[[queueTotalSize]] > *0*,
     1. Assert: ! ReadableStreamGetNumReadRequests(_stream_) is *0*.
@@ -2238,7 +2238,7 @@ for="ReadableStreamBYOBRequest">respondWithNewView(<var>view</var>)</h5>
 
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have an [[underlyingByteSource]] internal slot, return *false*.
+  1. If _x_ does not have an [[controlledReadableByteStream]] internal slot, return *false*.
   1. Return *true*.
 </emu-alg>
 
@@ -2260,7 +2260,7 @@ nothrow>ReadableByteStreamControllerCallPullIfNeeded ( <var>controller</var> )</
       1. Set _controller_.[[pullAgain]] to *false*.
       1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
   1. <a>Upon rejection</a> of _pullPromise_ with reason _e_,
-    1. If _controller_.[[controlledReadableStream]].[[state]] is `"readable"`, perform
+    1. If _controller_.[[controlledReadableByteStream]].[[state]] is `"readable"`, perform
        ! ReadableByteStreamControllerError(_controller_, _e_).
 </emu-alg>
 
@@ -2277,7 +2277,7 @@ aoid="ReadableByteStreamControllerClearPendingPullIntos" nothrow>ReadableByteStr
 throws>ReadableByteStreamControllerClose ( <var>controller</var> )</h4>
 
 <emu-alg>
-  1. Let _stream_ be _controller_.[[controlledReadableStream]].
+  1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
   1. Assert: _controller_.[[closeRequested]] is *false*.
   1. Assert: _stream_.[[state]] is `"readable"`.
   1. If _controller_.[[queueTotalSize]] > *0*,
@@ -2327,7 +2327,7 @@ nothrow>ReadableByteStreamControllerConvertPullIntoDescriptor ( <var>pullIntoDes
 nothrow>ReadableByteStreamControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
 
 <emu-alg>
-  1. Let _stream_ be _controller_.[[controlledReadableStream]].
+  1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
   1. Assert: _controller_.[[closeRequested]] is *false*.
   1. Assert: _stream_.[[state]] is `"readable"`.
   1. Let _buffer_ be _chunk_.[[ViewedArrayBuffer]].
@@ -2367,7 +2367,7 @@ nothrow>ReadableByteStreamControllerEnqueueChunkToQueue ( <var>controller</var>,
 nothrow>ReadableByteStreamControllerError ( <var>controller</var>, <var>e</var> )</h4>
 
 <emu-alg>
-  1. Let _stream_ be _controller_.[[controlledReadableStream]].
+  1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
   1. Assert: _stream_.[[state]] is `"readable"`.
   1. Perform ! ReadableByteStreamControllerClearPendingPullIntos(_controller_).
   1. Perform ! ResetQueue(_controller_).
@@ -2432,7 +2432,7 @@ nothrow>ReadableByteStreamControllerFillPullIntoDescriptorFromQueue ( <var>contr
 nothrow>ReadableByteStreamControllerGetDesiredSize ( <var>controller</var> )</h4>
 
 <emu-alg>
-  1. Let _stream_ be _controller_.[[controlledReadableStream]].
+  1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
   1. Let _state_ be _stream_.[[state]].
   1. If _state_ is `"errored"`, return *null*.
   1. If _state_ is `"closed"`, return *0*.
@@ -2443,9 +2443,9 @@ nothrow>ReadableByteStreamControllerGetDesiredSize ( <var>controller</var> )</h4
 nothrow>ReadableByteStreamControllerHandleQueueDrain ( <var>controller</var> )</h4>
 
 <emu-alg>
-  1. Assert: _controller_.[[controlledReadableStream]].[[state]] is `"readable"`.
+  1. Assert: _controller_.[[controlledReadableByteStream]].[[state]] is `"readable"`.
   1. If _controller_.[[queueTotalSize]] is *0* and _controller_.[[closeRequested]] is *true*,
-    1. Perform ! ReadableStreamClose(_controller_.[[controlledReadableStream]]).
+    1. Perform ! ReadableStreamClose(_controller_.[[controlledReadableByteStream]]).
   1. Otherwise,
     1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
 </emu-alg>
@@ -2472,7 +2472,7 @@ nothrow>ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue ( <var>
     1. Let _pullIntoDescriptor_ be the first element of _controller_.[[pendingPullIntos]].
     1. If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
       1. Perform ! ReadableByteStreamControllerShiftPendingPullInto(_controller_).
-      1. Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(_controller_.[[controlledReadableStream]],
+      1. Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(_controller_.[[controlledReadableByteStream]],
          _pullIntoDescriptor_).
 </emu-alg>
 
@@ -2480,7 +2480,7 @@ nothrow>ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue ( <var>
 nothrow>ReadableByteStreamControllerPullInto ( <var>controller</var>, <var>view</var> )</h4>
 
 <emu-alg>
-  1. Let _stream_ be _controller_.[[controlledReadableStream]].
+  1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
   1. Let _elementSize_ be 1.
   1. Let _ctor_ be %DataView%.
   1. If _view_ has a [[TypedArrayName]] internal slot (i.e., it is not a `<a idl>DataView</a>`),
@@ -2530,7 +2530,7 @@ nothrow>ReadableByteStreamControllerRespondInClosedState ( <var>controller</var>
 <emu-alg>
   1. Set _firstDescriptor_.[[buffer]] to ! TransferArrayBuffer(_firstDescriptor_.[[buffer]]).
   1. Assert: _firstDescriptor_.[[bytesFilled]] is *0*.
-  1. Let _stream_ be _controller_.[[controlledReadableStream]].
+  1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
   1. If ReadableStreamHasBYOBReader(_stream_) is *true*,
     1. Repeat the following steps while ! ReadableStreamGetNumReadIntoRequests(_stream_) > *0*,
       1. Let _pullIntoDescriptor_ be ! ReadableByteStreamControllerShiftPendingPullInto(_controller_).
@@ -2557,7 +2557,7 @@ aoid="ReadableByteStreamControllerRespondInReadableState" throws>ReadableByteStr
        _remainder_.[[ByteLength]]).
   1. Set _pullIntoDescriptor_.[[buffer]] to ! TransferArrayBuffer(_pullIntoDescriptor_.[[buffer]]).
   1. Set _pullIntoDescriptor_.[[bytesFilled]] to _pullIntoDescriptor_.[[bytesFilled]] − _remainderSize_.
-  1. Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(_controller_.[[controlledReadableStream]],
+  1. Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(_controller_.[[controlledReadableByteStream]],
      _pullIntoDescriptor_).
   1. Perform ! ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(_controller_).
 </emu-alg>
@@ -2567,7 +2567,7 @@ throws>ReadableByteStreamControllerRespondInternal ( <var>controller</var>, <var
 
 <emu-alg>
   1. Let _firstDescriptor_ be the first element of _controller_.[[pendingPullIntos]].
-  1. Let _stream_ be _controller_.[[controlledReadableStream]].
+  1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
   1. If _stream_.[[state]] is `"closed"`,
     1. If _bytesWritten_ is not *0*, throw a *TypeError* exception.
     1. Perform ! ReadableByteStreamControllerRespondInClosedState(_controller_, _firstDescriptor_).
@@ -2604,7 +2604,7 @@ nothrow>ReadableByteStreamControllerShiftPendingPullInto ( <var>controller</var>
 nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4>
 
 <emu-alg>
-  1. Let _stream_ be _controller_.[[controlledReadableStream]].
+  1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
   1. If _stream_.[[state]] is not `"readable"`, return *false*.
   1. If _controller_.[[closeRequested]] is *true*, return *false*.
   1. If _controller_.[[started]] is *false*, return *false*.
