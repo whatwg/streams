@@ -41,7 +41,22 @@ class ReadableStream {
       if (highWaterMark === undefined) {
         highWaterMark = 1;
       }
-      CreateReadableStreamDefaultControllerFromUnderlyingSourceObject(this, size, highWaterMark, underlyingSource);
+
+      const stream = this;
+
+      function startAlgorithm() {
+        return InvokeOrNoop(underlyingSource, 'start', [stream._readableStreamController]);
+      }
+
+      function pullAlgorithm() {
+        return PromiseInvokeOrNoop(underlyingSource, 'pull', [stream._readableStreamController]);
+      }
+
+      function cancelAlgorithm(reason) {
+        return PromiseInvokeOrNoop(underlyingSource, 'cancel', [reason]);
+      }
+
+      SetUpReadableStreamDefaultController(this, size, highWaterMark, startAlgorithm, pullAlgorithm, cancelAlgorithm);
     } else {
       throw new RangeError('Invalid type is specified');
     }
@@ -300,8 +315,10 @@ function CreateReadableStream(pullAlgorithm, cancelAlgorithm, size = undefined, 
   stream._storedError = undefined;
   stream._disturbed = false;
 
-  CreateReadableStreamDefaultControllerFromUnderlyingSourceAlgorithms(
-    stream, size, highWaterMark, pullAlgorithm, cancelAlgorithm
+  function startAlgorithm() { }
+
+  SetUpReadableStreamDefaultController(
+    stream, size, highWaterMark, startAlgorithm, pullAlgorithm, cancelAlgorithm
   );
 
   return stream;
@@ -922,72 +939,6 @@ class ReadableStreamDefaultController {
 
 // Abstract operations for the ReadableStreamDefaultController.
 
-function CreateReadableStreamDefaultControllerFromUnderlyingSourceObject(
-  stream, size, highWaterMark, underlyingSource) {
-  const controller = CreateReadableStreamDefaultControllerSharedSetup(stream, size, highWaterMark);
-
-  controller._pullAlgorithm = () => PromiseInvokeOrNoop(underlyingSource, 'pull', [controller]);
-  controller._cancelAlgorithm = reason => PromiseInvokeOrNoop(underlyingSource, 'cancel', [reason]);
-
-  const startResult = InvokeOrNoop(underlyingSource, 'start', [controller]);
-  Promise.resolve(startResult).then(
-    () => {
-      controller._started = true;
-
-      assert(controller._pulling === false);
-      assert(controller._pullAgain === false);
-
-      ReadableStreamDefaultControllerCallPullIfNeeded(controller);
-    },
-    r => {
-      ReadableStreamDefaultControllerErrorIfNeeded(controller, r);
-    }
-  )
-  .catch(rethrowAssertionErrorRejection);
-
-  return controller;
-}
-
-function CreateReadableStreamDefaultControllerFromUnderlyingSourceAlgorithms(
-  stream, size, highWaterMark, pullAlgorithm, cancelAlgorithm) {
-  const controller = CreateReadableStreamDefaultControllerSharedSetup(stream, size, highWaterMark);
-
-  controller._pullAlgorithm = pullAlgorithm;
-  controller._cancelAlgorithm = cancelAlgorithm;
-
-  process.nextTick(() => {
-    controller._started = true;
-    ReadableStreamDefaultControllerCallPullIfNeeded(controller);
-  });
-
-  return controller;
-}
-
-function CreateReadableStreamDefaultControllerSharedSetup(stream, size, highWaterMark) {
-  assert(IsReadableStream(stream) === false);
-  assert(stream._readableStreamController === undefined);
-
-  const controller = Object.create(ReadableStreamDefaultController.prototype);
-  controller._controlledReadableStream = stream;
-
-  controller._queue = undefined;
-  controller._queueTotalSize = undefined;
-  ResetQueue(controller);
-
-  controller._started = false;
-  controller._closeRequested = false;
-  controller._pullAgain = false;
-  controller._pulling = false;
-
-  const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
-  controller._strategySize = normalizedStrategy.size;
-  controller._strategyHWM = normalizedStrategy.highWaterMark;
-
-  stream._readableStreamController = controller;
-
-  return controller;
-}
-
 function IsReadableStreamDefaultController(x) {
   if (!typeIsObject(x)) {
     return false;
@@ -1152,6 +1103,49 @@ function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
   }
 
   return false;
+}
+
+function SetUpReadableStreamDefaultController(
+  stream, size, highWaterMark, startAlgorithm, pullAlgorithm, cancelAlgorithm) {
+  assert(IsReadableStream(stream) === false);
+  assert(stream._readableStreamController === undefined);
+
+  const controller = Object.create(ReadableStreamDefaultController.prototype);
+  controller._controlledReadableStream = stream;
+
+  controller._queue = undefined;
+  controller._queueTotalSize = undefined;
+  ResetQueue(controller);
+
+  controller._started = false;
+  controller._closeRequested = false;
+  controller._pullAgain = false;
+  controller._pulling = false;
+
+  const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
+  controller._strategySize = normalizedStrategy.size;
+  controller._strategyHWM = normalizedStrategy.highWaterMark;
+
+  controller._pullAlgorithm = pullAlgorithm;
+  controller._cancelAlgorithm = cancelAlgorithm;
+
+  stream._readableStreamController = controller;
+
+  const startResult = startAlgorithm();
+  Promise.resolve(startResult).then(
+    () => {
+      controller._started = true;
+
+      assert(controller._pulling === false);
+      assert(controller._pullAgain === false);
+
+      ReadableStreamDefaultControllerCallPullIfNeeded(controller);
+    },
+    r => {
+      ReadableStreamDefaultControllerErrorIfNeeded(controller, r);
+    }
+  )
+  .catch(rethrowAssertionErrorRejection);
 }
 
 class ReadableStreamBYOBRequest {

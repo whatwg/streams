@@ -515,8 +515,15 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
        _underlyingSource_, _highWaterMark_ »).
   1. Otherwise, if _type_ is *undefined*,
     1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be *1*.
-    1. Perform ? CreateReadableStreamDefaultControllerFromUnderlyingSourceObject(*this*, _size_, _highWaterMark_,
-       _underlyingSource_ »).
+    1. Let _stream_ be *this*.
+    1. Let _startAlgorithm_ be the following steps:
+      1. Return ? InvokeOrNoop(_underlyingSource_, `"start"`, « _stream_.[[readableStreamController]] »).
+    1. Let _pullAlgorithm_ be the following steps:
+      1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"pull"`, « _stream_.[[readableStreamController]] »).
+    1. Let _cancelAlgorithm_ be the following steps, taking a _reason_ argument:
+      1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"cancel"`, « _reason_ »).
+    1. Perform ? SetUpReadableStreamDefaultController(*this*, _size_, _highWaterMark_, _startAlgorithm_,
+       _pullAlgorithm_, _cancelAlgorithm_ »).
   1. Otherwise, throw a *RangeError* exception.
 </emu-alg>
 
@@ -835,8 +842,8 @@ reader</a> for a given stream.
 
 This abstract operation is meant to be called from other specifications that wish to create {{ReadableStream}}
 instances. The <var>pullAlgorithm</var> and <var>cancelAlgorithm</var> algorithms must return promises; if supplied,
-<var>size</var> must be a function of one argument that returns a number; and if supplied, <var>highWaterMark</var> must
-be a nonnegative, finite number.
+<var>size</var> must be either a function of one argument that returns a number or *undefined*; and if supplied,
+<var>highWaterMark</var> must be a nonnegative, finite number.
 
 <emu-alg>
   1. If _size_ was not passed, set it to *undefined*.
@@ -845,8 +852,8 @@ be a nonnegative, finite number.
   1. Set _stream_.[[state]] to `"readable"`.
   1. Set _stream_.[[reader]] and _stream_.[[storedError]] to *undefined*.
   1. Set _stream_.[[disturbed]] to *false*.
-  1. Perform ! CreateReadableStreamDefaultControllerFromUnderlyingSourceAlgorithms(_stream_, _size_, _highWaterMark_,
-     _pullAlgorithm_, _cancelAlgorithm_).
+  1. Perform ! SetUpReadableStreamDefaultController(_stream_, _size_, _highWaterMark_, *undefined*, _pullAlgorithm_,
+     _cancelAlgorithm_).
   1. Return _stream_.
 </emu-alg>
 
@@ -1684,66 +1691,6 @@ readable stream implementation will polymorphically call to either these or thei
 
 <h3 id="rs-default-controller-abstract-ops">Readable Stream Default Controller Abstract Operations</h3>
 
-<h4 id="create-readable-stream-default-controller-from-underlying-source-object"
-aoid="CreateReadableStreamDefaultControllerFromUnderlyingSourceObject"
-throws>CreateReadableStreamDefaultControllerFromUnderlyingSourceObject(<var>stream</var>, <var>size</var>,
-<var>highWaterMark</var>, <var>underlyingSource</var>)</h4>
-
-<emu-alg>
-  1. Let _controller_ be CreateReadableStreamDefaultControllerSharedSetup(_stream_, _size_, _highWaterMark_).
-  1. Set _controller_.[[pullAlgorithm]] to an algorithm, taking no parameters, which runs the following steps:
-    1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"pull"`, « _controller_ »).
-  1. Set _controller_.[[cancelAlgorithm]] to an algorithm, taking one parameter _reason_, which runs the following
-     steps:
-    1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"cancel"`, « _reason_ »).
-  1. Let _startResult_ be ? InvokeOrNoop(_underlyingSource_, `"start"`, « _controller_ »).
-  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
-    1. <a>Upon fulfillment</a>  of _startPromise_,
-      1. Set _controller_.[[started]] to *true*.
-      1. Assert: _controller_.[[pulling]] is *false*.
-      1. Assert: _controller_.[[pullAgain]] is *false*.
-      1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
-    1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
-      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
-  1. Return _controller_.
-</emu-alg>
-
-<h4 id="create-readable-stream-default-controller-from-underlying-source-algorithms"
-aoid="CreateReadableStreamDefaultControllerFromUnderlyingSourceAlgorithms"
-throws>CreateReadableStreamDefaultControllerFromUnderlyingSourceAlgorithms(<var>stream</var>, <var>size</var>,
-<var>highWaterMark</var>, <var>pullAlgorithm</var>, <var>cancelAlgorithm</var>)</h4>
-
-<emu-alg>
-  1. Let _controller_ be CreateReadableStreamDefaultControllerSharedSetup(_stream_, _size_, _highWaterMark_).
-  1. Set _controller_.[[pullAlgorithm]] to _pullAlgorithm_.
-  1. Set _controller_.[[cancelAlgorithm]] to _cancelAlgorithm_.
-  1. <a>Queue a microtask</a> to perform the following steps:
-    1. Set _controller_.[[started]] to *true*.
-    1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
-  1. Return _controller_.
-</emu-alg>
-
-<h4 id="create-readable-stream-default-controller-shared-setup"
-aoid="CreateReadableStreamDefaultControllerSharedSetup"
-throws>CreateReadableStreamDefaultControllerSharedSetup(<var>stream</var>, <var>size</var>,
-<var>highWaterMark</var>)</h4>
-
-<emu-alg>
-  1. Assert: ! IsReadableStream(_stream_) is *true*.
-  1. Assert: _stream_.[[readableStreamController]] is *undefined*.
-  1. Let _controller_ be ObjectCreate(the original value of <a idl>ReadableStreamDefaultController</a>'s `prototype`
-     property).
-  1. Set _controller_.[[controlledReadableStream]] to _stream_.
-  1. Set _controller_.[[queue]] and _controller_.[[queueSize]] to *undefined*, then perform ! ResetQueue(_controller_).
-  1. Set _controller_.[[started]], _controller_.[[closeRequested]], _controller_.[[pullAgain]], and
-     _controller_.[[pulling]] to *false*.
-  1. Let _normalizedStrategy_ be ? ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
-  1. Set _controller_.[[strategySize]] to _normalizedStrategy_.[[size]] and _controller_.[[strategyHWM]] to
-     _normalizedStrategy_.[[highWaterMark]].
-  1. Set _stream_.[[readableStreamController]] to _controller_.
-  1. Return _controller_.
-</emu-alg>
-
 <h4 id="is-readable-stream-default-controller" aoid="IsReadableStreamDefaultController"
 nothrow>IsReadableStreamDefaultController ( <var>x</var> )</h4>
 
@@ -1894,6 +1841,36 @@ nothrow>ReadableStreamDefaultControllerCanCloseOrEnqueue ( <var>controller</var>
   when it is closed without its controller's <code>close</code> method ever being called: e.g., if the stream was closed
   by a call to {{ReadableStream/cancel(reason)}}.
 </div>
+
+<h4 id="set-up-readable-stream-default-controller" aoid="SetUpReadableStreamDefaultController"
+throws>SetUpReadableStreamDefaultController(<var>stream</var>, <var>size</var>, <var>highWaterMark</var>,
+<var>startAlgorithm</var>, <var>pullAlgorithm</var>, <var>cancelAlgorithm</var>)</h4>
+
+<emu-alg>
+  1. Assert: ! IsReadableStream(_stream_) is *true*.
+  1. Assert: _stream_.[[readableStreamController]] is *undefined*.
+  1. Let _controller_ be ObjectCreate(the original value of <a idl>ReadableStreamDefaultController</a>'s `prototype`
+     property).
+  1. Set _controller_.[[controlledReadableStream]] to _stream_.
+  1. Set _controller_.[[queue]] and _controller_.[[queueSize]] to *undefined*, then perform ! ResetQueue(_controller_).
+  1. Set _controller_.[[started]], _controller_.[[closeRequested]], _controller_.[[pullAgain]], and
+     _controller_.[[pulling]] to *false*.
+  1. Let _normalizedStrategy_ be ? ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
+  1. Set _controller_.[[strategySize]] to _normalizedStrategy_.[[size]] and _controller_.[[strategyHWM]] to
+     _normalizedStrategy_.[[highWaterMark]].
+  1. Set _controller_.[[pullAlgorithm]] to _pullAlgorithm_.
+  1. Set _controller_.[[cancelAlgorithm]] to _cancelAlgorithm_.
+  1. Set _stream_.[[readableStreamController]] to _controller_.
+  1. Let _startResult_ be the result of performing _startAlgorithm_. (This may throw and exception.)
+  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
+    1. <a>Upon fulfillment</a>  of _startPromise_,
+      1. Set _controller_.[[started]] to *true*.
+      1. Assert: _controller_.[[pulling]] is *false*.
+      1. Assert: _controller_.[[pullAgain]] is *false*.
+      1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
+    1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
+      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
+</emu-alg>
 
 <h3 id="rbs-controller-class" interface lt="ReadableByteStreamController">Class
 <code>ReadableByteStreamController</code></h3>
