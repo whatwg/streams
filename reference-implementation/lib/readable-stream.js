@@ -30,6 +30,9 @@ class ReadableStream {
     const type = underlyingSource.type;
     const typeString = String(type);
     if (typeString === 'bytes') {
+      if (size !== undefined) {
+        throw new RangeError('The strategy for a byte stream cannot have a size function');
+      }
       if (highWaterMark === undefined) {
         highWaterMark = 0;
       }
