@@ -1,8 +1,7 @@
 'use strict';
 const assert = require('better-assert');
 const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, IsDetachedBuffer,
-        PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeQueuingStrategy,
-        ValidateAndNormalizeHighWaterMark } = require('./helpers.js');
+        PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark } = require('./helpers.js');
 const { createArrayFromList, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
@@ -41,6 +40,15 @@ class ReadableStream {
       if (highWaterMark === undefined) {
         highWaterMark = 1;
       }
+      highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
+
+      let sizeAlgorithm;
+      if (size !== undefined) {
+        if (typeof size !== 'function') {
+          throw new TypeError('size property of a queuing strategy must be a function');
+        }
+        sizeAlgorithm = chunk => size(chunk);
+      }
 
       const stream = this;
 
@@ -56,7 +64,9 @@ class ReadableStream {
         return PromiseInvokeOrNoop(underlyingSource, 'cancel', [reason]);
       }
 
-      SetUpReadableStreamDefaultController(this, size, highWaterMark, startAlgorithm, pullAlgorithm, cancelAlgorithm);
+      SetUpReadableStreamDefaultController(
+        this, startAlgorithm, pullAlgorithm, cancelAlgorithm, sizeAlgorithm, highWaterMark
+      );
     } else {
       throw new RangeError('Invalid type is specified');
     }
@@ -307,7 +317,7 @@ function AcquireReadableStreamDefaultReader(stream) {
   return new ReadableStreamDefaultReader(stream);
 }
 
-function CreateReadableStream(pullAlgorithm, cancelAlgorithm, size = undefined, highWaterMark = 1) {
+function CreateReadableStream(pullAlgorithm, cancelAlgorithm, sizeAlgorithm = undefined, highWaterMark = 1) {
   const stream = Object.create(ReadableStream.prototype);
 
   stream._state = 'readable';
@@ -318,7 +328,7 @@ function CreateReadableStream(pullAlgorithm, cancelAlgorithm, size = undefined, 
   function startAlgorithm() { }
 
   SetUpReadableStreamDefaultController(
-    stream, size, highWaterMark, startAlgorithm, pullAlgorithm, cancelAlgorithm
+    stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, sizeAlgorithm, highWaterMark
   );
 
   return stream;
@@ -1033,10 +1043,9 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
   } else {
     let chunkSize = 1;
 
-    if (controller._strategySize !== undefined) {
-      const strategySize = controller._strategySize;
+    if (controller._strategySizeAlgorithm !== undefined) {
       try {
-        chunkSize = strategySize(chunk);
+        chunkSize = controller._strategySizeAlgorithm(chunk);
       } catch (chunkSizeE) {
         ReadableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
         throw chunkSizeE;
@@ -1106,7 +1115,7 @@ function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
 }
 
 function SetUpReadableStreamDefaultController(
-  stream, size, highWaterMark, startAlgorithm, pullAlgorithm, cancelAlgorithm) {
+  stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, sizeAlgorithm, highWaterMark) {
   assert(IsReadableStream(stream) === false);
   assert(stream._readableStreamController === undefined);
 
@@ -1122,9 +1131,8 @@ function SetUpReadableStreamDefaultController(
   controller._pullAgain = false;
   controller._pulling = false;
 
-  const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
-  controller._strategySize = normalizedStrategy.size;
-  controller._strategyHWM = normalizedStrategy.highWaterMark;
+  controller._strategySizeAlgorithm = sizeAlgorithm;
+  controller._strategyHWM = highWaterMark;
 
   controller._pullAlgorithm = pullAlgorithm;
   controller._cancelAlgorithm = cancelAlgorithm;
