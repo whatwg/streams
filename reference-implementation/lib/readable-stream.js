@@ -3,7 +3,7 @@ const assert = require('better-assert');
 const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, IsDetachedBuffer,
         PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeQueuingStrategy,
         ValidateAndNormalizeHighWaterMark } = require('./helpers.js');
-const { createArrayFromList, createDataProperty, typeIsObject } = require('./helpers.js');
+const { createArrayFromList, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
@@ -292,6 +292,21 @@ function AcquireReadableStreamDefaultReader(stream) {
   return new ReadableStreamDefaultReader(stream);
 }
 
+function CreateReadableStream(pullAlgorithm, cancelAlgorithm, size = undefined, highWaterMark = 1) {
+  const stream = Object.create(ReadableStream.prototype);
+
+  stream._state = 'readable';
+  stream._reader = undefined;
+  stream._storedError = undefined;
+  stream._disturbed = false;
+
+  CreateReadableStreamDefaultControllerFromUnderlyingSourceAlgorithms(
+    stream, size, highWaterMark, pullAlgorithm, cancelAlgorithm
+  );
+
+  return stream;
+}
+
 function IsReadableStream(x) {
   if (!typeIsObject(x)) {
     return false;
@@ -326,78 +341,37 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
   const reader = AcquireReadableStreamDefaultReader(stream);
 
-  const teeState = {
-    closedOrErrored: false,
-    canceled1: false,
-    canceled2: false,
-    reason1: undefined,
-    reason2: undefined
-  };
-  teeState.promise = new Promise(resolve => {
-    teeState._resolve = resolve;
+  let closedOrErrored = false;
+  let canceled1 = false;
+  let canceled2 = false;
+  let reason1;
+  let reason2;
+  let branch1;
+  let branch2;
+
+  let resolveCancelPromise;
+  const cancelPromise = new Promise(resolve => {
+    resolveCancelPromise = resolve;
   });
 
-  const pull = create_ReadableStreamTeePullFunction();
-  pull._reader = reader;
-  pull._teeState = teeState;
-  pull._cloneForBranch2 = cloneForBranch2;
-
-  const cancel1 = create_ReadableStreamTeeBranch1CancelFunction();
-  cancel1._stream = stream;
-  cancel1._teeState = teeState;
-
-  const cancel2 = create_ReadableStreamTeeBranch2CancelFunction();
-  cancel2._stream = stream;
-  cancel2._teeState = teeState;
-
-  const underlyingSource1 = Object.create(Object.prototype);
-  createDataProperty(underlyingSource1, 'pull', pull);
-  createDataProperty(underlyingSource1, 'cancel', cancel1);
-  const branch1Stream = new ReadableStream(underlyingSource1);
-
-  const underlyingSource2 = Object.create(Object.prototype);
-  createDataProperty(underlyingSource2, 'pull', pull);
-  createDataProperty(underlyingSource2, 'cancel', cancel2);
-  const branch2Stream = new ReadableStream(underlyingSource2);
-
-  pull._branch1 = branch1Stream._readableStreamController;
-  pull._branch2 = branch2Stream._readableStreamController;
-
-  reader._closedPromise.catch(r => {
-    if (teeState.closedOrErrored === true) {
-      return;
-    }
-
-    ReadableStreamDefaultControllerErrorIfNeeded(pull._branch1, r);
-    ReadableStreamDefaultControllerErrorIfNeeded(pull._branch2, r);
-    teeState.closedOrErrored = true;
-  });
-
-  return [branch1Stream, branch2Stream];
-}
-
-function create_ReadableStreamTeePullFunction() {
-  function f() {
-    const { _reader: reader, _branch1: branch1, _branch2: branch2, _teeState: teeState/* ,
-            _cloneForBranch2: cloneForBranch2*/ } = f;
-
+  function pullAlgorithm() {
     return ReadableStreamDefaultReaderRead(reader).then(result => {
       assert(typeIsObject(result));
       const value = result.value;
       const done = result.done;
       assert(typeof done === 'boolean');
 
-      if (done === true && teeState.closedOrErrored === false) {
-        if (teeState.canceled1 === false) {
-          ReadableStreamDefaultControllerClose(branch1);
+      if (done === true && closedOrErrored === false) {
+        if (canceled1 === false) {
+          ReadableStreamDefaultControllerClose(branch1._readableStreamController);
         }
-        if (teeState.canceled2 === false) {
-          ReadableStreamDefaultControllerClose(branch2);
+        if (canceled2 === false) {
+          ReadableStreamDefaultControllerClose(branch2._readableStreamController);
         }
-        teeState.closedOrErrored = true;
+        closedOrErrored = true;
       }
 
-      if (teeState.closedOrErrored === true) {
+      if (closedOrErrored === true) {
         return;
       }
 
@@ -406,52 +380,56 @@ function create_ReadableStreamTeePullFunction() {
 
       // There is no way to access the cloning code right now in the reference implementation.
       // If we add one then we'll need an implementation for serializable objects.
-      // if (teeState.canceled2 === false && cloneForBranch2 === true) {
+      // if (canceled2 === false && cloneForBranch2 === true) {
       //   value2 = StructuredDeserialize(StructuredSerialize(value2));
       // }
 
-      if (teeState.canceled1 === false) {
-        ReadableStreamDefaultControllerEnqueue(branch1, value1);
+      if (canceled1 === false) {
+        ReadableStreamDefaultControllerEnqueue(branch1._readableStreamController, value1);
       }
 
-      if (teeState.canceled2 === false) {
-        ReadableStreamDefaultControllerEnqueue(branch2, value2);
+      if (canceled2 === false) {
+        ReadableStreamDefaultControllerEnqueue(branch2._readableStreamController, value2);
       }
     });
   }
-  return f;
-}
 
-function create_ReadableStreamTeeBranch1CancelFunction() {
-  function f(reason) {
-    const { _stream: stream, _teeState: teeState } = f;
-
-    teeState.canceled1 = true;
-    teeState.reason1 = reason;
-    if (teeState.canceled2 === true) {
-      const compositeReason = createArrayFromList([teeState.reason1, teeState.reason2]);
+  function cancel1Algorithm(reason) {
+    canceled1 = true;
+    reason1 = reason;
+    if (canceled2 === true) {
+      const compositeReason = createArrayFromList([reason1, reason2]);
       const cancelResult = ReadableStreamCancel(stream, compositeReason);
-      teeState._resolve(cancelResult);
+      resolveCancelPromise(cancelResult);
     }
-    return teeState.promise;
+    return cancelPromise;
   }
-  return f;
-}
 
-function create_ReadableStreamTeeBranch2CancelFunction() {
-  function f(reason) {
-    const { _stream: stream, _teeState: teeState } = f;
-
-    teeState.canceled2 = true;
-    teeState.reason2 = reason;
-    if (teeState.canceled1 === true) {
-      const compositeReason = createArrayFromList([teeState.reason1, teeState.reason2]);
+  function cancel2Algorithm(reason) {
+    canceled2 = true;
+    reason2 = reason;
+    if (canceled1 === true) {
+      const compositeReason = createArrayFromList([reason1, reason2]);
       const cancelResult = ReadableStreamCancel(stream, compositeReason);
-      teeState._resolve(cancelResult);
+      resolveCancelPromise(cancelResult);
     }
-    return teeState.promise;
+    return cancelPromise;
   }
-  return f;
+
+  branch1 = CreateReadableStream(pullAlgorithm, cancel1Algorithm);
+  branch2 = CreateReadableStream(pullAlgorithm, cancel2Algorithm);
+
+  reader._closedPromise.catch(r => {
+    if (closedOrErrored === true) {
+      return;
+    }
+
+    ReadableStreamDefaultControllerErrorIfNeeded(branch1._readableStreamController, r);
+    ReadableStreamDefaultControllerErrorIfNeeded(branch2._readableStreamController, r);
+    closedOrErrored = true;
+  });
+
+  return [branch1, branch2];
 }
 
 // ReadableStream API exposed for controllers.
@@ -970,20 +948,20 @@ function CreateReadableStreamDefaultControllerFromUnderlyingSourceObject(
   return controller;
 }
 
-// function CreateReadableStreamDefaultControllerFromUnderlyingSourceAlgorithms(
-//   stream, size, highWaterMark, pullAlgorithm, cancelAlgorithm) {
-//   const controller = CreateReadableStreamDefaultControllerSharedSetup(stream, size, highWaterMark);
+function CreateReadableStreamDefaultControllerFromUnderlyingSourceAlgorithms(
+  stream, size, highWaterMark, pullAlgorithm, cancelAlgorithm) {
+  const controller = CreateReadableStreamDefaultControllerSharedSetup(stream, size, highWaterMark);
 
-//   controller._pullAlgorithm = pullAlgorithm;
-//   controller._cancelAlgorithm = cancelAlgorithm;
+  controller._pullAlgorithm = pullAlgorithm;
+  controller._cancelAlgorithm = cancelAlgorithm;
 
-//   process.nextTick(() => {
-//     controller._started = true;
-//     ReadableStreamDefaultControllerCallPullIfNeeded(controller);
-//   });
+  process.nextTick(() => {
+    controller._started = true;
+    ReadableStreamDefaultControllerCallPullIfNeeded(controller);
+  });
 
-//   return controller;
-// }
+  return controller;
+}
 
 function CreateReadableStreamDefaultControllerSharedSetup(stream, size, highWaterMark) {
   assert(IsReadableStream(stream) === false);

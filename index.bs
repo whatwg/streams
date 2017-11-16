@@ -830,6 +830,26 @@ reader</a> for a given stream.
   1. Return ? Construct(`<a idl>ReadableStreamDefaultReader</a>`, « _stream_ »).
 </emu-alg>
 
+<h4 id="create-readable-stream" aoid="CreateReadableStream" nothrow export>CreateReadableStream (
+<var>pullAlgorithm</var>, <var>cancelAlgorithm</var> [, <var>size</var> [ , <var>highWaterMark</var> ] ] )</h4>
+
+This abstract operation is meant to be called from other specifications that wish to create {{ReadableStream}}
+instances. The <var>pullAlgorithm</var> and <var>cancelAlgorithm</var> algorithms must return promises; if supplied,
+<var>size</var> must be a function of one argument that returns a number; and if supplied, <var>highWaterMark</var> must
+be a nonnegative, finite number.
+
+<emu-alg>
+  1. If _size_ was not passed, set it to *undefined*.
+  1. If _highWaterMark_ was not passed, set it to *1*.
+  1. Let _stream_ be ObjectCreate(the original value of <a idl>ReadableStream</a>'s `prototype` property).
+  1. Set _stream_.[[state]] to `"readable"`.
+  1. Set _stream_.[[reader]] and _stream_.[[storedError]] to *undefined*.
+  1. Set _stream_.[[disturbed]] to *false*.
+  1. Perform ! CreateReadableStreamDefaultControllerFromUnderlyingSourceAlgorithms(_stream_, _size_, _highWaterMark_,
+     _pullAlgorithm_, _cancelAlgorithm_).
+  1. Return _stream_.
+</emu-alg>
+
 <h4 id="is-readable-stream" aoid="IsReadableStream" nothrow>IsReadableStream ( <var>x</var> )</h4>
 
 <emu-alg>
@@ -880,100 +900,61 @@ noticable asymmetry between the two branches, and limits the possible <a>chunks<
   1. Assert: ! IsReadableStream(_stream_) is *true*.
   1. Assert: Type(_cloneForBranch2_) is Boolean.
   1. Let _reader_ be ? AcquireReadableStreamDefaultReader(_stream_).
-  1. Let _teeState_ be Record {[[closedOrErrored]]: *false*, [[canceled1]]: *false*, [[canceled2]]: *false*,
-     [[reason1]]: *undefined*, [[reason2]]: *undefined*, [[promise]]: <a>a new promise</a>}.
-  1. Let _pull_ be a new <a>ReadableStreamTee pull function</a>.
-  1. Set _pull_.[[reader]] to _reader_, _pull_.[[teeState]] to _teeState_, and _pull_.[[cloneForBranch2]] to
-     _cloneForBranch2_.
-  1. Let _cancel1_ be a new <a>ReadableStreamTee branch 1 cancel function</a>.
-  1. Set _cancel1_.[[stream]] to _stream_ and _cancel1_.[[teeState]] to _teeState_.
-  1. Let _cancel2_ be a new <a>ReadableStreamTee branch 2 cancel function</a>.
-  1. Set _cancel2_.[[stream]] to _stream_ and _cancel2_.[[teeState]] to _teeState_.
-  1. Let _underlyingSource1_ be ! ObjectCreate(%ObjectPrototype%).
-  1. Perform ! CreateDataProperty(_underlyingSource1_, `"pull"`, _pull_).
-  1. Perform ! CreateDataProperty(_underlyingSource1_, `"cancel"`, _cancel1_).
-  1. Let _branch1Stream_ be ! Construct(`<a idl>ReadableStream</a>`, _underlyingSource1_).
-  1. Let _underlyingSource2_ be ! ObjectCreate(%ObjectPrototype%).
-  1. Perform ! CreateDataProperty(_underlyingSource2_, `"pull"`, _pull_).
-  1. Perform ! CreateDataProperty(_underlyingSource2_, `"cancel"`, _cancel2_).
-  1. Let _branch2Stream_ be ! Construct(`<a idl>ReadableStream</a>`, _underlyingSource2_).
-  1. Set _pull_.[[branch1]] to _branch1Stream_.[[readableStreamController]].
-  1. Set _pull_.[[branch2]] to _branch2Stream_.[[readableStreamController]].
+  1. Let _closedOrErrored_ be *false*.
+  1. Let _canceled1_ be *false*.
+  1. Let _canceled2_ be *false*.
+  1. Let _reason1_ be *undefined*.
+  1. Let _reason2_ be *undefined*.
+  1. Let _branch1_ be *undefined*.
+  1. Let _branch2_ be *undefined*.
+  1. Let _cancelPromise_ be <a>a new promise</a>.
+  1. Let _pullAlgorithm_ be the following steps:
+    1. Return the result of <a>transforming</a> ! ReadableStreamDefaultReaderRead(_reader_) with a fulfillment handler
+       which takes the argument _result_ and performs the following steps:
+      1. Assert: Type(_result_) is Object.
+      1. Let _value_ be ? Get(_result_, `"value"`).
+      1. Let _done_ be ? Get(_result_, `"done"`).
+      1. Assert: Type(_done_) is Boolean.
+      1. If _done_ is *true* and _closedOrErrored_ is *false*,
+        1. If _canceled1_ is *false*,
+          1. Perform ! ReadableStreamDefaultControllerClose(_branch1_.[[readableStreamController]]).
+        1. If _canceled2_ is *false*,
+          1. Perform ! ReadableStreamDefaultControllerClose(_branch2_.[[readableStreamController]]).
+        1. Set _closedOrErrored_ to *true*.
+      1. If _closedOrErrored_ is *true*, return.
+      1. Let _value1_ and _value2_ be _value_.
+      1. If _canceled2_ is *false* and _cloneForBranch2_ is *true*, set _value2_ to ? <a
+         abstract-op>StructuredDeserialize</a>(<a abstract-op>StructuredSerialize</a>(_value2_), the current Realm
+         Record).
+      1. If _canceled1_ is *false*, perform ?
+         ReadableStreamDefaultControllerEnqueue(_branch1_.[[readableStreamController]], _value1_).
+      1. If _canceled2_ is *false*, perform ?
+         ReadableStreamDefaultControllerEnqueue(_branch2_.[[readableStreamController]], _value2_).
+  1. Let _cancel1Algorithm_ be the following steps, taking a _reason_ argument:
+    1. Set _canceled1_ to *true*.
+    1. Set _reason1_ to _reason_.
+    1. If _canceled2_ is *true*,
+      1. Let _compositeReason_ be ! CreateArrayFromList(« _reason1_, _reason2_ »).
+      1. Let _cancelResult_ be ! ReadableStreamCancel(_stream_, _compositeReason_).
+      1. <a>Resolve</a> _cancelPromise_ with _cancelResult_.
+    1. Return _cancelPromise_.
+  1. Let _cancel2Algorithm_ be the following steps, taking a _reason_ argument:
+    1. Set _canceled2_ to *true*.
+    1. Set _reason2_ to _reason_.
+    1. If _canceled1_ is *true*,
+      1. Let _compositeReason_ be ! CreateArrayFromList(« _reason1_, _reason2_ »).
+      1. Let _cancelResult_ be ! ReadableStreamCancel(_stream_, _compositeReason_).
+      1. <a>Resolve</a> _cancelPromise_ with _cancelResult_.
+    1. Return _cancelPromise_.
+  1. Set _branch1_ to CreateReadableStream(_pullAlgorithm_, _cancel1Algorithm_).
+  1. Set _branch2_ to CreateReadableStream(_pullAlgorithm_, _cancel2Algorithm_).
   1. <a>Upon rejection</a> of _reader_.[[closedPromise]] with reason _r_,
-    1. If _teeState_.[[closedOrErrored]] is *false*, then:
-      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_pull_.[[branch1]], _r_).
-      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_pull_.[[branch2]], _r_).
-      1. Set _teeState_.[[closedOrErrored]] to *true*.
-  1. Return « _branch1Stream_, _branch2Stream_ ».
+    1. If _closedOrErrored_ is *false*, then:
+      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_branch1_.[[readableStreamController]], _r_).
+      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_branch2_.[[readableStreamController]], _r_).
+      1. Set _closedOrErrored_ to *true*.
+  1. Return « _branch1_, _branch2_ ».
 </emu-alg>
-
-A <dfn>ReadableStreamTee pull function</dfn> is an anonymous built-in function that pulls data from a given <a>readable
-stream reader</a> and enqueues it into two other streams ("branches" of the associated tee). Each ReadableStreamTee
-pull function has \[[reader]], \[[branch1]], \[[branch2]], \[[teeState]], and \[[cloneForBranch2]] internal slots. When
-a ReadableStreamTee pull function <var>F</var> is called, it performs the following steps:
-
-<emu-alg>
-  1. Let _reader_ be _F_.[[reader]], _branch1_ be _F_.[[branch1]], _branch2_ be _F_.[[branch2]], _teeState_ be
-     _F_.[[teeState]], and _cloneForBranch2_ be _F_.[[cloneForBranch2]].
-  1. Return the result of <a>transforming</a> ! ReadableStreamDefaultReaderRead(_reader_) with a fulfillment handler
-     which takes the argument _result_ and performs the following steps:
-    1. Assert: Type(_result_) is Object.
-    1. Let _value_ be ? Get(_result_, `"value"`).
-    1. Let _done_ be ? Get(_result_, `"done"`).
-    1. Assert: Type(_done_) is Boolean.
-    1. If _done_ is *true* and _teeState_.[[closedOrErrored]] is *false*,
-      1. If _teeState_.[[canceled1]] is *false*,
-        1. Perform ! ReadableStreamDefaultControllerClose(_branch1_).
-      1. If _teeState_.[[canceled2]] is *false*,
-        1. Perform ! ReadableStreamDefaultControllerClose(_branch2_).
-      1. Set _teeState_.[[closedOrErrored]] to *true*.
-    1. If _teeState_.[[closedOrErrored]] is *true*, return.
-    1. Let _value1_ and _value2_ be _value_.
-    1. If _teeState_.[[canceled2]] is *false* and _cloneForBranch2_ is *true*, set _value2_ to ? <a
-       abstract-op>StructuredDeserialize</a>(<a abstract-op>StructuredSerialize</a>(_value2_), the current Realm
-       Record).
-    1. If _teeState_.[[canceled1]] is *false*, perform ? ReadableStreamDefaultControllerEnqueue(_branch1_, _value1_).
-    1. If _teeState_.[[canceled2]] is *false*, perform ? ReadableStreamDefaultControllerEnqueue(_branch2_, _value2_).
-</emu-alg>
-
-A <dfn>ReadableStreamTee branch 1 cancel function</dfn> is an anonymous built-in function that reacts to the
-cancellation of the first of the two branches of the associated tee. Each ReadableStreamTee branch 1 cancel function
-has \[[stream]] and \[[teeState]] internal slots. When a ReadableStreamTee branch 1 cancel function <var>F</var> is
-called with argument <var>reason</var>, it performs the following steps:
-
-<emu-alg>
-  1. Let _stream_ be _F_.[[stream]] and _teeState_ be _F_.[[teeState]].
-  1. Set _teeState_.[[canceled1]] to *true*.
-  1. Set _teeState_.[[reason1]] to _reason_.
-  1. If _teeState_.[[canceled2]] is *true*,
-    1. Let _compositeReason_ be ! CreateArrayFromList(« _teeState_.[[reason1]], _teeState_.[[reason2]] »).
-    1. Let _cancelResult_ be ! ReadableStreamCancel(_stream_, _compositeReason_).
-    1. <a>Resolve</a> _teeState_.[[promise]] with _cancelResult_.
-  1. Return _teeState_.[[promise]].
-</emu-alg>
-
-A <dfn>ReadableStreamTee branch 2 cancel function</dfn> is an anonymous built-in function that reacts to the
-cancellation of the second of the two branches of the associated tee. Each ReadableStreamTee branch 2 cancel function
-has \[[stream]] and \[[teeState]] internal slots. When a ReadableStreamTee branch 2 cancel function <var>F</var> is
-called with argument <var>reason</var>, it performs the following steps:
-
-<emu-alg>
-  1. Let _stream_ be _F_.[[stream]] and _teeState_ be _F_.[[teeState]].
-  1. Set _teeState_.[[canceled2]] to *true*.
-  1. Set _teeState_.[[reason2]] to _reason_.
-  1. If _teeState_.[[canceled1]] is *true*,
-    1. Let _compositeReason_ be ! CreateArrayFromList(« _teeState_.[[reason1]], _teeState_.[[reason2]] »).
-    1. Let _cancelResult_ be ! ReadableStreamCancel(_stream_, _compositeReason_).
-    1. <a>Resolve</a> _teeState_.[[promise]] with _cancelResult_.
-  1. Return _teeState_.[[promise]].
-</emu-alg>
-
-<div class="note">
-  The algorithm given here is written such that three new function objects are created for each call to to
-  ReadableStreamTee. This is just a simplification, and is not actually necessary, since it is unobservable to
-  developer code. For example, a self-hosted implementation could optimize by creating a class whose prototype contains
-  methods for these functions, with the state stored as instance variables.
-</div>
 
 <h3 id="rs-abstract-ops-used-by-controllers">The Interface Between Readable Streams and Controllers</h3>
 
