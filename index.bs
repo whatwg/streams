@@ -124,9 +124,9 @@ constantly being pushed from the OS level, at a rate that can be controlled by c
 synchronously, e.g. if it is held by the operating system's in-memory buffers, or asynchronously, e.g. if it has to be
 read from disk. An example pull source is a file handle, where you seek to specific locations and read specific amounts.
 
-Readable streams are designed to wrap both types of sources behind a single, unified interface. The implementation
-details of a source are provided by an object with certain methods and properties. It is passed to the
-{{ReadableStream()}} constructor.
+Readable streams are designed to wrap both types of sources behind a single, unified interface. For
+web developer–created streams, the implementation details of a source are provided by an object with certain methods and
+properties. It is passed to the {{ReadableStream()}} constructor.
 
 <a>Chunks</a> are enqueued into the stream by the stream's <a>underlying source</a>. They can then be read one at a
 time via the stream's public interface, in particular by using a <a>readable stream reader</a> acquired using the
@@ -245,10 +245,11 @@ For readable streams, an underlying source can use this desired size as a backpr
 generation so as to try to keep the desired size above or at zero. For writable streams, a producer can behave
 similarly, avoiding writes that would cause the desired size to go negative.
 
-Concretely, a queuing strategy is given by any JavaScript object with a <code>highWaterMark</code> property. For byte
-streams the <code>highWaterMark</code> always has units of bytes. For other streams the default unit is <a>chunks</a>,
-but a <code>size()</code> function can be included in the strategy object which returns the size for a given chunk. This
-permits the <code>highWaterMark</code> to be specified in arbitrary floating-point units.
+Concretely, a queuing strategy for web developer–created streams is given by any JavaScript object with a
+<code>highWaterMark</code> property. For byte streams the <code>highWaterMark</code> always has units of bytes. For
+other streams the default unit is <a>chunks</a>, but a <code>size()</code> function can be included in the strategy
+object which returns the size for a given chunk. This permits the <code>highWaterMark</code> to be specified in
+arbitrary floating-point units.
 <!-- TODO: https://github.com/whatwg/streams/issues/427 -->
 
 <div class="example" id="example-simple-queuing-strategy">
