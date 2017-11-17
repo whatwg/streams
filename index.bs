@@ -1868,7 +1868,7 @@ throws>SetUpReadableStreamDefaultController(<var>stream</var>, <var>startAlgorit
   1. Set _controller_.[[pullAlgorithm]] to _pullAlgorithm_.
   1. Set _controller_.[[cancelAlgorithm]] to _cancelAlgorithm_.
   1. Set _stream_.[[readableStreamController]] to _controller_.
-  1. Let _startResult_ be the result of performing _startAlgorithm_. (This may throw and exception.)
+  1. Let _startResult_ be the result of performing _startAlgorithm_. (This may throw an exception.)
   1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
     1. <a>Upon fulfillment</a>  of _startPromise_,
       1. Set _controller_.[[started]] to *true*.
