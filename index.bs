@@ -506,12 +506,12 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   1. Let _type_ be ? GetV(_underlyingSource_, `"type"`).
   1. Let _typeString_ be ? ToString(_type_).
   1. If _typeString_ is `"bytes"`,
+    1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be *0*.
+    1. Set _highWaterMark_ to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
     1. If _size_ is not *undefined*, throw a *RangeError* exception.
     1. Set *this*.[[state]] to `"readable"`.
     1. Set *this*.[[reader]] and *this*.[[storedError]] to *undefined*.
     1. Set *this*.[[disturbed]] to *false*.
-    1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be *0*.
-    1. Set _highWaterMark_ to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
     1. Set *this*.[[readableStreamController]] to *undefined*.
     1. Set *this*.[[readableStreamController]] to ? Construct(`<a idl>ReadableByteStreamController</a>`, « *this*,
        _underlyingSource_, _highWaterMark_ »).
@@ -855,8 +855,8 @@ instances. The <var>pullAlgorithm</var> and <var>cancelAlgorithm</var> algorithm
 <var>highWaterMark</var> must be a nonnegative, finite number.
 
 <emu-alg>
-  1. If _sizeAlgorithm_ was not passed, set it to an algorithm that returns *1*.
   1. If _highWaterMark_ was not passed, set it to *1*.
+  1. If _sizeAlgorithm_ was not passed, set it to an algorithm that returns *1*.
   1. Assert: Type(_highWaterMark_) is Number.
   1. Assert: _highWaterMark_ is not NaN.
   1. Assert: _highWaterMark_ is not +∞.

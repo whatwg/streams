@@ -21,6 +21,15 @@ class ReadableStream {
     const type = underlyingSource.type;
     const typeString = String(type);
     if (typeString === 'bytes') {
+      if (highWaterMark === undefined) {
+        highWaterMark = 0;
+      }
+      highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
+
+      if (size !== undefined) {
+        throw new RangeError('The strategy for a byte stream cannot have a size function');
+      }
+
       // TODO(ricea): Share this initialisation.
       // Exposed to controllers.
       this._state = 'readable';
@@ -29,12 +38,6 @@ class ReadableStream {
       this._storedError = undefined;
 
       this._disturbed = false;
-      if (size !== undefined) {
-        throw new RangeError('The strategy for a byte stream cannot have a size function');
-      }
-      if (highWaterMark === undefined) {
-        highWaterMark = 0;
-      }
       // Initialize to undefined first because the constructor of the controller checks this
       // variable to validate the caller.
       this._readableStreamController = undefined;
