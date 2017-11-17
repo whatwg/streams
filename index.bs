@@ -245,8 +245,11 @@ For readable streams, an underlying source can use this desired size as a backpr
 generation so as to try to keep the desired size above or at zero. For writable streams, a producer can behave
 similarly, avoiding writes that would cause the desired size to go negative.
 
-Concretely, a queueing strategy is given by any JavaScript object with a <code>highWaterMark</code> property and a
-<code>size()</code> method. <!-- TODO: https://github.com/whatwg/streams/issues/427 -->
+Concretely, a queuing strategy is given by any JavaScript object with a <code>highWaterMark</code> property. For byte
+streams the <code>highWaterMark</code> always has units of bytes. For other streams the default unit is <a>chunks</a>,
+but a <code>size()</code> function can be included in the strategy object which returns the size for a given chunk. This
+permits the <code>highWaterMark</code> to be specified in arbitrary floating-point units.
+<!-- TODO: https://github.com/whatwg/streams/issues/427 -->
 
 <div class="example" id="example-simple-queuing-strategy">
   A simple example of a queuing strategy would be one that assigns a size of one to each chunk, and has a high water
@@ -493,7 +496,9 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   two properties: a non-negative number <code>highWaterMark</code>, and a function <code>size(chunk)</code>. The
   supplied <code>strategy</code> could be an instance of the built-in {{CountQueuingStrategy}} or
   {{ByteLengthQueuingStrategy}} classes, or it could be custom. If no strategy is supplied, the default
-  behavior will be the same as a {{CountQueuingStrategy}} with a <a>high water mark</a> of 1.
+  behavior will be the same as a {{CountQueuingStrategy}} with a <a>high water mark</a> of 1. A
+  <code>size(chunk)</code> function is not meaningful for a <a>readable byte stream</a>, as chunks are always measured
+  in bytes. It is not valid to supply <code>size</code> for a byte stream, or to supply one of the built-in strategies.
 </div>
 
 <emu-alg>
@@ -504,6 +509,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   1. Let _type_ be ? GetV(_underlyingSource_, `"type"`).
   1. Let _typeString_ be ? ToString(_type_).
   1. If _typeString_ is `"bytes"`,
+    1. If _size_ is not *undefined*, throw a *RangeError* exception.
     1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be *0*.
     1. Set *this*.[[readableStreamController]] to ? Construct(`<a idl>ReadableByteStreamController</a>`, « *this*,
        _underlyingSource_, _highWaterMark_ »).
@@ -4478,6 +4484,11 @@ properties of the incoming <a>chunks</a> reaches a specified high-water mark. As
   previous writes to the <a>underlying sink</a> to finish, before the writable stream starts sending
   <a>backpressure</a> signals to any <a>producers</a>.
 </div>
+
+<p class="note">
+  It is not necessary to use {{ByteLengthQueuingStrategy}} with <a>readable byte streams</a>, as they always measure
+  chunks in bytes. Attempting to construct a byte stream with a {{ByteLengthQueuingStrategy}} will fail.
+</p>
 
 <h4 id="blqs-class-definition">Class Definition</h4>
 
