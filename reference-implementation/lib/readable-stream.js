@@ -15,17 +15,20 @@ const PullSteps = Symbol('[[PullSteps]]');
 
 class ReadableStream {
   constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
-    // Exposed to controllers.
-    this._state = 'readable';
 
-    this._reader = undefined;
-    this._storedError = undefined;
 
-    this._disturbed = false;
 
     const type = underlyingSource.type;
     const typeString = String(type);
     if (typeString === 'bytes') {
+      // TODO(ricea): Share this initialisation.
+      // Exposed to controllers.
+      this._state = 'readable';
+
+      this._reader = undefined;
+      this._storedError = undefined;
+
+      this._disturbed = false;
       if (size !== undefined) {
         throw new RangeError('The strategy for a byte stream cannot have a size function');
       }
@@ -43,7 +46,9 @@ class ReadableStream {
       highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
 
       let sizeAlgorithm;
-      if (size !== undefined) {
+      if (size === undefined) {
+        sizeAlgorithm = () => 1;
+      } else {
         if (typeof size !== 'function') {
           throw new TypeError('size property of a queuing strategy must be a function');
         }
@@ -64,9 +69,7 @@ class ReadableStream {
         return PromiseInvokeOrNoop(underlyingSource, 'cancel', [reason]);
       }
 
-      SetUpReadableStreamDefaultController(
-        this, startAlgorithm, pullAlgorithm, cancelAlgorithm, sizeAlgorithm, highWaterMark
-      );
+      InitializeReadableStream(this, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm);
     } else {
       throw new RangeError('Invalid type is specified');
     }
@@ -317,21 +320,32 @@ function AcquireReadableStreamDefaultReader(stream) {
   return new ReadableStreamDefaultReader(stream);
 }
 
-function CreateReadableStream(pullAlgorithm, cancelAlgorithm, sizeAlgorithm = undefined, highWaterMark = 1) {
+function CreateReadableStream(pullAlgorithm, cancelAlgorithm, highWaterMark = 1, sizeAlgorithm = () => 1) {
+  assert(typeof highWaterMark === 'number');
+  assert(!Number.isNaN(highWaterMark));
+  assert(highWaterMark !== Infinity);
+  assert(highWaterMark >= 0);
   const stream = Object.create(ReadableStream.prototype);
 
+  function startAlgorithm() { }
+
+  try {
+    InitializeReadableStream(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm);
+  } catch (e) {
+    assert(`Should not throw with an empty startAlgorithm: ${e}`);
+  }
+  return stream;
+}
+
+function InitializeReadableStream(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
+                                  sizeAlgorithm) {
   stream._state = 'readable';
   stream._reader = undefined;
   stream._storedError = undefined;
   stream._disturbed = false;
 
-  function startAlgorithm() { }
-
   SetUpReadableStreamDefaultController(
-    stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, sizeAlgorithm, highWaterMark
-  );
-
-  return stream;
+    stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm);
 }
 
 function IsReadableStream(x) {
@@ -1041,15 +1055,12 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
   if (IsReadableStreamLocked(stream) === true && ReadableStreamGetNumReadRequests(stream) > 0) {
     ReadableStreamFulfillReadRequest(stream, chunk, false);
   } else {
-    let chunkSize = 1;
-
-    if (controller._strategySizeAlgorithm !== undefined) {
-      try {
-        chunkSize = controller._strategySizeAlgorithm(chunk);
-      } catch (chunkSizeE) {
-        ReadableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
-        throw chunkSizeE;
-      }
+    let chunkSize;
+    try {
+      chunkSize = controller._strategySizeAlgorithm(chunk);
+    } catch (chunkSizeE) {
+      ReadableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
+      throw chunkSizeE;
     }
 
     try {
@@ -1115,7 +1126,7 @@ function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
 }
 
 function SetUpReadableStreamDefaultController(
-  stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, sizeAlgorithm, highWaterMark) {
+  stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm) {
   assert(IsReadableStream(stream) === false);
   assert(stream._readableStreamController === undefined);
 

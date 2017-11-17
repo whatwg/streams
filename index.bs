@@ -503,13 +503,13 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 </div>
 
 <emu-alg>
-  1. Set *this*.[[state]] to `"readable"`.
-  1. Set *this*.[[reader]] and *this*.[[storedError]] to *undefined*.
-  1. Set *this*.[[disturbed]] to *false*.
   1. Let _type_ be ? GetV(_underlyingSource_, `"type"`).
   1. Let _typeString_ be ? ToString(_type_).
   1. If _typeString_ is `"bytes"`,
     1. If _size_ is not *undefined*, throw a *RangeError* exception.
+    1. Set *this*.[[state]] to `"readable"`.
+    1. Set *this*.[[reader]] and *this*.[[storedError]] to *undefined*.
+    1. Set *this*.[[disturbed]] to *false*.
     1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be *0*.
     1. Set _highWaterMark_ to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
     1. Set *this*.[[readableStreamController]] to *undefined*.
@@ -519,7 +519,8 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
     1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be *1*.
     1. Set _highWaterMark_ to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
     1. Let _sizeAlgorithm_ be *undefined*.
-    1. If _size_ is not *undefined*,
+    1. If _size_ is *undefined*, set _sizeAlgorithm_ to an algorithm that returns *1*.
+    1. Otherwise:
       1. If ! IsCallable(_size_) is *false*, throw a *TypeError* exception.
       1. Set _sizeAlgorithm_ to the following steps, taking a _chunk_ argument:
         1. Return ? Call(_size_, *undefined*, « _chunk_ »).
@@ -530,8 +531,8 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
       1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"pull"`, « _stream_.[[readableStreamController]] »).
     1. Let _cancelAlgorithm_ be the following steps, taking a _reason_ argument:
       1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"cancel"`, « _reason_ »).
-    1. Perform ? SetUpReadableStreamDefaultController(*this*, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
-       _sizeAlgorithm_, _highWaterMark_).
+    1. Perform ? InitializeReadableStream(*this*, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
+       _highWaterMark_, _sizeAlgorithm_).
   1. Otherwise, throw a *RangeError* exception.
 </emu-alg>
 
@@ -846,23 +847,38 @@ reader</a> for a given stream.
 </emu-alg>
 
 <h4 id="create-readable-stream" aoid="CreateReadableStream" nothrow export>CreateReadableStream (
-<var>pullAlgorithm</var>, <var>cancelAlgorithm</var> [, <var>sizeAlgorithm</var> [ , <var>highWaterMark</var> ] ] )</h4>
+<var>pullAlgorithm</var>, <var>cancelAlgorithm</var> [, <var>highWaterMark</var> [, <var>sizeAlgorithm</var> ] ] )</h4>
 
 This abstract operation is meant to be called from other specifications that wish to create {{ReadableStream}}
 instances. The <var>pullAlgorithm</var> and <var>cancelAlgorithm</var> algorithms must return promises; if supplied,
-<var>sizeAlgorithm</var> must be either an algorithm accepting <a>chunk</a> objects and returning a number, or or
-*undefined*; and if supplied, <var>highWaterMark</var> must be a nonnegative, finite number.
+<var>sizeAlgorithm</var> must be an algorithm accepting <a>chunk</a> objects and returning a number; and if supplied,
+<var>highWaterMark</var> must be a nonnegative, finite number.
 
 <emu-alg>
-  1. If _size_ was not passed, set it to *undefined*.
+  1. If _sizeAlgorithm_ was not passed, set it to an algorithm that returns *1*.
   1. If _highWaterMark_ was not passed, set it to *1*.
+  1. Assert: Type(_highWaterMark_) is Number.
+  1. Assert: _highWaterMark_ is not NaN.
+  1. Assert: _highWaterMark_ is not +∞.
+  1. Assert: _highWaterMark_ is not negative.
   1. Let _stream_ be ObjectCreate(the original value of <a idl>ReadableStream</a>'s `prototype` property).
+  1. Let _startAlgorithm_ be an algorithm that returns *undefined*.
+  1. Let _result_ be InitializeReadableStream(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
+     _sizeAlgorithm_, _highWaterMark_).
+  1. Assert: _result_ is not an <a>abrupt completion</a>.
+  1. Return _stream_.
+</emu-alg>
+
+<h4 id="initialize-readable-stream" aoid="InitializeReadableStream" throws>InitializeReadableStream (
+<var>stream</var>, <var>startAlgorithm</var>, <var>pullAlgorithm</var>, <var>cancelAlgorithm</var>,
+<var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
+
+<emu-alg>
   1. Set _stream_.[[state]] to `"readable"`.
   1. Set _stream_.[[reader]] and _stream_.[[storedError]] to *undefined*.
   1. Set _stream_.[[disturbed]] to *false*.
-  1. Perform ! SetUpReadableStreamDefaultController(_stream_, *undefined*, _pullAlgorithm_, _cancelAlgorithm_,
+  1. Perform ! SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
      _sizeAlgorithm_, _highWaterMark_).
-  1. Return _stream_.
 </emu-alg>
 
 <h4 id="is-readable-stream" aoid="IsReadableStream" nothrow>IsReadableStream ( <var>x</var> )</h4>
@@ -1771,14 +1787,12 @@ asserts).
   1. If ! IsReadableStreamLocked(_stream_) is *true* and ! ReadableStreamGetNumReadRequests(_stream_) > *0*, perform
      ! ReadableStreamFulfillReadRequest(_stream_, _chunk_, *false*).
   1. Otherwise,
-    1. Let _chunkSize_ be *1*.
-    1. If _controller_.[[strategySizeAlgorithm]] is not *undefined*,
-      1. Set _chunkSize_ to the result of performing _controller_.[[strategySizeAlgorithm]], passing in _chunk_, and
-         interpreting the result as an ECMAScript completion value.
-      1. If _chunkSize_ is an abrupt completion,
-        1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _chunkSize_.[[Value]]).
-        1. Return _chunkSize_.
-      1. Let _chunkSize_ be _chunkSize_.[[Value]].
+    1. Let _result_ be the result of performing _controller_.[[strategySizeAlgorithm]], passing in _chunk_, and
+       interpreting the result as an ECMAScript completion value.
+    1. If _result_ is an abrupt completion,
+      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _result_.[[Value]]).
+      1. Return _result_.
+    1. Let _chunkSize_ be _result_.[[Value]].
     1. Let _enqueueResult_ be EnqueueValueWithSize(_controller_, _chunk_, _chunkSize_).
     1. If _enqueueResult_ is an abrupt completion,
       1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _enqueueResult_.[[Value]]).
@@ -1853,7 +1867,7 @@ nothrow>ReadableStreamDefaultControllerCanCloseOrEnqueue ( <var>controller</var>
 
 <h4 id="set-up-readable-stream-default-controller" aoid="SetUpReadableStreamDefaultController"
 throws>SetUpReadableStreamDefaultController(<var>stream</var>, <var>startAlgorithm</var>, <var>pullAlgorithm</var>,
-<var>cancelAlgorithm</var>, <var>sizeAlgorithm</var>, <var>highWaterMark</var>)</h4>
+<var>cancelAlgorithm</var>, <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
 
 <emu-alg>
   1. Assert: ! IsReadableStream(_stream_) is *true*.
