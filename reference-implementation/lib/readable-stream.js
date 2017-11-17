@@ -368,8 +368,8 @@ function ReadableStreamTee(stream, cloneForBranch2) {
       return;
     }
 
-    ReadableStreamDefaultControllerError(pull._branch1, r);
-    ReadableStreamDefaultControllerError(pull._branch2, r);
+    ReadableStreamDefaultControllerErrorIfNeeded(pull._branch1, r);
+    ReadableStreamDefaultControllerErrorIfNeeded(pull._branch2, r);
     teeState.closedOrErrored = true;
   });
 

@@ -901,8 +901,8 @@ noticable asymmetry between the two branches, and limits the possible <a>chunks<
   1. Set _pull_.[[branch2]] to _branch2Stream_.[[readableStreamController]].
   1. <a>Upon rejection</a> of _reader_.[[closedPromise]] with reason _r_,
     1. If _teeState_.[[closedOrErrored]] is *false*, then:
-      1. Perform ! ReadableStreamDefaultControllerError(_pull_.[[branch1]], _r_).
-      1. Perform ! ReadableStreamDefaultControllerError(_pull_.[[branch2]], _r_).
+      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_pull_.[[branch1]], _r_).
+      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_pull_.[[branch2]], _r_).
       1. Set _teeState_.[[closedOrErrored]] to *true*.
   1. Return « _branch1Stream_, _branch2Stream_ ».
 </emu-alg>
