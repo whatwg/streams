@@ -15,8 +15,12 @@ const PullSteps = Symbol('[[PullSteps]]');
 
 class ReadableStream {
   constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
+    this._state = 'readable';
 
+    this._reader = undefined;
+    this._storedError = undefined;
 
+    this._disturbed = false;
 
     const type = underlyingSource.type;
     const typeString = String(type);
@@ -30,14 +34,6 @@ class ReadableStream {
         throw new RangeError('The strategy for a byte stream cannot have a size function');
       }
 
-      // TODO(ricea): Share this initialisation.
-      // Exposed to controllers.
-      this._state = 'readable';
-
-      this._reader = undefined;
-      this._storedError = undefined;
-
-      this._disturbed = false;
       // Initialize to undefined first because the constructor of the controller checks this
       // variable to validate the caller.
       this._readableStreamController = undefined;
@@ -72,7 +68,9 @@ class ReadableStream {
         return PromiseInvokeOrNoop(underlyingSource, 'cancel', [reason]);
       }
 
-      InitializeReadableStream(this, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm);
+      SetUpReadableStreamDefaultController(
+        this, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
+      );
     } else {
       throw new RangeError('Invalid type is specified');
     }
@@ -328,27 +326,24 @@ function CreateReadableStream(pullAlgorithm, cancelAlgorithm, highWaterMark = 1,
   assert(!Number.isNaN(highWaterMark));
   assert(highWaterMark !== Infinity);
   assert(highWaterMark >= 0);
+
   const stream = Object.create(ReadableStream.prototype);
 
-  function startAlgorithm() { }
-
-  try {
-    InitializeReadableStream(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm);
-  } catch (e) {
-    assert(`Should not throw with an empty startAlgorithm: ${e}`);
-  }
-  return stream;
-}
-
-function InitializeReadableStream(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
-                                  sizeAlgorithm) {
   stream._state = 'readable';
   stream._reader = undefined;
   stream._storedError = undefined;
   stream._disturbed = false;
 
-  SetUpReadableStreamDefaultController(
-    stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm);
+  function startAlgorithm() { }
+
+  try {
+    SetUpReadableStreamDefaultController(
+      stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
+    );
+  } catch (e) {
+    assert(`Should not throw with an empty startAlgorithm: ${e}`);
+  }
+  return stream;
 }
 
 function IsReadableStream(x) {

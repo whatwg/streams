@@ -503,15 +503,15 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 </div>
 
 <emu-alg>
+  1. Set *this*.[[state]] to `"readable"`.
+  1. Set *this*.[[reader]] and *this*.[[storedError]] to *undefined*.
+  1. Set *this*.[[disturbed]] to *false*.
   1. Let _type_ be ? GetV(_underlyingSource_, `"type"`).
   1. Let _typeString_ be ? ToString(_type_).
   1. If _typeString_ is `"bytes"`,
     1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be *0*.
     1. Set _highWaterMark_ to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
     1. If _size_ is not *undefined*, throw a *RangeError* exception.
-    1. Set *this*.[[state]] to `"readable"`.
-    1. Set *this*.[[reader]] and *this*.[[storedError]] to *undefined*.
-    1. Set *this*.[[disturbed]] to *false*.
     1. Set *this*.[[readableStreamController]] to *undefined*.
     1. Set *this*.[[readableStreamController]] to ? Construct(`<a idl>ReadableByteStreamController</a>`, « *this*,
        _underlyingSource_, _highWaterMark_ »).
@@ -531,7 +531,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
       1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"pull"`, « _stream_.[[readableStreamController]] »).
     1. Let _cancelAlgorithm_ be the following steps, taking a _reason_ argument:
       1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"cancel"`, « _reason_ »).
-    1. Perform ? InitializeReadableStream(*this*, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
+    1. Perform ? SetUpReadableStreamDefaultController(*this*, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
        _highWaterMark_, _sizeAlgorithm_).
   1. Otherwise, throw a *RangeError* exception.
 </emu-alg>
@@ -862,23 +862,13 @@ instances. The <var>pullAlgorithm</var> and <var>cancelAlgorithm</var> algorithm
   1. Assert: _highWaterMark_ is not +∞.
   1. Assert: _highWaterMark_ is not negative.
   1. Let _stream_ be ObjectCreate(the original value of <a idl>ReadableStream</a>'s `prototype` property).
-  1. Let _startAlgorithm_ be an algorithm that returns *undefined*.
-  1. Let _result_ be InitializeReadableStream(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
-     _sizeAlgorithm_, _highWaterMark_).
-  1. Assert: _result_ is not an <a>abrupt completion</a>.
-  1. Return _stream_.
-</emu-alg>
-
-<h4 id="initialize-readable-stream" aoid="InitializeReadableStream" throws>InitializeReadableStream (
-<var>stream</var>, <var>startAlgorithm</var>, <var>pullAlgorithm</var>, <var>cancelAlgorithm</var>,
-<var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
-
-<emu-alg>
   1. Set _stream_.[[state]] to `"readable"`.
   1. Set _stream_.[[reader]] and _stream_.[[storedError]] to *undefined*.
   1. Set _stream_.[[disturbed]] to *false*.
+  1. Let _startAlgorithm_ be an algorithm that returns *undefined*.
   1. Perform ! SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
      _sizeAlgorithm_, _highWaterMark_).
+  1. Return _stream_.
 </emu-alg>
 
 <h4 id="is-readable-stream" aoid="IsReadableStream" nothrow>IsReadableStream ( <var>x</var> )</h4>
