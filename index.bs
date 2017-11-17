@@ -503,9 +503,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 </div>
 
 <emu-alg>
-  1. Set *this*.[[state]] to `"readable"`.
-  1. Set *this*.[[reader]] and *this*.[[storedError]] to *undefined*.
-  1. Set *this*.[[disturbed]] to *false*.
+  1. Perform ! InitializeReadableStream(*this*).
   1. Let _type_ be ? GetV(_underlyingSource_, `"type"`).
   1. Let _typeString_ be ? ToString(_type_).
   1. If _typeString_ is `"bytes"`,
@@ -524,14 +522,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
       1. If ! IsCallable(_size_) is *false*, throw a *TypeError* exception.
       1. Set _sizeAlgorithm_ to the following steps, taking a _chunk_ argument:
         1. Return ? Call(_size_, *undefined*, « _chunk_ »).
-    1. Let _stream_ be *this*.
-    1. Let _startAlgorithm_ be the following steps:
-      1. Return ? InvokeOrNoop(_underlyingSource_, `"start"`, « _stream_.[[readableStreamController]] »).
-    1. Let _pullAlgorithm_ be the following steps:
-      1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"pull"`, « _stream_.[[readableStreamController]] »).
-    1. Let _cancelAlgorithm_ be the following steps, taking a _reason_ argument:
-      1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"cancel"`, « _reason_ »).
-    1. Perform ? SetUpReadableStreamDefaultController(*this*, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
+    1. Perform ? SetUpReadableStreamDefaultControllerFromUnderlyingSource(*this*, _underlyingSource_,
        _highWaterMark_, _sizeAlgorithm_).
   1. Otherwise, throw a *RangeError* exception.
 </emu-alg>
@@ -862,13 +853,20 @@ instances. The <var>pullAlgorithm</var> and <var>cancelAlgorithm</var> algorithm
   1. Assert: _highWaterMark_ is not +∞.
   1. Assert: _highWaterMark_ is not negative.
   1. Let _stream_ be ObjectCreate(the original value of <a idl>ReadableStream</a>'s `prototype` property).
-  1. Set _stream_.[[state]] to `"readable"`.
-  1. Set _stream_.[[reader]] and _stream_.[[storedError]] to *undefined*.
-  1. Set _stream_.[[disturbed]] to *false*.
+  1. Perform ! InitializeReadableStream(_stream_).
   1. Let _startAlgorithm_ be an algorithm that returns *undefined*.
   1. Perform ! SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
      _sizeAlgorithm_, _highWaterMark_).
   1. Return _stream_.
+</emu-alg>
+
+<h4 id="initialize-readable-stream" aoid="InitializeReadableStream" throws>InitializeReadableStream (
+<var>stream</var> )</h4>
+
+<emu-alg>
+  1. Set _stream_.[[state]] to `"readable"`.
+  1. Set _stream_.[[reader]] and _stream_.[[storedError]] to *undefined*.
+  1. Set _stream_.[[disturbed]] to *false*.
 </emu-alg>
 
 <h4 id="is-readable-stream" aoid="IsReadableStream" nothrow>IsReadableStream ( <var>x</var> )</h4>
@@ -1881,6 +1879,22 @@ throws>SetUpReadableStreamDefaultController(<var>stream</var>, <var>startAlgorit
       1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
     1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
       1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
+</emu-alg>
+
+<h4 id="initialize-readable-stream-default-controller-from-underlying-source"
+aoid="InitializeReadableStreamDefaultControllerFromUnderlyingSource"
+throws>InitializeReadableStreamDefaultControllerFromUnderlyingSource(<var>stream</var>, <var>underlyingSource</var>,
+<var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
+
+<emu-alg>
+  1. Let _startAlgorithm_ be the following steps:
+    1. Return ? InvokeOrNoop(_underlyingSource_, `"start"`, « _stream_.[[readableStreamController]] »).
+  1. Let _pullAlgorithm_ be the following steps:
+    1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"pull"`, « _stream_.[[readableStreamController]] »).
+  1. Let _cancelAlgorithm_ be the following steps, taking a _reason_ argument:
+    1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"cancel"`, « _reason_ »).
+  1. Perform ? SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _underlyingSource_,
+     _highWaterMark_, _sizeAlgorithm_)
 </emu-alg>
 
 <h3 id="rbs-controller-class" interface lt="ReadableByteStreamController">Class

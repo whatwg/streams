@@ -15,13 +15,7 @@ const PullSteps = Symbol('[[PullSteps]]');
 
 class ReadableStream {
   constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
-    this._state = 'readable';
-
-    this._reader = undefined;
-    this._storedError = undefined;
-
-    this._disturbed = false;
-
+    InitializeReadableStream(this);
     const type = underlyingSource.type;
     const typeString = String(type);
     if (typeString === 'bytes') {
@@ -54,23 +48,7 @@ class ReadableStream {
         sizeAlgorithm = chunk => size(chunk);
       }
 
-      const stream = this;
-
-      function startAlgorithm() {
-        return InvokeOrNoop(underlyingSource, 'start', [stream._readableStreamController]);
-      }
-
-      function pullAlgorithm() {
-        return PromiseInvokeOrNoop(underlyingSource, 'pull', [stream._readableStreamController]);
-      }
-
-      function cancelAlgorithm(reason) {
-        return PromiseInvokeOrNoop(underlyingSource, 'cancel', [reason]);
-      }
-
-      SetUpReadableStreamDefaultController(
-        this, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
-      );
+      SetUpReadableStreamDefaultControllerFromUnderlyingSource(this, underlyingSource, highWaterMark, sizeAlgorithm);
     } else {
       throw new RangeError('Invalid type is specified');
     }
@@ -328,11 +306,7 @@ function CreateReadableStream(pullAlgorithm, cancelAlgorithm, highWaterMark = 1,
   assert(highWaterMark >= 0);
 
   const stream = Object.create(ReadableStream.prototype);
-
-  stream._state = 'readable';
-  stream._reader = undefined;
-  stream._storedError = undefined;
-  stream._disturbed = false;
+  InitializeReadableStream(stream);
 
   function startAlgorithm() { }
 
@@ -344,6 +318,13 @@ function CreateReadableStream(pullAlgorithm, cancelAlgorithm, highWaterMark = 1,
     assert(`Should not throw with an empty startAlgorithm: ${e}`);
   }
   return stream;
+}
+
+function InitializeReadableStream(stream) {
+  stream._state = 'readable';
+  stream._reader = undefined;
+  stream._storedError = undefined;
+  stream._disturbed = false;
 }
 
 function IsReadableStream(x) {
@@ -1163,6 +1144,24 @@ function SetUpReadableStreamDefaultController(
     }
   )
   .catch(rethrowAssertionErrorRejection);
+}
+
+function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underlyingSource, highWaterMark,
+                                                                  sizeAlgorithm) {
+  function startAlgorithm() {
+    return InvokeOrNoop(underlyingSource, 'start', [stream._readableStreamController]);
+  }
+
+  function pullAlgorithm() {
+    return PromiseInvokeOrNoop(underlyingSource, 'pull', [stream._readableStreamController]);
+  }
+
+  function cancelAlgorithm(reason) {
+    return PromiseInvokeOrNoop(underlyingSource, 'cancel', [reason]);
+  }
+
+  SetUpReadableStreamDefaultController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm,
+                                       highWaterMark, sizeAlgorithm);
 }
 
 class ReadableStreamBYOBRequest {
