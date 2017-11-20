@@ -837,13 +837,17 @@ reader</a> for a given stream.
   1. Return ? Construct(`<a idl>ReadableStreamDefaultReader</a>`, « _stream_ »).
 </emu-alg>
 
-<h4 id="create-readable-stream" aoid="CreateReadableStream" nothrow export>CreateReadableStream (
-<var>pullAlgorithm</var>, <var>cancelAlgorithm</var> [, <var>highWaterMark</var> [, <var>sizeAlgorithm</var> ] ] )</h4>
+<h4 id="create-readable-stream" aoid="CreateReadableStream" throws export>CreateReadableStream (
+<var>startAlgorithm</var>, <var>pullAlgorithm</var>, <var>cancelAlgorithm</var> [, <var>highWaterMark</var> [,
+<var>sizeAlgorithm</var> ] ] )</h4>
 
 This abstract operation is meant to be called from other specifications that wish to create {{ReadableStream}}
-instances. The <var>pullAlgorithm</var> and <var>cancelAlgorithm</var> algorithms must return promises; if supplied,
-<var>sizeAlgorithm</var> must be an algorithm accepting <a>chunk</a> objects and returning a number; and if supplied,
-<var>highWaterMark</var> must be a nonnegative, finite number.
+instances. The <var>startAlgorithm</var>, <var>pullAlgorithm</var> and <var>cancelAlgorithm</var> algorithms must return
+promises; if supplied, <var>sizeAlgorithm</var> must be an algorithm accepting <a>chunk</a> objects and returning a
+number; and if supplied, <var>highWaterMark</var> must be a nonnegative, finite number.
+
+<p class="note">CreateReadableStream throws an exception if and only if the supplied <var>startAlgorithm</var>
+throws.</p>
 
 <emu-alg>
   1. If _highWaterMark_ was not passed, set it to *1*.
@@ -855,7 +859,7 @@ instances. The <var>pullAlgorithm</var> and <var>cancelAlgorithm</var> algorithm
   1. Let _stream_ be ObjectCreate(the original value of <a idl>ReadableStream</a>'s `prototype` property).
   1. Perform ! InitializeReadableStream(_stream_).
   1. Let _startAlgorithm_ be an algorithm that returns *undefined*.
-  1. Perform ! SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
+  1. Perform ? SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
      _sizeAlgorithm_, _highWaterMark_).
   1. Return _stream_.
 </emu-alg>

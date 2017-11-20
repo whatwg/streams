@@ -299,7 +299,9 @@ function AcquireReadableStreamDefaultReader(stream) {
   return new ReadableStreamDefaultReader(stream);
 }
 
-function CreateReadableStream(pullAlgorithm, cancelAlgorithm, highWaterMark = 1, sizeAlgorithm = () => 1) {
+// Throws if and only if startAlgorithm throws.
+function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark = 1,
+                              sizeAlgorithm = () => 1) {
   assert(typeof highWaterMark === 'number');
   assert(!Number.isNaN(highWaterMark));
   assert(highWaterMark !== Infinity);
@@ -308,15 +310,10 @@ function CreateReadableStream(pullAlgorithm, cancelAlgorithm, highWaterMark = 1,
   const stream = Object.create(ReadableStream.prototype);
   InitializeReadableStream(stream);
 
-  function startAlgorithm() { }
-
-  try {
-    SetUpReadableStreamDefaultController(
+  SetUpReadableStreamDefaultController(
       stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
-    );
-  } catch (e) {
-    assert(`Should not throw with an empty startAlgorithm: ${e}`);
-  }
+  );
+
   return stream;
 }
 
@@ -436,8 +433,10 @@ function ReadableStreamTee(stream, cloneForBranch2) {
     return cancelPromise;
   }
 
-  branch1 = CreateReadableStream(pullAlgorithm, cancel1Algorithm);
-  branch2 = CreateReadableStream(pullAlgorithm, cancel2Algorithm);
+  function startAlgorithm() {}
+
+  branch1 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm);
+  branch2 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm);
 
   reader._closedPromise.catch(r => {
     if (closedOrErrored === true) {
