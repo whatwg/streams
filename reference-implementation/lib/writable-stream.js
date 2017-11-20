@@ -1,49 +1,21 @@
 'use strict';
 const assert = require('better-assert');
-const { InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeQueuingStrategy, typeIsObject } =
+
+// Calls to verbose() are purely for debugging the reference implementation and tests. They are not part of the standard
+// and do not appear in the standard text.
+const verbose = require('debug')('streams:writable-stream:verbose');
+
+const { InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeHighWaterMark, typeIsObject } =
   require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 
-const StartSteps = Symbol('[[StartSteps]]');
 const AbortSteps = Symbol('[[AbortSteps]]');
 const ErrorSteps = Symbol('[[ErrorSteps]]');
 
 class WritableStream {
   constructor(underlyingSink = {}, { size, highWaterMark = 1 } = {}) {
-    this._state = 'writable';
-
-    // The error that will be reported by new method calls once the state becomes errored. Only set when [[state]] is
-    // 'erroring' or 'errored'. May be set to an undefined value.
-    this._storedError = undefined;
-
-    this._writer = undefined;
-
-    // Initialize to undefined first because the constructor of the controller checks this
-    // variable to validate the caller.
-    this._writableStreamController = undefined;
-
-    // This queue is placed here instead of the writer class in order to allow for passing a writer to the next data
-    // producer without waiting for the queued writes to finish.
-    this._writeRequests = [];
-
-    // Write requests are removed from _writeRequests when write() is called on the underlying sink. This prevents
-    // them from being erroneously rejected on error. If a write() call is in-flight, the request is stored here.
-    this._inFlightWriteRequest = undefined;
-
-    // The promise that was returned from writer.close(). Stored here because it may be fulfilled after the writer
-    // has been detached.
-    this._closeRequest = undefined;
-
-    // Close request is removed from _closeRequest when close() is called on the underlying sink. This prevents it
-    // from being erroneously rejected on error. If a close() call is in-flight, the request is stored here.
-    this._inFlightCloseRequest = undefined;
-
-    // The promise that was returned from writer.abort(). This may also be fulfilled after the writer has detached.
-    this._pendingAbortRequest = undefined;
-
-    // The backpressure signal set by the controller.
-    this._backpressure = false;
+    InitializeWritableStream(this);
 
     const type = underlyingSink.type;
 
@@ -51,8 +23,19 @@ class WritableStream {
       throw new RangeError('Invalid type is specified');
     }
 
-    this._writableStreamController = new WritableStreamDefaultController(this, underlyingSink, size, highWaterMark);
-    this._writableStreamController[StartSteps]();
+    let sizeAlgorithm;
+    if (size === undefined) {
+      sizeAlgorithm = () => 1;
+    } else {
+      if (typeof size !== 'function') {
+        throw new TypeError('size property of a queuing strategy must be a function');
+      }
+      sizeAlgorithm = chunk => size(chunk);
+    }
+
+    highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
+
+    SetUpWritableStreamDefaultControllerFromUnderlyingSink(this, underlyingSink, highWaterMark, sizeAlgorithm);
   }
 
   get locked() {
@@ -86,6 +69,7 @@ class WritableStream {
 
 module.exports = {
   AcquireWritableStreamDefaultWriter,
+  CreateWritableStream,
   IsWritableStream,
   IsWritableStreamLocked,
   WritableStream,
@@ -101,6 +85,57 @@ module.exports = {
 
 function AcquireWritableStreamDefaultWriter(stream) {
   return new WritableStreamDefaultWriter(stream);
+}
+
+// Throws if and only if startAlgorithm throws.
+function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark,
+                              sizeAlgorithm) {
+  assert(typeof highWaterMark === 'number');
+  assert(!Number.isNaN(highWaterMark));
+  assert(highWaterMark !== Infinity);
+  assert(highWaterMark >= 0);
+
+  const stream = Object.create(WritableStream.prototype);
+  InitializeWritableStream(stream);
+
+  SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm,
+                                       highWaterMark, sizeAlgorithm);
+}
+
+function InitializeWritableStream(stream) {
+  stream._state = 'writable';
+
+  // The error that will be reported by new method calls once the state becomes errored. Only set when [[state]] is
+  // 'erroring' or 'errored'. May be set to an undefined value.
+  stream._storedError = undefined;
+
+  stream._writer = undefined;
+
+  // Initialize to undefined first because the constructor of the controller checks this
+  // variable to validate the caller.
+  stream._writableStreamController = undefined;
+
+  // This queue is placed here instead of the writer class in order to allow for passing a writer to the next data
+  // producer without waiting for the queued writes to finish.
+  stream._writeRequests = [];
+
+  // Write requests are removed from _writeRequests when write() is called on the underlying sink. This prevents
+  // them from being erroneously rejected on error. If a write() call is in-flight, the request is stored here.
+  stream._inFlightWriteRequest = undefined;
+
+  // The promise that was returned from writer.close(). Stored here because it may be fulfilled after the writer
+  // has been detached.
+  stream._closeRequest = undefined;
+
+  // Close request is removed from _closeRequest when close() is called on the underlying sink. This prevents it
+  // from being erroneously rejected on error. If a close() call is in-flight, the request is stored here.
+  stream._inFlightCloseRequest = undefined;
+
+  // The promise that was returned from writer.abort(). This may also be fulfilled after the writer has detached.
+  stream._pendingAbortRequest = undefined;
+
+  // The backpressure signal set by the controller.
+  stream._backpressure = false;
 }
 
 function IsWritableStream(x) {
@@ -182,6 +217,7 @@ function WritableStreamAddWriteRequest(stream) {
 }
 
 function WritableStreamDealWithRejection(stream, error) {
+  verbose('WritableStreamDealWithRejection(stream, %o)', error);
   const state = stream._state;
 
   if (state === 'writable') {
@@ -194,6 +230,7 @@ function WritableStreamDealWithRejection(stream, error) {
 }
 
 function WritableStreamStartErroring(stream, reason) {
+  verbose('WritableStreamStartErroring(stream, %o)', reason);
   assert(stream._storedError === undefined);
   assert(stream._state === 'writable');
 
@@ -213,6 +250,7 @@ function WritableStreamStartErroring(stream, reason) {
 }
 
 function WritableStreamFinishErroring(stream) {
+  verbose('WritableStreamFinishErroring()');
   assert(stream._state === 'erroring');
   assert(WritableStreamHasOperationMarkedInFlight(stream) === false);
   stream._state = 'errored';
@@ -321,9 +359,11 @@ function WritableStreamCloseQueuedOrInFlight(stream) {
 
 function WritableStreamHasOperationMarkedInFlight(stream) {
   if (stream._inFlightWriteRequest === undefined && stream._inFlightCloseRequest === undefined) {
+    verbose('WritableStreamHasOperationMarkedInFlight() is false');
     return false;
   }
 
+  verbose('WritableStreamHasOperationMarkedInFlight() is true');
   return true;
 }
 
@@ -341,6 +381,7 @@ function WritableStreamMarkFirstWriteRequestInFlight(stream) {
 }
 
 function WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream) {
+  verbose('WritableStreamRejectCloseAndClosedPromiseIfNeeded()');
   assert(stream._state === 'errored');
   if (stream._closeRequest !== undefined) {
     assert(stream._inFlightCloseRequest === undefined);
@@ -586,6 +627,7 @@ function WritableStreamDefaultWriterEnsureClosedPromiseRejected(writer, error) {
 }
 
 function WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error) {
+  verbose('WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, %o)', error);
   if (writer._readyPromiseState === 'pending') {
     defaultWriterReadyPromiseReject(writer, error);
   } else {
@@ -661,33 +703,8 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
 }
 
 class WritableStreamDefaultController {
-  constructor(stream, underlyingSink, size, highWaterMark) {
-    if (IsWritableStream(stream) === false) {
-      throw new TypeError('WritableStreamDefaultController can only be constructed with a WritableStream instance');
-    }
-
-    if (stream._writableStreamController !== undefined) {
-      throw new TypeError(
-        'WritableStreamDefaultController instances can only be created by the WritableStream constructor');
-    }
-
-    this._controlledWritableStream = stream;
-
-    this._underlyingSink = underlyingSink;
-
-    // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
-    this._queue = undefined;
-    this._queueTotalSize = undefined;
-    ResetQueue(this);
-
-    this._started = false;
-
-    const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
-    this._strategySize = normalizedStrategy.size;
-    this._strategyHWM = normalizedStrategy.highWaterMark;
-
-    const backpressure = WritableStreamDefaultControllerGetBackpressure(this);
-    WritableStreamUpdateBackpressure(stream, backpressure);
+  constructor() {
+    throw new TypeError('WritableStreamDefaultController cannot be constructed explicitly');
   }
 
   error(e) {
@@ -706,34 +723,77 @@ class WritableStreamDefaultController {
   }
 
   [AbortSteps](reason) {
-    return PromiseInvokeOrNoop(this._underlyingSink, 'abort', [reason]);
+    return this._abortAlgorithm(reason);
   }
 
   [ErrorSteps]() {
     ResetQueue(this);
   }
-
-  [StartSteps]() {
-    const startResult = InvokeOrNoop(this._underlyingSink, 'start', [this]);
-    const stream = this._controlledWritableStream;
-
-    Promise.resolve(startResult).then(
-      () => {
-        assert(stream._state === 'writable' || stream._state === 'erroring');
-        this._started = true;
-        WritableStreamDefaultControllerAdvanceQueueIfNeeded(this);
-      },
-      r => {
-        assert(stream._state === 'writable' || stream._state === 'erroring');
-        this._started = true;
-        WritableStreamDealWithRejection(stream, r);
-      }
-    )
-    .catch(rethrowAssertionErrorRejection);
-  }
 }
 
 // Abstract operations implementing interface required by the WritableStream.
+
+function SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm,
+                                              highWaterMark, sizeAlgorithm) {
+  assert(IsWritableStream(stream) === true);
+  assert(stream._writableStreamController === undefined);
+
+  const controller = Object.create(WritableStreamDefaultController.prototype);
+  controller._controlledWritableStream = stream;
+  stream._writableStreamController = controller;
+
+  // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
+  controller._queue = undefined;
+  controller._queueTotalSize = undefined;
+  ResetQueue(controller);
+
+  controller._started = false;
+
+  controller._strategySizeAlgorithm = sizeAlgorithm;
+  controller._strategyHWM = highWaterMark;
+
+  controller._writeAlgorithm = writeAlgorithm;
+  controller._closeAlgorithm = closeAlgorithm;
+  controller._abortAlgorithm = abortAlgorithm;
+
+  const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
+  WritableStreamUpdateBackpressure(stream, backpressure);
+
+  startAlgorithm().then(
+      () => {
+        assert(stream._state === 'writable' || stream._state === 'erroring');
+        controller._started = true;
+        WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
+      },
+      r => {
+        assert(stream._state === 'writable' || stream._state === 'erroring');
+        controller._started = true;
+        WritableStreamDealWithRejection(stream, r);
+      }
+  )
+  .catch(rethrowAssertionErrorRejection);
+}
+
+function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyingSink, highWaterMark, sizeAlgorithm) {
+  function startAlgorithm() {
+    return Promise.resolve(InvokeOrNoop(underlyingSink, 'start', [stream._writableStreamController]));
+  }
+
+  function writeAlgorithm(chunk) {
+    return PromiseInvokeOrNoop(underlyingSink, 'write', [chunk, stream._writableStreamController]);
+  }
+
+  function closeAlgorithm() {
+    return PromiseInvokeOrNoop(underlyingSink, 'close', []);
+  }
+
+  function abortAlgorithm(reason) {
+    return PromiseInvokeOrNoop(underlyingSink, 'abort', [reason]);
+  }
+
+  SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm,
+                                       highWaterMark, sizeAlgorithm);
+}
 
 function WritableStreamDefaultControllerClose(controller) {
   EnqueueValueWithSize(controller, 'close', 0);
@@ -741,14 +801,8 @@ function WritableStreamDefaultControllerClose(controller) {
 }
 
 function WritableStreamDefaultControllerGetChunkSize(controller, chunk) {
-  const strategySize = controller._strategySize;
-
-  if (strategySize === undefined) {
-    return 1;
-  }
-
   try {
-    return strategySize(chunk);
+    return controller._strategySizeAlgorithm(chunk);
   } catch (chunkSizeE) {
     WritableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
     return 1;
@@ -785,7 +839,7 @@ function IsWritableStreamDefaultController(x) {
     return false;
   }
 
-  if (!Object.prototype.hasOwnProperty.call(x, '_underlyingSink')) {
+  if (!Object.prototype.hasOwnProperty.call(x, '_controlledWritableStream')) {
     return false;
   }
 
@@ -793,6 +847,7 @@ function IsWritableStreamDefaultController(x) {
 }
 
 function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
+  verbose('WritableStreamDefaultControllerAdvanceQueueIfNeeded()');
   const stream = controller._controlledWritableStream;
 
   if (controller._started === false) {
@@ -838,7 +893,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
   DequeueValue(controller);
   assert(controller._queue.length === 0);
 
-  const sinkClosePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'close', []);
+  const sinkClosePromise = controller._closeAlgorithm();
   sinkClosePromise.then(
     () => {
       WritableStreamFinishInFlightClose(stream);
@@ -855,7 +910,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
 
   WritableStreamMarkFirstWriteRequestInFlight(stream);
 
-  const sinkWritePromise = PromiseInvokeOrNoop(controller._underlyingSink, 'write', [chunk, controller]);
+  const sinkWritePromise = controller._writeAlgorithm(chunk);
   sinkWritePromise.then(
     () => {
       WritableStreamFinishInFlightWrite(stream);
@@ -965,6 +1020,7 @@ function defaultWriterClosedPromiseResolve(writer) {
 }
 
 function defaultWriterReadyPromiseInitialize(writer) {
+  verbose('defaultWriterReadyPromiseInitialize()');
   writer._readyPromise = new Promise((resolve, reject) => {
     writer._readyPromise_resolve = resolve;
     writer._readyPromise_reject = reject;
@@ -973,6 +1029,7 @@ function defaultWriterReadyPromiseInitialize(writer) {
 }
 
 function defaultWriterReadyPromiseInitializeAsRejected(writer, reason) {
+  verbose('defaultWriterReadyPromiseInitializeAsRejected(writer, %o)', reason);
   writer._readyPromise = Promise.reject(reason);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
@@ -980,6 +1037,7 @@ function defaultWriterReadyPromiseInitializeAsRejected(writer, reason) {
 }
 
 function defaultWriterReadyPromiseInitializeAsResolved(writer) {
+  verbose('defaultWriterReadyPromiseInitializeAsResolved()');
   writer._readyPromise = Promise.resolve(undefined);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
@@ -987,6 +1045,7 @@ function defaultWriterReadyPromiseInitializeAsResolved(writer) {
 }
 
 function defaultWriterReadyPromiseReject(writer, reason) {
+  verbose('defaultWriterReadyPromiseReject(writer, %o)', reason);
   assert(writer._readyPromise_resolve !== undefined);
   assert(writer._readyPromise_reject !== undefined);
 
@@ -997,6 +1056,7 @@ function defaultWriterReadyPromiseReject(writer, reason) {
 }
 
 function defaultWriterReadyPromiseReset(writer) {
+  verbose('defaultWriterReadyPromiseReset()');
   assert(writer._readyPromise_resolve === undefined);
   assert(writer._readyPromise_reject === undefined);
 
@@ -1008,6 +1068,7 @@ function defaultWriterReadyPromiseReset(writer) {
 }
 
 function defaultWriterReadyPromiseResetToRejected(writer, reason) {
+  verbose('defaultWriterReadyPromiseResetToRejected(writer, %o)', reason);
   assert(writer._readyPromise_resolve === undefined);
   assert(writer._readyPromise_reject === undefined);
 
@@ -1016,6 +1077,7 @@ function defaultWriterReadyPromiseResetToRejected(writer, reason) {
 }
 
 function defaultWriterReadyPromiseResolve(writer) {
+  verbose('defaultWriterReadyPromiseResolve()');
   assert(writer._readyPromise_resolve !== undefined);
   assert(writer._readyPromise_reject !== undefined);
 
