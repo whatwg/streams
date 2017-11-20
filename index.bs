@@ -858,7 +858,6 @@ throws.</p>
   1. Assert: _highWaterMark_ is not negative.
   1. Let _stream_ be ObjectCreate(the original value of <a idl>ReadableStream</a>'s `prototype` property).
   1. Perform ! InitializeReadableStream(_stream_).
-  1. Let _startAlgorithm_ be an algorithm that returns *undefined*.
   1. Perform ? SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
      _sizeAlgorithm_, _highWaterMark_).
   1. Return _stream_.
@@ -2864,18 +2863,19 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
 </div>
 
 <emu-alg>
-  1. Set *this*.[[state]] to `"writable"`.
-  1. Set *this*.[[storedError]], *this*.[[writer]], *this*.[[writableStreamController]],
-     *this*.[[inFlightWriteRequest]], *this*.[[closeRequest]], *this*.[[inFlightCloseRequest]] and
-     *this*.[[pendingAbortRequest]] to *undefined*.
-  1. Set *this*.[[writeRequests]] to a new empty List.
-  1. Set *this*.[[backpressure]] to *false*.
+  1. Perform ! InitializeWritableStream(_this_);
   1. Let _type_ be ? GetV(_underlyingSink_, `"type"`).
   1. If _type_ is not *undefined*, throw a *RangeError* exception. <p class="note">This is to allow us to add new
      potential types in the future, without backward-compatibility concerns.</p>
-  1. Set *this*.[[writableStreamController]] to ? Construct(`<a idl>WritableStreamDefaultController</a>`, « *this*,
-     _underlyingSink_, _size_, _highWaterMark_ »).
-  1. Perform ? *this*.[[writableStreamController]].[[StartSteps]]().
+  1. Let _sizeAlgorithm_ be *undefined;
+  1. If _size_ is *undefined*, set _sizeAlgorithm_ to an algorithm that returns *1*.
+  1. Otherwise,
+    1. If ! IsCallable(_size_) is *false*, throw a *TypeError* exception.
+    1. Set _sizeAlgorithm_ to the following steps, taking a _chunk_ argument:
+      1. Return ? Call(_size_, *undefined*, « _chunk_ »).
+  1. Set _highWaterMark_ to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
+  1. Perform ! SetUpWritableStreamDefaultControllerFromUnderlyingSink(*this*, _underlyingSink_, _highWaterMark_,
+     _sizeAlgorithm_);
 </emu-alg>
 
 <h4 id="ws-prototype">Properties of the {{WritableStream}} Prototype</h4>
@@ -2932,6 +2932,33 @@ throws>AcquireWritableStreamDefaultWriter ( <var>stream</var> )</h4>
 
 <emu-alg>
   1. Return ? Construct(`<a idl>WritableStreamDefaultWriter</a>`, « _stream_ »).
+</emu-alg>
+
+<h4 id="create-writable-stream" aoid="CreateWritableStream" throws>CreateWritableStream ( <var>startAlgorithm</var>,
+<var>writeAlgorithm</var>, <var>closeAlgorithm</var>, <var>abortAlgorithm</var>, <var>highWaterMark</var>,
+<var>sizeAlgorithm</var> )</h4>
+
+<emu-alg>
+  1. Assert: Type(_highWaterMark_) is Number.
+  1. Assert: _highWaterMark_ is not NaN.
+  1. Assert: _highWaterMark_ is not +∞.
+  1. Assert: _highWaterMark_ is not negative.
+  1. Let _stream_ be ObjectCreate(the original value of <a idl>WritableStream</a>'s `prototype` property).
+  1. Perform ! InitializeWritableStream(_stream_).
+  1. Perform ! SetUpWritableStreamDefaultController(_stream_, _startAlgorithm_, _writeAlgorithm_, _closeAlgorithm_,
+     _abortAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
+</emu-alg>
+
+<h4 id="initialize-writable-stream" aoid="InitializeWritableStream" nothrow>InitializeWritableStream ( <var>stream</var>
+)</h4>
+
+<emu-alg>
+  1. Set _stream_.[[state]] to `"writable"`.
+  1. Set _stream_.[[storedError]], _stream_.[[writer]], _stream_.[[writableStreamController]],
+     _stream_.[[inFlightWriteRequest]], _stream_.[[closeRequest]], _stream_.[[inFlightCloseRequest]] and
+     _stream_.[[pendingAbortRequest]] to *undefined*.
+  1. Set _stream_.[[writeRequests]] to a new empty List.
+  1. Set _stream_.[[backpressure]] to *false*.
 </emu-alg>
 
 <h4 id="is-writable-stream" aoid="IsWritableStream" nothrow>IsWritableStream ( <var>x</var> )</h4>
@@ -3589,27 +3616,14 @@ Instances of {{WritableStreamDefaultController}} are created with the internal s
 </table>
 
 <h4 id="ws-default-controller-constructor" constructor for="WritableStreamDefaultController"
-lt="WritableStreamDefaultController(stream, underlyingSink, size, highWaterMark)">new
-WritableStreamDefaultController(<var>stream</var>, <var>underlyingSink</var>, <var>size</var>,
-<var>highWaterMark</var>)</h4>
+lt="WritableStreamDefaultController()">new WritableStreamDefaultController()</h4>
 
 <div class="note">
-  The <code>WritableStreamDefaultController</code> constructor cannot be used directly; it only works on a
-  {{WritableStream}} that is in the middle of being constructed.
+  The <code>WritableStreamDefaultController</code> constructor cannot be used directly.
 </div>
 
 <emu-alg>
-  1. If ! IsWritableStream(_stream_) is *false*, throw a *TypeError* exception.
-  1. If _stream_.[[writableStreamController]] is not *undefined*, throw a *TypeError* exception.
-  1. Set *this*.[[controlledWritableStream]] to _stream_.
-  1. Set *this*.[[underlyingSink]] to _underlyingSink_.
-  1. Perform ! ResetQueue(*this*).
-  1. Set *this*.[[started]] to *false*.
-  1. Let _normalizedStrategy_ be ? ValidateAndNormalizeQueuingStrategy(_size_, _highWaterMark_).
-  1. Set *this*.[[strategySize]] to _normalizedStrategy_.[[size]] and *this*.[[strategyHWM]] to
-     _normalizedStrategy_.[[highWaterMark]].
-  1. Let _backpressure_ be ! WritableStreamDefaultControllerGetBackpressure(*this*).
-  1. Perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
+  1. Throw a *TypeError* exception.
 </emu-alg>
 
 <h4 id="ws-default-controller-prototype">Properties of the {{WritableStreamDefaultController}} Prototype</h4>
@@ -3647,7 +3661,7 @@ used polymorphically.
 <var>reason</var> )</h5>
 
 <emu-alg>
-  1. Return ! PromiseInvokeOrNoop(*this*.[[underlyingSink]], `"abort"`, « _reason_ »).
+  1. Return the result of performing *this*.[[abortAlgorithm]].
 </emu-alg>
 
 <h5 id="ws-default-controller-private-error">\[[ErrorSteps]]()</h5>
@@ -3656,30 +3670,64 @@ used polymorphically.
   1. Perform ! ResetQueue(*this*).
 </emu-alg>
 
-<h5 id="ws-default-controller-private-start" oldids="writable-stream-default-controller-start">\[[StartSteps]]()</h5>
+<h3 id="ws-default-controller-abstract-ops">Writable Stream Default Controller Abstract Operations</h3>
+
+<h4 id="set-up-writable-stream-default-controller" aoid="SetUpWritableStreamDefaultController"
+throws>SetUpWritableStreamDefaultController ( <var>stream</var>, <var>startAlgorithm</var>, <var>writeAlgorithm</var>,
+<var>closeAlgorithm</var>, <var>abortAlgorithm</var>, <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
 
 <emu-alg>
-  1. Let _startResult_ be ? InvokeOrNoop(*this*.[[underlyingSink]], `"start"`, « *this* »).
-  1. Let _stream_ be *this*.[[controlledWritableStream]].
-  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
-  1. <a>Upon fulfillment</a>  of _startPromise_,
-    1. Assert: _stream_.[[state]] is `"writable"` or `"erroring"`.
-    1. Set *this*.[[started]] to *true*.
-    1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(*this*).
-  1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
-    1. Assert: _stream_.[[state]] is `"writable"` or `"erroring"`.
-    1. Set *this*.[[started]] to *true*.
-    1. Perform ! WritableStreamDealWithRejection(_stream_, _r_).
+  1. Assert: ! IsWritableStream(_stream_) is *true*.
+  1. Assert: _stream_.[[writableStreamController]] is *undefined*.
+  1. Let _controller_ be ObjectCreate(the original value of <a idl>WritableStreamDefaultController</a>'s `prototype`
+     property).
+  1. Set _controller_.[[controlledWritableStream]] to _stream_.
+  1. Set _stream_.[[writableStreamController]] to _controller_.
+  1. Perform ! ResetQueue(_controller_).
+  1. Set _controller_.[[started]] to *false*.
+  1. Set _controller_.[[strategySizeAlgorithm]] to _sizeAlgorithm_.
+  1. Set _controller_.[[strategyHWM]] to _highWaterMark_.
+  1. Set _controller_.[[writeAlgorithm]] to _writeAlgorithm_.
+  1. Set _controller_.[[closeAlgorithm]] to _closeAlgorithm_.
+  1. Set _controller_.[[abortAlgorithm]] to _abortAlgorithm_.
+  1. Let _backpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
+  1. Perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
+  1. Let _startResult_ be the result of performing _startAlgorithm_. (This may throw an exception.)
+  1. Let _startPromise_ be a promise resolve with _startResult_:
+    1. <a>Upon fulfillment</a> of _startPromise_,
+      1. Assert: _stream_.[[state]] is `"writable"` or `"erroring"`.
+      1. Set _controller_.[[started]] to *true*.
+      1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
+    1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
+      1. Assert: _stream_.[[state]] is `"writable"` or `"erroring"`.
+      1. Set _controller_.[[started]] to *true*.
+      1. Perform ! WritableStreamDealWithRejection(_stream_, _r_).
 </emu-alg>
 
-<h3 id="ws-default-controller-abstract-ops">Writable Stream Default Controller Abstract Operations</h3>
+<h4 id="set-up-writable-stream-default-controller-from-underlying-sink"
+aoid="SetUpWritableStreamDefaultControllerFromUnderlyingSink"
+throws>SetUpWritableStreamDefaultControllerFromUnderlyingSink ( <var>stream</var>, <var>underlyingSink</var>,
+<var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
+
+<emu-alg>
+  1. Let _startAlgorithm_ be the following steps:
+    1. Return ? InvokeOrNoop(_underlyingSink_, `"start"`, « _stream_.[[writableStreamController]] »).
+  1. Let _writeAlgorithm_ be the following steps, taking a _chunk_ argument:
+    1. Return ! PromiseInvokeOrNoop(_underlyingSink_, `"write"`, « _chunk_, _stream_.[[writableStreamController]] »).
+  1. Let _closeAlgorithm_ be the following steps:
+    1. Return ! PromiseInvokeOrNoop(_underlyingSink_, `"close"`, « »).
+  1. Let _abortAlgorithm_ be the following steps, taking a _reason_ argument:
+    1. Return ! PromiseInvokeOrNoop(_underlyingSink_, `"abort"`, « _reason_ »).
+  1. Perform ! SetUpWritableStreamDefaultController(_stream_, _startAlgorithm_, _writeAlgorithm_, _closeAlgorithm_,
+     _abortAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
+</emu-alg>
 
 <h4 id="is-writable-stream-default-controller" aoid="IsWritableStreamDefaultController"
 nothrow>IsWritableStreamDefaultController ( <var>x</var> )</h4>
 
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have an [[underlyingSink]] internal slot, return *false*.
+  1. If _x_ does not have an [[controlledWritableStream]] internal slot, return *false*.
   1. Return *true*.
 </emu-alg>
 
@@ -3695,9 +3743,8 @@ nothrow>WritableStreamDefaultControllerClose ( <var>controller</var> )</h4>
 nothrow>WritableStreamDefaultControllerGetChunkSize ( <var>controller</var>, <var>chunk</var> )</h4>
 
 <emu-alg>
-  1. Let _strategySize_ be _controller_.[[strategySize]].
-  1. If _strategySize_ is *undefined*, return 1.
-  1. Let _returnValue_ be Call(_strategySize_, *undefined*, « _chunk_ »).
+  1. Let _returnValue_ be the result of performing _controller_.[[strategySizeAlgorithm]]_, passing in _chunk_, and
+     interpreting the result as an ECMAScript completion value.
   1. If _returnValue_ is an abrupt completion,
     1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _returnValue_.[[Value]]).
     1. Return 1.
@@ -3762,7 +3809,7 @@ nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h
   1. Perform ! WritableStreamMarkCloseRequestInFlight(_stream_).
   1. Perform ! DequeueValue(_controller_).
   1. Assert: _controller_.[[queue]] is empty.
-  1. Let _sinkClosePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"close"`, « »).
+  1. Let _sinkClosePromise_ be the result of performing _controller_.[[closeAlgorithm]].
   1. <a>Upon fulfillment</a> of _sinkClosePromise_,
     1. Perform ! WritableStreamFinishInFlightClose(_stream_).
   1. <a>Upon rejection</a> of _sinkClosePromise_ with reason _reason_,
@@ -3775,8 +3822,7 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
 <emu-alg>
   1. Let _stream_ be _controller_.[[controllerWritableStream]].
   1. Perform ! WritableStreamMarkFirstWriteRequestInFlight(_stream_).
-  1. Let _sinkWritePromise_ be ! PromiseInvokeOrNoop(_controller_.[[underlyingSink]], `"write"`, « _chunk_,
-     _controller_ »).
+  1. Let _sinkWritePromise_ be the result of performing _controller_.[[writeAlgorithm]], passing in _chunk_.
   1. <a>Upon fulfillment</a> of _sinkWritePromise_,
     1. Perform ! WritableStreamFinishInFlightWrite(_stream_).
     1. Let _state_ be _stream_.[[state]].

@@ -759,7 +759,9 @@ function SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgor
   const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
   WritableStreamUpdateBackpressure(stream, backpressure);
 
-  startAlgorithm().then(
+  const startResult = startAlgorithm();
+  const startPromise = Promise.resolve(startResult);
+  startPromise.then(
       () => {
         assert(stream._state === 'writable' || stream._state === 'erroring');
         controller._started = true;
@@ -776,7 +778,7 @@ function SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgor
 
 function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyingSink, highWaterMark, sizeAlgorithm) {
   function startAlgorithm() {
-    return Promise.resolve(InvokeOrNoop(underlyingSink, 'start', [stream._writableStreamController]));
+    return InvokeOrNoop(underlyingSink, 'start', [stream._writableStreamController]);
   }
 
   function writeAlgorithm(chunk) {
