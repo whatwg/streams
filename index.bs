@@ -160,8 +160,8 @@ Analogously to readable streams, most writable streams wrap a lower-level I/O si
 queuing subsequent writes and only delivering them to the underlying sink one by one.
 
 <a>Chunks</a> are written to the stream via its public interface, and are passed one at a time to the stream's
-<a>underlying sink</a>. The implementation details of the sink are provided by an object with certain methods that is
-passed to the {{WritableStream()}} constructor.
+<a>underlying sink</a>. For web developer-created streams, the implementation details of the sink are provided by an
+object with certain methods that is passed to the {{WritableStream()}} constructor.
 
 Code that writes into a writable stream using its public interface is known as a <dfn>producer</dfn>.
 
@@ -842,7 +842,7 @@ reader</a> for a given stream.
 <var>sizeAlgorithm</var> ] ] )</h4>
 
 This abstract operation is meant to be called from other specifications that wish to create {{ReadableStream}}
-instances. The <var>startAlgorithm</var>, <var>pullAlgorithm</var> and <var>cancelAlgorithm</var> algorithms must return
+instances. The <var>pullAlgorithm</var> and <var>cancelAlgorithm</var> algorithms must return
 promises; if supplied, <var>sizeAlgorithm</var> must be an algorithm accepting <a>chunk</a> objects and returning a
 number; and if supplied, <var>highWaterMark</var> must be a nonnegative, finite number.
 
@@ -2774,13 +2774,13 @@ Instances of {{WritableStream}} are created with the internal slots described in
   <tr>
     <td>\[[inFlightWriteRequest]]
     <td class="non-normative">A slot set to the promise for the current in-flight write operation while the
-      <a>underlying sink</a>'s <code>write</code> method is executing and has not yet fulfilled, used to prevent
+      <a>underlying sink</a>'s <code>write</code> algorithm is executing and has not yet fulfilled, used to prevent
       reentrant calls
   </tr>
   <tr>
     <td>\[[inFlightCloseRequest]]
     <td class="non-normative">A slot set to the promise for the current in-flight close operation while the
-      <a>underlying sink</a>'s <code>close</code> method is executing and has not yet fulfilled, used to prevent the
+      <a>underlying sink</a>'s <code>close</code> algorithm is executing and has not yet fulfilled, used to prevent the
       {{WritableStreamDefaultWriter/abort()}} method from interrupting close
   </tr>
   <tr>
@@ -2937,6 +2937,14 @@ throws>AcquireWritableStreamDefaultWriter ( <var>stream</var> )</h4>
 <h4 id="create-writable-stream" aoid="CreateWritableStream" throws>CreateWritableStream ( <var>startAlgorithm</var>,
 <var>writeAlgorithm</var>, <var>closeAlgorithm</var>, <var>abortAlgorithm</var>, <var>highWaterMark</var>,
 <var>sizeAlgorithm</var> )</h4>
+
+This abstract operation is meant to be called from other specifications that wish to create {{WritableStream}}
+instances. The <var>writeAlgorithm</var>, <var>closeAlgorithm</var> and <var>abortAlgorithm</var> algorithms must return
+promises; if supplied, <var>sizeAlgorithm</var> must be an algorithm accepting <a>chunk</a> objects and returning a
+number; and if supplied, <var>highWaterMark</var> must be a nonnegative, finite number.
+
+<p class="note">CreateWritableStream throws an exception if and only if the supplied <var>startAlgorithm</var>
+throws.</p>
 
 <emu-alg>
   1. Assert: Type(_highWaterMark_) is Number.
@@ -3562,7 +3570,7 @@ it would look like
 
 <pre><code class="lang-javascript">
   class WritableStreamDefaultController {
-    constructor(stream, underlyingSink, size, highWaterMark)
+    constructor() // always throws
 
     error(e)
   }
