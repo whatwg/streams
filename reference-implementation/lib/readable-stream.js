@@ -271,6 +271,7 @@ class ReadableStream {
 }
 
 module.exports = {
+  CreateReadableStream,
   ReadableStream,
   IsReadableStreamDisturbed,
   ReadableStreamDefaultControllerClose,
@@ -296,7 +297,6 @@ function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, hi
                               sizeAlgorithm = () => 1) {
   assert(typeof highWaterMark === 'number');
   assert(!Number.isNaN(highWaterMark));
-  assert(highWaterMark !== Infinity);
   assert(highWaterMark >= 0);
 
   const stream = Object.create(ReadableStream.prototype);

@@ -83,7 +83,6 @@ function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, ab
                               sizeAlgorithm) {
   assert(typeof highWaterMark === 'number');
   assert(!Number.isNaN(highWaterMark));
-  assert(highWaterMark !== Infinity);
   assert(highWaterMark >= 0);
 
   const stream = Object.create(WritableStream.prototype);
@@ -91,6 +90,7 @@ function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, ab
 
   SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm,
                                        highWaterMark, sizeAlgorithm);
+  return stream;
 }
 
 function InitializeWritableStream(stream) {
