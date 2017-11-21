@@ -1,8 +1,8 @@
 'use strict';
 const assert = require('better-assert');
 const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, IsDetachedBuffer,
-        PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark } = require('./helpers.js');
-const { createArrayFromList, typeIsObject } = require('./helpers.js');
+        PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark,
+        MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
@@ -38,15 +38,7 @@ class ReadableStream {
       }
       highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
 
-      let sizeAlgorithm;
-      if (size === undefined) {
-        sizeAlgorithm = () => 1;
-      } else {
-        if (typeof size !== 'function') {
-          throw new TypeError('size property of a queuing strategy must be a function');
-        }
-        sizeAlgorithm = chunk => size(chunk);
-      }
+      const sizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(size);
 
       SetUpReadableStreamDefaultControllerFromUnderlyingSource(this, underlyingSource, highWaterMark, sizeAlgorithm);
     } else {

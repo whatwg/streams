@@ -516,12 +516,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   1. Otherwise, if _type_ is *undefined*,
     1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be *1*.
     1. Set _highWaterMark_ to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
-    1. Let _sizeAlgorithm_ be *undefined*.
-    1. If _size_ is *undefined*, set _sizeAlgorithm_ to an algorithm that returns *1*.
-    1. Otherwise:
-      1. If ! IsCallable(_size_) is *false*, throw a *TypeError* exception.
-      1. Set _sizeAlgorithm_ to the following steps, taking a _chunk_ argument:
-        1. Return ? Call(_size_, *undefined*, « _chunk_ »).
+    1. Let _sizeAlgorithm_ be ? MakeSizeAlgorithmFromSizeFunction(_size_).
     1. Perform ? SetUpReadableStreamDefaultControllerFromUnderlyingSource(*this*, _underlyingSource_,
        _highWaterMark_, _sizeAlgorithm_).
   1. Otherwise, throw a *RangeError* exception.
@@ -2867,12 +2862,7 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
   1. Let _type_ be ? GetV(_underlyingSink_, `"type"`).
   1. If _type_ is not *undefined*, throw a *RangeError* exception. <p class="note">This is to allow us to add new
      potential types in the future, without backward-compatibility concerns.</p>
-  1. Let _sizeAlgorithm_ be *undefined;
-  1. If _size_ is *undefined*, set _sizeAlgorithm_ to an algorithm that returns *1*.
-  1. Otherwise,
-    1. If ! IsCallable(_size_) is *false*, throw a *TypeError* exception.
-    1. Set _sizeAlgorithm_ to the following steps, taking a _chunk_ argument:
-      1. Return ? Call(_size_, *undefined*, « _chunk_ »).
+  1. Let _sizeAlgorithm_ be ? MakeSizeAlgorithmFromSizeFunction(_size_).
   1. Set _highWaterMark_ to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
   1. Perform ! SetUpWritableStreamDefaultControllerFromUnderlyingSink(*this*, _underlyingSink_, _highWaterMark_,
      _sizeAlgorithm_);
@@ -4840,13 +4830,14 @@ throws>ValidateAndNormalizeHighWaterMark ( <var>highWaterMark</var> )</h4>
   1. Return _highWaterMark_.
 </emu-alg>
 
-<h4 id="validate-and-normalize-queuing-strategy" aoid="ValidateAndNormalizeQueuingStrategy"
-throws>ValidateAndNormalizeQueuingStrategy ( <var>size</var>, <var>highWaterMark</var> )</h4>
+<h4 id="make-size-algorithm-from-size-function" aoid="MakeSizeAlgorithmFromSizeFunction"
+throws>MakeSizeAlgorithmFromSizeFunction ( <var>size</var> )</h4>
 
 <emu-alg>
-  1. If _size_ is not *undefined* and ! IsCallable(_size_) is *false*, throw a *TypeError* exception.
-  1. Let _highWaterMark_ be ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
-  1. Return Record {[[size]]: _size_, [[highWaterMark]]: _highWaterMark_}.
+  1. If _size_ is *undefined*, return an algorithm that returns *1*.
+  1. If ! IsCallable(_size_) is *false*, throw a *TypeError* exception.
+  1. Return an algorithm that performs the following steps, taking a _chunk_ argument:
+    1. Return ? Call(_size_, *undefined*, « _chunk_ »).
 </emu-alg>
 
 <h2 id="globals">Global Properties</h2>

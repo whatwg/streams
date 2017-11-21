@@ -5,8 +5,8 @@ const assert = require('better-assert');
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:writable-stream:verbose');
 
-const { InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeHighWaterMark, typeIsObject } =
-  require('./helpers.js');
+const { InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeHighWaterMark, MakeSizeAlgorithmFromSizeFunction,
+        typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 
@@ -23,16 +23,7 @@ class WritableStream {
       throw new RangeError('Invalid type is specified');
     }
 
-    let sizeAlgorithm;
-    if (size === undefined) {
-      sizeAlgorithm = () => 1;
-    } else {
-      if (typeof size !== 'function') {
-        throw new TypeError('size property of a queuing strategy must be a function');
-      }
-      sizeAlgorithm = chunk => size(chunk);
-    }
-
+    const sizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(size);
     highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
 
     SetUpWritableStreamDefaultControllerFromUnderlyingSink(this, underlyingSink, highWaterMark, sizeAlgorithm);

@@ -111,12 +111,12 @@ exports.ValidateAndNormalizeHighWaterMark = highWaterMark => {
   return highWaterMark;
 };
 
-exports.ValidateAndNormalizeQueuingStrategy = (size, highWaterMark) => {
-  if (size !== undefined && typeof size !== 'function') {
+exports.MakeSizeAlgorithmFromSizeFunction = size => {
+  if (size === undefined) {
+    return () => 1;
+  }
+  if (typeof size !== 'function') {
     throw new TypeError('size property of a queuing strategy must be a function');
   }
-
-  highWaterMark = exports.ValidateAndNormalizeHighWaterMark(highWaterMark);
-
-  return { size, highWaterMark };
+  return chunk => size(chunk);
 };
