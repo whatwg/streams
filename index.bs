@@ -1606,7 +1606,7 @@ Instances of {{ReadableStreamDefaultController}} are created with the internal s
   <tr>
     <td>\[[strategySizeAlgorithm]]
     <td class="non-normative">An algorithm to calculate the size of enqueued <a>chunks</a>, as part of the stream's
-      <a>queuing strategy</a>.
+      <a>queuing strategy</a>
   </tr>
 </table>
 
@@ -3582,6 +3582,16 @@ Instances of {{WritableStreamDefaultController}} are created with the internal s
     </tr>
   </thead>
   <tr>
+    <td>\[[abortAlgorithm]]
+    <td class="non-normative">A promise-returning algorithm, taking one argument (the abort reason), which communicates
+      a requested abort to the <a>underlying sink</a>
+  </tr>
+  <tr>
+    <td>\[[closeAlgorithm]]
+    <td class="non-normative">A promise-returning algorithm which communicates a requested close to the <a>underlying
+      sink</a>
+  </tr>
+  <tr>
     <td>\[[controlledWritableStream]]
     <td class="non-normative">The {{WritableStream}} instance controlled
   </tr>
@@ -3599,19 +3609,19 @@ Instances of {{WritableStreamDefaultController}} are created with the internal s
   </tr>
   <tr>
     <td>\[[strategyHWM]]
-    <td class="non-normative">A number supplied to the constructor as part of the stream's <a>queuing strategy</a>,
-      indicating the point at which the stream will apply <a>backpressure</a> to its <a>underlying sink</a>
+    <td class="non-normative">A number supplied by the creator of the stream as part of the stream's <a>queuing
+      strategy</a>, indicating the point at which the stream will apply <a>backpressure</a> to its <a>underlying
+      sink</a>
   </tr>
   <tr>
-    <td>\[[strategySize]]
-    <td class="non-normative">A function supplied to the constructor as part of the stream's <a>queuing strategy</a>,
-      designed to calculate the size of enqueued <a>chunks</a>; can be <emu-val>undefined</emu-val> for the default
-      behavior
+    <td>\[[strategySizeAlgorithm]]
+    <td class="non-normative">An algorithm to calculate the size of enqueued <a>chunks</a>, as part of the stream’s
+      <a>queuing strategy</a>
   </tr>
   <tr>
-    <td>\[[underlyingSink]]
-    <td class="non-normative">An object representation of the stream's <a>underlying sink</a>; also used for the <a
-    href="#is-writable-stream-default-controller">IsWritableStreamDefaultController</a> brand check
+    <td>\[[writeAlgorithm]]
+    <td class="non-normative">A promise-returning algorithm, taking one argument (the <a>chunk</a> to write), which
+      writes data to the <a>underlying sink</a>
   </tr>
 </table>
 
