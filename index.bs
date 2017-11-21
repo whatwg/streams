@@ -1884,9 +1884,9 @@ throws>SetUpReadableStreamDefaultController(<var>stream</var>, <var>startAlgorit
       1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
 </emu-alg>
 
-<h4 id="initialize-readable-stream-default-controller-from-underlying-source"
-aoid="InitializeReadableStreamDefaultControllerFromUnderlyingSource"
-throws>InitializeReadableStreamDefaultControllerFromUnderlyingSource(<var>stream</var>, <var>underlyingSource</var>,
+<h4 id="set-up-readable-stream-default-controller-from-underlying-source"
+aoid="SetUpReadableStreamDefaultControllerFromUnderlyingSource"
+throws>SetUpReadableStreamDefaultControllerFromUnderlyingSource(<var>stream</var>, <var>underlyingSource</var>,
 <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
 
 <emu-alg>
