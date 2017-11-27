@@ -33,7 +33,8 @@ class TransformStream {
       startPromise_resolve = resolve;
     });
 
-    const writableSizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(writableStrategy.size);
+    const writableSizeFunction = writableStrategy.size;
+    const writableSizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(writableSizeFunction);
     let writableHighWaterMark = writableStrategy.highWaterMark;
     if (writableHighWaterMark === undefined) {
       writableHighWaterMark = 1;
