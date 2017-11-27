@@ -28,10 +28,7 @@ class ReadableStream {
         throw new RangeError('The strategy for a byte stream cannot have a size function');
       }
 
-      // Initialize to undefined first because the constructor of the controller checks this
-      // variable to validate the caller.
-      this._readableStreamController = undefined;
-      this._readableStreamController = new ReadableByteStreamController(this, underlyingSource, highWaterMark);
+      SetUpReadableByteStreamControllerFromUnderlyingSource(this, underlyingSource, highWaterMark);
     } else if (type === undefined) {
       if (highWaterMark === undefined) {
         highWaterMark = 1;
@@ -271,6 +268,7 @@ class ReadableStream {
 }
 
 module.exports = {
+  CreateReadableByteStream,
   CreateReadableStream,
   ReadableStream,
   IsReadableStreamDisturbed,
@@ -305,6 +303,26 @@ function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, hi
   SetUpReadableStreamDefaultController(
       stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
   );
+
+  return stream;
+}
+
+// Throws if and only if startAlgorithm throws.
+function CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark = 0,
+                                  autoAllocateChunkSize = undefined) {
+  assert(typeof highWaterMark === 'number');
+  assert(!Number.isNaN(highWaterMark));
+  assert(highWaterMark >= 0);
+  if (autoAllocateChunkSize !== undefined) {
+    assert(Number.isInteger(autoAllocateChunkSize) === true);
+    assert(autoAllocateChunkSize > 0);
+  }
+
+  const stream = Object.create(ReadableStream.prototype);
+  InitializeReadableStream(stream);
+
+  SetUpReadableByteStreamController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
+                                    autoAllocateChunkSize);
 
   return stream;
 }
@@ -1097,7 +1115,6 @@ function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
 
 function SetUpReadableStreamDefaultController(
   stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm) {
-  assert(IsReadableStream(stream) === false);
   assert(stream._readableStreamController === undefined);
 
   const controller = Object.create(ReadableStreamDefaultController.prototype);
@@ -1211,65 +1228,8 @@ class ReadableStreamBYOBRequest {
 }
 
 class ReadableByteStreamController {
-  constructor(stream, underlyingByteSource, highWaterMark) {
-    if (IsReadableStream(stream) === false) {
-      throw new TypeError('ReadableByteStreamController can only be constructed with a ReadableStream instance given ' +
-          'a byte source');
-    }
-
-    if (stream._readableStreamController !== undefined) {
-      throw new TypeError(
-          'ReadableByteStreamController instances can only be created by the ReadableStream constructor given a byte ' +
-              'source');
-    }
-
-    this._controlledReadableByteStream = stream;
-
-    this._underlyingByteSource = underlyingByteSource;
-
-    this._pullAgain = false;
-    this._pulling = false;
-
-    ReadableByteStreamControllerClearPendingPullIntos(this);
-
-    // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
-    this._queue = this._queueTotalSize = undefined;
-    ResetQueue(this);
-
-    this._closeRequested = false;
-    this._started = false;
-
-    this._strategyHWM = ValidateAndNormalizeHighWaterMark(highWaterMark);
-
-    const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
-    if (autoAllocateChunkSize !== undefined) {
-      if (Number.isInteger(autoAllocateChunkSize) === false || autoAllocateChunkSize <= 0) {
-        throw new RangeError('autoAllocateChunkSize must be a positive integer');
-      }
-    }
-    this._autoAllocateChunkSize = autoAllocateChunkSize;
-
-    this._pendingPullIntos = [];
-
-    const controller = this;
-
-    const startResult = InvokeOrNoop(underlyingByteSource, 'start', [this]);
-    Promise.resolve(startResult).then(
-      () => {
-        controller._started = true;
-
-        assert(controller._pulling === false);
-        assert(controller._pullAgain === false);
-
-        ReadableByteStreamControllerCallPullIfNeeded(controller);
-      },
-      r => {
-        if (stream._state === 'readable') {
-          ReadableByteStreamControllerError(controller, r);
-        }
-      }
-    )
-    .catch(rethrowAssertionErrorRejection);
+  constructor() {
+    throw new TypeError('ReadableByteStreamController constructor cannot be used directly');
   }
 
   get byobRequest() {
@@ -1360,7 +1320,7 @@ class ReadableByteStreamController {
 
     ResetQueue(this);
 
-    return PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
+    return this._cancelAlgorithm(reason);
   }
 
   [PullSteps]() {
@@ -1457,7 +1417,7 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
   controller._pulling = true;
 
   // TODO: Test controller argument
-  const pullPromise = PromiseInvokeOrNoop(controller._underlyingByteSource, 'pull', [controller]);
+  const pullPromise = controller._pullAlgorithm();
   pullPromise.then(
     () => {
       controller._pulling = false;
@@ -1880,6 +1840,83 @@ function ReadableByteStreamControllerRespondWithNewView(controller, view) {
   firstDescriptor.buffer = view.buffer;
 
   ReadableByteStreamControllerRespondInternal(controller, view.byteLength);
+}
+
+function SetUpReadableByteStreamController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
+                                           autoAllocateChunkSize) {
+  assert(stream._readableStreamController === undefined);
+  if (autoAllocateChunkSize !== undefined) {
+    assert(Number.isInteger(autoAllocateChunkSize) === true);
+    assert(autoAllocateChunkSize > 0);
+  }
+
+  const controller = Object.create(ReadableByteStreamController.prototype);
+  controller._controlledReadableByteStream = stream;
+
+  controller._pullAgain = false;
+  controller._pulling = false;
+
+  ReadableByteStreamControllerClearPendingPullIntos(controller);
+
+  // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
+  controller._queue = controller._queueTotalSize = undefined;
+  ResetQueue(controller);
+
+  controller._closeRequested = false;
+  controller._started = false;
+
+  controller._strategyHWM = ValidateAndNormalizeHighWaterMark(highWaterMark);
+
+  controller._pullAlgorithm = pullAlgorithm;
+  controller._cancelAlgorithm = cancelAlgorithm;
+
+  controller._autoAllocateChunkSize = autoAllocateChunkSize;
+
+  controller._pendingPullIntos = [];
+
+  stream._readableStreamController = controller;
+
+  const startResult = startAlgorithm();
+  Promise.resolve(startResult).then(
+      () => {
+        controller._started = true;
+
+        assert(controller._pulling === false);
+        assert(controller._pullAgain === false);
+
+        ReadableByteStreamControllerCallPullIfNeeded(controller);
+      },
+      r => {
+        if (stream._state === 'readable') {
+          ReadableByteStreamControllerError(controller, r);
+        }
+      }
+  )
+      .catch(rethrowAssertionErrorRejection);
+}
+
+function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyingByteSource, highWaterMark) {
+  function startAlgorithm() {
+    return InvokeOrNoop(underlyingByteSource, 'start', [stream._readableStreamController]);
+  }
+
+  function pullAlgorithm() {
+    return PromiseInvokeOrNoop(underlyingByteSource, 'pull', [stream._readableStreamController]);
+  }
+
+  function cancelAlgorithm(reason) {
+    return PromiseInvokeOrNoop(underlyingByteSource, 'cancel', [reason]);
+  }
+
+  const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
+  if (autoAllocateChunkSize !== undefined) {
+    if (Number.isInteger(autoAllocateChunkSize) === false || autoAllocateChunkSize <= 0) {
+      throw new RangeError('autoAllocateChunkSize must be a positive integer');
+    }
+  }
+
+  SetUpReadableByteStreamController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
+                                    autoAllocateChunkSize);
 }
 
 // Helper functions for the ReadableStream.
