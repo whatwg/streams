@@ -845,9 +845,7 @@ throws.</p>
 <emu-alg>
   1. If _highWaterMark_ was not passed, set it to *1*.
   1. If _sizeAlgorithm_ was not passed, set it to an algorithm that returns *1*.
-  1. Assert: Type(_highWaterMark_) is Number.
-  1. Assert: _highWaterMark_ is not NaN.
-  1. Assert: _highWaterMark_ is not negative.
+  1. Assert: ! IsNonNegativeNumber(_highWaterMark_) is *true*.
   1. Let _stream_ be ObjectCreate(the original value of <a idl>ReadableStream</a>'s `prototype` property).
   1. Perform ! InitializeReadableStream(_stream_).
   1. Perform ? SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
@@ -870,9 +868,7 @@ throws.</p>
 <emu-alg>
   1. If _highWaterMark_ was not passed, set it to *0*.
   1. If _autoAllocateChunkSize_ was not passed, set it to *undefined*.
-  1. Assert: Type(_highWaterMark_) is Number.
-  1. Assert: _highWaterMark_ is not NaN.
-  1. Assert: _highWaterMark_ is not negative.
+  1. Assert: ! IsNonNegativeNumber(_highWaterMark_) is *true*.
   1. If _autoAllocateChunkSize_ is not *undefined*,
     1. Assert: ! IsInteger(_autoAllocateChunkSize_) is *true*.
     1. Assert: _autoAllocateChunkSize_ is positive.
@@ -2990,9 +2986,7 @@ number; and if supplied, <var>highWaterMark</var> must be a nonnegative, non-NaN
 throws.</p>
 
 <emu-alg>
-  1. Assert: Type(_highWaterMark_) is Number.
-  1. Assert: _highWaterMark_ is not NaN.
-  1. Assert: _highWaterMark_ is not negative.
+  1. Assert: ! IsNonNegativeNumber(_highWaterMark_) is *true*.
   1. Let _stream_ be ObjectCreate(the original value of <a idl>WritableStream</a>'s `prototype` property).
   1. Perform ! InitializeWritableStream(_stream_).
   1. Perform ! SetUpWritableStreamDefaultController(_stream_, _startAlgorithm_, _writeAlgorithm_, _closeAlgorithm_,
@@ -4139,12 +4133,8 @@ throws.</p>
   1. If _writableSizeAlgorithm_ was not passed, set it to an algorithm that returns *1*.
   1. If _readableHighWaterMark_ was not passed, set it to *0*.
   1. If _readableSizeAlgorithm_ was not passed, set it to an algorithm that returns *1*.
-  1. Assert: Type(_writableHighWaterMark_) is Number.
-  1. Assert: _writableHighWaterMark_ is not NaN.
-  1. Assert: _writableHighWaterMark_ is not negative.
-  1. Assert: Type(_readableHighWaterMark_) is Number.
-  1. Assert: _readableHighWaterMark_ is not NaN.
-  1. Assert: _readableHighWaterMark_ is not negative.
+  1. Assert: ! IsNonNegativeNumber(_writableHighWaterMark_) is *true*.
+  1. Assert: ! IsNonNegativeNumber(_readableHighWaterMark_) is *true*.
   1. Let _stream_ be ObjectCreate(the original value of <a idl>TransformStream</a>'s `prototype` property).
   1. Let _startPromise_ be <a>a new promise</a>.
   1. Perform ! InitializeTransformStream(_stream_, _startPromise_, _writableHighWaterMark_, _writableSizeAlgorithm_,
@@ -4762,8 +4752,16 @@ A few abstract operations are used in this specification for utility purposes. W
 )</h4>
 
 <emu-alg>
-  1. If _v_ is *NaN*, return *false*.
+  1. If ! IsNonNegativeNumber(_v_) is *false*, return *false*.
   1. If _v_ is *+∞*, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="is-non-negative-number" aoid="IsNonNegativeNumber" nothrow>IsNonNegativeNumber ( <var>v</var> )</h4>
+
+<emu-alg>
+  1. If Type(_v_) is not Number, return *false*.
+  1. If _v_ is *NaN*, return *false*.
   1. If _v_ < *0*, return *false*.
   1. Return *true*.
 </emu-alg>

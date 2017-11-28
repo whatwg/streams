@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('better-assert');
 const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, IsDetachedBuffer,
-        PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark,
+        PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
@@ -293,9 +293,7 @@ function AcquireReadableStreamDefaultReader(stream) {
 // Throws if and only if startAlgorithm throws.
 function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark = 1,
                               sizeAlgorithm = () => 1) {
-  assert(typeof highWaterMark === 'number');
-  assert(!Number.isNaN(highWaterMark));
-  assert(highWaterMark >= 0);
+  assert(IsNonNegativeNumber(highWaterMark) === true);
 
   const stream = Object.create(ReadableStream.prototype);
   InitializeReadableStream(stream);
@@ -310,9 +308,7 @@ function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, hi
 // Throws if and only if startAlgorithm throws.
 function CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark = 0,
                                   autoAllocateChunkSize = undefined) {
-  assert(typeof highWaterMark === 'number');
-  assert(!Number.isNaN(highWaterMark));
-  assert(highWaterMark >= 0);
+  assert(IsNonNegativeNumber(highWaterMark) === true);
   if (autoAllocateChunkSize !== undefined) {
     assert(Number.isInteger(autoAllocateChunkSize) === true);
     assert(autoAllocateChunkSize > 0);

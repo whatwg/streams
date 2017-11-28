@@ -4,7 +4,7 @@ const assert = require('better-assert');
 // Calls to verbose() are purely for debugging the reference implementation and tests. They are not part of the standard
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:transform-stream:verbose');
-const { Call, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject, ValidateAndNormalizeHighWaterMark,
+const { Call, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
@@ -74,12 +74,8 @@ class TransformStream {
 function CreateTransformStream(startAlgorithm, transformAlgorithm, flushAlgorithm, writableHighWaterMark = 1,
                                writableSizeAlgorithm = () => 1, readableHighWaterMark = 0,
                                readableSizeAlgorithm = () => 1) {
-  assert(typeof writableHighWaterMark === 'number');
-  assert(!Number.isNaN(writableHighWaterMark));
-  assert(writableHighWaterMark >= 0);
-  assert(typeof readableHighWaterMark === 'number');
-  assert(!Number.isNaN(readableHighWaterMark));
-  assert(readableHighWaterMark >= 0);
+  assert(IsNonNegativeNumber(writableHighWaterMark));
+  assert(IsNonNegativeNumber(readableHighWaterMark));
 
   const stream = Object.create(TransformStream.prototype);
 

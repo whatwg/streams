@@ -5,8 +5,8 @@ const assert = require('better-assert');
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:writable-stream:verbose');
 
-const { InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeHighWaterMark, MakeSizeAlgorithmFromSizeFunction,
-        typeIsObject } = require('./helpers.js');
+const { InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
+        MakeSizeAlgorithmFromSizeFunction, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 
@@ -81,9 +81,7 @@ function AcquireWritableStreamDefaultWriter(stream) {
 // Throws if and only if startAlgorithm throws.
 function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark,
                               sizeAlgorithm) {
-  assert(typeof highWaterMark === 'number');
-  assert(!Number.isNaN(highWaterMark));
-  assert(highWaterMark >= 0);
+  assert(IsNonNegativeNumber(highWaterMark) === true);
 
   const stream = Object.create(WritableStream.prototype);
   InitializeWritableStream(stream);

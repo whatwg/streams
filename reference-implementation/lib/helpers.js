@@ -33,12 +33,26 @@ exports.CreateIterResultObject = (value, done) => {
 };
 
 exports.IsFiniteNonNegativeNumber = v => {
-  if (Number.isNaN(v)) {
+  if (exports.IsNonNegativeNumber(v) === false) {
     return false;
   }
+
   if (v === Infinity) {
     return false;
   }
+
+  return true;
+};
+
+exports.IsNonNegativeNumber = v => {
+  if (typeof v !== 'number') {
+    return false;
+  }
+
+  if (Number.isNaN(v)) {
+    return false;
+  }
+
   if (v < 0) {
     return false;
   }
