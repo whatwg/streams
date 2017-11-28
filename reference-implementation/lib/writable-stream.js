@@ -79,8 +79,8 @@ function AcquireWritableStreamDefaultWriter(stream) {
 }
 
 // Throws if and only if startAlgorithm throws.
-function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark,
-                              sizeAlgorithm) {
+function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark = 1,
+                              sizeAlgorithm = () => 1) {
   assert(IsNonNegativeNumber(highWaterMark) === true);
 
   const stream = Object.create(WritableStream.prototype);
