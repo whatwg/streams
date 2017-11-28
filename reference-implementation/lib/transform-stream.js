@@ -311,7 +311,7 @@ function TransformStreamDefaultControllerTerminate(controller) {
   TransformStreamErrorWritableAndUnblockWrite(stream, error);
 }
 
-// Class TransformStreamDefaultSink
+// TransformStreamDefaultSink Algorithms
 
 function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
   verbose('TransformStreamDefaultSinkWriteAlgorithm()');
@@ -403,7 +403,7 @@ function TransformStreamDefaultSinkTransform(stream, transformer, chunk) {
   });
 }
 
-// Class TransformStreamDefaultSource
+// TransformStreamDefaultSource Algorithms
 
 function TransformStreamDefaultSourcePullAlgorithm(stream) {
   verbose('TransformStreamDefaultSourcePullAlgorithm()');

@@ -984,8 +984,9 @@ noticable asymmetry between the two branches, and limits the possible <a>chunks<
       1. Let _cancelResult_ be ! ReadableStreamCancel(_stream_, _compositeReason_).
       1. <a>Resolve</a> _cancelPromise_ with _cancelResult_.
     1. Return _cancelPromise_.
-  1. Set _branch1_ to CreateReadableStream(_pullAlgorithm_, _cancel1Algorithm_).
-  1. Set _branch2_ to CreateReadableStream(_pullAlgorithm_, _cancel2Algorithm_).
+  1. Let _startAlgorithm_ be an algorithm that returns *undefined*.
+  1. Set _branch1_ to CreateReadableStream(_startAlgorithm_, _pullAlgorithm_, _cancel1Algorithm_).
+  1. Set _branch2_ to CreateReadableStream(_startAlgorithm_, _pullAlgorithm_, _cancel2Algorithm_).
   1. <a>Upon rejection</a> of _reader_.[[closedPromise]] with reason _r_,
     1. If _closedOrErrored_ is *false*, then:
       1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_branch1_.[[readableStreamController]], _r_).
@@ -1627,8 +1628,7 @@ Instances of {{ReadableStreamDefaultController}} are created with the internal s
 </table>
 
 <h4 id="rs-default-controller-constructor" constructor for="ReadableStreamDefaultController"
-lt="ReadableStreamDefaultController()">new
-ReadableStreamDefaultController()</h4>
+lt="ReadableStreamDefaultController()">new ReadableStreamDefaultController()</h4>
 
 <div class="note">
   The <code>ReadableStreamDefaultController</code> constructor cannot be used directly;
@@ -1911,7 +1911,7 @@ throws>SetUpReadableStreamDefaultControllerFromUnderlyingSource(<var>stream</var
     1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"pull"`, « _stream_.[[readableStreamController]] »).
   1. Let _cancelAlgorithm_ be the following steps, taking a _reason_ argument:
     1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"cancel"`, « _reason_ »).
-  1. Perform ? SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _underlyingSource_,
+  1. Perform ? SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
      _highWaterMark_, _sizeAlgorithm_)
 </emu-alg>
 
@@ -3718,7 +3718,7 @@ used polymorphically.
 <var>reason</var> )</h5>
 
 <emu-alg>
-  1. Return the result of performing *this*.[[abortAlgorithm]].
+  1. Return the result of performing *this*.[[abortAlgorithm]], passing _reason_.
 </emu-alg>
 
 <h5 id="ws-default-controller-private-error">\[[ErrorSteps]]()</h5>
@@ -4085,7 +4085,7 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
   1. Let _readableHighWaterMark_ be ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
   1. Perform ! InitializeTransformStream(*this*, _startPromise_, _writableHighWaterMark_, _writableSizeAlgorithm_,
      _readableHighWaterMark_, _readableSizeAlgorithm_).
-  1. Perform ! SetUpTransformStreamDefaultControllerFromTransformer(*this*, _transform_).
+  1. Perform ! SetUpTransformStreamDefaultControllerFromTransformer(*this*, _transformer_).
   1. Let _startResult_ be ? InvokeOrNoop(_transformer_, `"start"`, « *this*.[[transformStreamController]] »).
   1. <a>Resolve</a> _startPromise_ with _startResult_.
 </emu-alg>
@@ -4159,21 +4159,21 @@ throws.</p>
     1. Return ! TransformStreamDefaultSinkAbortAlgorithm(_stream_).
   1. Let _closeAlgorithm_ be the following steps:
     1. Return ! TransformStreamDefaultSinkCloseAlgorithm(_stream_).
-  1. Set *this*.[[writable]] to ! CreateWritableStream(_startAlgorithm_, _writeAlgorithm_, _closeAlgorithm_,
+  1. Set _stream_.[[writable]] to ! CreateWritableStream(_startAlgorithm_, _writeAlgorithm_, _closeAlgorithm_,
      _abortAlgorithm_, _writableHighWaterMark_, _writableSizeAlgorithm_).
   1. Let _pullAlgorithm_ be the following steps:
     1. Return ! TransformStreamDefaultSourcePullAlgorithm(_stream_).
   1. Let _cancelAlgorithm_ be the following steps, taking a _reason_ argument:
     1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _reason_).
     1. Return <a>a promise resolved with</a> *undefined*.
-  1. Set *this*.[[readable]] to ! CreateReadableStream(_startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
+  1. Set _stream_.[[readable]] to ! CreateReadableStream(_startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
      _readableHighWaterMark_, _readableSizeAlgorithm_).
-  1. Set *this*.[[backpressure]] and *this*.[[backpressureChangePromise]] to *undefined*.
+  1. Set _stream_.[[backpressure]] and _stream_.[[backpressureChangePromise]] to *undefined*.
      <p class="note">The [[backpressure]] slot is set to *undefined* so that it can be initialized by
      TransformStreamSetBackpressure. Alternatively, implementations can use a strictly boolean value for
      [[backpressure]] and change the way it is initialized. This will not be visible to user code so long as the
      initialization is correctly completed before _transformer_'s <code>start()</code> method is is called.</p>
-  1. Perform ! TransformStreamSetBackpressure(*this*, *true*).
+  1. Perform ! TransformStreamSetBackpressure(_stream_, *true*).
   1. Set _stream_.[[transformStreamController]] to *undefined*.
 </emu-alg>
 
