@@ -126,7 +126,7 @@ read from disk. An example pull source is a file handle, where you seek to speci
 
 Readable streams are designed to wrap both types of sources behind a single, unified interface. For
 web developer–created streams, the implementation details of a source are provided by an object with certain methods and
-properties. It is passed to the {{ReadableStream()}} constructor.
+properties that is passed to the {{ReadableStream()}} constructor.
 
 <a>Chunks</a> are enqueued into the stream by the stream's <a>underlying source</a>. They can then be read one at a
 time via the stream's public interface, in particular by using a <a>readable stream reader</a> acquired using the
@@ -846,7 +846,7 @@ throws.</p>
   1. If _highWaterMark_ was not passed, set it to *1*.
   1. If _sizeAlgorithm_ was not passed, set it to an algorithm that returns *1*.
   1. Assert: ! IsNonNegativeNumber(_highWaterMark_) is *true*.
-  1. Let _stream_ be ObjectCreate(the original value of <a idl>ReadableStream</a>'s `prototype` property).
+  1. Let _stream_ be ObjectCreate(the original value of `<a idl>ReadableStream</a>`'s `prototype` property).
   1. Perform ! InitializeReadableStream(_stream_).
   1. Perform ? SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
      _highWaterMark_, _sizeAlgorithm_).
@@ -872,7 +872,7 @@ throws.</p>
   1. If _autoAllocateChunkSize_ is not *undefined*,
     1. Assert: ! IsInteger(_autoAllocateChunkSize_) is *true*.
     1. Assert: _autoAllocateChunkSize_ is positive.
-  1. Let _stream_ be ObjectCreate(the original value of <a idl>ReadableStream</a>'s `prototype` property).
+  1. Let _stream_ be ObjectCreate(the original value of `<a idl>ReadableStream</a>`'s `prototype` property).
   1. Perform ! InitializeReadableStream(_stream_).
   1. Perform ? SetUpReadableByteStreamController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
      _highWaterMark_, _autoAllocateChunkSize_).
@@ -962,7 +962,7 @@ noticable asymmetry between the two branches, and limits the possible <a>chunks<
       1. If _closedOrErrored_ is *true*, return.
       1. Let _value1_ and _value2_ be _value_.
       1. If _canceled2_ is *false* and _cloneForBranch2_ is *true*, set _value2_ to ? <a
-         abstract-op>StructuredDeserialize</a>(<a abstract-op>StructuredSerialize</a>(_value2_), the current Realm
+         abstract-op>StructuredDeserialize</a>(? <a abstract-op>StructuredSerialize</a>(_value2_), the current Realm
          Record).
       1. If _canceled1_ is *false*, perform ?
          ReadableStreamDefaultControllerEnqueue(_branch1_.[[readableStreamController]], _value1_).
@@ -1878,7 +1878,7 @@ throws>SetUpReadableStreamDefaultController(<var>stream</var>, <var>startAlgorit
 
 <emu-alg>
   1. Assert: _stream_.[[readableStreamController]] is *undefined*.
-  1. Let _controller_ be ObjectCreate(the original value of <a idl>ReadableStreamDefaultController</a>'s `prototype`
+  1. Let _controller_ be ObjectCreate(the original value of `<a idl>ReadableStreamDefaultController</a>`'s `prototype`
      property).
   1. Set _controller_.[[controlledReadableStream]] to _stream_.
   1. Set _controller_.[[queue]] and _controller_.[[queueSize]] to *undefined*, then perform ! ResetQueue(_controller_).
@@ -1889,14 +1889,14 @@ throws>SetUpReadableStreamDefaultController(<var>stream</var>, <var>startAlgorit
   1. Set _controller_.[[cancelAlgorithm]] to _cancelAlgorithm_.
   1. Set _stream_.[[readableStreamController]] to _controller_.
   1. Let _startResult_ be the result of performing _startAlgorithm_. (This may throw an exception.)
-  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
-    1. <a>Upon fulfillment</a>  of _startPromise_,
-      1. Set _controller_.[[started]] to *true*.
-      1. Assert: _controller_.[[pulling]] is *false*.
-      1. Assert: _controller_.[[pullAgain]] is *false*.
-      1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
-    1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
-      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
+  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_.
+  1. <a>Upon fulfillment</a>  of _startPromise_,
+    1. Set _controller_.[[started]] to *true*.
+    1. Assert: _controller_.[[pulling]] is *false*.
+    1. Assert: _controller_.[[pullAgain]] is *false*.
+    1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
+  1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
+    1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
 </emu-alg>
 
 <h4 id="set-up-readable-stream-default-controller-from-underlying-source"
@@ -1933,7 +1933,7 @@ would look like
 
 <pre><code class="lang-javascript">
   class ReadableByteStreamController {
-    constructor(stream, underlyingByteSource, highWaterMark)
+    constructor() // always throws
 
     get byobRequest()
     get desiredSize()
@@ -2023,11 +2023,12 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
 </div>
 
 <h4 id="rbs-controller-constructor" constructor for="ReadableByteStreamController"
-lt="ReadableByteStreamController(stream, underlyingByteSource, highWaterMark)">new
-ReadableByteStreamController(<var>stream</var>, <var>underlyingByteSource</var>, <var>highWaterMark</var>)</h4>
+lt="ReadableByteStreamController()">new
+ReadableByteStreamController()</h4>
 
 <div class="note">
-  The <code>ReadableByteStreamController</code> constructor cannot be used directly.
+  The <code>ReadableByteStreamController</code> constructor cannot be used directly;
+  {{ReadableByteStreamController}} instances are created automatically during {{ReadableStream}} construction.
 </div>
 
 <emu-alg>
@@ -2646,7 +2647,7 @@ throws>SetUpReadableByteStreamController ( <var>stream</var>, <var>startAlgorith
   1. If _autoAllocateChunkSize_ is not *undefined*,
     1. Assert: ! IsInteger(_autoAllocateChunkSize_) is *true*.
     1. Assert: _autoAllocateChunkSize_ is positive.
-  1. Let _controller_ be ObjectCreate(the original value of <a idl>ReadableByteStreamController</a>'s `prototype`
+  1. Let _controller_ be ObjectCreate(the original value of `<a idl>ReadableByteStreamController</a>`'s `prototype`
      property).
   1. Set _controller_.[[controlledReadableByteStream]] to _stream_.
   1. Set _controller_.[[pullAgain]] and _controller_.[[pulling]] to *false*.
@@ -2660,14 +2661,14 @@ throws>SetUpReadableByteStreamController ( <var>stream</var>, <var>startAlgorith
   1. Set _controller_.[[pendingPullIntos]] to a new empty List.
   1. Set _stream_.[[readableStreamController]] to _controller_.
   1. Let _startResult_ be the result of performing _startAlgorithm_.
-  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_:
-    1. <a>Upon fulfillment</a>  of _startPromise_,
-      1. Set _controller_.[[started]] to *true*.
-      1. Assert: _controller_.[[pulling]] is *false*.
-      1. Assert: _controller_.[[pullAgain]] is *false*.
-      1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
-    1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
-      1. If _stream_.[[state]] is `"readable"`, perform ! ReadableByteStreamControllerError(_controller_, _r_).
+  1. Let _startPromise_ be <a>a promise resolved with</a> _startResult_.
+  1. <a>Upon fulfillment</a>  of _startPromise_,
+    1. Set _controller_.[[started]] to *true*.
+    1. Assert: _controller_.[[pulling]] is *false*.
+    1. Assert: _controller_.[[pullAgain]] is *false*.
+    1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
+  1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
+    1. If _stream_.[[state]] is `"readable"`, perform ! ReadableByteStreamControllerError(_controller_, _r_).
 </emu-alg>
 
 <h4 id="set-up-readable-byte-stream-controller-from-underlying-source"
@@ -2818,13 +2819,12 @@ Instances of {{WritableStream}} are created with the internal slots described in
   <tr>
     <td>\[[inFlightWriteRequest]]
     <td class="non-normative">A slot set to the promise for the current in-flight write operation while the
-      <a>underlying sink</a>'s <code>write</code> algorithm is executing and has not yet fulfilled, used to prevent
-      reentrant calls
+      <a>underlying sink</a>'s write algorithm is executing and has not yet fulfilled, used to prevent reentrant calls
   </tr>
   <tr>
     <td>\[[inFlightCloseRequest]]
     <td class="non-normative">A slot set to the promise for the current in-flight close operation while the
-      <a>underlying sink</a>'s <code>close</code> algorithm is executing and has not yet fulfilled, used to prevent the
+      <a>underlying sink</a>'s close algorithm is executing and has not yet fulfilled, used to prevent the
       {{WritableStreamDefaultWriter/abort()}} method from interrupting close
   </tr>
   <tr>
@@ -2907,14 +2907,14 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
 </div>
 
 <emu-alg>
-  1. Perform ! InitializeWritableStream(_this_);
+  1. Perform ! InitializeWritableStream(_this_).
   1. Let _type_ be ? GetV(_underlyingSink_, `"type"`).
   1. If _type_ is not *undefined*, throw a *RangeError* exception. <p class="note">This is to allow us to add new
      potential types in the future, without backward-compatibility concerns.</p>
   1. Let _sizeAlgorithm_ be ? MakeSizeAlgorithmFromSizeFunction(_size_).
   1. Set _highWaterMark_ to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
   1. Perform ! SetUpWritableStreamDefaultControllerFromUnderlyingSink(*this*, _underlyingSink_, _highWaterMark_,
-     _sizeAlgorithm_);
+     _sizeAlgorithm_).
 </emu-alg>
 
 <h4 id="ws-prototype">Properties of the {{WritableStream}} Prototype</h4>
@@ -2989,7 +2989,7 @@ throws.</p>
   1. If _highWaterMark_ was not passed, set it to *1*.
   1. If _sizeAlgorithm_ was not passed, set it to an algorithm that returns *1*.
   1. Assert: ! IsNonNegativeNumber(_highWaterMark_) is *true*.
-  1. Let _stream_ be ObjectCreate(the original value of <a idl>WritableStream</a>'s `prototype` property).
+  1. Let _stream_ be ObjectCreate(the original value of `<a idl>WritableStream</a>`'s `prototype` property).
   1. Perform ! InitializeWritableStream(_stream_).
   1. Perform ! SetUpWritableStreamDefaultController(_stream_, _startAlgorithm_, _writeAlgorithm_, _closeAlgorithm_,
      _abortAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
@@ -3676,7 +3676,8 @@ Instances of {{WritableStreamDefaultController}} are created with the internal s
 lt="WritableStreamDefaultController()">new WritableStreamDefaultController()</h4>
 
 <div class="note">
-  The <code>WritableStreamDefaultController</code> constructor cannot be used directly.
+  The <code>WritableStreamDefaultController</code> constructor cannot be used directly;
+  {{WritableStreamDefaultController}} instances are created automatically during {{WritableStream}} construction.
 </div>
 
 <emu-alg>
@@ -3729,6 +3730,15 @@ used polymorphically.
 
 <h3 id="ws-default-controller-abstract-ops">Writable Stream Default Controller Abstract Operations</h3>
 
+<h4 id="is-writable-stream-default-controller" aoid="IsWritableStreamDefaultController"
+nothrow>IsWritableStreamDefaultController ( <var>x</var> )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have an [[controlledWritableStream]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
 <h4 id="set-up-writable-stream-default-controller" aoid="SetUpWritableStreamDefaultController"
 throws>SetUpWritableStreamDefaultController ( <var>stream</var>, <var>startAlgorithm</var>, <var>writeAlgorithm</var>,
 <var>closeAlgorithm</var>, <var>abortAlgorithm</var>, <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
@@ -3736,7 +3746,7 @@ throws>SetUpWritableStreamDefaultController ( <var>stream</var>, <var>startAlgor
 <emu-alg>
   1. Assert: ! IsWritableStream(_stream_) is *true*.
   1. Assert: _stream_.[[writableStreamController]] is *undefined*.
-  1. Let _controller_ be ObjectCreate(the original value of <a idl>WritableStreamDefaultController</a>'s `prototype`
+  1. Let _controller_ be ObjectCreate(the original value of `<a idl>WritableStreamDefaultController</a>`'s `prototype`
      property).
   1. Set _controller_.[[controlledWritableStream]] to _stream_.
   1. Set _stream_.[[writableStreamController]] to _controller_.
@@ -3750,15 +3760,15 @@ throws>SetUpWritableStreamDefaultController ( <var>stream</var>, <var>startAlgor
   1. Let _backpressure_ be ! WritableStreamDefaultControllerGetBackpressure(_controller_).
   1. Perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
   1. Let _startResult_ be the result of performing _startAlgorithm_. (This may throw an exception.)
-  1. Let _startPromise_ be a promise resolve with _startResult_:
-    1. <a>Upon fulfillment</a> of _startPromise_,
-      1. Assert: _stream_.[[state]] is `"writable"` or `"erroring"`.
-      1. Set _controller_.[[started]] to *true*.
-      1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
-    1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
-      1. Assert: _stream_.[[state]] is `"writable"` or `"erroring"`.
-      1. Set _controller_.[[started]] to *true*.
-      1. Perform ! WritableStreamDealWithRejection(_stream_, _r_).
+  1. Let _startPromise_ be a promise resolve with _startResult_.
+  1. <a>Upon fulfillment</a> of _startPromise_,
+    1. Assert: _stream_.[[state]] is `"writable"` or `"erroring"`.
+    1. Set _controller_.[[started]] to *true*.
+    1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
+  1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
+    1. Assert: _stream_.[[state]] is `"writable"` or `"erroring"`.
+    1. Set _controller_.[[started]] to *true*.
+    1. Perform ! WritableStreamDealWithRejection(_stream_, _r_).
 </emu-alg>
 
 <h4 id="set-up-writable-stream-default-controller-from-underlying-sink"
@@ -3779,15 +3789,6 @@ throws>SetUpWritableStreamDefaultControllerFromUnderlyingSink ( <var>stream</var
      _abortAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
 </emu-alg>
 
-<h4 id="is-writable-stream-default-controller" aoid="IsWritableStreamDefaultController"
-nothrow>IsWritableStreamDefaultController ( <var>x</var> )</h4>
-
-<emu-alg>
-  1. If Type(_x_) is not Object, return *false*.
-  1. If _x_ does not have an [[controlledWritableStream]] internal slot, return *false*.
-  1. Return *true*.
-</emu-alg>
-
 <h4 id="writable-stream-default-controller-close" aoid="WritableStreamDefaultControllerClose"
 nothrow>WritableStreamDefaultControllerClose ( <var>controller</var> )</h4>
 
@@ -3800,7 +3801,7 @@ nothrow>WritableStreamDefaultControllerClose ( <var>controller</var> )</h4>
 nothrow>WritableStreamDefaultControllerGetChunkSize ( <var>controller</var>, <var>chunk</var> )</h4>
 
 <emu-alg>
-  1. Let _returnValue_ be the result of performing _controller_.[[strategySizeAlgorithm]]_, passing in _chunk_, and
+  1. Let _returnValue_ be the result of performing _controller_.[[strategySizeAlgorithm]], passing in _chunk_, and
      interpreting the result as an ECMAScript completion value.
   1. If _returnValue_ is an abrupt completion,
     1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_controller_, _returnValue_.[[Value]]).
@@ -4030,8 +4031,8 @@ Instances of {{TransformStream}} are created with the internal slots described i
 </table>
 
 <h4 id="ts-constructor" constructor for="TransformStream" lt="TransformStream(transformer, writableStrategy,
-readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writableStrategy</var> = {}, {
-<var>size</var>, <var>highWaterMark</var> = 0 } = {})</h4>
+readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writableStrategy</var> = {},
+<var>readableStrategy</var> = {})</h4>
 
 <div class="note">
   The <code>transformer</code> object passed to the constructor can implement any of the following methods to govern
@@ -4075,14 +4076,17 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
   1. If _readableType_ is not *undefined*, throw a *RangeError* exception.
   1. Let _writableType_ be ? GetV(_transformer_, `"writableType"`).
   1. If _writableType_ is not *undefined*, throw a *RangeError* exception.
-  1. Let _startPromise_ be <a>a new promise</a>.
   1. Let _writableSizeFunction_ be ? GetV(_writableStrategy_, `"size"`).
   1. Let _writableSizeAlgorithm_ be ? MakeSizeAlgorithmFromSizeFunction(_writableSizeFunction_).
   1. Let _writableHighWaterMark_ be ? GetV(_writableStrategy_, `"highWaterMark"`).
   1. If _writableHighWaterMark_ is *undefined*, set _writableHighWaterMark_ to *1*.
   1. Set _writableHighWaterMark_ to ? ValidateAndNormalizeHighWaterMark(_writableHighWaterMark_).
-  1. Let _readableSizeAlgorithm_ be ? MakeSizeAlgorithmFromSizeFunction(_size_).
-  1. Let _readableHighWaterMark_ be ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
+  1. Let _readableSizeFunction_ be ? GetV(_readableStrategy_, `"size"`).
+  1. Let _readableSizeAlgorithm_ be ? MakeSizeAlgorithmFromSizeFunction(_readableSizeFunction_).
+  1. Let _readableHighWaterMark_ be ? GetV(_readableStrategy_, `"highWaterMark"`).
+  1. If _readableHighWaterMark_ is *undefined*, set _readableHighWaterMark_ to *0*.
+  1. Set _readableHighWaterMark_ be ? ValidateAndNormalizeHighWaterMark(_readableHighWaterMark_).
+  1. Let _startPromise_ be <a>a new promise</a>.
   1. Perform ! InitializeTransformStream(*this*, _startPromise_, _writableHighWaterMark_, _writableSizeAlgorithm_,
      _readableHighWaterMark_, _readableSizeAlgorithm_).
   1. Perform ! SetUpTransformStreamDefaultControllerFromTransformer(*this*, _transformer_).
@@ -4137,7 +4141,7 @@ throws.</p>
   1. If _readableSizeAlgorithm_ was not passed, set it to an algorithm that returns *1*.
   1. Assert: ! IsNonNegativeNumber(_writableHighWaterMark_) is *true*.
   1. Assert: ! IsNonNegativeNumber(_readableHighWaterMark_) is *true*.
-  1. Let _stream_ be ObjectCreate(the original value of <a idl>TransformStream</a>'s `prototype` property).
+  1. Let _stream_ be ObjectCreate(the original value of `<a idl>TransformStream</a>`'s `prototype` property).
   1. Let _startPromise_ be <a>a new promise</a>.
   1. Perform ! InitializeTransformStream(_stream_, _startPromise_, _writableHighWaterMark_, _writableSizeAlgorithm_,
      _readableHighWaterMark_, _readableSizeAlgorithm_).
@@ -4238,7 +4242,7 @@ it would look like
 
 <pre><code class="lang-javascript">
   class TransformStreamDefaultController {
-    constructor(stream)
+    constructor() // always throws
 
     get desiredSize()
 
@@ -4272,7 +4276,8 @@ Instances of {{TransformStreamDefaultController}} are created with the internal 
 lt="TransformStreamDefaultController()">new TransformStreamDefaultController()</h4>
 
 <div class="note">
-  The <code>TransformStreamDefaultController</code> constructor cannot be used directly.
+  The <code>TransformStreamDefaultController</code> constructor cannot be used directly;
+  {{TransformStreamDefaultController}} instances are created automatically during {{TransformStream}} construction.
 </div>
 
 <emu-alg>
@@ -4350,7 +4355,7 @@ nothrow>SetUpTransformStreamDefaultController ( <var>stream</var>, <var>transfor
 <emu-alg>
   1. Assert: ! IsTransformStream(_stream_) is *true*.
   1. Assert: _stream_.[[writableStreamController]] is *undefined*.
-  1. Let _controller_ be ObjectCreate(the original value of <a idl>TransformStreamDefaultController</a>'s `prototype`
+  1. Let _controller_ be ObjectCreate(the original value of `<a idl>TransformStreamDefaultController</a>`'s `prototype`
      property).
   1. Set _controller_.[[controlledTransformStream]] to _stream_.
   1. Set _stream_.[[transformStreamController]] to _controller_.
@@ -4450,7 +4455,7 @@ nothrow>TransformStreamDefaultSinkAbortAlgorithm ( <var>stream</var> )</h4>
 </emu-alg>
 
 <h4 id="transform-stream-default-sink-close-algorithm" aoid="TransformStreamDefaultSinkCloseAlgorithm"
-nothrow>TransformStreamDefaultSinkCloseAlgorithm( _stream_ )</h4>
+nothrow>TransformStreamDefaultSinkCloseAlgorithm( <var>stream</var> )</h4>
 
 <emu-alg>
   1. Let _readable_ be _stream_.[[readable]].
@@ -4498,7 +4503,8 @@ nothrow>TransformStreamDefaultSinkTransform ( <var>stream</var>, <var>transforme
 <h3 id="ts-default-source-abstract-ops">Transform Stream Default Source Abstract Operations</h3>
 
 <h4 id="transform-stream-default-source-pull"
-aoid="TransformStreamDefaultSourcePullAlgorithm" nothrow>TransformStreamDefaultSourcePullAlgorithm( _stream_ )</h4>
+aoid="TransformStreamDefaultSourcePullAlgorithm" nothrow>TransformStreamDefaultSourcePullAlgorithm( <var>stream</var>
+)</h4>
 
 <emu-alg>
   1. Assert: _stream_.[[backpressure]] is *true*.
