@@ -15,7 +15,7 @@ const { CreateWritableStream, WritableStreamDefaultControllerErrorIfNeeded } = r
 // Class TransformStream
 
 class TransformStream {
-  constructor(transformer = {}, writableStrategy = {}, { size, highWaterMark = 0 } = {}) {
+  constructor(transformer = {}, writableStrategy = {}, readableStrategy = {}) {
     const readableType = transformer.readableType;
 
     if (readableType !== undefined) {
@@ -28,11 +28,6 @@ class TransformStream {
       throw new RangeError('Invalid writable type specified');
     }
 
-    let startPromise_resolve;
-    const startPromise = new Promise(resolve => {
-      startPromise_resolve = resolve;
-    });
-
     const writableSizeFunction = writableStrategy.size;
     const writableSizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(writableSizeFunction);
     let writableHighWaterMark = writableStrategy.highWaterMark;
@@ -41,8 +36,18 @@ class TransformStream {
     }
     writableHighWaterMark = ValidateAndNormalizeHighWaterMark(writableHighWaterMark);
 
-    const readableSizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(size);
-    const readableHighWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
+    const readableSizeFunction = readableStrategy.size;
+    const readableSizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(readableSizeFunction);
+    let readableHighWaterMark = readableStrategy.highWaterMark;
+    if (readableHighWaterMark === undefined) {
+      readableHighWaterMark = 0;
+    }
+    readableHighWaterMark = ValidateAndNormalizeHighWaterMark(readableHighWaterMark);
+
+    let startPromise_resolve;
+    const startPromise = new Promise(resolve => {
+      startPromise_resolve = resolve;
+    });
 
     InitializeTransformStream(this, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark,
                               readableSizeAlgorithm);

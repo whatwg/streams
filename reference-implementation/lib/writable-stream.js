@@ -722,6 +722,18 @@ class WritableStreamDefaultController {
 
 // Abstract operations implementing interface required by the WritableStream.
 
+function IsWritableStreamDefaultController(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_controlledWritableStream')) {
+    return false;
+  }
+
+  return true;
+}
+
 function SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm,
                                               highWaterMark, sizeAlgorithm) {
   assert(IsWritableStream(stream) === true);
@@ -824,18 +836,6 @@ function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
 }
 
 // Abstract operations for the WritableStreamDefaultController.
-
-function IsWritableStreamDefaultController(x) {
-  if (!typeIsObject(x)) {
-    return false;
-  }
-
-  if (!Object.prototype.hasOwnProperty.call(x, '_controlledWritableStream')) {
-    return false;
-  }
-
-  return true;
-}
 
 function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
   verbose('WritableStreamDefaultControllerAdvanceQueueIfNeeded()');
