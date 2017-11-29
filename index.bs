@@ -179,7 +179,8 @@ side.
 
 Concretely, any object with a <code>writable</code> property and a <code>readable</code> property can serve as a
 transform stream. However, the standard {{TransformStream}} class makes it much easier to create such a pair that is
-properly entangled. It wraps a <dfn>transformer</dfn> object which defines the specific transformation to be performed.
+properly entangled. It wraps a <dfn>transformer</dfn>, which defines algorithms for the specific transformation to be
+performed.
 
 An <dfn>identity transform stream</dfn> is a type of transform stream which forwards all <a>chunks</a> written to its
 <a>writable side</a> to its <a>readable side</a>, without any changes. This can be useful in <a
@@ -4229,7 +4230,7 @@ the promise always resolves.</p>
 <code>TransformStreamDefaultController</code></h3>
 
 The {{TransformStreamDefaultController}} class has methods that allow manipulation of the associated {{ReadableStream}}
-and {{WritableStream}}. When constructing a {{TransformStream}}, the <a>transformer</a> is given a corresponding
+and {{WritableStream}}. When constructing a {{TransformStream}}, the <a>transformer</a> object is given a corresponding
 {{TransformStreamDefaultController}} instance to manipulate.
 
 <h4 id="ts-default-controller-class-definition">Class Definition</h4>
