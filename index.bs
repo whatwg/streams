@@ -1579,6 +1579,7 @@ Instances of {{ReadableStreamDefaultController}} are created with the internal s
     <td>\[[cancelAlgorithm]]
     <td class="non-normative">A promise-returning algorithm, taking one argument (the cancel reason), which communicates
       a requested cancelation to the <a>underlying source</a>
+  </tr>
   <tr>
     <td>\[[closeRequested]]
     <td class="non-normative">A boolean flag indicating whether the stream has been closed by its <a>underlying
@@ -1967,6 +1968,11 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
     <td class="non-normative">A {{ReadableStreamBYOBRequest}} instance representing the current BYOB pull request
   </tr>
   <tr>
+    <td>\[[cancelAlgorithm]]
+    <td class="non-normative">A promise-returning algorithm, taking one argument (the cancel reason), which communicates
+      a requested cancelation to the <a>underlying source</a>
+  </tr>
+  <tr>
     <td>\[[closeRequested]]
     <td class="non-normative">A boolean flag indicating whether the stream has been closed by its <a>underlying byte
       source</a>, but still has <a>chunks</a> in its internal queue that have not yet been read
@@ -1980,6 +1986,10 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
     <td class="non-normative">A boolean flag set to <emu-val>true</emu-val> if the stream's mechanisms requested a call
       to the <a>underlying byte source</a>'s <code>pull</code> method to pull more data, but the pull could not yet be
       done since a previous call is still executing
+  </tr>
+  <tr>
+    <td>\[[pullAlgorithm]]
+    <td class="non-normative">A promise-returning algorithm that pulls data from the <a>underlying source</a>
   </tr>
   <tr>
     <td>\[[pulling]]
@@ -2006,11 +2016,6 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
     <td>\[[strategyHWM]]
     <td class="non-normative">A number supplied to the constructor as part of the stream's <a>queuing strategy</a>,
       indicating the point at which the stream will apply <a>backpressure</a> to its <a>underlying byte source</a>
-  </tr>
-  <tr>
-    <td>\[[underlyingByteSource]]
-    <td class="non-normative">An object representation of the stream's <a>underlying byte source</a>;
-      also used for the <a href="#is-readable-byte-stream-controller">IsReadableByteStreamController</a> brand check
   </tr>
 </table>
 
@@ -4016,10 +4021,6 @@ Instances of {{TransformStream}} are created with the internal slots described i
     <td class="non-normative">The {{ReadableStream}} instance controlled by this object
   </tr>
   <tr>
-    <td>\[[transformer]]
-    <td class="non-normative">The <var>transformer</var> object that was passed to the constructor
-  </tr>
-  <tr>
     <td>\[[transformStreamController]]
     <td class="non-normative">A {{TransformStreamDefaultController}} created with the ability to control \[[readable]]
     and \[[writable]]; also used for the <a href="#is-transform-stream">IsTransformStream</a> brand check
@@ -4270,6 +4271,15 @@ Instances of {{TransformStreamDefaultController}} are created with the internal 
     <td class="non-normative">The {{TransformStream}} instance controlled; also used for the
       IsTransformStreamDefaultController brand check
   </tr>
+  <tr>
+    <td>\[[flushAlgorithm]]
+    <td class="non-normative">A promise-returning algorithm which communicates a requested close to the
+      <a>transformer</a>
+  </tr>
+  <tr>
+    <td>\[[transformAlgorithm]]
+    <td class="non-normative">A promise-returning algorithm, taking one argument (the <a>chunk</a> to transform), which
+      requests the <a>transformer</a> perform its transformation
 </table>
 
 <h4 id="ts-default-controller-constructor" constructor for="TransformStreamDefaultController"
