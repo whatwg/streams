@@ -260,7 +260,7 @@ function SetUpTransformStreamDefaultController(stream, transformAlgorithm, flush
 
 function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer) {
   function transformAlgorithm(chunk) {
-    return TransformStreamDefaultSinkTransform(stream, transformer, chunk);
+    return TransformStreamDefaultControllerPromiseCallTransform(stream, transformer, chunk);
   }
 
   function flushAlgorithm() {
@@ -268,6 +268,19 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
   }
 
   SetUpTransformStreamDefaultController(stream, transformAlgorithm, flushAlgorithm);
+}
+
+function TransformStreamDefaultControllerCallTransformOrFallback(stream, transformer, chunk) {
+  const controller = stream._transformStreamController;
+
+  const method = transformer.transform; // can throw
+
+  if (method === undefined) {
+    TransformStreamDefaultControllerEnqueue(controller, chunk); // can throw
+    return undefined;
+  }
+
+  return Call(method, transformer, [chunk, controller]); // can throw
 }
 
 function TransformStreamDefaultControllerEnqueue(controller, chunk) {
@@ -300,6 +313,28 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
 
 function TransformStreamDefaultControllerError(controller, e) {
   TransformStreamError(controller._controlledTransformStream, e);
+}
+
+function TransformStreamDefaultControllerPromiseCallTransform(stream, transformer, chunk) {
+  verbose('TransformStreamDefaultControllerPromiseCallTransform()');
+
+  assert(stream._readable._state !== 'errored');
+  assert(stream._backpressure === false);
+
+  let transformPromise;
+  try {
+    // TransformStreamDefaultControllerCallTransformOrFallback is a separate operation to permit consolidating the
+    // abrupt completion handling in one place in the text of the standard.
+    const transformResult = TransformStreamDefaultControllerCallTransformOrFallback(stream, transformer, chunk);
+    transformPromise = Promise.resolve(transformResult);
+  } catch (transformResultE) {
+    transformPromise = Promise.reject(transformResultE);
+  }
+
+  return transformPromise.catch(e => {
+    TransformStreamError(stream, e);
+    throw e;
+  });
 }
 
 function TransformStreamDefaultControllerTerminate(controller) {
@@ -370,41 +405,6 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   }).catch(r => {
     TransformStreamError(stream, r);
     throw readable._storedError;
-  });
-}
-
-function TransformStreamDefaultSinkInvokeTransform(stream, transformer, chunk) {
-  const controller = stream._transformStreamController;
-
-  const method = transformer.transform; // can throw
-
-  if (method === undefined) {
-    TransformStreamDefaultControllerEnqueue(controller, chunk); // can throw
-    return undefined;
-  }
-
-  return Call(method, transformer, [chunk, controller]); // can throw
-}
-
-function TransformStreamDefaultSinkTransform(stream, transformer, chunk) {
-  verbose('TransformStreamDefaultSinkTransform()');
-
-  assert(stream._readable._state !== 'errored');
-  assert(stream._backpressure === false);
-
-  let transformPromise;
-  try {
-    // TransformStreamDefaultSinkInvokeTransform is a separate operation to permit consolidating the abrupt completion
-    // handling in one place in the text of the standard.
-    const transformResult = TransformStreamDefaultSinkInvokeTransform(stream, transformer, chunk);
-    transformPromise = Promise.resolve(transformResult);
-  } catch (transformResultE) {
-    transformPromise = Promise.reject(transformResultE);
-  }
-
-  return transformPromise.catch(e => {
-    TransformStreamError(stream, e);
-    throw e;
   });
 }
 
