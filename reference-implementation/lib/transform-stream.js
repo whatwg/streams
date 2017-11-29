@@ -4,19 +4,18 @@ const assert = require('better-assert');
 // Calls to verbose() are purely for debugging the reference implementation and tests. They are not part of the standard
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:transform-stream:verbose');
-const { Call, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject, createDataProperty } = require('./helpers.js');
-const { ReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
+const { Call, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
+        MakeSizeAlgorithmFromSizeFunction } = require('./helpers.js');
+const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
         ReadableStreamDefaultControllerCanCloseOrEnqueue } = require('./readable-stream.js');
-const { WritableStream, WritableStreamDefaultControllerErrorIfNeeded } = require('./writable-stream.js');
+const { CreateWritableStream, WritableStreamDefaultControllerErrorIfNeeded } = require('./writable-stream.js');
 
 // Class TransformStream
 
 class TransformStream {
-  constructor(transformer = {}, writableStrategy = undefined, { size, highWaterMark = 0 } = {}) {
-    this._transformer = transformer;
-
+  constructor(transformer = {}, writableStrategy = {}, readableStrategy = {}) {
     const readableType = transformer.readableType;
 
     if (readableType !== undefined) {
@@ -29,32 +28,32 @@ class TransformStream {
       throw new RangeError('Invalid writable type specified');
     }
 
-    this._transformStreamController = undefined;
-    const controller = new TransformStreamDefaultController(this);
-    this._transformStreamController = controller;
+    const writableSizeFunction = writableStrategy.size;
+    const writableSizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(writableSizeFunction);
+    let writableHighWaterMark = writableStrategy.highWaterMark;
+    if (writableHighWaterMark === undefined) {
+      writableHighWaterMark = 1;
+    }
+    writableHighWaterMark = ValidateAndNormalizeHighWaterMark(writableHighWaterMark);
+
+    const readableSizeFunction = readableStrategy.size;
+    const readableSizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(readableSizeFunction);
+    let readableHighWaterMark = readableStrategy.highWaterMark;
+    if (readableHighWaterMark === undefined) {
+      readableHighWaterMark = 0;
+    }
+    readableHighWaterMark = ValidateAndNormalizeHighWaterMark(readableHighWaterMark);
 
     let startPromise_resolve;
     const startPromise = new Promise(resolve => {
       startPromise_resolve = resolve;
     });
 
-    const source = new TransformStreamDefaultSource(this, startPromise);
-    const readableStrategy = {};
-    createDataProperty(readableStrategy, 'size', size);
-    createDataProperty(readableStrategy, 'highWaterMark', highWaterMark);
-    this._readable = new ReadableStream(source, readableStrategy);
+    InitializeTransformStream(this, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark,
+                              readableSizeAlgorithm);
+    SetUpTransformStreamDefaultControllerFromTransformer(this, transformer);
 
-    const sink = new TransformStreamDefaultSink(this, startPromise);
-
-    this._writable = new WritableStream(sink, writableStrategy);
-
-    // The [[backpressure]] slot is set to undefined so that it can be initialised by TransformStreamSetBackpressure.
-    this._backpressure = undefined;
-    this._backpressureChangePromise = undefined;
-    this._backpressureChangePromise_resolve = undefined;
-    TransformStreamSetBackpressure(this, true);
-
-    const startResult = InvokeOrNoop(transformer, 'start', [controller]);
+    const startResult = InvokeOrNoop(transformer, 'start', [this._transformStreamController]);
     startPromise_resolve(startResult);
   }
 
@@ -76,6 +75,72 @@ class TransformStream {
 }
 
 // Transform Stream Abstract Operations
+
+function CreateTransformStream(startAlgorithm, transformAlgorithm, flushAlgorithm, writableHighWaterMark = 1,
+                               writableSizeAlgorithm = () => 1, readableHighWaterMark = 0,
+                               readableSizeAlgorithm = () => 1) {
+  assert(IsNonNegativeNumber(writableHighWaterMark));
+  assert(IsNonNegativeNumber(readableHighWaterMark));
+
+  const stream = Object.create(TransformStream.prototype);
+
+  let startPromise_resolve;
+  const startPromise = new Promise(resolve => {
+    startPromise_resolve = resolve;
+  });
+
+  InitializeTransformStream(stream, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark,
+                            readableSizeAlgorithm);
+
+  SetUpTransformStreamDefaultController(stream, transformAlgorithm, flushAlgorithm);
+
+  const startResult = startAlgorithm();
+  startPromise_resolve(startResult);
+  return stream;
+}
+
+function InitializeTransformStream(stream, startPromise, writableHighWaterMark, writableSizeAlgorithm,
+                                   readableHighWaterMark, readableSizeAlgorithm) {
+  function startAlgorithm() {
+    return startPromise;
+  }
+
+  function writeAlgorithm(chunk) {
+    return TransformStreamDefaultSinkWriteAlgorithm(stream, chunk);
+  }
+
+  function abortAlgorithm() {
+    return TransformStreamDefaultSinkAbortAlgorithm(stream);
+  }
+
+  function closeAlgorithm() {
+    return TransformStreamDefaultSinkCloseAlgorithm(stream);
+  }
+
+  stream._writable = CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm,
+                                          writableHighWaterMark, writableSizeAlgorithm);
+
+  function pullAlgorithm() {
+    return TransformStreamDefaultSourcePullAlgorithm(stream);
+  }
+
+  function cancelAlgorithm(reason) {
+    TransformStreamErrorWritableAndUnblockWrite(stream, reason);
+    return Promise.resolve();
+  }
+
+  stream._readable = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, readableHighWaterMark,
+                                          readableSizeAlgorithm);
+
+  // The [[backpressure]] slot is set to undefined so that it can be initialised by TransformStreamSetBackpressure.
+  stream._backpressure = undefined;
+  stream._backpressureChangePromise = undefined;
+  stream._backpressureChangePromise_resolve = undefined;
+  TransformStreamSetBackpressure(stream, true);
+
+  // Used by IsWritableStream() which is called by SetUpTransformStreamDefaultController().
+  stream._transformStreamController = undefined;
+}
 
 function IsTransformStream(x) {
   if (!typeIsObject(x)) {
@@ -129,18 +194,8 @@ function TransformStreamSetBackpressure(stream, backpressure) {
 // Class TransformStreamDefaultController
 
 class TransformStreamDefaultController {
-  constructor(stream) {
-    if (IsTransformStream(stream) === false) {
-      throw new TypeError('TransformStreamDefaultController can only be ' +
-                          'constructed with a TransformStream instance');
-    }
-
-    if (stream._transformStreamController !== undefined) {
-      throw new TypeError('TransformStreamDefaultController instances can ' +
-                          'only be created by the TransformStream constructor');
-    }
-
-    this._controlledTransformStream = stream;
+  constructor() {
+    throw new TypeError('TransformStreamDefaultController instances cannot be created directly');
   }
 
   get desiredSize() {
@@ -191,6 +246,43 @@ function IsTransformStreamDefaultController(x) {
   return true;
 }
 
+function SetUpTransformStreamDefaultController(stream, transformAlgorithm, flushAlgorithm) {
+  assert(IsTransformStream(stream) === true);
+  assert(stream._writableStreamController === undefined);
+
+  const controller = Object.create(TransformStreamDefaultController.prototype);
+  controller._controlledTransformStream = stream;
+  stream._transformStreamController = controller;
+
+  controller._transformAlgorithm = transformAlgorithm;
+  controller._flushAlgorithm = flushAlgorithm;
+}
+
+function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer) {
+  function transformAlgorithm(chunk) {
+    return TransformStreamDefaultControllerPromiseCallTransform(stream, transformer, chunk);
+  }
+
+  function flushAlgorithm() {
+    return PromiseInvokeOrNoop(transformer, 'flush', [stream._transformStreamController]);
+  }
+
+  SetUpTransformStreamDefaultController(stream, transformAlgorithm, flushAlgorithm);
+}
+
+function TransformStreamDefaultControllerCallTransformOrFallback(stream, transformer, chunk) {
+  const controller = stream._transformStreamController;
+
+  const method = transformer.transform; // can throw
+
+  if (method === undefined) {
+    TransformStreamDefaultControllerEnqueue(controller, chunk); // can throw
+    return undefined;
+  }
+
+  return Call(method, transformer, [chunk, controller]); // can throw
+}
+
 function TransformStreamDefaultControllerEnqueue(controller, chunk) {
   verbose('TransformStreamDefaultControllerEnqueue()');
 
@@ -200,7 +292,7 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
     throw new TypeError('Readable side is not in a state that permits enqueue');
   }
 
-  // We throttle transformer.transform invocations based on the backpressure of the ReadableStream, but we still
+  // We throttle transform invocations based on the backpressure of the ReadableStream, but we still
   // accept TransformStreamDefaultControllerEnqueue() calls.
 
   try {
@@ -223,6 +315,28 @@ function TransformStreamDefaultControllerError(controller, e) {
   TransformStreamError(controller._controlledTransformStream, e);
 }
 
+function TransformStreamDefaultControllerPromiseCallTransform(stream, transformer, chunk) {
+  verbose('TransformStreamDefaultControllerPromiseCallTransform()');
+
+  assert(stream._readable._state !== 'errored');
+  assert(stream._backpressure === false);
+
+  let transformPromise;
+  try {
+    // TransformStreamDefaultControllerCallTransformOrFallback is a separate operation to permit consolidating the
+    // abrupt completion handling in one place in the text of the standard.
+    const transformResult = TransformStreamDefaultControllerCallTransformOrFallback(stream, transformer, chunk);
+    transformPromise = Promise.resolve(transformResult);
+  } catch (transformResultE) {
+    transformPromise = Promise.reject(transformResultE);
+  }
+
+  return transformPromise.catch(e => {
+    TransformStreamError(stream, e);
+    throw e;
+  });
+}
+
 function TransformStreamDefaultControllerTerminate(controller) {
   verbose('TransformStreamDefaultControllerTerminate()');
 
@@ -237,147 +351,80 @@ function TransformStreamDefaultControllerTerminate(controller) {
   TransformStreamErrorWritableAndUnblockWrite(stream, error);
 }
 
-// Class TransformStreamDefaultSink
+// TransformStreamDefaultSink Algorithms
 
-class TransformStreamDefaultSink {
-  constructor(stream, startPromise) {
-    this._ownerTransformStream = stream;
-    this._startPromise = startPromise;
-  }
+function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
+  verbose('TransformStreamDefaultSinkWriteAlgorithm()');
 
-  start() {
-    return this._startPromise;
-  }
+  assert(stream._writable._state === 'writable');
 
-  write(chunk) {
-    verbose('TransformStreamDefaultSink.prototype.write()');
-
-    const stream = this._ownerTransformStream;
-    assert(stream._writable._state === 'writable');
-
-    if (stream._backpressure === true) {
-      const backpressureChangePromise = stream._backpressureChangePromise;
-      assert(backpressureChangePromise !== undefined);
-      return backpressureChangePromise
-          .then(() => {
-            const writable = stream._writable;
-            const state = writable._state;
-            if (state === 'erroring') {
-              throw writable._storedError;
-            }
-            assert(state === 'writable');
-            return TransformStreamDefaultSinkTransform(this, chunk);
-          });
-    }
-
-    return TransformStreamDefaultSinkTransform(this, chunk);
-  }
-
-  abort() {
-    // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
-    // errored.
-    const e = new TypeError('Writable side aborted');
-    TransformStreamError(this._ownerTransformStream, e);
-  }
-
-  close() {
-    verbose('TransformStreamDefaultSink.prototype.close()');
-
-    const stream = this._ownerTransformStream;
-
-    // stream._readable cannot change after construction, so caching it across a call to user code is safe.
-    const readable = stream._readable;
-
-    const flushPromise = PromiseInvokeOrNoop(stream._transformer, 'flush', [stream._transformStreamController]);
-    // Return a promise that is fulfilled with undefined on success.
-    return flushPromise.then(() => {
-      if (readable._state === 'errored') {
-        throw readable._storedError;
-      }
-      const readableController = readable._readableStreamController;
-      if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === true) {
-        ReadableStreamDefaultControllerClose(readableController);
-      }
-    }).catch(r => {
-      TransformStreamError(stream, r);
-      throw readable._storedError;
-    });
-  }
-}
-
-function TransformStreamDefaultSinkInvokeTransform(stream, chunk) {
   const controller = stream._transformStreamController;
-  const transformer = stream._transformer;
 
-  const method = transformer.transform; // can throw
-
-  if (method === undefined) {
-    TransformStreamDefaultControllerEnqueue(controller, chunk); // can throw
-    return undefined;
+  if (stream._backpressure === true) {
+    const backpressureChangePromise = stream._backpressureChangePromise;
+    assert(backpressureChangePromise !== undefined);
+    return backpressureChangePromise
+        .then(() => {
+          const writable = stream._writable;
+          const state = writable._state;
+          if (state === 'erroring') {
+            throw writable._storedError;
+          }
+          assert(state === 'writable');
+          return controller._transformAlgorithm(chunk);
+        });
   }
 
-  return Call(method, transformer, [chunk, controller]); // can throw
+  return controller._transformAlgorithm(chunk);
 }
 
-function TransformStreamDefaultSinkTransform(sink, chunk) {
-  verbose('TransformStreamDefaultSinkTransform()');
+function TransformStreamDefaultSinkAbortAlgorithm(stream) {
+  // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
+  // errored.
+  const e = new TypeError('Writable side aborted');
+  TransformStreamError(stream, e);
+  return Promise.resolve();
+}
 
-  const stream = sink._ownerTransformStream;
+function TransformStreamDefaultSinkCloseAlgorithm(stream) {
+  verbose('TransformStreamDefaultSinkCloseAlgorithm()');
 
-  assert(stream._readable._state !== 'errored');
-  assert(stream._backpressure === false);
+  // stream._readable cannot change after construction, so caching it across a call to user code is safe.
+  const readable = stream._readable;
 
-  let transformPromise;
-  try {
-    // TransformStreamDefaultSinkInvokeTransform is a separate operation to permit consolidating the abrupt completion
-    // handling in one place in the text of the standard.
-    const transformResult = TransformStreamDefaultSinkInvokeTransform(stream, chunk);
-    transformPromise = Promise.resolve(transformResult);
-  } catch (transformResultE) {
-    transformPromise = Promise.reject(transformResultE);
-  }
-
-  return transformPromise.catch(e => {
-    TransformStreamError(stream, e);
-    throw e;
+  const flushPromise = stream._transformStreamController._flushAlgorithm();
+  // Return a promise that is fulfilled with undefined on success.
+  return flushPromise.then(() => {
+    if (readable._state === 'errored') {
+      throw readable._storedError;
+    }
+    const readableController = readable._readableStreamController;
+    if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === true) {
+      ReadableStreamDefaultControllerClose(readableController);
+    }
+  }).catch(r => {
+    TransformStreamError(stream, r);
+    throw readable._storedError;
   });
 }
 
-// Class TransformStreamDefaultSource
+// TransformStreamDefaultSource Algorithms
 
-class TransformStreamDefaultSource {
-  constructor(stream, startPromise) {
-    this._ownerTransformStream = stream;
-    this._startPromise = startPromise;
-  }
+function TransformStreamDefaultSourcePullAlgorithm(stream) {
+  verbose('TransformStreamDefaultSourcePullAlgorithm()');
 
-  start() {
-    return this._startPromise;
-  }
+  // Invariant. Enforced by the promises returned by start() and pull().
+  assert(stream._backpressure === true);
 
-  pull() {
-    verbose('TransformStreamDefaultSource.prototype.pull()');
+  assert(stream._backpressureChangePromise !== undefined);
 
-    const stream = this._ownerTransformStream;
+  TransformStreamSetBackpressure(stream, false);
 
-    // Invariant. Enforced by the promises returned by start() and pull().
-    assert(stream._backpressure === true);
-
-    assert(stream._backpressureChangePromise !== undefined);
-
-    TransformStreamSetBackpressure(stream, false);
-
-    // Prevent the next pull() call until there is backpressure.
-    return stream._backpressureChangePromise;
-  }
-
-  cancel(reason) {
-    // The readable side is closed before cancel() is called. Only the writable side should be errored.
-    TransformStreamErrorWritableAndUnblockWrite(this._ownerTransformStream, reason);
-  }
+  // Prevent the next pull() call until there is backpressure.
+  return stream._backpressureChangePromise;
 }
 
-module.exports = { TransformStream };
+module.exports = { CreateTransformStream, TransformStream };
 
 // Helper functions for the TransformStreamDefaultController.
 

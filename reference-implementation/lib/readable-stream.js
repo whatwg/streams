@@ -1,9 +1,8 @@
 'use strict';
 const assert = require('better-assert');
 const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, IsDetachedBuffer,
-        PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeQueuingStrategy,
-        ValidateAndNormalizeHighWaterMark } = require('./helpers.js');
-const { createArrayFromList, createDataProperty, typeIsObject } = require('./helpers.js');
+        PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
+        MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
@@ -16,32 +15,29 @@ const PullSteps = Symbol('[[PullSteps]]');
 
 class ReadableStream {
   constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
-    // Exposed to controllers.
-    this._state = 'readable';
-
-    this._reader = undefined;
-    this._storedError = undefined;
-
-    this._disturbed = false;
-
-    // Initialize to undefined first because the constructor of the controller checks this
-    // variable to validate the caller.
-    this._readableStreamController = undefined;
+    InitializeReadableStream(this);
     const type = underlyingSource.type;
     const typeString = String(type);
     if (typeString === 'bytes') {
-      if (size !== undefined) {
-        throw new RangeError('The strategy for a byte stream cannot have a size function');
-      }
       if (highWaterMark === undefined) {
         highWaterMark = 0;
       }
-      this._readableStreamController = new ReadableByteStreamController(this, underlyingSource, highWaterMark);
+      highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
+
+      if (size !== undefined) {
+        throw new RangeError('The strategy for a byte stream cannot have a size function');
+      }
+
+      SetUpReadableByteStreamControllerFromUnderlyingSource(this, underlyingSource, highWaterMark);
     } else if (type === undefined) {
       if (highWaterMark === undefined) {
         highWaterMark = 1;
       }
-      this._readableStreamController = new ReadableStreamDefaultController(this, underlyingSource, size, highWaterMark);
+      highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
+
+      const sizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(size);
+
+      SetUpReadableStreamDefaultControllerFromUnderlyingSource(this, underlyingSource, highWaterMark, sizeAlgorithm);
     } else {
       throw new RangeError('Invalid type is specified');
     }
@@ -272,6 +268,8 @@ class ReadableStream {
 }
 
 module.exports = {
+  CreateReadableByteStream,
+  CreateReadableStream,
   ReadableStream,
   IsReadableStreamDisturbed,
   ReadableStreamDefaultControllerClose,
@@ -290,6 +288,46 @@ function AcquireReadableStreamBYOBReader(stream) {
 
 function AcquireReadableStreamDefaultReader(stream) {
   return new ReadableStreamDefaultReader(stream);
+}
+
+// Throws if and only if startAlgorithm throws.
+function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark = 1,
+                              sizeAlgorithm = () => 1) {
+  assert(IsNonNegativeNumber(highWaterMark) === true);
+
+  const stream = Object.create(ReadableStream.prototype);
+  InitializeReadableStream(stream);
+
+  SetUpReadableStreamDefaultController(
+      stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
+  );
+
+  return stream;
+}
+
+// Throws if and only if startAlgorithm throws.
+function CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark = 0,
+                                  autoAllocateChunkSize = undefined) {
+  assert(IsNonNegativeNumber(highWaterMark) === true);
+  if (autoAllocateChunkSize !== undefined) {
+    assert(Number.isInteger(autoAllocateChunkSize) === true);
+    assert(autoAllocateChunkSize > 0);
+  }
+
+  const stream = Object.create(ReadableStream.prototype);
+  InitializeReadableStream(stream);
+
+  SetUpReadableByteStreamController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
+                                    autoAllocateChunkSize);
+
+  return stream;
+}
+
+function InitializeReadableStream(stream) {
+  stream._state = 'readable';
+  stream._reader = undefined;
+  stream._storedError = undefined;
+  stream._disturbed = false;
 }
 
 function IsReadableStream(x) {
@@ -326,78 +364,37 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
   const reader = AcquireReadableStreamDefaultReader(stream);
 
-  const teeState = {
-    closedOrErrored: false,
-    canceled1: false,
-    canceled2: false,
-    reason1: undefined,
-    reason2: undefined
-  };
-  teeState.promise = new Promise(resolve => {
-    teeState._resolve = resolve;
+  let closedOrErrored = false;
+  let canceled1 = false;
+  let canceled2 = false;
+  let reason1;
+  let reason2;
+  let branch1;
+  let branch2;
+
+  let resolveCancelPromise;
+  const cancelPromise = new Promise(resolve => {
+    resolveCancelPromise = resolve;
   });
 
-  const pull = create_ReadableStreamTeePullFunction();
-  pull._reader = reader;
-  pull._teeState = teeState;
-  pull._cloneForBranch2 = cloneForBranch2;
-
-  const cancel1 = create_ReadableStreamTeeBranch1CancelFunction();
-  cancel1._stream = stream;
-  cancel1._teeState = teeState;
-
-  const cancel2 = create_ReadableStreamTeeBranch2CancelFunction();
-  cancel2._stream = stream;
-  cancel2._teeState = teeState;
-
-  const underlyingSource1 = Object.create(Object.prototype);
-  createDataProperty(underlyingSource1, 'pull', pull);
-  createDataProperty(underlyingSource1, 'cancel', cancel1);
-  const branch1Stream = new ReadableStream(underlyingSource1);
-
-  const underlyingSource2 = Object.create(Object.prototype);
-  createDataProperty(underlyingSource2, 'pull', pull);
-  createDataProperty(underlyingSource2, 'cancel', cancel2);
-  const branch2Stream = new ReadableStream(underlyingSource2);
-
-  pull._branch1 = branch1Stream._readableStreamController;
-  pull._branch2 = branch2Stream._readableStreamController;
-
-  reader._closedPromise.catch(r => {
-    if (teeState.closedOrErrored === true) {
-      return;
-    }
-
-    ReadableStreamDefaultControllerErrorIfNeeded(pull._branch1, r);
-    ReadableStreamDefaultControllerErrorIfNeeded(pull._branch2, r);
-    teeState.closedOrErrored = true;
-  });
-
-  return [branch1Stream, branch2Stream];
-}
-
-function create_ReadableStreamTeePullFunction() {
-  function f() {
-    const { _reader: reader, _branch1: branch1, _branch2: branch2, _teeState: teeState/* ,
-            _cloneForBranch2: cloneForBranch2*/ } = f;
-
+  function pullAlgorithm() {
     return ReadableStreamDefaultReaderRead(reader).then(result => {
       assert(typeIsObject(result));
       const value = result.value;
       const done = result.done;
       assert(typeof done === 'boolean');
 
-      if (done === true && teeState.closedOrErrored === false) {
-        if (teeState.canceled1 === false) {
-          ReadableStreamDefaultControllerClose(branch1);
+      if (done === true && closedOrErrored === false) {
+        if (canceled1 === false) {
+          ReadableStreamDefaultControllerClose(branch1._readableStreamController);
         }
-        if (teeState.canceled2 === false) {
-          ReadableStreamDefaultControllerClose(branch2);
+        if (canceled2 === false) {
+          ReadableStreamDefaultControllerClose(branch2._readableStreamController);
         }
-        teeState.closedOrErrored = true;
+        closedOrErrored = true;
       }
 
-      if (teeState.closedOrErrored === true) {
+      if (closedOrErrored === true) {
         return;
       }
 
@@ -406,52 +403,58 @@ function create_ReadableStreamTeePullFunction() {
 
       // There is no way to access the cloning code right now in the reference implementation.
       // If we add one then we'll need an implementation for serializable objects.
-      // if (teeState.canceled2 === false && cloneForBranch2 === true) {
+      // if (canceled2 === false && cloneForBranch2 === true) {
       //   value2 = StructuredDeserialize(StructuredSerialize(value2));
       // }
 
-      if (teeState.canceled1 === false) {
-        ReadableStreamDefaultControllerEnqueue(branch1, value1);
+      if (canceled1 === false) {
+        ReadableStreamDefaultControllerEnqueue(branch1._readableStreamController, value1);
       }
 
-      if (teeState.canceled2 === false) {
-        ReadableStreamDefaultControllerEnqueue(branch2, value2);
+      if (canceled2 === false) {
+        ReadableStreamDefaultControllerEnqueue(branch2._readableStreamController, value2);
       }
     });
   }
-  return f;
-}
 
-function create_ReadableStreamTeeBranch1CancelFunction() {
-  function f(reason) {
-    const { _stream: stream, _teeState: teeState } = f;
-
-    teeState.canceled1 = true;
-    teeState.reason1 = reason;
-    if (teeState.canceled2 === true) {
-      const compositeReason = createArrayFromList([teeState.reason1, teeState.reason2]);
+  function cancel1Algorithm(reason) {
+    canceled1 = true;
+    reason1 = reason;
+    if (canceled2 === true) {
+      const compositeReason = createArrayFromList([reason1, reason2]);
       const cancelResult = ReadableStreamCancel(stream, compositeReason);
-      teeState._resolve(cancelResult);
+      resolveCancelPromise(cancelResult);
     }
-    return teeState.promise;
+    return cancelPromise;
   }
-  return f;
-}
 
-function create_ReadableStreamTeeBranch2CancelFunction() {
-  function f(reason) {
-    const { _stream: stream, _teeState: teeState } = f;
-
-    teeState.canceled2 = true;
-    teeState.reason2 = reason;
-    if (teeState.canceled1 === true) {
-      const compositeReason = createArrayFromList([teeState.reason1, teeState.reason2]);
+  function cancel2Algorithm(reason) {
+    canceled2 = true;
+    reason2 = reason;
+    if (canceled1 === true) {
+      const compositeReason = createArrayFromList([reason1, reason2]);
       const cancelResult = ReadableStreamCancel(stream, compositeReason);
-      teeState._resolve(cancelResult);
+      resolveCancelPromise(cancelResult);
     }
-    return teeState.promise;
+    return cancelPromise;
   }
-  return f;
+
+  function startAlgorithm() {}
+
+  branch1 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm);
+  branch2 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm);
+
+  reader._closedPromise.catch(r => {
+    if (closedOrErrored === true) {
+      return;
+    }
+
+    ReadableStreamDefaultControllerErrorIfNeeded(branch1._readableStreamController, r);
+    ReadableStreamDefaultControllerErrorIfNeeded(branch2._readableStreamController, r);
+    closedOrErrored = true;
+  });
+
+  return [branch1, branch2];
 }
 
 // ReadableStream API exposed for controllers.
@@ -867,51 +870,8 @@ function ReadableStreamDefaultReaderRead(reader) {
 // Controllers
 
 class ReadableStreamDefaultController {
-  constructor(stream, underlyingSource, size, highWaterMark) {
-    if (IsReadableStream(stream) === false) {
-      throw new TypeError('ReadableStreamDefaultController can only be constructed with a ReadableStream instance');
-    }
-
-    if (stream._readableStreamController !== undefined) {
-      throw new TypeError(
-        'ReadableStreamDefaultController instances can only be created by the ReadableStream constructor');
-    }
-
-    this._controlledReadableStream = stream;
-
-    this._underlyingSource = underlyingSource;
-
-    // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
-    this._queue = undefined;
-    this._queueTotalSize = undefined;
-    ResetQueue(this);
-
-    this._started = false;
-    this._closeRequested = false;
-    this._pullAgain = false;
-    this._pulling = false;
-
-    const normalizedStrategy = ValidateAndNormalizeQueuingStrategy(size, highWaterMark);
-    this._strategySize = normalizedStrategy.size;
-    this._strategyHWM = normalizedStrategy.highWaterMark;
-
-    const controller = this;
-
-    const startResult = InvokeOrNoop(underlyingSource, 'start', [this]);
-    Promise.resolve(startResult).then(
-      () => {
-        controller._started = true;
-
-        assert(controller._pulling === false);
-        assert(controller._pullAgain === false);
-
-        ReadableStreamDefaultControllerCallPullIfNeeded(controller);
-      },
-      r => {
-        ReadableStreamDefaultControllerErrorIfNeeded(controller, r);
-      }
-    )
-    .catch(rethrowAssertionErrorRejection);
+  constructor() {
+    throw new TypeError();
   }
 
   get desiredSize() {
@@ -961,7 +921,7 @@ class ReadableStreamDefaultController {
 
   [CancelSteps](reason) {
     ResetQueue(this);
-    return PromiseInvokeOrNoop(this._underlyingSource, 'cancel', [reason]);
+    return this._cancelAlgorithm(reason);
   }
 
   [PullSteps]() {
@@ -992,7 +952,7 @@ function IsReadableStreamDefaultController(x) {
     return false;
   }
 
-  if (!Object.prototype.hasOwnProperty.call(x, '_underlyingSource')) {
+  if (!Object.prototype.hasOwnProperty.call(x, '_controlledReadableStream')) {
     return false;
   }
 
@@ -1014,7 +974,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
 
   controller._pulling = true;
 
-  const pullPromise = PromiseInvokeOrNoop(controller._underlyingSource, 'pull', [controller]);
+  const pullPromise = controller._pullAlgorithm();
   pullPromise.then(
     () => {
       controller._pulling = false;
@@ -1079,16 +1039,12 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
   if (IsReadableStreamLocked(stream) === true && ReadableStreamGetNumReadRequests(stream) > 0) {
     ReadableStreamFulfillReadRequest(stream, chunk, false);
   } else {
-    let chunkSize = 1;
-
-    if (controller._strategySize !== undefined) {
-      const strategySize = controller._strategySize;
-      try {
-        chunkSize = strategySize(chunk);
-      } catch (chunkSizeE) {
-        ReadableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
-        throw chunkSizeE;
-      }
+    let chunkSize;
+    try {
+      chunkSize = controller._strategySizeAlgorithm(chunk);
+    } catch (chunkSizeE) {
+      ReadableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
+      throw chunkSizeE;
     }
 
     try {
@@ -1153,6 +1109,65 @@ function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
   return false;
 }
 
+function SetUpReadableStreamDefaultController(
+  stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm) {
+  assert(stream._readableStreamController === undefined);
+
+  const controller = Object.create(ReadableStreamDefaultController.prototype);
+  controller._controlledReadableStream = stream;
+
+  controller._queue = undefined;
+  controller._queueTotalSize = undefined;
+  ResetQueue(controller);
+
+  controller._started = false;
+  controller._closeRequested = false;
+  controller._pullAgain = false;
+  controller._pulling = false;
+
+  controller._strategySizeAlgorithm = sizeAlgorithm;
+  controller._strategyHWM = highWaterMark;
+
+  controller._pullAlgorithm = pullAlgorithm;
+  controller._cancelAlgorithm = cancelAlgorithm;
+
+  stream._readableStreamController = controller;
+
+  const startResult = startAlgorithm();
+  Promise.resolve(startResult).then(
+    () => {
+      controller._started = true;
+
+      assert(controller._pulling === false);
+      assert(controller._pullAgain === false);
+
+      ReadableStreamDefaultControllerCallPullIfNeeded(controller);
+    },
+    r => {
+      ReadableStreamDefaultControllerErrorIfNeeded(controller, r);
+    }
+  )
+  .catch(rethrowAssertionErrorRejection);
+}
+
+function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underlyingSource, highWaterMark,
+                                                                  sizeAlgorithm) {
+  function startAlgorithm() {
+    return InvokeOrNoop(underlyingSource, 'start', [stream._readableStreamController]);
+  }
+
+  function pullAlgorithm() {
+    return PromiseInvokeOrNoop(underlyingSource, 'pull', [stream._readableStreamController]);
+  }
+
+  function cancelAlgorithm(reason) {
+    return PromiseInvokeOrNoop(underlyingSource, 'cancel', [reason]);
+  }
+
+  SetUpReadableStreamDefaultController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm,
+                                       highWaterMark, sizeAlgorithm);
+}
+
 class ReadableStreamBYOBRequest {
   constructor(controller, view) {
     if (IsReadableByteStreamController(controller) === false) {
@@ -1209,65 +1224,8 @@ class ReadableStreamBYOBRequest {
 }
 
 class ReadableByteStreamController {
-  constructor(stream, underlyingByteSource, highWaterMark) {
-    if (IsReadableStream(stream) === false) {
-      throw new TypeError('ReadableByteStreamController can only be constructed with a ReadableStream instance given ' +
-          'a byte source');
-    }
-
-    if (stream._readableStreamController !== undefined) {
-      throw new TypeError(
-          'ReadableByteStreamController instances can only be created by the ReadableStream constructor given a byte ' +
-              'source');
-    }
-
-    this._controlledReadableStream = stream;
-
-    this._underlyingByteSource = underlyingByteSource;
-
-    this._pullAgain = false;
-    this._pulling = false;
-
-    ReadableByteStreamControllerClearPendingPullIntos(this);
-
-    // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
-    this._queue = this._queueTotalSize = undefined;
-    ResetQueue(this);
-
-    this._closeRequested = false;
-    this._started = false;
-
-    this._strategyHWM = ValidateAndNormalizeHighWaterMark(highWaterMark);
-
-    const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
-    if (autoAllocateChunkSize !== undefined) {
-      if (Number.isInteger(autoAllocateChunkSize) === false || autoAllocateChunkSize <= 0) {
-        throw new RangeError('autoAllocateChunkSize must be a positive integer');
-      }
-    }
-    this._autoAllocateChunkSize = autoAllocateChunkSize;
-
-    this._pendingPullIntos = [];
-
-    const controller = this;
-
-    const startResult = InvokeOrNoop(underlyingByteSource, 'start', [this]);
-    Promise.resolve(startResult).then(
-      () => {
-        controller._started = true;
-
-        assert(controller._pulling === false);
-        assert(controller._pullAgain === false);
-
-        ReadableByteStreamControllerCallPullIfNeeded(controller);
-      },
-      r => {
-        if (stream._state === 'readable') {
-          ReadableByteStreamControllerError(controller, r);
-        }
-      }
-    )
-    .catch(rethrowAssertionErrorRejection);
+  constructor() {
+    throw new TypeError('ReadableByteStreamController constructor cannot be used directly');
   }
 
   get byobRequest() {
@@ -1304,7 +1262,7 @@ class ReadableByteStreamController {
       throw new TypeError('The stream has already been closed; do not close it again!');
     }
 
-    const state = this._controlledReadableStream._state;
+    const state = this._controlledReadableByteStream._state;
     if (state !== 'readable') {
       throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be closed`);
     }
@@ -1321,7 +1279,7 @@ class ReadableByteStreamController {
       throw new TypeError('stream is closed or draining');
     }
 
-    const state = this._controlledReadableStream._state;
+    const state = this._controlledReadableByteStream._state;
     if (state !== 'readable') {
       throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be enqueued to`);
     }
@@ -1342,7 +1300,7 @@ class ReadableByteStreamController {
       throw byteStreamControllerBrandCheckException('error');
     }
 
-    const stream = this._controlledReadableStream;
+    const stream = this._controlledReadableByteStream;
     if (stream._state !== 'readable') {
       throw new TypeError(`The stream is ${stream._state} and so cannot be errored`);
     }
@@ -1358,11 +1316,11 @@ class ReadableByteStreamController {
 
     ResetQueue(this);
 
-    return PromiseInvokeOrNoop(this._underlyingByteSource, 'cancel', [reason]);
+    return this._cancelAlgorithm(reason);
   }
 
   [PullSteps]() {
-    const stream = this._controlledReadableStream;
+    const stream = this._controlledReadableByteStream;
     assert(ReadableStreamHasDefaultReader(stream) === true);
 
     if (this._queueTotalSize > 0) {
@@ -1420,7 +1378,7 @@ function IsReadableByteStreamController(x) {
     return false;
   }
 
-  if (!Object.prototype.hasOwnProperty.call(x, '_underlyingByteSource')) {
+  if (!Object.prototype.hasOwnProperty.call(x, '_controlledReadableByteStream')) {
     return false;
   }
 
@@ -1455,7 +1413,7 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
   controller._pulling = true;
 
   // TODO: Test controller argument
-  const pullPromise = PromiseInvokeOrNoop(controller._underlyingByteSource, 'pull', [controller]);
+  const pullPromise = controller._pullAlgorithm();
   pullPromise.then(
     () => {
       controller._pulling = false;
@@ -1466,7 +1424,7 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
       }
     },
     e => {
-      if (controller._controlledReadableStream._state === 'readable') {
+      if (controller._controlledReadableByteStream._state === 'readable') {
         ReadableByteStreamControllerError(controller, e);
       }
     }
@@ -1572,10 +1530,10 @@ function ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, size
 }
 
 function ReadableByteStreamControllerHandleQueueDrain(controller) {
-  assert(controller._controlledReadableStream._state === 'readable');
+  assert(controller._controlledReadableByteStream._state === 'readable');
 
   if (controller._queueTotalSize === 0 && controller._closeRequested === true) {
-    ReadableStreamClose(controller._controlledReadableStream);
+    ReadableStreamClose(controller._controlledReadableByteStream);
   } else {
     ReadableByteStreamControllerCallPullIfNeeded(controller);
   }
@@ -1604,13 +1562,16 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
     if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) === true) {
       ReadableByteStreamControllerShiftPendingPullInto(controller);
 
-      ReadableByteStreamControllerCommitPullIntoDescriptor(controller._controlledReadableStream, pullIntoDescriptor);
+      ReadableByteStreamControllerCommitPullIntoDescriptor(
+        controller._controlledReadableByteStream,
+        pullIntoDescriptor
+      );
     }
   }
 }
 
 function ReadableByteStreamControllerPullInto(controller, view) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._controlledReadableByteStream;
 
   let elementSize = 1;
   if (view.constructor !== DataView) {
@@ -1676,7 +1637,7 @@ function ReadableByteStreamControllerRespondInClosedState(controller, firstDescr
 
   assert(firstDescriptor.bytesFilled === 0);
 
-  const stream = controller._controlledReadableStream;
+  const stream = controller._controlledReadableByteStream;
   if (ReadableStreamHasBYOBReader(stream) === true) {
     while (ReadableStreamGetNumReadIntoRequests(stream) > 0) {
       const pullIntoDescriptor = ReadableByteStreamControllerShiftPendingPullInto(controller);
@@ -1708,7 +1669,7 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
 
   pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
   pullIntoDescriptor.bytesFilled -= remainderSize;
-  ReadableByteStreamControllerCommitPullIntoDescriptor(controller._controlledReadableStream, pullIntoDescriptor);
+  ReadableByteStreamControllerCommitPullIntoDescriptor(controller._controlledReadableByteStream, pullIntoDescriptor);
 
   ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
 }
@@ -1716,7 +1677,7 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
 function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
   const firstDescriptor = controller._pendingPullIntos[0];
 
-  const stream = controller._controlledReadableStream;
+  const stream = controller._controlledReadableByteStream;
 
   if (stream._state === 'closed') {
     if (bytesWritten !== 0) {
@@ -1738,7 +1699,7 @@ function ReadableByteStreamControllerShiftPendingPullInto(controller) {
 }
 
 function ReadableByteStreamControllerShouldCallPull(controller) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._controlledReadableByteStream;
 
   if (stream._state !== 'readable') {
     return false;
@@ -1770,7 +1731,7 @@ function ReadableByteStreamControllerShouldCallPull(controller) {
 // A client of ReadableByteStreamController may use these functions directly to bypass state check.
 
 function ReadableByteStreamControllerClose(controller) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._controlledReadableByteStream;
 
   assert(controller._closeRequested === false);
   assert(stream._state === 'readable');
@@ -1795,7 +1756,7 @@ function ReadableByteStreamControllerClose(controller) {
 }
 
 function ReadableByteStreamControllerEnqueue(controller, chunk) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._controlledReadableByteStream;
 
   assert(controller._closeRequested === false);
   assert(stream._state === 'readable');
@@ -1825,7 +1786,7 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
 }
 
 function ReadableByteStreamControllerError(controller, e) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._controlledReadableByteStream;
 
   assert(stream._state === 'readable');
 
@@ -1836,7 +1797,7 @@ function ReadableByteStreamControllerError(controller, e) {
 }
 
 function ReadableByteStreamControllerGetDesiredSize(controller) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._controlledReadableByteStream;
   const state = stream._state;
 
   if (state === 'errored') {
@@ -1875,6 +1836,83 @@ function ReadableByteStreamControllerRespondWithNewView(controller, view) {
   firstDescriptor.buffer = view.buffer;
 
   ReadableByteStreamControllerRespondInternal(controller, view.byteLength);
+}
+
+function SetUpReadableByteStreamController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
+                                           autoAllocateChunkSize) {
+  assert(stream._readableStreamController === undefined);
+  if (autoAllocateChunkSize !== undefined) {
+    assert(Number.isInteger(autoAllocateChunkSize) === true);
+    assert(autoAllocateChunkSize > 0);
+  }
+
+  const controller = Object.create(ReadableByteStreamController.prototype);
+  controller._controlledReadableByteStream = stream;
+
+  controller._pullAgain = false;
+  controller._pulling = false;
+
+  ReadableByteStreamControllerClearPendingPullIntos(controller);
+
+  // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
+  controller._queue = controller._queueTotalSize = undefined;
+  ResetQueue(controller);
+
+  controller._closeRequested = false;
+  controller._started = false;
+
+  controller._strategyHWM = ValidateAndNormalizeHighWaterMark(highWaterMark);
+
+  controller._pullAlgorithm = pullAlgorithm;
+  controller._cancelAlgorithm = cancelAlgorithm;
+
+  controller._autoAllocateChunkSize = autoAllocateChunkSize;
+
+  controller._pendingPullIntos = [];
+
+  stream._readableStreamController = controller;
+
+  const startResult = startAlgorithm();
+  Promise.resolve(startResult).then(
+      () => {
+        controller._started = true;
+
+        assert(controller._pulling === false);
+        assert(controller._pullAgain === false);
+
+        ReadableByteStreamControllerCallPullIfNeeded(controller);
+      },
+      r => {
+        if (stream._state === 'readable') {
+          ReadableByteStreamControllerError(controller, r);
+        }
+      }
+  )
+      .catch(rethrowAssertionErrorRejection);
+}
+
+function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyingByteSource, highWaterMark) {
+  function startAlgorithm() {
+    return InvokeOrNoop(underlyingByteSource, 'start', [stream._readableStreamController]);
+  }
+
+  function pullAlgorithm() {
+    return PromiseInvokeOrNoop(underlyingByteSource, 'pull', [stream._readableStreamController]);
+  }
+
+  function cancelAlgorithm(reason) {
+    return PromiseInvokeOrNoop(underlyingByteSource, 'cancel', [reason]);
+  }
+
+  const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
+  if (autoAllocateChunkSize !== undefined) {
+    if (Number.isInteger(autoAllocateChunkSize) === false || autoAllocateChunkSize <= 0) {
+      throw new RangeError('autoAllocateChunkSize must be a positive integer');
+    }
+  }
+
+  SetUpReadableByteStreamController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
+                                    autoAllocateChunkSize);
 }
 
 // Helper functions for the ReadableStream.
