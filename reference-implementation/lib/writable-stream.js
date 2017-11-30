@@ -5,7 +5,7 @@ const assert = require('better-assert');
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:writable-stream:verbose');
 
-const { InvokeOrNoop, PromiseInvokeOrNoop, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
+const { GetMethod, InvokeOrNoop, PromiseInvoke, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
@@ -782,16 +782,31 @@ function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyi
     return InvokeOrNoop(underlyingSink, 'start', [stream._writableStreamController]);
   }
 
-  function writeAlgorithm(chunk) {
-    return PromiseInvokeOrNoop(underlyingSink, 'write', [chunk, stream._writableStreamController]);
+  // eslint-disable-next-line func-style
+  let writeAlgorithm = () => Promise.resolve();
+  const writeMethod = GetMethod(underlyingSink, 'write');
+  if (writeMethod !== undefined) {
+    writeAlgorithm = chunk => {
+      return PromiseInvoke(writeMethod, underlyingSink, [chunk, stream._writableStreamController]);
+    };
   }
 
-  function closeAlgorithm() {
-    return PromiseInvokeOrNoop(underlyingSink, 'close', []);
+  // eslint-disable-next-line func-style
+  let closeAlgorithm = () => Promise.resolve();
+  const closeMethod = GetMethod(underlyingSink, 'close');
+  if (closeMethod !== undefined) {
+    closeAlgorithm = () => {
+      return PromiseInvoke(closeMethod, underlyingSink, []);
+    };
   }
 
-  function abortAlgorithm(reason) {
-    return PromiseInvokeOrNoop(underlyingSink, 'abort', [reason]);
+  // eslint-disable-next-line func-style
+  let abortAlgorithm = () => Promise.resolve();
+  const abortMethod = GetMethod(underlyingSink, 'abort');
+  if (abortMethod !== undefined) {
+    abortAlgorithm = reason => {
+      return PromiseInvoke(abortMethod, underlyingSink, [reason]);
+    };
   }
 
   SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm,

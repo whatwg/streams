@@ -83,15 +83,20 @@ exports.InvokeOrNoop = (O, P, args) => {
   return Call(method, O, args);
 };
 
-exports.PromiseInvokeOrNoop = (O, P, args) => {
-  assert(O !== undefined);
-  assert(IsPropertyKey(P));
-  assert(Array.isArray(args));
+exports.PromiseInvoke = (F, V, args) => {
   try {
-    return Promise.resolve(exports.InvokeOrNoop(O, P, args));
-  } catch (returnValueE) {
-    return Promise.reject(returnValueE);
+    return Promise.resolve(Call(F, V, args));
+  } catch (value) {
+    return Promise.reject(value);
   }
+};
+
+exports.GetMethod = (V, methodName) => {
+  const method = V[methodName];
+  if (method !== undefined && typeof method !== 'function') {
+    throw new TypeError(`${methodName} is not a function`);
+  }
+  return method;
 };
 
 // Not implemented correctly

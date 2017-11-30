@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('better-assert');
-const { ArrayBufferCopy, CreateIterResultObject, IsFiniteNonNegativeNumber, InvokeOrNoop, IsDetachedBuffer,
-        PromiseInvokeOrNoop, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
+const { ArrayBufferCopy, CreateIterResultObject, GetMethod, IsFiniteNonNegativeNumber, InvokeOrNoop, IsDetachedBuffer,
+        PromiseInvoke, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
@@ -1156,12 +1156,22 @@ function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underl
     return InvokeOrNoop(underlyingSource, 'start', [stream._readableStreamController]);
   }
 
-  function pullAlgorithm() {
-    return PromiseInvokeOrNoop(underlyingSource, 'pull', [stream._readableStreamController]);
+  // eslint-disable-next-line func-style
+  let pullAlgorithm = () => Promise.resolve();
+  const pullMethod = GetMethod(underlyingSource, 'pull');
+  if (pullMethod !== undefined) {
+    pullAlgorithm = () => {
+      return PromiseInvoke(pullMethod, underlyingSource, [stream._readableStreamController]);
+    };
   }
 
-  function cancelAlgorithm(reason) {
-    return PromiseInvokeOrNoop(underlyingSource, 'cancel', [reason]);
+  // eslint-disable-next-line func-style
+  let cancelAlgorithm = () => Promise.resolve();
+  const cancelMethod = GetMethod(underlyingSource, 'cancel');
+  if (cancelMethod !== undefined) {
+    cancelAlgorithm = reason => {
+      return PromiseInvoke(cancelMethod, underlyingSource, [reason]);
+    };
   }
 
   SetUpReadableStreamDefaultController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm,
@@ -1896,12 +1906,22 @@ function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyin
     return InvokeOrNoop(underlyingByteSource, 'start', [stream._readableStreamController]);
   }
 
-  function pullAlgorithm() {
-    return PromiseInvokeOrNoop(underlyingByteSource, 'pull', [stream._readableStreamController]);
+  // eslint-disable-next-line func-style
+  let pullAlgorithm = () => Promise.resolve();
+  const pullMethod = GetMethod(underlyingByteSource, 'pull');
+  if (pullMethod !== undefined) {
+    pullAlgorithm = () => {
+      return PromiseInvoke(pullMethod, underlyingByteSource, [stream._readableStreamController]);
+    };
   }
 
-  function cancelAlgorithm(reason) {
-    return PromiseInvokeOrNoop(underlyingByteSource, 'cancel', [reason]);
+  // eslint-disable-next-line func-style
+  let cancelAlgorithm = () => Promise.resolve();
+  const cancelMethod = GetMethod(underlyingByteSource, 'cancel');
+  if (cancelMethod !== undefined) {
+    cancelAlgorithm = reason => {
+      return PromiseInvoke(cancelMethod, underlyingByteSource, [reason]);
+    };
   }
 
   const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
