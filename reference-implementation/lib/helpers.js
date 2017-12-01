@@ -83,7 +83,7 @@ exports.InvokeOrNoop = (O, P, args) => {
   return Call(method, O, args);
 };
 
-function PromiseInvoke(F, V, args) {
+function PromiseCall(F, V, args) {
   try {
     return Promise.resolve(Call(F, V, args));
   } catch (value) {
@@ -103,7 +103,7 @@ exports.CreateAlgorithmWithNoParametersFromUnderlyingMethod = (underlyingObject,
   const method = exports.GetMethod(underlyingObject, methodName);
   if (method !== undefined) {
     return () => {
-      return PromiseInvoke(method, underlyingObject, args);
+      return PromiseCall(method, underlyingObject, args);
     };
   }
   return () => Promise.resolve();
@@ -113,7 +113,7 @@ exports.CreateAlgorithmWithOneParameterFromUnderlyingMethod = (underlyingObject,
   const method = exports.GetMethod(underlyingObject, methodName);
   if (method !== undefined) {
     return arg => {
-      return PromiseInvoke(method, underlyingObject, [arg].concat(extraArgs));
+      return PromiseCall(method, underlyingObject, [arg].concat(extraArgs));
     };
   }
   return () => Promise.resolve();
