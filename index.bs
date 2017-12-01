@@ -849,8 +849,10 @@ throws.</p>
   1. Assert: ! IsNonNegativeNumber(_highWaterMark_) is *true*.
   1. Let _stream_ be ObjectCreate(the original value of `<a idl>ReadableStream</a>`'s `prototype` property).
   1. Perform ! InitializeReadableStream(_stream_).
-  1. Perform ? SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
-     _highWaterMark_, _sizeAlgorithm_).
+  1. Let _controller_ be ObjectCreate(the original value of `<a idl>ReadableStreamDefaultController</a>`'s `prototype`
+     property).
+  1. Perform ? SetUpReadableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _pullAlgorithm_,
+     _cancelAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
   1. Return _stream_.
 </emu-alg>
 
@@ -875,8 +877,10 @@ throws.</p>
     1. Assert: _autoAllocateChunkSize_ is positive.
   1. Let _stream_ be ObjectCreate(the original value of `<a idl>ReadableStream</a>`'s `prototype` property).
   1. Perform ! InitializeReadableStream(_stream_).
-  1. Perform ? SetUpReadableByteStreamController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
-     _highWaterMark_, _autoAllocateChunkSize_).
+  1. Let _controller_ be ObjectCreate(the original value of `<a idl>ReadableByteStreamController</a>`'s `prototype`
+     property).
+  1. Perform ? SetUpReadableByteStreamController(_stream_, _controller_, _startAlgorithm_, _pullAlgorithm_,
+     _cancelAlgorithm_, _highWaterMark_, _autoAllocateChunkSize_).
   1. Return _stream_.
 </emu-alg>
 
@@ -1875,13 +1879,11 @@ nothrow>ReadableStreamDefaultControllerCanCloseOrEnqueue ( <var>controller</var>
 </div>
 
 <h4 id="set-up-readable-stream-default-controller" aoid="SetUpReadableStreamDefaultController"
-throws>SetUpReadableStreamDefaultController(<var>stream</var>, <var>startAlgorithm</var>, <var>pullAlgorithm</var>,
-<var>cancelAlgorithm</var>, <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
+throws>SetUpReadableStreamDefaultController(<var>stream</var>, <var>controller</var>, <var>startAlgorithm</var>,
+<var>pullAlgorithm</var>, <var>cancelAlgorithm</var>, <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
 
 <emu-alg>
   1. Assert: _stream_.[[readableStreamController]] is *undefined*.
-  1. Let _controller_ be ObjectCreate(the original value of `<a idl>ReadableStreamDefaultController</a>`'s `prototype`
-     property).
   1. Set _controller_.[[controlledReadableStream]] to _stream_.
   1. Set _controller_.[[queue]] and _controller_.[[queueSize]] to *undefined*, then perform ! ResetQueue(_controller_).
   1. Set _controller_.[[started]], _controller_.[[closeRequested]], _controller_.[[pullAgain]], and
@@ -1907,14 +1909,14 @@ throws>SetUpReadableStreamDefaultControllerFromUnderlyingSource(<var>stream</var
 <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
 
 <emu-alg>
+  1. Let _controller_ be ObjectCreate(the original value of `<a idl>ReadableStreamDefaultController</a>`'s `prototype`
+     property).
   1. Let _startAlgorithm_ be the following steps:
-    1. Return ? InvokeOrNoop(_underlyingSource_, `"start"`, « _stream_.[[readableStreamController]] »).
-  1. Let _pullAlgorithm_ be the following steps:
-    1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"pull"`, « _stream_.[[readableStreamController]] »).
-  1. Let _cancelAlgorithm_ be the following steps, taking a _reason_ argument:
-    1. Return ! PromiseInvokeOrNoop(_underlyingSource_, `"cancel"`, « _reason_ »).
-  1. Perform ? SetUpReadableStreamDefaultController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
-     _highWaterMark_, _sizeAlgorithm_)
+    1. Return ? InvokeOrNoop(_underlyingSource_, `"start"`, « _controller_ »).
+  1. Let _pullAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"pull"`, 0, « _controller_ »).
+  1. Let _cancelAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"cancel"`, 1, « » ).
+  1. Perform ? SetUpReadableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _pullAlgorithm_,
+     _cancelAlgorithm_, _highWaterMark_, _sizeAlgorithm_)
 </emu-alg>
 
 <h3 id="rbs-controller-class" interface lt="ReadableByteStreamController">Class
@@ -2645,16 +2647,14 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
 </emu-alg>
 
 <h4 id="set-up-readable-byte-stream-controller" aoid="SetUpReadableByteStreamController"
-throws>SetUpReadableByteStreamController ( <var>stream</var>, <var>startAlgorithm</var>, <var>pullAlgorithm</var>,
-<var>cancelAlgorithm</var>, <var>highWaterMark</var>, <var>autoAllocateChunkSize</var> )</h4>
+throws>SetUpReadableByteStreamController ( <var>stream</var>, <var>controller</var>, <var>startAlgorithm</var>,
+<var>pullAlgorithm</var>, <var>cancelAlgorithm</var>, <var>highWaterMark</var>, <var>autoAllocateChunkSize</var> )</h4>
 
 <emu-alg>
   1. Assert: _stream_.[[readableStreamController]] is *undefined*.
   1. If _autoAllocateChunkSize_ is not *undefined*,
     1. Assert: ! IsInteger(_autoAllocateChunkSize_) is *true*.
     1. Assert: _autoAllocateChunkSize_ is positive.
-  1. Let _controller_ be ObjectCreate(the original value of `<a idl>ReadableByteStreamController</a>`'s `prototype`
-     property).
   1. Set _controller_.[[controlledReadableByteStream]] to _stream_.
   1. Set _controller_.[[pullAgain]] and _controller_.[[pulling]] to *false*.
   1. Perform ! ReadableByteStreamControllerClearPendingPullIntos(_controller_).
@@ -2683,18 +2683,18 @@ throws>SetUpReadableByteStreamControllerFromUnderlyingSource ( <var>stream</var>
 <var>highWaterMark</var> )</h4>
 
 <emu-alg>
+  1. Let _controller_ be ObjectCreate(the original value of `<a idl>ReadableByteStreamController</a>`'s `prototype`
+     property).
   1. Let _startAlgorithm_ be the following steps:
-    1. Return ? InvokeOrNoop(_underlyingByteSource_, `"start"`, « _stream_.[[readableStreamController]] »).
-  1. Let _pullAlgorithm_ be the following steps:
-    1. Return ! PromiseInvokeOrNoop(_underlyingByteSource_, `"pull"`, « _stream_.[[readableStreamController]] »).
-  1. Let _cancelAlgorithm_ be the following steps, taking a _reason_ argument:
-    1. Return ! PromiseInvokeOrNoop(_underlyingByteSource_, `"cancel"`, « _reason_ »).
+    1. Return ? InvokeOrNoop(_underlyingByteSource_, `"start"`, « _controller_ »).
+  1. Let _pullAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingByteSource_, `"pull"`, 0, « _controller_ »).
+  1. Let _cancelAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingByteSource_, `"cancel"`, 1, « »).
   1. Let _autoAllocateChunkSize_ be ? GetV(_underlyingByteSource_, `"autoAllocateChunkSize"`).
   1. If _autoAllocateChunkSize_ is not *undefined*,
     1. If ! IsInteger(_autoAllocateChunkSize_) is *false*, or if _autoAllocateChunkSize_ ≤ *0*, throw a *RangeError*
        exception.
-  1. Perform ! SetUpReadableByteStreamController(_stream_, _startAlgorithm_, _pullAlgorithm_, _cancelAlgorithm_,
-     _highWaterMark_, _autoAllocateChunkSize_).
+  1. Perform ! SetUpReadableByteStreamController(_stream_, _controller_, _startAlgorithm_, _pullAlgorithm_,
+     _cancelAlgorithm_, _highWaterMark_, _autoAllocateChunkSize_).
 </emu-alg>
 
 <h2 id="ws">Writable Streams</h2>
