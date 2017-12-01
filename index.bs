@@ -1913,8 +1913,8 @@ throws>SetUpReadableStreamDefaultControllerFromUnderlyingSource(<var>stream</var
      property).
   1. Let _startAlgorithm_ be the following steps:
     1. Return ? InvokeOrNoop(_underlyingSource_, `"start"`, « _controller_ »).
-  1. Let _pullAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"pull"`, 0, « _controller_ »).
-  1. Let _cancelAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"cancel"`, 1, « » ).
+  1. Let _pullAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"pull"`, *0*, « _controller_ »).
+  1. Let _cancelAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"cancel"`, *1*, « » ).
   1. Perform ? SetUpReadableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _pullAlgorithm_,
      _cancelAlgorithm_, _highWaterMark_, _sizeAlgorithm_)
 </emu-alg>
@@ -2687,8 +2687,9 @@ throws>SetUpReadableByteStreamControllerFromUnderlyingSource ( <var>stream</var>
      property).
   1. Let _startAlgorithm_ be the following steps:
     1. Return ? InvokeOrNoop(_underlyingByteSource_, `"start"`, « _controller_ »).
-  1. Let _pullAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingByteSource_, `"pull"`, 0, « _controller_ »).
-  1. Let _cancelAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingByteSource_, `"cancel"`, 1, « »).
+  1. Let _pullAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingByteSource_, `"pull"`, *0*, « _controller_
+     »).
+  1. Let _cancelAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingByteSource_, `"cancel"`, *1*, « »).
   1. Let _autoAllocateChunkSize_ be ? GetV(_underlyingByteSource_, `"autoAllocateChunkSize"`).
   1. If _autoAllocateChunkSize_ is not *undefined*,
     1. If ! IsInteger(_autoAllocateChunkSize_) is *false*, or if _autoAllocateChunkSize_ ≤ *0*, throw a *RangeError*
@@ -2997,8 +2998,10 @@ throws.</p>
   1. Assert: ! IsNonNegativeNumber(_highWaterMark_) is *true*.
   1. Let _stream_ be ObjectCreate(the original value of `<a idl>WritableStream</a>`'s `prototype` property).
   1. Perform ! InitializeWritableStream(_stream_).
-  1. Perform ! SetUpWritableStreamDefaultController(_stream_, _startAlgorithm_, _writeAlgorithm_, _closeAlgorithm_,
-     _abortAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
+  1. Let _stream_ be ObjectCreate(the original value of `<a idl>WritableStreamDefaultController</a>`'s `prototype`
+     property).
+  1. Perform ! SetUpWritableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _writeAlgorithm_,
+     _closeAlgorithm_, _abortAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
   1. Return _stream_.
 </emu-alg>
 
@@ -3746,14 +3749,12 @@ nothrow>IsWritableStreamDefaultController ( <var>x</var> )</h4>
 </emu-alg>
 
 <h4 id="set-up-writable-stream-default-controller" aoid="SetUpWritableStreamDefaultController"
-throws>SetUpWritableStreamDefaultController ( <var>stream</var>, <var>startAlgorithm</var>, <var>writeAlgorithm</var>,
-<var>closeAlgorithm</var>, <var>abortAlgorithm</var>, <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
+throws>SetUpWritableStreamDefaultController ( <var>stream</var>, <var>controller</var>, <var>startAlgorithm</var>,
+<var>writeAlgorithm</var>, <var>closeAlgorithm</var>, <var>abortAlgorithm</var>, <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
 
 <emu-alg>
   1. Assert: ! IsWritableStream(_stream_) is *true*.
   1. Assert: _stream_.[[writableStreamController]] is *undefined*.
-  1. Let _controller_ be ObjectCreate(the original value of `<a idl>WritableStreamDefaultController</a>`'s `prototype`
-     property).
   1. Set _controller_.[[controlledWritableStream]] to _stream_.
   1. Set _stream_.[[writableStreamController]] to _controller_.
   1. Perform ! ResetQueue(_controller_).
@@ -3783,16 +3784,15 @@ throws>SetUpWritableStreamDefaultControllerFromUnderlyingSink ( <var>stream</var
 <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
 
 <emu-alg>
+  1. Let _controller_ be ObjectCreate(the original value of `<a idl>WritableStreamDefaultController</a>`'s `prototype`
+     property).
   1. Let _startAlgorithm_ be the following steps:
-    1. Return ? InvokeOrNoop(_underlyingSink_, `"start"`, « _stream_.[[writableStreamController]] »).
-  1. Let _writeAlgorithm_ be the following steps, taking a _chunk_ argument:
-    1. Return ! PromiseInvokeOrNoop(_underlyingSink_, `"write"`, « _chunk_, _stream_.[[writableStreamController]] »).
-  1. Let _closeAlgorithm_ be the following steps:
-    1. Return ! PromiseInvokeOrNoop(_underlyingSink_, `"close"`, « »).
-  1. Let _abortAlgorithm_ be the following steps, taking a _reason_ argument:
-    1. Return ! PromiseInvokeOrNoop(_underlyingSink_, `"abort"`, « _reason_ »).
-  1. Perform ! SetUpWritableStreamDefaultController(_stream_, _startAlgorithm_, _writeAlgorithm_, _closeAlgorithm_,
-     _abortAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
+    1. Return ? InvokeOrNoop(_underlyingSink_, `"start"`, « _controller_ »).
+  1. Let _writeAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSink_, `"write"`, *1*, « _controller_ »).
+  1. Let _closeAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSink_, `"close"`, *0*, « »).
+  1. Let _abortAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSink_, `"abort"`, *1*, « »).
+  1. Perform ! SetUpWritableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _writeAlgorithm_,
+     _closeAlgorithm_, _abortAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-close" aoid="WritableStreamDefaultControllerClose"
@@ -4397,7 +4397,7 @@ nothrow>SetUpTransformStreamDefaultControllerFromTransformer ( <var>stream</var>
          argument _e_, performs the following steps:
         1. Perform ! TransformStreamError(_stream_, _e_).
         1. Throw _e_.
-  1. Let _flushAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_transformer_, 'flush', 0, « controller »).
+  1. Let _flushAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_transformer_, `"flush"`, *0*, « controller »).
   1. Perform ! SetUpTransformStreamDefaultController(_stream_, _controller_, _transformAlgorithm_, _flushAlgorithm_).
 </emu-alg>
 
