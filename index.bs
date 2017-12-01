@@ -5364,13 +5364,13 @@ reached.
   class LipFuzzTransformer {
     constructor(substitutions) {
       this.substitutions = substitutions;
-      this.partialChunk = '';
+      this.partialChunk = "";
       this.lastIndex = undefined;
     }
 
     transform(chunk, controller) {
       chunk = this.partialChunk + chunk;
-      this.partialChunk = '';
+      this.partialChunk = "";
       // lastIndex is the index of the first character after the last substitution.
       this.lastIndex = 0;
       chunk = chunk.replace(/\{\{([a-zA-Z0-9_-]+)\}\}/g, this.replaceTag.bind(this));
@@ -5396,7 +5396,7 @@ reached.
     replaceTag(match, p1, offset) {
       let replacement = this.substitutions[p1];
       if (replacement === undefined) {
-        replacement = '';
+        replacement = "";
       }
       this.lastIndex = offset + replacement.length;
       return replacement;
