@@ -262,7 +262,6 @@ function SetUpTransformStreamDefaultController(stream, controller, transformAlgo
 function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer) {
   const controller = Object.create(TransformStreamDefaultController.prototype);
 
-  // eslint-disable-next-line func-style
   let transformAlgorithm = chunk => {
     try {
       TransformStreamDefaultControllerEnqueue(controller, chunk);
