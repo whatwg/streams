@@ -4147,7 +4147,9 @@ throws.</p>
   1. Let _startPromise_ be <a>a new promise</a>.
   1. Perform ! InitializeTransformStream(_stream_, _startPromise_, _writableHighWaterMark_, _writableSizeAlgorithm_,
      _readableHighWaterMark_, _readableSizeAlgorithm_).
-  1. Perform ! SetUpTransformStreamDefaultController(_stream_, _transformAlgorithm_, _flushAlgorithm_).
+  1. Let _stream_ be ObjectCreate(the original value of `<a idl>TransformStreamDefaultController</a>`'s `prototype`
+     property).
+  1. Perform ! SetUpTransformStreamDefaultController(_stream_, _controller_, _transformAlgorithm_, _flushAlgorithm_).
   1. Let _startResult_ be the result of performing _startAlgorithm_. (This may throw an exception.)
   1. <a>Resolve</a> _startPromise_ with _startResult_.
   1. Return _stream_.
@@ -4360,14 +4362,12 @@ nothrow>IsTransformStreamDefaultController ( <var>x</var> )</h4>
 </emu-alg>
 
 <h4 id="set-up-transform-stream-default-controller" aoid="SetUpTransformStreamDefaultController"
-nothrow>SetUpTransformStreamDefaultController ( <var>stream</var>, <var>transformAlgorithm</var>,
+nothrow>SetUpTransformStreamDefaultController ( <var>stream</var>, <var>controller</var>, <var>transformAlgorithm</var>,
 <var>flushAlgorithm</var> )</h4>
 
 <emu-alg>
   1. Assert: ! IsTransformStream(_stream_) is *true*.
   1. Assert: _stream_.[[writableStreamController]] is *undefined*.
-  1. Let _controller_ be ObjectCreate(the original value of `<a idl>TransformStreamDefaultController</a>`'s `prototype`
-     property).
   1. Set _controller_.[[controlledTransformStream]] to _stream_.
   1. Set _stream_.[[transformStreamController]] to _controller_.
   1. Set _controller_.[[transformAlgorithm]] to _transformAlgorithm_.
@@ -4379,25 +4379,26 @@ aoid="SetUpTransformStreamDefaultControllerFromTransformer"
 nothrow>SetUpTransformStreamDefaultControllerFromTransformer ( <var>stream</var>, <var>transformer</var> )</h4>
 
 <emu-alg>
-  1. Let _transformAlgorithm_ be the following steps, taking a _chunk_ argument:
-    1. Return ! TransformStreamDefaultControllerPromiseCallTransform(_stream_, _transformer_, _chunk_).
-  1. Let _flushAlgorithm_ be the following steps:
-    1. Return ! PromiseInvokeOrNoop(_transformer_, `"flush"`, « _stream_.[[transformStreamController]] »).
-  1. Perform ! SetUpTransformStreamDefaultController(_stream_, _transformAlgorithm_, _flushAlgorithm_).
-</emu-alg>
-
-<h4 id="transform-stream-default-controller-call-transform-or-fallback"
-aoid="TransformStreamDefaultControllerCallTransformOrFallback"
-throws>TransformStreamDefaultControllerCallTransformOrFallback ( <var>stream</var>, <var>transformer</var>,
-<var>chunk</var> )</h4>
-
-<emu-alg>
-  1. Let _controller_ be _stream_.[[transformStreamController]].
-  1. Let _method_ be ? GetV(_transformer_, `"transform"`).
-  1. If _method_ is *undefined*,
-    1. Perform ? TransformStreamDefaultControllerEnqueue(_controller_, _chunk_).
-    1. Return *undefined*.
-  1. Return ? Call(_method_, _transformer_, « _chunk_, _controller_ »).
+  1. Let _controller_ be ObjectCreate(the original value of `<a idl>TransformStreamDefaultController</a>`'s `prototype`
+     property).
+  1. Let _transformAlgorithm_ be the following steps, taking a_chunk_ argument:
+    1. Let _result_ be TransformStreamDefaultControllerEnqueue(_controller_, _chunk_).
+    1. If _result_ is an abrupt completion, return <a>a promise rejected with</a> _result_.[[Value]].
+    1. Otherwise, return <a>a promise resolved with</a> *undefined*.
+  1. Let _transformMethod_ be ? GetMethod(_transformer_, `"transform"`).
+  1. If _transformMethod_ is not *undefined*,
+    1. Set _transformAlgorithm_ to the following steps, taking a_chunk_ argument:
+      1. Let _transformResult_ be Call(_transformMethod_, _transformer_, « chunk, _controller_ »).
+      1. If _transformResult_ is an abrupt completion,
+        1. Perform ! TransformStreamError(_stream_, _transformResult_.[[Value]]).
+        1. Return <a>a promise rejected with</a> _transformResult_.[[Value]].
+      1. Let _transformPromise_ be <a>a promise resolved with</a> _transformResult_.
+      1. Return the result of <a>transforming</a> _transformPromise_ with a rejection handler that, when called with
+         argument _e_, performs the following steps:
+        1. Perform ! TransformStreamError(_stream_, _e_).
+        1. Throw _e_.
+  1. Let _flushAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_transformer_, 'flush', 0, « controller »).
+  1. Perform ! SetUpTransformStreamDefaultController(_stream_, _controller_, _transformAlgorithm_, _flushAlgorithm_).
 </emu-alg>
 
 <h4 id="transform-stream-default-controller-enqueue" aoid="TransformStreamDefaultControllerEnqueue"
@@ -4447,25 +4448,6 @@ this to streams they did not create.
      ReadableStreamDefaultControllerClose(_readableController_).
   1. Let _error_ be a *TypeError* exception indicating that the stream has been terminated.
   1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _error_).
-</emu-alg>
-
-<h4 id="transform-stream-default-controller-promise-call-transform"
-aoid="TransformStreamDefaultControllerPromiseCallTransform"
-nothrow>TransformStreamDefaultControllerPromiseCallTransform ( <var>stream</var>, <var>transformer</var>,
-<var>chunk</var> )</h4>
-
-<emu-alg>
-  1. Assert: _stream_.[[readable]].[[state]] is not `"errored"`.
-  1. Assert: _stream_.[[backpressure]] is *false*.
-  1. Let _transformPromise_ be *undefined*.
-  1. Let _transformResult_ be TransformStreamDefaultControllerCallTransformOrFallback(_stream_, _transformer_, _chunk_).
-  1. If _transformResult_ is an abrupt completion, set _transformPromise_ to <a>a promise rejected with</a>
-     _transformResult_.[[Value]].
-  1. Otherwise, set _transformPromise_ to <a>a promise resolved with</a> _transformResult_.[[Value]].
-  1. Return the result of <a>transforming</a> _transformPromise_ with a rejection handler that, when called with
-     argument _e_, performs the following steps:
-    1. Perform ! TransformStreamError(_stream_, _e_).
-    1. Throw _e_.
 </emu-alg>
 
 <h3 id="ts-default-sink-abstract-ops">Transform Stream Default Sink Abstract Operations</h3>
@@ -4764,7 +4746,7 @@ nothrow>CreateAlgorithmFromUnderlyingMethod ( <var>underlyingObject</var>, <var>
   1. Assert: ! IsPropertyKey(_methodName_) is *true*.
   1. Assert: _algoArgCount_ is *0* or *1*.
   1. Assert: _extraArgs_ is a List.
-  1. Let _method_ be ! GetMethod(_underlyingObject_, _methodName_).
+  1. Let _method_ be ? GetMethod(_underlyingObject_, _methodName_).
   1. If _method_ is not *undefined*,
     1. If _algoArgCount_ is *0*, return an algorithm that performs the following steps:
       1. Return ! PromiseCall(_method_, _underlyingObject_, _extraArgs_).
