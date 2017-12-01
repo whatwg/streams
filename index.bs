@@ -4755,6 +4755,40 @@ chunks, or when trillions of chunks are enqueued.)</p>
 
 A few abstract operations are used in this specification for utility purposes. We define them here.
 
+<h4 id="create-algorithm-from-underlying-method" aoid="CreateAlgorithmFromUnderlyingMethod"
+nothrow>CreateAlgorithmFromUnderlyingMethod ( <var>underlyingObject</var>, <var>methodName</var>,
+<var>algoArgCount</var>, <var>extraArgs</var> )</h4>
+
+<emu-alg>
+  1. Assert: _underlyingObject_ is not *undefined*.
+  1. Assert: ! IsPropertyKey(_methodName_) is *true*.
+  1. Assert: _algoArgCount_ is *0* or *1*.
+  1. Assert: _extraArgs_ is a List.
+  1. Let _method_ be ! GetMethod(_underlyingObject_, _methodName_).
+  1. If _method_ is not *undefined*,
+    1. If _algoArgCount_ is *0*, return an algorithm that performs the following steps:
+      1. Return ! PromiseCall(_method_, _underlyingObject_, _extraArgs_).
+    1. Otherwise, return an algorithm that performs the following steps, taking an *arg* argument:
+      1. Let _fullArgs_ be a List consisting of _arg_ followed by the elements of _extraArgs_ in order.
+      1. Return ! PromiseCall(_method_, _underlyingObject_, _fullArgs_).
+  1. Return an algorithm which returns <a>a promise resolved with</a> *undefined*.
+</emu-alg>
+
+<h4 id="get-method" aoid="GetMethod" throws>GetMethod ( <var>V</var>, <var>methodName</var> )</h4>
+
+<div class="note">
+  GetMethod is a small wrapper around the [[!ECMASCRIPT]] <a abstract-op>GetV</a> abstract operation that throws
+  an exception if the value is not undefined and not a function.
+</div>
+
+<emu-alg>
+  1. Assert: _V_ is not *undefined*.
+  1. Assert: ! IsPropertyKey(_methodName_) is *true*.
+  1. Let _method_ be ? GetV(_O_, _P_).
+  1. If _method_ is not *undefined* and ! IsCallable(_method_) is *false*, throw a *TypeError* exception.
+  1. Return _method_.
+</emu-alg>
+
 <h4 id="invoke-or-noop" aoid="InvokeOrNoop" throws>InvokeOrNoop ( <var>O</var>, <var>P</var>, <var>args</var> )</h4>
 
 <div class="note">
@@ -4789,19 +4823,17 @@ A few abstract operations are used in this specification for utility purposes. W
   1. Return *true*.
 </emu-alg>
 
-<h4 id="promise-invoke-or-noop" aoid="PromiseInvokeOrNoop" nothrow>PromiseInvokeOrNoop ( <var>O</var>, <var>P</var>,
-<var>args</var> )</h4>
+<h4 id="promise-call" aoid="PromiseCall" nothrow>PromiseCall ( <var>F</var>, <var>V</var>, <var>args</var> )</h4>
 
 <div class="note">
-  PromiseInvokeOrNoop is a specialized version of <a>promise-calling</a> that both works on methods and returns a
-  promise for <emu-val>undefined</emu-val> when the method is not present.
+  PromiseCall is a variant of <a>promise-calling</a> that works on methods.
 </div>
 
 <emu-alg>
-  1. Assert: _O_ is not *undefined*.
-  1. Assert: ! IsPropertyKey(_P_) is *true*.
+  1. Assert: ! IsCallable(_F_) is *true*.
+  1. Assert: _V_ is not *undefined*.
   1. Assert: _args_ is a List.
-  1. Let _returnValue_ be InvokeOrNoop(_O_, _P_, _args_).
+  1. Let _returnValue_ be Call(_F_, _V_, _args_).
   1. If _returnValue_ is an abrupt completion, return <a>a promise rejected with</a> _returnValue_.[[Value]].
   1. Otherwise, return <a>a promise resolved with</a> _returnValue_.[[Value]].
 </emu-alg>
