@@ -1,7 +1,6 @@
 'use strict';
 const assert = require('better-assert');
-const { ArrayBufferCopy, CreateAlgorithmWithNoParametersFromUnderlyingMethod,
-        CreateAlgorithmWithOneParameterFromUnderlyingMethod, CreateIterResultObject, IsFiniteNonNegativeNumber,
+const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, CreateIterResultObject, IsFiniteNonNegativeNumber,
         InvokeOrNoop, IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
@@ -1160,8 +1159,8 @@ function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underl
     return InvokeOrNoop(underlyingSource, 'start', [controller]);
   }
 
-  const pullAlgorithm = CreateAlgorithmWithNoParametersFromUnderlyingMethod(underlyingSource, 'pull', [controller]);
-  const cancelAlgorithm = CreateAlgorithmWithOneParameterFromUnderlyingMethod(underlyingSource, 'cancel', []);
+  const pullAlgorithm = CreateAlgorithmFromUnderlyingMethod(underlyingSource, 'pull', 0, [controller]);
+  const cancelAlgorithm = CreateAlgorithmFromUnderlyingMethod(underlyingSource, 'cancel', 1, []);
 
   SetUpReadableStreamDefaultController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm,
                                        highWaterMark, sizeAlgorithm);
@@ -1895,8 +1894,8 @@ function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyin
     return InvokeOrNoop(underlyingByteSource, 'start', [controller]);
   }
 
-  const pullAlgorithm = CreateAlgorithmWithNoParametersFromUnderlyingMethod(underlyingByteSource, 'pull', [controller]);
-  const cancelAlgorithm = CreateAlgorithmWithOneParameterFromUnderlyingMethod(underlyingByteSource, 'cancel', []);
+  const pullAlgorithm = CreateAlgorithmFromUnderlyingMethod(underlyingByteSource, 'pull', 0, [controller]);
+  const cancelAlgorithm = CreateAlgorithmFromUnderlyingMethod(underlyingByteSource, 'cancel', 1, []);
 
   const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
   if (autoAllocateChunkSize !== undefined) {

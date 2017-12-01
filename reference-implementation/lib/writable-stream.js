@@ -5,9 +5,8 @@ const assert = require('better-assert');
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:writable-stream:verbose');
 
-const { CreateAlgorithmWithNoParametersFromUnderlyingMethod,
-        CreateAlgorithmWithOneParameterFromUnderlyingMethod, InvokeOrNoop, ValidateAndNormalizeHighWaterMark,
-        IsNonNegativeNumber, MakeSizeAlgorithmFromSizeFunction, typeIsObject } = require('./helpers.js');
+const { CreateAlgorithmFromUnderlyingMethod, InvokeOrNoop, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
+        MakeSizeAlgorithmFromSizeFunction, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 
@@ -785,9 +784,9 @@ function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyi
     return InvokeOrNoop(underlyingSink, 'start', [controller]);
   }
 
-  const writeAlgorithm = CreateAlgorithmWithOneParameterFromUnderlyingMethod(underlyingSink, 'write', [controller]);
-  const closeAlgorithm = CreateAlgorithmWithNoParametersFromUnderlyingMethod(underlyingSink, 'close', []);
-  const abortAlgorithm = CreateAlgorithmWithOneParameterFromUnderlyingMethod(underlyingSink, 'abort', []);
+  const writeAlgorithm = CreateAlgorithmFromUnderlyingMethod(underlyingSink, 'write', 1, [controller]);
+  const closeAlgorithm = CreateAlgorithmFromUnderlyingMethod(underlyingSink, 'close', 0, []);
+  const abortAlgorithm = CreateAlgorithmFromUnderlyingMethod(underlyingSink, 'abort', 1, []);
 
   SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
                                        abortAlgorithm, highWaterMark, sizeAlgorithm);

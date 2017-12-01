@@ -99,22 +99,23 @@ exports.GetMethod = (V, methodName) => {
   return method;
 };
 
-exports.CreateAlgorithmWithNoParametersFromUnderlyingMethod = (underlyingObject, methodName, args) => {
+exports.CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, algoArgCount, extraArgs) => {
+  assert(algoArgCount === 0 || algoArgCount === 1);
   const method = exports.GetMethod(underlyingObject, methodName);
   if (method !== undefined) {
-    return () => {
-      return PromiseCall(method, underlyingObject, args);
-    };
-  }
-  return () => Promise.resolve();
-};
+    switch (algoArgCount) {
+      case 0: {
+        return () => {
+          return PromiseCall(method, underlyingObject, extraArgs);
+        };
+      }
 
-exports.CreateAlgorithmWithOneParameterFromUnderlyingMethod = (underlyingObject, methodName, extraArgs) => {
-  const method = exports.GetMethod(underlyingObject, methodName);
-  if (method !== undefined) {
-    return arg => {
-      return PromiseCall(method, underlyingObject, [arg].concat(extraArgs));
-    };
+      case 1: {
+        return arg => {
+          return PromiseCall(method, underlyingObject, [arg].concat(extraArgs));
+        };
+      }
+    }
   }
   return () => Promise.resolve();
 };
