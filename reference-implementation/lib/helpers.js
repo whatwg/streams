@@ -70,6 +70,41 @@ function Call(F, V, args) {
 
 exports.Call = Call;
 
+exports.CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, algoArgCount, extraArgs) => {
+  assert(underlyingObject !== undefined);
+  assert(IsPropertyKey(methodName));
+  assert(algoArgCount === 0 || algoArgCount === 1);
+  assert(Array.isArray(extraArgs));
+  const method = exports.GetMethod(underlyingObject, methodName);
+  if (method !== undefined) {
+    switch (algoArgCount) {
+      case 0: {
+        return () => {
+          return PromiseCall(method, underlyingObject, extraArgs);
+        };
+      }
+
+      case 1: {
+        return arg => {
+          const fullArgs = [arg].concat(extraArgs);
+          return PromiseCall(method, underlyingObject, fullArgs);
+        };
+      }
+    }
+  }
+  return () => Promise.resolve();
+};
+
+exports.GetMethod = (V, methodName) => {
+  assert(V !== undefined);
+  assert(IsPropertyKey(methodName) === true);
+  const method = V[methodName];
+  if (method !== undefined && typeof method !== 'function') {
+    throw new TypeError(`${methodName} is not a function`);
+  }
+  return method;
+};
+
 exports.InvokeOrNoop = (O, P, args) => {
   assert(O !== undefined);
   assert(IsPropertyKey(P));
@@ -84,41 +119,15 @@ exports.InvokeOrNoop = (O, P, args) => {
 };
 
 function PromiseCall(F, V, args) {
+  assert(typeof F === 'function');
+  assert(V !== undefined);
+  assert(Array.isArray(args));
   try {
     return Promise.resolve(Call(F, V, args));
   } catch (value) {
     return Promise.reject(value);
   }
 }
-
-exports.GetMethod = (V, methodName) => {
-  const method = V[methodName];
-  if (method !== undefined && typeof method !== 'function') {
-    throw new TypeError(`${methodName} is not a function`);
-  }
-  return method;
-};
-
-exports.CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, algoArgCount, extraArgs) => {
-  assert(algoArgCount === 0 || algoArgCount === 1);
-  const method = exports.GetMethod(underlyingObject, methodName);
-  if (method !== undefined) {
-    switch (algoArgCount) {
-      case 0: {
-        return () => {
-          return PromiseCall(method, underlyingObject, extraArgs);
-        };
-      }
-
-      case 1: {
-        return arg => {
-          return PromiseCall(method, underlyingObject, [arg].concat(extraArgs));
-        };
-      }
-    }
-  }
-  return () => Promise.resolve();
-};
 
 // Not implemented correctly
 exports.TransferArrayBuffer = O => {
