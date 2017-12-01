@@ -83,13 +83,13 @@ exports.InvokeOrNoop = (O, P, args) => {
   return Call(method, O, args);
 };
 
-exports.PromiseInvoke = (F, V, args) => {
+function PromiseInvoke(F, V, args) {
   try {
     return Promise.resolve(Call(F, V, args));
   } catch (value) {
     return Promise.reject(value);
   }
-};
+}
 
 exports.GetMethod = (V, methodName) => {
   const method = V[methodName];
@@ -97,6 +97,26 @@ exports.GetMethod = (V, methodName) => {
     throw new TypeError(`${methodName} is not a function`);
   }
   return method;
+};
+
+exports.CreateAlgorithmWithNoParametersFromUnderlyingMethod = (underlyingObject, methodName, args) => {
+  const method = exports.GetMethod(underlyingObject, methodName);
+  if (method !== undefined) {
+    return () => {
+      return PromiseInvoke(method, underlyingObject, args);
+    };
+  }
+  return () => Promise.resolve();
+};
+
+exports.CreateAlgorithmWithOneParameterFromUnderlyingMethod = (underlyingObject, methodName, extraArgs) => {
+  const method = exports.GetMethod(underlyingObject, methodName);
+  if (method !== undefined) {
+    return arg => {
+      return PromiseInvoke(method, underlyingObject, [arg].concat(extraArgs));
+    };
+  }
+  return () => Promise.resolve();
 };
 
 // Not implemented correctly

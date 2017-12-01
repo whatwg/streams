@@ -1,7 +1,8 @@
 'use strict';
 const assert = require('better-assert');
-const { ArrayBufferCopy, CreateIterResultObject, GetMethod, IsFiniteNonNegativeNumber, InvokeOrNoop, IsDetachedBuffer,
-        PromiseInvoke, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
+const { ArrayBufferCopy, CreateAlgorithmWithNoParametersFromUnderlyingMethod,
+        CreateAlgorithmWithOneParameterFromUnderlyingMethod, CreateIterResultObject, IsFiniteNonNegativeNumber,
+        InvokeOrNoop, IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
@@ -298,8 +299,9 @@ function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, hi
   const stream = Object.create(ReadableStream.prototype);
   InitializeReadableStream(stream);
 
+  const controller = Object.create(ReadableStreamDefaultController.prototype);
   SetUpReadableStreamDefaultController(
-      stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
+      stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
   );
 
   return stream;
@@ -317,7 +319,9 @@ function CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancelAlgorithm
   const stream = Object.create(ReadableStream.prototype);
   InitializeReadableStream(stream);
 
-  SetUpReadableByteStreamController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
+  const controller = Object.create(ReadableByteStreamController.prototype);
+
+  SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
                                     autoAllocateChunkSize);
 
   return stream;
@@ -1110,10 +1114,9 @@ function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
 }
 
 function SetUpReadableStreamDefaultController(
-  stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm) {
+  stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm) {
   assert(stream._readableStreamController === undefined);
 
-  const controller = Object.create(ReadableStreamDefaultController.prototype);
   controller._controlledReadableStream = stream;
 
   controller._queue = undefined;
@@ -1152,29 +1155,15 @@ function SetUpReadableStreamDefaultController(
 
 function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underlyingSource, highWaterMark,
                                                                   sizeAlgorithm) {
+  const controller = Object.create(ReadableStreamDefaultController.prototype);
   function startAlgorithm() {
-    return InvokeOrNoop(underlyingSource, 'start', [stream._readableStreamController]);
+    return InvokeOrNoop(underlyingSource, 'start', [controller]);
   }
 
-  // eslint-disable-next-line func-style
-  let pullAlgorithm = () => Promise.resolve();
-  const pullMethod = GetMethod(underlyingSource, 'pull');
-  if (pullMethod !== undefined) {
-    pullAlgorithm = () => {
-      return PromiseInvoke(pullMethod, underlyingSource, [stream._readableStreamController]);
-    };
-  }
+  const pullAlgorithm = CreateAlgorithmWithNoParametersFromUnderlyingMethod(underlyingSource, 'pull', [controller]);
+  const cancelAlgorithm = CreateAlgorithmWithOneParameterFromUnderlyingMethod(underlyingSource, 'cancel', []);
 
-  // eslint-disable-next-line func-style
-  let cancelAlgorithm = () => Promise.resolve();
-  const cancelMethod = GetMethod(underlyingSource, 'cancel');
-  if (cancelMethod !== undefined) {
-    cancelAlgorithm = reason => {
-      return PromiseInvoke(cancelMethod, underlyingSource, [reason]);
-    };
-  }
-
-  SetUpReadableStreamDefaultController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm,
+  SetUpReadableStreamDefaultController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm,
                                        highWaterMark, sizeAlgorithm);
 }
 
@@ -1848,15 +1837,14 @@ function ReadableByteStreamControllerRespondWithNewView(controller, view) {
   ReadableByteStreamControllerRespondInternal(controller, view.byteLength);
 }
 
-function SetUpReadableByteStreamController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
-                                           autoAllocateChunkSize) {
+function SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm,
+                                           highWaterMark, autoAllocateChunkSize) {
   assert(stream._readableStreamController === undefined);
   if (autoAllocateChunkSize !== undefined) {
     assert(Number.isInteger(autoAllocateChunkSize) === true);
     assert(autoAllocateChunkSize > 0);
   }
 
-  const controller = Object.create(ReadableByteStreamController.prototype);
   controller._controlledReadableByteStream = stream;
 
   controller._pullAgain = false;
@@ -1902,27 +1890,13 @@ function SetUpReadableByteStreamController(stream, startAlgorithm, pullAlgorithm
 }
 
 function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyingByteSource, highWaterMark) {
+  const controller = Object.create(ReadableByteStreamController.prototype);
   function startAlgorithm() {
-    return InvokeOrNoop(underlyingByteSource, 'start', [stream._readableStreamController]);
+    return InvokeOrNoop(underlyingByteSource, 'start', [controller]);
   }
 
-  // eslint-disable-next-line func-style
-  let pullAlgorithm = () => Promise.resolve();
-  const pullMethod = GetMethod(underlyingByteSource, 'pull');
-  if (pullMethod !== undefined) {
-    pullAlgorithm = () => {
-      return PromiseInvoke(pullMethod, underlyingByteSource, [stream._readableStreamController]);
-    };
-  }
-
-  // eslint-disable-next-line func-style
-  let cancelAlgorithm = () => Promise.resolve();
-  const cancelMethod = GetMethod(underlyingByteSource, 'cancel');
-  if (cancelMethod !== undefined) {
-    cancelAlgorithm = reason => {
-      return PromiseInvoke(cancelMethod, underlyingByteSource, [reason]);
-    };
-  }
+  const pullAlgorithm = CreateAlgorithmWithNoParametersFromUnderlyingMethod(underlyingByteSource, 'pull', [controller]);
+  const cancelAlgorithm = CreateAlgorithmWithOneParameterFromUnderlyingMethod(underlyingByteSource, 'cancel', []);
 
   const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
   if (autoAllocateChunkSize !== undefined) {
@@ -1931,7 +1905,7 @@ function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyin
     }
   }
 
-  SetUpReadableByteStreamController(stream, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
+  SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
                                     autoAllocateChunkSize);
 }
 

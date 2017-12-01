@@ -4,8 +4,9 @@ const assert = require('better-assert');
 // Calls to verbose() are purely for debugging the reference implementation and tests. They are not part of the standard
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:transform-stream:verbose');
-const { Call, InvokeOrNoop, GetMethod, PromiseInvoke, typeIsObject, ValidateAndNormalizeHighWaterMark,
-        IsNonNegativeNumber, MakeSizeAlgorithmFromSizeFunction } = require('./helpers.js');
+const { Call, InvokeOrNoop, GetMethod, CreateAlgorithmWithNoParametersFromUnderlyingMethod, typeIsObject,
+        ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
+        MakeSizeAlgorithmFromSizeFunction } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
@@ -92,7 +93,8 @@ function CreateTransformStream(startAlgorithm, transformAlgorithm, flushAlgorith
   InitializeTransformStream(stream, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark,
                             readableSizeAlgorithm);
 
-  SetUpTransformStreamDefaultController(stream, transformAlgorithm, flushAlgorithm);
+  const controller = Object.create(TransformStreamDefaultController.prototype);
+  SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm);
 
   const startResult = startAlgorithm();
   startPromise_resolve(startResult);
@@ -246,11 +248,10 @@ function IsTransformStreamDefaultController(x) {
   return true;
 }
 
-function SetUpTransformStreamDefaultController(stream, transformAlgorithm, flushAlgorithm) {
+function SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm) {
   assert(IsTransformStream(stream) === true);
   assert(stream._writableStreamController === undefined);
 
-  const controller = Object.create(TransformStreamDefaultController.prototype);
   controller._controlledTransformStream = stream;
   stream._transformStreamController = controller;
 
@@ -259,10 +260,12 @@ function SetUpTransformStreamDefaultController(stream, transformAlgorithm, flush
 }
 
 function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer) {
+  const controller = Object.create(TransformStreamDefaultController.prototype);
+
   // eslint-disable-next-line func-style
   let transformAlgorithm = chunk => {
     try {
-      TransformStreamDefaultControllerEnqueue(stream._transformStreamController, chunk);
+      TransformStreamDefaultControllerEnqueue(controller, chunk);
       return Promise.resolve();
     } catch (transformResultE) {
       return Promise.reject(transformResultE);
@@ -272,7 +275,7 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
   if (transformMethod !== undefined) {
     transformAlgorithm = chunk => {
       try {
-        const transformResult = Call(transformMethod, transformer, [chunk, stream._transformStreamController]);
+        const transformResult = Call(transformMethod, transformer, [chunk, controller]);
         const transformPromise = Promise.resolve(transformResult);
         return transformPromise.catch(e => {
           TransformStreamError(stream, e);
@@ -285,16 +288,9 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
     };
   }
 
-  // eslint-disable-next-line func-style
-  let flushAlgorithm = () => Promise.resolve();
-  const flushMethod = GetMethod(transformer, 'flush');
-  if (flushMethod !== undefined) {
-    flushAlgorithm = () => {
-      return PromiseInvoke(flushMethod, transformer, [stream._transformStreamController]);
-    };
-  }
+  const flushAlgorithm = CreateAlgorithmWithNoParametersFromUnderlyingMethod(transformer, 'flush', [controller]);
 
-  SetUpTransformStreamDefaultController(stream, transformAlgorithm, flushAlgorithm);
+  SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm);
 }
 
 function TransformStreamDefaultControllerEnqueue(controller, chunk) {

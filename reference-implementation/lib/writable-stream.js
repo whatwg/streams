@@ -5,8 +5,9 @@ const assert = require('better-assert');
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:writable-stream:verbose');
 
-const { GetMethod, InvokeOrNoop, PromiseInvoke, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
-        MakeSizeAlgorithmFromSizeFunction, typeIsObject } = require('./helpers.js');
+const { CreateAlgorithmWithNoParametersFromUnderlyingMethod,
+        CreateAlgorithmWithOneParameterFromUnderlyingMethod, InvokeOrNoop, ValidateAndNormalizeHighWaterMark,
+        IsNonNegativeNumber, MakeSizeAlgorithmFromSizeFunction, typeIsObject } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 
@@ -86,8 +87,9 @@ function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, ab
   const stream = Object.create(WritableStream.prototype);
   InitializeWritableStream(stream);
 
-  SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm,
-                                       highWaterMark, sizeAlgorithm);
+  const controller = Object.create(WritableStreamDefaultController.prototype);
+  SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
+                                       abortAlgorithm, highWaterMark, sizeAlgorithm);
   return stream;
 }
 
@@ -734,12 +736,11 @@ function IsWritableStreamDefaultController(x) {
   return true;
 }
 
-function SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm,
-                                              highWaterMark, sizeAlgorithm) {
+function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
+                                              abortAlgorithm, highWaterMark, sizeAlgorithm) {
   assert(IsWritableStream(stream) === true);
   assert(stream._writableStreamController === undefined);
 
-  const controller = Object.create(WritableStreamDefaultController.prototype);
   controller._controlledWritableStream = stream;
   stream._writableStreamController = controller;
 
@@ -778,39 +779,18 @@ function SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgor
 }
 
 function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyingSink, highWaterMark, sizeAlgorithm) {
+  const controller = Object.create(WritableStreamDefaultController.prototype);
+
   function startAlgorithm() {
-    return InvokeOrNoop(underlyingSink, 'start', [stream._writableStreamController]);
+    return InvokeOrNoop(underlyingSink, 'start', [controller]);
   }
 
-  // eslint-disable-next-line func-style
-  let writeAlgorithm = () => Promise.resolve();
-  const writeMethod = GetMethod(underlyingSink, 'write');
-  if (writeMethod !== undefined) {
-    writeAlgorithm = chunk => {
-      return PromiseInvoke(writeMethod, underlyingSink, [chunk, stream._writableStreamController]);
-    };
-  }
+  const writeAlgorithm = CreateAlgorithmWithOneParameterFromUnderlyingMethod(underlyingSink, 'write', [controller]);
+  const closeAlgorithm = CreateAlgorithmWithNoParametersFromUnderlyingMethod(underlyingSink, 'close', []);
+  const abortAlgorithm = CreateAlgorithmWithOneParameterFromUnderlyingMethod(underlyingSink, 'abort', []);
 
-  // eslint-disable-next-line func-style
-  let closeAlgorithm = () => Promise.resolve();
-  const closeMethod = GetMethod(underlyingSink, 'close');
-  if (closeMethod !== undefined) {
-    closeAlgorithm = () => {
-      return PromiseInvoke(closeMethod, underlyingSink, []);
-    };
-  }
-
-  // eslint-disable-next-line func-style
-  let abortAlgorithm = () => Promise.resolve();
-  const abortMethod = GetMethod(underlyingSink, 'abort');
-  if (abortMethod !== undefined) {
-    abortAlgorithm = reason => {
-      return PromiseInvoke(abortMethod, underlyingSink, [reason]);
-    };
-  }
-
-  SetUpWritableStreamDefaultController(stream, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm,
-                                       highWaterMark, sizeAlgorithm);
+  SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
+                                       abortAlgorithm, highWaterMark, sizeAlgorithm);
 }
 
 function WritableStreamDefaultControllerClose(controller) {
