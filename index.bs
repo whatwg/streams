@@ -1914,8 +1914,8 @@ throws>SetUpReadableStreamDefaultControllerFromUnderlyingSource(<var>stream</var
      property).
   1. Let _startAlgorithm_ be the following steps:
     1. Return ? InvokeOrNoop(_underlyingSource_, `"start"`, « _controller_ »).
-  1. Let _pullAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"pull"`, *0*, « _controller_ »).
-  1. Let _cancelAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"cancel"`, *1*, « » ).
+  1. Let _pullAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"pull"`, *0*, « _controller_ »).
+  1. Let _cancelAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"cancel"`, *1*, « » ).
   1. Perform ? SetUpReadableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _pullAlgorithm_,
      _cancelAlgorithm_, _highWaterMark_, _sizeAlgorithm_)
 </emu-alg>
@@ -2689,14 +2689,14 @@ throws>SetUpReadableByteStreamControllerFromUnderlyingSource ( <var>stream</var>
      property).
   1. Let _startAlgorithm_ be the following steps:
     1. Return ? InvokeOrNoop(_underlyingByteSource_, `"start"`, « _controller_ »).
-  1. Let _pullAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingByteSource_, `"pull"`, *0*, « _controller_
+  1. Let _pullAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_underlyingByteSource_, `"pull"`, *0*, « _controller_
      »).
-  1. Let _cancelAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingByteSource_, `"cancel"`, *1*, « »).
+  1. Let _cancelAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_underlyingByteSource_, `"cancel"`, *1*, « »).
   1. Let _autoAllocateChunkSize_ be ? GetV(_underlyingByteSource_, `"autoAllocateChunkSize"`).
   1. If _autoAllocateChunkSize_ is not *undefined*,
     1. If ! IsInteger(_autoAllocateChunkSize_) is *false*, or if _autoAllocateChunkSize_ ≤ *0*, throw a *RangeError*
        exception.
-  1. Perform ! SetUpReadableByteStreamController(_stream_, _controller_, _startAlgorithm_, _pullAlgorithm_,
+  1. Perform ? SetUpReadableByteStreamController(_stream_, _controller_, _startAlgorithm_, _pullAlgorithm_,
      _cancelAlgorithm_, _highWaterMark_, _autoAllocateChunkSize_).
 </emu-alg>
 
@@ -2922,7 +2922,7 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
      potential types in the future, without backward-compatibility concerns.</p>
   1. Let _sizeAlgorithm_ be ? MakeSizeAlgorithmFromSizeFunction(_size_).
   1. Set _highWaterMark_ to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
-  1. Perform ! SetUpWritableStreamDefaultControllerFromUnderlyingSink(*this*, _underlyingSink_, _highWaterMark_,
+  1. Perform ? SetUpWritableStreamDefaultControllerFromUnderlyingSink(*this*, _underlyingSink_, _highWaterMark_,
      _sizeAlgorithm_).
 </emu-alg>
 
@@ -3002,7 +3002,7 @@ throws.</p>
   1. Perform ! InitializeWritableStream(_stream_).
   1. Let _controller_ be ObjectCreate(the original value of `<a idl>WritableStreamDefaultController</a>`'s `prototype`
      property).
-  1. Perform ! SetUpWritableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _writeAlgorithm_,
+  1. Perform ? SetUpWritableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _writeAlgorithm_,
      _closeAlgorithm_, _abortAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
   1. Return _stream_.
 </emu-alg>
@@ -3791,10 +3791,10 @@ throws>SetUpWritableStreamDefaultControllerFromUnderlyingSink ( <var>stream</var
      property).
   1. Let _startAlgorithm_ be the following steps:
     1. Return ? InvokeOrNoop(_underlyingSink_, `"start"`, « _controller_ »).
-  1. Let _writeAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSink_, `"write"`, *1*, « _controller_ »).
-  1. Let _closeAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSink_, `"close"`, *0*, « »).
-  1. Let _abortAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_underlyingSink_, `"abort"`, *1*, « »).
-  1. Perform ! SetUpWritableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _writeAlgorithm_,
+  1. Let _writeAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_underlyingSink_, `"write"`, *1*, « _controller_ »).
+  1. Let _closeAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_underlyingSink_, `"close"`, *0*, « »).
+  1. Let _abortAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_underlyingSink_, `"abort"`, *1*, « »).
+  1. Perform ? SetUpWritableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _writeAlgorithm_,
      _closeAlgorithm_, _abortAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
 </emu-alg>
 
@@ -4094,7 +4094,7 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
   1. Let _startPromise_ be <a>a new promise</a>.
   1. Perform ! InitializeTransformStream(*this*, _startPromise_, _writableHighWaterMark_, _writableSizeAlgorithm_,
      _readableHighWaterMark_, _readableSizeAlgorithm_).
-  1. Perform ! SetUpTransformStreamDefaultControllerFromTransformer(*this*, _transformer_).
+  1. Perform ? SetUpTransformStreamDefaultControllerFromTransformer(*this*, _transformer_).
   1. Let _startResult_ be ? InvokeOrNoop(_transformer_, `"start"`, « *this*.[[transformStreamController]] »).
   1. <a>Resolve</a> _startPromise_ with _startResult_.
 </emu-alg>
@@ -4379,7 +4379,7 @@ nothrow>SetUpTransformStreamDefaultController ( <var>stream</var>, <var>controll
 
 <h4 id="set-up-transform-stream-default-controller-from-transformer"
 aoid="SetUpTransformStreamDefaultControllerFromTransformer"
-nothrow>SetUpTransformStreamDefaultControllerFromTransformer ( <var>stream</var>, <var>transformer</var> )</h4>
+throws>SetUpTransformStreamDefaultControllerFromTransformer ( <var>stream</var>, <var>transformer</var> )</h4>
 
 <emu-alg>
   1. Assert: _transformer_ is not *undefined*.
@@ -4397,7 +4397,7 @@ nothrow>SetUpTransformStreamDefaultControllerFromTransformer ( <var>stream</var>
          argument _e_, performs the following steps:
         1. Perform ! TransformStreamError(_stream_, _e_).
         1. Throw _e_.
-  1. Let _flushAlgorithm_ be ! CreateAlgorithmFromUnderlyingMethod(_transformer_, `"flush"`, *0*, « controller »).
+  1. Let _flushAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_transformer_, `"flush"`, *0*, « controller »).
   1. Perform ! SetUpTransformStreamDefaultController(_stream_, _controller_, _transformAlgorithm_, _flushAlgorithm_).
 </emu-alg>
 
@@ -4738,7 +4738,7 @@ chunks, or when trillions of chunks are enqueued.)</p>
 A few abstract operations are used in this specification for utility purposes. We define them here.
 
 <h4 id="create-algorithm-from-underlying-method" aoid="CreateAlgorithmFromUnderlyingMethod"
-nothrow>CreateAlgorithmFromUnderlyingMethod ( <var>underlyingObject</var>, <var>methodName</var>,
+throws>CreateAlgorithmFromUnderlyingMethod ( <var>underlyingObject</var>, <var>methodName</var>,
 <var>algoArgCount</var>, <var>extraArgs</var> )</h4>
 
 <emu-alg>
