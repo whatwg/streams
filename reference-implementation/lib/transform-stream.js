@@ -94,6 +94,7 @@ function CreateTransformStream(startAlgorithm, transformAlgorithm, flushAlgorith
                             readableSizeAlgorithm);
 
   const controller = Object.create(TransformStreamDefaultController.prototype);
+
   SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm);
 
   const startResult = startAlgorithm();

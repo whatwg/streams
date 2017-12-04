@@ -87,6 +87,7 @@ function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, ab
   InitializeWritableStream(stream);
 
   const controller = Object.create(WritableStreamDefaultController.prototype);
+
   SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
                                        abortAlgorithm, highWaterMark, sizeAlgorithm);
   return stream;

@@ -299,6 +299,7 @@ function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, hi
   InitializeReadableStream(stream);
 
   const controller = Object.create(ReadableStreamDefaultController.prototype);
+
   SetUpReadableStreamDefaultController(
       stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
   );
@@ -1157,6 +1158,7 @@ function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underl
   assert(underlyingSource !== undefined);
 
   const controller = Object.create(ReadableStreamDefaultController.prototype);
+
   function startAlgorithm() {
     return InvokeOrNoop(underlyingSource, 'start', [controller]);
   }
@@ -1894,6 +1896,7 @@ function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyin
   assert(underlyingByteSource !== undefined);
 
   const controller = Object.create(ReadableByteStreamController.prototype);
+
   function startAlgorithm() {
     return InvokeOrNoop(underlyingByteSource, 'start', [controller]);
   }
