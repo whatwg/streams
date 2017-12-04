@@ -1909,6 +1909,7 @@ throws>SetUpReadableStreamDefaultControllerFromUnderlyingSource(<var>stream</var
 <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
 
 <emu-alg>
+  1. Assert: _underlyingSource_ is not *undefined*.
   1. Let _controller_ be ObjectCreate(the original value of `<a idl>ReadableStreamDefaultController</a>`'s `prototype`
      property).
   1. Let _startAlgorithm_ be the following steps:
@@ -2679,10 +2680,11 @@ throws>SetUpReadableByteStreamController ( <var>stream</var>, <var>controller</v
 
 <h4 id="set-up-readable-byte-stream-controller-from-underlying-source"
 aoid="SetUpReadableByteStreamControllerFromUnderlyingSource"
-throws>SetUpReadableByteStreamControllerFromUnderlyingSource ( <var>stream</var>, <var>underylingByteSource</var>,
+throws>SetUpReadableByteStreamControllerFromUnderlyingSource ( <var>stream</var>, <var>underlyingByteSource</var>,
 <var>highWaterMark</var> )</h4>
 
 <emu-alg>
+  1. Assert: _underlyingByteSource_ is not *undefined*.
   1. Let _controller_ be ObjectCreate(the original value of `<a idl>ReadableByteStreamController</a>`'s `prototype`
      property).
   1. Let _startAlgorithm_ be the following steps:
@@ -3784,6 +3786,7 @@ throws>SetUpWritableStreamDefaultControllerFromUnderlyingSink ( <var>stream</var
 <var>highWaterMark</var>, <var>sizeAlgorithm</var> )</h4>
 
 <emu-alg>
+  1. Assert: _underlyingSink_ is not *undefined*.
   1. Let _controller_ be ObjectCreate(the original value of `<a idl>WritableStreamDefaultController</a>`'s `prototype`
      property).
   1. Let _startAlgorithm_ be the following steps:
@@ -4379,6 +4382,7 @@ aoid="SetUpTransformStreamDefaultControllerFromTransformer"
 nothrow>SetUpTransformStreamDefaultControllerFromTransformer ( <var>stream</var>, <var>transformer</var> )</h4>
 
 <emu-alg>
+  1. Assert: _transformer_ is not *undefined*.
   1. Let _controller_ be ObjectCreate(the original value of `<a idl>TransformStreamDefaultController</a>`'s `prototype`
      property).
   1. Let _transformAlgorithm_ be the following steps, taking a_chunk_ argument:

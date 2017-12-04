@@ -260,6 +260,8 @@ function SetUpTransformStreamDefaultController(stream, controller, transformAlgo
 }
 
 function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer) {
+  assert(transformer !== undefined);
+
   const controller = Object.create(TransformStreamDefaultController.prototype);
 
   let transformAlgorithm = chunk => {

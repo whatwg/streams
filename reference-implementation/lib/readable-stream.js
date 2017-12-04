@@ -1154,6 +1154,8 @@ function SetUpReadableStreamDefaultController(
 
 function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underlyingSource, highWaterMark,
                                                                   sizeAlgorithm) {
+  assert(underlyingSource !== undefined);
+
   const controller = Object.create(ReadableStreamDefaultController.prototype);
   function startAlgorithm() {
     return InvokeOrNoop(underlyingSource, 'start', [controller]);
@@ -1889,6 +1891,8 @@ function SetUpReadableByteStreamController(stream, controller, startAlgorithm, p
 }
 
 function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyingByteSource, highWaterMark) {
+  assert(underlyingByteSource !== undefined);
+
   const controller = Object.create(ReadableByteStreamController.prototype);
   function startAlgorithm() {
     return InvokeOrNoop(underlyingByteSource, 'start', [controller]);
