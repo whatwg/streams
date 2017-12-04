@@ -4,7 +4,7 @@ const assert = require('better-assert');
 // Calls to verbose() are purely for debugging the reference implementation and tests. They are not part of the standard
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:transform-stream:verbose');
-const { Call, InvokeOrNoop, GetMethod, CreateAlgorithmFromUnderlyingMethod, typeIsObject,
+const { InvokeOrNoop, GetMethod, CreateAlgorithmFromUnderlyingMethod, PromiseCall, typeIsObject,
         ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
@@ -275,17 +275,11 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
   const transformMethod = GetMethod(transformer, 'transform');
   if (transformMethod !== undefined) {
     transformAlgorithm = chunk => {
-      try {
-        const transformResult = Call(transformMethod, transformer, [chunk, controller]);
-        const transformPromise = Promise.resolve(transformResult);
-        return transformPromise.catch(e => {
-          TransformStreamError(stream, e);
-          throw e;
-        });
-      } catch (transformResultE) {
-        TransformStreamError(stream, transformResultE);
-        return Promise.reject(transformResultE);
-      }
+      const transformPromise = PromiseCall(transformMethod, transformer, [chunk, controller]);
+      return transformPromise.catch(e => {
+        TransformStreamError(stream, e);
+        throw e;
+      });
     };
   }
 

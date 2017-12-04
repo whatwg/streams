@@ -129,6 +129,8 @@ function PromiseCall(F, V, args) {
   }
 }
 
+exports.PromiseCall = PromiseCall;
+
 // Not implemented correctly
 exports.TransferArrayBuffer = O => {
   assert(!exports.IsDetachedBuffer(O));

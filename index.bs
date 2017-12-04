@@ -4385,18 +4385,14 @@ nothrow>SetUpTransformStreamDefaultControllerFromTransformer ( <var>stream</var>
   1. Assert: _transformer_ is not *undefined*.
   1. Let _controller_ be ObjectCreate(the original value of `<a idl>TransformStreamDefaultController</a>`'s `prototype`
      property).
-  1. Let _transformAlgorithm_ be the following steps, taking a_chunk_ argument:
+  1. Let _transformAlgorithm_ be the following steps, taking a _chunk_ argument:
     1. Let _result_ be TransformStreamDefaultControllerEnqueue(_controller_, _chunk_).
     1. If _result_ is an abrupt completion, return <a>a promise rejected with</a> _result_.[[Value]].
     1. Otherwise, return <a>a promise resolved with</a> *undefined*.
   1. Let _transformMethod_ be ? GetMethod(_transformer_, `"transform"`).
   1. If _transformMethod_ is not *undefined*,
-    1. Set _transformAlgorithm_ to the following steps, taking a_chunk_ argument:
-      1. Let _transformResult_ be Call(_transformMethod_, _transformer_, « chunk, _controller_ »).
-      1. If _transformResult_ is an abrupt completion,
-        1. Perform ! TransformStreamError(_stream_, _transformResult_.[[Value]]).
-        1. Return <a>a promise rejected with</a> _transformResult_.[[Value]].
-      1. Let _transformPromise_ be <a>a promise resolved with</a> _transformResult_.
+    1. Set _transformAlgorithm_ to the following steps, taking a _chunk_ argument:
+      1. Let _transformPromise_ be ! PromiseCall(_transformMethod_, _transformer_, « chunk, _controller_ »).
       1. Return the result of <a>transforming</a> _transformPromise_ with a rejection handler that, when called with
          argument _e_, performs the following steps:
         1. Perform ! TransformStreamError(_stream_, _e_).
