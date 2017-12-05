@@ -1915,9 +1915,9 @@ throws>SetUpReadableStreamDefaultControllerFromUnderlyingSource(<var>stream</var
   1. Let _startAlgorithm_ be the following steps:
     1. Return ? InvokeOrNoop(_underlyingSource_, `"start"`, « _controller_ »).
   1. Let _pullAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"pull"`, *0*, « _controller_ »).
-  1. Let _cancelAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"cancel"`, *1*, « » ).
+  1. Let _cancelAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_underlyingSource_, `"cancel"`, *1*, « »).
   1. Perform ? SetUpReadableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _pullAlgorithm_,
-     _cancelAlgorithm_, _highWaterMark_, _sizeAlgorithm_)
+     _cancelAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
 </emu-alg>
 
 <h3 id="rbs-controller-class" interface lt="ReadableByteStreamController">Class
@@ -4750,7 +4750,7 @@ throws>CreateAlgorithmFromUnderlyingMethod ( <var>underlyingObject</var>, <var>m
   1. If _method_ is not *undefined*,
     1. If _algoArgCount_ is *0*, return an algorithm that performs the following steps:
       1. Return ! PromiseCall(_method_, _underlyingObject_, _extraArgs_).
-    1. Otherwise, return an algorithm that performs the following steps, taking an *arg* argument:
+    1. Otherwise, return an algorithm that performs the following steps, taking an _arg_ argument:
       1. Let _fullArgs_ be a List consisting of _arg_ followed by the elements of _extraArgs_ in order.
       1. Return ! PromiseCall(_method_, _underlyingObject_, _fullArgs_).
   1. Return an algorithm which returns <a>a promise resolved with</a> *undefined*.

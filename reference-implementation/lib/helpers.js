@@ -95,14 +95,18 @@ exports.CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, alg
   return () => Promise.resolve();
 };
 
-exports.GetMethod = (V, methodName) => {
+exports.GetMethod = (V, P) => {
   assert(V !== undefined);
-  assert(IsPropertyKey(methodName) === true);
-  const method = V[methodName];
-  if (method !== undefined && typeof method !== 'function') {
-    throw new TypeError(`${methodName} is not a function`);
+  assert(IsPropertyKey(P) === true);
+  const func = V[P];
+  if (func === undefined || func === null) {
+    return undefined;
   }
-  return method;
+
+  if (typeof func !== 'function') {
+    throw new TypeError(`${P} is not a function`);
+  }
+  return func;
 };
 
 exports.InvokeOrNoop = (O, P, args) => {
