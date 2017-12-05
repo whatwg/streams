@@ -4756,16 +4756,6 @@ throws>CreateAlgorithmFromUnderlyingMethod ( <var>underlyingObject</var>, <var>m
   1. Return an algorithm which returns <a>a promise resolved with</a> *undefined*.
 </emu-alg>
 
-<h4 id="get-method" aoid="GetMethod" throws>GetMethod ( <var>V</var>, <var>methodName</var> )</h4>
-
-<emu-alg>
-  1. Assert: _V_ is not *undefined*.
-  1. Assert: ! IsPropertyKey(_methodName_) is *true*.
-  1. Let _method_ be ? GetV(_O_, _P_).
-  1. If _method_ is not *undefined* and ! IsCallable(_method_) is *false*, throw a *TypeError* exception.
-  1. Return _method_.
-</emu-alg>
-
 <h4 id="invoke-or-noop" aoid="InvokeOrNoop" throws>InvokeOrNoop ( <var>O</var>, <var>P</var>, <var>args</var> )</h4>
 
 <div class="note">
