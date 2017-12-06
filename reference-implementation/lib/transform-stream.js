@@ -4,7 +4,8 @@ const assert = require('better-assert');
 // Calls to verbose() are purely for debugging the reference implementation and tests. They are not part of the standard
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:transform-stream:verbose');
-const { Call, InvokeOrNoop, PromiseInvokeOrNoop, typeIsObject, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
+const { InvokeOrNoop, CreateAlgorithmFromUnderlyingMethod, PromiseCall, typeIsObject,
+        ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
@@ -92,7 +93,9 @@ function CreateTransformStream(startAlgorithm, transformAlgorithm, flushAlgorith
   InitializeTransformStream(stream, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark,
                             readableSizeAlgorithm);
 
-  SetUpTransformStreamDefaultController(stream, transformAlgorithm, flushAlgorithm);
+  const controller = Object.create(TransformStreamDefaultController.prototype);
+
+  SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm);
 
   const startResult = startAlgorithm();
   startPromise_resolve(startResult);
@@ -246,11 +249,10 @@ function IsTransformStreamDefaultController(x) {
   return true;
 }
 
-function SetUpTransformStreamDefaultController(stream, transformAlgorithm, flushAlgorithm) {
+function SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm) {
   assert(IsTransformStream(stream) === true);
   assert(stream._writableStreamController === undefined);
 
-  const controller = Object.create(TransformStreamDefaultController.prototype);
   controller._controlledTransformStream = stream;
   stream._transformStreamController = controller;
 
@@ -259,28 +261,35 @@ function SetUpTransformStreamDefaultController(stream, transformAlgorithm, flush
 }
 
 function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer) {
-  function transformAlgorithm(chunk) {
-    return TransformStreamDefaultControllerPromiseCallTransform(stream, transformer, chunk);
+  assert(transformer !== undefined);
+
+  const controller = Object.create(TransformStreamDefaultController.prototype);
+
+  let transformAlgorithm = chunk => {
+    try {
+      TransformStreamDefaultControllerEnqueue(controller, chunk);
+      return Promise.resolve();
+    } catch (transformResultE) {
+      return Promise.reject(transformResultE);
+    }
+  };
+  const transformMethod = transformer.transform;
+  if (transformMethod !== undefined) {
+    if (typeof transformMethod !== 'function') {
+      throw new TypeError('transform is not a method');
+    }
+    transformAlgorithm = chunk => {
+      const transformPromise = PromiseCall(transformMethod, transformer, [chunk, controller]);
+      return transformPromise.catch(e => {
+        TransformStreamError(stream, e);
+        throw e;
+      });
+    };
   }
 
-  function flushAlgorithm() {
-    return PromiseInvokeOrNoop(transformer, 'flush', [stream._transformStreamController]);
-  }
+  const flushAlgorithm = CreateAlgorithmFromUnderlyingMethod(transformer, 'flush', 0, [controller]);
 
-  SetUpTransformStreamDefaultController(stream, transformAlgorithm, flushAlgorithm);
-}
-
-function TransformStreamDefaultControllerCallTransformOrFallback(stream, transformer, chunk) {
-  const controller = stream._transformStreamController;
-
-  const method = transformer.transform; // can throw
-
-  if (method === undefined) {
-    TransformStreamDefaultControllerEnqueue(controller, chunk); // can throw
-    return undefined;
-  }
-
-  return Call(method, transformer, [chunk, controller]); // can throw
+  SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm);
 }
 
 function TransformStreamDefaultControllerEnqueue(controller, chunk) {
@@ -313,28 +322,6 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
 
 function TransformStreamDefaultControllerError(controller, e) {
   TransformStreamError(controller._controlledTransformStream, e);
-}
-
-function TransformStreamDefaultControllerPromiseCallTransform(stream, transformer, chunk) {
-  verbose('TransformStreamDefaultControllerPromiseCallTransform()');
-
-  assert(stream._readable._state !== 'errored');
-  assert(stream._backpressure === false);
-
-  let transformPromise;
-  try {
-    // TransformStreamDefaultControllerCallTransformOrFallback is a separate operation to permit consolidating the
-    // abrupt completion handling in one place in the text of the standard.
-    const transformResult = TransformStreamDefaultControllerCallTransformOrFallback(stream, transformer, chunk);
-    transformPromise = Promise.resolve(transformResult);
-  } catch (transformResultE) {
-    transformPromise = Promise.reject(transformResultE);
-  }
-
-  return transformPromise.catch(e => {
-    TransformStreamError(stream, e);
-    throw e;
-  });
 }
 
 function TransformStreamDefaultControllerTerminate(controller) {

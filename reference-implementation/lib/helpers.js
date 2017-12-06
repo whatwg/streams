@@ -70,6 +70,34 @@ function Call(F, V, args) {
 
 exports.Call = Call;
 
+exports.CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, algoArgCount, extraArgs) => {
+  assert(underlyingObject !== undefined);
+  assert(IsPropertyKey(methodName));
+  assert(algoArgCount === 0 || algoArgCount === 1);
+  assert(Array.isArray(extraArgs));
+  const method = underlyingObject[methodName];
+  if (method !== undefined) {
+    if (typeof method !== 'function') {
+      throw new TypeError(`${method} is not a method`);
+    }
+    switch (algoArgCount) {
+      case 0: {
+        return () => {
+          return PromiseCall(method, underlyingObject, extraArgs);
+        };
+      }
+
+      case 1: {
+        return arg => {
+          const fullArgs = [arg].concat(extraArgs);
+          return PromiseCall(method, underlyingObject, fullArgs);
+        };
+      }
+    }
+  }
+  return () => Promise.resolve();
+};
+
 exports.InvokeOrNoop = (O, P, args) => {
   assert(O !== undefined);
   assert(IsPropertyKey(P));
@@ -83,16 +111,18 @@ exports.InvokeOrNoop = (O, P, args) => {
   return Call(method, O, args);
 };
 
-exports.PromiseInvokeOrNoop = (O, P, args) => {
-  assert(O !== undefined);
-  assert(IsPropertyKey(P));
+function PromiseCall(F, V, args) {
+  assert(typeof F === 'function');
+  assert(V !== undefined);
   assert(Array.isArray(args));
   try {
-    return Promise.resolve(exports.InvokeOrNoop(O, P, args));
-  } catch (returnValueE) {
-    return Promise.reject(returnValueE);
+    return Promise.resolve(Call(F, V, args));
+  } catch (value) {
+    return Promise.reject(value);
   }
-};
+}
+
+exports.PromiseCall = PromiseCall;
 
 // Not implemented correctly
 exports.TransferArrayBuffer = O => {

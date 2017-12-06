@@ -154,7 +154,7 @@
     "consistent-this": "off",
     "eol-last": "error",
     "func-names": "off",
-    "func-style": ["error", "declaration"],
+    "func-style": "off",
     "id-blacklist": "off",
     "id-length": "off",
     "id-match": "off",
