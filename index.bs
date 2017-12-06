@@ -4389,8 +4389,9 @@ throws>SetUpTransformStreamDefaultControllerFromTransformer ( <var>stream</var>,
     1. Let _result_ be TransformStreamDefaultControllerEnqueue(_controller_, _chunk_).
     1. If _result_ is an abrupt completion, return <a>a promise rejected with</a> _result_.[[Value]].
     1. Otherwise, return <a>a promise resolved with</a> *undefined*.
-  1. Let _transformMethod_ be ? GetMethod(_transformer_, `"transform"`).
+  1. Let _transformMethod_ be ? GetV(_transformer_, `"transform"`).
   1. If _transformMethod_ is not *undefined*,
+    1. If ! IsCallable(_transformMethod_) is *false*, throw a *TypeError* exception.
     1. Set _transformAlgorithm_ to the following steps, taking a _chunk_ argument:
       1. Let _transformPromise_ be ! PromiseCall(_transformMethod_, _transformer_, « chunk, _controller_ »).
       1. Return the result of <a>transforming</a> _transformPromise_ with a rejection handler that, when called with
@@ -4746,8 +4747,9 @@ throws>CreateAlgorithmFromUnderlyingMethod ( <var>underlyingObject</var>, <var>m
   1. Assert: ! IsPropertyKey(_methodName_) is *true*.
   1. Assert: _algoArgCount_ is *0* or *1*.
   1. Assert: _extraArgs_ is a List.
-  1. Let _method_ be ? GetMethod(_underlyingObject_, _methodName_).
+  1. Let _method_ be ? GetV(_underlyingObject_, _methodName_).
   1. If _method_ is not *undefined*,
+    1. If ! IsCallable(_method_) is *false*, throw a *TypeError* exception.
     1. If _algoArgCount_ is *0*, return an algorithm that performs the following steps:
       1. Return ! PromiseCall(_method_, _underlyingObject_, _extraArgs_).
     1. Otherwise, return an algorithm that performs the following steps, taking an _arg_ argument:
