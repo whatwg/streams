@@ -251,7 +251,7 @@ function IsTransformStreamDefaultController(x) {
 
 function SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm) {
   assert(IsTransformStream(stream) === true);
-  assert(stream._writableStreamController === undefined);
+  assert(stream._transformStreamController === undefined);
 
   controller._controlledTransformStream = stream;
   stream._transformStreamController = controller;
