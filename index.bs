@@ -4370,7 +4370,7 @@ nothrow>SetUpTransformStreamDefaultController ( <var>stream</var>, <var>controll
 
 <emu-alg>
   1. Assert: ! IsTransformStream(_stream_) is *true*.
-  1. Assert: _stream_.[[writableStreamController]] is *undefined*.
+  1. Assert: _stream_.[[transformStreamController]] is *undefined*.
   1. Set _controller_.[[controlledTransformStream]] to _stream_.
   1. Set _stream_.[[transformStreamController]] to _controller_.
   1. Set _controller_.[[transformAlgorithm]] to _transformAlgorithm_.
@@ -5522,6 +5522,7 @@ Jens Nockert,
 Mangala Sadhu Sangeet Singh Khalsa,
 Marcos Caceres,
 Marvin Hagemeister,
+Mattias Buelens,
 Michael Mior,
 Mihai Potra,
 Romain Bellessort, <!-- rombel on GitHub -->
