@@ -5522,6 +5522,7 @@ Jens Nockert,
 Mangala Sadhu Sangeet Singh Khalsa,
 Marcos Caceres,
 Marvin Hagemeister,
+Mattias Buelens,
 Michael Mior,
 Mihai Potra,
 Romain Bellessort, <!-- rombel on GitHub -->
