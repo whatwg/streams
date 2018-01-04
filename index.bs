@@ -1,26 +1,13 @@
-<pre class="metadata">
-Title: Streams Standard
+<pre class=metadata>
 Group: WHATWG
 H1: Streams
 Shortname: streams
-Repository: whatwg/streams
-Inline Github Issues: title
-Status: LS
-Boilerplate: omit conformance, omit feedback-header
-No Editor: true
+Text Macro: TWITTER streamsstandard
 Abstract: This specification provides APIs for creating, composing, and consuming streams of data that map efficiently
 Abstract: to low-level I/O primitives.
-Logo: https://resources.whatwg.org/logo-streams.svg
-!Participate: <a href="https://github.com/whatwg/streams">GitHub whatwg/streams</a> (<a href="https://github.com/whatwg/streams/issues/new">new issue</a>, <a href="https://github.com/whatwg/streams/issues">open issues</a>)
-!Participate: <a href="https://wiki.whatwg.org/wiki/IRC">IRC: #whatwg on Freenode</a>
-!Commits: <a href="https://github.com/whatwg/streams/commits">GitHub whatwg/streams/commits</a>
-!Commits: [SNAPSHOT-LINK]
-!Commits: <a href="https://twitter.com/streamsstandard">@streamsstandard</a>
-!Tests: <a href="https://github.com/w3c/web-platform-tests/tree/master/streams">web-platform-tests streams/</a> (<a href="https://github.com/w3c/web-platform-tests/labels/streams">ongoing work</a>)
+Translation: ja https://triple-underscore.github.io/Streams-ja.html
 !Demos: <a href="https://streams.spec.whatwg.org/demos/">streams.spec.whatwg.org/demos</a>
-!Translation (non-normative): <a href="https://triple-underscore.github.io/Streams-ja.html" rel="alternate" title="Japanese" hreflang="ja" lang="ja">日本語</a>
 Opaque Elements: emu-alg
-Ignored Vars: e
 </pre>
 
 <pre class="anchors">
@@ -39,8 +26,6 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
 </pre>
 
 <style>
-  .note + .example, .note + .note { margin-top: 1em; }
-
   emu-val { font-weight: bold; }
   emu-alg > ol, emu-alg > ol ol ol ol { list-style-type: decimal; }
   emu-alg > ol ol, emu-alg > ol ol ol ol ol { list-style-type: lower-alpha; }
@@ -58,9 +43,6 @@ urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
     padding: 1px 2px;
   }
 </style>
-<script src="https://resources.whatwg.org/file-issue.js" async></script>
-<script src="https://resources.whatwg.org/commit-snapshot-shortcut-key.js" async></script>
-<script src="https://resources.whatwg.org/dfn.js" defer></script>
 
 <h2 id="intro">Introduction</h2>
 
@@ -5547,13 +5529,3 @@ This standard is written by Adam Rice (<a href="https://google.com">Google</a>, 
 href="mailto:ricea@chromium.org">ricea@chromium.org</a>), <a href="https://domenic.me/">Domenic Denicola</a> (<a
 href="https://google.com">Google</a>, <a href="mailto:d@domenic.me">d@domenic.me</a>), and 吉野剛史 (Takeshi Yoshino, <a
 href="https://google.com">Google</a>, <a href="mailto:tyoshino@chromium.org">tyoshino@chromium.org</a>).
-
-Per <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a>, to the extent possible under law, the editors
-have waived all copyright and related or neighboring rights to this work.
-
-<script>
-"use strict";
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/service-worker.js");
-}
-</script>
