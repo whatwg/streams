@@ -37,7 +37,7 @@ Pass ESLint.
 
 ## Commit guidelines
 
-Follow the [guidelines for writing good commit messages](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
+Follow the [guidelines for writing good commit messages](https://github.com/whatwg/meta/blob/master/COMMITTING.md).
 
 Merge commits are not allowed; history must stay linear.
 
