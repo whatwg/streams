@@ -1,4 +1,6 @@
-# Contribution guidelines for the Streams Standard
+# Streams Standard contributor guidelines
+
+These are the guidelines for contributing to the Streams Standard. First see the [WHATWG contributor guidelines](https://github.com/whatwg/meta/blob/master/CONTRIBUTING.md).
 
 ## Spec editorial conventions
 
