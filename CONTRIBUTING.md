@@ -4,7 +4,7 @@ These are the guidelines for contributing to the Streams Standard. First see the
 
 We label [good first issues](https://github.com/whatwg/streams/labels/good%20first%20issue) that you could help us fix, to get a taste for how to submit pull requests, how the build process works, and so on.
 
-## Pull Requests
+## Pull requests
 
 In short, change `source` and submit your patch. Try to follow the [spec editorial conventions](#spec-editorial-conventions) below.
 
