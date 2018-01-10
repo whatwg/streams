@@ -6,7 +6,7 @@ We label [good first issues](https://github.com/whatwg/streams/labels/good%20fir
 
 ## Pull requests
 
-In short, change `source` and submit your patch. Try to follow the [spec editorial conventions](#spec-editorial-conventions) below.
+Try to follow the [spec editorial conventions](#spec-editorial-conventions) below.
 
 Follow the [guidelines for writing good commit messages](https://github.com/whatwg/meta/blob/master/COMMITTING.md).
 
