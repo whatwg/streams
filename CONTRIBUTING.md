@@ -1,4 +1,18 @@
-# Contribution guidelines for the Streams Standard
+# Streams Standard contributor guidelines
+
+These are the guidelines for contributing to the Streams Standard. First see the [WHATWG contributor guidelines](https://github.com/whatwg/meta/blob/master/CONTRIBUTING.md).
+
+We label [good first issues](https://github.com/whatwg/streams/labels/good%20first%20issue) that you could help us fix, to get a taste for how to submit pull requests, how the build process works, and so on.
+
+## Pull requests
+
+Try to follow the [spec editorial conventions](#spec-editorial-conventions) below.
+
+Follow the [guidelines for writing good commit messages](https://github.com/whatwg/meta/blob/master/COMMITTING.md).
+
+Merge commits are not allowed; history must stay linear.
+
+If you are updating the spec, also update the corresponding parts of the reference implementation where applicable, in the same commit.
 
 ## Spec editorial conventions
 
@@ -34,14 +48,6 @@ Alphabetize imports.
 Use single quotes.
 
 Pass ESLint.
-
-## Commit guidelines
-
-Follow the [guidelines for writing good commit messages](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
-
-Merge commits are not allowed; history must stay linear.
-
-If you are updating the spec, also update the corresponding parts of the reference implementation where applicable, in the same commit.
 
 ## Building the spec
 
