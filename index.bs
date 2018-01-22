@@ -2041,7 +2041,10 @@ ReadableByteStreamController()</h4>
     1. Let _view_ be ! Construct(<a idl>%Uint8Array%</a>, « _firstDescriptor_.[[buffer]],
        _firstDescriptor_.[[byteOffset]] + _firstDescriptor_.[[bytesFilled]], _firstDescriptor_.[[byteLength]] −
        _firstDescriptor_.[[bytesFilled]] »).
-    1. Set *this*.[[byobRequest]] to ! Construct(`<a idl>ReadableStreamBYOBRequest</a>`, « *this*, _view_ »).
+    1. Let _byobRequest_ be ObjectCreate(the original value of `<a idl>ReadableStreamBYOBRequest</a>`'s `prototype`
+      property).
+    1. Perform ? SetUpReadableStreamBYOBRequest(_byobRequest_, _controller_, _view_).
+    1. Set *this*.[[byobRequest]] to _byobRequest_.
   1. Return *this*.[[byobRequest]].
 </emu-alg>
 
@@ -2199,9 +2202,7 @@ lt="ReadableStreamBYOBRequest(controller, view)">new
 ReadableStreamBYOBRequest(<var>controller</var>, <var>view</var>)</h4>
 
 <emu-alg>
-  1. If ! IsReadableByteStreamController(_controller_) is *false*, throw a *TypeError* exception.
-  1. Set *this*.[[associatedReadableByteStreamController]] to _controller_.
-  1. Set *this*.[[view]] to _view_.
+  1. Throw a *TypeError* exception.
 </emu-alg>
 
 <h4 id="rs-byob-request-prototype">Properties of the {{ReadableStreamBYOBRequest}} Prototype</h4>
@@ -2682,6 +2683,20 @@ throws>SetUpReadableByteStreamControllerFromUnderlyingSource ( <var>stream</var>
        exception.
   1. Perform ? SetUpReadableByteStreamController(_stream_, _controller_, _startAlgorithm_, _pullAlgorithm_,
      _cancelAlgorithm_, _highWaterMark_, _autoAllocateChunkSize_).
+</emu-alg>
+
+<h4 id="set-up-readable-stream-byob-request"
+aoid="SetUpReadableStreamBYOBRequest"
+throws>SetUpReadableStreamBYOBRequest ( <var>request</var>, <var>controller</var>, <var>view</var> )</h4>
+
+<emu-alg>
+  1. Assert: ! IsReadableStreamBYOBRequest(_request_) is *true*.
+  1. Assert: ! IsReadableByteStreamController(_controller_) is *true*.
+  1. Assert: Type(_view_) is Object.
+  1. Assert: _view_ has a [[ViewedArrayBuffer]] internal slot.
+  1. Assert: ! IsDetachedBuffer(_view_.[[ViewedArrayBuffer]]) is *false*.
+  1. Set *this*.[[associatedReadableByteStreamController]] to _controller_.
+  1. Set *this*.[[view]] to _view_.
 </emu-alg>
 
 <h2 id="ws">Writable Streams</h2>
