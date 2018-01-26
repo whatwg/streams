@@ -85,14 +85,13 @@ ecosystem to grow around these shared and composable interfaces.
 
 <h2 id="model">Model</h2>
 
-A <dfn>chunk</dfn> is a single piece of data that is written to or read from a stream. It can be of any type; streams
-can even contain chunks of different types. A chunk will often not be the most atomic unit of data for a given stream;
-for example a byte stream might contain chunks consisting of 16 KiB {{Uint8Array}}s, instead of single
-bytes.
+A <dfn export>chunk</dfn> is a single piece of data that is written to or read from a stream. It can be of any type;
+streams can even contain chunks of different types. A chunk will often not be the most atomic unit of data for a given
+stream; for example a byte stream might contain chunks consisting of 16 KiB {{Uint8Array}}s, instead of single bytes.
 
 <h3 id="rs-model">Readable Streams</h3>
 
-A <dfn>readable stream</dfn> represents a source of data, from which you can read. In other words, data comes
+A <dfn export>readable stream</dfn> represents a source of data, from which you can read. In other words, data comes
 <em>out</em> of a readable stream. Concretely, a readable stream is an instance of the {{ReadableStream}} class.
 
 Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O source,
@@ -134,8 +133,8 @@ using the stream's {{ReadableStream/getReader()}} method.
 
 <h3 id="ws-model">Writable Streams</h3>
 
-A <dfn>writable stream</dfn> represents a destination for data, into which you can write. In other words, data goes
-<em>in</em> to a writable stream. Concretely, a writable stream is an instance of the {{WritableStream}} class.
+A <dfn export>writable stream</dfn> represents a destination for data, into which you can write. In other words, data
+goes <em>in</em> to a writable stream. Concretely, a writable stream is an instance of the {{WritableStream}} class.
 
 Analogously to readable streams, most writable streams wrap a lower-level I/O sink, called the
 <dfn>underlying sink</dfn>. Writable streams work to abstract away some of the complexity of the underlying sink, by
