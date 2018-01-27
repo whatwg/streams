@@ -385,8 +385,7 @@ like
 
 <pre><code class="lang-javascript">
   class ReadableStream {
-    <a href="#rs-constructor">constructor</a>(<a href="#rs-constructor">underlyingSource</a> = {}, { size, highWaterMark
-    } = {})
+    <a href="#rs-constructor">constructor</a>(<a href="#rs-constructor">underlyingSource</a> = {}, { size, highWaterMark } = {})
 
     get <a href="#rs-locked">locked</a>()
 
