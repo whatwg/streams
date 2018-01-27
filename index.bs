@@ -95,7 +95,7 @@ A <dfn export>readable stream</dfn> represents a source of data, from which you 
 <em>out</em> of a readable stream. Concretely, a readable stream is an instance of the {{ReadableStream}} class.
 
 Although a readable stream can be created with arbitrary behavior, most readable streams wrap a lower-level I/O source,
-called the <dfn>underlying source</dfn> ([[#rs-constructor|interface description]]). There are two types of underlying source: push sources and pull sources.
+called the <dfn>underlying source</dfn>. There are two types of underlying source: push sources and pull sources.
 
 <dfn lt="push source">Push sources</dfn> push data at you, whether or not you are listening for it. They may also
 provide a mechanism for pausing and resuming the flow of data. An example push source is a TCP socket, where data is
@@ -105,9 +105,9 @@ constantly being pushed from the OS level, at a rate that can be controlled by c
 synchronously, e.g. if it is held by the operating system's in-memory buffers, or asynchronously, e.g. if it has to be
 read from disk. An example pull source is a file handle, where you seek to specific locations and read specific amounts.
 
-Readable streams are designed to wrap both types of sources behind a single, unified interface. For
-web developer–created streams, the implementation details of a source are provided by an object with certain methods and
-properties that is passed to the {{ReadableStream()}} constructor.
+Readable streams are designed to wrap both types of sources behind a single, unified interface. For web
+developer–created streams, the <a href="#rs-constructor">implementation details of a source</a> are provided by an
+object with certain methods and properties that is passed to the {{ReadableStream()}} constructor.
 
 <a>Chunks</a> are enqueued into the stream by the stream's <a>underlying source</a>. They can then be read one at a
 time via the stream's public interface, in particular by using a <a>readable stream reader</a> acquired using the
@@ -137,12 +137,12 @@ A <dfn export>writable stream</dfn> represents a destination for data, into whic
 goes <em>in</em> to a writable stream. Concretely, a writable stream is an instance of the {{WritableStream}} class.
 
 Analogously to readable streams, most writable streams wrap a lower-level I/O sink, called the
-<dfn>underlying sink</dfn> ([[#ws-constructor|interface description]]). Writable streams work to abstract away some of the complexity of the underlying sink, by
+<dfn>underlying sink</dfn>. Writable streams work to abstract away some of the complexity of the underlying sink, by
 queuing subsequent writes and only delivering them to the underlying sink one by one.
 
 <a>Chunks</a> are written to the stream via its public interface, and are passed one at a time to the stream's
-<a>underlying sink</a>. For web developer-created streams, the implementation details of the sink are provided by an
-object with certain methods that is passed to the {{WritableStream()}} constructor.
+<a>underlying sink</a>. For web developer-created streams, the <a href="#ws-constructor">implementation details of the
+sink</a> are provided by an object with certain methods that is passed to the {{WritableStream()}} constructor.
 
 Code that writes into a writable stream using its public interface is known as a <dfn>producer</dfn>.
 
@@ -385,15 +385,16 @@ like
 
 <pre><code class="lang-javascript">
   class ReadableStream {
-    <l>[[#rs-constructor|constructor]]</l>(underlyingSource = {}, { size, highWaterMark } = {})
+    <a href="#rs-constructor">constructor</a>(<a href="#rs-constructor">underlyingSource</a> = {}, { size, highWaterMark
+    } = {})
 
-    get <l>[[#rs-locked|locked]]</l>()
+    get <a href="#rs-locked">locked</a>()
 
-    <l>[[#rs-cancel|cancel]]</l>(reason)
-    <l>[[#rs-get-reader|getReader]]</l>()
-    <l>[[#rs-pipe-through|pipeThrough]]</l>({ writable, readable }, options)
-    <l>[[#rs-pipe-to|pipeTo]]</l>(dest, { preventClose, preventAbort, preventCancel } = {})
-    <l>[[#rs-tee|tee]]</l>()
+    <a href="#rs-cancel">cancel</a>(reason)
+    <a href="#rs-get-reader">getReader</a>()
+    <a href="#rs-pipe-through">pipeThrough</a>({ writable, readable }, options)
+    <a href="#rs-pipe-to">pipeTo</a>(dest, { preventClose, preventAbort, preventCancel } = {})
+    <a href="#rs-tee">tee</a>()
   }
 </code></pre>
 
@@ -422,7 +423,7 @@ Instances of {{ReadableStream}} are created with the internal slots described in
   <tr>
     <td>\[[reader]]
     <td class="non-normative">A {{ReadableStreamDefaultReader}} or {{ReadableStreamBYOBReader}} instance, if the stream
-      is <a>locked to a reader</a>, or <emu-val>undefined</emu-val> if it is not
+    is <a>locked to a reader</a>, or <emu-val>undefined</emu-val> if it is not
   </tr>
   <tr>
     <td>\[[state]]
@@ -444,11 +445,11 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   govern how the constructed stream instance behaves:
 
   <ul>
-    <li><p><code>start({{ReadableStreamDefaultController|controller}})</code> is called immediately, and is typically used to adapt a <a>push
+    <li><p><code>start(controller)</code> is called immediately, and is typically used to adapt a <a>push
       source</a> by setting up relevant event listeners, or to acquire access to a <a>pull source</a>. If this process
       is asynchronous, it can return a promise to signal success or failure.
 
-    <li><p><code>pull({{ReadableStreamDefaultController|controller}})</code> is called when the stream's <a>internal queue</a> of chunks is not full, and
+    <li><p><code>pull(controller)</code> is called when the stream's <a>internal queue</a> of chunks is not full, and
       will be called repeatedly until the queue reaches its <a>high water mark</a>. If <code>pull</code> returns a
       promise, then <code>pull</code> will not be called again until that promise fulfills; if the promise rejects, the
       stream will become errored.
@@ -2778,12 +2779,13 @@ like
 
 <pre><code class="lang-javascript">
   class WritableStream {
-    <l>[[#ws-constructor|constructor]]</l>(underlyingSink = {}, { size, highWaterMark = 1 } = {})
+    <a href="#ws-constructor">constructor</a>(<a href="#ws-constructor">underlyingSink</a> = {}, { size, highWaterMark =
+    1 } = {})
 
-    get <l>[[#ws-locked|locked]]</l>()
+    get <a href="#ws-locked">locked</a>()
 
-    <l>[[#ws-abort|abort]]</l>(reason)
-    <l>[[#ws-get-writer|getWriter]]</l>()
+    <a href="#ws-abort">abort</a>(reason)
+    <a href="#ws-get-writer">getWriter</a>()
   }
 </code></pre>
 
@@ -2866,11 +2868,11 @@ WritableStream(<var>underlyingSink</var> = {}, { <var>size</var>, <var>highWater
   how the constructed stream instance behaves:
 
   <ul>
-    <li><p><code>start({{WritableStreamDefaultController|controller}})</code> is called immediately, and can perform any actions necessary to acquire
+    <li><p><code>start(controller)</code> is called immediately, and can perform any actions necessary to acquire
       access to the <a>underlying sink</a>. If this process is asynchronous, it can return a promise to signal success
       or failure.
 
-    <li><p><code>write(chunk, {{WritableStreamDefaultController|controller}})</code> is called when a new <a>chunk</a> of data is ready to be written to the
+    <li><p><code>write(chunk, controller)</code> is called when a new <a>chunk</a> of data is ready to be written to the
       <a>underlying sink</a>. It can return a promise to signal success or failure of the write operation. The stream
       implementation guarantees that this method will be called only after previous writes have succeeded, and never
       after <code>close</code> or <code>abort</code> is called.
@@ -3974,10 +3976,11 @@ like
 
 <pre><code class="lang-javascript">
   class TransformStream {
-    <l>[[#ts-constructor|constructor]]</l>(transformer = {}, writableStrategy = {}, readableStrategy = {})
+    <a href="#ts-constructor">constructor</a>(<a href="#ts-constructor">transformer</a> = {}, <a
+    href="#ws-constructor">writableStrategy</a> = {}, <a href="#rs-constructor">readableStrategy</a> = {})
 
-    get <l>[[#ts-readable|readable]]</l>()
-    get <l>[[#ts-writable|writable]]</l>()
+    get <a href="#ts-readable">readable</a>()
+    get <a href="#ts-writable">writable</a>()
   }
 </code></pre>
 
@@ -4027,23 +4030,26 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
   how the constructed stream instance behaves:
 
   <ul>
-    <li><p><code>start({{TransformStreamDefaultController|controller}})</code> is called immediately, and is typically used to enqueue prefix <a>chunks</a>
-      that will be read from the <a>readable side</a> but don't depend on any writes to the <a>writable side</a>. If
-      this process is asynchronous, it can return a promise to signal success or failure.
+    <li><p><code>start(controller)</code> is called immediately, and is typically used to enqueue prefix <a>chunks</a>
+      using
+      {{TransformStreamDefaultController|controller}}.{{TransformStreamDefaultController/enqueue(chunk)|enqueue()}}.
+      Those chunks will be read from the <a>readable side</a> but don't depend on any writes to the <a>writable
+      side</a>. If this process is asynchronous, it can return a promise to signal success or failure.
 
     <li>
-      <p><code>transform(chunk, {{TransformStreamDefaultController|controller}})</code> is called when a new chunk originally written to the writable side is
+      <p><code>transform(chunk, controller)</code> is called when a new chunk originally written to the writable side is
       ready to be transformed. It can return a promise to signal success or failure of the transformation. The results
       of the transformation can be enqueued to the readable side using the
-      {{ReadableStreamDefaultController/enqueue(chunk)|controller.enqueue()}} method. This permits a single chunk
-      written to the writable side to result in zero or multiple chunks on the readable side.
+      {{TransformStreamDefaultController|controller}}.{{TransformStreamDefaultController/enqueue(chunk)|enqueue()}}
+      method. This permits a single chunk written to the writable side to result in zero or multiple chunks on the
+      readable side.
 
       <p>The stream implementation guarantees that <code>transform</code> will be called only after previous
       transformations have succeeded, and never before <code>start</code> has completed or after <code>flush</code> is
       called. When no <code>transform</code> method is supplied, the identity transform is used, which enqueues chunks
       unchanged from the writable side to the readable side.
 
-    <li><p><code>flush({{TransformStreamDefaultController|controller}})</code> is called after all chunks written to the writable side have been
+    <li><p><code>flush(controller)</code> is called after all chunks written to the writable side have been
       transformed and the writable side has been closed. It is typically used to enqueue suffix chunks to the
       readable side, before that too becomes closed. If this process is asynchronous, it can return a promise
       to signal success or failure.
@@ -4053,10 +4059,11 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
   instance of {{TransformStreamDefaultController}}, and has the ability to enqueue chunks to the readable side,
   or to terminate or error the stream.
 
-  The second and third arguments to the constructor are the <a>queuing strategy</a> objects for the writable and
-  readable sides respectively. These are used in the construction of the {{WritableStream}} and {{ReadableStream}}
-  objects and can be used to add buffering to a {{TransformStream}}, in order to smooth out variations in the speed of
-  the transformation, or to increase the amount of buffering in a <a>pipe</a>.
+  The second and third arguments to the constructor, <code>writeableStrategy</code> and <code>readableStrategy</code>,
+  are the <a>queuing strategy</a> objects for the writable and readable sides respectively. These are used in the
+  construction of the {{WritableStream}} and {{ReadableStream}} objects and can be used to add buffering to a
+  {{TransformStream}}, in order to smooth out variations in the speed of the transformation, or to increase the amount
+  of buffering in a <a>pipe</a>.
 </div>
 
 <emu-alg>
