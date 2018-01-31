@@ -4964,6 +4964,21 @@ writable stream:
     .catch(e => console.error("Something went wrong!", e));
 </code></pre>
 
+<div class="note" id="note-web-socket-wrapping-examples">
+  This specific style of wrapping a web socket interprets web socket messages directly as <a>chunks</a>.
+  This can be a convenient abstraction, for example when <a>piping</a> to a <a>writable stream</a> or <a>transform
+  stream</a> for which each web socket message makes sense as a chunk to consume or transform.
+
+  However, often when people talk about "adding streams support to web sockets", they are hoping instead for a new
+  capability to send an individual web socket message in a streaming fashion, so that e.g. a file could be transferred
+  in a single message without holding all of its contents in memory on the client side. To accomplish this goal, we'd
+  instead want to allow individual web socket messages to themselves be {{ReadableStream}} instances. That isn't what we
+  show in the above example.
+
+  For more background, see <a href="https://github.com/w3c/webrtc-pc/issues/1732#issuecomment-358428651">this
+  discussion</a>.
+</div>
+
 <h3 id="example-rs-push-backpressure">A readable stream with an underlying push source and backpressure support</h3>
 
 The following function returns <a>readable streams</a> that wrap "backpressure sockets," which are hypothetical objects
@@ -5239,6 +5254,9 @@ We can then use this function to create writable streams for a web socket, and p
     .catch(e => console.error("Something went wrong!", e));
 </code></pre>
 
+<p class="note">See <a href="#note-web-socket-wrapping-examples">the earlier note</a> about this style of wrapping web
+sockets into streams.</p>
+
 <h3 id="example-ws-backpressure">A writable stream with backpressure and success signals</h3>
 
 The following function returns <a>writable streams</a> that wrap portions of the <a
@@ -5402,6 +5420,9 @@ APIs:
 
 Note how in this setup canceling the <code>readable</code> side will implicitly close the <code>writable</code> side,
 and similarly, closing or aborting the <code>writable</code> side will implicitly close the <code>readable</code> side.
+
+<p class="note">See <a href="#note-web-socket-wrapping-examples">the earlier note</a> about this style of wrapping web
+sockets into streams.</p>
 
 </div>
 
