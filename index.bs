@@ -385,7 +385,7 @@ like
 
 <pre><code class="lang-javascript">
   class ReadableStream {
-    <a href="#rs-constructor">constructor</a>(<a href="#rs-constructor">underlyingSource</a> = {}, { size, highWaterMark } = {})
+    <a href="#rs-constructor">constructor</a>(underlyingSource = {}, { size, highWaterMark } = {})
 
     get <a href="#rs-locked">locked</a>()
 
@@ -2778,8 +2778,7 @@ like
 
 <pre><code class="lang-javascript">
   class WritableStream {
-    <a href="#ws-constructor">constructor</a>(<a href="#ws-constructor">underlyingSink</a> = {}, { size, highWaterMark =
-    1 } = {})
+    <a href="#ws-constructor">constructor</a>(<a href="#ws-constructor">underlyingSink</a> = {}, { size, highWaterMark = 1 } = {})
 
     get <a href="#ws-locked">locked</a>()
 
@@ -4031,7 +4030,7 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
   <ul>
     <li><p><code>start(controller)</code> is called immediately, and is typically used to enqueue prefix <a>chunks</a>
       using
-      {{TransformStreamDefaultController|controller}}.{{TransformStreamDefaultController/enqueue(chunk)|enqueue()}}.
+      {{TransformStreamDefaultController/enqueue(chunk)|controller.enqueue()}}.
       Those chunks will be read from the <a>readable side</a> but don't depend on any writes to the <a>writable
       side</a>. If this process is asynchronous, it can return a promise to signal success or failure.
 
@@ -4039,7 +4038,7 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
       <p><code>transform(chunk, controller)</code> is called when a new chunk originally written to the writable side is
       ready to be transformed. It can return a promise to signal success or failure of the transformation. The results
       of the transformation can be enqueued to the readable side using the
-      {{TransformStreamDefaultController|controller}}.{{TransformStreamDefaultController/enqueue(chunk)|enqueue()}}
+      {{TransformStreamDefaultController/enqueue(chunk)|controller.enqueue()}}
       method. This permits a single chunk written to the writable side to result in zero or multiple chunks on the
       readable side.
 
