@@ -10,6 +10,11 @@ Translation: ja https://triple-underscore.github.io/Streams-ja.html
 Opaque Elements: emu-alg
 </pre>
 
+<pre class=link-defaults>
+spec:promises-guide; type:dfn;
+    text:resolve
+</pre>
+
 <pre class="anchors">
 urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
     text: %Uint8Array%; url: #sec-typedarray-objects; type: constructor
