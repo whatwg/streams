@@ -1171,13 +1171,8 @@ function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underl
 }
 
 class ReadableStreamBYOBRequest {
-  constructor(controller, view) {
-    if (IsReadableByteStreamController(controller) === false) {
-      throw new TypeError('Cannot construct a ReadableStreamBYOBRequest without a ReadableByteStreamController');
-    }
-
-    this._associatedReadableByteStreamController = controller;
-    this._view = view;
+  constructor() {
+    throw new TypeError('ReadableStreamBYOBRequest cannot be used directly');
   }
 
   get view() {
@@ -1241,7 +1236,9 @@ class ReadableByteStreamController {
                                   firstDescriptor.byteOffset + firstDescriptor.bytesFilled,
                                   firstDescriptor.byteLength - firstDescriptor.bytesFilled);
 
-      this._byobRequest = new ReadableStreamBYOBRequest(this, view);
+      const byobRequest = Object.create(ReadableStreamBYOBRequest.prototype);
+      SetUpReadableStreamBYOBRequest(byobRequest, this, view);
+      this._byobRequest = byobRequest;
     }
 
     return this._byobRequest;
@@ -1913,6 +1910,15 @@ function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyin
 
   SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark,
                                     autoAllocateChunkSize);
+}
+
+function SetUpReadableStreamBYOBRequest(request, controller, view) {
+  assert(IsReadableByteStreamController(controller) === true);
+  assert(typeof view === 'object');
+  assert(ArrayBuffer.isView(view) === true);
+  assert(IsDetachedBuffer(view.buffer) === false);
+  request._associatedReadableByteStreamController = controller;
+  request._view = view;
 }
 
 // Helper functions for the ReadableStream.
