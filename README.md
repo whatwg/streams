@@ -15,7 +15,7 @@ This repository also includes a reference implementation and test suite under `r
 
 ## Contribution guidelines
 
-For guidelines on how to build and edit the spec and reference implementation, see [Contributing.md](Contributing.md).
+For guidelines on how to build and edit the spec and reference implementation, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Code of conduct
 
