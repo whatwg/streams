@@ -534,7 +534,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   1. Return ! ReadableStreamCancel(*this*, _reason_).
 </emu-alg>
 
-<h5 id="rs-get-reader" method for="ReadableStream">getReader({ <var>mode</var> } = {})</h5>
+<h5 id="rs-get-reader" method for="ReadableStream">getReader({ <var ignore>mode</var> } = {})</h5>
 
 <div class="note">
   The <code>getReader</code> method creates a reader of the type specified by the <code>mode</code> option and <a
@@ -594,7 +594,7 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
 </div>
 
 <h5 id="rs-pipe-through" method for="ReadableStream" lt="pipeThrough(transform, options)">pipeThrough({
-<var>writable</var>, <var>readable</var> }, <var>options</var>)</h5>
+<var ignore>writable</var>, <var ignore>readable</var> }, <var ignore>options</var>)</h5>
 
 <div class="note">
   The <code>pipeThrough</code> method provides a convenient, chainable way of <a>piping</a> this <a>readable stream</a>
@@ -634,8 +634,8 @@ ReadableStream(<var>underlyingSource</var> = {}, { <var>size</var>, <var>highWat
   </code></pre>
 </div>
 
-<h5 id="rs-pipe-to" method for="ReadableStream" lt="pipeTo(dest, options)">pipeTo(<var>dest</var>, {
-<var>preventClose</var>, <var>preventAbort</var>, <var>preventCancel</var> } = {})</h5>
+<h5 id="rs-pipe-to" method for="ReadableStream" lt="pipeTo(dest, options)">pipeTo(<var ignore>dest</var>, {
+<var ignore>preventClose</var>, <var ignore>preventAbort</var>, <var ignore>preventCancel</var> } = {})</h5>
 
 <div class="note">
   The <code>pipeTo</code> method <a lt="piping">pipes</a> this <a>readable stream</a> to a given <a>writable
@@ -2372,8 +2372,8 @@ nothrow>ReadableByteStreamControllerEnqueue ( <var>controller</var>, <var>chunk<
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-enqueue-chunk-to-queue" aoid="ReadableByteStreamControllerEnqueueChunkToQueue"
-nothrow>ReadableByteStreamControllerEnqueueChunkToQueue ( <var>controller</var>, <var>buffer</var>,
-<var>byteOffset</var>, <var>byteLength</var> )</h4>
+nothrow>ReadableByteStreamControllerEnqueueChunkToQueue ( <var>controller</var>, <var ignore>buffer</var>,
+<var ignore>byteOffset</var>, <var ignore>byteLength</var> )</h4>
 
 <emu-alg>
   1. Append Record {[[buffer]]: _buffer_, [[byteOffset]]: _byteOffset_, [[byteLength]]: _byteLength_} as the last
@@ -2545,7 +2545,8 @@ throws>ReadableByteStreamControllerRespond ( <var>controller</var>, <var>bytesWr
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-respond-in-closed-state" aoid="ReadableByteStreamControllerRespondInClosedState"
-nothrow>ReadableByteStreamControllerRespondInClosedState ( <var>controller</var>, <var>firstDescriptor</var> )</h4>
+nothrow>ReadableByteStreamControllerRespondInClosedState ( <var>controller</var>,
+<var ignore>firstDescriptor</var> )</h4>
 
 <emu-alg>
   1. Set _firstDescriptor_.[[buffer]] to ! TransferArrayBuffer(_firstDescriptor_.[[buffer]]).
@@ -2669,8 +2670,8 @@ throws>SetUpReadableByteStreamController ( <var>stream</var>, <var>controller</v
 
 <h4 id="set-up-readable-byte-stream-controller-from-underlying-source"
 aoid="SetUpReadableByteStreamControllerFromUnderlyingSource"
-throws>SetUpReadableByteStreamControllerFromUnderlyingSource ( <var>stream</var>, <var>underlyingByteSource</var>,
-<var>highWaterMark</var> )</h4>
+throws>SetUpReadableByteStreamControllerFromUnderlyingSource ( <var>stream</var>,
+<var ignore>underlyingByteSource</var>, <var>highWaterMark</var> )</h4>
 
 <emu-alg>
   1. Assert: _underlyingByteSource_ is not *undefined*.
@@ -2691,7 +2692,7 @@ throws>SetUpReadableByteStreamControllerFromUnderlyingSource ( <var>stream</var>
 
 <h4 id="set-up-readable-stream-byob-request"
 aoid="SetUpReadableStreamBYOBRequest"
-nothrow>SetUpReadableStreamBYOBRequest ( <var>request</var>, <var>controller</var>, <var>view</var> )</h4>
+nothrow>SetUpReadableStreamBYOBRequest ( <var ignore>request</var>, <var>controller</var>, <var>view</var> )</h4>
 
 <emu-alg>
   1. Assert: ! IsReadableByteStreamController(_controller_) is *true*.
@@ -3828,7 +3829,8 @@ nothrow>WritableStreamDefaultControllerGetDesiredSize ( <var>controller</var> )<
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-write" aoid="WritableStreamDefaultControllerWrite"
-nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk</var>, <var>chunkSize</var> )</h4>
+nothrow>WritableStreamDefaultControllerWrite ( <var>controller</var>, <var>chunk</var>, <var ignore>chunkSize</var>
+)</h4>
 
 <emu-alg>
   1. Let _writeRecord_ be Record {[[chunk]]: _chunk_}.
@@ -4040,8 +4042,8 @@ Instances of {{TransformStream}} are created with the internal slots described i
 </table>
 
 <h4 id="ts-constructor" constructor for="TransformStream" lt="TransformStream(transformer, writableStrategy,
-readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writableStrategy</var> = {},
-<var>readableStrategy</var> = {})</h4>
+readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var ignore>writableStrategy</var> = {},
+<var ignore>readableStrategy</var> = {})</h4>
 
 <div class="note">
   The <code>transformer</code> object passed to the constructor can implement any of the following methods to govern
@@ -4167,7 +4169,7 @@ throws.</p>
 </emu-alg>
 
 <h4 id="initialize-transform-stream" aoid="InitializeTransformStream" nothrow>InitializeTransformStream (
-<var>stream</var>, <var>startPromise</var>, <var>writableHighWaterMark</var>, <var>writableSizeAlgorithm</var>,
+<var>stream</var>, <var ignore>startPromise</var>, <var>writableHighWaterMark</var>, <var>writableSizeAlgorithm</var>,
 <var>readableHighWaterMark</var>, <var>readableSizeAlgorithm</var> )</h4>
 
 <emu-alg>
@@ -4715,7 +4717,7 @@ chunks, or when trillions of chunks are enqueued.)</p>
 </emu-alg>
 
 <h4 id="enqueue-value-with-size" aoid="EnqueueValueWithSize" throws>EnqueueValueWithSize ( <var>container</var>,
-<var>value</var>, <var>size</var> )</h4>
+<var ignore>value</var>, <var>size</var> )</h4>
 
 <emu-alg>
   1. Assert: _container_ has [[queue]] and [[queueTotalSize]] internal slots.
@@ -4747,8 +4749,8 @@ chunks, or when trillions of chunks are enqueued.)</p>
 A few abstract operations are used in this specification for utility purposes. We define them here.
 
 <h4 id="create-algorithm-from-underlying-method" aoid="CreateAlgorithmFromUnderlyingMethod"
-throws>CreateAlgorithmFromUnderlyingMethod ( <var>underlyingObject</var>, <var>methodName</var>,
-<var>algoArgCount</var>, <var>extraArgs</var> )</h4>
+throws>CreateAlgorithmFromUnderlyingMethod ( <var ignore>underlyingObject</var>, <var ignore>methodName</var>,
+<var ignore>algoArgCount</var>, <var ignore>extraArgs</var> )</h4>
 
 <emu-alg>
   1. Assert: _underlyingObject_ is not *undefined*.
@@ -4766,7 +4768,8 @@ throws>CreateAlgorithmFromUnderlyingMethod ( <var>underlyingObject</var>, <var>m
   1. Return an algorithm which returns <a>a promise resolved with</a> *undefined*.
 </emu-alg>
 
-<h4 id="invoke-or-noop" aoid="InvokeOrNoop" throws>InvokeOrNoop ( <var>O</var>, <var>P</var>, <var>args</var> )</h4>
+<h4 id="invoke-or-noop" aoid="InvokeOrNoop" throws>InvokeOrNoop ( <var>O</var>, <var ignore>P</var>, <var>args</var>
+)</h4>
 
 <div class="note">
   InvokeOrNoop is a slight modification of the [[!ECMASCRIPT]] <a abstract-op>Invoke</a> abstract operation to return
@@ -4800,7 +4803,8 @@ throws>CreateAlgorithmFromUnderlyingMethod ( <var>underlyingObject</var>, <var>m
   1. Return *true*.
 </emu-alg>
 
-<h4 id="promise-call" aoid="PromiseCall" nothrow>PromiseCall ( <var>F</var>, <var>V</var>, <var>args</var> )</h4>
+<h4 id="promise-call" aoid="PromiseCall" nothrow>PromiseCall ( <var ignore>F</var>, <var ignore>V</var>,
+<var>args</var> )</h4>
 
 <div class="note">
   PromiseCall is a variant of <a>promise-calling</a> that works on methods.
