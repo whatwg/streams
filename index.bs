@@ -5758,6 +5758,8 @@ Exceptions error the stream in a natural way:
 
 <h2 id="conventions" class="no-num">Conventions</h2>
 
+This specification depends on the Infra Standard. [[!INFRA]]
+
 This specification uses algorithm conventions very similar to those of [[!ECMASCRIPT]], whose rules should be used to
 interpret it (apart from the exceptions enumerated below). In particular, the objects specified here should be treated
 as <a href="https://tc39.github.io/ecma262/#sec-ecmascript-standard-built-in-objects">built-in objects</a>. For example,
