@@ -1213,7 +1213,7 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
 
 <div class="note">
   The <code>ReadableStreamDefaultReader</code> constructor is generally not meant to be used directly; instead, a
-  stream's {{ReadableStream/getReader()}} method ought to be be used.
+  stream's {{ReadableStream/getReader()}} method ought to be used.
 </div>
 
 <emu-alg>
@@ -3329,7 +3329,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 
 <div class="note">
   The <code>WritableStreamDefaultWriter</code> constructor is generally not meant to be used directly; instead, a
-  stream's {{WritableStream/getWriter()}} method ought to be be used.
+  stream's {{WritableStream/getWriter()}} method ought to be used.
 </div>
 
 <emu-alg>
@@ -4193,7 +4193,7 @@ throws.</p>
      <p class="note">The [[backpressure]] slot is set to *undefined* so that it can be initialized by
      TransformStreamSetBackpressure. Alternatively, implementations can use a strictly boolean value for
      [[backpressure]] and change the way it is initialized. This will not be visible to user code so long as the
-     initialization is correctly completed before _transformer_'s <code>start()</code> method is is called.</p>
+     initialization is correctly completed before _transformer_'s <code>start()</code> method is called.</p>
   1. Perform ! TransformStreamSetBackpressure(_stream_, *true*).
   1. Set _stream_.[[transformStreamController]] to *undefined*.
 </emu-alg>
