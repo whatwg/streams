@@ -920,7 +920,7 @@ The second argument, <var>cloneForBranch2</var>, governs whether or not the data
 (using HTML's <a>serializable objects</a> framework) before appearing in the second of the returned branches. This is
 useful for scenarios where both branches are to be consumed in such a way that they might otherwise interfere with each
 other, such as by <a lt="transferable objects">transferring</a> their <a>chunks</a>. However, it does introduce a
-noticable asymmetry between the two branches, and limits the possible <a>chunks</a> to serializable ones. [[!HTML]]
+noticeable asymmetry between the two branches, and limits the possible <a>chunks</a> to serializable ones. [[!HTML]]
 
 <p class="note">In this standard ReadableStreamTee is always called with <var>cloneForBranch2</var> set to
 <emu-val>false</emu-val>; other specifications pass <emu-val>true</emu-val>.</p>
@@ -3889,7 +3889,7 @@ nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h
 nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <var>chunk</var> )</h4>
 
 <emu-alg>
-  1. Let _stream_ be _controller_.[[controllerWritableStream]].
+  1. Let _stream_ be _controller_.[[controlledWritableStream]].
   1. Perform ! WritableStreamMarkFirstWriteRequestInFlight(_stream_).
   1. Let _sinkWritePromise_ be the result of performing _controller_.[[writeAlgorithm]], passing in _chunk_.
   1. <a>Upon fulfillment</a> of _sinkWritePromise_,
@@ -4077,7 +4077,7 @@ readableStrategy)">new TransformStream(<var>transformer</var> = {}, <var>writabl
   instance of {{TransformStreamDefaultController}}, and has the ability to enqueue chunks to the readable side,
   or to terminate or error the stream.
 
-  The second and third arguments to the constructor, <code>writeableStrategy</code> and <code>readableStrategy</code>,
+  The second and third arguments to the constructor, <code>writableStrategy</code> and <code>readableStrategy</code>,
   are the <a>queuing strategy</a> objects for the writable and readable sides respectively. These are used in the
   construction of the {{WritableStream}} and {{ReadableStream}} objects and can be used to add buffering to a
   {{TransformStream}}, in order to smooth out variations in the speed of the transformation, or to increase the amount
@@ -4496,7 +4496,7 @@ nothrow>TransformStreamDefaultSinkCloseAlgorithm( <var>stream</var> )</h4>
   1. Let _readable_ be _stream_.[[readable]].
   1. Let _flushPromise_ be the result of performing _stream_.[[transformStreamController]].[[flushAlgorithm]].
   1. Return the result of <a>transforming</a> _flushPromise_ with:
-    1. A fulfullment handler that performs the following steps:
+    1. A fulfillment handler that performs the following steps:
       1. If _readable_.[[state]] is `"errored"`, throw _readable_.[[storedError]].
       1. Let _readableController_ be _readable_.[[readableStreamController]].
       1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_readableController_) is *true*, perform !
