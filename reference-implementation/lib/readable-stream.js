@@ -126,8 +126,6 @@ class ReadableStream {
       // - Backpressure must be enforced
       // - Shutdown must stop all activity
       function pipeLoop() {
-        currentWrite = Promise.resolve();
-
         if (shuttingDown === true) {
           return Promise.resolve();
         }
