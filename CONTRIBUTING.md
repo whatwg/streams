@@ -65,7 +65,7 @@ This will output a bunch of files to the `streams.spec.whatwg.org` directory, eq
 
 ### Local watch
 
-If you have Bikeshed [installed locally](https://github.com/tabatkins/bikeshed/blob/master/docs/install.md), and have run `npm install`, you can try running
+If you have Bikeshed [installed locally](https://tabatkins.github.io/bikeshed/#installing), and have run `npm install`, you can try running
 
 ```
 npm run local-watch
