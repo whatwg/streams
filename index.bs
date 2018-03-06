@@ -94,7 +94,7 @@ A <dfn export>chunk</dfn> is a single piece of data that is written to or read f
 streams can even contain chunks of different types. A chunk will often not be the most atomic unit of data for a given
 stream; for example a byte stream might contain chunks consisting of 16 KiB {{Uint8Array}}s, instead of single bytes.
 
-<h3 id="rs-model">Readable Streams</h3>
+<h3 id="rs-model">Readable streams</h3>
 
 A <dfn export>readable stream</dfn> represents a source of data, from which you can read. In other words, data comes
 <em>out</em> of a readable stream. Concretely, a readable stream is an instance of the {{ReadableStream}} class.
@@ -136,7 +136,7 @@ an <dfn>underlying byte source</dfn>. A readable stream whose underlying source 
 sometimes called a <dfn>readable byte stream</dfn>. Consumers of a readable byte stream can acquire a <a>BYOB reader</a>
 using the stream's {{ReadableStream/getReader()}} method.
 
-<h3 id="ws-model">Writable Streams</h3>
+<h3 id="ws-model">Writable streams</h3>
 
 A <dfn export>writable stream</dfn> represents a destination for data, into which you can write. In other words, data
 goes <em>in</em> to a writable stream. Concretely, a writable stream is an instance of the {{WritableStream}} class.
@@ -156,7 +156,7 @@ Producers also have the ability to <dfn lt="abort a writable stream">abort</dfn>
 writes should be discontinued. It puts the stream in an errored state, even without a signal from the <a>underlying
 sink</a>, and it discards all writes in the stream's <a>internal queue</a>.
 
-<h3 id="ts-model">Transform Streams</h3>
+<h3 id="ts-model">Transform streams</h3>
 
 A <dfn>transform stream</dfn> consists of a pair of streams: a <a>writable stream</a>, known as its <dfn>writable
 side</dfn>, and a <a>readable stream</a>, known as its <dfn>readable side</dfn>. In a manner specific to the transform
@@ -185,7 +185,7 @@ Some examples of potential transform streams include:
     corresponding JavaScript objects are read.
 </ul>
 
-<h3 id="pipe-chains">Pipe Chains and Backpressure</h3>
+<h3 id="pipe-chains">Pipe chains and backpressure</h3>
 
 Streams are primarily used by <dfn>piping</dfn> them to each other. A readable stream can be piped directly to a
 writable stream, using its {{ReadableStream/pipeTo()}} method, or it can be piped through one or more transform streams
@@ -216,7 +216,7 @@ Piping <a>locks</a> the readable and writable streams, preventing them from bein
 pipe operation. This allows the implementation to perform important optimizations, such as directly shuttling data from
 the underlying source to the underlying sink while bypassing many of the intermediate queues.
 
-<h3 id="queuing-strategies">Internal Queues and Queuing Strategies</h3>
+<h3 id="queuing-strategies">Internal queues and queuing strategies</h3>
 
 Both readable and writable streams maintain <dfn>internal queues</dfn>, which they use for similar purposes. In the
 case of a readable stream, the internal queue contains <a>chunks</a> that have been enqueued by the <a>underlying
@@ -281,9 +281,9 @@ the {{ReadableStreamDefaultReader/releaseLock()|defaultReader.releaseLock()}},
 {{ReadableStreamBYOBReader/releaseLock()|byobReader.releaseLock()}}, or
 {{WritableStreamDefaultWriter/releaseLock()|writer.releaseLock()}} method, as appropriate.
 
-<h2 id="rs">Readable Streams</h2>
+<h2 id="rs">Readable streams</h2>
 
-<h3 id="rs-intro">Using Readable Streams</h3>
+<h3 id="rs-intro">Using readable streams</h3>
 
 <div class="example" id="example-basic-pipe-to">
   The simplest way to consume a readable stream is to simply <a lt="piping">pipe</a> it to a <a>writable stream</a>.
@@ -383,7 +383,7 @@ The {{ReadableStream}} class is a concrete instance of the general <a>readable s
 adaptable to any <a>chunk</a> type, and maintains an internal queue to keep track of data supplied by the <a>underlying
 source</a> but not yet read by any consumer.
 
-<h4 id="rs-class-definition">Class Definition</h4>
+<h4 id="rs-class-definition">Class definition</h4>
 
 <em>This section is non-normative.</em>
 
@@ -404,7 +404,7 @@ like
   }
 </code></pre>
 
-<h4 id="rs-internal-slots">Internal Slots</h4>
+<h4 id="rs-internal-slots">Internal slots</h4>
 
 Instances of {{ReadableStream}} are created with the internal slots described in the following table:
 
@@ -475,7 +475,7 @@ ReadableStream(<var>underlyingSource</var> = {}, <var>strategy</var> = {})</h4>
   1. Otherwise, throw a *RangeError* exception.
 </emu-alg>
 
-<h4 id="underlying-source-api">Underlying Source API</h4>
+<h4 id="underlying-source-api">Underlying source API</h4>
 
 <div class="non-normative">
 
@@ -572,7 +572,7 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
 
 </div>
 
-<h4 id="rs-prototype">Properties of the {{ReadableStream}} Prototype</h4>
+<h4 id="rs-prototype">Properties of the {{ReadableStream}} prototype</h4>
 
 <h5 id="rs-locked" attribute for="ReadableStream" lt="locked">get locked</h5>
 
@@ -857,7 +857,7 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
   </code></pre>
 </div>
 
-<h3 id="rs-abstract-ops">General Readable Stream Abstract Operations</h3>
+<h3 id="rs-abstract-ops">General readable stream abstract operations</h3>
 
 The following abstract operations, unlike most in this specification, are meant to be generally useful by other
 specifications, instead of just being part of the implementation of this spec's classes.
@@ -1051,7 +1051,7 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
   1. Return « _branch1_, _branch2_ ».
 </emu-alg>
 
-<h3 id="rs-abstract-ops-used-by-controllers">The Interface Between Readable Streams and Controllers</h3>
+<h3 id="rs-abstract-ops-used-by-controllers">The interface between readable streams and controllers</h3>
 
 In terms of specification factoring, the way that the {{ReadableStream}} class encapsulates the behavior of
 both simple readable streams and <a>readable byte streams</a> into a single class is by centralizing most of the
@@ -1222,7 +1222,7 @@ nothrow>ReadableStreamGetNumReadRequests ( <var>stream</var> )</h4>
 The {{ReadableStreamDefaultReader}} class represents a <a>default reader</a> designed to be vended by a
 {{ReadableStream}} instance.
 
-<h4 id="default-reader-class-definition">Class Definition</h4>
+<h4 id="default-reader-class-definition">Class definition</h4>
 
 <div class="non-normative">
 
@@ -1245,7 +1245,7 @@ would look like
 
 </div>
 
-<h4 id="default-reader-internal-slots">Internal Slots</h4>
+<h4 id="default-reader-internal-slots">Internal slots</h4>
 
 Instances of {{ReadableStreamDefaultReader}} are created with the internal slots described in the following table:
 
@@ -1288,7 +1288,7 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
   1. Set *this*.[[readRequests]] to a new empty List.
 </emu-alg>
 
-<h4 id="default-reader-prototype">Properties of the {{ReadableStreamDefaultReader}} Prototype</h4>
+<h4 id="default-reader-prototype">Properties of the {{ReadableStreamDefaultReader}} prototype</h4>
 
 <h5 id="default-reader-closed" attribute for="ReadableStreamDefaultReader" lt="closed">get closed</h5>
 
@@ -1363,7 +1363,7 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
 The {{ReadableStreamBYOBReader}} class represents a <a>BYOB reader</a> designed to be vended by a {{ReadableStream}}
 instance.
 
-<h4 id="byob-reader-class-definition">Class Definition</h4>
+<h4 id="byob-reader-class-definition">Class definition</h4>
 
 <div class="non-normative">
 
@@ -1386,7 +1386,7 @@ would look like
 
 </div>
 
-<h4 id="byob-reader-internal-slots">Internal Slots</h4>
+<h4 id="byob-reader-internal-slots">Internal slots</h4>
 
 Instances of {{ReadableStreamBYOBReader}} are created with the internal slots described in the following table:
 
@@ -1430,7 +1430,7 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
   1. Set *this*.[[readIntoRequests]] to a new empty List.
 </emu-alg>
 
-<h4 id="byob-reader-prototype">Properties of the {{ReadableStreamBYOBReader}} Prototype</h4>
+<h4 id="byob-reader-prototype">Properties of the {{ReadableStreamBYOBReader}} prototype</h4>
 
 <h5 id="byob-reader-closed" attribute for="ReadableStreamBYOBReader" lt="closed">get closed</h5>
 
@@ -1506,7 +1506,7 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
   1. Perform ! ReadableStreamReaderGenericRelease(*this*).
 </emu-alg>
 
-<h3 id="rs-reader-abstract-ops">Readable Stream Reader Abstract Operations</h3>
+<h3 id="rs-reader-abstract-ops">Readable stream reader abstract operations</h3>
 
 <h4 id="is-readable-stream-default-reader" aoid="IsReadableStreamDefaultReader" nothrow>IsReadableStreamDefaultReader (
 <var>x</var> )</h4>
@@ -1597,7 +1597,7 @@ The {{ReadableStreamDefaultController}} class has methods that allow control of 
 <a>internal queue</a>. When constructing a {{ReadableStream}} that is not a <a>readable byte stream</a>, the
 <a>underlying source</a> is given a corresponding {{ReadableStreamDefaultController}} instance to manipulate.
 
-<h4 id="rs-default-controller-class-definition">Class Definition</h4>
+<h4 id="rs-default-controller-class-definition">Class definition</h4>
 
 <div class="non-normative">
 
@@ -1620,7 +1620,7 @@ it would look like
 
 </div>
 
-<h4 id="rs-default-controller-internal-slots">Internal Slots</h4>
+<h4 id="rs-default-controller-internal-slots">Internal slots</h4>
 
 Instances of {{ReadableStreamDefaultController}} are created with the internal slots described in the following table:
 
@@ -1696,7 +1696,7 @@ lt="ReadableStreamDefaultController()">new ReadableStreamDefaultController()</h4
   1. Throw a *TypeError*.
 </emu-alg>
 
-<h4 id="rs-default-controller-prototype">Properties of the {{ReadableStreamDefaultController}} Prototype</h4>
+<h4 id="rs-default-controller-prototype">Properties of the {{ReadableStreamDefaultController}} prototype</h4>
 
 <h5 id="rs-default-controller-desired-size" attribute for="ReadableStreamDefaultController" lt="desiredSize">get
 desiredSize</h5>
@@ -1751,7 +1751,7 @@ desiredSize</h5>
   1. Perform ! ReadableStreamDefaultControllerError(*this*, _e_).
 </emu-alg>
 
-<h4 id="rs-default-controller-internal-methods">Readable Stream Default Controller Internal Methods</h4>
+<h4 id="rs-default-controller-internal-methods">Readable stream default controller internal methods</h4>
 
 The following are additional internal methods implemented by each {{ReadableStreamDefaultController}} instance. The
 readable stream implementation will polymorphically call to either these or their counterparts for BYOB controllers.
@@ -1777,7 +1777,7 @@ readable stream implementation will polymorphically call to either these or thei
   1. Return _pendingPromise_.
 </emu-alg>
 
-<h3 id="rs-default-controller-abstract-ops">Readable Stream Default Controller Abstract Operations</h3>
+<h3 id="rs-default-controller-abstract-ops">Readable stream default controller abstract operations</h3>
 
 <h4 id="is-readable-stream-default-controller" aoid="IsReadableStreamDefaultController"
 nothrow>IsReadableStreamDefaultController ( <var>x</var> )</h4>
@@ -1978,7 +1978,7 @@ The {{ReadableByteStreamController}} class has methods that allow control of a {
 <a>internal queue</a>. When constructing a {{ReadableStream}}, the <a>underlying byte source</a> is given a
 corresponding {{ReadableByteStreamController}} instance to manipulate.
 
-<h4 id="rbs-controller-class-definition">Class Definition</h4>
+<h4 id="rbs-controller-class-definition">Class definition</h4>
 
 <div class="non-normative">
 
@@ -2002,7 +2002,7 @@ would look like
 
 </div>
 
-<h4 id="rbs-controller-internal-slots">Internal Slots</h4>
+<h4 id="rbs-controller-internal-slots">Internal slots</h4>
 
 Instances of {{ReadableByteStreamController}} are created with the internal slots described in the following table:
 
@@ -2095,7 +2095,7 @@ ReadableByteStreamController()</h4>
   1. Throw a *TypeError* exception.
 </emu-alg>
 
-<h4 id="rbs-controller-prototype">Properties of the {{ReadableByteStreamController}} Prototype</h4>
+<h4 id="rbs-controller-prototype">Properties of the {{ReadableByteStreamController}} prototype</h4>
 
 <h5 id="rbs-controller-byob-request" attribute for="ReadableByteStreamController" lt="byobRequest">get byobRequest</h5>
 
@@ -2174,7 +2174,7 @@ ReadableByteStreamController()</h4>
   1. Perform ! ReadableByteStreamControllerError(*this*, _e_).
 </emu-alg>
 
-<h4 id="rbs-controller-internal-methods">Readable Stream BYOB Controller Internal Methods</h4>
+<h4 id="rbs-controller-internal-methods">Readable stream BYOB controller internal methods</h4>
 
 The following are additional internal methods implemented by each {{ReadableByteStreamController}} instance. The
 readable stream implementation will polymorphically call to either these or their counterparts for default controllers.
@@ -2222,7 +2222,7 @@ readable stream implementation will polymorphically call to either these or thei
 
 The {{ReadableStreamBYOBRequest}} class represents a pull into request in a {{ReadableByteStreamController}}.
 
-<h4 id="rs-byob-request-class-definition">Class Definition</h4>
+<h4 id="rs-byob-request-class-definition">Class definition</h4>
 
 <div class="non-normative">
 
@@ -2244,7 +2244,7 @@ would look like
 
 </div>
 
-<h4 id="rs-byob-request-internal-slots">Internal Slots</h4>
+<h4 id="rs-byob-request-internal-slots">Internal slots</h4>
 
 Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots described in the following table:
 
@@ -2274,7 +2274,7 @@ ReadableStreamBYOBRequest()</h4>
   1. Throw a *TypeError* exception.
 </emu-alg>
 
-<h4 id="rs-byob-request-prototype">Properties of the {{ReadableStreamBYOBRequest}} Prototype</h4>
+<h4 id="rs-byob-request-prototype">Properties of the {{ReadableStreamBYOBRequest}} prototype</h4>
 
 <h5 id="rs-byob-request-view" attribute for="ReadableStreamBYOBRequest" lt="view">get view</h5>
 
@@ -2304,7 +2304,7 @@ for="ReadableStreamBYOBRequest">respondWithNewView(<var>view</var>)</h5>
   1. Return ? ReadableByteStreamControllerRespondWithNewView(*this*.[[associatedReadableByteStreamController]], _view_).
 </emu-alg>
 
-<h3 id="rbs-controller-abstract-ops">Readable Stream BYOB Controller Abstract Operations</h3>
+<h3 id="rbs-controller-abstract-ops">Readable stream BYOB controller abstract operations</h3>
 
 <h4 id="is-readable-stream-byob-request" aoid="IsReadableStreamBYOBRequest" nothrow>IsReadableStreamBYOBRequest (
 <var>x</var> )</h4>
@@ -2768,9 +2768,9 @@ nothrow>SetUpReadableStreamBYOBRequest ( <var ignore>request</var>, <var>control
   1. Set _request_.[[view]] to _view_.
 </emu-alg>
 
-<h2 id="ws">Writable Streams</h2>
+<h2 id="ws">Writable streams</h2>
 
-<h3 id="ws-intro">Using Writable Streams</h3>
+<h3 id="ws-intro">Using writable streams</h3>
 
 <div class="example" id="example-basic-pipe-to-2">
   The usual way to write to a writable stream is to simply <a lt="piping">pipe</a> a <a>readable stream</a> to it.
@@ -2897,7 +2897,7 @@ nothrow>SetUpReadableStreamBYOBRequest ( <var ignore>request</var>, <var>control
 
 <h3 id="ws-class" interface lt="WritableStream">Class <code>WritableStream</code></h3>
 
-<h4 id="ws-class-definition">Class Definition</h4>
+<h4 id="ws-class-definition">Class definition</h4>
 
 <div class="non-normative">
 
@@ -2919,7 +2919,7 @@ like
 
 </div>
 
-<h4 id="ws-internal-slots">Internal Slots</h4>
+<h4 id="ws-internal-slots">Internal slots</h4>
 
 Instances of {{WritableStream}} are created with the internal slots described in the following table:
 
@@ -3014,7 +3014,7 @@ WritableStream(<var>underlyingSink</var> = {}, <var>strategy</var> = {})</h4>
      _sizeAlgorithm_).
 </emu-alg>
 
-<h4 id="underlying-sink-api">Underlying Sink API</h4>
+<h4 id="underlying-sink-api">Underlying sink API</h4>
 
 <div class="non-normative">
 
@@ -3100,7 +3100,7 @@ bridging the gap with non-promise-based APIs, as seen for example in [[#example-
 
 </div>
 
-<h4 id="ws-prototype">Properties of the {{WritableStream}} Prototype</h4>
+<h4 id="ws-prototype">Properties of the {{WritableStream}} prototype</h4>
 
 <h5 id="ws-locked" attribute for="WritableStream" lt="locked">get locked</h5>
 
@@ -3144,7 +3144,7 @@ bridging the gap with non-promise-based APIs, as seen for example in [[#example-
   1. Return ? AcquireWritableStreamDefaultWriter(*this*).
 </emu-alg>
 
-<h3 id="ws-abstract-ops">General Writable Stream Abstract Operations</h3>
+<h3 id="ws-abstract-ops">General writable stream abstract operations</h3>
 
 The following abstract operations, unlike most in this specification, are meant to be generally useful by other
 specifications, instead of just being part of the implementation of this spec's classes.
@@ -3234,7 +3234,7 @@ writable stream is <a>locked to a writer</a>.
   1. Return _promise_.
 </emu-alg>
 
-<h3 id="ws-abstract-ops-used-by-controllers">Writable Stream Abstract Operations Used by Controllers</h3>
+<h3 id="ws-abstract-ops-used-by-controllers">Writable stream abstract operations used by controllers</h3>
 
 To allow future flexibility to add different writable stream behaviors (similar to the distinction between default
 readable streams and <a>readable byte streams</a>), much of the internal state of a <a>writable stream</a> is
@@ -3444,7 +3444,7 @@ nothrow>WritableStreamUpdateBackpressure ( <var>stream</var>, <var>backpressure<
 The {{WritableStreamDefaultWriter}} class represents a <a>writable stream writer</a> designed to be vended by a
 {{WritableStream}} instance.
 
-<h4 id="default-writer-class-definition">Class Definition</h4>
+<h4 id="default-writer-class-definition">Class definition</h4>
 
 <div class="non-normative">
 
@@ -3470,7 +3470,7 @@ would look like
 
 </div>
 
-<h4 id="default-writer-internal-slots">Internal Slots</h4>
+<h4 id="default-writer-internal-slots">Internal slots</h4>
 
 Instances of {{WritableStreamDefaultWriter}} are created with the internal slots described in the following table:
 
@@ -3530,7 +3530,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
     1. Set *this*.[[closedPromise]].[[PromiseIsHandled]] to *true*.
 </emu-alg>
 
-<h4 id="default-writer-prototype">Properties of the {{WritableStreamDefaultWriter}} Prototype</h4>
+<h4 id="default-writer-prototype">Properties of the {{WritableStreamDefaultWriter}} prototype</h4>
 
 <h5 id="default-writer-closed" attribute for="WritableStreamDefaultWriter" lt="closed">get closed</h5>
 
@@ -3654,7 +3654,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   1. Return ! WritableStreamDefaultWriterWrite(*this*, _chunk_).
 </emu-alg>
 
-<h3 id="rs-writer-abstract-ops">Writable Stream Writer Abstract Operations</h3>
+<h3 id="rs-writer-abstract-ops">Writable stream writer abstract operations</h3>
 
 <h4 id="is-writable-stream-default-writer" aoid="IsWritableStreamDefaultWriter" nothrow>IsWritableStreamDefaultWriter (
 <var>x</var> )</h4>
@@ -3783,7 +3783,7 @@ The {{WritableStreamDefaultController}} class has methods that allow control of 
 constructing a {{WritableStream}}, the <a>underlying sink</a> is given a corresponding
 {{WritableStreamDefaultController}} instance to manipulate.
 
-<h4 id="ws-default-controller-class-definition">Class Definition</h4>
+<h4 id="ws-default-controller-class-definition">Class definition</h4>
 
 <div class="non-normative">
 
@@ -3802,7 +3802,7 @@ it would look like
 
 </div>
 
-<h4 id="ws-default-controller-internal-slots">Internal Slots</h4>
+<h4 id="ws-default-controller-internal-slots">Internal slots</h4>
 
 Instances of {{WritableStreamDefaultController}} are created with the internal slots described in the following table:
 
@@ -3869,7 +3869,7 @@ lt="WritableStreamDefaultController()">new WritableStreamDefaultController()</h4
   1. Throw a *TypeError* exception.
 </emu-alg>
 
-<h4 id="ws-default-controller-prototype">Properties of the {{WritableStreamDefaultController}} Prototype</h4>
+<h4 id="ws-default-controller-prototype">Properties of the {{WritableStreamDefaultController}} prototype</h4>
 
 <h5 id="ws-default-controller-error" method for="WritableStreamDefaultController">error(<var>e</var>)</h5>
 
@@ -3889,7 +3889,7 @@ lt="WritableStreamDefaultController()">new WritableStreamDefaultController()</h4
   1. Perform ! WritableStreamDefaultControllerError(*this*, _e_).
 </emu-alg>
 
-<h4 id="ws-default-controller-internal-methods">Writable Stream Default Controller Internal Methods</h4>
+<h4 id="ws-default-controller-internal-methods">Writable stream default controller internal methods</h4>
 
 The following are additional internal methods implemented by each {{WritableStreamDefaultController}} instance. The
 writable stream implementation will call into these.
@@ -3913,7 +3913,7 @@ used polymorphically.
   1. Perform ! ResetQueue(*this*).
 </emu-alg>
 
-<h3 id="ws-default-controller-abstract-ops">Writable Stream Default Controller Abstract Operations</h3>
+<h3 id="ws-default-controller-abstract-ops">Writable stream default controller abstract operations</h3>
 
 <h4 id="is-writable-stream-default-controller" aoid="IsWritableStreamDefaultController"
 nothrow>IsWritableStreamDefaultController ( <var>x</var> )</h4>
@@ -4095,9 +4095,9 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>error
   1. Perform ! WritableStreamStartErroring(_stream_, _error_).
 </emu-alg>
 
-<h2 id="ts">Transform Streams</h2>
+<h2 id="ts">Transform streams</h2>
 
-<h3 id="ts-intro">Using Transform Streams</h3>
+<h3 id="ts-intro">Using transform streams</h3>
 
 <div class="example" id="example-basic-pipe-through">
   The natural way to use a transform stream is to place it in a <a lt="piping">pipe</a> between a <a>readable stream</a>
@@ -4156,7 +4156,7 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>error
 
 <h3 id="ts-class" interface lt="TransformStream">Class <code>TransformStream</code></h3>
 
-<h4 id="ts-class-definition">Class Definition</h4>
+<h4 id="ts-class-definition">Class definition</h4>
 
 <div class="non-normative">
 
@@ -4177,7 +4177,7 @@ like
 
 </div>
 
-<h4 id="ts-internal-slots">Internal Slots</h4>
+<h4 id="ts-internal-slots">Internal slots</h4>
 
 Instances of {{TransformStream}} are created with the internal slots described in the following table:
 
@@ -4319,7 +4319,7 @@ The <code>controller</code> object passed to {{transformer/start()}}, {{transfor
 
 </div>
 
-<h4 id="ts-prototype">Properties of the {{TransformStream}} Prototype</h4>
+<h4 id="ts-prototype">Properties of the {{TransformStream}} prototype</h4>
 
 <h5 id="ts-readable" attribute for="TransformStream" lt="readable">get readable</h5>
 
@@ -4343,7 +4343,7 @@ The <code>controller</code> object passed to {{transformer/start()}}, {{transfor
   1. Return *this*.[[writable]].
 </emu-alg>
 
-<h3 id="ts-abstract-ops">General Transform Stream Abstract Operations</h3>
+<h3 id="ts-abstract-ops">General transform stream abstract operations</h3>
 
 <h4 id="create-transform-stream" aoid="CreateTransformStream" throws export>CreateTransformStream (
 <var>startAlgorithm</var>, <var>transformAlgorithm</var>, <var>flushAlgorithm</var>
@@ -4458,7 +4458,7 @@ The {{TransformStreamDefaultController}} class has methods that allow manipulati
 and {{WritableStream}}. When constructing a {{TransformStream}}, the <a>transformer</a> object is given a corresponding
 {{TransformStreamDefaultController}} instance to manipulate.
 
-<h4 id="ts-default-controller-class-definition">Class Definition</h4>
+<h4 id="ts-default-controller-class-definition">Class definition</h4>
 
 <div class="non-normative">
 
@@ -4481,7 +4481,7 @@ it would look like
 
 </div>
 
-<h4 id="ts-default-controller-internal-slots">Internal Slots</h4>
+<h4 id="ts-default-controller-internal-slots">Internal slots</h4>
 
 Instances of {{TransformStreamDefaultController}} are created with the internal slots described in the following table:
 
@@ -4520,7 +4520,7 @@ lt="TransformStreamDefaultController()">new TransformStreamDefaultController()</
   1. Throw a *TypeError* exception.
 </emu-alg>
 
-<h4 id="ts-default-controller-prototype">Properties of the {{TransformStreamDefaultController}} Prototype</h4>
+<h4 id="ts-default-controller-prototype">Properties of the {{TransformStreamDefaultController}} prototype</h4>
 
 <h5 id="ts-default-controller-desired-size" attribute for="TransformStreamDefaultController" lt="desiredSize">get
 desiredSize</h5>
@@ -4573,7 +4573,7 @@ desiredSize</h5>
   1. Perform ! TransformStreamDefaultControllerTerminate(*this*).
 </emu-alg>
 
-<h3 id="ts-default-controller-abstract-ops">Transform Stream Default Controller Abstract Operations</h3>
+<h3 id="ts-default-controller-abstract-ops">Transform stream default controller abstract operations</h3>
 
 <h4 id="is-transform-stream-default-controller" aoid="IsTransformStreamDefaultController"
 nothrow>IsTransformStreamDefaultController ( <var>x</var> )</h4>
@@ -4671,7 +4671,7 @@ this to streams they did not create.
   1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _error_).
 </emu-alg>
 
-<h3 id="ts-default-sink-abstract-ops">Transform Stream Default Sink Abstract Operations</h3>
+<h3 id="ts-default-sink-abstract-ops">Transform stream default sink abstract operations</h3>
 
 <h4 id="transform-stream-default-sink-write-algorithm" aoid="TransformStreamDefaultSinkWriteAlgorithm"
 nothrow>TransformStreamDefaultSinkWriteAlgorithm ( <var>stream</var>, <var>chunk</var> )</h4>
@@ -4718,7 +4718,7 @@ nothrow>TransformStreamDefaultSinkCloseAlgorithm( <var>stream</var> )</h4>
       1. Throw _readable_.[[storedError]].
 </emu-alg>
 
-<h3 id="ts-default-source-abstract-ops">Transform Stream Default Source Abstract Operations</h3>
+<h3 id="ts-default-source-abstract-ops">Transform stream default source abstract operations</h3>
 
 <h4 id="transform-stream-default-source-pull"
 aoid="TransformStreamDefaultSourcePullAlgorithm" nothrow>TransformStreamDefaultSourcePullAlgorithm( <var>stream</var>
@@ -4731,11 +4731,11 @@ aoid="TransformStreamDefaultSourcePullAlgorithm" nothrow>TransformStreamDefaultS
   1. Return _stream_.[[backpressureChangePromise]].
 </emu-alg>
 
-<h2 id="other-stuff">Other Stream APIs and Operations</h2>
+<h2 id="other-stuff">Other stream APIs and operations</h2>
 
-<h3 id="qs">Queuing Strategies</h3>
+<h3 id="qs">Queuing strategies</h3>
 
-<h4 id="qs-api">The Queuing Strategy API</h4>
+<h4 id="qs-api">The queuing strategy API</h4>
 
 <div class="non-normative">
 
@@ -4812,7 +4812,7 @@ properties of the incoming <a>chunks</a> reaches a specified high-water mark. As
   chunks in bytes. Attempting to construct a byte stream with a {{ByteLengthQueuingStrategy}} will fail.
 </p>
 
-<h5 id="blqs-class-definition">Class Definition</h5>
+<h5 id="blqs-class-definition">Class definition</h5>
 
 <div class="non-normative">
 
@@ -4844,7 +4844,7 @@ ByteLengthQueuingStrategy({ <var>highWaterMark</var> })</h5>
   1. Perform ! CreateDataProperty(*this*, `"highWaterMark"`, _highWaterMark_).
 </emu-alg>
 
-<h5 id="blqs-prototype">Properties of the {{ByteLengthQueuingStrategy}} Prototype</h5>
+<h5 id="blqs-prototype">Properties of the {{ByteLengthQueuingStrategy}} prototype</h5>
 
 <h6 id="blqs-size" method for="ByteLengthQueuingStrategy">size(<var>chunk</var>)</h6>
 
@@ -4891,7 +4891,7 @@ strategy is also provided out of the box.
   <a>backpressure</a> signals to any <a>producers</a>.
 </div>
 
-<h5 id="cqs-class-definition">Class Definition</h5>
+<h5 id="cqs-class-definition">Class definition</h5>
 
 <div class="non-normative">
 
@@ -4923,7 +4923,7 @@ CountQueuingStrategy({ <var>highWaterMark</var> })</h5>
   1. Perform ! CreateDataProperty(*this*, `"highWaterMark"`, _highWaterMark_).
 </emu-alg>
 
-<h5 id="cqs-prototype">Properties of the {{CountQueuingStrategy}} Prototype</h5>
+<h5 id="cqs-prototype">Properties of the {{CountQueuingStrategy}} prototype</h5>
 
 <h6 id="cqs-size" method for="CountQueuingStrategy">size()</h6>
 
@@ -4939,7 +4939,7 @@ CountQueuingStrategy({ <var>highWaterMark</var> })</h5>
   1. Return *1*.
 </emu-alg>
 
-<h3 id="queue-with-sizes">Queue-with-Sizes Operations</h3>
+<h3 id="queue-with-sizes">Queue-with-sizes operations</h3>
 
 The streams in this specification use a "queue-with-sizes" data structure to store queued up values, along with their
 determined sizes. Various specification objects contain a queue-with-sizes, represented by the object having two paired
@@ -4996,7 +4996,7 @@ chunks, or when trillions of chunks are enqueued.)</p>
   1. Set _container_.[[queueTotalSize]] to *0*.
 </emu-alg>
 
-<h3 id="misc-abstract-ops">Miscellaneous Operations</h3>
+<h3 id="misc-abstract-ops">Miscellaneous operations</h3>
 
 A few abstract operations are used in this specification for utility purposes. We define them here.
 
@@ -5105,7 +5105,7 @@ throws>MakeSizeAlgorithmFromSizeFunction ( <var>size</var> )</h4>
     1. Return ? Call(_size_, *undefined*, « _chunk_ »).
 </emu-alg>
 
-<h2 id="globals">Global Properties</h2>
+<h2 id="globals">Global properties</h2>
 
 The following constructors must be exposed on the global object as data properties of the same name:
 
@@ -5126,7 +5126,7 @@ The attributes of these properties must be { \[[Writable]]: <emu-val>true</emu-v
   {{TransformStreamDefaultController}} classes are specifically not exposed, as they are not independently useful.
 </div>
 
-<h2 id="creating-examples">Examples of Creating Streams</h2>
+<h2 id="creating-examples">Examples of creating streams</h2>
 
 <div class="non-normative">
 
@@ -5790,6 +5790,7 @@ values, and all arithmetic operations performed on them must be done in the stan
 
 The editors would like to thank
 Anne van Kesteren,
+AnthumChris,
 Ben Kelly,
 Bert Belder,
 Brian di Palma,
