@@ -7,24 +7,24 @@ function IsPropertyKey(argument) {
   return typeof argument === 'string' || typeof argument === 'symbol';
 }
 
-exports.typeIsObject = x => (typeof x === 'object' && x !== null) || typeof x === 'function';
+const typeIsObject = x => (typeof x === 'object' && x !== null) || typeof x === 'function';
 
-exports.createDataProperty = (o, p, v) => {
-  assert(exports.typeIsObject(o));
+const createDataProperty = (o, p, v) => {
+  assert(typeIsObject(o));
   Object.defineProperty(o, p, { value: v, writable: true, enumerable: true, configurable: true });
 };
 
-exports.createArrayFromList = elements => {
+const createArrayFromList = elements => {
   // We use arrays to represent lists, so this is basically a no-op.
   // Do a slice though just in case we happen to depend on the unique-ness.
   return elements.slice();
 };
 
-exports.ArrayBufferCopy = (dest, destOffset, src, srcOffset, n) => {
+const ArrayBufferCopy = (dest, destOffset, src, srcOffset, n) => {
   new Uint8Array(dest).set(new Uint8Array(src, srcOffset, n), destOffset);
 };
 
-exports.CreateIterResultObject = (value, done) => {
+const CreateIterResultObject = (value, done) => {
   assert(typeof done === 'boolean');
   const obj = {};
   Object.defineProperty(obj, 'value', { value, enumerable: true, writable: true, configurable: true });
@@ -32,8 +32,8 @@ exports.CreateIterResultObject = (value, done) => {
   return obj;
 };
 
-exports.IsFiniteNonNegativeNumber = v => {
-  if (exports.IsNonNegativeNumber(v) === false) {
+const IsFiniteNonNegativeNumber = v => {
+  if (IsNonNegativeNumber(v) === false) {
     return false;
   }
 
@@ -44,7 +44,7 @@ exports.IsFiniteNonNegativeNumber = v => {
   return true;
 };
 
-exports.IsNonNegativeNumber = v => {
+const IsNonNegativeNumber = v => {
   if (typeof v !== 'number') {
     return false;
   }
@@ -68,9 +68,7 @@ function Call(F, V, args) {
   return Function.prototype.apply.call(F, V, args);
 }
 
-exports.Call = Call;
-
-exports.CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, algoArgCount, extraArgs) => {
+const CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, algoArgCount, extraArgs) => {
   assert(underlyingObject !== undefined);
   assert(IsPropertyKey(methodName));
   assert(algoArgCount === 0 || algoArgCount === 1);
@@ -98,7 +96,7 @@ exports.CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, alg
   return () => Promise.resolve();
 };
 
-exports.InvokeOrNoop = (O, P, args) => {
+const InvokeOrNoop = (O, P, args) => {
   assert(O !== undefined);
   assert(IsPropertyKey(P));
   assert(Array.isArray(args));
@@ -122,11 +120,9 @@ function PromiseCall(F, V, args) {
   }
 }
 
-exports.PromiseCall = PromiseCall;
-
 // Not implemented correctly
-exports.TransferArrayBuffer = O => {
-  assert(!exports.IsDetachedBuffer(O));
+const TransferArrayBuffer = O => {
+  assert(!IsDetachedBuffer(O));
   const transferredIshVersion = O.slice();
 
   // This is specifically to fool tests that test "is transferred" by taking a non-zero-length
@@ -142,11 +138,11 @@ exports.TransferArrayBuffer = O => {
 };
 
 // Not implemented correctly
-exports.IsDetachedBuffer = O => {
+const IsDetachedBuffer = O => {
   return isFakeDetached in O;
 };
 
-exports.ValidateAndNormalizeHighWaterMark = highWaterMark => {
+const ValidateAndNormalizeHighWaterMark = highWaterMark => {
   highWaterMark = Number(highWaterMark);
   if (Number.isNaN(highWaterMark) || highWaterMark < 0) {
     throw new RangeError('highWaterMark property of a queuing strategy must be non-negative and non-NaN');
@@ -155,7 +151,7 @@ exports.ValidateAndNormalizeHighWaterMark = highWaterMark => {
   return highWaterMark;
 };
 
-exports.MakeSizeAlgorithmFromSizeFunction = size => {
+const MakeSizeAlgorithmFromSizeFunction = size => {
   if (size === undefined) {
     return () => 1;
   }
@@ -163,4 +159,22 @@ exports.MakeSizeAlgorithmFromSizeFunction = size => {
     throw new TypeError('size property of a queuing strategy must be a function');
   }
   return chunk => size(chunk);
+};
+
+module.exports = {
+  typeIsObject,
+  createDataProperty,
+  createArrayFromList,
+  ArrayBufferCopy,
+  CreateIterResultObject,
+  IsFiniteNonNegativeNumber,
+  IsNonNegativeNumber,
+  Call,
+  CreateAlgorithmFromUnderlyingMethod,
+  InvokeOrNoop,
+  PromiseCall,
+  TransferArrayBuffer,
+  IsDetachedBuffer,
+  ValidateAndNormalizeHighWaterMark,
+  MakeSizeAlgorithmFromSizeFunction
 };

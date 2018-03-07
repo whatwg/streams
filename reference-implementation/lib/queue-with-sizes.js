@@ -2,7 +2,7 @@
 const assert = require('better-assert');
 const { IsFiniteNonNegativeNumber } = require('./helpers.js');
 
-exports.DequeueValue = container => {
+const DequeueValue = container => {
   assert('_queue' in container && '_queueTotalSize' in container);
   assert(container._queue.length > 0);
 
@@ -15,7 +15,7 @@ exports.DequeueValue = container => {
   return pair.value;
 };
 
-exports.EnqueueValueWithSize = (container, value, size) => {
+const EnqueueValueWithSize = (container, value, size) => {
   assert('_queue' in container && '_queueTotalSize' in container);
 
   size = Number(size);
@@ -27,7 +27,7 @@ exports.EnqueueValueWithSize = (container, value, size) => {
   container._queueTotalSize += size;
 };
 
-exports.PeekQueueValue = container => {
+const PeekQueueValue = container => {
   assert('_queue' in container && '_queueTotalSize' in container);
   assert(container._queue.length > 0);
 
@@ -35,9 +35,16 @@ exports.PeekQueueValue = container => {
   return pair.value;
 };
 
-exports.ResetQueue = container => {
+const ResetQueue = container => {
   assert('_queue' in container && '_queueTotalSize' in container);
 
   container._queue = [];
   container._queueTotalSize = 0;
+};
+
+module.exports = {
+  DequeueValue,
+  EnqueueValueWithSize,
+  PeekQueueValue,
+  ResetQueue
 };
