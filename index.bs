@@ -1045,8 +1045,8 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
   1. Set _branch2_ to CreateReadableStream(_startAlgorithm_, _pullAlgorithm_, _cancel2Algorithm_).
   1. <a>Upon rejection</a> of _reader_.[[closedPromise]] with reason _r_,
     1. If _closedOrErrored_ is *false*, then:
-      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_branch1_.[[readableStreamController]], _r_).
-      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_branch2_.[[readableStreamController]], _r_).
+      1. Perform ! ReadableStreamDefaultControllerError(_branch1_.[[readableStreamController]], _r_).
+      1. Perform ! ReadableStreamDefaultControllerError(_branch2_.[[readableStreamController]], _r_).
       1. Set _closedOrErrored_ to *true*.
   1. Return « _branch1_, _branch2_ ».
 </emu-alg>
@@ -1746,8 +1746,6 @@ desiredSize</h5>
 
 <emu-alg>
   1. If ! IsReadableStreamDefaultController(*this*) is *false*, throw a *TypeError* exception.
-  1. Let _stream_ be *this*.[[controlledReadableStream]].
-  1. If _stream_.[[state]] is not `"readable"`, throw a *TypeError* exception.
   1. Perform ! ReadableStreamDefaultControllerError(*this*, _e_).
 </emu-alg>
 
@@ -1806,7 +1804,7 @@ nothrow>ReadableStreamDefaultControllerCallPullIfNeeded ( <var>controller</var> 
       1. Set _controller_.[[pullAgain]] to *false*.
       1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
   1. <a>Upon rejection</a> of _pullPromise_ with reason _e_,
-    1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _e_).
+    1. Perform ! ReadableStreamDefaultControllerError(_controller_, _e_).
 </emu-alg>
 
 <h4 id="readable-stream-default-controller-should-call-pull" aoid="ReadableStreamDefaultControllerShouldCallPull"
@@ -1854,12 +1852,12 @@ asserts).
     1. Let _result_ be the result of performing _controller_.[[strategySizeAlgorithm]], passing in _chunk_, and
        interpreting the result as an ECMAScript completion value.
     1. If _result_ is an abrupt completion,
-      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _result_.[[Value]]).
+      1. Perform ! ReadableStreamDefaultControllerError(_controller_, _result_.[[Value]]).
       1. Return _result_.
     1. Let _chunkSize_ be _result_.[[Value]].
     1. Let _enqueueResult_ be EnqueueValueWithSize(_controller_, _chunk_, _chunkSize_).
     1. If _enqueueResult_ is an abrupt completion,
-      1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _enqueueResult_.[[Value]]).
+      1. Perform ! ReadableStreamDefaultControllerError(_controller_, _enqueueResult_.[[Value]]).
       1. Return _enqueueResult_.
   1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
 </emu-alg>
@@ -1874,17 +1872,9 @@ an assert).
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
-  1. Assert: _stream_.[[state]] is `"readable"`.
+  1. If _stream_.[[state]] is not `"readable"`, return.
   1. Perform ! ResetQueue(_controller_).
   1. Perform ! ReadableStreamError(_stream_, _e_).
-</emu-alg>
-
-<h4 id="readable-stream-default-controller-error-if-needed" aoid="ReadableStreamDefaultControllerErrorIfNeeded"
-nothrow>ReadableStreamDefaultControllerErrorIfNeeded ( <var>controller</var>, <var>e</var> )</h4>
-
-<emu-alg>
-  1. If _controller_.[[controlledReadableStream]].[[state]] is `"readable"`, perform !
-     ReadableStreamDefaultControllerError(_controller_, _e_).
 </emu-alg>
 
 <h4 id="readable-stream-default-controller-get-desired-size" aoid="ReadableStreamDefaultControllerGetDesiredSize"
@@ -1951,7 +1941,7 @@ throws>SetUpReadableStreamDefaultController(<var>stream</var>, <var>controller</
     1. Assert: _controller_.[[pullAgain]] is *false*.
     1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(_controller_).
   1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
-    1. Perform ! ReadableStreamDefaultControllerErrorIfNeeded(_controller_, _r_).
+    1. Perform ! ReadableStreamDefaultControllerError(_controller_, _r_).
 </emu-alg>
 
 <h4 id="set-up-readable-stream-default-controller-from-underlying-source"
@@ -2169,8 +2159,6 @@ ReadableByteStreamController()</h4>
 
 <emu-alg>
   1. If ! IsReadableByteStreamController(*this*) is *false*, throw a *TypeError* exception.
-  1. Let _stream_ be *this*.[[controlledReadableByteStream]].
-  1. If _stream_.[[state]] is not `"readable"`, throw a *TypeError* exception.
   1. Perform ! ReadableByteStreamControllerError(*this*, _e_).
 </emu-alg>
 
@@ -2343,8 +2331,7 @@ nothrow>ReadableByteStreamControllerCallPullIfNeeded ( <var>controller</var> )</
       1. Set _controller_.[[pullAgain]] to *false*.
       1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
   1. <a>Upon rejection</a> of _pullPromise_ with reason _e_,
-    1. If _controller_.[[controlledReadableByteStream]].[[state]] is `"readable"`, perform
-       ! ReadableByteStreamControllerError(_controller_, _e_).
+    1. Perform ! ReadableByteStreamControllerError(_controller_, _e_).
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-clear-pending-pull-intos"
@@ -2451,7 +2438,7 @@ nothrow>ReadableByteStreamControllerError ( <var>controller</var>, <var>e</var> 
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
-  1. Assert: _stream_.[[state]] is `"readable"`.
+  1. If _stream_.[[state]] is not `"readable"`, return.
   1. Perform ! ReadableByteStreamControllerClearPendingPullIntos(_controller_).
   1. Perform ! ResetQueue(_controller_).
   1. Perform ! ReadableStreamError(_stream_, _e_).
@@ -2730,7 +2717,7 @@ throws>SetUpReadableByteStreamController ( <var>stream</var>, <var>controller</v
     1. Assert: _controller_.[[pullAgain]] is *false*.
     1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
   1. <a>Upon rejection</a> of _startPromise_ with reason _r_,
-    1. If _stream_.[[state]] is `"readable"`, perform ! ReadableByteStreamControllerError(_controller_, _r_).
+    1. Perform ! ReadableByteStreamControllerError(_controller_, _r_).
 </emu-alg>
 
 <h4 id="set-up-readable-byte-stream-controller-from-underlying-source"
@@ -4420,8 +4407,7 @@ throws.</p>
 <var>e</var> )</h4>
 
 <emu-alg>
-  1. If _stream_.[[readable]].[[state]] is `"readable"`, perform !
-     ReadableStreamDefaultControllerError(_stream_.[[readable]].[[readableStreamController]], _e_).
+  1. Perform ! ReadableStreamDefaultControllerError(_stream_.[[readable]].[[readableStreamController]], _e_).
   1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _e_).
 </emu-alg>
 
