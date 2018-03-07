@@ -3034,7 +3034,7 @@ sink</a>. Such objects can contain any of the following properties:
     will error the stream. Any thrown exceptions will be re-thrown by the {{WritableStream()}} constructor.</p>
   </dd>
 
-  <dt><dfn method for="underlying sink">write(<var>controller</var>)</dfn></dt>
+  <dt><dfn method for="underlying sink">write(<var>chunk</var>)</dfn></dt>
   <dd>
     <p>A function that is called when a new <a>chunk</a> of data is ready to be written to the <a>underlying sink</a>.
     The stream implementation guarantees that this function will be called only after previous writes have succeeded,
