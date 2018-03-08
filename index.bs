@@ -2428,6 +2428,7 @@ nothrow>ReadableByteStreamControllerEnqueue ( <var>controller</var>, <var>chunk<
     1. Assert: ! IsReadableStreamLocked(_stream_) is *false*.
     1. Perform ! ReadableByteStreamControllerEnqueueChunkToQueue(_controller_, _transferredBuffer_, _byteOffset_,
        _byteLength_).
+  1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-enqueue-chunk-to-queue" aoid="ReadableByteStreamControllerEnqueueChunkToQueue"
@@ -2654,6 +2655,7 @@ throws>ReadableByteStreamControllerRespondInternal ( <var>controller</var>, <var
   1. Otherwise,
     1. Assert: _stream_.[[state]] is `"readable"`.
     1. Perform ? ReadableByteStreamControllerRespondInReadableState(_controller_, _bytesWritten_, _firstDescriptor_).
+  1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-respond-with-new-view" aoid="ReadableByteStreamControllerRespondWithNewView"
