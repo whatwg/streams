@@ -451,8 +451,8 @@ function ReadableStreamTee(stream, cloneForBranch2) {
       return;
     }
 
-    ReadableStreamDefaultControllerErrorIfNeeded(branch1._readableStreamController, r);
-    ReadableStreamDefaultControllerErrorIfNeeded(branch2._readableStreamController, r);
+    ReadableStreamDefaultControllerError(branch1._readableStreamController, r);
+    ReadableStreamDefaultControllerError(branch2._readableStreamController, r);
     closedOrErrored = true;
   });
 
@@ -913,11 +913,6 @@ class ReadableStreamDefaultController {
       throw defaultControllerBrandCheckException('error');
     }
 
-    const stream = this._controlledReadableStream;
-    if (stream._state !== 'readable') {
-      throw new TypeError(`The stream is ${stream._state} and so cannot be errored`);
-    }
-
     ReadableStreamDefaultControllerError(this, e);
   }
 
@@ -988,7 +983,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
       return undefined;
     },
     e => {
-      ReadableStreamDefaultControllerErrorIfNeeded(controller, e);
+      ReadableStreamDefaultControllerError(controller, e);
     }
   )
   .catch(rethrowAssertionErrorRejection);
@@ -1045,14 +1040,14 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
     try {
       chunkSize = controller._strategySizeAlgorithm(chunk);
     } catch (chunkSizeE) {
-      ReadableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
+      ReadableStreamDefaultControllerError(controller, chunkSizeE);
       throw chunkSizeE;
     }
 
     try {
       EnqueueValueWithSize(controller, chunk, chunkSize);
     } catch (enqueueE) {
-      ReadableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
+      ReadableStreamDefaultControllerError(controller, enqueueE);
       throw enqueueE;
     }
   }
@@ -1065,17 +1060,13 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
 function ReadableStreamDefaultControllerError(controller, e) {
   const stream = controller._controlledReadableStream;
 
-  assert(stream._state === 'readable');
+  if (stream._state !== 'readable') {
+    return;
+  }
 
   ResetQueue(controller);
 
   ReadableStreamError(stream, e);
-}
-
-function ReadableStreamDefaultControllerErrorIfNeeded(controller, e) {
-  if (controller._controlledReadableStream._state === 'readable') {
-    ReadableStreamDefaultControllerError(controller, e);
-  }
 }
 
 function ReadableStreamDefaultControllerGetDesiredSize(controller) {
@@ -1145,7 +1136,7 @@ function SetUpReadableStreamDefaultController(
       ReadableStreamDefaultControllerCallPullIfNeeded(controller);
     },
     r => {
-      ReadableStreamDefaultControllerErrorIfNeeded(controller, r);
+      ReadableStreamDefaultControllerError(controller, r);
     }
   )
   .catch(rethrowAssertionErrorRejection);
@@ -1297,11 +1288,6 @@ class ReadableByteStreamController {
       throw byteStreamControllerBrandCheckException('error');
     }
 
-    const stream = this._controlledReadableByteStream;
-    if (stream._state !== 'readable') {
-      throw new TypeError(`The stream is ${stream._state} and so cannot be errored`);
-    }
-
     ReadableByteStreamControllerError(this, e);
   }
 
@@ -1421,9 +1407,7 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
       }
     },
     e => {
-      if (controller._controlledReadableByteStream._state === 'readable') {
-        ReadableByteStreamControllerError(controller, e);
-      }
+      ReadableByteStreamControllerError(controller, e);
     }
   )
   .catch(rethrowAssertionErrorRejection);
@@ -1785,7 +1769,9 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
 function ReadableByteStreamControllerError(controller, e) {
   const stream = controller._controlledReadableByteStream;
 
-  assert(stream._state === 'readable');
+  if (stream._state !== 'readable') {
+    return;
+  }
 
   ReadableByteStreamControllerClearPendingPullIntos(controller);
 
@@ -1879,9 +1865,7 @@ function SetUpReadableByteStreamController(stream, controller, startAlgorithm, p
         ReadableByteStreamControllerCallPullIfNeeded(controller);
       },
       r => {
-        if (stream._state === 'readable') {
-          ReadableByteStreamControllerError(controller, r);
-        }
+        ReadableByteStreamControllerError(controller, r);
       }
   )
       .catch(rethrowAssertionErrorRejection);

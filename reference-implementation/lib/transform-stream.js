@@ -161,9 +161,7 @@ function IsTransformStream(x) {
 function TransformStreamError(stream, e) {
   verbose('TransformStreamError()');
 
-  if (stream._readable._state === 'readable') {
-    ReadableStreamDefaultControllerError(stream._readable._readableStreamController, e);
-  }
+  ReadableStreamDefaultControllerError(stream._readable._readableStreamController, e);
   TransformStreamErrorWritableAndUnblockWrite(stream, e);
 }
 
