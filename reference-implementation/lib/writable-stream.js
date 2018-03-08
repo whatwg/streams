@@ -153,16 +153,14 @@ function IsWritableStreamLocked(stream) {
 
 function WritableStreamAbort(stream, reason) {
   const state = stream._state;
-  if (state === 'closed') {
+  if (state === 'closed' || state === 'errored') {
     return Promise.resolve(undefined);
   }
-  if (state === 'errored') {
-    return Promise.reject(stream._storedError);
-  }
-  const error = new TypeError('Requested to abort');
   if (stream._pendingAbortRequest !== undefined) {
-    return Promise.reject(error);
+    return stream._pendingAbortRequest._promise;
   }
+
+  const error = new TypeError('Requested to abort');
 
   assert(state === 'writable' || state === 'erroring');
 
@@ -181,6 +179,7 @@ function WritableStreamAbort(stream, reason) {
       _wasAlreadyErroring: wasAlreadyErroring
     };
   });
+  stream._pendingAbortRequest._promise = promise;
 
   if (wasAlreadyErroring === false) {
     WritableStreamStartErroring(stream, error);

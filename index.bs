@@ -3205,10 +3205,9 @@ writable stream is <a>locked to a writer</a>.
 
 <emu-alg>
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"closed"`, return <a>a promise resolved with</a> *undefined*.
-  1. If _state_ is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
+  1. If _state_ is not `"closed"` or `"errored"`, return <a>a promise resolved with</a> *undefined*.
+  1. If _stream_.[[pendingAbortRequest]] is not *undefined*, return _stream_.[[pendingAbortRequest]].[[promise]].
   1. Let _error_ be a new *TypeError* indicating that the stream has been requested to abort.
-  1. If _stream_.[[pendingAbortRequest]] is not *undefined*, return <a>a promise rejected with</a> _error_.
   1. Assert: _state_ is `"writable"` or `"erroring"`.
   1. Let _wasAlreadyErroring_ be *false*.
   1. If _state_ is `"erroring"`,
