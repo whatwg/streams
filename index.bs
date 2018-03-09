@@ -820,15 +820,11 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
   1. Return _promise_.
 </emu-alg>
 
-<div class="note">
+<p class="note">
   Various abstract operations performed here include object creation (often of promises), which usually would require
   specifying a realm for the created object. However, because of the locking, none of these objects can be observed by
   author code. As such, the realm used to create them does not matter.
-
-  The exception is the {{TypeError}} object created in WritableStreamAbort, which is observable after being stored in
-  <var ignore>dest</var>.\[[storedError]]. However, we are in the process of removing that object creation; see <a
-  href="https://github.com/whatwg/streams/issues/896">#896</a>.
-</div>
+</p>
 
 <h5 id="rs-tee" method for="ReadableStream">tee()</h5>
 
