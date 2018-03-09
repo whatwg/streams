@@ -747,10 +747,11 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
   1. Let _writer_ be ! AcquireWritableStreamDefaultWriter(_dest_).
   1. Let _shuttingDown_ be *false*.
   1. Let _promise_ be <a>a new promise</a>.
-  1. <a>In parallel</a>, using _reader_ and _writer_, read all <a>chunks</a> from *this* and write them to _dest_. Due
-     to the locking provided by the reader and writer, the exact manner in which this happens is not observable to
-     author code, and so there is flexibility in how this is done. The following constraints apply regardless of the
-     exact algorithm used:
+  1. <a>In parallel</a> <span class="XXX">but not really; see <a
+     href="https://github.com/whatwg/streams/issues/905">#905</a></span>, using _reader_ and _writer_, read all
+     <a>chunks</a> from *this* and write them to _dest_. Due to the locking provided by the reader and writer, the exact
+     manner in which this happens is not observable to author code, and so there is flexibility in how this is done. The
+     following constraints apply regardless of the exact algorithm used:
      * <strong>Public API must not be used:</strong> while reading or writing, or performing any of the operations
        below, the JavaScript-modifiable reader, writer, and stream APIs (i.e. methods on the appropriate prototypes)
        must not be used. Instead, the streams must be manipulated directly.
@@ -811,8 +812,7 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
        1. Set _shuttingDown_ to *true*.
        1. <a href="#rs-pipeTo-finalize">Finalize</a>, passing along _error_ if it was given.
      * <i id="rs-pipeTo-finalize">Finalize</i>: both forms of shutdown will eventually ask to finalize, optionally with
-       an error _error_, which means to <a>queue a task</a> on the <a>DOM manipulation task source</a> to perform the
-       following steps:
+       an error _error_, which means to perform the following steps:
        1. Perform ! WritableStreamDefaultWriterRelease(_writer_).
        1. Perform ! ReadableStreamReaderGenericRelease(_reader_).
        1. If _error_ was given, <a>reject</a> _promise_ with _error_.
@@ -821,13 +821,12 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
 </emu-alg>
 
 <div class="note">
-  Various abstract operations performed here, either <a>in parallel</a> or in the task queued during
-  <a href="#rs-pipeTo-finalize">finalize</a>, include object creation (often of promises), which usually would require
+  Various abstract operations performed here include object creation (often of promises), which usually would require
   specifying a realm for the created object. However, because of the locking, none of these objects can be observed by
   author code. As such, the realm used to create them does not matter.
 
   The exception is the {{TypeError}} object created in WritableStreamAbort, which is observable after being stored in
-  |dest|.\[[storedError]]. However, we are in the process of removing that object creation; see <a
+  <var ignore>dest</var>.\[[storedError]]. However, we are in the process of removing that object creation; see <a
   href="https://github.com/whatwg/streams/issues/896">#896</a>.
 </div>
 
