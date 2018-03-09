@@ -160,8 +160,6 @@ function WritableStreamAbort(stream, reason) {
     return stream._pendingAbortRequest._promise;
   }
 
-  const error = new TypeError('Requested to abort');
-
   assert(state === 'writable' || state === 'erroring');
 
   let wasAlreadyErroring = false;
@@ -182,7 +180,7 @@ function WritableStreamAbort(stream, reason) {
   stream._pendingAbortRequest._promise = promise;
 
   if (wasAlreadyErroring === false) {
-    WritableStreamStartErroring(stream, error);
+    WritableStreamStartErroring(stream, reason);
   }
 
   return promise;

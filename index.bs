@@ -3207,7 +3207,6 @@ writable stream is <a>locked to a writer</a>.
   1. Let _state_ be _stream_.[[state]].
   1. If _state_ is `"closed"` or `"errored"`, return <a>a promise resolved with</a> *undefined*.
   1. If _stream_.[[pendingAbortRequest]] is not *undefined*, return _stream_.[[pendingAbortRequest]].[[promise]].
-  1. Let _error_ be a new *TypeError* indicating that the stream has been requested to abort.
   1. Assert: _state_ is `"writable"` or `"erroring"`.
   1. Let _wasAlreadyErroring_ be *false*.
   1. If _state_ is `"erroring"`,
@@ -3216,7 +3215,7 @@ writable stream is <a>locked to a writer</a>.
   1. Let _promise_ be <a>a new promise</a>.
   1. Set _stream_.[[pendingAbortRequest]] to Record {[[promise]]: _promise_, [[reason]]: _reason_,
      [[wasAlreadyErroring]]: _wasAlreadyErroring_}.
-  1. If _wasAlreadyErroring_ is *false*, perform ! WritableStreamStartErroring(_stream_, _error_).
+  1. If _wasAlreadyErroring_ is *false*, perform ! WritableStreamStartErroring(_stream_, _reason_).
   1. Return _promise_.
 </emu-alg>
 
@@ -4372,8 +4371,8 @@ throws.</p>
   1. Let _startAlgorithm_ be an algorithm that returns _startPromise_.
   1. Let _writeAlgorithm_ be the following steps, taking a _chunk_ argument:
     1. Return ! TransformStreamDefaultSinkWriteAlgorithm(_stream_, _chunk_).
-  1. Let _abortAlgorithm_ be the following steps:
-    1. Return ! TransformStreamDefaultSinkAbortAlgorithm(_stream_).
+  1. Let _abortAlgorithm_ be the following steps, taking a _reason_ argument:
+    1. Return ! TransformStreamDefaultSinkAbortAlgorithm(_stream_, _reason_).
   1. Let _closeAlgorithm_ be the following steps:
     1. Return ! TransformStreamDefaultSinkCloseAlgorithm(_stream_).
   1. Set _stream_.[[writable]] to ! CreateWritableStream(_startAlgorithm_, _writeAlgorithm_, _closeAlgorithm_,
@@ -4678,11 +4677,10 @@ nothrow>TransformStreamDefaultSinkWriteAlgorithm ( <var>stream</var>, <var>chunk
 </emu-alg>
 
 <h4 id="transform-stream-default-sink-abort-algorithm" aoid="TransformStreamDefaultSinkAbortAlgorithm"
-nothrow>TransformStreamDefaultSinkAbortAlgorithm ( <var>stream</var> )</h4>
+nothrow>TransformStreamDefaultSinkAbortAlgorithm ( <var>stream</var>, <var>reason</var> )</h4>
 
 <emu-alg>
-  1. Let _e_ be a *TypeError* exception indicating that the writable stream was aborted.
-  1. Perform ! TransformStreamError(_stream_, _e_).
+  1. Perform ! TransformStreamError(_stream_, _reason_).
   1. Return <a>a promise resolved with</a> *undefined*.
 </emu-alg>
 

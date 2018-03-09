@@ -112,8 +112,8 @@ function InitializeTransformStream(stream, startPromise, writableHighWaterMark, 
     return TransformStreamDefaultSinkWriteAlgorithm(stream, chunk);
   }
 
-  function abortAlgorithm() {
-    return TransformStreamDefaultSinkAbortAlgorithm(stream);
+  function abortAlgorithm(reason) {
+    return TransformStreamDefaultSinkAbortAlgorithm(stream, reason);
   }
 
   function closeAlgorithm() {
@@ -363,11 +363,10 @@ function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
   return controller._transformAlgorithm(chunk);
 }
 
-function TransformStreamDefaultSinkAbortAlgorithm(stream) {
+function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {
   // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
   // errored.
-  const e = new TypeError('Writable side aborted');
-  TransformStreamError(stream, e);
+  TransformStreamError(stream, reason);
   return Promise.resolve();
 }
 
