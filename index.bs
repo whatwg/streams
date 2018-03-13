@@ -2997,8 +2997,8 @@ WritableStream(<var>underlyingSink</var> = {}, <var>strategy</var> = {})</h4>
 <emu-alg>
   1. Perform ! InitializeWritableStream(_this_).
   1. Let _type_ be ? GetV(_underlyingSink_, `"type"`).
-  1. Let _size_ be ? GetV(_readableStrategy_, `"size"`).
-  1. Let _highWaterMark_ be ? GetV(_readableStrategy_, `"highWaterMark"`).
+  1. Let _size_ be ? GetV(_strategy_, `"size"`).
+  1. Let _highWaterMark_ be ? GetV(_strategy_, `"highWaterMark"`).
   1. If _type_ is not *undefined*, throw a *RangeError* exception. <p class="note">This is to allow us to add new
      potential types in the future, without backward-compatibility concerns.</p>
   1. Let _sizeAlgorithm_ be ? MakeSizeAlgorithmFromSizeFunction(_size_).
