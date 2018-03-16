@@ -4395,7 +4395,7 @@ throws.</p>
      <p class="note">The [[backpressure]] slot is set to *undefined* so that it can be initialized by
      TransformStreamSetBackpressure. Alternatively, implementations can use a strictly boolean value for
      [[backpressure]] and change the way it is initialized. This will not be visible to user code so long as the
-     initialization is correctly completed before _transformer_'s {{transformer/start()}} method is called.</p>
+     initialization is correctly completed before _transformer_'s <l>{{transformer/start()}}</l> method is called.</p>
   1. Perform ! TransformStreamSetBackpressure(_stream_, *true*).
   1. Set _stream_.[[transformStreamController]] to *undefined*.
 </emu-alg>
