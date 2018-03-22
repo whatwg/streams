@@ -1671,6 +1671,8 @@ function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
 
     ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, firstDescriptor);
   }
+
+  ReadableByteStreamControllerCallPullIfNeeded(controller);
 }
 
 function ReadableByteStreamControllerShiftPendingPullInto(controller) {
@@ -1764,6 +1766,8 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
     assert(IsReadableStreamLocked(stream) === false);
     ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
   }
+
+  ReadableByteStreamControllerCallPullIfNeeded(controller);
 }
 
 function ReadableByteStreamControllerError(controller, e) {
