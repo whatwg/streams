@@ -4258,11 +4258,11 @@ The {{TransformStream()}} constructor accepts as its first argument a JavaScript
   <dd>
     <p>A function that is called immediately during creation of the {{TransformStream}}.</p>
 
-    <p>Typically this is used enqueue prefix <a>chunks</a>, using
+    <p>Typically this is used to enqueue prefix <a>chunks</a>, using
     {{TransformStreamDefaultController/enqueue()|controller.enqueue()}}. Those chunks will be read from the <a>readable
     side</a> but don't depend on any writes to the <a>writable side</a>.</p>
 
-    <p>If this initial process is asynchronous, for example by virtue of taking some effort to acquire the prefix
+    <p>If this initial process is asynchronous, for example because it takes some effort to acquire the prefix
     chunks, the function can return a promise to signal success or failure; a rejected promise will error the stream.
     Any thrown exceptions will be re-thrown by the {{TransformStream()}} constructor.</p>
   </dd>
