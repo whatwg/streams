@@ -1240,13 +1240,13 @@ would look like
 
 <pre><code class="lang-javascript">
   class ReadableStreamDefaultReader {
-    constructor(stream)
+    <a href="#default-reader-constructor">constructor(stream)</a>
 
-    get closed()
+    get <a href="#default-reader-closed">closed</a>()
 
-    cancel(reason)
-    read()
-    releaseLock()
+    <a href="#default-reader-cancel">cancel</a>(reason)
+    <a href="#default-reader-read">read</a>()
+    <a href="#default-reader-release-lock">releaseLock</a>()
   }
 </code></pre>
 
@@ -1381,13 +1381,13 @@ would look like
 
 <pre><code class="lang-javascript">
   class ReadableStreamBYOBReader {
-    constructor(stream)
+    <a href="#byob-reader-constructor">constructor</a>(stream)
 
-    get closed()
+    get <a href="#byob-reader-closed">closed</a>()
 
-    cancel(reason)
-    read(view)
-    releaseLock()
+    <a href="#byob-reader-cancel">cancel</a>(reason)
+    <a href="#byob-reader-read">read</a>(view)
+    <a href="#byob-reader-release-lock">releaseLock</a>()
   }
 </code></pre>
 
@@ -1615,13 +1615,13 @@ it would look like
 
 <pre><code class="lang-javascript">
   class ReadableStreamDefaultController {
-    constructor() // always throws
+    <a href="#rs-default-controller-constructor">constructor</a>() // always throws
 
-    get desiredSize()
+    get <a href="#rs-default-controller-desired-size">desiredSize</a>()
 
-    close()
-    enqueue(chunk)
-    error(e)
+    <a href="#rs-default-controller-close">close</a>()
+    <a href="#rs-default-controller-enqueue">enqueue</a>(chunk)
+    <a href="#rs-default-controller-error">error</a>(e)
   }
 </code></pre>
 
@@ -1986,14 +1986,14 @@ would look like
 
 <pre><code class="lang-javascript">
   class ReadableByteStreamController {
-    constructor() // always throws
+    <a href="#rbs-controller-constructor">constructor</a>() // always throws
 
-    get byobRequest()
-    get desiredSize()
+    get <a href="#rbs-controller-byob-request">byobRequest</a>()
+    get <a href="#rbs-controller-desired-size">desiredSize</a>()
 
-    close()
-    enqueue(chunk)
-    error(e)
+    <a href="#rbs-controller-close">close</a>()
+    <a href="#rbs-controller-enqueue">enqueue</a>(chunk)
+    <a href="#rbs-controller-error">error</a>(e)
   }
 </code></pre>
 
@@ -2228,12 +2228,12 @@ would look like
 
 <pre><code class="lang-javascript">
   class ReadableStreamBYOBRequest {
-    constructor(controller, view)
+    <a href="rs-byob-request-constructor">constructor</a>(controller, view)
 
-    get view()
+    get <a href="rs-byob-request-view">view</a>()
 
-    respond(bytesWritten)
-    respondWithNewView(view)
+    <a href="rs-byob-request-respond">respond</a>(bytesWritten)
+    <a href="rs-byob-request-respond-with-new-view">respondWithNewView</a>(view)
   }
 </code></pre>
 
@@ -3449,16 +3449,16 @@ would look like
 
 <pre><code class="lang-javascript">
   class WritableStreamDefaultWriter {
-    constructor(stream)
+    <a href="#default-writer-constructor">constructor</a>(stream)
 
-    get closed()
-    get desiredSize()
-    get ready()
+    get <a href="#default-writer-closed">closed</a>()
+    get <a href="#default-writer-desired-size">desiredSize</a>()
+    get <a href="#default-writer-ready">ready</a>()
 
-    abort(reason)
-    close()
-    releaseLock()
-    write(chunk)
+    <a href="#default-writer-abort">abort</a>(reason)
+    <a href="#default-writer-close">close</a>()
+    <a href="#default-writer-release-lock">releaseLock</a>()
+    <a href="#default-writer-write">write</a>(chunk)
   }
 </code></pre>
 
@@ -3539,7 +3539,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
   1. Return *this*.[[closedPromise]].
 </emu-alg>
 
-<h5 id="default-writer-desiredSize" attribute for="WritableStreamDefaultWriter" lt="desiredSize">get desiredSize</h5>
+<h5 id="default-writer-desired-size" attribute for="WritableStreamDefaultWriter" lt="desiredSize">get desiredSize</h5>
 
 <div class="note">
   The <code>desiredSize</code> getter returns the <a lt="desired size to fill a stream's internal queue">desired size to
@@ -3788,9 +3788,9 @@ it would look like
 
 <pre><code class="lang-javascript">
   class WritableStreamDefaultController {
-    constructor() // always throws
+    <a href="#ws-default-controller-constructor">constructor</a>() // always throws
 
-    error(e)
+    <a href="#ws-default-controller-error">error</a>(e)
   }
 </code></pre>
 
@@ -4462,13 +4462,13 @@ it would look like
 
 <pre><code class="lang-javascript">
   class TransformStreamDefaultController {
-    constructor() // always throws
+    <a href="#ts-default-controller-constructor">constructor</a>() // always throws
 
-    get desiredSize()
+    get <a href="#ts-default-controller-desired-size">desiredSize</a>()
 
-    enqueue(chunk)
-    error(reason)
-    terminate()
+    <a href="#ts-default-controller-enqueue">enqueue</a>(chunk)
+    <a href="#ts-default-controller-error">error</a>(reason)
+    <a href="#ts-default-controller-terminate">terminate</a>()
   }
 </code></pre>
 
@@ -4815,8 +4815,8 @@ would look like
 
 <pre><code class="lang-javascript">
   class ByteLengthQueuingStrategy {
-    constructor({ highWaterMark })
-    size(chunk)
+    <a href="#blqs-constructor">constructor</a>({ highWaterMark })
+    <a href="#blqs-size">size</a>(chunk)
   }
 </code></pre>
 
