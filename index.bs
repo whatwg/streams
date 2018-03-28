@@ -1305,7 +1305,6 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
   closing.
 </div>
 
-
 <emu-alg>
   1. If ! IsReadableStreamDefaultReader(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return *this*.[[closedPromise]].
@@ -1444,8 +1443,9 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
 <h5 id="byob-reader-closed" attribute for="ReadableStreamBYOBReader" lt="closed">get closed</h5>
 
 <div class="note">
-  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed or the
-  reader's lock is <a lt="release a read lock">released</a>, or rejected if the stream ever errors.
+  The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected if
+  the stream ever errors or the reader's lock is <a lt="release a read lock">released</a> before the stream finishes
+  closing.
 </div>
 
 <emu-alg>
