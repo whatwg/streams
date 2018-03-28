@@ -1302,7 +1302,7 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
 <div class="note">
   The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected if
   the stream ever errors or the reader's lock is <a lt="release a read lock">released</a> before the stream finishes
-  closing or the stream errors.
+  closing.
 </div>
 
 
@@ -3533,7 +3533,7 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 <div class="note">
   The <code>closed</code> getter returns a promise that will be fulfilled when the stream becomes closed, or rejected if
   the stream ever errors or the writer's lock is <a lt="release a write lock">released</a> before the stream finishes
-  closing or the stream errors.
+  closing.
 </div>
 
 <emu-alg>
