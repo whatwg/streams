@@ -5809,6 +5809,7 @@ Mihai Potra,
 Romain Bellessort, <!-- rombel on GitHub -->
 Simon Menke,
 Stephen Sugden,
+Surma,
 Tab Atkins,
 Tanguy Krotoff,
 Thorsten Lorenz,
