@@ -458,8 +458,8 @@ ReadableStream(<var>underlyingSource</var> = {}, <var>strategy</var> = {})</h4>
 <emu-alg>
   1. Perform ! InitializeReadableStream(*this*).
   1. Let _type_ be ? GetV(_underlyingSource_, `"type"`).
-  1. Let _size_ be ? GetV(_readableStrategy_, `"size"`).
-  1. Let _highWaterMark_ be ? GetV(_readableStrategy_, `"highWaterMark"`).
+  1. Let _size_ be ? GetV(_strategy_, `"size"`).
+  1. Let _highWaterMark_ be ? GetV(_strategy_, `"highWaterMark"`).
   1. Let _typeString_ be ? ToString(_type_).
   1. If _typeString_ is `"bytes"`,
     1. If _highWaterMark_ is *undefined*, let _highWaterMark_ be *0*.
@@ -942,7 +942,7 @@ throws.</p>
   1. Return _stream_.
 </emu-alg>
 
-<h4 id="initialize-readable-stream" aoid="InitializeReadableStream" throws>InitializeReadableStream (
+<h4 id="initialize-readable-stream" aoid="InitializeReadableStream" nothrow>InitializeReadableStream (
 <var>stream</var> )</h4>
 
 <emu-alg>
