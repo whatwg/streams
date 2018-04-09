@@ -14,8 +14,11 @@ const AbortSteps = Symbol('[[AbortSteps]]');
 const ErrorSteps = Symbol('[[ErrorSteps]]');
 
 class WritableStream {
-  constructor(underlyingSink = {}, { size, highWaterMark = 1 } = {}) {
+  constructor(underlyingSink = {}, strategy = {}) {
     InitializeWritableStream(this);
+
+    const size = strategy.size;
+    let highWaterMark = strategy.highWaterMark;
 
     const type = underlyingSink.type;
 
@@ -24,6 +27,9 @@ class WritableStream {
     }
 
     const sizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(size);
+    if (highWaterMark === undefined) {
+      highWaterMark = 1;
+    }
     highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
 
     SetUpWritableStreamDefaultControllerFromUnderlyingSink(this, underlyingSink, highWaterMark, sizeAlgorithm);

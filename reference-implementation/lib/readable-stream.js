@@ -14,28 +14,32 @@ const CancelSteps = Symbol('[[CancelSteps]]');
 const PullSteps = Symbol('[[PullSteps]]');
 
 class ReadableStream {
-  constructor(underlyingSource = {}, { size, highWaterMark } = {}) {
+  constructor(underlyingSource = {}, strategy = {}) {
     InitializeReadableStream(this);
+
+    const size = strategy.size;
+    let highWaterMark = strategy.highWaterMark;
+
     const type = underlyingSource.type;
     const typeString = String(type);
     if (typeString === 'bytes') {
+      if (size !== undefined) {
+        throw new RangeError('The strategy for a byte stream cannot have a size function');
+      }
+
       if (highWaterMark === undefined) {
         highWaterMark = 0;
       }
       highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
 
-      if (size !== undefined) {
-        throw new RangeError('The strategy for a byte stream cannot have a size function');
-      }
-
       SetUpReadableByteStreamControllerFromUnderlyingSource(this, underlyingSource, highWaterMark);
     } else if (type === undefined) {
+      const sizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(size);
+
       if (highWaterMark === undefined) {
         highWaterMark = 1;
       }
       highWaterMark = ValidateAndNormalizeHighWaterMark(highWaterMark);
-
-      const sizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(size);
 
       SetUpReadableStreamDefaultControllerFromUnderlyingSource(this, underlyingSource, highWaterMark, sizeAlgorithm);
     } else {
@@ -1887,8 +1891,9 @@ function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyin
   const pullAlgorithm = CreateAlgorithmFromUnderlyingMethod(underlyingByteSource, 'pull', 0, [controller]);
   const cancelAlgorithm = CreateAlgorithmFromUnderlyingMethod(underlyingByteSource, 'cancel', 1, []);
 
-  const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
+  let autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
   if (autoAllocateChunkSize !== undefined) {
+    autoAllocateChunkSize = Number(autoAllocateChunkSize);
     if (Number.isInteger(autoAllocateChunkSize) === false || autoAllocateChunkSize <= 0) {
       throw new RangeError('autoAllocateChunkSize must be a positive integer');
     }
