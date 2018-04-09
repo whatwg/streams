@@ -4894,8 +4894,8 @@ look like
 
 <pre><code class="lang-javascript">
   class CountQueuingStrategy {
-    constructor({ highWaterMark })
-    size()
+    <a href="#cqs-constructor">constructor</a>({ highWaterMark })
+    <a href="#cqs-size">size</a>(chunk)
   }
 </code></pre>
 
