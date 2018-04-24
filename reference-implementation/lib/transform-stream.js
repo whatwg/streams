@@ -17,11 +17,10 @@ const { CreateWritableStream, WritableStreamDefaultControllerErrorIfNeeded } = r
 
 class TransformStream {
   constructor(transformer = {}, writableStrategy = {}, readableStrategy = {}) {
-    const readableType = transformer.readableType;
-
-    if (readableType !== undefined) {
-      throw new RangeError('Invalid readable type specified');
-    }
+    const writableSizeFunction = writableStrategy.size;
+    let writableHighWaterMark = writableStrategy.highWaterMark;
+    const readableSizeFunction = readableStrategy.size;
+    let readableHighWaterMark = readableStrategy.highWaterMark;
 
     const writableType = transformer.writableType;
 
@@ -29,17 +28,19 @@ class TransformStream {
       throw new RangeError('Invalid writable type specified');
     }
 
-    const writableSizeFunction = writableStrategy.size;
     const writableSizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(writableSizeFunction);
-    let writableHighWaterMark = writableStrategy.highWaterMark;
     if (writableHighWaterMark === undefined) {
       writableHighWaterMark = 1;
     }
     writableHighWaterMark = ValidateAndNormalizeHighWaterMark(writableHighWaterMark);
 
-    const readableSizeFunction = readableStrategy.size;
+    const readableType = transformer.readableType;
+
+    if (readableType !== undefined) {
+      throw new RangeError('Invalid readable type specified');
+    }
+
     const readableSizeAlgorithm = MakeSizeAlgorithmFromSizeFunction(readableSizeFunction);
-    let readableHighWaterMark = readableStrategy.highWaterMark;
     if (readableHighWaterMark === undefined) {
       readableHighWaterMark = 0;
     }
