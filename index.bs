@@ -2231,12 +2231,12 @@ would look like
 
 <pre><code class="lang-javascript">
   class ReadableStreamBYOBRequest {
-    <a href="rs-byob-request-constructor">constructor</a>(controller, view)
+    <a href="#rs-byob-request-constructor">constructor</a>(controller, view)
 
-    get <a href="rs-byob-request-view">view</a>()
+    get <a href="#rs-byob-request-view">view</a>()
 
-    <a href="rs-byob-request-respond">respond</a>(bytesWritten)
-    <a href="rs-byob-request-respond-with-new-view">respondWithNewView</a>(view)
+    <a href="#rs-byob-request-respond">respond</a>(bytesWritten)
+    <a href="#rs-byob-request-respond-with-new-view">respondWithNewView</a>(view)
   }
 </code></pre>
 
