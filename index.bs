@@ -5694,6 +5694,7 @@ The class would be used in code like:
 <pre><code class="lang-javascript">
   const data = { userName, displayName, icon, date };
   const ts = new TransformStream(new LipFuzzTransformer(data));
+  const { url } = fetchEvent.request;
 
   fetchEvent.respondWith(
     fetch(url).then(response => {
