@@ -5699,7 +5699,7 @@ The class would be used in code like:
     fetch(url).then(response => {
       const transformedBody = response.body.pipeThrough(ts);
       return new Response(transformedBody);
-    )
+    })
   );
 </code></pre>
 
