@@ -1876,8 +1876,7 @@ export>ReadableStreamDefaultControllerError ( <var>controller</var>, <var>e</var
 
 This abstract operation can be called by other specifications that wish to move a readable stream to an errored state,
 in the same way a developer would error a stream using its associated controller object. Specifications should
-<em>not</em> do this to streams they did not create, and must ensure they have obeyed the precondition (listed here as
-an assert).
+<em>not</em> do this to streams they did not create.
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
