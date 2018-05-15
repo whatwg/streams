@@ -5692,25 +5692,16 @@ useful when there is instance data to track.
 The class would be used in code like:
 
 <pre><code class="lang-javascript">
-  function textDecoderStream() {
-    const td = new TextDecoder();
-    return new TransformStream({
-      transform(chunk, controller) {
-        controller.enqueue(td.decode(chunk));
-      }
-    });
-  }
-
   const data = { userName, displayName, icon, date };
   const ts = new TransformStream(new LipFuzzTransformer(data));
-  const { url } = fetchEvent.request;
 
   fetchEvent.respondWith(
-    fetch(url).then(response => {
-      // Decode the binary-encoded response to string
-      const decodedBody = response.body.pipeThrough(textDecoderStream());
-      // Apply the LipFuzzTransformer
-      const transformedBody = decodedBody.pipeThrough(ts);
+    fetch(fetchEvent.request.url).then(response => {
+      const transformedBody = response.body
+        // Decode the binary-encoded response to string
+        .pipeThrough(new TextDecoderStream())
+        // Apply the LipFuzzTransformer
+        .pipeThrough(ts);
       return new Response(transformedBody);
     })
   );
