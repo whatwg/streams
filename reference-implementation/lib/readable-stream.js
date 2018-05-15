@@ -1011,6 +1011,7 @@ function ReadableStreamDefaultControllerShouldCallPull(controller) {
   }
 
   const desiredSize = ReadableStreamDefaultControllerGetDesiredSize(controller);
+  assert(desiredSize !== null);
   if (desiredSize > 0) {
     return true;
   }
@@ -1708,7 +1709,9 @@ function ReadableByteStreamControllerShouldCallPull(controller) {
     return true;
   }
 
-  if (ReadableByteStreamControllerGetDesiredSize(controller) > 0) {
+  const desiredSize = ReadableByteStreamControllerGetDesiredSize(controller);
+  assert(desiredSize !== null);
+  if (desiredSize > 0) {
     return true;
   }
 

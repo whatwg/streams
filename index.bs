@@ -1826,6 +1826,7 @@ nothrow>ReadableStreamDefaultControllerShouldCallPull ( <var>controller</var> )<
   1. If ! IsReadableStreamLocked(_stream_) is *true* and ! ReadableStreamGetNumReadRequests(_stream_) > *0*, return
      *true*.
   1. Let _desiredSize_ be ReadableStreamDefaultControllerGetDesiredSize(_controller_).
+  1. Assert: _desiredSize_ is not *null*.
   1. If _desiredSize_ > *0*, return *true*.
   1. Return *false*.
 </emu-alg>
@@ -2696,7 +2697,9 @@ nothrow>ReadableByteStreamControllerShouldCallPull ( <var>controller</var> )</h4
      return *true*.
   1. If ! ReadableStreamHasBYOBReader(_stream_) is *true* and ! ReadableStreamGetNumReadIntoRequests(_stream_) > *0*,
      return *true*.
-  1. If ! ReadableByteStreamControllerGetDesiredSize(_controller_) > *0*, return *true*.
+  1. Let _desiredSize_ be  ! ReadableByteStreamControllerGetDesiredSize(_controller_).
+  1. Assert: _desiredSize_ is not *null*.
+  1. If _desiredSize_ > *0*, return *true*.
   1. Return *false*.
 </emu-alg>
 
