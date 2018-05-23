@@ -1825,7 +1825,7 @@ nothrow>ReadableStreamDefaultControllerShouldCallPull ( <var>controller</var> )<
   1. If _controller_.[[started]] is *false*, return *false*.
   1. If ! IsReadableStreamLocked(_stream_) is *true* and ! ReadableStreamGetNumReadRequests(_stream_) > *0*, return
      *true*.
-  1. Let _desiredSize_ be ReadableStreamDefaultControllerGetDesiredSize(_controller_).
+  1. Let _desiredSize_ be ! ReadableStreamDefaultControllerGetDesiredSize(_controller_).
   1. Assert: _desiredSize_ is not *null*.
   1. If _desiredSize_ > *0*, return *true*.
   1. Return *false*.
