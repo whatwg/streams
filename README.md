@@ -19,10 +19,8 @@ reading through the [WHATWG FAQ](https://whatwg.org/faq) if you are new here.
 Please add your name to the Acknowledgments section in your first pull request, even for trivial
 fixes. The names are sorted lexicographically.
 
-For guidelines specific to this specification, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-Additionally, for any normative changes, we'll also want to change the tests and reference
-implementation:
+For formatting specific to this standard, see [CONTRIBUTING.md](CONTRIBUTING.md). Additionally, for
+any normative changes, we'll also want to change the tests and reference implementation:
 
 ## Tests
 
@@ -32,9 +30,10 @@ Tests can be found in the `streams/` directory of
 ## Reference implementation
 
 This repository also includes a reference implementation, written in JavaScript, under
-`reference-implementation/`. See the README under that directory for more details. We strive for
-every commit that changes the spec to also add tests, and to change the reference implementation in
-order to pass those tests.
+`reference-implementation/`. See the README under that directory for more details.
+
+We strive for every commit that changes the spec to also add tests, and to change the reference
+implementation in order to pass those tests.
 
 ## Building "locally"
 
