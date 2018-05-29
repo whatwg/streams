@@ -1,13 +1,12 @@
 # Streams Standard
 
-The streams standard provides APIs for creating, composing, and consuming streams of data. These streams are designed to map efficiently to low-level I/O primitives, and allow easy composition with built-in backpressure and queuing.
+The Streams standard provides APIs for creating, composing, and consuming streams of data. These streams are designed to map efficiently to low-level I/O primitives, and allow easy composition with built-in backpressure and queuing.
 
-The main spec is available at https://streams.spec.whatwg.org/, generated from the `index.bs` file.
+The standard is available at https://streams.spec.whatwg.org/, generated from the `index.bs` file.
 
-Snapshots of any given commit or branch are available at specially-crafted URLs:
+Snapshots of any given commit are available at specially-crafted URLs:
 
 - https://streams.spec.whatwg.org/commit-snapshots/ contains snapshots of any given commit
-- https://streams.spec.whatwg.org/branch-snapshots/ contains snapshots of the latest commit to any given branch
 
 ## Tests and reference implementation
 
@@ -17,6 +16,11 @@ This repository also includes a reference implementation and test suite under `r
 
 For guidelines on how to build and edit the spec and reference implementation, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Merge policy
+
+If you can commit to this repository, see the
+[WHATWG Maintainer Guidelines](https://github.com/whatwg/meta/blob/master/MAINTAINERS.md).
+
 ## Code of conduct
 
-We are committed to providing a friendly, safe and welcoming environment for all. Please read and respect the [WHATWG Code of Conduct](https://whatwg.org/code-of-conduct).
+We are committed to providing a friendly, safe, and welcoming environment for all. Please read and respect the [WHATWG Code of Conduct](https://whatwg.org/code-of-conduct).
