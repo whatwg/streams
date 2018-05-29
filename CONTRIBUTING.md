@@ -4,16 +4,6 @@ These are the guidelines for contributing to the Streams Standard. First see the
 
 We label [good first issues](https://github.com/whatwg/streams/labels/good%20first%20issue) that you could help us fix, to get a taste for how to submit pull requests, how the build process works, and so on.
 
-## Pull requests
-
-Try to follow the [spec editorial conventions](#spec-editorial-conventions) below.
-
-Follow the [guidelines for writing good commit messages](https://github.com/whatwg/meta/blob/master/COMMITTING.md).
-
-Merge commits are not allowed; history must stay linear.
-
-If you are updating the spec, also update the corresponding parts of the reference implementation where applicable, in the same commit.
-
 ## Spec editorial conventions
 
 Wrap lines to 120 columns. (This is not yet consistently followed.)
@@ -49,26 +39,16 @@ Use single quotes.
 
 Pass ESLint.
 
-## Building the spec
+## Notes on building the standard
 
-Building the spec is a two-step process. First, the majority of the conversion work is done via [Bikeshed](https://github.com/tabatkins/bikeshed). Second, we run a custom portion of the [Ecmarkup](https://github.com/bterlson/ecmarkup) pipeline to convert the algorithms from [Ecmarkdown](https://github.com/domenic/ecmarkdown) syntax into HTML, and to automatically add cross-references. This second step requires a recent version of [Node.js](https://nodejs.org/en/) to be installed.
+The basics of building the standard are explained in the README. Here are some more details that might be interesting.
 
-### Local "deploy"
+Building the standard is a two-step process. First, the majority of the conversion work is done via [Bikeshed](https://github.com/tabatkins/bikeshed). Second, we run a custom portion of the [Ecmarkup](https://github.com/bterlson/ecmarkup) pipeline to convert the algorithms from [Ecmarkdown](https://github.com/domenic/ecmarkdown) syntax into HTML, and to automatically add cross-references. This second step requires a recent version of [Node.js](https://nodejs.org/en/) to be installed, and running `npm install` to install the Ecmarkup/Ecmarkdown tools.
 
-To get the full build experience, including commit and branch snapshots, you can run
-
-```
-bash ./deploy.sh --local
-```
-
-This will output a bunch of files to the `streams.spec.whatwg.org` directory, equaling those that would be uploaded to the server on deploy. It will use Bikeshed hosted on the CSSWG server, so you do not need to install Bikeshed locally (but will need Node.js).
-
-### Local watch
-
-If you have Bikeshed [installed locally](https://tabatkins.github.io/bikeshed/#installing), and have run `npm install`, you can try running
+If you have Bikeshed [installed locally](https://tabatkins.github.io/bikeshed/#installing), we have a special script to continuously build the standard. Doing
 
 ```
 npm run local-watch
 ```
 
-to start a watcher on `index.bs` that will update `index.html` as you edit.
+will start a watcher on `index.bs` that will update `index.html` as you edit.

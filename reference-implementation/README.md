@@ -16,7 +16,7 @@ To run all tests (and the lint step), run `npm test` in this folder.
 
 ### Web platform tests
 
-The test suite for this standard is written in [web platform tests](https://github.com/w3c/web-platform-tests) format.
+The test suite for this standard is written in [web platform tests](https://github.com/web-platform-tests/wpt) format.
 
 - To run the web platform tests, type `npm run wpt` in this folder.
 - To run specific test files, you can use a glob pattern, rooted at the streams directory: `npm run wpt -- "writable-streams/**"`
@@ -27,7 +27,7 @@ The test runner here is a Node.js emulated-DOM environment, with the reference i
 
 #### Upstream web platform tests
 
-The web platform tests for streams are found in the [streams directory](https://github.com/w3c/web-platform-tests/tree/master/streams) of the web platform tests repository, and maintained via pull requests to that repository. They are then pulled into this repository via a [Git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
+The web platform tests for streams are found in the [streams directory](https://github.com/web-platform-tests/wpt/tree/master/streams) of the web platform tests repository, and maintained via pull requests to that repository. They are then pulled into this repository via a [Git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
 
 This means that in order to land a test change for these tests, you'll need to make a pull request to the web platform tests repository, and then update the submodule pointer in this repository (probably in the same pull request as your spec change). That can be done via the command
 

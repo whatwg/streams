@@ -5,17 +5,20 @@ sudo: false
 env:
   global:
     - ENCRYPTION_LABEL="4a24edc7e7d1"
-    - POST_BUILD_STEP='node_modules/.bin/emu-algify --throwing-indicators < "$DIR/index.html" > "$DIR/index.tmp.html"; mv "$DIR/index.tmp.html" "$DIR/index.html"; cp -a demos "$DIR"'
+
 before_install:
   - cd reference-implementation
+
 script:
   - npm test
   - cd ..
   - npm install
-  - curl --remote-name --fail https://resources.whatwg.org/build/deploy.sh && bash ./deploy.sh
+  - make deploy
+
 branches:
   only:
     - master
+
 notifications:
   email:
     on_success: never

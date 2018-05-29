@@ -3,3 +3,5 @@
 /streams.spec.whatwg.org/
 /index.html
 /index.html.*
+/deploy.sh
+/review.sh
