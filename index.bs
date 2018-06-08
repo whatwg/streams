@@ -5703,7 +5703,9 @@ The class would be used in code like:
         // Decode the binary-encoded response to string
         .pipeThrough(new TextDecoderStream())
         // Apply the LipFuzzTransformer
-        .pipeThrough(ts);
+        .pipeThrough(ts)
+        // Encode the transformed string
+        .pipeThrough(new TextEncoderStream());
       return new Response(transformedBody);
     })
   );
