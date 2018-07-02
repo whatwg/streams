@@ -4431,6 +4431,7 @@ algorithms do not need to check stream states when responding to an error condit
 nothrow>TransformStreamErrorWritableAndUnblockWrite ( <var>stream</var>, <var>e</var> )</h4>
 
 <emu-alg>
+  1. Perform ! TransformStreamDefaultControllerClearAlgorithms(_stream_.[[transformStreamController]]);
   1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_stream_.[[writable]].[[writableStreamController]], _e_).
   1. If _stream_.[[backpressure]] is *true*, perform ! TransformStreamSetBackpressure(_stream_, *false*).
 </emu-alg>
@@ -4621,6 +4622,18 @@ throws>SetUpTransformStreamDefaultControllerFromTransformer ( <var>stream</var>,
   1. Perform ! SetUpTransformStreamDefaultController(_stream_, _controller_, _transformAlgorithm_, _flushAlgorithm_).
 </emu-alg>
 
+<h4 id="transform-stream-default-controller-clear-algorithms" aoid="TransformStreamDefaultControllerClearAlgorithms"
+nothrow>TransformStreamDefaultControllerClearAlgorithms ( <var>controller</var> )</h4>
+
+This abstract operation is called once the stream is closed or errored and the algorithms will not be executed any more.
+By removing the algorithm references it permits the <a>transformer</a> object to be garbage collected even if the
+{{TransformStream}} itself is still referenced.
+
+<emu-alg>
+  1. Set _controller_.[[transformAlgorithm]] to *undefined*.
+  1. Set _controller_.[[flushAlgorithm]] to *undefined*.
+</emu-alg>
+
 <h4 id="transform-stream-default-controller-enqueue" aoid="TransformStreamDefaultControllerEnqueue"
 throws export>TransformStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chunk</var> )</h4>
 
@@ -4704,7 +4717,9 @@ nothrow>TransformStreamDefaultSinkCloseAlgorithm( <var>stream</var> )</h4>
 
 <emu-alg>
   1. Let _readable_ be _stream_.[[readable]].
-  1. Let _flushPromise_ be the result of performing _stream_.[[transformStreamController]].[[flushAlgorithm]].
+  1. Let _controller_ be _stream_.[[transformStreamController]].
+  1. Let _flushPromise_ be the result of performing _controller_.[[flushAlgorithm]].
+  1. Perform ! TransformStreamDefaultControllerClearAlgorithms(_controller_).
   1. Return the result of <a>transforming</a> _flushPromise_ with:
     1. A fulfillment handler that performs the following steps:
       1. If _readable_.[[state]] is `"errored"`, throw _readable_.[[storedError]].
