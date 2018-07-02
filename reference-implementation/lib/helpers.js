@@ -24,14 +24,6 @@ exports.ArrayBufferCopy = (dest, destOffset, src, srcOffset, n) => {
   new Uint8Array(dest).set(new Uint8Array(src, srcOffset, n), destOffset);
 };
 
-exports.CreateIterResultObject = (value, done) => {
-  assert(typeof done === 'boolean');
-  const obj = {};
-  Object.defineProperty(obj, 'value', { value, enumerable: true, writable: true, configurable: true });
-  Object.defineProperty(obj, 'done', { value: done, enumerable: true, writable: true, configurable: true });
-  return obj;
-};
-
 exports.IsFiniteNonNegativeNumber = v => {
   if (exports.IsNonNegativeNumber(v) === false) {
     return false;
