@@ -4629,6 +4629,10 @@ This abstract operation is called once the stream is closed or errored and the a
 By removing the algorithm references it permits the <a>transformer</a> object to be garbage collected even if the
 {{TransformStream}} itself is still referenced.
 
+<p class="note">The results of this algorithm are not currently observable, but could become so if JavaScript eventually
+adds <a href="https://github.com/tc39/proposal-weakrefs/">weak references</a>. But even without that factor,
+implementations will likely want to include similar steps.</p>
+
 <emu-alg>
   1. Set _controller_.[[transformAlgorithm]] to *undefined*.
   1. Set _controller_.[[flushAlgorithm]] to *undefined*.
