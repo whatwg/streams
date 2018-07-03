@@ -167,6 +167,7 @@ function TransformStreamError(stream, e) {
 }
 
 function TransformStreamErrorWritableAndUnblockWrite(stream, e) {
+  TransformStreamDefaultControllerClearAlgorithms(stream._transformStreamController);
   WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, e);
   if (stream._backpressure === true) {
     // Pretend that pull() was called to permit any pending write() calls to complete. TransformStreamSetBackpressure()
@@ -291,6 +292,11 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
   SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm);
 }
 
+function TransformStreamDefaultControllerClearAlgorithms(controller) {
+  controller._transformAlgorithm = undefined;
+  controller._flushAlgorithm = undefined;
+}
+
 function TransformStreamDefaultControllerEnqueue(controller, chunk) {
   verbose('TransformStreamDefaultControllerEnqueue()');
 
@@ -377,7 +383,10 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   // stream._readable cannot change after construction, so caching it across a call to user code is safe.
   const readable = stream._readable;
 
-  const flushPromise = stream._transformStreamController._flushAlgorithm();
+  const controller = stream._transformStreamController;
+  const flushPromise = controller._flushAlgorithm();
+  TransformStreamDefaultControllerClearAlgorithms(controller);
+
   // Return a promise that is fulfilled with undefined on success.
   return flushPromise.then(() => {
     if (readable._state === 'errored') {
