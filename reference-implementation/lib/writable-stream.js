@@ -12,6 +12,7 @@ const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = requi
 
 const AbortSteps = Symbol('[[AbortSteps]]');
 const ErrorSteps = Symbol('[[ErrorSteps]]');
+const FinishSteps = Symbol('[[FinishSteps]]');
 
 class WritableStream {
   constructor(underlyingSink = {}, strategy = {}) {
@@ -248,7 +249,8 @@ function WritableStreamFinishErroring(stream) {
   assert(stream._state === 'erroring');
   assert(WritableStreamHasOperationMarkedInFlight(stream) === false);
   stream._state = 'errored';
-  stream._writableStreamController[ErrorSteps]();
+  const controller = stream._writableStreamController;
+  controller[ErrorSteps]();
 
   const storedError = stream._storedError;
   for (const writeRequest of stream._writeRequests) {
@@ -257,6 +259,7 @@ function WritableStreamFinishErroring(stream) {
   stream._writeRequests = [];
 
   if (stream._pendingAbortRequest === undefined) {
+    controller[FinishSteps]();
     WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
     return;
   }
@@ -265,12 +268,13 @@ function WritableStreamFinishErroring(stream) {
   stream._pendingAbortRequest = undefined;
 
   if (abortRequest._wasAlreadyErroring === true) {
+    controller[FinishSteps]();
     abortRequest._reject(storedError);
     WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
     return;
   }
 
-  const promise = stream._writableStreamController[AbortSteps](abortRequest._reason);
+  const promise = controller[AbortSteps](abortRequest._reason);
   promise.then(
       () => {
         abortRequest._resolve();
@@ -717,11 +721,17 @@ class WritableStreamDefaultController {
   }
 
   [AbortSteps](reason) {
-    return this._abortAlgorithm(reason);
+    const result = this._abortAlgorithm(reason);
+    WritableStreamDefaultControllerClearAlgorithms(this);
+    return result;
   }
 
   [ErrorSteps]() {
     ResetQueue(this);
+  }
+
+  [FinishSteps]() {
+    WritableStreamDefaultControllerClearAlgorithms(this);
   }
 }
 
@@ -796,6 +806,12 @@ function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyi
 
   SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
                                        abortAlgorithm, highWaterMark, sizeAlgorithm);
+}
+
+function WritableStreamDefaultControllerClearAlgorithms(controller) {
+  controller._writeAlgorithm = undefined;
+  controller._closeAlgorithm = undefined;
+  controller._abortAlgorithm = undefined;
 }
 
 function WritableStreamDefaultControllerClose(controller) {
@@ -885,6 +901,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
   assert(controller._queue.length === 0);
 
   const sinkClosePromise = controller._closeAlgorithm();
+  WritableStreamDefaultControllerClearAlgorithms(controller);
   sinkClosePromise.then(
     () => {
       WritableStreamFinishInFlightClose(stream);
