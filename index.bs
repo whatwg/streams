@@ -1146,15 +1146,27 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var>, <var>forAuthorCode
   control of the underlying source.
 </div>
 
-<h4 id="readable-stream-create-read-result" aoid="ReadableStreamCreateReadResult" nothrow>ReadableStreamCreateReadResult ( <var>value</var>, <var>done</var>, <var>forAuthorCode</var> )</h4>
+<h4 id="readable-stream-create-read-result" aoid="ReadableStreamCreateReadResult" nothrow>ReadableStreamCreateReadResult
+( <var>value</var>, <var>done</var>, <var>forAuthorCode</var> )</h4>
 
-<p class="note">When <var>forAuthorCode</var> is <emu-val>true</emu-val>, this matches the output of
-<a abstract-op>CreateIterResultObject</a>(<var>value</var>, <var>done</var>). This provides the expected semantics when
-the object is to be returned from the <a>read()</a> method. However, passing such an object to a promise resolver will
-unavoidably result in an access to Object.prototype.then. For internal use, particularly in <a>pipeTo()</a> and other
-specifications, it is important that reads not be observable by author code. For this reason, a <emu-val>false</emu-val>
-value of <var>forAuthorCode</var> results in an object with a null prototype, keeping promise resolution
-unobservable.</p>
+<div class="note" id="rs-read-result-for-author-code">
+  When <var>forAuthorCode</var> is <emu-val>true</emu-val>, this abstract operation gives the same result
+  as <a abstract-op>CreateIterResultObject</a>(<var>value</var>, <var>done</var>). This provides the expected semantics
+  when the object is to be returned from the {{ReadableStreamDefaultReader/read()|defaultReader.read()}} or
+  {{ReadableStreamBYOBReader/read()|byobReader.read()}} methods.
+
+  However, resolving promises with such objects will unavoidably result in an access to
+  <code>Object.prototype.then</code>. For internal use, particularly in {{ReadableStream/pipeTo()}} and in other
+  specifications, it is important that reads not be observable by author code—even if that author code has tampered with
+  <code>Object.prototype</code>. For this reason, a <emu-val>false</emu-val> value of <var>forAuthorCode</var> results
+  in an object with a <emu-val>null</emu-val> prototype, keeping promise resolution unobservable.
+
+  The underlying issue here is that reading from streams always uses promises for <code>{ value, done }</code> objects,
+  even in specifications. Although it is conceivable we could rephrase all of the internal algorithms to not use
+  promises and not use JavaScript objects, and instead only package up the results into promise-for-<code>{ value, done
+  }</code> when a <code>read()</code> method is called, this would be a large undertaking, which we have not done. See
+  <a href="https://github.com/whatwg/infra/issues/181">whatwg/infra#181</a> for more background on this subject.
+</div>
 
 <emu-alg>
   1. Let _prototype_ be *null*.
@@ -1612,6 +1624,11 @@ nothrow>ReadableStreamReaderGenericRelease ( <var>reader</var> )</h4>
 
 <h4 id="readable-stream-default-reader-read" aoid="ReadableStreamDefaultReaderRead" nothrow
 export>ReadableStreamDefaultReaderRead ( <var>reader</var> [, <var>forAuthorCode</var> ] )</h4>
+
+<p class="note">Other specifications ought to leave <var>forAuthorCode</var> as its default value of
+<emu-val>false</emu-val>, unless they are planning to directly expose the resulting <code>{ value, done }</code> object
+to authors. See <a href="#rs-read-result-for-author-code">the note regarding ReadableStreamCreateReadResult</a> for more
+information.</p>
 
 <emu-alg>
   1. If _forAuthorCode_ was not passed, set it to *false*.
