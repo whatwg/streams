@@ -791,12 +791,12 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
          1. Otherwise, <a href="#rs-pipeTo-shutdown">shutdown</a> with _destClosed_.
      * <i id="rs-pipeTo-shutdown-with-action">Shutdown with an action</i>: if any of the above requirements ask to
        shutdown with an action _action_, optionally with an error _originalError_, then:
+       1. If _shuttingDown_ is *true*, abort these substeps.
+       1. Set _shuttingDown_ to *true*.
        1. If _dest_.[[state]] is `"writable"` and ! WritableStreamCloseQueuedOrInFlight(_dest_) is *false*,
          1. If any <a>chunks</a> have been read but not yet written, write them to _dest_.
          1. Wait until every <a>chunk</a> that has been read has been written (i.e. the corresponding promises have
             settled).
-       1. If _shuttingDown_ is *true*, abort these substeps.
-       1. Set _shuttingDown_ to *true*.
        1. Let _p_ be the result of performing _action_.
        1. <a>Upon fulfillment</a> of _p_, <a href="#rs-pipeTo-finalize">finalize</a>, passing along _originalError_ if
           it was given.
@@ -804,12 +804,12 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
           _newError_.
      * <i id="rs-pipeTo-shutdown">Shutdown</i>: if any of the above requirements or steps ask to shutdown, optionally
        with an error _error_, then:
+       1. If _shuttingDown_ is *true*, abort these substeps.
+       1. Set _shuttingDown_ to *true*.
        1. If _dest_.[[state]] is `"writable"` and ! WritableStreamCloseQueuedOrInFlight(_dest_) is *false*,
          1. If any <a>chunks</a> have been read but not yet written, write them to _dest_.
          1. Wait until every <a>chunk</a> that has been read has been written (i.e. the corresponding promises have
             settled).
-       1. If _shuttingDown_ is *true*, abort these substeps.
-       1. Set _shuttingDown_ to *true*.
        1. <a href="#rs-pipeTo-finalize">Finalize</a>, passing along _error_ if it was given.
      * <i id="rs-pipeTo-finalize">Finalize</i>: both forms of shutdown will eventually ask to finalize, optionally with
        an error _error_, which means to perform the following steps:
@@ -5814,6 +5814,7 @@ values, and all arithmetic operations performed on them must be done in the stan
 The editors would like to thank
 Anne van Kesteren,
 AnthumChris,
+Arthur Langereis,
 Ben Kelly,
 Bert Belder,
 Brian di Palma,
