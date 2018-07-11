@@ -5814,6 +5814,7 @@ values, and all arithmetic operations performed on them must be done in the stan
 The editors would like to thank
 Anne van Kesteren,
 AnthumChris,
+Arthur Langereis,
 Ben Kelly,
 Bert Belder,
 Brian di Palma,
