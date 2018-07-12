@@ -47,11 +47,11 @@ Readable streams and observables/EventTarget are not terribly related. Observabl
 
 Observables and readable streams both share the semantic of "zero or more chunks, followed by either an error or done signal". But beyond that, they are not very comparable.
 
-## How do readable streams relate to [async iterables](https://github.com/zenparsing/async-iteration/)?
+## How do readable streams relate to [async iterables](https://github.com/tc39/proposal-async-iteration)?
 
 Readable streams are conceptually a special case of async iterables, with a focus on I/O. The best analogy is something like "readable streams is to async iterable as array is to sync iterable." That is, just like arrays are a specialized type of iterable optimized for memory locality and random access, readable streams are a specialized type of async iterable optimized for things like off-main-thread data transfer and precise backpressure signaling.
 
-As the async iterable proposal progresses, we anticipate making readable streams into async iterables proper, so that you could use the proposed `for async (const chunk of rs)` syntax.
+We anticipate making readable streams into async iterables proper, so that you could use the `for await (const chunk of rs)` syntax. See [issue #778](https://github.com/whatwg/streams/issues/778).
 
 ## What are the main differences between these streams and Node.js streams?
 
