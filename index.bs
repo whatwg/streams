@@ -4026,9 +4026,9 @@ By removing the algorithm references it permits the <a>underlying sink</a> objec
 
 <p class="note">The results of this algorithm are not currently observable, but could become so if JavaScript eventually
 adds <a href="https://github.com/tc39/proposal-weakrefs/">weak references</a>. But even without that factor,
-implementations will likely want to include similar steps.
+implementations will likely want to include similar steps.</p>
 
-This operation will be performed multiple times in some edge cases. After the first time it will do nothing.</p>
+<p class="note">This operation will be performed multiple times in some edge cases. After the first time it will do nothing.</p>
 
 <emu-alg>
   1. Set _controller_.[[writeAlgorithm]] to *undefined*.
