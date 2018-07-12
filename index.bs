@@ -3334,24 +3334,21 @@ nothrow>WritableStreamDealWithRejection ( <var>stream</var>, <var>error</var> )<
   1. Assert: _stream_.[[state]] is `"erroring"`.
   1. Assert: ! WritableStreamHasOperationMarkedInFlight(_stream_) is *false*.
   1. Set _stream_.[[state]] to `"errored"`.
-  1. Let _controller_ be _stream_.[[writableStreamController]].
-  1. Perform ! _controller_.[[ErrorSteps]]().
+  1. Perform ! _stream_.[[writableStreamController]].[[ErrorSteps]]().
   1. Let _storedError_ be _stream_.[[storedError]].
   1. Repeat for each _writeRequest_ that is an element of _stream_.[[writeRequests]],
     1. <a>Reject</a> _writeRequest_ with _storedError_.
   1. Set _stream_.[[writeRequests]] to an empty List.
-  1. if _stream_.[[pendingAbortRequest]] is *undefined*,
-    1. Perform ! _controller_[[FinishSteps]]().
+  1. If _stream_.[[pendingAbortRequest]] is *undefined*,
     1. Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(_stream_).
     1. Return.
   1. Let _abortRequest_ be _stream_.[[pendingAbortRequest]].
   1. Set _stream_.[[pendingAbortRequest]] to *undefined*.
   1. If _abortRequest_.[[wasAlreadyErroring]] is *true*,
-    1. Perform ! _controller_[[FinishSteps]]().
     1. <a>Reject</a> _abortRequest_.[[promise]] with _storedError_.
     1. Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(_stream_).
     1. Return.
-  1. Let _promise_ be ! _controller_.[[AbortSteps]](_abortRequest_.[[reason]]).
+  1. Let _promise_ be ! stream.[[writableStreamController]].[[AbortSteps]](_abortRequest_.[[reason]]).
   1. <a>Upon fulfillment</a> of _promise_,
     1. <a>Resolve</a> _abortRequest_.[[promise]] with *undefined*.
     1. Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(_stream_).
@@ -3961,12 +3958,6 @@ used polymorphically.
   1. Perform ! ResetQueue(*this*).
 </emu-alg>
 
-<h5 id="ws-default-controller-private-finish">\[[FinishSteps]]()</h5>
-
-<emu-alg>
-  1. Perform ! WritableStreamDefaultControllerClearAlgorithms(*this*).
-</emu-alg>
-
 <h3 id="ws-default-controller-abstract-ops">Writable stream default controller abstract operations</h3>
 
 <h4 id="is-writable-stream-default-controller" aoid="IsWritableStreamDefaultController"
@@ -4028,6 +4019,16 @@ throws>SetUpWritableStreamDefaultControllerFromUnderlyingSink ( <var>stream</var
 
 <h4 id="writable-stream-default-controller-clear-algorithms" aoid="WritableStreamDefaultControllerClearAlgorithms"
 nothrow>WritableStreamDefaultControllerClearAlgorithms ( <var>controller</var> )</h4>
+
+This abstract operation is called once the stream is closed or errored and the algorithms will not be executed any more.
+By removing the algorithm references it permits the <a>underlying sink</a> object to be garbage collected even if the
+{{WritableStream}} itself is still referenced.
+
+<p class="note">The results of this algorithm are not currently observable, but could become so if JavaScript eventually
+adds <a href="https://github.com/tc39/proposal-weakrefs/">weak references</a>. But even without that factor,
+implementations will likely want to include similar steps.
+
+This operation will be performed multiple times in some edge cases. After the first time it will do nothing.</p>
 
 <emu-alg>
   1. Set _controller_.[[writeAlgorithm]] to *undefined*.
@@ -4139,6 +4140,7 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
       1. Perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
     1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
   1. <a>Upon rejection</a> of _sinkWritePromise_ with _reason_,
+    1. Perform ! WritableStreamDefaultControllerClearAlgorithms(_controller_).
     1. Perform ! WritableStreamFinishInFlightWriteWithError(_stream_, _reason_).
 </emu-alg>
 
@@ -4156,6 +4158,7 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>error
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledWritableStream]].
   1. Assert: _stream_.[[state]] is `"writable"`.
+  1. Perform ! WritableStreamDefaultControllerClearAlgorithms(_controller_).
   1. Perform ! WritableStreamStartErroring(_stream_, _error_).
 </emu-alg>
 
