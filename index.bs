@@ -3339,7 +3339,7 @@ nothrow>WritableStreamDealWithRejection ( <var>stream</var>, <var>error</var> )<
   1. Repeat for each _writeRequest_ that is an element of _stream_.[[writeRequests]],
     1. <a>Reject</a> _writeRequest_ with _storedError_.
   1. Set _stream_.[[writeRequests]] to an empty List.
-  1. if _stream_.[[pendingAbortRequest]] is *undefined*,
+  1. If _stream_.[[pendingAbortRequest]] is *undefined*,
     1. Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(_stream_).
     1. Return.
   1. Let _abortRequest_ be _stream_.[[pendingAbortRequest]].
@@ -3947,7 +3947,9 @@ used polymorphically.
 <var>reason</var> )</h5>
 
 <emu-alg>
-  1. Return the result of performing *this*.[[abortAlgorithm]], passing _reason_.
+  1. Let _result_ be the result of performing *this*.[[abortAlgorithm]], passing _reason_.
+  1. Perform ! WritableStreamDefaultControllerClearAlgorithms(*this*).
+  1. Return _result_.
 </emu-alg>
 
 <h5 id="ws-default-controller-private-error">\[[ErrorSteps]]()</h5>
@@ -4013,6 +4015,26 @@ throws>SetUpWritableStreamDefaultControllerFromUnderlyingSink ( <var>stream</var
   1. Let _abortAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_underlyingSink_, `"abort"`, *1*, « »).
   1. Perform ? SetUpWritableStreamDefaultController(_stream_, _controller_, _startAlgorithm_, _writeAlgorithm_,
      _closeAlgorithm_, _abortAlgorithm_, _highWaterMark_, _sizeAlgorithm_).
+</emu-alg>
+
+<h4 id="writable-stream-default-controller-clear-algorithms" aoid="WritableStreamDefaultControllerClearAlgorithms"
+nothrow>WritableStreamDefaultControllerClearAlgorithms ( <var>controller</var> )</h4>
+
+This abstract operation is called once the stream is closed or errored and the algorithms will not be executed any more.
+By removing the algorithm references it permits the <a>underlying sink</a> object to be garbage collected even if the
+{{WritableStream}} itself is still referenced.
+
+<p class="note">The results of this algorithm are not currently observable, but could become so if JavaScript eventually
+adds <a href="https://github.com/tc39/proposal-weakrefs/">weak references</a>. But even without that factor,
+implementations will likely want to include similar steps.</p>
+
+<p class="note">This operation will be performed multiple times in some edge cases. After the first time it will do
+nothing.</p>
+
+<emu-alg>
+  1. Set _controller_.[[writeAlgorithm]] to *undefined*.
+  1. Set _controller_.[[closeAlgorithm]] to *undefined*.
+  1. Set _controller_.[[abortAlgorithm]] to *undefined*.
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-close" aoid="WritableStreamDefaultControllerClose"
@@ -4095,6 +4117,7 @@ nothrow>WritableStreamDefaultControllerProcessClose ( <var>controller</var> )</h
   1. Perform ! DequeueValue(_controller_).
   1. Assert: _controller_.[[queue]] is empty.
   1. Let _sinkClosePromise_ be the result of performing _controller_.[[closeAlgorithm]].
+  1. Perform ! WritableStreamDefaultControllerClearAlgorithms(_controller_).
   1. <a>Upon fulfillment</a> of _sinkClosePromise_,
     1. Perform ! WritableStreamFinishInFlightClose(_stream_).
   1. <a>Upon rejection</a> of _sinkClosePromise_ with reason _reason_,
@@ -4118,6 +4141,7 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
       1. Perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
     1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
   1. <a>Upon rejection</a> of _sinkWritePromise_ with _reason_,
+    1. Perform ! WritableStreamDefaultControllerClearAlgorithms(_controller_).
     1. Perform ! WritableStreamFinishInFlightWriteWithError(_stream_, _reason_).
 </emu-alg>
 
@@ -4135,6 +4159,7 @@ nothrow>WritableStreamDefaultControllerError ( <var>controller</var>, <var>error
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledWritableStream]].
   1. Assert: _stream_.[[state]] is `"writable"`.
+  1. Perform ! WritableStreamDefaultControllerClearAlgorithms(_controller_).
   1. Perform ! WritableStreamStartErroring(_stream_, _error_).
 </emu-alg>
 

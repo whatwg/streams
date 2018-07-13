@@ -717,7 +717,9 @@ class WritableStreamDefaultController {
   }
 
   [AbortSteps](reason) {
-    return this._abortAlgorithm(reason);
+    const result = this._abortAlgorithm(reason);
+    WritableStreamDefaultControllerClearAlgorithms(this);
+    return result;
   }
 
   [ErrorSteps]() {
@@ -796,6 +798,13 @@ function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyi
 
   SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
                                        abortAlgorithm, highWaterMark, sizeAlgorithm);
+}
+
+// ClearAlgorithms may be called twice. Erroring the same stream in multiple ways will often result in redundant calls.
+function WritableStreamDefaultControllerClearAlgorithms(controller) {
+  controller._writeAlgorithm = undefined;
+  controller._closeAlgorithm = undefined;
+  controller._abortAlgorithm = undefined;
 }
 
 function WritableStreamDefaultControllerClose(controller) {
@@ -885,6 +894,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
   assert(controller._queue.length === 0);
 
   const sinkClosePromise = controller._closeAlgorithm();
+  WritableStreamDefaultControllerClearAlgorithms(controller);
   sinkClosePromise.then(
     () => {
       WritableStreamFinishInFlightClose(stream);
@@ -919,6 +929,9 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
     },
     reason => {
+      if (stream._state === 'writable') {
+        WritableStreamDefaultControllerClearAlgorithms(controller);
+      }
       WritableStreamFinishInFlightWriteWithError(stream, reason);
     }
   )
@@ -937,6 +950,7 @@ function WritableStreamDefaultControllerError(controller, error) {
 
   assert(stream._state === 'writable');
 
+  WritableStreamDefaultControllerClearAlgorithms(controller);
   WritableStreamStartErroring(stream, error);
 }
 
