@@ -4141,7 +4141,7 @@ nothrow>WritableStreamDefaultControllerProcessWrite ( <var>controller</var>, <va
       1. Perform ! WritableStreamUpdateBackpressure(_stream_, _backpressure_).
     1. Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(_controller_).
   1. <a>Upon rejection</a> of _sinkWritePromise_ with _reason_,
-    1. Perform ! WritableStreamDefaultControllerClearAlgorithms(_controller_).
+    1. If _stream_.[[state]] is `"writable"`, perform ! WritableStreamDefaultControllerClearAlgorithms(_controller_).
     1. Perform ! WritableStreamFinishInFlightWriteWithError(_stream_, _reason_).
 </emu-alg>
 
