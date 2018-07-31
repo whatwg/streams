@@ -1892,6 +1892,7 @@ implementations will likely want to include similar steps.</p>
 <emu-alg>
   1. Set _controller_.[[pullAlgorithm]] to *undefined*.
   1. Set _controller_.[[cancelAlgorithm]] to *undefined*.
+  1. Set _controller_.[[strategySizeAlgorithm]] to *undefined*.
 </emu-alg>
 
 <h4 id="readable-stream-default-controller-close" aoid="ReadableStreamDefaultControllerClose" nothrow
@@ -4079,6 +4080,7 @@ nothing.</p>
   1. Set _controller_.[[writeAlgorithm]] to *undefined*.
   1. Set _controller_.[[closeAlgorithm]] to *undefined*.
   1. Set _controller_.[[abortAlgorithm]] to *undefined*.
+  1. Set _controller_.[[strategySizeAlgorithm]] to *undefined*.
 </emu-alg>
 
 <h4 id="writable-stream-default-controller-close" aoid="WritableStreamDefaultControllerClose"
