@@ -278,13 +278,7 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
     if (typeof transformMethod !== 'function') {
       throw new TypeError('transform is not a method');
     }
-    transformAlgorithm = chunk => {
-      const transformPromise = PromiseCall(transformMethod, transformer, [chunk, controller]);
-      return transformPromise.catch(e => {
-        TransformStreamError(stream, e);
-        throw e;
-      });
-    };
+    transformAlgorithm = chunk => PromiseCall(transformMethod, transformer, [chunk, controller]);
   }
 
   const flushAlgorithm = CreateAlgorithmFromUnderlyingMethod(transformer, 'flush', 0, [controller]);
@@ -329,6 +323,14 @@ function TransformStreamDefaultControllerError(controller, e) {
   TransformStreamError(controller._controlledTransformStream, e);
 }
 
+function TransformStreamDefaultControllerPerformTransform(controller, chunk) {
+  const transformPromise = controller._transformAlgorithm(chunk);
+  return transformPromise.catch(r => {
+    TransformStreamError(controller._controlledTransformStream, r);
+    throw r;
+  });
+}
+
 function TransformStreamDefaultControllerTerminate(controller) {
   verbose('TransformStreamDefaultControllerTerminate()');
 
@@ -363,11 +365,11 @@ function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
             throw writable._storedError;
           }
           assert(state === 'writable');
-          return controller._transformAlgorithm(chunk);
+          return TransformStreamDefaultControllerPerformTransform(controller, chunk);
         });
   }
 
-  return controller._transformAlgorithm(chunk);
+  return TransformStreamDefaultControllerPerformTransform(controller, chunk);
 }
 
 function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {

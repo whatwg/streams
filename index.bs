@@ -4725,11 +4725,7 @@ throws>SetUpTransformStreamDefaultControllerFromTransformer ( <var>stream</var>,
   1. If _transformMethod_ is not *undefined*,
     1. If ! IsCallable(_transformMethod_) is *false*, throw a *TypeError* exception.
     1. Set _transformAlgorithm_ to the following steps, taking a _chunk_ argument:
-      1. Let _transformPromise_ be ! PromiseCall(_transformMethod_, _transformer_, « chunk, _controller_ »).
-      1. Return the result of <a>transforming</a> _transformPromise_ with a rejection handler that, when called with
-         argument _e_, performs the following steps:
-        1. Perform ! TransformStreamError(_stream_, _e_).
-        1. Throw _e_.
+      1. Return ! PromiseCall(_transformMethod_, _transformer_, « _chunk_, _controller_ »).
   1. Let _flushAlgorithm_ be ? CreateAlgorithmFromUnderlyingMethod(_transformer_, `"flush"`, *0*, « controller »).
   1. Perform ! SetUpTransformStreamDefaultController(_stream_, _controller_, _transformAlgorithm_, _flushAlgorithm_).
 </emu-alg>
@@ -4783,6 +4779,17 @@ in the same way a developer would error a stream using its associated controller
   1. Perform ! TransformStreamError(_controller_.[[controlledTransformStream]], _e_).
 </emu-alg>
 
+<h4 id="transform-stream-default-controller-perform-transform" aoid="TransformStreamDefaultControllerPerformTransform"
+nothrow>TransformStreamDefaultControllerPerformTransform ( <var>controller</var>, <var>chunk</var> )</h4>
+
+<emu-alg>
+  1. Let _transformPromise_ be the result of performing _controller_.[[transformAlgorithm]], passing _chunk_.
+  1. Return the result of <a>transforming</a> _transformPromise_ with a rejection handler that, when called with
+     argument _r_, performs the following steps:
+    1. Perform ! TransformStreamError(_controller_.[[controlledTransformStream]], _r_).
+    1. Throw _r_.
+</emu-alg>
+
 <h4 id="transform-stream-default-controller-terminate" aoid="TransformStreamDefaultControllerTerminate"
 nothrow export>TransformStreamDefaultControllerTerminate ( <var>controller</var> )</h4>
 
@@ -4816,8 +4823,8 @@ nothrow>TransformStreamDefaultSinkWriteAlgorithm ( <var>stream</var>, <var>chunk
       1. Let _state_ be _writable_.[[state]].
       1. If _state_ is `"erroring"`, throw _writable_.[[storedError]].
       1. Assert: _state_ is `"writable"`.
-      1. Return the result of performing _controller_.[[transformAlgorithm]], passing _chunk_.
-  1. Return the result of performing _controller_.[[transformAlgorithm]], passing _chunk_.
+      1. Return ! TransformStreamDefaultControllerPerformTransform(_controller_, _chunk_).
+  1. Return ! TransformStreamDefaultControllerPerformTransform(_controller_, _chunk_).
 </emu-alg>
 
 <h4 id="transform-stream-default-sink-abort-algorithm" aoid="TransformStreamDefaultSinkAbortAlgorithm"
