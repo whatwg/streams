@@ -936,7 +936,9 @@ class ReadableStreamDefaultController {
 
   [CancelSteps](reason) {
     ResetQueue(this);
-    return this._cancelAlgorithm(reason);
+    const result = this._cancelAlgorithm(reason);
+    ReadableStreamDefaultControllerClearAlgorithms(this);
+    return result;
   }
 
   [PullSteps](forAuthorCode) {
@@ -946,6 +948,7 @@ class ReadableStreamDefaultController {
       const chunk = DequeueValue(this);
 
       if (this._closeRequested === true && this._queue.length === 0) {
+        ReadableStreamDefaultControllerClearAlgorithms(this);
         ReadableStreamClose(stream);
       } else {
         ReadableStreamDefaultControllerCallPullIfNeeded(this);
@@ -1033,6 +1036,11 @@ function ReadableStreamDefaultControllerShouldCallPull(controller) {
   return false;
 }
 
+function ReadableStreamDefaultControllerClearAlgorithms(controller) {
+  controller._pullAlgorithm = undefined;
+  controller._cancelAlgorithm = undefined;
+}
+
 // A client of ReadableStreamDefaultController may use these functions directly to bypass state check.
 
 function ReadableStreamDefaultControllerClose(controller) {
@@ -1043,6 +1051,7 @@ function ReadableStreamDefaultControllerClose(controller) {
   controller._closeRequested = true;
 
   if (controller._queue.length === 0) {
+    ReadableStreamDefaultControllerClearAlgorithms(controller);
     ReadableStreamClose(stream);
   }
 }
@@ -1085,6 +1094,7 @@ function ReadableStreamDefaultControllerError(controller, e) {
 
   ResetQueue(controller);
 
+  ReadableStreamDefaultControllerClearAlgorithms(controller);
   ReadableStreamError(stream, e);
 }
 
@@ -1318,7 +1328,9 @@ class ReadableByteStreamController {
 
     ResetQueue(this);
 
-    return this._cancelAlgorithm(reason);
+    const result = this._cancelAlgorithm(reason);
+    ReadableByteStreamControllerClearAlgorithms(this);
+    return result;
   }
 
   [PullSteps](forAuthorCode) {
@@ -1533,6 +1545,7 @@ function ReadableByteStreamControllerHandleQueueDrain(controller) {
   assert(controller._controlledReadableByteStream._state === 'readable');
 
   if (controller._queueTotalSize === 0 && controller._closeRequested === true) {
+    ReadableByteStreamControllerClearAlgorithms(controller);
     ReadableStreamClose(controller._controlledReadableByteStream);
   } else {
     ReadableByteStreamControllerCallPullIfNeeded(controller);
@@ -1732,6 +1745,11 @@ function ReadableByteStreamControllerShouldCallPull(controller) {
   return false;
 }
 
+function ReadableByteStreamControllerClearAlgorithms(controller) {
+  controller._pullAlgorithm = undefined;
+  controller._cancelAlgorithm = undefined;
+}
+
 // A client of ReadableByteStreamController may use these functions directly to bypass state check.
 
 function ReadableByteStreamControllerClose(controller) {
@@ -1756,6 +1774,7 @@ function ReadableByteStreamControllerClose(controller) {
     }
   }
 
+  ReadableByteStreamControllerClearAlgorithms(controller);
   ReadableStreamClose(stream);
 }
 
@@ -1801,6 +1820,7 @@ function ReadableByteStreamControllerError(controller, e) {
   ReadableByteStreamControllerClearPendingPullIntos(controller);
 
   ResetQueue(controller);
+  ReadableByteStreamControllerClearAlgorithms(controller);
   ReadableStreamError(stream, e);
 }
 

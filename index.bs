@@ -1810,7 +1810,9 @@ readable stream implementation will polymorphically call to either these or thei
 
 <emu-alg>
   1. Perform ! ResetQueue(*this*).
-  1. Return the result of performing *this*.[[cancelAlgorithm]], passing _reason_.
+  1. Let _result_ be the result of performing *this*.[[cancelAlgorithm]], passing _reason_.
+  1. Perform ! ReadableStreamDefaultControllerClearAlgorithms(*this*).
+  1. Return _result_.
 </emu-alg>
 
 <h5 id="rs-default-controller-private-pull"><a abstract-op>\[[PullSteps]]</a>( <var>forAuthorCode</var> )</h5>
@@ -1819,7 +1821,9 @@ readable stream implementation will polymorphically call to either these or thei
   1. Let _stream_ be *this*.[[controlledReadableStream]].
   1. If *this*.[[queue]] is not empty,
     1. Let _chunk_ be ! DequeueValue(*this*).
-    1. If *this*.[[closeRequested]] is *true* and *this*.[[queue]] is empty, perform ! ReadableStreamClose(_stream_).
+    1. If *this*.[[closeRequested]] is *true* and *this*.[[queue]] is empty,
+      1. Perform ! ReadableStreamDefaultControllerClearAlgorithms(*this*).
+      1. Perform ! ReadableStreamClose(_stream_).
     1. Otherwise, perform ! ReadableStreamDefaultControllerCallPullIfNeeded(*this*).
     1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_chunk_, *false*, _forAuthorCode_).
   1. Let _pendingPromise_ be ! ReadableStreamAddReadRequest(_stream_, _forAuthorCode_).
@@ -1874,6 +1878,22 @@ nothrow>ReadableStreamDefaultControllerShouldCallPull ( <var>controller</var> )<
   1. Return *false*.
 </emu-alg>
 
+<h4 id="readable-stream-default-controller-clear-algorithms" aoid="ReadableStreamDefaultControllerClearAlgorithms"
+nothrow export>ReadableStreamDefaultControllerClearAlgorithms ( <var>controller</var> )</h4>
+
+This abstract operation is called once the stream is closed or errored and the algorithms will not be executed any more.
+By removing the algorithm references it permits the <a>underlying source</a> object to be garbage collected even if the
+{{ReadableStream}} itself is still referenced.
+
+<p class="note">The results of this algorithm are not currently observable, but could become so if JavaScript eventually
+adds <a href="https://github.com/tc39/proposal-weakrefs/">weak references</a>. But even without that factor,
+implementations will likely want to include similar steps.</p>
+
+<emu-alg>
+  1. Set _controller_.[[pullAlgorithm]] to *undefined*.
+  1. Set _controller_.[[cancelAlgorithm]] to *undefined*.
+</emu-alg>
+
 <h4 id="readable-stream-default-controller-close" aoid="ReadableStreamDefaultControllerClose" nothrow
 export>ReadableStreamDefaultControllerClose ( <var>controller</var> )</h4>
 
@@ -1885,7 +1905,9 @@ this to streams they did not create, and must ensure they have obeyed the precon
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
   1. Assert: ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_controller_) is *true*.
   1. Set _controller_.[[closeRequested]] to *true*.
-  1. If _controller_.[[queue]] is empty, perform ! ReadableStreamClose(_stream_).
+  1. If _controller_.[[queue]] is empty,
+    1. Perform ! ReadableStreamDefaultControllerClearAlgorithms(_controller_).
+    1. Perform ! ReadableStreamClose(_stream_).
 </emu-alg>
 
 <h4 id="readable-stream-default-controller-enqueue" aoid="ReadableStreamDefaultControllerEnqueue" throws
@@ -1926,6 +1948,7 @@ in the same way a developer would error a stream using its associated controller
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
   1. If _stream_.[[state]] is not `"readable"`, return.
   1. Perform ! ResetQueue(_controller_).
+  1. Perform ! ReadableStreamDefaultControllerClearAlgorithms(_controller_).
   1. Perform ! ReadableStreamError(_stream_, _e_).
 </emu-alg>
 
@@ -2227,7 +2250,9 @@ readable stream implementation will polymorphically call to either these or thei
     1. Let _firstDescriptor_ be the first element of *this*.[[pendingPullIntos]].
     1. Set _firstDescriptor_.[[bytesFilled]] to *0*.
   1. Perform ! ResetQueue(*this*).
-  1. Return the result of performing *this*.[[cancelAlgorithm]], passing in _reason_.
+  1. Let _result_ be the result of performing *this*.[[cancelAlgorithm]], passing in _reason_.
+  1. Perform ! ReadableByteStreamControllerClearAlgorithms(*this*).
+  1. Return _result_.
 </emu-alg>
 
 <h5 id="rbs-controller-private-pull"><a abstract-op>\[[PullSteps]]</a>( <var>forAuthorCode</var> )</h5>
@@ -2387,6 +2412,22 @@ nothrow>ReadableByteStreamControllerCallPullIfNeeded ( <var>controller</var> )</
     1. Perform ! ReadableByteStreamControllerError(_controller_, _e_).
 </emu-alg>
 
+<h4 id="readable-byte-stream-controller-clear-algorithms" aoid="ReadableByteStreamControllerClearAlgorithms"
+throws>ReadableByteStreamControllerClearAlgorithms ( <var>controller</var> )</h4>
+
+This abstract operation is called once the stream is closed or errored and the algorithms will not be executed any more.
+By removing the algorithm references it permits the <a>underlying source</a> object to be garbage collected even if the
+{{ReadableStream}} itself is still referenced.
+
+<p class="note">The results of this algorithm are not currently observable, but could become so if JavaScript eventually
+adds <a href="https://github.com/tc39/proposal-weakrefs/">weak references</a>. But even without that factor,
+implementations will likely want to include similar steps.</p>
+
+<emu-alg>
+  1. Set _controller_.[[pullAlgorithm]] to *undefined*.
+  1. Set _controller_.[[cancelAlgorithm]] to *undefined*.
+</emu-alg>
+
 <h4 id="readable-byte-stream-controller-clear-pending-pull-intos"
 aoid="ReadableByteStreamControllerClearPendingPullIntos" nothrow>ReadableByteStreamControllerClearPendingPullIntos (
 <var>controller</var> )</h4>
@@ -2412,6 +2453,7 @@ throws>ReadableByteStreamControllerClose ( <var>controller</var> )</h4>
       1. Let _e_ be a new *TypeError* exception.
       1. Perform ! ReadableByteStreamControllerError(_controller_, _e_).
       1. Throw _e_.
+  1. Perform ! ReadableByteStreamControllerClearAlgorithms(_controller_).
   1. Perform ! ReadableStreamClose(_stream_).
 </emu-alg>
 
@@ -2495,6 +2537,7 @@ nothrow>ReadableByteStreamControllerError ( <var>controller</var>, <var>e</var> 
   1. If _stream_.[[state]] is not `"readable"`, return.
   1. Perform ! ReadableByteStreamControllerClearPendingPullIntos(_controller_).
   1. Perform ! ResetQueue(_controller_).
+  1. Perform ! ReadableByteStreamControllerClearAlgorithms(_controller_).
   1. Perform ! ReadableStreamError(_stream_, _e_).
 </emu-alg>
 
@@ -2569,6 +2612,7 @@ nothrow>ReadableByteStreamControllerHandleQueueDrain ( <var>controller</var> )</
 <emu-alg>
   1. Assert: _controller_.[[controlledReadableByteStream]].[[state]] is `"readable"`.
   1. If _controller_.[[queueTotalSize]] is *0* and _controller_.[[closeRequested]] is *true*,
+    1. Perform ! ReadableByteStreamControllerClearAlgorithms(_controller_).
     1. Perform ! ReadableStreamClose(_controller_.[[controlledReadableByteStream]]).
   1. Otherwise,
     1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
