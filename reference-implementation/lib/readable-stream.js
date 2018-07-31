@@ -1039,6 +1039,7 @@ function ReadableStreamDefaultControllerShouldCallPull(controller) {
 function ReadableStreamDefaultControllerClearAlgorithms(controller) {
   controller._pullAlgorithm = undefined;
   controller._cancelAlgorithm = undefined;
+  controller._strategySizeAlgorithm = undefined;
 }
 
 // A client of ReadableStreamDefaultController may use these functions directly to bypass state check.

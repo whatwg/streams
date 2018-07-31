@@ -805,6 +805,7 @@ function WritableStreamDefaultControllerClearAlgorithms(controller) {
   controller._writeAlgorithm = undefined;
   controller._closeAlgorithm = undefined;
   controller._abortAlgorithm = undefined;
+  controller._strategySizeAlgorithm = undefined;
 }
 
 function WritableStreamDefaultControllerClose(controller) {
