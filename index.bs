@@ -159,7 +159,7 @@ sink</a>, and it discards all writes in the stream's <a>internal queue</a>.
 
 <h3 id="ts-model">Transform streams</h3>
 
-A <dfn>transform stream</dfn> consists of a pair of streams: a <a>writable stream</a>, known as its <dfn>writable
+A <dfn export>transform stream</dfn> consists of a pair of streams: a <a>writable stream</a>, known as its <dfn>writable
 side</dfn>, and a <a>readable stream</a>, known as its <dfn>readable side</dfn>. In a manner specific to the transform
 stream in question, writes to the writable side result in new data being made available for reading from the readable
 side.
