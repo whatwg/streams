@@ -1425,7 +1425,8 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
   1. Return _iterator_.
 </emu-alg>
 
-<h5 id="default-reader-@@asynciterator" for="ReadableStreamDefaultReader">[@@asyncIterator]()</h5>
+<!-- Bikeshed doesn't let us mark this up correctly: https://github.com/tabatkins/bikeshed/issues/1344 -->
+<h5 id="default-reader-@@asynciterator">[@@asyncIterator]()</h5>
 
 <p class="note">
   The <code>@@asyncIterator</code> method is an alias of {{ReadableStreamDefaultReader/getIterator()}}.
