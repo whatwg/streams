@@ -702,18 +702,15 @@ class ReadableStreamDefaultReader {
     ReadableStreamReaderGenericRelease(this);
   }
 
-  getIterator({ preventCancel = false } = {}) {
+  getIterator({ preventCancel } = {}) {
     if (IsReadableStreamDefaultReader(this) === false) {
       throw defaultReaderBrandCheckException('getIterator');
     }
     if (this._ownerReadableStream === undefined) {
       throw readerLockException('getIterator');
     }
-    const iterator = Object.create(ReadableStreamDefaultReaderAsyncIteratorPrototype, {
-      _reader: { value: undefined },
-      _preventCancel: { value: undefined }
-    });
-    iterator._reader = this;
+    const iterator = Object.create(ReadableStreamDefaultReaderAsyncIteratorPrototype);
+    iterator._asyncIteratorReader = this;
     iterator._preventCancel = Boolean(preventCancel);
     return iterator;
   }
@@ -721,13 +718,14 @@ class ReadableStreamDefaultReader {
 
 ReadableStreamDefaultReader.prototype[Symbol.asyncIterator] = ReadableStreamDefaultReader.prototype.getIterator;
 
+const AsyncIteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf(async function* () {}).prototype);
 const ReadableStreamDefaultReaderAsyncIteratorPrototype = Object.setPrototypeOf({
   next() {
     if (!IsReadableStreamDefaultReaderAsyncIterator(this)) {
       throw defaultReaderAsyncIteratorBrandCheckException('next');
     }
     try {
-      const reader = this._reader;
+      const reader = this._asyncIteratorReader;
       const read = GetMethod(reader, 'read');
       return Call(read, reader, []);
     } catch (e) {
@@ -740,7 +738,7 @@ const ReadableStreamDefaultReaderAsyncIteratorPrototype = Object.setPrototypeOf(
     }
     try {
       if (this._preventCancel === false) {
-        const reader = this._reader;
+        const reader = this._asyncIteratorReader;
         const cancel = GetMethod(reader, 'cancel');
         Call(cancel, reader, []);
         return Promise.resolve(ReadableStreamCreateReadResult(value, true, true));
@@ -750,7 +748,7 @@ const ReadableStreamDefaultReaderAsyncIteratorPrototype = Object.setPrototypeOf(
       return Promise.reject(e);
     }
   }
-}, Object.getPrototypeOf(Object.getPrototypeOf(async function* () {}).prototype));
+}, AsyncIteratorPrototype);
 
 class ReadableStreamBYOBReader {
   constructor(stream) {
@@ -862,8 +860,7 @@ function IsReadableStreamDefaultReaderAsyncIterator(argument) {
   if (!typeIsObject(argument)) {
     return false;
   }
-  if (!Object.prototype.hasOwnProperty.call(argument, '_reader') ||
-      !Object.prototype.hasOwnProperty.call(argument, '_cancel')) {
+  if (!Object.prototype.hasOwnProperty.call(argument, '_asyncIteratorReader')) {
     return false;
   }
   return true;
