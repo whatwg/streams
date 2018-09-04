@@ -235,10 +235,11 @@ For readable streams, an underlying source can use this desired size as a backpr
 generation so as to try to keep the desired size above or at zero. For writable streams, a producer can behave
 similarly, avoiding writes that would cause the desired size to go negative.
 
-Concretely, a queuing strategy for web developer–created streams is given by any JavaScript object with a
-<code>highWaterMark</code> property. For byte streams the <code>highWaterMark</code> always has units of bytes. For
-other streams the default unit is <a>chunks</a>, but a <code>size()</code> function can be included in the strategy
-object which returns the size for a given chunk. This permits the <code>highWaterMark</code> to be specified in
+<a href="#qs-api">Concretely</a>, a queuing strategy for web developer–created streams is given by any JavaScript object
+with a <code><a for="queuing strategy">highWaterMark</a></code> property. For byte streams the <code><a for="queuing
+strategy">highWaterMark</a></code> always has units of bytes. For other streams the default unit is <a>chunks</a>, but a
+<code><a for="queuing strategy">size()</a></code> function can be included in the strategy object which returns the size
+for a given chunk. This permits the <code><a for="queuing strategy">highWaterMark</a></code> to be specified in
 arbitrary floating-point units.
 <!-- TODO: https://github.com/whatwg/streams/issues/427 -->
 
@@ -5533,8 +5534,8 @@ With this in hand, we can create and use <a>BYOB readers</a> for the returned {{
 also create <a>default readers</a>, using them in the same simple and generic manner as usual. The adaptation between
 the low-level byte tracking of the <a>underlying byte source</a> shown here, and the higher-level chunk-based
 consumption of a <a>default reader</a>, is all taken care of automatically by the streams implementation. The
-auto-allocation feature, via the <code>autoAllocateChunkSize</code> option, even allows us to write less code, compared
-to the manual branching in [[#example-rbs-push]].
+auto-allocation feature, via the <code><a for="underlying source">autoAllocateChunkSize</a></code> option, even allows
+us to write less code, compared to the manual branching in [[#example-rbs-push]].
 
 <h3 id="example-ws-no-backpressure">A writable stream with no backpressure or success signals</h3>
 
