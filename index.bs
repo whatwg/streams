@@ -18,6 +18,8 @@ spec:promises-guide; type:dfn;
 <pre class="anchors">
 urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
     text: %Uint8Array%; url: #sec-typedarray-objects; type: constructor
+    text: %AsyncIteratorPrototype%; url: #sec-asynciteratorprototype; type: interface
+    text: AsyncIterator; url: #sec-asynciterator-interface; type: interface
     text: ArrayBuffer; url: #sec-arraybuffer-objects; type: interface
     text: DataView; url: #sec-dataview-objects; type: interface
     text: Number; url: #sec-ecmascript-language-types-number-type; type: interface
@@ -1284,6 +1286,9 @@ would look like
     <a href="#default-reader-cancel">cancel</a>(reason)
     <a href="#default-reader-read">read</a>()
     <a href="#default-reader-release-lock">releaseLock</a>()
+
+    <a href="#default-reader-getiterator">getIterator</a>({ preventCancel } = {})
+    <a href="#default-reader-@@asynciterator">[@@asyncIterator]</a>({ preventCancel } = {})
   }
 </code></pre>
 
@@ -1401,6 +1406,100 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
   1. If *this*.[[ownerReadableStream]] is *undefined*, return.
   1. If *this*.[[readRequests]] is not empty, throw a *TypeError* exception.
   1. Perform ! ReadableStreamReaderGenericRelease(*this*).
+</emu-alg>
+
+<h5 id="default-reader-getiterator" method for="ReadableStreamDefaultReader">getIterator({ preventCancel = false } = {})
+</h5>
+
+<p class="note">
+  The <code>getIterator</code> method returns an async iterator which can be used to consume the stream. The
+  {{ReadableStreamDefaultReaderAsyncIteratorPrototype/return()}} method of this iterator object will, by default,
+  <a lt="cancel a readable stream">cancel</a> the stream; it will also release the reader.
+</p>
+
+<emu-alg>
+  1. If ! IsReadableStreamDefaultReader(*this*) is *false*, throw a *TypeError* exception.
+  1. If *this*.[[ownerReadableStream]] is *undefined*, throw a *TypeError* exception.
+  1. Let _iterator_ be ! ObjectCreate(`<a idl>ReadableStreamDefaultReaderAsyncIteratorPrototype</a>`).
+  1. Set _iterator_.[[asyncIteratorReader]] to *this*.
+  1. Set _iterator_.[[preventCancel]] to ! ToBoolean(_preventCancel_).
+  1. Return _iterator_.
+</emu-alg>
+
+<!-- Bikeshed doesn't let us mark this up correctly: https://github.com/tabatkins/bikeshed/issues/1344 -->
+<h5 id="default-reader-@@asynciterator">[@@asyncIterator]()</h5>
+
+<p class="note">
+  The <code>@@asyncIterator</code> method is an alias of {{ReadableStreamDefaultReader/getIterator()}}.
+</p>
+
+The initial value of the <code>@@asyncIterator</code> method is the same function object as the initial value of the
+{{ReadableStreamDefaultReader/getIterator()}} method.
+
+<h3 id="default-reader-asynciterator-prototype" interface
+lt="ReadableStreamDefaultReaderAsyncIteratorPrototype">ReadableStreamDefaultReaderAsyncIteratorPrototype</h3>
+
+{{ReadableStreamDefaultReaderAsyncIteratorPrototype}} is an ordinary object that is used by
+{{ReadableStreamDefaultReader/getIterator()}} to construct the objects it returns. Instances of
+{{ReadableStreamDefaultReaderAsyncIteratorPrototype}} implement the {{AsyncIterator}} abstract interface from the
+JavaScript specification. [[!ECMASCRIPT]]
+
+The {{ReadableStreamDefaultReaderAsyncIteratorPrototype}} object must have its \[[Prototype]] internal slot set to
+{{%AsyncIteratorPrototype%}}.
+
+<p class="note">The pattern here of having a prototype without a corresponding class/constructor is unusual, but
+emulates similar practices in the JavaScript and Web IDL specifications, when they create iterators.</p>
+
+<h4 id="default-reader-asynciterator-prototype-internal-slots">Internal slots</h4>
+
+Objects created by {{ReadableStreamDefaultReader/getIterator()}}, using
+{{ReadableStreamDefaultReaderAsyncIteratorPrototype}} as their prototype, are created with the internal slots described
+in the following table:
+
+<table>
+  <thead>
+    <tr>
+      <th>Internal Slot</th>
+      <th>Description (<em>non-normative</em>)</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>\[[asyncIteratorReader]]
+    <td class="non-normative">A {{ReadableStreamDefaultReader}} instance
+  </tr>
+  <tr>
+    <td>\[[preventCancel]]
+    <td class="non-normative">A boolean value indicating if the stream will be <a lt="cancel a readable
+    stream">canceled</a> when the async iterator's {{ReadableStreamDefaultReaderAsyncIteratorPrototype/return()}} method
+    is called
+  </tr>
+</table>
+
+<h4 id="default-reader-asynciterator-prototype-next" method
+for="ReadableStreamDefaultReaderAsyncIteratorPrototype">next()</h4>
+
+<emu-alg>
+  1. If ! IsReadableStreamDefaultReaderAsyncIterator(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _reader_ be *this*.[[asyncIteratorReader]].
+  1. Let _read_ be GetMethod(_reader_, `"read"`).
+  1. If _read_ is an abrupt completion, return <a>a promise rejected with</a> _read_.[[Value]].
+  1. Let _result_ be Call(_read_.[[Value]], _reader_).
+  1. If _result_ is an abrupt completion, return <a>a promise rejected with</a> _result_.[[Value]].
+  1. Return <a>a promise resolved with</a> _result_.[[Value]].
+</emu-alg>
+
+<h4 id="default-reader-asynciterator-prototype-return" method for="ReadableStreamDefaultReaderAsyncIteratorPrototype">
+return( <var>value</var> )</h4>
+
+<emu-alg>
+  1. If ! IsReadableStreamDefaultReaderAsyncIterator(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _reader_ be *this*.[[asyncIteratorReader]].
+  1. If *this*.[[preventCancel]] is *false*, then:
+    1. Let _cancel_ be GetMethod(_reader_, `"cancel"`).
+    1. If _cancel_ is an abrupt completion, return <a>a promise rejected with</a> _cancel_.[[Value]].
+    1. Let _result_ be Call(_cancel_.[[Value]], _reader_, &laquo; _value_ &raquo;).
+    1. If _result_ is an abrupt completion, return <a>a promise rejected with</a> _result_.[[Value]].
+  1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_value_, *true*, *true*).
 </emu-alg>
 
 <h3 id="byob-reader-class" interface lt="ReadableStreamBYOBReader">Class <code>ReadableStreamBYOBReader</code></h3>
@@ -1560,6 +1659,15 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
 <emu-alg>
   1. If Type(_x_) is not Object, return *false*.
   1. If _x_ does not have a [[readRequests]] internal slot, return *false*.
+  1. Return *true*.
+</emu-alg>
+
+<h4 id="is-readable-stream-default-reader-asynciterator-prototype" aoid="IsReadableStreamDefaultReaderAsyncIterator"
+nothrow>IsReadableStreamDefaultReaderAsyncIterator ( <var>x</var> )</h4>
+
+<emu-alg>
+  1. If Type(_x_) is not Object, return *false*.
+  1. If _x_ does not have a [[asyncIteratorReader]] internal slot, return *false*.
   1. Return *true*.
 </emu-alg>
 

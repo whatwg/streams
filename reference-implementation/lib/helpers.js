@@ -156,3 +156,15 @@ exports.MakeSizeAlgorithmFromSizeFunction = size => {
   }
   return chunk => size(chunk);
 };
+
+// https://tc39.github.io/ecma262/#sec-getmethod
+exports.GetMethod = (V, P) => {
+  const func = V[P];
+  if (func === undefined || func === null) {
+    return undefined;
+  }
+  if (typeof func !== 'function') {
+    throw new TypeError('func is not callable');
+  }
+  return func;
+};
