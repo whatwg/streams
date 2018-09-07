@@ -18,6 +18,8 @@ spec:promises-guide; type:dfn;
 <pre class="anchors">
 urlPrefix: https://tc39.github.io/ecma262/; spec: ECMASCRIPT
     text: %Uint8Array%; url: #sec-typedarray-objects; type: constructor
+    text: %AsyncIteratorPrototype%; url: #sec-asynciteratorprototype; type: interface
+    text: AsyncIterator; url: #sec-asynciterator-interface; type: interface
     text: ArrayBuffer; url: #sec-arraybuffer-objects; type: interface
     text: DataView; url: #sec-dataview-objects; type: interface
     text: Number; url: #sec-ecmascript-language-types-number-type; type: interface
