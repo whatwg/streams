@@ -267,7 +267,60 @@ class ReadableStream {
     const branches = ReadableStreamTee(this, false);
     return createArrayFromList(branches);
   }
+
+  getIterator({ preventCancel = false } = {}) {
+    if (IsReadableStream(this) === false) {
+      throw streamBrandCheckException('getIterator');
+    }
+    const reader = AcquireReadableStreamDefaultReader(this);
+    const iterator = Object.create(ReadableStreamAsyncIteratorPrototype);
+    iterator._asyncIteratorReader = reader;
+    iterator._preventCancel = Boolean(preventCancel);
+    return iterator;
+  }
 }
+
+const AsyncIteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf(async function* () {}).prototype);
+const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
+  next() {
+    if (IsReadableStreamAsyncIterator(this) === false) {
+      return Promise.reject(new TypeError());
+    }
+    const reader = this._asyncIteratorReader;
+    if (reader._ownerReadableStream === undefined) {
+      return Promise.reject(new TypeError());
+    }
+    return ReadableStreamDefaultReaderRead(reader, true);
+  },
+
+  return(value) {
+    if (IsReadableStreamAsyncIterator(this) === false) {
+      return Promise.reject(new TypeError());
+    }
+    const reader = this._asyncIteratorReader;
+    if (this.preventCancel === false) {
+      if (reader._ownerReadableStream === undefined) {
+        return Promise.reject(new TypeError());
+      }
+      if (reader._readRequests.length > 0) {
+        return Promise.reject(new TypeError());
+      }
+      const result = ReadableStreamReaderGenericCancel(reader, value);
+      ReadableStreamReaderGenericRelease(reader);
+      return result.then(() => ReadableStreamCreateReadResult(value, true, true));
+    }
+    if (reader._ownerReadableStream === undefined) {
+      return Promise.reject(new TypeError());
+    }
+    if (reader._readRequests.length > 0) {
+      return Promise.reject(new TypeError());
+    }
+    ReadableStreamReaderGenericRelease(reader);
+    return Promise.resolve(ReadableStreamCreateReadResult(value, true, true));
+  }
+}, AsyncIteratorPrototype);
+
+ReadableStream.prototype[Symbol.asyncIterator] = ReadableStream.prototype.getIterator;
 
 module.exports = {
   CreateReadableByteStream,
@@ -358,6 +411,18 @@ function IsReadableStreamLocked(stream) {
   assert(IsReadableStream(stream) === true);
 
   if (stream._reader === undefined) {
+    return false;
+  }
+
+  return true;
+}
+
+function IsReadableStreamAsyncIterator(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_asyncIteratorReader')) {
     return false;
   }
 
