@@ -931,7 +931,7 @@ prototype, are created with the internal slots described in the following table:
 <h4 id="rs-asynciterator-prototype-next" method for="ReadableStreamAsyncIteratorPrototype">next()</h4>
 
 <emu-alg>
-  1. If ! IsReadableStreamAsyncIterator(*this*) is *false*, <a>a promise rejected with</a> *TypeError* exception.
+  1. If ! IsReadableStreamAsyncIterator(*this*) is *false*, return <a>a promise rejected with</a> *TypeError* exception.
   1. Let _reader_ be *this*.[[asyncIteratorReader]].
   1. If _reader_.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! ReadableStreamDefaultReaderRead(_reader_, *true*).

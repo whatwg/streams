@@ -284,36 +284,38 @@ const AsyncIteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf(async
 const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
   next() {
     if (IsReadableStreamAsyncIterator(this) === false) {
-      return Promise.reject(new TypeError());
+      return Promise.reject(streamAsyncIteratorBrandCheckException('next'));
     }
     const reader = this._asyncIteratorReader;
     if (reader._ownerReadableStream === undefined) {
-      return Promise.reject(new TypeError());
+      return Promise.reject(readerLockException('next'));
     }
     return ReadableStreamDefaultReaderRead(reader, true);
   },
 
   return(value) {
     if (IsReadableStreamAsyncIterator(this) === false) {
-      return Promise.reject(new TypeError());
+      return Promise.reject(streamAsyncIteratorBrandCheckException('next'));
     }
     const reader = this._asyncIteratorReader;
     if (this.preventCancel === false) {
       if (reader._ownerReadableStream === undefined) {
-        return Promise.reject(new TypeError());
+        return Promise.reject(readerLockException('next'));
       }
       if (reader._readRequests.length > 0) {
-        return Promise.reject(new TypeError());
+        return Promise.reject(new TypeError(
+          'Tried to release a reader lock when that reader has pending read() calls un-settled'));
       }
       const result = ReadableStreamReaderGenericCancel(reader, value);
       ReadableStreamReaderGenericRelease(reader);
       return result.then(() => ReadableStreamCreateReadResult(value, true, true));
     }
     if (reader._ownerReadableStream === undefined) {
-      return Promise.reject(new TypeError());
+      return Promise.reject(readerLockException('next'));
     }
     if (reader._readRequests.length > 0) {
-      return Promise.reject(new TypeError());
+      return Promise.reject(new TypeError(
+        'Tried to release a reader lock when that reader has pending read() calls un-settled'));
     }
     ReadableStreamReaderGenericRelease(reader);
     return Promise.resolve(ReadableStreamCreateReadResult(value, true, true));
@@ -2019,6 +2021,10 @@ function SetUpReadableStreamBYOBRequest(request, controller, view) {
 
 function streamBrandCheckException(name) {
   return new TypeError(`ReadableStream.prototype.${name} can only be used on a ReadableStream`);
+}
+
+function streamAsyncIteratorBrandCheckException(name) {
+  return new TypeError(`ReadableStreamAsyncIterator.${name} can only be used on a ReadableSteamAsyncIterator`);
 }
 
 // Helper functions for the readers.
