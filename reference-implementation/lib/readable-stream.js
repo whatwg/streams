@@ -288,7 +288,7 @@ const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
     }
     const reader = this._asyncIteratorReader;
     if (reader._ownerReadableStream === undefined) {
-      return Promise.reject(readerLockException('next'));
+      return Promise.reject(readerLockException('iterate'));
     }
     return ReadableStreamDefaultReaderRead(reader, true);
   },
@@ -298,24 +298,17 @@ const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
       return Promise.reject(streamAsyncIteratorBrandCheckException('next'));
     }
     const reader = this._asyncIteratorReader;
-    if (this.preventCancel === false) {
-      if (reader._ownerReadableStream === undefined) {
-        return Promise.reject(readerLockException('next'));
-      }
-      if (reader._readRequests.length > 0) {
-        return Promise.reject(new TypeError(
-          'Tried to release a reader lock when that reader has pending read() calls un-settled'));
-      }
-      const result = ReadableStreamReaderGenericCancel(reader, value);
-      ReadableStreamReaderGenericRelease(reader);
-      return result.then(() => ReadableStreamCreateReadResult(value, true, true));
-    }
     if (reader._ownerReadableStream === undefined) {
-      return Promise.reject(readerLockException('next'));
+      return Promise.reject(readerLockException('finish iterating'));
     }
     if (reader._readRequests.length > 0) {
       return Promise.reject(new TypeError(
         'Tried to release a reader lock when that reader has pending read() calls un-settled'));
+    }
+    if (this._preventCancel === false) {
+      const result = ReadableStreamReaderGenericCancel(reader, value);
+      ReadableStreamReaderGenericRelease(reader);
+      return result.then(() => ReadableStreamCreateReadResult(value, true, true));
     }
     ReadableStreamReaderGenericRelease(reader);
     return Promise.resolve(ReadableStreamCreateReadResult(value, true, true));

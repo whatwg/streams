@@ -943,16 +943,13 @@ for="ReadableStreamAsyncIteratorPrototype">return( <var>value</var> )</h4>
 <emu-alg>
   1. If ! IsReadableStreamAsyncIterator(*this*) is *false*, return <a>a promise rejected with</a> *TypeError* exception.
   1. Let _reader_ be *this*.[[asyncIteratorReader]].
+  1. If _reader_.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If _reader_.[[readRequests]] is not empty, return <a>a promise rejected with</a> a *TypeError* exception.
   1. If *this*.[[preventCancel]] is *false*, then:
-    1. If _reader_.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError*
-    exception.
-    1. If _reader_.[[readRequests]] is not empty, return <a>a promise rejected with</a> a *TypeError* exception.
     1. Let _result_ be ! ReadableStreamReaderGenericCancel(_reader_, _value_).
     1. Perform ! ReadableStreamReaderGenericRelease(_reader_).
     1. Return the result of <a>transforming</a> _result_ by a fulfillment handler that returns !
     ReadableStreamCreateReadResult(_value_, *true*, *true*).
-  1. If _reader_.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
-  1. If _reader_.[[readRequests]] is not empty, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Perform ! ReadableStreamReaderGenericRelease(_reader_).
   1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_value_, *true*, *true*).
 </emu-alg>
