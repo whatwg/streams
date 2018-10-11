@@ -2,10 +2,11 @@
   "root": true,
   "env": {
     "node": true,
+    "browser": true,
     "es6": true
   },
   "parserOptions": {
-    "ecmaVersion": 6
+    "ecmaVersion": 2018
   },
   "globals": {
     "ReadableStream": false,
@@ -13,7 +14,8 @@
     "TransformStream": false,
     "ByteLengthQueuingStrategy": false,
     "CountQueuingStrategy": false,
-    "GCController": false
+    "GCController": false,
+    "gc": false
   },
   "rules": {
     // Possible errors
