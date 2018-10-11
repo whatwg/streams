@@ -2016,7 +2016,10 @@ function newAbortError() {
     // Assume we're running under wpt-runner, and use a fake DOMException.
     return {
       code: 20,
-      name: 'AbortError'
+      name: 'AbortError',
+      constructor: {
+        name: 'DOMException'
+      }
     };
   }
 
