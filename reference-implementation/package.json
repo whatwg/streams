@@ -12,11 +12,12 @@
   "license": "(CC0-1.0 OR MIT)",
   "devDependencies": {
     "better-assert": "^1.0.2",
-    "debug": "^3.1.0",
+    "browserify": "^16.2.3",
+    "debug": "^4.1.0",
     "eslint": "^3.2.2",
     "minimatch": "^3.0.4",
-    "nyc": "^11.2.1",
-    "opener": "^1.4.2",
+    "nyc": "^13.0.1",
+    "opener": "^1.5.1",
     "wpt-runner": "^2.2.0"
   },
   "nyc": {
