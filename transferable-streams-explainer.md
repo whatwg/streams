@@ -42,6 +42,9 @@ onmessage = async (evt) => {
 Note that `w.postMessage(rs)` would not work. Streams can only be _transferred_, not _cloned_. Attempts to clone a
 stream will throw a DataCloneError.
 
+Once a stream has been transferred with `postMessage()` the original stream is locked and cannot be read or written.
+This is similar to how ArrayBuffers are neutered after they are transferred.
+
 Transferable streams are also useful in constructing responses for a service worker. See
 https://gist.github.com/domenic/ea5ebedffcee27f552e103963cf8585c/ for an example.
 
@@ -67,7 +70,8 @@ https://gist.github.com/domenic/ea5ebedffcee27f552e103963cf8585c/ for an example
 
 ## Alternatives
 
-*   It's possible to emulate this behaviour by using `postMessage()` directly. Existing techniques for moving work
+*   It's possible to emulate this behaviour by using `postMessage()` directly. See for example
+    [remote-web-streams](https://github.com/MattiasBuelens/remote-web-streams). Existing techniques for moving work
     off the main thread often resemble a subset of this functionality. However, it is clumsy and hard to work with. When
     in future the API is optimized, transferring a browser created stream (e.g., a fetch response body from the network)
     will be more efficient than manually using `postMessage()` on each chunk due to reduced copies and JavaScript calls.
