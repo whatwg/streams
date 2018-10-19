@@ -135,7 +135,7 @@ class ReadableStream {
     return new Promise((resolve, reject) => {
       if (signal !== undefined) {
         const abortAlgorithm = () => {
-          const error = newAbortError();
+          const error = new DOMException('Aborted', 'AbortError');
           const actions = [];
           if (preventAbort === false) {
             actions.push(() => {
@@ -2003,10 +2003,6 @@ function isAbortSignal(value) {
   } catch (e) {
     return false;
   }
-}
-
-function newAbortError() {
-  return new DOMException('AbortError');
 }
 
 function streamBrandCheckException(name) {
