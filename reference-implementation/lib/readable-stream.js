@@ -1,6 +1,5 @@
 'use strict';
-
-/* global AbortSignal:false, DOMException:false */
+/* global AbortSignal:false */
 
 const assert = require('better-assert');
 const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativeNumber, InvokeOrNoop,
@@ -1996,11 +1995,6 @@ function isAbortSignal(value) {
     return false;
   }
 
-  if (typeof AbortSignal === 'undefined') {
-    // Assume we're running under wpt-runner, and use a fake brand check.
-    return value[Symbol.toStringTag] === 'AbortSignal';
-  }
-
   // Use the brand check to distinguish a real AbortSignal from a fake one.
   const aborted = Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted').get;
   try {
@@ -2012,17 +2006,6 @@ function isAbortSignal(value) {
 }
 
 function newAbortError() {
-  if (typeof DOMException === 'undefined') {
-    // Assume we're running under wpt-runner, and use a fake DOMException.
-    return {
-      code: 20,
-      name: 'AbortError',
-      constructor: {
-        name: 'DOMException'
-      }
-    };
-  }
-
   return new DOMException('AbortError');
 }
 
