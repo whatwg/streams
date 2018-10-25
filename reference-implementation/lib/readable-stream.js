@@ -133,8 +133,9 @@ class ReadableStream {
     let currentWrite = Promise.resolve();
 
     return new Promise((resolve, reject) => {
+      let abortAlgorithm;
       if (signal !== undefined) {
-        const abortAlgorithm = () => {
+        abortAlgorithm = () => {
           const error = new DOMException('Aborted', 'AbortError');
           const actions = [];
           if (preventAbort === false) {
@@ -288,6 +289,9 @@ class ReadableStream {
         WritableStreamDefaultWriterRelease(writer);
         ReadableStreamReaderGenericRelease(reader);
 
+        if (signal !== undefined) {
+          signal.removeEventListener('abort', abortAlgorithm);
+        }
         if (isError) {
           reject(error);
         } else {
