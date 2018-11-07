@@ -1,8 +1,11 @@
 'use strict';
+/* global AbortSignal:false */
+
 const assert = require('better-assert');
 const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativeNumber, InvokeOrNoop,
         IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
-        MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject } = require('./helpers.js');
+        MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject, WaitForAllPromise } =
+      require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
@@ -97,7 +100,7 @@ class ReadableStream {
     return readable;
   }
 
-  pipeTo(dest, { preventClose, preventAbort, preventCancel } = {}) {
+  pipeTo(dest, { preventClose, preventAbort, preventCancel, signal } = {}) {
     if (IsReadableStream(this) === false) {
       return Promise.reject(streamBrandCheckException('pipeTo'));
     }
@@ -109,6 +112,10 @@ class ReadableStream {
     preventClose = Boolean(preventClose);
     preventAbort = Boolean(preventAbort);
     preventCancel = Boolean(preventCancel);
+
+    if (signal !== undefined && !isAbortSignal(signal)) {
+      return Promise.reject(new TypeError('ReadableStream.prototype.pipeTo\'s signal option must be an AbortSignal'));
+    }
 
     if (IsReadableStreamLocked(this) === true) {
       return Promise.reject(new TypeError('ReadableStream.prototype.pipeTo cannot be used on a locked ReadableStream'));
@@ -126,6 +133,38 @@ class ReadableStream {
     let currentWrite = Promise.resolve();
 
     return new Promise((resolve, reject) => {
+      let abortAlgorithm;
+      if (signal !== undefined) {
+        abortAlgorithm = () => {
+          const error = new DOMException('Aborted', 'AbortError');
+          const actions = [];
+          if (preventAbort === false) {
+            actions.push(() => {
+              if (dest._state === 'writable') {
+                return WritableStreamAbort(dest, error);
+              }
+              return Promise.resolve();
+            });
+          }
+          if (preventCancel === false) {
+            actions.push(() => {
+              if (this._state === 'readable') {
+                return ReadableStreamCancel(this, error);
+              }
+              return Promise.resolve();
+            });
+          }
+          shutdownWithAction(() => WaitForAllPromise(actions.map(action => action()), results => results), true, error);
+        };
+
+        if (signal.aborted === true) {
+          abortAlgorithm();
+          return;
+        }
+
+        signal.addEventListener('abort', abortAlgorithm);
+      }
+
       // Using reader and writer, read all chunks from this and write them to dest
       // - Backpressure must be enforced
       // - Shutdown must stop all activity
@@ -250,6 +289,9 @@ class ReadableStream {
         WritableStreamDefaultWriterRelease(writer);
         ReadableStreamReaderGenericRelease(reader);
 
+        if (signal !== undefined) {
+          signal.removeEventListener('abort', abortAlgorithm);
+        }
         if (isError) {
           reject(error);
         } else {
@@ -1951,6 +1993,21 @@ function SetUpReadableStreamBYOBRequest(request, controller, view) {
 }
 
 // Helper functions for the ReadableStream.
+
+function isAbortSignal(value) {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  // Use the brand check to distinguish a real AbortSignal from a fake one.
+  const aborted = Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted').get;
+  try {
+    aborted.call(value);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 function streamBrandCheckException(name) {
   return new TypeError(`ReadableStream.prototype.${name} can only be used on a ReadableStream`);

@@ -156,3 +156,67 @@ exports.MakeSizeAlgorithmFromSizeFunction = size => {
   }
   return chunk => size(chunk);
 };
+
+exports.PerformPromiseThen = (promise, onFulfilled, onRejected) => {
+  // There doesn't appear to be any way to correctly emulate the behaviour from JavaScript, so this is just an
+  // approximation.
+  return Promise.prototype.then.call(promise, onFulfilled, onRejected);
+};
+
+exports.WaitForAll = (promises, successSteps, failureSteps) => {
+  let rejected = false;
+  const rejectionHandler = arg => {
+    if (rejected === false) {
+      rejected = true;
+      failureSteps(arg);
+    }
+  };
+  let index = 0;
+  let fulfilledCount = 0;
+  const total = promises.length;
+  const result = new Array(total);
+  for (const promise of promises) {
+    const promiseIndex = index;
+    const fulfillmentHandler = arg => {
+      result[promiseIndex] = arg;
+      ++fulfilledCount;
+      if (fulfilledCount === total) {
+        successSteps(result);
+      }
+    };
+    exports.PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler);
+    ++index;
+  }
+};
+
+exports.WaitForAllPromise = (promises, successSteps, failureSteps = undefined) => {
+  let resolvePromise;
+  let rejectPromise;
+  const promise = new Promise((resolve, reject) => {
+    resolvePromise = resolve;
+    rejectPromise = reject;
+  });
+  if (failureSteps === undefined) {
+    failureSteps = arg => {
+      throw arg;
+    };
+  }
+  const successStepsWrapper = results => {
+    try {
+      const stepsResult = successSteps(results);
+      resolvePromise(stepsResult);
+    } catch (e) {
+      rejectPromise(e);
+    }
+  };
+  const failureStepsWrapper = reason => {
+    try {
+      const stepsResult = failureSteps(reason);
+      resolvePromise(stepsResult);
+    } catch (e) {
+      rejectPromise(e);
+    }
+  };
+  exports.WaitForAll(promises, successStepsWrapper, failureStepsWrapper);
+  return promise;
+};
