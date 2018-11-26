@@ -625,9 +625,9 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
 
 <emu-alg>
   1. If ! IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. If _mode_ is *undefined*, return ? AcquireReadableStreamDefaultReader(*this*).
+  1. If _mode_ is *undefined*, return ? Construct(`<a idl>ReadableStreamDefaultReader</a>`, « *this* »).
   1. Set _mode_ to ? ToString(_mode_).
-  1. If _mode_ is `"byob"`, return ? AcquireReadableStreamBYOBReader(*this*).
+  1. If _mode_ is `"byob"`, return ? Construct(`<a idl>ReadableStreamBYOBReader</a>`, « *this* »).
   1. Throw a *RangeError* exception.
 </emu-alg>
 
@@ -902,7 +902,9 @@ This abstract operation is meant to be called from other specifications that may
 for a given stream.
 
 <emu-alg>
-  1. Return ? Construct(`<a idl>ReadableStreamBYOBReader</a>`, « _stream_ »).
+  1. Let _reader_ be ? Construct(`<a idl>ReadableStreamBYOBReader</a>`, « _stream_ »).
+  1. Set _reader_.[[forAuthorCode]] to *false*.
+  1. Return _reader_.
 </emu-alg>
 
 <h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamDefaultReader" throws
@@ -912,7 +914,9 @@ This abstract operation is meant to be called from other specifications that may
 reader</a> for a given stream.
 
 <emu-alg>
-  1. Return ? Construct(`<a idl>ReadableStreamDefaultReader</a>`, « _stream_ »).
+  1. Let _reader_ be ? Construct(`<a idl>ReadableStreamDefaultReader</a>`, « _stream_ »).
+  1. Set _reader_.[[forAuthorCode]] to *false*.
+  1. Return _reader_.
 </emu-alg>
 
 <h4 id="create-readable-stream" aoid="CreateReadableStream" throws export>CreateReadableStream (
@@ -1113,25 +1117,25 @@ implementations to affect their associated {{ReadableStream}} object. This trans
 controller into developer-facing results visible through the {{ReadableStream}}'s public API.
 
 <h4 id="readable-stream-add-read-into-request" aoid="ReadableStreamAddReadIntoRequest"
-nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var>, <var>forAuthorCode</var> )</h4>
+nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var> )</h4>
 
 <emu-alg>
   1. Assert: ! IsReadableStreamBYOBReader(_stream_.[[reader]]) is *true*.
   1. Assert: _stream_.[[state]] is `"readable"` or `"closed"`.
   1. Let _promise_ be <a>a new promise</a>.
-  1. Let _readIntoRequest_ be Record {[[promise]]: _promise_, [[forAuthorCode]]: _forAuthorCode_}.
+  1. Let _readIntoRequest_ be Record {[[promise]]: _promise_}.
   1. Append _readIntoRequest_ as the last element of _stream_.[[reader]].[[readIntoRequests]].
   1. Return _promise_.
 </emu-alg>
 
 <h4 id="readable-stream-add-read-request" aoid="ReadableStreamAddReadRequest" nothrow>ReadableStreamAddReadRequest (
-<var>stream</var>, <var>forAuthorCode</var> )</h4>
+<var>stream</var> )</h4>
 
 <emu-alg>
   1. Assert: ! IsReadableStreamDefaultReader(_stream_.[[reader]]) is *true*.
   1. Assert: _stream_.[[state]] is `"readable"`.
   1. Let _promise_ be <a>a new promise</a>.
-  1. Let _readRequest_ be Record {[[promise]]: _promise_, [[forAuthorCode]]: _forAuthorCode_}.
+  1. Let _readRequest_ be Record {[[promise]]: _promise_}.
   1. Append _readRequest_ as the last element of _stream_.[[reader]].[[readRequests]].
   1. Return _promise_.
 </emu-alg>
@@ -1157,8 +1161,7 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var>, <var>forAuthorCode
   1. If _reader_ is *undefined*, return.
   1. If ! IsReadableStreamDefaultReader(_reader_) is *true*,
     1. Repeat for each _readRequest_ that is an element of _reader_.[[readRequests]],
-      1. <a>Resolve</a> _readRequest_.[[promise]] with ! ReadableStreamCreateReadResult(*undefined*, *true*,
-         _readRequest_.[[forAuthorCode]]).
+      1. <a>Resolve</a> _readRequest_.[[promise]] with ! ReadableStreamCreateReadResult(*undefined*, *true*, _reader_).
     1. Set _reader_.[[readRequests]] to an empty List.
   1. <a>Resolve</a> _reader_.[[closedPromise]] with *undefined*.
 </emu-alg>
@@ -1172,10 +1175,10 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var>, <var>forAuthorCode
 </div>
 
 <h4 id="readable-stream-create-read-result" aoid="ReadableStreamCreateReadResult" nothrow>ReadableStreamCreateReadResult
-( <var>value</var>, <var>done</var>, <var>forAuthorCode</var> )</h4>
+( <var>value</var>, <var>done</var>, <var>reader</var> )</h4>
 
 <div class="note" id="rs-read-result-for-author-code">
-  When <var>forAuthorCode</var> is <emu-val>true</emu-val>, this abstract operation gives the same result
+  When <var>reader</var>.\[[forAuthorCode]] is <emu-val>true</emu-val>, this abstract operation gives the same result
   as <a abstract-op>CreateIterResultObject</a>(<var>value</var>, <var>done</var>). This provides the expected semantics
   when the object is to be returned from the {{ReadableStreamDefaultReader/read()|defaultReader.read()}} or
   {{ReadableStreamBYOBReader/read()|byobReader.read()}} methods.
@@ -1183,8 +1186,9 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var>, <var>forAuthorCode
   However, resolving promises with such objects will unavoidably result in an access to
   <code>Object.prototype.then</code>. For internal use, particularly in {{ReadableStream/pipeTo()}} and in other
   specifications, it is important that reads not be observable by author code—even if that author code has tampered with
-  <code>Object.prototype</code>. For this reason, a <emu-val>false</emu-val> value of <var>forAuthorCode</var> results
-  in an object with a <emu-val>null</emu-val> prototype, keeping promise resolution unobservable.
+  <code>Object.prototype</code>. For this reason, a <emu-val>false</emu-val> value of
+  <var>reader</var>.\[[forAuthorCode]] results in an object with a <emu-val>null</emu-val> prototype, keeping promise
+  resolution unobservable.
 
   The underlying issue here is that reading from streams always uses promises for <code>{ value, done }</code> objects,
   even in specifications. Although it is conceivable we could rephrase all of the internal algorithms to not use
@@ -1195,7 +1199,7 @@ nothrow>ReadableStreamAddReadIntoRequest ( <var>stream</var>, <var>forAuthorCode
 
 <emu-alg>
   1. Let _prototype_ be *null*.
-  1. If _forAuthorCode_ is *true*, set _prototype_ to %ObjectPrototype%.
+  1. If _reader_.[[forAuthorCode]] is *true*, set _prototype_ to %ObjectPrototype%.
   1. Assert: Type(_done_) is Boolean.
   1. Let _obj_ be ObjectCreate(_prototype_).
   1. Perform CreateDataProperty(_obj_, `"value"`, _value_).
@@ -1234,8 +1238,7 @@ nothrow>ReadableStreamFulfillReadIntoRequest ( <var>stream</var>, <var>chunk</va
   1. Let _readIntoRequest_ be the first element of _reader_.[[readIntoRequests]].
   1. Remove _readIntoRequest_ from _reader_.[[readIntoRequests]], shifting all other elements downward (so that the
      second becomes the first, and so on).
-  1. <a>Resolve</a> _readIntoRequest_.[[promise]] with ! ReadableStreamCreateReadResult(_chunk_, _done_,
-     _readIntoRequest_.[[forAuthorCode]]).
+  1. <a>Resolve</a> _readIntoRequest_.[[promise]] with ! ReadableStreamCreateReadResult(_chunk_, _done_, _reader_).
 </emu-alg>
 
 <h4 id="readable-stream-fulfill-read-request" aoid="ReadableStreamFulfillReadRequest"
@@ -1246,8 +1249,7 @@ nothrow>ReadableStreamFulfillReadRequest ( <var>stream</var>, <var>chunk</var>, 
   1. Let _readRequest_ be the first element of _reader_.[[readRequests]].
   1. Remove _readRequest_ from _reader_.[[readRequests]], shifting all other elements downward (so that the second
      becomes the first, and so on).
-  1. <a>Resolve</a> _readRequest_.[[promise]] with ! ReadableStreamCreateReadResult(_chunk_, _done_,
-     _readRequest_.[[forAuthorCode]]).
+  1. <a>Resolve</a> _readRequest_.[[promise]] with ! ReadableStreamCreateReadResult(_chunk_, _done_, _reader_).
 </emu-alg>
 
 <h4 id="readable-stream-get-num-read-into-requests" aoid="ReadableStreamGetNumReadIntoRequests"
@@ -1327,6 +1329,10 @@ Instances of {{ReadableStreamDefaultReader}} are created with the internal slots
   <tr>
     <td>\[[closedPromise]]
     <td class="non-normative">A promise returned by the reader's {{ReadableStreamDefaultReader/closed}} getter
+  </tr>
+  <tr>
+    <td>\[[forAuthorCode]]
+    <td class="non-normative">A boolean flag indicating whether this reader is visible to author code
   </tr>
   <tr>
     <td>\[[ownerReadableStream]]
@@ -1471,6 +1477,10 @@ Instances of {{ReadableStreamBYOBReader}} are created with the internal slots de
     <td class="non-normative">A promise returned by the reader's {{ReadableStreamBYOBReader/closed}} getter
   </tr>
   <tr>
+    <td>\[[forAuthorCode]]
+    <td class="non-normative">A boolean flag indicating whether this reader is visible to author code
+  </tr>
+  <tr>
     <td>\[[ownerReadableStream]]
     <td class="non-normative">A {{ReadableStream}} instance that owns this reader
   </tr>
@@ -1609,6 +1619,7 @@ nothrow>ReadableStreamReaderGenericCancel ( <var>reader</var>, <var>reason</var>
 nothrow>ReadableStreamReaderGenericInitialize ( <var>reader</var>, <var>stream</var> )</h4>
 
 <emu-alg>
+  1. Set _reader_.[[forAuthorCode]] to *true*.
   1. Set _reader_.[[ownerReadableStream]] to _stream_.
   1. Set _stream_.[[reader]] to _reader_.
   1. If _stream_.[[state]] is `"readable"`,
@@ -1636,35 +1647,28 @@ nothrow>ReadableStreamReaderGenericRelease ( <var>reader</var> )</h4>
 </emu-alg>
 
 <h4 id="readable-stream-byob-reader-read" aoid="ReadableStreamBYOBReaderRead" nothrow>ReadableStreamBYOBReaderRead
-( <var>reader</var>, <var>view</var> [, <var>forAuthorCode</var> ] )</h4>
+( <var>reader</var>, <var>view</var> )</h4>
 
 <emu-alg>
-  1. If _forAuthorCode_ was not passed, set it to *false*.
   1. Let _stream_ be _reader_.[[ownerReadableStream]].
   1. Assert: _stream_ is not *undefined*.
   1. Set _stream_.[[disturbed]] to *true*.
   1. If _stream_.[[state]] is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
-  1. Return ! ReadableByteStreamControllerPullInto(_stream_.[[readableStreamController]], _view_, _forAuthorCode_).
+  1. Return ! ReadableByteStreamControllerPullInto(_stream_.[[readableStreamController]], _view_).
 </emu-alg>
 
 <h4 id="readable-stream-default-reader-read" aoid="ReadableStreamDefaultReaderRead" nothrow
-export>ReadableStreamDefaultReaderRead ( <var>reader</var> [, <var>forAuthorCode</var> ] )</h4>
-
-<p class="note">Other specifications ought to leave <var>forAuthorCode</var> as its default value of
-<emu-val>false</emu-val>, unless they are planning to directly expose the resulting <code>{ value, done }</code> object
-to authors. See <a href="#rs-read-result-for-author-code">the note regarding ReadableStreamCreateReadResult</a> for more
-information.</p>
+export>ReadableStreamDefaultReaderRead ( <var>reader</var> )</h4>
 
 <emu-alg>
-  1. If _forAuthorCode_ was not passed, set it to *false*.
   1. Let _stream_ be _reader_.[[ownerReadableStream]].
   1. Assert: _stream_ is not *undefined*.
   1. Set _stream_.[[disturbed]] to *true*.
   1. If _stream_.[[state]] is `"closed"`, return <a>a promise resolved with</a> !
-     ReadableStreamCreateReadResult(*undefined*, *true*, _forAuthorCode_).
+     ReadableStreamCreateReadResult(*undefined*, *true*, _reader_).
   1. If _stream_.[[state]] is `"errored"`, return <a>a promise rejected with</a> _stream_.[[storedError]].
   1. Assert: _stream_.[[state]] is `"readable"`.
-  1. Return ! _stream_.[[readableStreamController]].<a abstract-op>[[PullSteps]]</a>(_forAuthorCode_).
+  1. Return ! _stream_.[[readableStreamController]].<a abstract-op>[[PullSteps]]</a>().
 </emu-alg>
 
 <h3 id="rs-default-controller-class" interface lt="ReadableStreamDefaultController">Class
@@ -1840,7 +1844,7 @@ readable stream implementation will polymorphically call to either these or thei
   1. Return _result_.
 </emu-alg>
 
-<h5 id="rs-default-controller-private-pull"><a abstract-op>\[[PullSteps]]</a>( <var>forAuthorCode</var> )</h5>
+<h5 id="rs-default-controller-private-pull"><a abstract-op>\[[PullSteps]]</a>( )</h5>
 
 <emu-alg>
   1. Let _stream_ be *this*.[[controlledReadableStream]].
@@ -1850,8 +1854,8 @@ readable stream implementation will polymorphically call to either these or thei
       1. Perform ! ReadableStreamDefaultControllerClearAlgorithms(*this*).
       1. Perform ! ReadableStreamClose(_stream_).
     1. Otherwise, perform ! ReadableStreamDefaultControllerCallPullIfNeeded(*this*).
-    1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_chunk_, *false*, _forAuthorCode_).
-  1. Let _pendingPromise_ be ! ReadableStreamAddReadRequest(_stream_, _forAuthorCode_).
+    1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_chunk_, *false*, _stream_.[[reader]]).
+  1. Let _pendingPromise_ be ! ReadableStreamAddReadRequest(_stream_).
   1. Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(*this*).
   1. Return _pendingPromise_.
 </emu-alg>
@@ -2281,7 +2285,7 @@ readable stream implementation will polymorphically call to either these or thei
   1. Return _result_.
 </emu-alg>
 
-<h5 id="rbs-controller-private-pull"><a abstract-op>\[[PullSteps]]</a>( <var>forAuthorCode</var> )</h5>
+<h5 id="rbs-controller-private-pull"><a abstract-op>\[[PullSteps]]</a>( )</h5>
 
 <emu-alg>
   1. Let _stream_ be *this*.[[controlledReadableByteStream]].
@@ -2295,7 +2299,7 @@ readable stream implementation will polymorphically call to either these or thei
     1. Perform ! ReadableByteStreamControllerHandleQueueDrain(*this*).
     1. Let _view_ be ! Construct(<a idl>%Uint8Array%</a>, « _entry_.[[buffer]], _entry_.[[byteOffset]],
        _entry_.[[byteLength]] »).
-    1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_view_, *false*, _forAuthorCode_).
+    1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_view_, *false*, _stream_.[[reader]]).
   1. Let _autoAllocateChunkSize_ be *this*.[[autoAllocateChunkSize]].
   1. If _autoAllocateChunkSize_ is not *undefined*,
     1. Let _buffer_ be Construct(%ArrayBuffer%, « _autoAllocateChunkSize_ »).
@@ -2304,7 +2308,7 @@ readable stream implementation will polymorphically call to either these or thei
        _autoAllocateChunkSize_, [[bytesFilled]]: *0*, [[elementSize]]: *1*, [[ctor]]: <a idl>%Uint8Array%</a>,
        [[readerType]]: `"default"`}.
     1. Append _pullIntoDescriptor_ as the last element of *this*.[[pendingPullIntos]].
-  1. Let _promise_ be ! ReadableStreamAddReadRequest(_stream_, _forAuthorCode_).
+  1. Let _promise_ be ! ReadableStreamAddReadRequest(_stream_).
   1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(*this*).
   1. Return _promise_.
 </emu-alg>
@@ -2671,7 +2675,7 @@ nothrow>ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue ( <var>
 </emu-alg>
 
 <h4 id="readable-byte-stream-controller-pull-into" aoid="ReadableByteStreamControllerPullInto"
-nothrow>ReadableByteStreamControllerPullInto ( <var>controller</var>, <var>view</var>, <var>forAuthorCode</var> )</h4>
+nothrow>ReadableByteStreamControllerPullInto ( <var>controller</var>, <var>view</var> )</h4>
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
@@ -2690,21 +2694,21 @@ nothrow>ReadableByteStreamControllerPullInto ( <var>controller</var>, <var>view<
      [[ctor]]: _ctor_, [[readerType]]: `"byob"`}.
   1. If _controller_.[[pendingPullIntos]] is not empty,
     1. Append _pullIntoDescriptor_ as the last element of _controller_.[[pendingPullIntos]].
-    1. Return ! ReadableStreamAddReadIntoRequest(_stream_, _forAuthorCode_).
+    1. Return ! ReadableStreamAddReadIntoRequest(_stream_).
   1. If _stream_.[[state]] is `"closed"`,
     1. Let _emptyView_ be ! Construct(_ctor_, « _pullIntoDescriptor_.[[buffer]], _pullIntoDescriptor_.[[byteOffset]], *0* »).
-    1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_emptyView_, *true*, _forAuthorCode_).
+    1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_emptyView_, *true*, _stream_.[[reader]]).
   1. If _controller_.[[queueTotalSize]] > *0*,
     1. If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(_controller_, _pullIntoDescriptor_) is *true*,
       1. Let _filledView_ be ! ReadableByteStreamControllerConvertPullIntoDescriptor(_pullIntoDescriptor_).
       1. Perform ! ReadableByteStreamControllerHandleQueueDrain(_controller_).
-      1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_filledView_, *false*, _forAuthorCode_).
+      1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_filledView_, *false*, _stream_.[[reader]]).
     1. If _controller_.[[closeRequested]] is *true*,
       1. Let _e_ be a *TypeError* exception.
       1. Perform ! ReadableByteStreamControllerError(_controller_, _e_).
       1. Return <a>a promise rejected with</a> _e_.
   1. Append _pullIntoDescriptor_ as the last element of _controller_.[[pendingPullIntos]].
-  1. Let _promise_ be ! ReadableStreamAddReadIntoRequest(_stream_, _forAuthorCode_).
+  1. Let _promise_ be ! ReadableStreamAddReadIntoRequest(_stream_).
   1. Perform ! ReadableByteStreamControllerCallPullIfNeeded(_controller_).
   1. Return _promise_.
 </emu-alg>
