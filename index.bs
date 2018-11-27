@@ -400,7 +400,8 @@ like
 
     <a href="#rs-cancel">cancel</a>(reason)
     <a href="#rs-get-reader">getReader</a>()
-    <a href="#rs-pipe-through">pipeThrough</a>({ writable, readable }, options)
+    <a href="#rs-pipe-through">pipeThrough</a>({ writable, readable },
+                { preventClose, preventAbort, preventCancel, signal } = {})
     <a href="#rs-pipe-to">pipeTo</a>(dest, { preventClose, preventAbort, preventCancel, signal } = {})
     <a href="#rs-tee">tee</a>()
   }
