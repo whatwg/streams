@@ -310,20 +310,34 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     // - Backpressure must be enforced
     // - Shutdown must stop all activity
     function pipeLoop() {
+      return new Promise((resolveLoop, rejectLoop) => {
+        function next(done) {
+          if (done) {
+            resolveLoop();
+          } else {
+            pipeStep().then(next, rejectLoop);
+          }
+        }
+
+        next(false);
+      });
+    }
+
+    function pipeStep() {
       if (shuttingDown === true) {
-        return Promise.resolve();
+        return Promise.resolve(true);
       }
 
       return writer._readyPromise.then(() => {
         return ReadableStreamDefaultReaderRead(reader).then(({ value, done }) => {
           if (done === true) {
-            return;
+            return true;
           }
 
           currentWrite = WritableStreamDefaultWriterWrite(writer, value).catch(() => {});
+          return false;
         });
-      })
-          .then(pipeLoop);
+      });
     }
 
     // Errors must be propagated forward
