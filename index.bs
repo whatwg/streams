@@ -677,7 +677,7 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
 <emu-alg>
   1. If ! IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
   1. If ! IsWritableStream(_writable_) is *false*, throw a *TypeError* exception.
-  1. If ! IsReadableStream(_readable_) is *false*, throw a *TypeError* exception
+  1. If ! IsReadableStream(_readable_) is *false*, throw a *TypeError* exception.
   1. Set _preventClose_ to ! ToBoolean(_preventClose_), set _preventAbort_ to ! ToBoolean(_preventAbort_), and set
      _preventCancel_ to ! ToBoolean(_preventCancel_).
   1. If _signal_ is not *undefined*, and _signal_ is not an instance of the `<a idl>AbortSignal</a>` interface, throw a
@@ -4584,7 +4584,7 @@ algorithms do not need to check stream states when responding to an error condit
 nothrow>TransformStreamErrorWritableAndUnblockWrite ( <var>stream</var>, <var>e</var> )</h4>
 
 <emu-alg>
-  1. Perform ! TransformStreamDefaultControllerClearAlgorithms(_stream_.[[transformStreamController]]);
+  1. Perform ! TransformStreamDefaultControllerClearAlgorithms(_stream_.[[transformStreamController]]).
   1. Perform ! WritableStreamDefaultControllerErrorIfNeeded(_stream_.[[writable]].[[writableStreamController]], _e_).
   1. If _stream_.[[backpressure]] is *true*, perform ! TransformStreamSetBackpressure(_stream_, *false*).
 </emu-alg>
