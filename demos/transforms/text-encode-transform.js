@@ -12,130 +12,149 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Prollyfill for Stream support for TextEncoder and TextDecoder
+// Polyfill for TextEncoderStream and TextDecoderStream
 
 (function() {
   'use strict';
 
-  const real = {
-    TextEncoder: self.TextEncoder,
-    TextDecoder: self.TextDecoder
-  };
+  if (typeof self.TextEncoderStream === 'function' &&
+      typeof self.TextDecoderStream === 'function') {
+    // The constructors exist. Assume that they work and don't replace them.
+    return;
+  }
 
-  class TextEncoder {
+  if (typeof self.TextEncoder !== 'function') {
+    throw new ReferenceError('TextEncoder implementation required');
+  }
+
+  if (typeof self.TextDecoder !== 'function') {
+    throw new ReferenceError('TextDecoder implementation required');
+  }
+
+  // These symbols end up being different for every realm, so mixing objects
+  // created in one realm with methods created in another fails.
+  const codec = Symbol('codec');
+  const transform = Symbol('transform');
+
+  class TextEncoderStream {
     constructor() {
-      this._realEncoder = new real.TextEncoder();
-      this._transform = undefined;
-    }
-
-    encode(input = '') {
-      if (this._transform !== undefined) {
-        // Do not permit encode() if readable or writable are locked.
-        this._transform.readable.getReader().releaseLock();
-        this._transform.writable.getWriter().releaseLock();
-      }
-      return this._realEncoder.encode(input);
-    }
-
-    get readable() {
-      if (this._transform === undefined) {
-        createEncodeTransform(this);
-      }
-      return this._transform.readable;
-    }
-
-    get writable() {
-      if (this._transform === undefined) {
-        createEncodeTransform(this);
-      }
-      return this._transform.writable;
+      this[codec] = new TextEncoder();
+      this[transform] =
+          new TransformStream(new TextEncodeTransformer(this[codec]));
     }
   }
 
-  class TextDecoder {
-    constructor(label = 'utf-8', options = {}) {
-      this._realDecoder = new real.TextDecoder(label, options);
-      this._transform = undefined;
-    }
-
-    get encoding() {
-      return this._realDecoder.encoding;
-    }
-
-    get fatal() {
-      return this._realDecoder.fatal;
-    }
-
-    get ignoreBOM() {
-      return this._realDecoder.ignoreBOM;
-    }
-
-    decode(input = undefined, options = {}) {
-      if (this._transform !== undefined) {
-        // Do not permit encode() if readable or writable are locked.
-        this._transform.readable.getReader().releaseLock();
-        this._transform.writable.getWriter().releaseLock();
-      }
-      return this._realDecoder.decode(input, options);
-    }
-
-    get readable() {
-      if (this._transform === undefined) {
-        createDecodeTransform(this);
-      }
-      return this._transform.readable;
-    }
-
-    get writable() {
-      if (this._transform === undefined) {
-        createDecodeTransform(this);
-      }
-      return this._transform.writable;
+  class TextDecoderStream {
+    constructor(label = undefined, options = undefined) {
+      this[codec] = new TextDecoder(label, options);
+      this[transform] = new TransformStream(
+          new TextDecodeTransformer(this[codec]));
     }
   }
+
+  // ECMAScript class syntax will create getters that are non-enumerable, but we
+  // need them to be enumerable in WebIDL-style, so we add them manually.
+  // "readable" and "writable" are always delegated to the TransformStream
+  // object. Properties specified in |properties| are delegated to the
+  // underlying TextEncoder or TextDecoder.
+  function addDelegatingProperties(prototype, properties) {
+    for (const transformProperty of ['readable', 'writable']) {
+      addGetter(prototype, transformProperty, function() {
+        return this[transform][transformProperty];
+      });
+    }
+
+    for (const codecProperty of properties) {
+      addGetter(prototype, codecProperty, function() {
+        return this[codec][codecProperty];
+      });
+    }
+  }
+
+  function addGetter(prototype, property, getter) {
+    Object.defineProperty(prototype, property,
+                          {
+                            configurable: true,
+                            enumerable: true,
+                            get: getter
+                          });
+  }
+
+  addDelegatingProperties(TextEncoderStream.prototype, ['encoding']);
+  addDelegatingProperties(TextDecoderStream.prototype,
+                          ['encoding', 'fatal', 'ignoreBOM']);
 
   class TextEncodeTransformer {
-    constructor(encoder) {
-      this._encoder = encoder;
+    constructor() {
+      this._encoder = new TextEncoder();
+      this._carry = undefined;
     }
 
     transform(chunk, controller) {
-      controller.enqueue(this._encoder.encode(chunk));
+      chunk = String(chunk);
+      if (this._carry !== undefined) {
+        chunk = this._carry + chunk;
+        this._carry = undefined;
+      }
+      const terminalCodeUnit = chunk.charCodeAt(chunk.length - 1);
+      if (terminalCodeUnit >= 0xD800 && terminalCodeUnit < 0xDC00) {
+        this._carry = chunk.substring(chunk.length - 1);
+        chunk = chunk.substring(0, chunk.length - 1);
+      }
+      const encoded = this._encoder.encode(chunk);
+      if (encoded.length > 0) {
+        controller.enqueue(encoded);
+      }
     }
-  }
 
-  function createEncodeTransform(textEncoder) {
-    textEncoder._transform = new TransformStream(new TextEncodeTransformer(textEncoder._realEncoder));
+    flush(controller) {
+      if (this._carry !== undefined) {
+        controller.enqueue(this._encoder.encode(this._carry));
+        this._carry = undefined;
+      }
+    }
   }
 
   class TextDecodeTransformer {
     constructor(decoder) {
-      this._decoder = decoder;
+      this._decoder = new TextDecoder(decoder.encoding, {
+        fatal: decoder.fatal,
+        ignoreBOM: decoder.ignoreBOM
+      });
     }
 
     transform(chunk, controller) {
-      controller.enqueue(this._decoder.decode(chunk, {stream: true}));
+      const decoded = this._decoder.decode(chunk, {stream: true});
+      if (decoded != '') {
+        controller.enqueue(decoded);
+      }
     }
 
     flush(controller) {
-      // If {fatal: false} in options (the default), then the final call to
+      // If {fatal: false} is in options (the default), then the final call to
       // decode() can produce extra output (usually the unicode replacement
       // character 0xFFFD). When fatal is true, this call is just used for its
-      // side-effect of throwing a TypeError exception if the input is incomplete.
+      // side-effect of throwing a TypeError exception if the input is
+      // incomplete.
       var output = this._decoder.decode();
       if (output !== '') {
         controller.enqueue(output);
       }
-      controller.close();
     }
   }
 
-  function createDecodeTransform(textDecoder) {
-    textDecoder._transform = new TransformStream(
-        new TextDecodeTransformer(textDecoder._realDecoder));
+  function exportAs(name, value) {
+    // Make it stringify as [object <name>] rather than [object Object].
+    value.prototype[Symbol.toStringTag] = name;
+    Object.defineProperty(self, name,
+                          {
+                            configurable: true,
+                            enumerable: false,
+                            writable: true,
+                            value
+                          });
   }
 
-  self['TextEncoder'] = TextEncoder;
-  self['TextDecoder'] = TextDecoder;
-
+  exportAs('TextEncoderStream', TextEncoderStream);
+  exportAs('TextDecoderStream', TextDecoderStream);
 })();

@@ -48,7 +48,7 @@ async function fetchDirectlyIntoDOM() {
                              });
 
   await response.body
-      .pipeThrough(new TextDecoder())
+      .pipeThrough(new TextDecoderStream())
       .pipeTo(targetDiv.writable);
 }
 // END SOURCE TO VIEW
