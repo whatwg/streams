@@ -43,7 +43,7 @@ async function streamDirectlyIntoDOM() {
                                });
 
   await response.body
-      .pipeThrough(new TextDecoder())
+      .pipeThrough(new TextDecoderStream())
       .pipeTo(targetDiv.writable);
 }
 
