@@ -5771,7 +5771,7 @@ source abstractions.
       return this._closeWS(4000, reason && reason.message);
     }
 
-    _closeWS(code, reason) {
+    _closeWS(code, reasonString) {
       return new Promise((resolve, reject) => {
         this._ws.onclose = e => {
           if (e.wasClean) {
@@ -5983,6 +5983,7 @@ Dominic Tarr,
 Ed Hager,
 Forbes Lindesay,
 Forrest Norvell,
+Gary Blackwood,
 Gorgi Kosev,
 贺师俊 (hax),
 Isaac Schlueter,
