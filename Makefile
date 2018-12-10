@@ -8,7 +8,7 @@ local: index.bs
 
 deploy: index.bs
 	curl --remote-name --fail https://resources.whatwg.org/build/deploy.sh
-	EXTRA_FILES="demos/**/*" \
+	EXTRA_FILES="demos/* demos/**/*" \
 	POST_BUILD_STEP='node_modules/.bin/emu-algify --throwing-indicators < "$$DIR/index.html" > "$$DIR/index.html.tmp"; mv "$$DIR/index.html.tmp" "$$DIR/index.html"' \
 	bash ./deploy.sh
 
