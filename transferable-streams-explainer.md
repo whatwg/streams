@@ -4,15 +4,15 @@
 ## Introduction
 
 The streams APIs provide ubiquitous, interoperable primitives for creating, composing, and consuming streams of data. A
-natural thing to want to do with a stream is pass it off to a web worker. This provides a fluent primitive for
-offloading work onto another thread.
+natural thing to want to do with a stream is pass it off to a web worker. This provides a building block that is easy
+and natural to use for offloading work onto another thread. Once you can speak the language of streams, you can use that
+same language to make use of a Worker.
 
 This work will permit streams to be transferred between workers, frames and anywhere else that `postMessage()` can be
 used. Chunks can be anything which is cloneable by `postMessage()`.
 
-Permit transferring a stream to other realms using `postMessage()`. Initially chunks enqueued in such a stream will
-always be cloned, ie. all data will be copied. Future work will extend the Streams APIs to support transferring objects
-(ie. zero copy).
+Initially chunks enqueued in such a stream will always be cloned, ie. all data will be copied. Future work will extend
+the Streams APIs to support transferring objects (ie. zero copy).
 
 This is an example of JavaScript which will work once this is implemented:
 
@@ -67,6 +67,11 @@ https://gist.github.com/domenic/ea5ebedffcee27f552e103963cf8585c/ for an example
 
 *   Performing expensive transformations off the main thread. Transcoding, for example.
 *   Synthesizing responses from a service worker.
+
+## End-user benefit
+
+*   By enabling developers to easily offload work onto other threads, this will increase the availability of responsive,
+    low-jank experiences to end users.
 
 ## Alternatives
 
