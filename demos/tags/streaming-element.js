@@ -16,6 +16,8 @@
 customElements.define('streaming-element', class StreamingElement extends HTMLElement {
   constructor() {
     super();
+    this._shadowRoot = this.attachShadow({ mode: 'closed' });
+    this._shadowRoot.appendChild(document.createElement('slot'));
     this.reset();
   }
 
@@ -26,7 +28,7 @@ customElements.define('streaming-element', class StreamingElement extends HTMLEl
     const iframeReady = new Promise(resolve => {
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
-      document.body.appendChild(iframe);
+      this._shadowRoot.appendChild(iframe);
 
       iframe.onload = () => {
         iframe.onload = null;
