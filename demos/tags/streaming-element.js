@@ -13,6 +13,18 @@
 // limitations under the License.
 'use strict';
 
+// TODO:
+// - Be webby: need to put writable as a getter on the prototype
+// - Use textContent instead of innerHTML because simpler/maybe more optimized
+// - Add onabort and onclose events---allows custom error display, footers, etc.
+// - Maybe backpressure; needs more discussion
+//   - Could maybe use display locking!?
+//   - Get scheduling/rendering team to help
+// - Additional modes and features:
+//   - Put the content into a shadow DOM (can't be styled from the outside)
+//   - Display lock the content (no incremental display, but the ultimate in no-jank streaming of content)
+
+
 customElements.define('streaming-element', class StreamingElement extends HTMLElement {
   constructor() {
     super();
