@@ -22,6 +22,7 @@ customElements.define('streaming-element', class StreamingElement extends HTMLEl
   reset() {
     this.innerHTML = '';
 
+    let mo;
     const iframeReady = new Promise(resolve => {
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
@@ -30,7 +31,17 @@ customElements.define('streaming-element', class StreamingElement extends HTMLEl
       iframe.onload = () => {
         iframe.onload = null;
         iframe.contentDocument.write('<streaming-element-inner>');
-        this.appendChild(iframe.contentDocument.querySelector('streaming-element-inner'));
+
+        const inner = iframe.contentDocument.querySelector('streaming-element-inner');
+        mo = new MutationObserver(mutations => {
+          for (const mutation of mutations) {
+            for(const node of mutation.addedNodes) {
+              this.appendChild(node);
+            }
+          }
+        });
+
+        mo.observe(inner, { childList: true });
         resolve(iframe);
       };
       iframe.src = '';
@@ -41,6 +52,7 @@ customElements.define('streaming-element', class StreamingElement extends HTMLEl
       iframe.contentDocument.write('</streaming-element-inner>');
       iframe.contentDocument.close();
       iframe.remove();
+      mo.disconnect();
     }
 
     this.writable = new WritableStream({
