@@ -71,7 +71,8 @@ https://gist.github.com/domenic/ea5ebedffcee27f552e103963cf8585c/ for an example
 ## End-user benefit
 
 *   By enabling developers to easily offload work onto other threads, this will increase the availability of responsive,
-    low-jank experiences to end users.
+    stutter-free experiences to end users. For example, a page that transcoded video using a new, CPU-intensive codec
+    could still respond snappily to user input by offloading the transcoding to another thread.
 
 ## Alternatives
 
