@@ -796,11 +796,11 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
   </code></pre>
 </div>
 
-<h5 id="rs-asynciterator" method for="ReadableStream">getIterator({ <var>preventCancel</var> = false } = {})</h5>
+<h5 id="rs-get-iterator" method for="ReadableStream">getIterator({ <var>preventCancel</var> = false } = {})</h5>
 
 <div class="note">
   The <code>getIterator</code> method returns an async iterator which can be used to consume the stream. The
-  {{ReadableStreamDefaultReaderAsyncIteratorPrototype/return()}} method of this iterator object will, by default,
+  {{ReadableStreamAsyncIteratorPrototype/return()}} method of this iterator object will, by default,
   <a lt="cancel a readable stream">cancel</a> the stream; it will also release the reader.
 </div>
 
@@ -817,7 +817,7 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
 <h5 id="rs-asynciterator" for="ReadableStream">[@@asyncIterator]()</h5>
 
 <p class="note">
-  The <code>@@asyncIterator</code> method is an alias of {{ReadableStreamDefaultReader/getIterator()}}.
+  The <code>@@asyncIterator</code> method is an alias of {{ReadableStream/getIterator()}}.
 </p>
 
 The initial value of the <code>@@asyncIterator</code> method is the same function object as the initial value of the
