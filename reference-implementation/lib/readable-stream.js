@@ -215,7 +215,12 @@ const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
   }
 }, AsyncIteratorPrototype);
 
-ReadableStream.prototype[Symbol.asyncIterator] = ReadableStream.prototype.getIterator;
+Object.defineProperty(ReadableStream.prototype, Symbol.asyncIterator, {
+  value: ReadableStream.prototype.getIterator,
+  enumerable: false,
+  writable: true,
+  configurable: true
+});
 
 module.exports = {
   CreateReadableByteStream,
