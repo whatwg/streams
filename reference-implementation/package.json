@@ -14,7 +14,7 @@
     "better-assert": "^1.0.2",
     "browserify": "^16.2.3",
     "debug": "^4.1.0",
-    "eslint": "^3.2.2",
+    "eslint": "^5.12.1",
     "minimatch": "^3.0.4",
     "nyc": "^13.0.1",
     "opener": "^1.5.1",
