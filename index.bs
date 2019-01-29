@@ -797,7 +797,7 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
   </code></pre>
 </div>
 
-<h5 id="rs-get-iterator" method for="ReadableStream">getIterator({ <var>preventCancel</var> = false } = {})</h5>
+<h5 id="rs-get-iterator" method for="ReadableStream">getIterator({ <var>preventCancel</var> } = {})</h5>
 
 <div class="note">
   The <code>getIterator</code> method returns an async iterator which can be used to consume the stream. The
@@ -815,7 +815,7 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
 </emu-alg>
 
 <!-- Bikeshed doesn't let us mark this up correctly: https://github.com/tabatkins/bikeshed/issues/1344 -->
-<h5 id="rs-asynciterator" for="ReadableStream">[@@asyncIterator]()</h5>
+<h5 id="rs-asynciterator" for="ReadableStream">[@@asyncIterator]({ <var>preventCancel</var> } = {})</h5>
 
 <p class="note">
   The <code>@@asyncIterator</code> method is an alias of {{ReadableStream/getIterator()}}.
