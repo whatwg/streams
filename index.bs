@@ -407,6 +407,7 @@ like
     <a href="#rs-pipe-to">pipeTo</a>(dest, { preventClose, preventAbort, preventCancel, signal } = {})
     <a href="#rs-tee">tee</a>()
 
+    <a href="#rs-get-iterator">getIterator</a>({ preventCancel } = {})
     <a href="#rs-asynciterator">[@@asyncIterator]</a>({ preventCancel } = {})
   }
 </code></pre>
