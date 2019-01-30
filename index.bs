@@ -402,7 +402,7 @@ like
 
     <a href="#rs-cancel">cancel</a>(reason)
     <a href="#rs-get-iterator">getIterator</a>({ preventCancel } = {})
-    <a href="#rs-get-reader">getReader</a>()
+    <a href="#rs-get-reader">getReader</a>({ mode } = {})
     <a href="#rs-pipe-through">pipeThrough</a>({ writable, readable },
                 { preventClose, preventAbort, preventCancel, signal } = {})
     <a href="#rs-pipe-to">pipeTo</a>(dest, { preventClose, preventAbort, preventCancel, signal } = {})
