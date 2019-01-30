@@ -401,13 +401,13 @@ like
     get <a href="#rs-locked">locked</a>()
 
     <a href="#rs-cancel">cancel</a>(reason)
+    <a href="#rs-get-iterator">getIterator</a>({ preventCancel } = {})
     <a href="#rs-get-reader">getReader</a>()
     <a href="#rs-pipe-through">pipeThrough</a>({ writable, readable },
                 { preventClose, preventAbort, preventCancel, signal } = {})
     <a href="#rs-pipe-to">pipeTo</a>(dest, { preventClose, preventAbort, preventCancel, signal } = {})
     <a href="#rs-tee">tee</a>()
 
-    <a href="#rs-get-iterator">getIterator</a>({ preventCancel } = {})
     <a href="#rs-asynciterator">[@@asyncIterator]</a>({ preventCancel } = {})
   }
 </code></pre>
@@ -607,6 +607,23 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
   1. Return ! ReadableStreamCancel(*this*, _reason_).
 </emu-alg>
 
+<h5 id="rs-get-iterator" method for="ReadableStream">getIterator({ <var>preventCancel</var> } = {})</h5>
+
+<div class="note">
+  The <code>getIterator</code> method returns an async iterator which can be used to consume the stream. The
+  {{ReadableStreamAsyncIteratorPrototype/return()}} method of this iterator object will, by default,
+  <a lt="cancel a readable stream">cancel</a> the stream; it will also release the reader.
+</div>
+
+<emu-alg>
+  1. If ! IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
+  1. Let _reader_ be ? AcquireReadableStreamDefaultReader(*this*).
+  1. Let _iterator_ be ! ObjectCreate(`<a idl>ReadableStreamAsyncIteratorPrototype</a>`).
+  1. Set _iterator_.[[asyncIteratorReader]] to _reader_.
+  1. Set _iterator_.[[preventCancel]] to ! ToBoolean(_preventCancel_).
+  1. Return _iterator_.
+</emu-alg>
+
 <h5 id="rs-get-reader" method for="ReadableStream">getReader({ <var ignore>mode</var> } = {})</h5>
 
 <div class="note">
@@ -796,23 +813,6 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
     .catch(e => console.error("Either caching or uploading failed: ", e));
   </code></pre>
 </div>
-
-<h5 id="rs-get-iterator" method for="ReadableStream">getIterator({ <var>preventCancel</var> } = {})</h5>
-
-<div class="note">
-  The <code>getIterator</code> method returns an async iterator which can be used to consume the stream. The
-  {{ReadableStreamAsyncIteratorPrototype/return()}} method of this iterator object will, by default,
-  <a lt="cancel a readable stream">cancel</a> the stream; it will also release the reader.
-</div>
-
-<emu-alg>
-  1. If ! IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. Let _reader_ be ? AcquireReadableStreamDefaultReader(*this*).
-  1. Let _iterator_ be ! ObjectCreate(`<a idl>ReadableStreamAsyncIteratorPrototype</a>`).
-  1. Set _iterator_.[[asyncIteratorReader]] to _reader_.
-  1. Set _iterator_.[[preventCancel]] to ! ToBoolean(_preventCancel_).
-  1. Return _iterator_.
-</emu-alg>
 
 <!-- Bikeshed doesn't let us mark this up correctly: https://github.com/tabatkins/bikeshed/issues/1344 -->
 <h5 id="rs-asynciterator" for="ReadableStream">[@@asyncIterator]({ <var>preventCancel</var> } = {})</h5>
