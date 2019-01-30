@@ -214,6 +214,8 @@ const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
     return Promise.resolve(ReadableStreamCreateReadResult(value, true, true));
   }
 }, AsyncIteratorPrototype);
+Object.defineProperty(ReadableStreamAsyncIteratorPrototype, 'next', { enumerable: false });
+Object.defineProperty(ReadableStreamAsyncIteratorPrototype, 'return', { enumerable: false });
 
 Object.defineProperty(ReadableStream.prototype, Symbol.asyncIterator, {
   value: ReadableStream.prototype.getIterator,
