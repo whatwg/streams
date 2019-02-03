@@ -160,7 +160,16 @@
     "id-blacklist": "off",
     "id-length": "off",
     "id-match": "off",
-    "indent": ["error", 2, { "SwitchCase": 1 }],
+    "indent": ["error", 2, {
+      "SwitchCase": 1,
+      "MemberExpression": 2,
+      "FunctionDeclaration": { "parameters": "first" },
+      "FunctionExpression": { "parameters": "first" },
+      "CallExpression": { "arguments": "first" },
+      "ArrayExpression": "first",
+      "ObjectExpression": "first",
+      "ImportDeclaration": "first"
+    }],
     "jsx-quotes": "off",
     "key-spacing": ["error", { "beforeColon": false, "afterColon": true, "mode": "strict" }],
     "keyword-spacing": ["error", { "before": true, "after": true }],
