@@ -827,7 +827,7 @@ The initial value of the <code>@@asyncIterator</code> method is the same functio
 <h3 id="rs-asynciterator-prototype" interface
 lt="ReadableStreamAsyncIteratorPrototype">ReadableStreamAsyncIteratorPrototype</h3>
 
-{{ReadableStreamAsyncIteratorPrototype}} is an ordinary object that is used by {{ReadableStream/[@@asyncIterator]()}} to
+{{ReadableStreamAsyncIteratorPrototype}} is an ordinary object that is used by {{ReadableStream/getIterator()}} to
 construct the objects it returns. Instances of {{ReadableStreamAsyncIteratorPrototype}} implement the {{AsyncIterator}}
 abstract interface from the JavaScript specification. [[!ECMASCRIPT]]
 
@@ -835,7 +835,7 @@ The {{ReadableStreamAsyncIteratorPrototype}} object must have its \[[Prototype]]
 {{%AsyncIteratorPrototype%}}.
 
 <h4 id="default-reader-asynciterator-prototype-internal-slots">Internal slots</h4>
-Objects created by {{ReadableStream/[@@asyncIterator]()}}, using {{ReadableStreamAsyncIteratorPrototype}} as their
+Objects created by {{ReadableStream/getIterator()}}, using {{ReadableStreamAsyncIteratorPrototype}} as their
 prototype, are created with the internal slots described in the following table:
 <table>
   <thead>
@@ -858,7 +858,7 @@ prototype, are created with the internal slots described in the following table:
 <h4 id="rs-asynciterator-prototype-next" method for="ReadableStreamAsyncIteratorPrototype">next()</h4>
 
 <emu-alg>
-  1. If ! IsReadableStreamAsyncIterator(*this*) is *false*, return <a>a promise rejected with</a> *TypeError* exception.
+  1. If ! IsReadableStreamAsyncIterator(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Let _reader_ be *this*.[[asyncIteratorReader]].
   1. If _reader_.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return the result of <a>transforming</a> ! ReadableStreamDefaultReaderRead(_reader_) with a fulfillment handler
@@ -875,7 +875,7 @@ prototype, are created with the internal slots described in the following table:
 for="ReadableStreamAsyncIteratorPrototype">return( <var>value</var> )</h4>
 
 <emu-alg>
-  1. If ! IsReadableStreamAsyncIterator(*this*) is *false*, return <a>a promise rejected with</a> *TypeError* exception.
+  1. If ! IsReadableStreamAsyncIterator(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Let _reader_ be *this*.[[asyncIteratorReader]].
   1. If _reader_.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. If _reader_.[[readRequests]] is not empty, return <a>a promise rejected with</a> a *TypeError* exception.
