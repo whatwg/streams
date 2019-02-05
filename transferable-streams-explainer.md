@@ -43,7 +43,10 @@ Note that `w.postMessage(rs)` would not work. Streams can only be _transferred_,
 stream will throw a DataCloneError.
 
 Once a stream has been transferred with `postMessage()` the original stream is locked and cannot be read or written.
-This is similar to how ArrayBuffers are neutered after they are transferred.
+This is similar to how ArrayBuffers are neutered after they are transferred. However, the code of the underlying source
+or sink is still running is still running in the original context. The benefits to user experience can be seen in [this
+demo of streaming digits of PI](https://glitch.com/edit/#!/streaming-pi?path=pi.js:1:0) (if you have a browser that
+supports transferable streams, you can see it live at https://streaming-pi.glitch.me/).
 
 Transferable streams are also useful in constructing responses for a service worker. See
 https://gist.github.com/domenic/ea5ebedffcee27f552e103963cf8585c/ for an example.
@@ -66,13 +69,23 @@ https://gist.github.com/domenic/ea5ebedffcee27f552e103963cf8585c/ for an example
 ## Use cases
 
 *   Performing expensive transformations off the main thread. Transcoding, for example.
-*   Synthesizing responses from a service worker.
+*   Synthesizing responses from a service worker. For example, generating a PDF from data in the DOM and streaming it to
+    the service worker where it can then be downloaded as a file.
+*   Processing a stream of data from an input device only accessible on the main thread. For example, uou could use
+    `MediaRecorder` to capture the audio of a user's microphone and/or the video of a user's camera, pipe the captured
+    data through a off-thread `TransformStream` to transcode it into a hypothetical new experimental media format and
+    then upload the resulting stream to a server.
+*   Displaying a stream of data that is expensive to generate on a web page. Inverting the previous example: you
+    download a stream of a video file encoded in an experimental media format, you transcode it to a natively supported
+    format in a worker, and finally you transfer the resulting stream to the main thread to play back the video using
+    `<video>` and `MediaSource`.
 
 ## End-user benefit
 
 *   By enabling developers to easily offload work onto other threads, this will increase the availability of responsive,
     stutter-free experiences to end users. For example, a page that transcoded video using a new, CPU-intensive codec
     could still respond snappily to user input by offloading the transcoding to another thread.
+*   The power multiplier of streams and threads could unlock whole new applications.
 
 ## Alternatives
 
