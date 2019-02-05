@@ -835,8 +835,10 @@ The {{ReadableStreamAsyncIteratorPrototype}} object must have its \[[Prototype]]
 {{%AsyncIteratorPrototype%}}.
 
 <h4 id="default-reader-asynciterator-prototype-internal-slots">Internal slots</h4>
+
 Objects created by {{ReadableStream/getIterator()}}, using {{ReadableStreamAsyncIteratorPrototype}} as their
 prototype, are created with the internal slots described in the following table:
+
 <table>
   <thead>
     <tr>
@@ -6090,6 +6092,7 @@ Forbes Lindesay,
 Forrest Norvell,
 Gary Blackwood,
 Gorgi Kosev,
+Gus Caplan,
 贺师俊 (hax),
 Isaac Schlueter,
 isonmad,
