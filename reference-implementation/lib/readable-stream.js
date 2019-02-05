@@ -498,8 +498,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
         action().then(
           () => finalize(originalIsError, originalError),
           newError => finalize(true, newError)
-        )
-            .catch(rethrowAssertionErrorRejection);
+        ).catch(rethrowAssertionErrorRejection);
       }
     }
 
@@ -1174,8 +1173,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
     e => {
       ReadableStreamDefaultControllerError(controller, e);
     }
-  )
-      .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 
   return undefined;
 }
@@ -1336,8 +1334,7 @@ function SetUpReadableStreamDefaultController(
     r => {
       ReadableStreamDefaultControllerError(controller, r);
     }
-  )
-      .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 }
 
 function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underlyingSource, highWaterMark,
@@ -1609,8 +1606,7 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
     e => {
       ReadableByteStreamControllerError(controller, e);
     }
-  )
-      .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 
   return undefined;
 }
@@ -2081,8 +2077,7 @@ function SetUpReadableByteStreamController(stream, controller, startAlgorithm, p
     r => {
       ReadableByteStreamControllerError(controller, r);
     }
-  )
-      .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 }
 
 function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyingByteSource, highWaterMark) {

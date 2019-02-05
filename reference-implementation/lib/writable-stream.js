@@ -779,8 +779,7 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
       controller._started = true;
       WritableStreamDealWithRejection(stream, r);
     }
-  )
-      .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 }
 
 function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyingSink, highWaterMark, sizeAlgorithm) {
@@ -903,8 +902,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
     reason => {
       WritableStreamFinishInFlightCloseWithError(stream, reason);
     }
-  )
-      .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 }
 
 function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
@@ -935,8 +933,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       }
       WritableStreamFinishInFlightWriteWithError(stream, reason);
     }
-  )
-      .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 }
 
 function WritableStreamDefaultControllerGetBackpressure(controller) {

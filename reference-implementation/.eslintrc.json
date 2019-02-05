@@ -162,7 +162,6 @@
     "id-match": "off",
     "indent": ["error", 2, {
       "SwitchCase": 1,
-      "MemberExpression": 2,
       "FunctionDeclaration": { "parameters": "first" },
       "FunctionExpression": { "parameters": "first" },
       "CallExpression": { "arguments": "first" },
