@@ -44,9 +44,9 @@ stream will throw a DataCloneError.
 
 Once a stream has been transferred with `postMessage()` the original stream is locked and cannot be read or written.
 This is similar to how ArrayBuffers are neutered after they are transferred. However, the code of the underlying source
-or sink is still running is still running in the original context. The benefits to user experience can be seen in [this
-demo of streaming digits of PI](https://glitch.com/edit/#!/streaming-pi?path=pi.js:1:0) (if you have a browser that
-supports transferable streams, you can see it live at https://streaming-pi.glitch.me/).
+or sink is still running in the original context. The benefits to user experience can be seen in [this demo of streaming
+digits of PI](https://glitch.com/edit/#!/streaming-pi?path=pi.js:1:0) (if you have a browser that supports transferable
+streams, you can see it live at https://streaming-pi.glitch.me/).
 
 Transferable streams are also useful in constructing responses for a service worker. See
 https://gist.github.com/domenic/ea5ebedffcee27f552e103963cf8585c/ for an example.
@@ -71,7 +71,7 @@ https://gist.github.com/domenic/ea5ebedffcee27f552e103963cf8585c/ for an example
 *   Performing expensive transformations off the main thread. Transcoding, for example.
 *   Synthesizing responses from a service worker. For example, generating a PDF from data in the DOM and streaming it to
     the service worker where it can then be downloaded as a file.
-*   Processing a stream of data from an input device only accessible on the main thread. For example, uou could use
+*   Processing a stream of data from an input device only accessible on the main thread. For example, you could use
     `MediaRecorder` to capture the audio of a user's microphone and/or the video of a user's camera, pipe the captured
     data through a off-thread `TransformStream` to transcode it into a hypothetical new experimental media format and
     then upload the resulting stream to a server.
