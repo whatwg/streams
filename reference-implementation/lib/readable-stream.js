@@ -129,7 +129,7 @@ class ReadableStream {
     }
     if (IsWritableStream(dest) === false) {
       return Promise.reject(
-          new TypeError('ReadableStream.prototype.pipeTo\'s first argument must be a WritableStream'));
+        new TypeError('ReadableStream.prototype.pipeTo\'s first argument must be a WritableStream'));
     }
 
     preventClose = Boolean(preventClose);
@@ -158,7 +158,71 @@ class ReadableStream {
     const branches = ReadableStreamTee(this, false);
     return createArrayFromList(branches);
   }
+
+  getIterator({ preventCancel = false } = {}) {
+    if (IsReadableStream(this) === false) {
+      throw streamBrandCheckException('getIterator');
+    }
+    const reader = AcquireReadableStreamDefaultReader(this);
+    const iterator = Object.create(ReadableStreamAsyncIteratorPrototype);
+    iterator._asyncIteratorReader = reader;
+    iterator._preventCancel = Boolean(preventCancel);
+    return iterator;
+  }
 }
+
+const AsyncIteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf(async function* () {}).prototype);
+const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
+  next() {
+    if (IsReadableStreamAsyncIterator(this) === false) {
+      return Promise.reject(streamAsyncIteratorBrandCheckException('next'));
+    }
+    const reader = this._asyncIteratorReader;
+    if (reader._ownerReadableStream === undefined) {
+      return Promise.reject(readerLockException('iterate'));
+    }
+    return ReadableStreamDefaultReaderRead(reader).then(result => {
+      assert(typeIsObject(result));
+      const value = result.value;
+      const done = result.done;
+      assert(typeof done === 'boolean');
+      if (done) {
+        ReadableStreamReaderGenericRelease(reader);
+      }
+      return ReadableStreamCreateReadResult(value, done, true);
+    });
+  },
+
+  return(value) {
+    if (IsReadableStreamAsyncIterator(this) === false) {
+      return Promise.reject(streamAsyncIteratorBrandCheckException('next'));
+    }
+    const reader = this._asyncIteratorReader;
+    if (reader._ownerReadableStream === undefined) {
+      return Promise.reject(readerLockException('finish iterating'));
+    }
+    if (reader._readRequests.length > 0) {
+      return Promise.reject(new TypeError(
+        'Tried to release a reader lock when that reader has pending read() calls un-settled'));
+    }
+    if (this._preventCancel === false) {
+      const result = ReadableStreamReaderGenericCancel(reader, value);
+      ReadableStreamReaderGenericRelease(reader);
+      return result.then(() => ReadableStreamCreateReadResult(value, true, true));
+    }
+    ReadableStreamReaderGenericRelease(reader);
+    return Promise.resolve(ReadableStreamCreateReadResult(value, true, true));
+  }
+}, AsyncIteratorPrototype);
+Object.defineProperty(ReadableStreamAsyncIteratorPrototype, 'next', { enumerable: false });
+Object.defineProperty(ReadableStreamAsyncIteratorPrototype, 'return', { enumerable: false });
+
+Object.defineProperty(ReadableStream.prototype, Symbol.asyncIterator, {
+  value: ReadableStream.prototype.getIterator,
+  enumerable: false,
+  writable: true,
+  configurable: true
+});
 
 module.exports = {
   CreateReadableByteStream,
@@ -194,7 +258,7 @@ function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, hi
   const controller = Object.create(ReadableStreamDefaultController.prototype);
 
   SetUpReadableStreamDefaultController(
-      stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
+    stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
   );
 
   return stream;
@@ -249,6 +313,18 @@ function IsReadableStreamLocked(stream) {
   assert(IsReadableStream(stream) === true);
 
   if (stream._reader === undefined) {
+    return false;
+  }
+
+  return true;
+}
+
+function IsReadableStreamAsyncIterator(x) {
+  if (!typeIsObject(x)) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(x, '_asyncIteratorReader')) {
     return false;
   }
 
@@ -420,10 +496,9 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
 
       function doTheRest() {
         action().then(
-            () => finalize(originalIsError, originalError),
-            newError => finalize(true, newError)
-        )
-            .catch(rethrowAssertionErrorRejection);
+          () => finalize(originalIsError, originalError),
+          newError => finalize(true, newError)
+        ).catch(rethrowAssertionErrorRejection);
       }
     }
 
@@ -931,12 +1006,12 @@ function ReadableStreamReaderGenericRelease(reader) {
 
   if (reader._ownerReadableStream._state === 'readable') {
     defaultReaderClosedPromiseReject(
-        reader,
-        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
+      reader,
+      new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
   } else {
     defaultReaderClosedPromiseResetToRejected(
-        reader,
-        new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
+      reader,
+      new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
   }
   reader._closedPromise.catch(() => {});
 
@@ -1098,8 +1173,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
     e => {
       ReadableStreamDefaultControllerError(controller, e);
     }
-  )
-  .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 
   return undefined;
 }
@@ -1260,8 +1334,7 @@ function SetUpReadableStreamDefaultController(
     r => {
       ReadableStreamDefaultControllerError(controller, r);
     }
-  )
-  .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 }
 
 function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underlyingSource, highWaterMark,
@@ -1533,8 +1606,7 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
     e => {
       ReadableByteStreamControllerError(controller, e);
     }
-  )
-  .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 
   return undefined;
 }
@@ -1570,7 +1642,7 @@ function ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescripto
   assert(bytesFilled % elementSize === 0);
 
   return new pullIntoDescriptor.ctor(
-      pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, bytesFilled / elementSize);
+    pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, bytesFilled / elementSize);
 }
 
 function ReadableByteStreamControllerEnqueueChunkToQueue(controller, buffer, byteOffset, byteLength) {
@@ -1994,19 +2066,18 @@ function SetUpReadableByteStreamController(stream, controller, startAlgorithm, p
 
   const startResult = startAlgorithm();
   Promise.resolve(startResult).then(
-      () => {
-        controller._started = true;
+    () => {
+      controller._started = true;
 
-        assert(controller._pulling === false);
-        assert(controller._pullAgain === false);
+      assert(controller._pulling === false);
+      assert(controller._pullAgain === false);
 
-        ReadableByteStreamControllerCallPullIfNeeded(controller);
-      },
-      r => {
-        ReadableByteStreamControllerError(controller, r);
-      }
-  )
-      .catch(rethrowAssertionErrorRejection);
+      ReadableByteStreamControllerCallPullIfNeeded(controller);
+    },
+    r => {
+      ReadableByteStreamControllerError(controller, r);
+    }
+  ).catch(rethrowAssertionErrorRejection);
 }
 
 function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyingByteSource, highWaterMark) {
@@ -2061,6 +2132,10 @@ function isAbortSignal(value) {
 
 function streamBrandCheckException(name) {
   return new TypeError(`ReadableStream.prototype.${name} can only be used on a ReadableStream`);
+}
+
+function streamAsyncIteratorBrandCheckException(name) {
+  return new TypeError(`ReadableStreamAsyncIterator.${name} can only be used on a ReadableSteamAsyncIterator`);
 }
 
 // Helper functions for the readers.

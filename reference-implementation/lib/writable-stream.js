@@ -272,14 +272,14 @@ function WritableStreamFinishErroring(stream) {
 
   const promise = stream._writableStreamController[AbortSteps](abortRequest._reason);
   promise.then(
-      () => {
-        abortRequest._resolve();
-        WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
-      },
-      reason => {
-        abortRequest._reject(reason);
-        WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
-      });
+    () => {
+      abortRequest._resolve();
+      WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
+    },
+    reason => {
+      abortRequest._reject(reason);
+      WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
+    });
 }
 
 function WritableStreamFinishInFlightWrite(stream) {
@@ -769,18 +769,17 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
   const startResult = startAlgorithm();
   const startPromise = Promise.resolve(startResult);
   startPromise.then(
-      () => {
-        assert(stream._state === 'writable' || stream._state === 'erroring');
-        controller._started = true;
-        WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
-      },
-      r => {
-        assert(stream._state === 'writable' || stream._state === 'erroring');
-        controller._started = true;
-        WritableStreamDealWithRejection(stream, r);
-      }
-  )
-  .catch(rethrowAssertionErrorRejection);
+    () => {
+      assert(stream._state === 'writable' || stream._state === 'erroring');
+      controller._started = true;
+      WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
+    },
+    r => {
+      assert(stream._state === 'writable' || stream._state === 'erroring');
+      controller._started = true;
+      WritableStreamDealWithRejection(stream, r);
+    }
+  ).catch(rethrowAssertionErrorRejection);
 }
 
 function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyingSink, highWaterMark, sizeAlgorithm) {
@@ -903,8 +902,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
     reason => {
       WritableStreamFinishInFlightCloseWithError(stream, reason);
     }
-  )
-  .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 }
 
 function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
@@ -935,8 +933,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       }
       WritableStreamFinishInFlightWriteWithError(stream, reason);
     }
-  )
-  .catch(rethrowAssertionErrorRejection);
+  ).catch(rethrowAssertionErrorRejection);
 }
 
 function WritableStreamDefaultControllerGetBackpressure(controller) {
