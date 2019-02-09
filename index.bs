@@ -617,7 +617,7 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
 
 <emu-alg>
   1. If ! IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. Let _reader_ be ? Construct(`<a idl>ReadableStreamDefaultReader</a>`, « *this* »).
+  1. Let _reader_ be ? AcquireReadableStreamDefaultReader(*this*, *true*).
   1. Let _iterator_ be ! ObjectCreate(`<a idl>ReadableStreamAsyncIteratorPrototype</a>`).
   1. Set _iterator_.[[asyncIteratorReader]] to _reader_.
   1. Set _iterator_.[[preventCancel]] to ! ToBoolean(_preventCancel_).
@@ -648,9 +648,9 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
 
 <emu-alg>
   1. If ! IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. If _mode_ is *undefined*, return ? Construct(`<a idl>ReadableStreamDefaultReader</a>`, « *this* »).
+  1. If _mode_ is *undefined*, return ? AcquireReadableStreamDefaultReader(*this*, *true*).
   1. Set _mode_ to ? ToString(_mode_).
-  1. If _mode_ is `"byob"`, return ? Construct(`<a idl>ReadableStreamBYOBReader</a>`, « *this* »).
+  1. If _mode_ is `"byob"`, return ? AcquireReadableStreamBYOBReader(*this*, *true*).
   1. Throw a *RangeError* exception.
 </emu-alg>
 
@@ -896,26 +896,33 @@ The following abstract operations, unlike most in this specification, are meant 
 specifications, instead of just being part of the implementation of this spec's classes.
 
 <h4 id="acquire-readable-stream-byob-reader" aoid="AcquireReadableStreamBYOBReader"
-throws>AcquireReadableStreamBYOBReader ( <var>stream</var> )</h4>
+throws>AcquireReadableStreamBYOBReader ( <var>stream</var>[, <var>forAuthorCode</var> ] )</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to acquire a <a>BYOB reader</a>
 for a given stream.
 
 <emu-alg>
+  1. If _forAuthorCode_ was not passed, set it to *false*.
   1. Let _reader_ be ? Construct(`<a idl>ReadableStreamBYOBReader</a>`, « _stream_ »).
-  1. Set _reader_.[[forAuthorCode]] to *false*.
+  1. Set _reader_.[[forAuthorCode]] to _forAuthorCode_.
   1. Return _reader_.
 </emu-alg>
 
 <h4 id="acquire-readable-stream-reader" aoid="AcquireReadableStreamDefaultReader" throws
-export>AcquireReadableStreamDefaultReader ( <var>stream</var> )</h4>
+export>AcquireReadableStreamDefaultReader ( <var>stream</var>[, <var>forAuthorCode</var> ] )</h4>
 
 This abstract operation is meant to be called from other specifications that may wish to acquire a <a>default
 reader</a> for a given stream.
 
+<p class="note">Other specifications ought to leave <var>forAuthorCode</var> as its default value of
+<emu-val>false</emu-val>, unless they are planning to directly expose the resulting <code>{ value, done }</code> object
+to authors. See <a href="#rs-read-result-for-author-code">the note regarding ReadableStreamCreateReadResult</a> for more
+information.</p>
+
 <emu-alg>
+  1. If _forAuthorCode_ was not passed, set it to *false*.
   1. Let _reader_ be ? Construct(`<a idl>ReadableStreamDefaultReader</a>`, « _stream_ »).
-  1. Set _reader_.[[forAuthorCode]] to *false*.
+  1. Set _reader_.[[forAuthorCode]] to _forAuthorCode_.
   1. Return _reader_.
 </emu-alg>
 

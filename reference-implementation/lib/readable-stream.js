@@ -76,13 +76,13 @@ class ReadableStream {
     }
 
     if (mode === undefined) {
-      return new ReadableStreamDefaultReader(this);
+      return AcquireReadableStreamDefaultReader(this, true);
     }
 
     mode = String(mode);
 
     if (mode === 'byob') {
-      return new ReadableStreamBYOBReader(this);
+      return AcquireReadableStreamBYOBReader(this, true);
     }
 
     throw new RangeError('Invalid mode is specified');
@@ -163,7 +163,7 @@ class ReadableStream {
     if (IsReadableStream(this) === false) {
       throw streamBrandCheckException('getIterator');
     }
-    const reader = new ReadableStreamDefaultReader(this);
+    const reader = AcquireReadableStreamDefaultReader(this, true);
     const iterator = Object.create(ReadableStreamAsyncIteratorPrototype);
     iterator._asyncIteratorReader = reader;
     iterator._preventCancel = Boolean(preventCancel);
@@ -241,15 +241,21 @@ module.exports = {
 
 // Abstract operations for the ReadableStream.
 
-function AcquireReadableStreamBYOBReader(stream) {
+function AcquireReadableStreamBYOBReader(stream, forAuthorCode) {
+  if (forAuthorCode === undefined) {
+    forAuthorCode = false;
+  }
   const reader = new ReadableStreamBYOBReader(stream);
-  reader._forAuthorCode = false;
+  reader._forAuthorCode = forAuthorCode;
   return reader;
 }
 
-function AcquireReadableStreamDefaultReader(stream) {
+function AcquireReadableStreamDefaultReader(stream, forAuthorCode) {
+  if (forAuthorCode === undefined) {
+    forAuthorCode = false;
+  }
   const reader = new ReadableStreamDefaultReader(stream);
-  reader._forAuthorCode = false;
+  reader._forAuthorCode = forAuthorCode;
   return reader;
 }
 
