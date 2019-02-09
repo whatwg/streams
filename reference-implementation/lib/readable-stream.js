@@ -225,6 +225,8 @@ Object.defineProperty(ReadableStream.prototype, Symbol.asyncIterator, {
 });
 
 module.exports = {
+  AcquireReadableStreamBYOBReader,
+  AcquireReadableStreamDefaultReader,
   CreateReadableByteStream,
   CreateReadableStream,
   ReadableStream,
