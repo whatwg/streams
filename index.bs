@@ -617,7 +617,7 @@ option. If <code><a for="underlying source">type</a></code> is set to <code>unde
 
 <emu-alg>
   1. If ! IsReadableStream(*this*) is *false*, throw a *TypeError* exception.
-  1. Let _reader_ be ? AcquireReadableStreamDefaultReader(*this*).
+  1. Let _reader_ be ? Construct(`<a idl>ReadableStreamDefaultReader</a>`, « *this* »).
   1. Let _iterator_ be ! ObjectCreate(`<a idl>ReadableStreamAsyncIteratorPrototype</a>`).
   1. Set _iterator_.[[asyncIteratorReader]] to _reader_.
   1. Set _iterator_.[[preventCancel]] to ! ToBoolean(_preventCancel_).
@@ -870,7 +870,7 @@ prototype, are created with the internal slots described in the following table:
     1. Let _done_ be ? Get(_result_, `"done"`).
     1. Assert: Type(_done_) is Boolean.
     1. If _done_ is *true*, perform ! ReadableStreamReaderGenericRelease(_reader_).
-    1. Return ! ReadableStreamCreateReadResult(_value_, _done_, *true*).
+    1. Return ! ReadableStreamCreateReadResult(_value_, _done_, _reader_).
 </emu-alg>
 
 <h4 id="rs-asynciterator-prototype-return" method
@@ -885,9 +885,9 @@ for="ReadableStreamAsyncIteratorPrototype">return( <var>value</var> )</h4>
     1. Let _result_ be ! ReadableStreamReaderGenericCancel(_reader_, _value_).
     1. Perform ! ReadableStreamReaderGenericRelease(_reader_).
     1. Return the result of <a>transforming</a> _result_ by a fulfillment handler that returns !
-    ReadableStreamCreateReadResult(_value_, *true*, *true*).
+    ReadableStreamCreateReadResult(_value_, *true*, _reader_).
   1. Perform ! ReadableStreamReaderGenericRelease(_reader_).
-  1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_value_, *true*, *true*).
+  1. Return <a>a promise resolved with</a> ! ReadableStreamCreateReadResult(_value_, *true*, _reader_).
 </emu-alg>
 
 <h3 id="rs-abstract-ops">General readable stream abstract operations</h3>
