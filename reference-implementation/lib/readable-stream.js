@@ -241,19 +241,13 @@ module.exports = {
 
 // Abstract operations for the ReadableStream.
 
-function AcquireReadableStreamBYOBReader(stream, forAuthorCode) {
-  if (forAuthorCode === undefined) {
-    forAuthorCode = false;
-  }
+function AcquireReadableStreamBYOBReader(stream, forAuthorCode = false) {
   const reader = new ReadableStreamBYOBReader(stream);
   reader._forAuthorCode = forAuthorCode;
   return reader;
 }
 
-function AcquireReadableStreamDefaultReader(stream, forAuthorCode) {
-  if (forAuthorCode === undefined) {
-    forAuthorCode = false;
-  }
+function AcquireReadableStreamDefaultReader(stream, forAuthorCode = false) {
   const reader = new ReadableStreamDefaultReader(stream);
   reader._forAuthorCode = forAuthorCode;
   return reader;
