@@ -859,9 +859,7 @@ function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
   }
 
   const state = stream._state;
-  if (state === 'closed' || state === 'errored') {
-    return;
-  }
+  assert(state !== 'closed' && state !== 'errored');
   if (state === 'erroring') {
     WritableStreamFinishErroring(stream);
     return;
