@@ -1147,8 +1147,10 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
      * <strong>Backpressure must be enforced:</strong>
        * While WritableStreamDefaultWriterGetDesiredSize(_writer_) is ≤ *0* or is *null*, the user agent must not read
          from _reader_.
-       * If _reader_ is a <a>BYOB reader</a>, WritableStreamDefaultWriterGetDesiredSize(_writer_) should be used to
-         determine the size of the chunks read from _reader_.
+       * If _reader_ is a <a>BYOB reader</a>, WritableStreamDefaultWriterGetDesiredSize(_writer_) should be used as a
+         basis to determine the size of the chunks read from _reader_.
+         <p class="note">It's frequently inefficient to read chunks that are too small or too large. Other information
+         might be factored in to determine the optimal chunk size.</p>
        * Reads or writes should not be delayed for reasons other than these backpressure signals.
          <p class="example" id="example-bad-backpressure">An implementation that waits for each write to successfully
          complete before proceeding to the next read/write operation violates this recommendation. In doing so, such an
