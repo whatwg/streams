@@ -1,5 +1,5 @@
 'use strict';
-const assert = require('better-assert');
+const assert = require('assert');
 const { IsFiniteNonNegativeNumber } = require('./helpers.js');
 
 exports.DequeueValue = container => {

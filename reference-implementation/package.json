@@ -11,7 +11,6 @@
   "author": "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
   "license": "(CC0-1.0 OR MIT)",
   "devDependencies": {
-    "better-assert": "^1.0.2",
     "browserify": "^16.2.3",
     "debug": "^4.1.0",
     "eslint": "^5.12.1",
