@@ -1,5 +1,5 @@
 'use strict';
-const assert = require('better-assert');
+const assert = require('assert');
 
 // Calls to verbose() are purely for debugging the reference implementation and tests. They are not part of the standard
 // and do not appear in the standard text.

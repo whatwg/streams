@@ -1,5 +1,5 @@
 'use strict';
-const assert = require('better-assert');
+const assert = require('assert');
 
 const isFakeDetached = Symbol('is "detached" for our purposes');
 
