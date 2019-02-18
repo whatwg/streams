@@ -4282,7 +4282,7 @@ aoid="WritableStreamDefaultControllerAdvanceQueueIfNeeded" nothrow>WritableStrea
   1. If _controller_.[[started]] is *false*, return.
   1. If _stream_.[[inFlightWriteRequest]] is not *undefined*, return.
   1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"closed"` or `"errored"`, return.
+  1. Assert: _state_ is not `"closed"` or `"errored"`.
   1. If _state_ is `"erroring"`,
     1. Perform ! WritableStreamFinishErroring(_stream_).
     1. Return.
