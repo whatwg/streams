@@ -2247,7 +2247,8 @@ Instances of {{ReadableByteStreamController}} are created with the internal slot
   </tr>
   <tr>
     <td>\[[byobRequest]]
-    <td class="non-normative">A {{ReadableStreamBYOBRequest}} instance representing the current BYOB pull request
+    <td class="non-normative">A {{ReadableStreamBYOBRequest}} instance representing the current BYOB pull request,
+      or <emu-val>undefined</emu-val> if there are no pending requests
   </tr>
   <tr>
     <td>\[[cancelAlgorithm]]
@@ -2965,6 +2966,7 @@ throws>SetUpReadableByteStreamController ( <var>stream</var>, <var>controller</v
     1. Assert: _autoAllocateChunkSize_ is positive.
   1. Set _controller_.[[controlledReadableByteStream]] to _stream_.
   1. Set _controller_.[[pullAgain]] and _controller_.[[pulling]] to *false*.
+  1. Set _controller_.[[byobRequest]] to *undefined*.
   1. Perform ! ReadableByteStreamControllerClearPendingPullIntos(_controller_).
   1. Perform ! ResetQueue(_controller_).
   1. Set _controller_.[[closeRequested]] and _controller_.[[started]] to *false*.
