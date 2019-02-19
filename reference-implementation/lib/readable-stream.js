@@ -1166,7 +1166,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
 
       if (controller._pullAgain === true) {
         controller._pullAgain = false;
-        return ReadableStreamDefaultControllerCallPullIfNeeded(controller);
+        ReadableStreamDefaultControllerCallPullIfNeeded(controller);
       }
     },
     e => {
