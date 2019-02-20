@@ -2967,7 +2967,6 @@ throws>SetUpReadableByteStreamController ( <var>stream</var>, <var>controller</v
   1. Set _controller_.[[controlledReadableByteStream]] to _stream_.
   1. Set _controller_.[[pullAgain]] and _controller_.[[pulling]] to *false*.
   1. Set _controller_.[[byobRequest]] to *undefined*.
-  1. Perform ! ReadableByteStreamControllerClearPendingPullIntos(_controller_).
   1. Perform ! ResetQueue(_controller_).
   1. Set _controller_.[[closeRequested]] and _controller_.[[started]] to *false*.
   1. Set _controller_.[[strategyHWM]] to ? ValidateAndNormalizeHighWaterMark(_highWaterMark_).
@@ -6118,6 +6117,7 @@ isonmad,
 Jake Archibald,
 Jake Verbaten,
 Janessa Det,
+Jason Orendorff,
 Jens Nockert,
 Lennart Grahl,
 Mangala Sadhu Sangeet Singh Khalsa,
