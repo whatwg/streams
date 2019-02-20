@@ -460,10 +460,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       }
     }
 
-    pipeLoop().catch(err => {
-      currentWrite = Promise.resolve();
-      rethrowAssertionErrorRejection(err);
-    });
+    pipeLoop().catch(rethrowAssertionErrorRejection);
 
     function waitForWritesToFinish() {
       // Another write may have started while we were waiting on this currentWrite, so we have to be sure to wait
@@ -694,7 +691,7 @@ function ReadableStreamClose(stream) {
   const reader = stream._reader;
 
   if (reader === undefined) {
-    return undefined;
+    return;
   }
 
   if (IsReadableStreamDefaultReader(reader) === true) {
@@ -705,8 +702,6 @@ function ReadableStreamClose(stream) {
   }
 
   defaultReaderClosedPromiseResolve(reader);
-
-  return undefined;
 }
 
 function ReadableStreamCreateReadResult(value, done, forAuthorCode) {
@@ -731,7 +726,7 @@ function ReadableStreamError(stream, e) {
   const reader = stream._reader;
 
   if (reader === undefined) {
-    return undefined;
+    return;
   }
 
   if (IsReadableStreamDefaultReader(reader) === true) {
@@ -1152,12 +1147,12 @@ function IsReadableStreamDefaultController(x) {
 function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
   const shouldPull = ReadableStreamDefaultControllerShouldCallPull(controller);
   if (shouldPull === false) {
-    return undefined;
+    return;
   }
 
   if (controller._pulling === true) {
     controller._pullAgain = true;
-    return undefined;
+    return;
   }
 
   assert(controller._pullAgain === false);
@@ -1171,16 +1166,13 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
 
       if (controller._pullAgain === true) {
         controller._pullAgain = false;
-        return ReadableStreamDefaultControllerCallPullIfNeeded(controller);
+        ReadableStreamDefaultControllerCallPullIfNeeded(controller);
       }
-      return undefined;
     },
     e => {
       ReadableStreamDefaultControllerError(controller, e);
     }
   ).catch(rethrowAssertionErrorRejection);
-
-  return undefined;
 }
 
 function ReadableStreamDefaultControllerShouldCallPull(controller) {
@@ -1253,8 +1245,6 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
   }
 
   ReadableStreamDefaultControllerCallPullIfNeeded(controller);
-
-  return undefined;
 }
 
 function ReadableStreamDefaultControllerError(controller, e) {
@@ -1585,12 +1575,12 @@ function IsReadableStreamBYOBRequest(x) {
 function ReadableByteStreamControllerCallPullIfNeeded(controller) {
   const shouldPull = ReadableByteStreamControllerShouldCallPull(controller);
   if (shouldPull === false) {
-    return undefined;
+    return;
   }
 
   if (controller._pulling === true) {
     controller._pullAgain = true;
-    return undefined;
+    return;
   }
 
   assert(controller._pullAgain === false);
@@ -1612,8 +1602,6 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
       ReadableByteStreamControllerError(controller, e);
     }
   ).catch(rethrowAssertionErrorRejection);
-
-  return undefined;
 }
 
 function ReadableByteStreamControllerClearPendingPullIntos(controller) {
