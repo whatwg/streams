@@ -183,12 +183,12 @@ const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
     }
     return ReadableStreamDefaultReaderRead(reader).then(result => {
       assert(typeIsObject(result));
-      const value = result.value;
       const done = result.done;
       assert(typeof done === 'boolean');
       if (done) {
         ReadableStreamReaderGenericRelease(reader);
       }
+      const value = result.value;
       return ReadableStreamCreateReadResult(value, done, true);
     });
   },
