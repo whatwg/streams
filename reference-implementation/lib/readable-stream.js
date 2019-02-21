@@ -540,7 +540,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
   const reader = AcquireReadableStreamDefaultReader(stream);
 
-  let closedOrErrored = false;
+  let closed = false;
   let canceled1 = false;
   let canceled2 = false;
   let reason1;
@@ -555,25 +555,26 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
   function pullAlgorithm() {
     return ReadableStreamDefaultReaderRead(reader).then(result => {
+      if (closed === true) {
+        return;
+      }
+
       assert(typeIsObject(result));
-      const value = result.value;
       const done = result.done;
       assert(typeof done === 'boolean');
 
-      if (done === true && closedOrErrored === false) {
+      if (done === true) {
         if (canceled1 === false) {
           ReadableStreamDefaultControllerClose(branch1._readableStreamController);
         }
         if (canceled2 === false) {
           ReadableStreamDefaultControllerClose(branch2._readableStreamController);
         }
-        closedOrErrored = true;
-      }
-
-      if (closedOrErrored === true) {
+        closed = true;
         return;
       }
 
+      const value = result.value;
       const value1 = value;
       const value2 = value;
 
@@ -621,13 +622,8 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   branch2 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm);
 
   reader._closedPromise.catch(r => {
-    if (closedOrErrored === true) {
-      return;
-    }
-
     ReadableStreamDefaultControllerError(branch1._readableStreamController, r);
     ReadableStreamDefaultControllerError(branch2._readableStreamController, r);
-    closedOrErrored = true;
   });
 
   return [branch1, branch2];
