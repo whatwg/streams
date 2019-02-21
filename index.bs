@@ -866,10 +866,10 @@ prototype, are created with the internal slots described in the following table:
   1. Return the result of <a>transforming</a> ! ReadableStreamDefaultReaderRead(_reader_) with a fulfillment handler
      which takes the argument _result_ and performs the following steps:
     1. Assert: Type(_result_) is Object.
-    1. Let _value_ be ? Get(_result_, `"value"`).
-    1. Let _done_ be ? Get(_result_, `"done"`).
+    1. Let _done_ be ! Get(_result_, `"done"`).
     1. Assert: Type(_done_) is Boolean.
     1. If _done_ is *true*, perform ! ReadableStreamReaderGenericRelease(_reader_).
+    1. Let _value_ be ! Get(_result_, `"value"`).
     1. Return ! ReadableStreamCreateReadResult(_value_, _done_, *true*).
 </emu-alg>
 
