@@ -1048,7 +1048,6 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
   1. Assert: Type(_cloneForBranch2_) is Boolean.
   1. Let _reader_ be ? AcquireReadableStreamDefaultReader(_stream_).
   1. Let _pulling_ be *false*.
-  1. Let _closed_ be *false*.
   1. Let _canceled1_ be *false*.
   1. Let _canceled2_ be *false*.
   1. Let _reason1_ be *undefined*.
@@ -1062,7 +1061,6 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
     1. Return the result of <a>transforming</a> ! ReadableStreamDefaultReaderRead(_reader_) with a fulfillment handler
        which takes the argument _result_ and performs the following steps:
       1. Set _pulling_ to *false*.
-      1. If _closed_ is *true*, return.
       1. Assert: Type(_result_) is Object.
       1. Let _done_ be ! Get(_result_, `"done"`).
       1. Assert: Type(_done_) is Boolean.
@@ -1071,7 +1069,6 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
           1. Perform ! ReadableStreamDefaultControllerClose(_branch1_.[[readableStreamController]]).
         1. If _canceled2_ is *false*,
           1. Perform ! ReadableStreamDefaultControllerClose(_branch2_.[[readableStreamController]]).
-        1. Set _closed_ to *true*.
         1. Return.
       1. Let _value_ be ! Get(_result_, `"value"`).
       1. Let _value1_ and _value2_ be _value_.

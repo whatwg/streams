@@ -541,7 +541,6 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   const reader = AcquireReadableStreamDefaultReader(stream);
 
   let pulling = false;
-  let closed = false;
   let canceled1 = false;
   let canceled2 = false;
   let reason1;
@@ -564,10 +563,6 @@ function ReadableStreamTee(stream, cloneForBranch2) {
     return ReadableStreamDefaultReaderRead(reader).then(result => {
       pulling = false;
 
-      if (closed === true) {
-        return;
-      }
-
       assert(typeIsObject(result));
       const done = result.done;
       assert(typeof done === 'boolean');
@@ -579,7 +574,6 @@ function ReadableStreamTee(stream, cloneForBranch2) {
         if (canceled2 === false) {
           ReadableStreamDefaultControllerClose(branch2._readableStreamController);
         }
-        closed = true;
         return;
       }
 
