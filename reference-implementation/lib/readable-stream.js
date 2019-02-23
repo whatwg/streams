@@ -540,6 +540,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
   const reader = AcquireReadableStreamDefaultReader(stream);
 
+  let pulling = false;
   let closed = false;
   let canceled1 = false;
   let canceled2 = false;
@@ -554,7 +555,15 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   });
 
   function pullAlgorithm() {
+    if (pulling === true) {
+      return Promise.resolve();
+    }
+
+    pulling = true;
+
     return ReadableStreamDefaultReaderRead(reader).then(result => {
+      pulling = false;
+
       if (closed === true) {
         return;
       }
