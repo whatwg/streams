@@ -560,7 +560,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
     reading = true;
 
-    const pullPromise = ReadableStreamDefaultReaderRead(reader).then(result => {
+    const readPromise = ReadableStreamDefaultReaderRead(reader).then(result => {
       reading = false;
 
       assert(typeIsObject(result));
@@ -596,12 +596,9 @@ function ReadableStreamTee(stream, cloneForBranch2) {
       }
     });
 
-    // If pullPromise rejects with an AssertionError, but the branch is already closed or errored,
-    // the rejection will be silently ignored by ReadableStreamDefaultControllerError.
-    // We have to manually rethrow any AssertionError to make sure they are not ignored.
-    pullPromise.catch(rethrowAssertionErrorRejection);
+    readPromise.catch(rethrowAssertionErrorRejection);
 
-    return pullPromise;
+    return Promise.resolve();
   }
 
   function cancel1Algorithm(reason) {

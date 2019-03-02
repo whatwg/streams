@@ -1058,8 +1058,8 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
   1. Let _pullAlgorithm_ be the following steps:
     1. If _reading_ is *true*, return <a>a promise resolved with</a> *undefined*.
     1. Set _reading_ to *true*.
-    1. Return the result of <a>transforming</a> ! ReadableStreamDefaultReaderRead(_reader_) with a fulfillment handler
-       which takes the argument _result_ and performs the following steps:
+    1. Let _readPromise_ be the result of <a>transforming</a> ! ReadableStreamDefaultReaderRead(_reader_) with a
+       fulfillment handler which takes the argument _result_ and performs the following steps:
       1. Set _reading_ to *false*.
       1. Assert: Type(_result_) is Object.
       1. Let _done_ be ! Get(_result_, `"done"`).
@@ -1079,6 +1079,8 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
          ReadableStreamDefaultControllerEnqueue(_branch1_.[[readableStreamController]], _value1_).
       1. If _canceled2_ is *false*, perform ?
          ReadableStreamDefaultControllerEnqueue(_branch2_.[[readableStreamController]], _value2_).
+    1. Set _readPromise_.[[PromiseIsHandled]] to *true*.
+    1. Return <a>a promise resolved with</a> *undefined*.
   1. Let _cancel1Algorithm_ be the following steps, taking a _reason_ argument:
     1. Set _canceled1_ to *true*.
     1. Set _reason1_ to _reason_.
