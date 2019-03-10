@@ -1541,7 +1541,7 @@ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(<var>st
 <emu-alg>
   1. If ! IsReadableStreamDefaultReader(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. If *this*.[[ownerReadableStream]] is *undefined*, return <a>a promise rejected with</a> a *TypeError* exception.
-  1. Return ! ReadableStreamDefaultReaderRead(*this*, *true*).
+  1. Return ! ReadableStreamDefaultReaderRead(*this*).
 </emu-alg>
 
 <h5 id="default-reader-release-lock" method for="ReadableStreamDefaultReader">releaseLock()</h5>
@@ -1694,7 +1694,7 @@ ReadableStreamBYOBReader(<var>stream</var>)</h4>
   1. If ! IsDetachedBuffer(_view_.[[ViewedArrayBuffer]]) is *true*, return <a>a promise rejected with</a> a *TypeError*
      exception.
   1. If _view_.[[ByteLength]] is *0*, return <a>a promise rejected with</a> a *TypeError* exception.
-  1. Return ! ReadableStreamBYOBReaderRead(*this*, _view_, *true*).
+  1. Return ! ReadableStreamBYOBReaderRead(*this*, _view_).
 </emu-alg>
 
 <h5 id="byob-reader-release-lock" method for="ReadableStreamBYOBReader">releaseLock()</h5>
