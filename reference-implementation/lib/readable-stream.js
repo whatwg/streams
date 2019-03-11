@@ -844,7 +844,7 @@ class ReadableStreamDefaultReader {
       return Promise.reject(readerLockException('read from'));
     }
 
-    return ReadableStreamDefaultReaderRead(this, true);
+    return ReadableStreamDefaultReaderRead(this);
   }
 
   releaseLock() {
@@ -924,7 +924,7 @@ class ReadableStreamBYOBReader {
       return Promise.reject(new TypeError('view must have non-zero byteLength'));
     }
 
-    return ReadableStreamBYOBReaderRead(this, view, true);
+    return ReadableStreamBYOBReaderRead(this, view);
   }
 
   releaseLock() {
