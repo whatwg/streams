@@ -5051,7 +5051,7 @@ properties:
 <dl>
   <dt><dfn method for="queuing strategy">size(<var>chunk</var>)</dfn> (non-byte streams only)</dt>
   <dd>
-    <p>A function that computes and returns the size of the given <a>chunk</a> value.</p>
+    <p>A function that computes and returns the non-negative size of the given <a>chunk</a> value.</p>
 
     <p>The result is used to determine <a>backpressure</a>, manifesting via the appropriate <code>desiredSize</code>
     property: either
