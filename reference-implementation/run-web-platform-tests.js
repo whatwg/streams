@@ -37,6 +37,7 @@ async function main() {
   const failures = await wptRunner(testsPath, {
     rootURL: 'streams/',
     setup(window) {
+      window.queueMicrotask = queueMicrotask;
       window.eval(bundledJS);
     },
     filter(testPath) {

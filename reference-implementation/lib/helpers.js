@@ -175,6 +175,10 @@ exports.WaitForAll = (promises, successSteps, failureSteps) => {
   let fulfilledCount = 0;
   const total = promises.length;
   const result = new Array(total);
+  if (total === 0) {
+    queueMicrotask(() => successSteps(result));
+    return;
+  }
   for (const promise of promises) {
     const promiseIndex = index;
     const fulfillmentHandler = arg => {
