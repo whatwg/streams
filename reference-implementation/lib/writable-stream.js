@@ -55,6 +55,22 @@ class WritableStream {
     return WritableStreamAbort(this, reason);
   }
 
+  close() {
+    if (IsWritableStream(this) === false) {
+      return promiseRejectedWith(streamBrandCheckException('close'));
+    }
+
+    if (IsWritableStreamLocked(this) === true) {
+      return promiseRejectedWith(new TypeError('Cannot close a stream that already has a writer'));
+    }
+
+    if (WritableStreamCloseQueuedOrInFlight(this) === true) {
+      return promiseRejectedWith(new TypeError('Cannot close an already-closing stream'));
+    }
+
+    return WritableStreamClose(this);
+  }
+
   getWriter() {
     if (IsWritableStream(this) === false) {
       throw streamBrandCheckException('getWriter');
@@ -531,7 +547,7 @@ class WritableStreamDefaultWriter {
     }
 
     if (WritableStreamCloseQueuedOrInFlight(stream) === true) {
-      return promiseRejectedWith(new TypeError('cannot close an already-closing stream'));
+      return promiseRejectedWith(new TypeError('Cannot close an already-closing stream'));
     }
 
     return WritableStreamDefaultWriterClose(this);

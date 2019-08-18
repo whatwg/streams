@@ -3171,6 +3171,7 @@ like
     get <a href="#ws-locked">locked</a>()
 
     <a href="#ws-abort">abort</a>(reason)
+    <a href="#ws-close">close</a>()
     <a href="#ws-get-writer">getWriter</a>()
   }
 </code></pre>
@@ -3383,6 +3384,25 @@ bridging the gap with non-promise-based APIs, as seen for example in [[#example-
   1. If ! IsWritableStream(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. If ! IsWritableStreamLocked(*this*) is *true*, return <a>a promise rejected with</a> a *TypeError* exception.
   1. Return ! WritableStreamAbort(*this*, _reason_).
+</emu-alg>
+
+<h5 id="ws-close" method for="WritableStream">close()</h5>
+
+<div class="note">
+  The <code>close</code> method closes the stream. The <a>underlying sink</a> will finish processing any
+  previously-written <a>chunks</a>, before invoking its close behavior. During this time any further attempts to write
+  will fail (without erroring the stream).
+
+  The method returns a promise that is fulfilled with <emu-val>undefined</emu-val> if all remaining <a>chunks</a> are
+  successfully written and the stream successfully closes, or rejects if an error is encountered during this process.
+</div>
+
+<emu-alg>
+  1. If ! IsWritableStream(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If ! IsWritableStreamLocked(*this*) is *true*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If ! WritableStreamCloseQueuedOrInFlight(*this*) is *true*, return <a>a promise rejected with</a> a *TypeError*
+  exception.
+  1. Return ! WritableStreamClose(*this*).
 </emu-alg>
 
 <h5 id="ws-get-writer" method for="WritableStream">getWriter()</h5>
@@ -3869,12 +3889,8 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 <h5 id="default-writer-close" method for="WritableStreamDefaultWriter">close()</h5>
 
 <div class="note">
-  The <code>close</code> method will close the associated writable stream. The <a>underlying sink</a> will finish
-  processing any previously-written <a>chunks</a>, before invoking its close behavior. During this time any further
-  attempts to write will fail (without erroring the stream).
-
-  The method returns a promise that is fulfilled with <emu-val>undefined</emu-val> if all remaining <a>chunks</a> are
-  successfully written and the stream successfully closes, or rejects if an error is encountered during this process.
+  If the writer is <a lt="active writer">active</a>, the <code>close</code> method behaves the same as that for the
+  associated stream. (Otherwise, it returns a rejected promise.)
 </div>
 
 <emu-alg>
