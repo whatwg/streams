@@ -71,6 +71,7 @@ module.exports = {
   IsWritableStreamLocked,
   WritableStream,
   WritableStreamAbort,
+  WritableStreamClose,
   WritableStreamDefaultControllerErrorIfNeeded,
   WritableStreamDefaultWriterCloseWithErrorPropagation,
   WritableStreamDefaultWriterRelease,
@@ -188,6 +189,35 @@ function WritableStreamAbort(stream, reason) {
   if (wasAlreadyErroring === false) {
     WritableStreamStartErroring(stream, reason);
   }
+
+  return promise;
+}
+
+function WritableStreamClose(stream) {
+  const state = stream._state;
+  if (state === 'closed' || state === 'errored') {
+    return promiseRejectedWith(new TypeError(
+      `The stream (in ${state} state) is not in the writable state and cannot be closed`));
+  }
+
+  assert(state === 'writable' || state === 'erroring');
+  assert(WritableStreamCloseQueuedOrInFlight(stream) === false);
+
+  const promise = newPromise((resolve, reject) => {
+    const closeRequest = {
+      _resolve: resolve,
+      _reject: reject
+    };
+
+    stream._closeRequest = closeRequest;
+  });
+
+  const writer = stream._writer;
+  if (writer !== undefined && stream._backpressure === true && state === 'writable') {
+    defaultWriterReadyPromiseResolve(writer);
+  }
+
+  WritableStreamDefaultControllerClose(stream._writableStreamController);
 
   return promise;
 }
@@ -565,33 +595,8 @@ function WritableStreamDefaultWriterClose(writer) {
 
   assert(stream !== undefined);
 
-  const state = stream._state;
-  if (state === 'closed' || state === 'errored') {
-    return promiseRejectedWith(new TypeError(
-      `The stream (in ${state} state) is not in the writable state and cannot be closed`));
-  }
-
-  assert(state === 'writable' || state === 'erroring');
-  assert(WritableStreamCloseQueuedOrInFlight(stream) === false);
-
-  const promise = newPromise((resolve, reject) => {
-    const closeRequest = {
-      _resolve: resolve,
-      _reject: reject
-    };
-
-    stream._closeRequest = closeRequest;
-  });
-
-  if (stream._backpressure === true && state === 'writable') {
-    defaultWriterReadyPromiseResolve(writer);
-  }
-
-  WritableStreamDefaultControllerClose(stream._writableStreamController);
-
-  return promise;
+  return WritableStreamClose(stream);
 }
-
 
 function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
   const stream = writer._ownerWritableStream;
