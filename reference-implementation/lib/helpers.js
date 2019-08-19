@@ -180,10 +180,15 @@ function PerformPromiseThen(promise, onFulfilled, onRejected) {
   return originalPromiseThen.call(promise, onFulfilled, onRejected);
 }
 
+function PerformPromiseCatch(promise, onRejected) {
+  return PerformPromiseThen(promise, undefined, onRejected);
+}
+
 exports.CreatePromise = CreatePromise;
 exports.PromiseResolve = PromiseResolve;
 exports.PromiseReject = PromiseReject;
 exports.PerformPromiseThen = PerformPromiseThen;
+exports.PerformPromiseCatch = PerformPromiseCatch;
 
 exports.WaitForAll = (promises, successSteps, failureSteps) => {
   let rejected = false;
