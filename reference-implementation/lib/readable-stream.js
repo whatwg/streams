@@ -4,8 +4,8 @@
 const assert = require('assert');
 const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativeNumber, InvokeOrNoop,
         IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
-        MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject, WaitForAllPromise } =
-      require('./helpers.js');
+        MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject, WaitForAllPromise,
+        CreatePromise } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
@@ -355,7 +355,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
   // This is used to keep track of the spec's requirement that we wait for ongoing writes during shutdown.
   let currentWrite = Promise.resolve();
 
-  return new Promise((resolve, reject) => {
+  return CreatePromise((resolve, reject) => {
     let abortAlgorithm;
     if (signal !== undefined) {
       abortAlgorithm = () => {
@@ -392,7 +392,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     // - Backpressure must be enforced
     // - Shutdown must stop all activity
     function pipeLoop() {
-      return new Promise((resolveLoop, rejectLoop) => {
+      return CreatePromise((resolveLoop, rejectLoop) => {
         function next(done) {
           if (done) {
             resolveLoop();
@@ -549,7 +549,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   let branch2;
 
   let resolveCancelPromise;
-  const cancelPromise = new Promise(resolve => {
+  const cancelPromise = CreatePromise(resolve => {
     resolveCancelPromise = resolve;
   });
 
@@ -642,7 +642,7 @@ function ReadableStreamAddReadIntoRequest(stream) {
   assert(IsReadableStreamBYOBReader(stream._reader) === true);
   assert(stream._state === 'readable' || stream._state === 'closed');
 
-  const promise = new Promise((resolve, reject) => {
+  const promise = CreatePromise((resolve, reject) => {
     const readIntoRequest = {
       _resolve: resolve,
       _reject: reject
@@ -658,7 +658,7 @@ function ReadableStreamAddReadRequest(stream) {
   assert(IsReadableStreamDefaultReader(stream._reader) === true);
   assert(stream._state === 'readable');
 
-  const promise = new Promise((resolve, reject) => {
+  const promise = CreatePromise((resolve, reject) => {
     const readRequest = {
       _resolve: resolve,
       _reject: reject
@@ -2148,7 +2148,7 @@ function defaultReaderBrandCheckException(name) {
 }
 
 function defaultReaderClosedPromiseInitialize(reader) {
-  reader._closedPromise = new Promise((resolve, reject) => {
+  reader._closedPromise = CreatePromise((resolve, reject) => {
     reader._closedPromise_resolve = resolve;
     reader._closedPromise_reject = reject;
   });

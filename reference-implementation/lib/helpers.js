@@ -218,7 +218,7 @@ exports.WaitForAll = (promises, successSteps, failureSteps) => {
 exports.WaitForAllPromise = (promises, successSteps, failureSteps = undefined) => {
   let resolvePromise;
   let rejectPromise;
-  const promise = new Promise((resolve, reject) => {
+  const promise = CreatePromise((resolve, reject) => {
     resolvePromise = resolve;
     rejectPromise = reject;
   });
