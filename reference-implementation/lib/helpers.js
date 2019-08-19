@@ -157,11 +157,33 @@ exports.MakeSizeAlgorithmFromSizeFunction = size => {
   return chunk => size(chunk);
 };
 
-exports.PerformPromiseThen = (promise, onFulfilled, onRejected) => {
+const originalPromise = Promise;
+const originalPromiseThen = Promise.prototype.then;
+const originalPromiseResolve = Promise.resolve;
+const originalPromiseReject = Promise.reject;
+
+function CreatePromise(executor) {
+  return new originalPromise(executor);
+}
+
+function PromiseResolve(value) {
+  return originalPromiseResolve.call(originalPromise, value);
+}
+
+function PromiseReject(reason) {
+  return originalPromiseReject.call(originalPromise, reason);
+}
+
+function PerformPromiseThen(promise, onFulfilled, onRejected) {
   // There doesn't appear to be any way to correctly emulate the behaviour from JavaScript, so this is just an
   // approximation.
-  return Promise.prototype.then.call(promise, onFulfilled, onRejected);
-};
+  return originalPromiseThen.call(promise, onFulfilled, onRejected);
+}
+
+exports.CreatePromise = CreatePromise;
+exports.PromiseResolve = PromiseResolve;
+exports.PromiseReject = PromiseReject;
+exports.PerformPromiseThen = PerformPromiseThen;
 
 exports.WaitForAll = (promises, successSteps, failureSteps) => {
   let rejected = false;
