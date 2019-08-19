@@ -7,7 +7,7 @@ const verbose = require('debug')('streams:transform-stream:verbose');
 const { InvokeOrNoop, CreateAlgorithmFromUnderlyingMethod, PromiseCall, typeIsObject,
         ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction,
-        CreatePromise, PromiseResolve } = require('./helpers.js');
+        CreatePromise, PromiseResolve, PromiseReject } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
@@ -271,7 +271,7 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
       TransformStreamDefaultControllerEnqueue(controller, chunk);
       return PromiseResolve();
     } catch (transformResultE) {
-      return Promise.reject(transformResultE);
+      return PromiseReject(transformResultE);
     }
   };
   const transformMethod = transformer.transform;

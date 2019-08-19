@@ -110,7 +110,7 @@ function PromiseCall(F, V, args) {
   try {
     return PromiseResolve(Call(F, V, args));
   } catch (value) {
-    return Promise.reject(value);
+    return PromiseReject(value);
   }
 }
 
