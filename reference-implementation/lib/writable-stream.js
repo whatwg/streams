@@ -6,8 +6,8 @@ const assert = require('assert');
 const verbose = require('debug')('streams:writable-stream:verbose');
 
 const { CreateAlgorithmFromUnderlyingMethod, InvokeOrNoop, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
-        MakeSizeAlgorithmFromSizeFunction, typeIsObject, CreatePromise, PromiseResolve, PromiseReject } =
-        require('./helpers.js');
+        MakeSizeAlgorithmFromSizeFunction, typeIsObject, CreatePromise, PromiseResolve, PromiseReject,
+        PerformPromiseThen } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 
@@ -272,7 +272,8 @@ function WritableStreamFinishErroring(stream) {
   }
 
   const promise = stream._writableStreamController[AbortSteps](abortRequest._reason);
-  promise.then(
+  PerformPromiseThen(
+    promise,
     () => {
       abortRequest._resolve();
       WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
@@ -769,7 +770,8 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
 
   const startResult = startAlgorithm();
   const startPromise = PromiseResolve(startResult);
-  startPromise.then(
+  PerformPromiseThen(
+    startPromise,
     () => {
       assert(stream._state === 'writable' || stream._state === 'erroring');
       controller._started = true;
@@ -894,7 +896,8 @@ function WritableStreamDefaultControllerProcessClose(controller) {
 
   const sinkClosePromise = controller._closeAlgorithm();
   WritableStreamDefaultControllerClearAlgorithms(controller);
-  sinkClosePromise.then(
+  PerformPromiseThen(
+    sinkClosePromise,
     () => {
       WritableStreamFinishInFlightClose(stream);
     },
@@ -910,7 +913,8 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   WritableStreamMarkFirstWriteRequestInFlight(stream);
 
   const sinkWritePromise = controller._writeAlgorithm(chunk);
-  sinkWritePromise.then(
+  PerformPromiseThen(
+    sinkWritePromise,
     () => {
       WritableStreamFinishInFlightWrite(stream);
 

@@ -7,7 +7,7 @@ const verbose = require('debug')('streams:transform-stream:verbose');
 const { InvokeOrNoop, CreateAlgorithmFromUnderlyingMethod, PromiseCall, typeIsObject,
         ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction,
-        CreatePromise, PromiseResolve, PromiseReject } = require('./helpers.js');
+        CreatePromise, PromiseResolve, PromiseReject, PerformPromiseThen } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
@@ -358,7 +358,7 @@ function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
   if (stream._backpressure === true) {
     const backpressureChangePromise = stream._backpressureChangePromise;
     assert(backpressureChangePromise !== undefined);
-    return backpressureChangePromise.then(() => {
+    return PerformPromiseThen(backpressureChangePromise, () => {
       const writable = stream._writable;
       const state = writable._state;
       if (state === 'erroring') {
@@ -390,7 +390,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
   // Return a promise that is fulfilled with undefined on success.
-  return flushPromise.then(() => {
+  return PerformPromiseThen(flushPromise, () => {
     if (readable._state === 'errored') {
       throw readable._storedError;
     }

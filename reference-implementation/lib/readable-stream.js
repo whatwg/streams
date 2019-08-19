@@ -5,7 +5,7 @@ const assert = require('assert');
 const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativeNumber, InvokeOrNoop,
         IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject, WaitForAllPromise,
-        CreatePromise, PromiseResolve, PromiseReject } = require('./helpers.js');
+        CreatePromise, PromiseResolve, PromiseReject, PerformPromiseThen } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
@@ -181,7 +181,7 @@ const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
     if (reader._ownerReadableStream === undefined) {
       return PromiseReject(readerLockException('iterate'));
     }
-    return ReadableStreamDefaultReaderRead(reader).then(result => {
+    return PerformPromiseThen(ReadableStreamDefaultReaderRead(reader), result => {
       assert(typeIsObject(result));
       const done = result.done;
       assert(typeof done === 'boolean');
@@ -208,7 +208,7 @@ const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
     if (this._preventCancel === false) {
       const result = ReadableStreamReaderGenericCancel(reader, value);
       ReadableStreamReaderGenericRelease(reader);
-      return result.then(() => ReadableStreamCreateReadResult(value, true, true));
+      return PerformPromiseThen(result, () => ReadableStreamCreateReadResult(value, true, true));
     }
     ReadableStreamReaderGenericRelease(reader);
     return PromiseResolve(ReadableStreamCreateReadResult(value, true, true));
@@ -397,7 +397,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
           if (done) {
             resolveLoop();
           } else {
-            pipeStep().then(next, rejectLoop);
+            PerformPromiseThen(pipeStep(), next, rejectLoop);
           }
         }
 
@@ -410,8 +410,8 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
         return PromiseResolve(true);
       }
 
-      return writer._readyPromise.then(() => {
-        return ReadableStreamDefaultReaderRead(reader).then(({ value, done }) => {
+      return PerformPromiseThen(writer._readyPromise, () => {
+        return PerformPromiseThen(ReadableStreamDefaultReaderRead(reader), ({ value, done }) => {
           if (done === true) {
             return true;
           }
@@ -466,7 +466,10 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       // Another write may have started while we were waiting on this currentWrite, so we have to be sure to wait
       // for that too.
       const oldCurrentWrite = currentWrite;
-      return currentWrite.then(() => oldCurrentWrite !== currentWrite ? waitForWritesToFinish() : undefined);
+      return PerformPromiseThen(
+        currentWrite,
+        () => oldCurrentWrite !== currentWrite ? waitForWritesToFinish() : undefined
+      );
     }
 
     function isOrBecomesErrored(stream, promise, action) {
@@ -481,7 +484,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       if (stream._state === 'closed') {
         action();
       } else {
-        promise.then(action).catch(rethrowAssertionErrorRejection);
+        PerformPromiseThen(promise, action).catch(rethrowAssertionErrorRejection);
       }
     }
 
@@ -492,13 +495,14 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       shuttingDown = true;
 
       if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
-        waitForWritesToFinish().then(doTheRest);
+        PerformPromiseThen(waitForWritesToFinish(), doTheRest);
       } else {
         doTheRest();
       }
 
       function doTheRest() {
-        action().then(
+        PerformPromiseThen(
+          action(),
           () => finalize(originalIsError, originalError),
           newError => finalize(true, newError)
         ).catch(rethrowAssertionErrorRejection);
@@ -512,7 +516,10 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       shuttingDown = true;
 
       if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
-        waitForWritesToFinish().then(() => finalize(isError, error)).catch(rethrowAssertionErrorRejection);
+        PerformPromiseThen(
+          waitForWritesToFinish(),
+          () => finalize(isError, error)
+        ).catch(rethrowAssertionErrorRejection);
       } else {
         finalize(isError, error);
       }
@@ -560,7 +567,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
     reading = true;
 
-    const readPromise = ReadableStreamDefaultReaderRead(reader).then(result => {
+    const readPromise = PerformPromiseThen(ReadableStreamDefaultReaderRead(reader), result => {
       reading = false;
 
       assert(typeIsObject(result));
@@ -683,7 +690,7 @@ function ReadableStreamCancel(stream, reason) {
   ReadableStreamClose(stream);
 
   const sourceCancelPromise = stream._readableStreamController[CancelSteps](reason);
-  return sourceCancelPromise.then(() => undefined);
+  return PerformPromiseThen(sourceCancelPromise, () => undefined);
 }
 
 function ReadableStreamClose(stream) {
@@ -1163,7 +1170,8 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
   controller._pulling = true;
 
   const pullPromise = controller._pullAlgorithm();
-  pullPromise.then(
+  PerformPromiseThen(
+    pullPromise,
     () => {
       controller._pulling = false;
 
@@ -1320,7 +1328,8 @@ function SetUpReadableStreamDefaultController(
   stream._readableStreamController = controller;
 
   const startResult = startAlgorithm();
-  PromiseResolve(startResult).then(
+  PerformPromiseThen(
+    PromiseResolve(startResult),
     () => {
       controller._started = true;
 
@@ -1592,7 +1601,8 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
 
   // TODO: Test controller argument
   const pullPromise = controller._pullAlgorithm();
-  pullPromise.then(
+  PerformPromiseThen(
+    pullPromise,
     () => {
       controller._pulling = false;
 
@@ -2061,7 +2071,8 @@ function SetUpReadableByteStreamController(stream, controller, startAlgorithm, p
   stream._readableStreamController = controller;
 
   const startResult = startAlgorithm();
-  PromiseResolve(startResult).then(
+  PerformPromiseThen(
+    PromiseResolve(startResult),
     () => {
       controller._started = true;
 
