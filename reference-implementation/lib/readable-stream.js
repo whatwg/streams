@@ -5,7 +5,7 @@ const assert = require('assert');
 const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativeNumber, InvokeOrNoop,
         IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject, WaitForAllPromise,
-        CreatePromise } = require('./helpers.js');
+        CreatePromise, PromiseResolve } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
@@ -211,7 +211,7 @@ const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
       return result.then(() => ReadableStreamCreateReadResult(value, true, true));
     }
     ReadableStreamReaderGenericRelease(reader);
-    return Promise.resolve(ReadableStreamCreateReadResult(value, true, true));
+    return PromiseResolve(ReadableStreamCreateReadResult(value, true, true));
   }
 }, AsyncIteratorPrototype);
 Object.defineProperty(ReadableStreamAsyncIteratorPrototype, 'next', { enumerable: false });
@@ -353,7 +353,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
   let shuttingDown = false;
 
   // This is used to keep track of the spec's requirement that we wait for ongoing writes during shutdown.
-  let currentWrite = Promise.resolve();
+  let currentWrite = PromiseResolve();
 
   return CreatePromise((resolve, reject) => {
     let abortAlgorithm;
@@ -366,7 +366,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
             if (dest._state === 'writable') {
               return WritableStreamAbort(dest, error);
             }
-            return Promise.resolve();
+            return PromiseResolve();
           });
         }
         if (preventCancel === false) {
@@ -374,7 +374,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
             if (source._state === 'readable') {
               return ReadableStreamCancel(source, error);
             }
-            return Promise.resolve();
+            return PromiseResolve();
           });
         }
         shutdownWithAction(() => WaitForAllPromise(actions.map(action => action()), results => results), true, error);
@@ -407,7 +407,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
 
     function pipeStep() {
       if (shuttingDown === true) {
-        return Promise.resolve(true);
+        return PromiseResolve(true);
       }
 
       return writer._readyPromise.then(() => {
@@ -555,7 +555,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
   function pullAlgorithm() {
     if (reading === true) {
-      return Promise.resolve();
+      return PromiseResolve();
     }
 
     reading = true;
@@ -598,7 +598,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
     readPromise.catch(rethrowAssertionErrorRejection);
 
-    return Promise.resolve();
+    return PromiseResolve();
   }
 
   function cancel1Algorithm(reason) {
@@ -674,7 +674,7 @@ function ReadableStreamCancel(stream, reason) {
   stream._disturbed = true;
 
   if (stream._state === 'closed') {
-    return Promise.resolve(undefined);
+    return PromiseResolve(undefined);
   }
   if (stream._state === 'errored') {
     return Promise.reject(stream._storedError);
@@ -1045,7 +1045,7 @@ function ReadableStreamDefaultReaderRead(reader) {
   stream._disturbed = true;
 
   if (stream._state === 'closed') {
-    return Promise.resolve(ReadableStreamCreateReadResult(undefined, true, reader._forAuthorCode));
+    return PromiseResolve(ReadableStreamCreateReadResult(undefined, true, reader._forAuthorCode));
   }
 
   if (stream._state === 'errored') {
@@ -1124,7 +1124,7 @@ class ReadableStreamDefaultController {
         ReadableStreamDefaultControllerCallPullIfNeeded(this);
       }
 
-      return Promise.resolve(ReadableStreamCreateReadResult(chunk, false, stream._reader._forAuthorCode));
+      return PromiseResolve(ReadableStreamCreateReadResult(chunk, false, stream._reader._forAuthorCode));
     }
 
     const pendingPromise = ReadableStreamAddReadRequest(stream);
@@ -1320,7 +1320,7 @@ function SetUpReadableStreamDefaultController(
   stream._readableStreamController = controller;
 
   const startResult = startAlgorithm();
-  Promise.resolve(startResult).then(
+  PromiseResolve(startResult).then(
     () => {
       controller._started = true;
 
@@ -1516,7 +1516,7 @@ class ReadableByteStreamController {
         return Promise.reject(viewE);
       }
 
-      return Promise.resolve(ReadableStreamCreateReadResult(view, false, stream._reader._forAuthorCode));
+      return PromiseResolve(ReadableStreamCreateReadResult(view, false, stream._reader._forAuthorCode));
     }
 
     const autoAllocateChunkSize = this._autoAllocateChunkSize;
@@ -1777,7 +1777,7 @@ function ReadableByteStreamControllerPullInto(controller, view) {
 
   if (stream._state === 'closed') {
     const emptyView = new view.constructor(pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, 0);
-    return Promise.resolve(ReadableStreamCreateReadResult(emptyView, true, stream._reader._forAuthorCode));
+    return PromiseResolve(ReadableStreamCreateReadResult(emptyView, true, stream._reader._forAuthorCode));
   }
 
   if (controller._queueTotalSize > 0) {
@@ -1786,7 +1786,7 @@ function ReadableByteStreamControllerPullInto(controller, view) {
 
       ReadableByteStreamControllerHandleQueueDrain(controller);
 
-      return Promise.resolve(ReadableStreamCreateReadResult(filledView, false, stream._reader._forAuthorCode));
+      return PromiseResolve(ReadableStreamCreateReadResult(filledView, false, stream._reader._forAuthorCode));
     }
 
     if (controller._closeRequested === true) {
@@ -2061,7 +2061,7 @@ function SetUpReadableByteStreamController(stream, controller, startAlgorithm, p
   stream._readableStreamController = controller;
 
   const startResult = startAlgorithm();
-  Promise.resolve(startResult).then(
+  PromiseResolve(startResult).then(
     () => {
       controller._started = true;
 
@@ -2161,7 +2161,7 @@ function defaultReaderClosedPromiseInitializeAsRejected(reader, reason) {
 }
 
 function defaultReaderClosedPromiseInitializeAsResolved(reader) {
-  reader._closedPromise = Promise.resolve(undefined);
+  reader._closedPromise = PromiseResolve(undefined);
   reader._closedPromise_resolve = undefined;
   reader._closedPromise_reject = undefined;
 }

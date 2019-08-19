@@ -87,7 +87,7 @@ exports.CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, alg
       }
     }
   }
-  return () => Promise.resolve();
+  return () => PromiseResolve();
 };
 
 exports.InvokeOrNoop = (O, P, args) => {
@@ -108,7 +108,7 @@ function PromiseCall(F, V, args) {
   assert(V !== undefined);
   assert(Array.isArray(args));
   try {
-    return Promise.resolve(Call(F, V, args));
+    return PromiseResolve(Call(F, V, args));
   } catch (value) {
     return Promise.reject(value);
   }

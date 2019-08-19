@@ -7,7 +7,7 @@ const verbose = require('debug')('streams:transform-stream:verbose');
 const { InvokeOrNoop, CreateAlgorithmFromUnderlyingMethod, PromiseCall, typeIsObject,
         ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction,
-        CreatePromise } = require('./helpers.js');
+        CreatePromise, PromiseResolve } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
@@ -131,7 +131,7 @@ function InitializeTransformStream(stream, startPromise, writableHighWaterMark, 
 
   function cancelAlgorithm(reason) {
     TransformStreamErrorWritableAndUnblockWrite(stream, reason);
-    return Promise.resolve();
+    return PromiseResolve();
   }
 
   stream._readable = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, readableHighWaterMark,
@@ -269,7 +269,7 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
   let transformAlgorithm = chunk => {
     try {
       TransformStreamDefaultControllerEnqueue(controller, chunk);
-      return Promise.resolve();
+      return PromiseResolve();
     } catch (transformResultE) {
       return Promise.reject(transformResultE);
     }
@@ -376,7 +376,7 @@ function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {
   // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
   // errored.
   TransformStreamError(stream, reason);
-  return Promise.resolve();
+  return PromiseResolve();
 }
 
 function TransformStreamDefaultSinkCloseAlgorithm(stream) {
