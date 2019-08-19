@@ -5,9 +5,8 @@ const assert = require('assert');
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:transform-stream:verbose');
 const { InvokeOrNoop, CreateAlgorithmFromUnderlyingMethod, PromiseCall, typeIsObject,
-        ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
-        MakeSizeAlgorithmFromSizeFunction,
-        CreatePromise, PromiseResolve, PromiseReject, PerformPromiseThen } = require('./helpers.js');
+        ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber, MakeSizeAlgorithmFromSizeFunction, CreatePromise,
+        PromiseResolve, PromiseReject, PerformPromiseThen, PerformPromiseCatch } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
@@ -326,7 +325,7 @@ function TransformStreamDefaultControllerError(controller, e) {
 
 function TransformStreamDefaultControllerPerformTransform(controller, chunk) {
   const transformPromise = controller._transformAlgorithm(chunk);
-  return transformPromise.catch(r => {
+  return PerformPromiseCatch(transformPromise, r => {
     TransformStreamError(controller._controlledTransformStream, r);
     throw r;
   });
@@ -390,7 +389,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
   // Return a promise that is fulfilled with undefined on success.
-  return PerformPromiseThen(flushPromise, () => {
+  return PerformPromiseCatch(PerformPromiseThen(flushPromise, () => {
     if (readable._state === 'errored') {
       throw readable._storedError;
     }
@@ -398,10 +397,10 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
     if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === true) {
       ReadableStreamDefaultControllerClose(readableController);
     }
-  }).catch(r => {
+  }, r => {
     TransformStreamError(stream, r);
     throw readable._storedError;
-  });
+  }));
 }
 
 // TransformStreamDefaultSource Algorithms
