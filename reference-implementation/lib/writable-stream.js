@@ -6,7 +6,7 @@ const assert = require('assert');
 const verbose = require('debug')('streams:writable-stream:verbose');
 
 const { CreateAlgorithmFromUnderlyingMethod, InvokeOrNoop, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
-        MakeSizeAlgorithmFromSizeFunction, typeIsObject, newPromise, PromiseResolve, PromiseReject,
+        MakeSizeAlgorithmFromSizeFunction, typeIsObject, newPromise, promiseResolvedWith, PromiseReject,
         PerformPromiseThen, PerformPromiseCatch } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
@@ -161,7 +161,7 @@ function IsWritableStreamLocked(stream) {
 function WritableStreamAbort(stream, reason) {
   const state = stream._state;
   if (state === 'closed' || state === 'errored') {
-    return PromiseResolve(undefined);
+    return promiseResolvedWith(undefined);
   }
   if (stream._pendingAbortRequest !== undefined) {
     return stream._pendingAbortRequest._promise;
@@ -601,7 +601,7 @@ function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
 
   const state = stream._state;
   if (WritableStreamCloseQueuedOrInFlight(stream) === true || state === 'closed') {
-    return PromiseResolve();
+    return promiseResolvedWith();
   }
 
   if (state === 'errored') {
@@ -769,7 +769,7 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
   WritableStreamUpdateBackpressure(stream, backpressure);
 
   const startResult = startAlgorithm();
-  const startPromise = PromiseResolve(startResult);
+  const startPromise = promiseResolvedWith(startResult);
   PerformPromiseCatch(
     PerformPromiseThen(
       startPromise,
@@ -997,7 +997,7 @@ function defaultWriterClosedPromiseInitializeAsRejected(writer, reason) {
 }
 
 function defaultWriterClosedPromiseInitializeAsResolved(writer) {
-  writer._closedPromise = PromiseResolve(undefined);
+  writer._closedPromise = promiseResolvedWith(undefined);
   writer._closedPromise_resolve = undefined;
   writer._closedPromise_reject = undefined;
   writer._closedPromiseState = 'resolved';
@@ -1053,7 +1053,7 @@ function defaultWriterReadyPromiseInitializeAsRejected(writer, reason) {
 
 function defaultWriterReadyPromiseInitializeAsResolved(writer) {
   verbose('defaultWriterReadyPromiseInitializeAsResolved()');
-  writer._readyPromise = PromiseResolve(undefined);
+  writer._readyPromise = promiseResolvedWith(undefined);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
   writer._readyPromiseState = 'fulfilled';

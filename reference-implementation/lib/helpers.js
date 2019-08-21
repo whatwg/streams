@@ -87,7 +87,7 @@ exports.CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, alg
       }
     }
   }
-  return () => PromiseResolve();
+  return () => promiseResolvedWith();
 };
 
 exports.InvokeOrNoop = (O, P, args) => {
@@ -108,7 +108,7 @@ function PromiseCall(F, V, args) {
   assert(V !== undefined);
   assert(Array.isArray(args));
   try {
-    return PromiseResolve(Call(F, V, args));
+    return promiseResolvedWith(Call(F, V, args));
   } catch (value) {
     return PromiseReject(value);
   }
@@ -166,7 +166,7 @@ function newPromise(executor) {
   return new originalPromise(executor);
 }
 
-function PromiseResolve(value) {
+function promiseResolvedWith(value) {
   return originalPromiseResolve.call(originalPromise, value);
 }
 
@@ -185,7 +185,7 @@ function PerformPromiseCatch(promise, onRejected) {
 }
 
 exports.newPromise = newPromise;
-exports.PromiseResolve = PromiseResolve;
+exports.promiseResolvedWith = promiseResolvedWith;
 exports.PromiseReject = PromiseReject;
 exports.PerformPromiseThen = PerformPromiseThen;
 exports.PerformPromiseCatch = PerformPromiseCatch;

@@ -6,7 +6,7 @@ const assert = require('assert');
 const verbose = require('debug')('streams:transform-stream:verbose');
 const { InvokeOrNoop, CreateAlgorithmFromUnderlyingMethod, PromiseCall, typeIsObject,
         ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber, MakeSizeAlgorithmFromSizeFunction, newPromise,
-        PromiseResolve, PromiseReject, PerformPromiseThen } = require('./helpers.js');
+        promiseResolvedWith, PromiseReject, PerformPromiseThen } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
@@ -130,7 +130,7 @@ function InitializeTransformStream(stream, startPromise, writableHighWaterMark, 
 
   function cancelAlgorithm(reason) {
     TransformStreamErrorWritableAndUnblockWrite(stream, reason);
-    return PromiseResolve();
+    return promiseResolvedWith();
   }
 
   stream._readable = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, readableHighWaterMark,
@@ -268,7 +268,7 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
   let transformAlgorithm = chunk => {
     try {
       TransformStreamDefaultControllerEnqueue(controller, chunk);
-      return PromiseResolve();
+      return promiseResolvedWith();
     } catch (transformResultE) {
       return PromiseReject(transformResultE);
     }
@@ -375,7 +375,7 @@ function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {
   // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
   // errored.
   TransformStreamError(stream, reason);
-  return PromiseResolve();
+  return promiseResolvedWith();
 }
 
 function TransformStreamDefaultSinkCloseAlgorithm(stream) {
