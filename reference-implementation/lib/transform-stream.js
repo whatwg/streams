@@ -6,7 +6,7 @@ const assert = require('assert');
 const verbose = require('debug')('streams:transform-stream:verbose');
 const { InvokeOrNoop, CreateAlgorithmFromUnderlyingMethod, PromiseCall, typeIsObject,
         ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber, MakeSizeAlgorithmFromSizeFunction, CreatePromise,
-        PromiseResolve, PromiseReject, PerformPromiseThen, PerformPromiseCatch } = require('./helpers.js');
+        PromiseResolve, PromiseReject, PerformPromiseThen } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
@@ -325,7 +325,7 @@ function TransformStreamDefaultControllerError(controller, e) {
 
 function TransformStreamDefaultControllerPerformTransform(controller, chunk) {
   const transformPromise = controller._transformAlgorithm(chunk);
-  return PerformPromiseCatch(transformPromise, r => {
+  return PerformPromiseThen(transformPromise, undefined, r => {
     TransformStreamError(controller._controlledTransformStream, r);
     throw r;
   });
