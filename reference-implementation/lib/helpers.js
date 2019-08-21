@@ -110,7 +110,7 @@ function PromiseCall(F, V, args) {
   try {
     return promiseResolvedWith(Call(F, V, args));
   } catch (value) {
-    return PromiseReject(value);
+    return promiseRejectedWith(value);
   }
 }
 
@@ -170,7 +170,7 @@ function promiseResolvedWith(value) {
   return originalPromiseResolve.call(originalPromise, value);
 }
 
-function PromiseReject(reason) {
+function promiseRejectedWith(reason) {
   return originalPromiseReject.call(originalPromise, reason);
 }
 
@@ -186,7 +186,7 @@ function PerformPromiseCatch(promise, onRejected) {
 
 exports.newPromise = newPromise;
 exports.promiseResolvedWith = promiseResolvedWith;
-exports.PromiseReject = PromiseReject;
+exports.promiseRejectedWith = promiseRejectedWith;
 exports.PerformPromiseThen = PerformPromiseThen;
 exports.PerformPromiseCatch = PerformPromiseCatch;
 
