@@ -197,6 +197,10 @@ function uponRejection(promise, onRejected) {
   uponPromise(promise, undefined, onRejected);
 }
 
+function transformPromiseWith(promise, fulfillmentHandler, rejectionHandler) {
+  return PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler);
+}
+
 function setPromiseIsHandledToTrue(promise) {
   PerformPromiseThen(promise, undefined, rethrowAssertionErrorRejection);
 }
@@ -207,6 +211,7 @@ exports.promiseRejectedWith = promiseRejectedWith;
 exports.uponPromise = uponPromise;
 exports.uponFulfillment = uponFulfillment;
 exports.uponRejection = uponRejection;
+exports.transformPromiseWith = transformPromiseWith;
 exports.setPromiseIsHandledToTrue = setPromiseIsHandledToTrue;
 exports.PerformPromiseThen = PerformPromiseThen;
 

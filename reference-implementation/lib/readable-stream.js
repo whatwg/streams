@@ -5,8 +5,8 @@ const assert = require('assert');
 const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativeNumber, InvokeOrNoop,
         IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject, WaitForAllPromise,
-        newPromise, promiseResolvedWith, promiseRejectedWith, PerformPromiseThen,
-        uponPromise, uponFulfillment, uponRejection, setPromiseIsHandledToTrue } = require('./helpers.js');
+        newPromise, promiseResolvedWith, promiseRejectedWith, uponPromise, uponFulfillment, uponRejection,
+        transformPromiseWith, setPromiseIsHandledToTrue, PerformPromiseThen } = require('./helpers.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
         WritableStreamAbort, WritableStreamDefaultWriterCloseWithErrorPropagation,
@@ -187,7 +187,7 @@ const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
     if (reader._ownerReadableStream === undefined) {
       return promiseRejectedWith(readerLockException('iterate'));
     }
-    return PerformPromiseThen(ReadableStreamDefaultReaderRead(reader), result => {
+    return transformPromiseWith(ReadableStreamDefaultReaderRead(reader), result => {
       assert(typeIsObject(result));
       const done = result.done;
       assert(typeof done === 'boolean');
@@ -214,7 +214,7 @@ const ReadableStreamAsyncIteratorPrototype = Object.setPrototypeOf({
     if (this._preventCancel === false) {
       const result = ReadableStreamReaderGenericCancel(reader, value);
       ReadableStreamReaderGenericRelease(reader);
-      return PerformPromiseThen(result, () => ReadableStreamCreateReadResult(value, true, true));
+      return transformPromiseWith(result, () => ReadableStreamCreateReadResult(value, true, true));
     }
     ReadableStreamReaderGenericRelease(reader);
     return promiseResolvedWith(ReadableStreamCreateReadResult(value, true, true));
@@ -573,7 +573,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
     reading = true;
 
-    const readPromise = PerformPromiseThen(ReadableStreamDefaultReaderRead(reader), result => {
+    const readPromise = transformPromiseWith(ReadableStreamDefaultReaderRead(reader), result => {
       reading = false;
 
       assert(typeIsObject(result));
@@ -696,7 +696,7 @@ function ReadableStreamCancel(stream, reason) {
   ReadableStreamClose(stream);
 
   const sourceCancelPromise = stream._readableStreamController[CancelSteps](reason);
-  return PerformPromiseThen(sourceCancelPromise, () => undefined);
+  return transformPromiseWith(sourceCancelPromise, () => undefined);
 }
 
 function ReadableStreamClose(stream) {

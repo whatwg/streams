@@ -6,7 +6,7 @@ const assert = require('assert');
 const verbose = require('debug')('streams:transform-stream:verbose');
 const { InvokeOrNoop, CreateAlgorithmFromUnderlyingMethod, PromiseCall, typeIsObject,
         ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber, MakeSizeAlgorithmFromSizeFunction, newPromise,
-        promiseResolvedWith, promiseRejectedWith, PerformPromiseThen } = require('./helpers.js');
+        promiseResolvedWith, promiseRejectedWith, transformPromiseWith } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
@@ -325,7 +325,7 @@ function TransformStreamDefaultControllerError(controller, e) {
 
 function TransformStreamDefaultControllerPerformTransform(controller, chunk) {
   const transformPromise = controller._transformAlgorithm(chunk);
-  return PerformPromiseThen(transformPromise, undefined, r => {
+  return transformPromiseWith(transformPromise, undefined, r => {
     TransformStreamError(controller._controlledTransformStream, r);
     throw r;
   });
@@ -357,7 +357,7 @@ function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
   if (stream._backpressure === true) {
     const backpressureChangePromise = stream._backpressureChangePromise;
     assert(backpressureChangePromise !== undefined);
-    return PerformPromiseThen(backpressureChangePromise, () => {
+    return transformPromiseWith(backpressureChangePromise, () => {
       const writable = stream._writable;
       const state = writable._state;
       if (state === 'erroring') {
@@ -389,7 +389,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
   // Return a promise that is fulfilled with undefined on success.
-  return PerformPromiseThen(flushPromise, () => {
+  return transformPromiseWith(flushPromise, () => {
     if (readable._state === 'errored') {
       throw readable._storedError;
     }
