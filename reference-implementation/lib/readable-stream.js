@@ -6,7 +6,7 @@ const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativ
         IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject, WaitForAllPromise,
         newPromise, promiseResolvedWith, promiseRejectedWith, uponPromise, uponFulfillment, uponRejection,
-        transformPromiseWith, setPromiseIsHandledToTrue, PerformPromiseThen } = require('./helpers.js');
+        transformPromiseWith, setPromiseIsHandledToTrue } = require('./helpers.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
         WritableStreamAbort, WritableStreamDefaultWriterCloseWithErrorPropagation,
@@ -403,7 +403,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
           if (done) {
             resolveLoop();
           } else {
-            PerformPromiseThen(pipeStep(), next, rejectLoop);
+            uponPromise(pipeStep(), next, rejectLoop);
           }
         }
 
@@ -416,13 +416,13 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
         return promiseResolvedWith(true);
       }
 
-      return PerformPromiseThen(writer._readyPromise, () => {
-        return PerformPromiseThen(ReadableStreamDefaultReaderRead(reader), ({ value, done }) => {
+      return transformPromiseWith(writer._readyPromise, () => {
+        return transformPromiseWith(ReadableStreamDefaultReaderRead(reader), ({ value, done }) => {
           if (done === true) {
             return true;
           }
 
-          currentWrite = PerformPromiseThen(WritableStreamDefaultWriterWrite(writer, value), undefined, () => {});
+          currentWrite = transformPromiseWith(WritableStreamDefaultWriterWrite(writer, value), undefined, () => {});
           return false;
         });
       });
@@ -472,7 +472,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       // Another write may have started while we were waiting on this currentWrite, so we have to be sure to wait
       // for that too.
       const oldCurrentWrite = currentWrite;
-      return PerformPromiseThen(
+      return transformPromiseWith(
         currentWrite,
         () => oldCurrentWrite !== currentWrite ? waitForWritesToFinish() : undefined
       );
@@ -501,7 +501,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       shuttingDown = true;
 
       if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
-        PerformPromiseThen(waitForWritesToFinish(), doTheRest);
+        uponFulfillment(waitForWritesToFinish(), doTheRest);
       } else {
         doTheRest();
       }
