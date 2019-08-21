@@ -213,7 +213,6 @@ exports.uponFulfillment = uponFulfillment;
 exports.uponRejection = uponRejection;
 exports.transformPromiseWith = transformPromiseWith;
 exports.setPromiseIsHandledToTrue = setPromiseIsHandledToTrue;
-exports.PerformPromiseThen = PerformPromiseThen;
 
 exports.WaitForAll = (promises, successSteps, failureSteps) => {
   let rejected = false;
@@ -240,7 +239,7 @@ exports.WaitForAll = (promises, successSteps, failureSteps) => {
         successSteps(result);
       }
     };
-    exports.PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler);
+    PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler);
     ++index;
   }
 };
