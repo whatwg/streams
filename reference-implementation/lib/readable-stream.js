@@ -5,7 +5,7 @@ const assert = require('assert');
 const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativeNumber, InvokeOrNoop,
         IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject, WaitForAllPromise,
-        newPromise, promiseResolvedWith, promiseRejectedWith, PerformPromiseThen, PerformPromiseCatch,
+        newPromise, promiseResolvedWith, promiseRejectedWith, PerformPromiseThen,
         uponPromise, uponFulfillment, uponRejection, setPromiseIsHandledToTrue } = require('./helpers.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
@@ -422,7 +422,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
             return true;
           }
 
-          currentWrite = PerformPromiseCatch(WritableStreamDefaultWriterWrite(writer, value), () => {});
+          currentWrite = PerformPromiseThen(WritableStreamDefaultWriterWrite(writer, value), undefined, () => {});
           return false;
         });
       });

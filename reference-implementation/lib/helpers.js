@@ -181,13 +181,10 @@ function PerformPromiseThen(promise, onFulfilled, onRejected) {
   return originalPromiseThen.call(promise, onFulfilled, onRejected);
 }
 
-function PerformPromiseCatch(promise, onRejected) {
-  return PerformPromiseThen(promise, undefined, onRejected);
-}
-
 function uponPromise(promise, onFulfilled, onRejected) {
-  PerformPromiseCatch(
+  PerformPromiseThen(
     PerformPromiseThen(promise, onFulfilled, onRejected),
+    undefined,
     rethrowAssertionErrorRejection
   );
 }
@@ -211,9 +208,7 @@ exports.uponPromise = uponPromise;
 exports.uponFulfillment = uponFulfillment;
 exports.uponRejection = uponRejection;
 exports.setPromiseIsHandledToTrue = setPromiseIsHandledToTrue;
-
 exports.PerformPromiseThen = PerformPromiseThen;
-exports.PerformPromiseCatch = PerformPromiseCatch;
 
 exports.WaitForAll = (promises, successSteps, failureSteps) => {
   let rejected = false;
