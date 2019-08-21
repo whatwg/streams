@@ -389,7 +389,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
   // Return a promise that is fulfilled with undefined on success.
-  return PerformPromiseCatch(PerformPromiseThen(flushPromise, () => {
+  return PerformPromiseThen(flushPromise, () => {
     if (readable._state === 'errored') {
       throw readable._storedError;
     }
@@ -400,7 +400,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   }, r => {
     TransformStreamError(stream, r);
     throw readable._storedError;
-  }));
+  });
 }
 
 // TransformStreamDefaultSource Algorithms
