@@ -5,9 +5,8 @@ const assert = require('assert');
 const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativeNumber, InvokeOrNoop,
         IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject, WaitForAllPromise,
-        newPromise, promiseResolvedWith, promiseRejectedWith, PerformPromiseThen,
-        PerformPromiseCatch, uponPromise, uponRejection, setPromiseIsHandledToTrue } = require('./helpers.js');
-const { rethrowAssertionErrorRejection } = require('./utils.js');
+        newPromise, promiseResolvedWith, promiseRejectedWith, PerformPromiseThen, PerformPromiseCatch,
+        uponPromise, uponFulfillment, uponRejection, setPromiseIsHandledToTrue } = require('./helpers.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
         WritableStreamAbort, WritableStreamDefaultWriterCloseWithErrorPropagation,
@@ -483,10 +482,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       if (stream._state === 'errored') {
         action(stream._storedError);
       } else {
-        PerformPromiseCatch(
-          PerformPromiseCatch(promise, action),
-          rethrowAssertionErrorRejection
-        );
+        uponRejection(promise, action);
       }
     }
 
@@ -494,10 +490,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       if (stream._state === 'closed') {
         action();
       } else {
-        PerformPromiseCatch(
-          PerformPromiseThen(promise, action),
-          rethrowAssertionErrorRejection
-        );
+        uponFulfillment(promise, action);
       }
     }
 
@@ -529,12 +522,9 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       shuttingDown = true;
 
       if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
-        PerformPromiseCatch(
-          PerformPromiseThen(
-            waitForWritesToFinish(),
-            () => finalize(isError, error)
-          ),
-          rethrowAssertionErrorRejection
+        uponFulfillment(
+          waitForWritesToFinish(),
+          () => finalize(isError, error)
         );
       } else {
         finalize(isError, error);
