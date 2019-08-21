@@ -5,7 +5,7 @@ const assert = require('assert');
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:transform-stream:verbose');
 const { InvokeOrNoop, CreateAlgorithmFromUnderlyingMethod, PromiseCall, typeIsObject,
-        ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber, MakeSizeAlgorithmFromSizeFunction, CreatePromise,
+        ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber, MakeSizeAlgorithmFromSizeFunction, newPromise,
         PromiseResolve, PromiseReject, PerformPromiseThen } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
@@ -47,7 +47,7 @@ class TransformStream {
     readableHighWaterMark = ValidateAndNormalizeHighWaterMark(readableHighWaterMark);
 
     let startPromise_resolve;
-    const startPromise = CreatePromise(resolve => {
+    const startPromise = newPromise(resolve => {
       startPromise_resolve = resolve;
     });
 
@@ -87,7 +87,7 @@ function CreateTransformStream(startAlgorithm, transformAlgorithm, flushAlgorith
   const stream = Object.create(TransformStream.prototype);
 
   let startPromise_resolve;
-  const startPromise = CreatePromise(resolve => {
+  const startPromise = newPromise(resolve => {
     startPromise_resolve = resolve;
   });
 
@@ -187,7 +187,7 @@ function TransformStreamSetBackpressure(stream, backpressure) {
     stream._backpressureChangePromise_resolve();
   }
 
-  stream._backpressureChangePromise = CreatePromise(resolve => {
+  stream._backpressureChangePromise = newPromise(resolve => {
     stream._backpressureChangePromise_resolve = resolve;
   });
 

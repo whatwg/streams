@@ -6,7 +6,7 @@ const assert = require('assert');
 const verbose = require('debug')('streams:writable-stream:verbose');
 
 const { CreateAlgorithmFromUnderlyingMethod, InvokeOrNoop, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
-        MakeSizeAlgorithmFromSizeFunction, typeIsObject, CreatePromise, PromiseResolve, PromiseReject,
+        MakeSizeAlgorithmFromSizeFunction, typeIsObject, newPromise, PromiseResolve, PromiseReject,
         PerformPromiseThen, PerformPromiseCatch } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
@@ -176,7 +176,7 @@ function WritableStreamAbort(stream, reason) {
     reason = undefined;
   }
 
-  const promise = CreatePromise((resolve, reject) => {
+  const promise = newPromise((resolve, reject) => {
     stream._pendingAbortRequest = {
       _resolve: resolve,
       _reject: reject,
@@ -199,7 +199,7 @@ function WritableStreamAddWriteRequest(stream) {
   assert(IsWritableStreamLocked(stream) === true);
   assert(stream._state === 'writable');
 
-  const promise = CreatePromise((resolve, reject) => {
+  const promise = newPromise((resolve, reject) => {
     const writeRequest = {
       _resolve: resolve,
       _reject: reject
@@ -575,7 +575,7 @@ function WritableStreamDefaultWriterClose(writer) {
   assert(state === 'writable' || state === 'erroring');
   assert(WritableStreamCloseQueuedOrInFlight(stream) === false);
 
-  const promise = CreatePromise((resolve, reject) => {
+  const promise = newPromise((resolve, reject) => {
     const closeRequest = {
       _resolve: resolve,
       _reject: reject
@@ -982,7 +982,7 @@ function defaultWriterLockException(name) {
 }
 
 function defaultWriterClosedPromiseInitialize(writer) {
-  writer._closedPromise = CreatePromise((resolve, reject) => {
+  writer._closedPromise = newPromise((resolve, reject) => {
     writer._closedPromise_resolve = resolve;
     writer._closedPromise_reject = reject;
     writer._closedPromiseState = 'pending';
@@ -1036,7 +1036,7 @@ function defaultWriterClosedPromiseResolve(writer) {
 
 function defaultWriterReadyPromiseInitialize(writer) {
   verbose('defaultWriterReadyPromiseInitialize()');
-  writer._readyPromise = CreatePromise((resolve, reject) => {
+  writer._readyPromise = newPromise((resolve, reject) => {
     writer._readyPromise_resolve = resolve;
     writer._readyPromise_reject = reject;
   });
@@ -1075,7 +1075,7 @@ function defaultWriterReadyPromiseReset(writer) {
   assert(writer._readyPromise_resolve === undefined);
   assert(writer._readyPromise_reject === undefined);
 
-  writer._readyPromise = CreatePromise((resolve, reject) => {
+  writer._readyPromise = newPromise((resolve, reject) => {
     writer._readyPromise_resolve = resolve;
     writer._readyPromise_reject = reject;
   });

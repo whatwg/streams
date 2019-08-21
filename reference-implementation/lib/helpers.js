@@ -162,7 +162,7 @@ const originalPromiseThen = Promise.prototype.then;
 const originalPromiseResolve = Promise.resolve;
 const originalPromiseReject = Promise.reject;
 
-function CreatePromise(executor) {
+function newPromise(executor) {
   return new originalPromise(executor);
 }
 
@@ -184,7 +184,7 @@ function PerformPromiseCatch(promise, onRejected) {
   return PerformPromiseThen(promise, undefined, onRejected);
 }
 
-exports.CreatePromise = CreatePromise;
+exports.newPromise = newPromise;
 exports.PromiseResolve = PromiseResolve;
 exports.PromiseReject = PromiseReject;
 exports.PerformPromiseThen = PerformPromiseThen;
@@ -223,7 +223,7 @@ exports.WaitForAll = (promises, successSteps, failureSteps) => {
 exports.WaitForAllPromise = (promises, successSteps, failureSteps = undefined) => {
   let resolvePromise;
   let rejectPromise;
-  const promise = CreatePromise((resolve, reject) => {
+  const promise = newPromise((resolve, reject) => {
     resolvePromise = resolve;
     rejectPromise = reject;
   });
