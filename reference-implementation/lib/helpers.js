@@ -1,5 +1,6 @@
 'use strict';
 const assert = require('assert');
+const { rethrowAssertionErrorRejection } = require('./utils.js');
 
 const isFakeDetached = Symbol('is "detached" for our purposes');
 
@@ -184,9 +185,28 @@ function PerformPromiseCatch(promise, onRejected) {
   return PerformPromiseThen(promise, undefined, onRejected);
 }
 
+function uponPromise(promise, onFulfilled, onRejected) {
+  PerformPromiseCatch(
+    PerformPromiseThen(promise, onFulfilled, onRejected),
+    rethrowAssertionErrorRejection
+  );
+}
+
+function uponFulfillment(promise, onFulfilled) {
+  uponPromise(promise, onFulfilled);
+}
+
+function uponRejection(promise, onRejected) {
+  uponPromise(promise, undefined, onRejected);
+}
+
 exports.newPromise = newPromise;
 exports.promiseResolvedWith = promiseResolvedWith;
 exports.promiseRejectedWith = promiseRejectedWith;
+exports.uponPromise = uponPromise;
+exports.uponFulfillment = uponFulfillment;
+exports.uponRejection = uponRejection;
+
 exports.PerformPromiseThen = PerformPromiseThen;
 exports.PerformPromiseCatch = PerformPromiseCatch;
 
