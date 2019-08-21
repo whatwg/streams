@@ -6,7 +6,7 @@ const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativ
         IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject, WaitForAllPromise,
         newPromise, promiseResolvedWith, promiseRejectedWith, PerformPromiseThen,
-        PerformPromiseCatch, uponPromise, uponRejection } = require('./helpers.js');
+        PerformPromiseCatch, uponPromise, uponRejection, setPromiseIsHandledToTrue } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
@@ -119,7 +119,7 @@ class ReadableStream {
 
     const promise = ReadableStreamPipeTo(this, writable, preventClose, preventAbort, preventCancel, signal);
 
-    PerformPromiseCatch(promise, () => {});
+    setPromiseIsHandledToTrue(promise);
 
     return readable;
   }
@@ -467,7 +467,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       }
     }
 
-    PerformPromiseCatch(pipeLoop(), rethrowAssertionErrorRejection);
+    setPromiseIsHandledToTrue(pipeLoop());
 
     function waitForWritesToFinish() {
       // Another write may have started while we were waiting on this currentWrite, so we have to be sure to wait
@@ -619,7 +619,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
       }
     });
 
-    PerformPromiseCatch(readPromise, rethrowAssertionErrorRejection);
+    setPromiseIsHandledToTrue(readPromise);
 
     return promiseResolvedWith();
   }
@@ -772,7 +772,7 @@ function ReadableStreamError(stream, e) {
   }
 
   defaultReaderClosedPromiseReject(reader, e);
-  PerformPromiseCatch(reader._closedPromise, () => {});
+  setPromiseIsHandledToTrue(reader._closedPromise);
 }
 
 function ReadableStreamFulfillReadIntoRequest(stream, chunk, done) {
@@ -1013,7 +1013,7 @@ function ReadableStreamReaderGenericInitialize(reader, stream) {
     assert(stream._state === 'errored');
 
     defaultReaderClosedPromiseInitializeAsRejected(reader, stream._storedError);
-    PerformPromiseCatch(reader._closedPromise, () => {});
+    setPromiseIsHandledToTrue(reader._closedPromise);
   }
 }
 
@@ -1039,7 +1039,7 @@ function ReadableStreamReaderGenericRelease(reader) {
       reader,
       new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness'));
   }
-  PerformPromiseCatch(reader._closedPromise, () => {});
+  setPromiseIsHandledToTrue(reader._closedPromise);
 
   reader._ownerReadableStream._reader = undefined;
   reader._ownerReadableStream = undefined;

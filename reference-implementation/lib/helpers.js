@@ -200,12 +200,17 @@ function uponRejection(promise, onRejected) {
   uponPromise(promise, undefined, onRejected);
 }
 
+function setPromiseIsHandledToTrue(promise) {
+  PerformPromiseThen(promise, undefined, rethrowAssertionErrorRejection);
+}
+
 exports.newPromise = newPromise;
 exports.promiseResolvedWith = promiseResolvedWith;
 exports.promiseRejectedWith = promiseRejectedWith;
 exports.uponPromise = uponPromise;
 exports.uponFulfillment = uponFulfillment;
 exports.uponRejection = uponRejection;
+exports.setPromiseIsHandledToTrue = setPromiseIsHandledToTrue;
 
 exports.PerformPromiseThen = PerformPromiseThen;
 exports.PerformPromiseCatch = PerformPromiseCatch;

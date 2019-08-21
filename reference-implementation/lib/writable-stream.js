@@ -7,7 +7,7 @@ const verbose = require('debug')('streams:writable-stream:verbose');
 
 const { CreateAlgorithmFromUnderlyingMethod, InvokeOrNoop, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, typeIsObject, newPromise, promiseResolvedWith, promiseRejectedWith,
-        uponPromise, PerformPromiseCatch } = require('./helpers.js');
+        uponPromise, setPromiseIsHandledToTrue } = require('./helpers.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 
 const AbortSteps = Symbol('[[AbortSteps]]');
@@ -387,7 +387,7 @@ function WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream) {
   const writer = stream._writer;
   if (writer !== undefined) {
     defaultWriterClosedPromiseReject(writer, stream._storedError);
-    PerformPromiseCatch(writer._closedPromise, () => {});
+    setPromiseIsHandledToTrue(writer._closedPromise);
   }
 }
 
@@ -433,7 +433,7 @@ class WritableStreamDefaultWriter {
       defaultWriterClosedPromiseInitialize(this);
     } else if (state === 'erroring') {
       defaultWriterReadyPromiseInitializeAsRejected(this, stream._storedError);
-      PerformPromiseCatch(this._readyPromise, () => {});
+      setPromiseIsHandledToTrue(this._readyPromise);
       defaultWriterClosedPromiseInitialize(this);
     } else if (state === 'closed') {
       defaultWriterReadyPromiseInitializeAsResolved(this);
@@ -443,9 +443,9 @@ class WritableStreamDefaultWriter {
 
       const storedError = stream._storedError;
       defaultWriterReadyPromiseInitializeAsRejected(this, storedError);
-      PerformPromiseCatch(this._readyPromise, () => {});
+      setPromiseIsHandledToTrue(this._readyPromise);
       defaultWriterClosedPromiseInitializeAsRejected(this, storedError);
-      PerformPromiseCatch(this._closedPromise, () => {});
+      setPromiseIsHandledToTrue(this._closedPromise);
     }
   }
 
@@ -618,7 +618,7 @@ function WritableStreamDefaultWriterEnsureClosedPromiseRejected(writer, error) {
   } else {
     defaultWriterClosedPromiseResetToRejected(writer, error);
   }
-  PerformPromiseCatch(writer._closedPromise, () => {});
+  setPromiseIsHandledToTrue(writer._closedPromise);
 }
 
 function WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error) {
@@ -628,7 +628,7 @@ function WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error) {
   } else {
     defaultWriterReadyPromiseResetToRejected(writer, error);
   }
-  PerformPromiseCatch(writer._readyPromise, () => {});
+  setPromiseIsHandledToTrue(writer._readyPromise);
 }
 
 function WritableStreamDefaultWriterGetDesiredSize(writer) {
