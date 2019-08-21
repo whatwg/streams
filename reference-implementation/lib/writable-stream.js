@@ -7,8 +7,7 @@ const verbose = require('debug')('streams:writable-stream:verbose');
 
 const { CreateAlgorithmFromUnderlyingMethod, InvokeOrNoop, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, typeIsObject, newPromise, promiseResolvedWith, promiseRejectedWith,
-        PerformPromiseThen, PerformPromiseCatch } = require('./helpers.js');
-const { rethrowAssertionErrorRejection } = require('./utils.js');
+        uponPromise, PerformPromiseCatch } = require('./helpers.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 
 const AbortSteps = Symbol('[[AbortSteps]]');
@@ -272,7 +271,7 @@ function WritableStreamFinishErroring(stream) {
   }
 
   const promise = stream._writableStreamController[AbortSteps](abortRequest._reason);
-  PerformPromiseThen(
+  uponPromise(
     promise,
     () => {
       abortRequest._resolve();
@@ -770,21 +769,18 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
 
   const startResult = startAlgorithm();
   const startPromise = promiseResolvedWith(startResult);
-  PerformPromiseCatch(
-    PerformPromiseThen(
-      startPromise,
-      () => {
-        assert(stream._state === 'writable' || stream._state === 'erroring');
-        controller._started = true;
-        WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
-      },
-      r => {
-        assert(stream._state === 'writable' || stream._state === 'erroring');
-        controller._started = true;
-        WritableStreamDealWithRejection(stream, r);
-      }
-    ),
-    rethrowAssertionErrorRejection
+  uponPromise(
+    startPromise,
+    () => {
+      assert(stream._state === 'writable' || stream._state === 'erroring');
+      controller._started = true;
+      WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
+    },
+    r => {
+      assert(stream._state === 'writable' || stream._state === 'erroring');
+      controller._started = true;
+      WritableStreamDealWithRejection(stream, r);
+    }
   );
 }
 
@@ -899,17 +895,14 @@ function WritableStreamDefaultControllerProcessClose(controller) {
 
   const sinkClosePromise = controller._closeAlgorithm();
   WritableStreamDefaultControllerClearAlgorithms(controller);
-  PerformPromiseCatch(
-    PerformPromiseThen(
-      sinkClosePromise,
-      () => {
-        WritableStreamFinishInFlightClose(stream);
-      },
-      reason => {
-        WritableStreamFinishInFlightCloseWithError(stream, reason);
-      }
-    ),
-    rethrowAssertionErrorRejection
+  uponPromise(
+    sinkClosePromise,
+    () => {
+      WritableStreamFinishInFlightClose(stream);
+    },
+    reason => {
+      WritableStreamFinishInFlightCloseWithError(stream, reason);
+    }
   );
 }
 
@@ -919,32 +912,29 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   WritableStreamMarkFirstWriteRequestInFlight(stream);
 
   const sinkWritePromise = controller._writeAlgorithm(chunk);
-  PerformPromiseCatch(
-    PerformPromiseThen(
-      sinkWritePromise,
-      () => {
-        WritableStreamFinishInFlightWrite(stream);
+  uponPromise(
+    sinkWritePromise,
+    () => {
+      WritableStreamFinishInFlightWrite(stream);
 
-        const state = stream._state;
-        assert(state === 'writable' || state === 'erroring');
+      const state = stream._state;
+      assert(state === 'writable' || state === 'erroring');
 
-        DequeueValue(controller);
+      DequeueValue(controller);
 
-        if (WritableStreamCloseQueuedOrInFlight(stream) === false && state === 'writable') {
-          const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
-          WritableStreamUpdateBackpressure(stream, backpressure);
-        }
-
-        WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
-      },
-      reason => {
-        if (stream._state === 'writable') {
-          WritableStreamDefaultControllerClearAlgorithms(controller);
-        }
-        WritableStreamFinishInFlightWriteWithError(stream, reason);
+      if (WritableStreamCloseQueuedOrInFlight(stream) === false && state === 'writable') {
+        const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
+        WritableStreamUpdateBackpressure(stream, backpressure);
       }
-    ),
-    rethrowAssertionErrorRejection
+
+      WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
+    },
+    reason => {
+      if (stream._state === 'writable') {
+        WritableStreamDefaultControllerClearAlgorithms(controller);
+      }
+      WritableStreamFinishInFlightWriteWithError(stream, reason);
+    }
   );
 }
 

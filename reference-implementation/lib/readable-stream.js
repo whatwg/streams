@@ -6,7 +6,7 @@ const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativ
         IsDetachedBuffer, TransferArrayBuffer, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
         MakeSizeAlgorithmFromSizeFunction, createArrayFromList, typeIsObject, WaitForAllPromise,
         newPromise, promiseResolvedWith, promiseRejectedWith, PerformPromiseThen,
-        PerformPromiseCatch } = require('./helpers.js');
+        PerformPromiseCatch, uponPromise, uponRejection } = require('./helpers.js');
 const { rethrowAssertionErrorRejection } = require('./utils.js');
 const { DequeueValue, EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStream, IsWritableStreamLocked,
@@ -514,13 +514,10 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       }
 
       function doTheRest() {
-        PerformPromiseCatch(
-          PerformPromiseThen(
-            action(),
-            () => finalize(originalIsError, originalError),
-            newError => finalize(true, newError)
-          ),
-          rethrowAssertionErrorRejection
+        uponPromise(
+          action(),
+          () => finalize(originalIsError, originalError),
+          newError => finalize(true, newError)
         );
       }
     }
@@ -654,7 +651,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   branch1 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm);
   branch2 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm);
 
-  PerformPromiseCatch(reader._closedPromise, r => {
+  uponRejection(reader._closedPromise, r => {
     ReadableStreamDefaultControllerError(branch1._readableStreamController, r);
     ReadableStreamDefaultControllerError(branch2._readableStreamController, r);
   });
@@ -1189,22 +1186,19 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
   controller._pulling = true;
 
   const pullPromise = controller._pullAlgorithm();
-  PerformPromiseCatch(
-    PerformPromiseThen(
-      pullPromise,
-      () => {
-        controller._pulling = false;
+  uponPromise(
+    pullPromise,
+    () => {
+      controller._pulling = false;
 
-        if (controller._pullAgain === true) {
-          controller._pullAgain = false;
-          ReadableStreamDefaultControllerCallPullIfNeeded(controller);
-        }
-      },
-      e => {
-        ReadableStreamDefaultControllerError(controller, e);
+      if (controller._pullAgain === true) {
+        controller._pullAgain = false;
+        ReadableStreamDefaultControllerCallPullIfNeeded(controller);
       }
-    ),
-    rethrowAssertionErrorRejection
+    },
+    e => {
+      ReadableStreamDefaultControllerError(controller, e);
+    }
   );
 }
 
@@ -1350,22 +1344,19 @@ function SetUpReadableStreamDefaultController(
   stream._readableStreamController = controller;
 
   const startResult = startAlgorithm();
-  PerformPromiseCatch(
-    PerformPromiseThen(
-      promiseResolvedWith(startResult),
-      () => {
-        controller._started = true;
+  uponPromise(
+    promiseResolvedWith(startResult),
+    () => {
+      controller._started = true;
 
-        assert(controller._pulling === false);
-        assert(controller._pullAgain === false);
+      assert(controller._pulling === false);
+      assert(controller._pullAgain === false);
 
-        ReadableStreamDefaultControllerCallPullIfNeeded(controller);
-      },
-      r => {
-        ReadableStreamDefaultControllerError(controller, r);
-      }
-    ),
-    rethrowAssertionErrorRejection
+      ReadableStreamDefaultControllerCallPullIfNeeded(controller);
+    },
+    r => {
+      ReadableStreamDefaultControllerError(controller, r);
+    }
   );
 }
 
@@ -1626,22 +1617,19 @@ function ReadableByteStreamControllerCallPullIfNeeded(controller) {
 
   // TODO: Test controller argument
   const pullPromise = controller._pullAlgorithm();
-  PerformPromiseCatch(
-    PerformPromiseThen(
-      pullPromise,
-      () => {
-        controller._pulling = false;
+  uponPromise(
+    pullPromise,
+    () => {
+      controller._pulling = false;
 
-        if (controller._pullAgain === true) {
-          controller._pullAgain = false;
-          ReadableByteStreamControllerCallPullIfNeeded(controller);
-        }
-      },
-      e => {
-        ReadableByteStreamControllerError(controller, e);
+      if (controller._pullAgain === true) {
+        controller._pullAgain = false;
+        ReadableByteStreamControllerCallPullIfNeeded(controller);
       }
-    ),
-    rethrowAssertionErrorRejection
+    },
+    e => {
+      ReadableByteStreamControllerError(controller, e);
+    }
   );
 }
 
@@ -2099,22 +2087,19 @@ function SetUpReadableByteStreamController(stream, controller, startAlgorithm, p
   stream._readableStreamController = controller;
 
   const startResult = startAlgorithm();
-  PerformPromiseCatch(
-    PerformPromiseThen(
-      promiseResolvedWith(startResult),
-      () => {
-        controller._started = true;
+  uponPromise(
+    promiseResolvedWith(startResult),
+    () => {
+      controller._started = true;
 
-        assert(controller._pulling === false);
-        assert(controller._pullAgain === false);
+      assert(controller._pulling === false);
+      assert(controller._pullAgain === false);
 
-        ReadableByteStreamControllerCallPullIfNeeded(controller);
-      },
-      r => {
-        ReadableByteStreamControllerError(controller, r);
-      }
-    ),
-    rethrowAssertionErrorRejection
+      ReadableByteStreamControllerCallPullIfNeeded(controller);
+    },
+    r => {
+      ReadableByteStreamControllerError(controller, r);
+    }
   );
 }
 
