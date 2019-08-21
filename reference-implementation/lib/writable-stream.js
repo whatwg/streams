@@ -600,7 +600,7 @@ function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
 
   const state = stream._state;
   if (WritableStreamCloseQueuedOrInFlight(stream) === true || state === 'closed') {
-    return promiseResolvedWith();
+    return promiseResolvedWith(undefined);
   }
 
   if (state === 'errored') {

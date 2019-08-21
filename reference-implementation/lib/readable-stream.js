@@ -359,7 +359,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
   let shuttingDown = false;
 
   // This is used to keep track of the spec's requirement that we wait for ongoing writes during shutdown.
-  let currentWrite = promiseResolvedWith();
+  let currentWrite = promiseResolvedWith(undefined);
 
   return newPromise((resolve, reject) => {
     let abortAlgorithm;
@@ -372,7 +372,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
             if (dest._state === 'writable') {
               return WritableStreamAbort(dest, error);
             }
-            return promiseResolvedWith();
+            return promiseResolvedWith(undefined);
           });
         }
         if (preventCancel === false) {
@@ -380,7 +380,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
             if (source._state === 'readable') {
               return ReadableStreamCancel(source, error);
             }
-            return promiseResolvedWith();
+            return promiseResolvedWith(undefined);
           });
         }
         shutdownWithAction(() => WaitForAllPromise(actions.map(action => action()), results => results), true, error);
@@ -568,7 +568,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
   function pullAlgorithm() {
     if (reading === true) {
-      return promiseResolvedWith();
+      return promiseResolvedWith(undefined);
     }
 
     reading = true;
@@ -611,7 +611,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
     setPromiseIsHandledToTrue(readPromise);
 
-    return promiseResolvedWith();
+    return promiseResolvedWith(undefined);
   }
 
   function cancel1Algorithm(reason) {

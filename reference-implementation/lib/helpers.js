@@ -88,7 +88,7 @@ exports.CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, alg
       }
     }
   }
-  return () => promiseResolvedWith();
+  return () => promiseResolvedWith(undefined);
 };
 
 exports.InvokeOrNoop = (O, P, args) => {

@@ -130,7 +130,7 @@ function InitializeTransformStream(stream, startPromise, writableHighWaterMark, 
 
   function cancelAlgorithm(reason) {
     TransformStreamErrorWritableAndUnblockWrite(stream, reason);
-    return promiseResolvedWith();
+    return promiseResolvedWith(undefined);
   }
 
   stream._readable = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, readableHighWaterMark,
@@ -268,7 +268,7 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
   let transformAlgorithm = chunk => {
     try {
       TransformStreamDefaultControllerEnqueue(controller, chunk);
-      return promiseResolvedWith();
+      return promiseResolvedWith(undefined);
     } catch (transformResultE) {
       return promiseRejectedWith(transformResultE);
     }
@@ -375,7 +375,7 @@ function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {
   // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
   // errored.
   TransformStreamError(stream, reason);
-  return promiseResolvedWith();
+  return promiseResolvedWith(undefined);
 }
 
 function TransformStreamDefaultSinkCloseAlgorithm(stream) {
