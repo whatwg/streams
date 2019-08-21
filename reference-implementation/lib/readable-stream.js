@@ -522,10 +522,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       shuttingDown = true;
 
       if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
-        uponFulfillment(
-          waitForWritesToFinish(),
-          () => finalize(isError, error)
-        );
+        uponFulfillment(waitForWritesToFinish(), () => finalize(isError, error));
       } else {
         finalize(isError, error);
       }
