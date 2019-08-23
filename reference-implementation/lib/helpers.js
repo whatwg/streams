@@ -1,5 +1,6 @@
 'use strict';
 const assert = require('assert');
+const { rethrowAssertionErrorRejection } = require('./utils.js');
 
 const isFakeDetached = Symbol('is "detached" for our purposes');
 
@@ -87,7 +88,7 @@ exports.CreateAlgorithmFromUnderlyingMethod = (underlyingObject, methodName, alg
       }
     }
   }
-  return () => Promise.resolve();
+  return () => promiseResolvedWith(undefined);
 };
 
 exports.InvokeOrNoop = (O, P, args) => {
@@ -108,9 +109,9 @@ function PromiseCall(F, V, args) {
   assert(V !== undefined);
   assert(Array.isArray(args));
   try {
-    return Promise.resolve(Call(F, V, args));
+    return promiseResolvedWith(Call(F, V, args));
   } catch (value) {
-    return Promise.reject(value);
+    return promiseRejectedWith(value);
   }
 }
 
@@ -157,11 +158,61 @@ exports.MakeSizeAlgorithmFromSizeFunction = size => {
   return chunk => size(chunk);
 };
 
-exports.PerformPromiseThen = (promise, onFulfilled, onRejected) => {
+const originalPromise = Promise;
+const originalPromiseThen = Promise.prototype.then;
+const originalPromiseResolve = Promise.resolve;
+const originalPromiseReject = Promise.reject;
+
+function newPromise(executor) {
+  return new originalPromise(executor);
+}
+
+function promiseResolvedWith(value) {
+  return originalPromiseResolve.call(originalPromise, value);
+}
+
+function promiseRejectedWith(reason) {
+  return originalPromiseReject.call(originalPromise, reason);
+}
+
+function PerformPromiseThen(promise, onFulfilled, onRejected) {
   // There doesn't appear to be any way to correctly emulate the behaviour from JavaScript, so this is just an
   // approximation.
-  return Promise.prototype.then.call(promise, onFulfilled, onRejected);
-};
+  return originalPromiseThen.call(promise, onFulfilled, onRejected);
+}
+
+function uponPromise(promise, onFulfilled, onRejected) {
+  PerformPromiseThen(
+    PerformPromiseThen(promise, onFulfilled, onRejected),
+    undefined,
+    rethrowAssertionErrorRejection
+  );
+}
+
+function uponFulfillment(promise, onFulfilled) {
+  uponPromise(promise, onFulfilled);
+}
+
+function uponRejection(promise, onRejected) {
+  uponPromise(promise, undefined, onRejected);
+}
+
+function transformPromiseWith(promise, fulfillmentHandler, rejectionHandler) {
+  return PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler);
+}
+
+function setPromiseIsHandledToTrue(promise) {
+  PerformPromiseThen(promise, undefined, rethrowAssertionErrorRejection);
+}
+
+exports.newPromise = newPromise;
+exports.promiseResolvedWith = promiseResolvedWith;
+exports.promiseRejectedWith = promiseRejectedWith;
+exports.uponPromise = uponPromise;
+exports.uponFulfillment = uponFulfillment;
+exports.uponRejection = uponRejection;
+exports.transformPromiseWith = transformPromiseWith;
+exports.setPromiseIsHandledToTrue = setPromiseIsHandledToTrue;
 
 exports.WaitForAll = (promises, successSteps, failureSteps) => {
   let rejected = false;
@@ -188,7 +239,7 @@ exports.WaitForAll = (promises, successSteps, failureSteps) => {
         successSteps(result);
       }
     };
-    exports.PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler);
+    PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler);
     ++index;
   }
 };
@@ -196,7 +247,7 @@ exports.WaitForAll = (promises, successSteps, failureSteps) => {
 exports.WaitForAllPromise = (promises, successSteps, failureSteps = undefined) => {
   let resolvePromise;
   let rejectPromise;
-  const promise = new Promise((resolve, reject) => {
+  const promise = newPromise((resolve, reject) => {
     resolvePromise = resolve;
     rejectPromise = reject;
   });

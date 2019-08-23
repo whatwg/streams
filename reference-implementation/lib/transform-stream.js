@@ -5,8 +5,8 @@ const assert = require('assert');
 // and do not appear in the standard text.
 const verbose = require('debug')('streams:transform-stream:verbose');
 const { InvokeOrNoop, CreateAlgorithmFromUnderlyingMethod, PromiseCall, typeIsObject,
-        ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
-        MakeSizeAlgorithmFromSizeFunction } = require('./helpers.js');
+        ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber, MakeSizeAlgorithmFromSizeFunction, newPromise,
+        promiseResolvedWith, promiseRejectedWith, transformPromiseWith } = require('./helpers.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerGetDesiredSize,
         ReadableStreamDefaultControllerHasBackpressure,
@@ -47,7 +47,7 @@ class TransformStream {
     readableHighWaterMark = ValidateAndNormalizeHighWaterMark(readableHighWaterMark);
 
     let startPromise_resolve;
-    const startPromise = new Promise(resolve => {
+    const startPromise = newPromise(resolve => {
       startPromise_resolve = resolve;
     });
 
@@ -87,7 +87,7 @@ function CreateTransformStream(startAlgorithm, transformAlgorithm, flushAlgorith
   const stream = Object.create(TransformStream.prototype);
 
   let startPromise_resolve;
-  const startPromise = new Promise(resolve => {
+  const startPromise = newPromise(resolve => {
     startPromise_resolve = resolve;
   });
 
@@ -130,7 +130,7 @@ function InitializeTransformStream(stream, startPromise, writableHighWaterMark, 
 
   function cancelAlgorithm(reason) {
     TransformStreamErrorWritableAndUnblockWrite(stream, reason);
-    return Promise.resolve();
+    return promiseResolvedWith(undefined);
   }
 
   stream._readable = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, readableHighWaterMark,
@@ -187,7 +187,7 @@ function TransformStreamSetBackpressure(stream, backpressure) {
     stream._backpressureChangePromise_resolve();
   }
 
-  stream._backpressureChangePromise = new Promise(resolve => {
+  stream._backpressureChangePromise = newPromise(resolve => {
     stream._backpressureChangePromise_resolve = resolve;
   });
 
@@ -268,9 +268,9 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
   let transformAlgorithm = chunk => {
     try {
       TransformStreamDefaultControllerEnqueue(controller, chunk);
-      return Promise.resolve();
+      return promiseResolvedWith(undefined);
     } catch (transformResultE) {
-      return Promise.reject(transformResultE);
+      return promiseRejectedWith(transformResultE);
     }
   };
   const transformMethod = transformer.transform;
@@ -325,7 +325,7 @@ function TransformStreamDefaultControllerError(controller, e) {
 
 function TransformStreamDefaultControllerPerformTransform(controller, chunk) {
   const transformPromise = controller._transformAlgorithm(chunk);
-  return transformPromise.catch(r => {
+  return transformPromiseWith(transformPromise, undefined, r => {
     TransformStreamError(controller._controlledTransformStream, r);
     throw r;
   });
@@ -357,7 +357,7 @@ function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
   if (stream._backpressure === true) {
     const backpressureChangePromise = stream._backpressureChangePromise;
     assert(backpressureChangePromise !== undefined);
-    return backpressureChangePromise.then(() => {
+    return transformPromiseWith(backpressureChangePromise, () => {
       const writable = stream._writable;
       const state = writable._state;
       if (state === 'erroring') {
@@ -375,7 +375,7 @@ function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {
   // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
   // errored.
   TransformStreamError(stream, reason);
-  return Promise.resolve();
+  return promiseResolvedWith(undefined);
 }
 
 function TransformStreamDefaultSinkCloseAlgorithm(stream) {
@@ -389,7 +389,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
   // Return a promise that is fulfilled with undefined on success.
-  return flushPromise.then(() => {
+  return transformPromiseWith(flushPromise, () => {
     if (readable._state === 'errored') {
       throw readable._storedError;
     }
@@ -397,7 +397,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
     if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === true) {
       ReadableStreamDefaultControllerClose(readableController);
     }
-  }).catch(r => {
+  }, r => {
     TransformStreamError(stream, r);
     throw readable._storedError;
   });

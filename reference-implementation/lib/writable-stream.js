@@ -6,8 +6,8 @@ const assert = require('assert');
 const verbose = require('debug')('streams:writable-stream:verbose');
 
 const { CreateAlgorithmFromUnderlyingMethod, InvokeOrNoop, ValidateAndNormalizeHighWaterMark, IsNonNegativeNumber,
-        MakeSizeAlgorithmFromSizeFunction, typeIsObject } = require('./helpers.js');
-const { rethrowAssertionErrorRejection } = require('./utils.js');
+        MakeSizeAlgorithmFromSizeFunction, typeIsObject, newPromise, promiseResolvedWith, promiseRejectedWith,
+        uponPromise, setPromiseIsHandledToTrue } = require('./helpers.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 
 const AbortSteps = Symbol('[[AbortSteps]]');
@@ -45,11 +45,11 @@ class WritableStream {
 
   abort(reason) {
     if (IsWritableStream(this) === false) {
-      return Promise.reject(streamBrandCheckException('abort'));
+      return promiseRejectedWith(streamBrandCheckException('abort'));
     }
 
     if (IsWritableStreamLocked(this) === true) {
-      return Promise.reject(new TypeError('Cannot abort a stream that already has a writer'));
+      return promiseRejectedWith(new TypeError('Cannot abort a stream that already has a writer'));
     }
 
     return WritableStreamAbort(this, reason);
@@ -160,7 +160,7 @@ function IsWritableStreamLocked(stream) {
 function WritableStreamAbort(stream, reason) {
   const state = stream._state;
   if (state === 'closed' || state === 'errored') {
-    return Promise.resolve(undefined);
+    return promiseResolvedWith(undefined);
   }
   if (stream._pendingAbortRequest !== undefined) {
     return stream._pendingAbortRequest._promise;
@@ -175,7 +175,7 @@ function WritableStreamAbort(stream, reason) {
     reason = undefined;
   }
 
-  const promise = new Promise((resolve, reject) => {
+  const promise = newPromise((resolve, reject) => {
     stream._pendingAbortRequest = {
       _resolve: resolve,
       _reject: reject,
@@ -198,7 +198,7 @@ function WritableStreamAddWriteRequest(stream) {
   assert(IsWritableStreamLocked(stream) === true);
   assert(stream._state === 'writable');
 
-  const promise = new Promise((resolve, reject) => {
+  const promise = newPromise((resolve, reject) => {
     const writeRequest = {
       _resolve: resolve,
       _reject: reject
@@ -271,7 +271,8 @@ function WritableStreamFinishErroring(stream) {
   }
 
   const promise = stream._writableStreamController[AbortSteps](abortRequest._reason);
-  promise.then(
+  uponPromise(
+    promise,
     () => {
       abortRequest._resolve();
       WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
@@ -386,7 +387,7 @@ function WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream) {
   const writer = stream._writer;
   if (writer !== undefined) {
     defaultWriterClosedPromiseReject(writer, stream._storedError);
-    writer._closedPromise.catch(() => {});
+    setPromiseIsHandledToTrue(writer._closedPromise);
   }
 }
 
@@ -432,7 +433,7 @@ class WritableStreamDefaultWriter {
       defaultWriterClosedPromiseInitialize(this);
     } else if (state === 'erroring') {
       defaultWriterReadyPromiseInitializeAsRejected(this, stream._storedError);
-      this._readyPromise.catch(() => {});
+      setPromiseIsHandledToTrue(this._readyPromise);
       defaultWriterClosedPromiseInitialize(this);
     } else if (state === 'closed') {
       defaultWriterReadyPromiseInitializeAsResolved(this);
@@ -442,15 +443,15 @@ class WritableStreamDefaultWriter {
 
       const storedError = stream._storedError;
       defaultWriterReadyPromiseInitializeAsRejected(this, storedError);
-      this._readyPromise.catch(() => {});
+      setPromiseIsHandledToTrue(this._readyPromise);
       defaultWriterClosedPromiseInitializeAsRejected(this, storedError);
-      this._closedPromise.catch(() => {});
+      setPromiseIsHandledToTrue(this._closedPromise);
     }
   }
 
   get closed() {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      return Promise.reject(defaultWriterBrandCheckException('closed'));
+      return promiseRejectedWith(defaultWriterBrandCheckException('closed'));
     }
 
     return this._closedPromise;
@@ -470,7 +471,7 @@ class WritableStreamDefaultWriter {
 
   get ready() {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      return Promise.reject(defaultWriterBrandCheckException('ready'));
+      return promiseRejectedWith(defaultWriterBrandCheckException('ready'));
     }
 
     return this._readyPromise;
@@ -478,11 +479,11 @@ class WritableStreamDefaultWriter {
 
   abort(reason) {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      return Promise.reject(defaultWriterBrandCheckException('abort'));
+      return promiseRejectedWith(defaultWriterBrandCheckException('abort'));
     }
 
     if (this._ownerWritableStream === undefined) {
-      return Promise.reject(defaultWriterLockException('abort'));
+      return promiseRejectedWith(defaultWriterLockException('abort'));
     }
 
     return WritableStreamDefaultWriterAbort(this, reason);
@@ -490,17 +491,17 @@ class WritableStreamDefaultWriter {
 
   close() {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      return Promise.reject(defaultWriterBrandCheckException('close'));
+      return promiseRejectedWith(defaultWriterBrandCheckException('close'));
     }
 
     const stream = this._ownerWritableStream;
 
     if (stream === undefined) {
-      return Promise.reject(defaultWriterLockException('close'));
+      return promiseRejectedWith(defaultWriterLockException('close'));
     }
 
     if (WritableStreamCloseQueuedOrInFlight(stream) === true) {
-      return Promise.reject(new TypeError('cannot close an already-closing stream'));
+      return promiseRejectedWith(new TypeError('cannot close an already-closing stream'));
     }
 
     return WritableStreamDefaultWriterClose(this);
@@ -524,11 +525,11 @@ class WritableStreamDefaultWriter {
 
   write(chunk) {
     if (IsWritableStreamDefaultWriter(this) === false) {
-      return Promise.reject(defaultWriterBrandCheckException('write'));
+      return promiseRejectedWith(defaultWriterBrandCheckException('write'));
     }
 
     if (this._ownerWritableStream === undefined) {
-      return Promise.reject(defaultWriterLockException('write to'));
+      return promiseRejectedWith(defaultWriterLockException('write to'));
     }
 
     return WritableStreamDefaultWriterWrite(this, chunk);
@@ -566,14 +567,14 @@ function WritableStreamDefaultWriterClose(writer) {
 
   const state = stream._state;
   if (state === 'closed' || state === 'errored') {
-    return Promise.reject(new TypeError(
+    return promiseRejectedWith(new TypeError(
       `The stream (in ${state} state) is not in the writable state and cannot be closed`));
   }
 
   assert(state === 'writable' || state === 'erroring');
   assert(WritableStreamCloseQueuedOrInFlight(stream) === false);
 
-  const promise = new Promise((resolve, reject) => {
+  const promise = newPromise((resolve, reject) => {
     const closeRequest = {
       _resolve: resolve,
       _reject: reject
@@ -599,11 +600,11 @@ function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
 
   const state = stream._state;
   if (WritableStreamCloseQueuedOrInFlight(stream) === true || state === 'closed') {
-    return Promise.resolve();
+    return promiseResolvedWith(undefined);
   }
 
   if (state === 'errored') {
-    return Promise.reject(stream._storedError);
+    return promiseRejectedWith(stream._storedError);
   }
 
   assert(state === 'writable' || state === 'erroring');
@@ -617,7 +618,7 @@ function WritableStreamDefaultWriterEnsureClosedPromiseRejected(writer, error) {
   } else {
     defaultWriterClosedPromiseResetToRejected(writer, error);
   }
-  writer._closedPromise.catch(() => {});
+  setPromiseIsHandledToTrue(writer._closedPromise);
 }
 
 function WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error) {
@@ -627,7 +628,7 @@ function WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error) {
   } else {
     defaultWriterReadyPromiseResetToRejected(writer, error);
   }
-  writer._readyPromise.catch(() => {});
+  setPromiseIsHandledToTrue(writer._readyPromise);
 }
 
 function WritableStreamDefaultWriterGetDesiredSize(writer) {
@@ -673,18 +674,18 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
   const chunkSize = WritableStreamDefaultControllerGetChunkSize(controller, chunk);
 
   if (stream !== writer._ownerWritableStream) {
-    return Promise.reject(defaultWriterLockException('write to'));
+    return promiseRejectedWith(defaultWriterLockException('write to'));
   }
 
   const state = stream._state;
   if (state === 'errored') {
-    return Promise.reject(stream._storedError);
+    return promiseRejectedWith(stream._storedError);
   }
   if (WritableStreamCloseQueuedOrInFlight(stream) === true || state === 'closed') {
-    return Promise.reject(new TypeError('The stream is closing or closed and cannot be written to'));
+    return promiseRejectedWith(new TypeError('The stream is closing or closed and cannot be written to'));
   }
   if (state === 'erroring') {
-    return Promise.reject(stream._storedError);
+    return promiseRejectedWith(stream._storedError);
   }
 
   assert(state === 'writable');
@@ -767,8 +768,9 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
   WritableStreamUpdateBackpressure(stream, backpressure);
 
   const startResult = startAlgorithm();
-  const startPromise = Promise.resolve(startResult);
-  startPromise.then(
+  const startPromise = promiseResolvedWith(startResult);
+  uponPromise(
+    startPromise,
     () => {
       assert(stream._state === 'writable' || stream._state === 'erroring');
       controller._started = true;
@@ -779,7 +781,7 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
       controller._started = true;
       WritableStreamDealWithRejection(stream, r);
     }
-  ).catch(rethrowAssertionErrorRejection);
+  );
 }
 
 function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyingSink, highWaterMark, sizeAlgorithm) {
@@ -893,14 +895,15 @@ function WritableStreamDefaultControllerProcessClose(controller) {
 
   const sinkClosePromise = controller._closeAlgorithm();
   WritableStreamDefaultControllerClearAlgorithms(controller);
-  sinkClosePromise.then(
+  uponPromise(
+    sinkClosePromise,
     () => {
       WritableStreamFinishInFlightClose(stream);
     },
     reason => {
       WritableStreamFinishInFlightCloseWithError(stream, reason);
     }
-  ).catch(rethrowAssertionErrorRejection);
+  );
 }
 
 function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
@@ -909,7 +912,8 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   WritableStreamMarkFirstWriteRequestInFlight(stream);
 
   const sinkWritePromise = controller._writeAlgorithm(chunk);
-  sinkWritePromise.then(
+  uponPromise(
+    sinkWritePromise,
     () => {
       WritableStreamFinishInFlightWrite(stream);
 
@@ -931,7 +935,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
       }
       WritableStreamFinishInFlightWriteWithError(stream, reason);
     }
-  ).catch(rethrowAssertionErrorRejection);
+  );
 }
 
 function WritableStreamDefaultControllerGetBackpressure(controller) {
@@ -968,7 +972,7 @@ function defaultWriterLockException(name) {
 }
 
 function defaultWriterClosedPromiseInitialize(writer) {
-  writer._closedPromise = new Promise((resolve, reject) => {
+  writer._closedPromise = newPromise((resolve, reject) => {
     writer._closedPromise_resolve = resolve;
     writer._closedPromise_reject = reject;
     writer._closedPromiseState = 'pending';
@@ -976,14 +980,14 @@ function defaultWriterClosedPromiseInitialize(writer) {
 }
 
 function defaultWriterClosedPromiseInitializeAsRejected(writer, reason) {
-  writer._closedPromise = Promise.reject(reason);
+  writer._closedPromise = promiseRejectedWith(reason);
   writer._closedPromise_resolve = undefined;
   writer._closedPromise_reject = undefined;
   writer._closedPromiseState = 'rejected';
 }
 
 function defaultWriterClosedPromiseInitializeAsResolved(writer) {
-  writer._closedPromise = Promise.resolve(undefined);
+  writer._closedPromise = promiseResolvedWith(undefined);
   writer._closedPromise_resolve = undefined;
   writer._closedPromise_reject = undefined;
   writer._closedPromiseState = 'resolved';
@@ -1005,7 +1009,7 @@ function defaultWriterClosedPromiseResetToRejected(writer, reason) {
   assert(writer._closedPromise_reject === undefined);
   assert(writer._closedPromiseState !== 'pending');
 
-  writer._closedPromise = Promise.reject(reason);
+  writer._closedPromise = promiseRejectedWith(reason);
   writer._closedPromiseState = 'rejected';
 }
 
@@ -1022,7 +1026,7 @@ function defaultWriterClosedPromiseResolve(writer) {
 
 function defaultWriterReadyPromiseInitialize(writer) {
   verbose('defaultWriterReadyPromiseInitialize()');
-  writer._readyPromise = new Promise((resolve, reject) => {
+  writer._readyPromise = newPromise((resolve, reject) => {
     writer._readyPromise_resolve = resolve;
     writer._readyPromise_reject = reject;
   });
@@ -1031,7 +1035,7 @@ function defaultWriterReadyPromiseInitialize(writer) {
 
 function defaultWriterReadyPromiseInitializeAsRejected(writer, reason) {
   verbose('defaultWriterReadyPromiseInitializeAsRejected(writer, %o)', reason);
-  writer._readyPromise = Promise.reject(reason);
+  writer._readyPromise = promiseRejectedWith(reason);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
   writer._readyPromiseState = 'rejected';
@@ -1039,7 +1043,7 @@ function defaultWriterReadyPromiseInitializeAsRejected(writer, reason) {
 
 function defaultWriterReadyPromiseInitializeAsResolved(writer) {
   verbose('defaultWriterReadyPromiseInitializeAsResolved()');
-  writer._readyPromise = Promise.resolve(undefined);
+  writer._readyPromise = promiseResolvedWith(undefined);
   writer._readyPromise_resolve = undefined;
   writer._readyPromise_reject = undefined;
   writer._readyPromiseState = 'fulfilled';
@@ -1061,7 +1065,7 @@ function defaultWriterReadyPromiseReset(writer) {
   assert(writer._readyPromise_resolve === undefined);
   assert(writer._readyPromise_reject === undefined);
 
-  writer._readyPromise = new Promise((resolve, reject) => {
+  writer._readyPromise = newPromise((resolve, reject) => {
     writer._readyPromise_resolve = resolve;
     writer._readyPromise_reject = reject;
   });
@@ -1073,7 +1077,7 @@ function defaultWriterReadyPromiseResetToRejected(writer, reason) {
   assert(writer._readyPromise_resolve === undefined);
   assert(writer._readyPromise_reject === undefined);
 
-  writer._readyPromise = Promise.reject(reason);
+  writer._readyPromise = promiseRejectedWith(reason);
   writer._readyPromiseState = 'rejected';
 }
 
