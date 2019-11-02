@@ -1134,8 +1134,8 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
       1. If _preventCancel_ is *false*, <a for="set">append</a> the following action action to _actions_:
         1. If _source_.[[_state_]] is `"readable"`, return ! ReadableStreamCancel(_source_, _error_).
         1. Otherwise, return <a>a promise resolved with</a> *undefined*.
-      1. <a href="#rs-pipeTo-shutdown-with-action">Shutdown with an action</a> consisting of <a>waiting for all</a>
-         of the actions in _actions_, and with _error_.
+      1. <a href="#rs-pipeTo-shutdown-with-action">Shutdown with an action</a> consisting of
+         <a>getting a promise to wait for all</a> of the actions in _actions_, and with _error_.
     1. If _signal_'s <a for=AbortSignal>aborted flag</a> is set, perform _abortAlgorithm_ and return _promise_.
     1. <a for="AbortSignal">Add</a> _abortAlgorithm_ to _signal_.
   1. <a>In parallel</a> <span class="XXX">but not really; see <a
