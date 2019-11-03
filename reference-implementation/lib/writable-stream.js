@@ -55,6 +55,22 @@ class WritableStream {
     return WritableStreamAbort(this, reason);
   }
 
+  close() {
+    if (IsWritableStream(this) === false) {
+      return promiseRejectedWith(streamBrandCheckException('close'));
+    }
+
+    if (IsWritableStreamLocked(this) === true) {
+      return promiseRejectedWith(new TypeError('Cannot close a stream that already has a writer'));
+    }
+
+    if (WritableStreamCloseQueuedOrInFlight(this) === true) {
+      return promiseRejectedWith(new TypeError('Cannot close an already-closing stream'));
+    }
+
+    return WritableStreamClose(this);
+  }
+
   getWriter() {
     if (IsWritableStream(this) === false) {
       throw streamBrandCheckException('getWriter');
@@ -71,6 +87,7 @@ module.exports = {
   IsWritableStreamLocked,
   WritableStream,
   WritableStreamAbort,
+  WritableStreamClose,
   WritableStreamDefaultControllerErrorIfNeeded,
   WritableStreamDefaultWriterCloseWithErrorPropagation,
   WritableStreamDefaultWriterRelease,
@@ -188,6 +205,35 @@ function WritableStreamAbort(stream, reason) {
   if (wasAlreadyErroring === false) {
     WritableStreamStartErroring(stream, reason);
   }
+
+  return promise;
+}
+
+function WritableStreamClose(stream) {
+  const state = stream._state;
+  if (state === 'closed' || state === 'errored') {
+    return promiseRejectedWith(new TypeError(
+      `The stream (in ${state} state) is not in the writable state and cannot be closed`));
+  }
+
+  assert(state === 'writable' || state === 'erroring');
+  assert(WritableStreamCloseQueuedOrInFlight(stream) === false);
+
+  const promise = newPromise((resolve, reject) => {
+    const closeRequest = {
+      _resolve: resolve,
+      _reject: reject
+    };
+
+    stream._closeRequest = closeRequest;
+  });
+
+  const writer = stream._writer;
+  if (writer !== undefined && stream._backpressure === true && state === 'writable') {
+    defaultWriterReadyPromiseResolve(writer);
+  }
+
+  WritableStreamDefaultControllerClose(stream._writableStreamController);
 
   return promise;
 }
@@ -501,7 +547,7 @@ class WritableStreamDefaultWriter {
     }
 
     if (WritableStreamCloseQueuedOrInFlight(stream) === true) {
-      return promiseRejectedWith(new TypeError('cannot close an already-closing stream'));
+      return promiseRejectedWith(new TypeError('Cannot close an already-closing stream'));
     }
 
     return WritableStreamDefaultWriterClose(this);
@@ -565,33 +611,8 @@ function WritableStreamDefaultWriterClose(writer) {
 
   assert(stream !== undefined);
 
-  const state = stream._state;
-  if (state === 'closed' || state === 'errored') {
-    return promiseRejectedWith(new TypeError(
-      `The stream (in ${state} state) is not in the writable state and cannot be closed`));
-  }
-
-  assert(state === 'writable' || state === 'erroring');
-  assert(WritableStreamCloseQueuedOrInFlight(stream) === false);
-
-  const promise = newPromise((resolve, reject) => {
-    const closeRequest = {
-      _resolve: resolve,
-      _reject: reject
-    };
-
-    stream._closeRequest = closeRequest;
-  });
-
-  if (stream._backpressure === true && state === 'writable') {
-    defaultWriterReadyPromiseResolve(writer);
-  }
-
-  WritableStreamDefaultControllerClose(stream._writableStreamController);
-
-  return promise;
+  return WritableStreamClose(stream);
 }
-
 
 function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
   const stream = writer._ownerWritableStream;

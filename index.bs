@@ -3171,6 +3171,7 @@ like
     get <a href="#ws-locked">locked</a>()
 
     <a href="#ws-abort">abort</a>(reason)
+    <a href="#ws-close">close</a>()
     <a href="#ws-get-writer">getWriter</a>()
   }
 </code></pre>
@@ -3385,6 +3386,25 @@ bridging the gap with non-promise-based APIs, as seen for example in [[#example-
   1. Return ! WritableStreamAbort(*this*, _reason_).
 </emu-alg>
 
+<h5 id="ws-close" method for="WritableStream">close()</h5>
+
+<div class="note">
+  The <code>close</code> method closes the stream. The <a>underlying sink</a> will finish processing any
+  previously-written <a>chunks</a>, before invoking its close behavior. During this time any further attempts to write
+  will fail (without erroring the stream).
+
+  The method returns a promise that is fulfilled with <emu-val>undefined</emu-val> if all remaining <a>chunks</a> are
+  successfully written and the stream successfully closes, or rejects if an error is encountered during this process.
+</div>
+
+<emu-alg>
+  1. If ! IsWritableStream(*this*) is *false*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If ! IsWritableStreamLocked(*this*) is *true*, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. If ! WritableStreamCloseQueuedOrInFlight(*this*) is *true*, return <a>a promise rejected with</a> a *TypeError*
+  exception.
+  1. Return ! WritableStreamClose(*this*).
+</emu-alg>
+
 <h5 id="ws-get-writer" method for="WritableStream">getWriter()</h5>
 
 <div class="note">
@@ -3487,6 +3507,22 @@ writable stream is <a>locked to a writer</a>.
   1. Set _stream_.[[pendingAbortRequest]] to Record {[[promise]]: _promise_, [[reason]]: _reason_,
      [[wasAlreadyErroring]]: _wasAlreadyErroring_}.
   1. If _wasAlreadyErroring_ is *false*, perform ! WritableStreamStartErroring(_stream_, _reason_).
+  1. Return _promise_.
+</emu-alg>
+
+<h4 id="writable-stream-close" aoid="WritableStreamClose" nothrow>WritableStreamClose ( <var>stream</var> )</h4>
+
+<emu-alg>
+  1. Let _state_ be _stream_.[[state]].
+  1. If _state_ is `"closed"` or `"errored"`, return <a>a promise rejected with</a> a *TypeError* exception.
+  1. Assert: _state_ is `"writable"` or `"erroring"`.
+  1. Assert: ! WritableStreamCloseQueuedOrInFlight(_stream_) is *false*.
+  1. Let _promise_ be <a>a new promise</a>.
+  1. Set _stream_.[[closeRequest]] to _promise_.
+  1. Let _writer_ be _stream_.[[writer]].
+  1. If _writer_ is not *undefined*, and _stream_.[[backpressure]] is *true*, and _state_ is `"writable"`,
+     <a>resolve</a> _writer_.[[readyPromise]] with *undefined*.
+  1. Perform ! WritableStreamDefaultControllerClose(_stream_.[[writableStreamController]]).
   1. Return _promise_.
 </emu-alg>
 
@@ -3853,12 +3889,8 @@ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(<var>st
 <h5 id="default-writer-close" method for="WritableStreamDefaultWriter">close()</h5>
 
 <div class="note">
-  The <code>close</code> method will close the associated writable stream. The <a>underlying sink</a> will finish
-  processing any previously-written <a>chunks</a>, before invoking its close behavior. During this time any further
-  attempts to write will fail (without erroring the stream).
-
-  The method returns a promise that is fulfilled with <emu-val>undefined</emu-val> if all remaining <a>chunks</a> are
-  successfully written and the stream successfully closes, or rejects if an error is encountered during this process.
+  If the writer is <a lt="active writer">active</a>, the <code>close</code> method behaves the same as that for the
+  associated stream. (Otherwise, it returns a rejected promise.)
 </div>
 
 <emu-alg>
@@ -3936,16 +3968,7 @@ nothrow>WritableStreamDefaultWriterClose ( <var>writer</var> )</h4>
 <emu-alg>
   1. Let _stream_ be _writer_.[[ownerWritableStream]].
   1. Assert: _stream_ is not *undefined*.
-  1. Let _state_ be _stream_.[[state]].
-  1. If _state_ is `"closed"` or `"errored"`, return <a>a promise rejected with</a> a *TypeError* exception.
-  1. Assert: _state_ is `"writable"` or `"erroring"`.
-  1. Assert: ! WritableStreamCloseQueuedOrInFlight(_stream_) is *false*.
-  1. Let _promise_ be <a>a new promise</a>.
-  1. Set _stream_.[[closeRequest]] to _promise_.
-  1. If _stream_.[[backpressure]] is *true* and _state_ is `"writable"`, <a>resolve</a> _writer_.[[readyPromise]] with
-     *undefined*.
-  1. Perform ! WritableStreamDefaultControllerClose(_stream_.[[writableStreamController]]).
-  1. Return _promise_.
+  1. Return ! WritableStreamClose(_stream_).
 </emu-alg>
 
 <h4 id="writable-stream-default-writer-close-with-error-propagation" aoid="WritableStreamDefaultWriterCloseWithErrorPropagation"
