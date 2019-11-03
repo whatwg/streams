@@ -5364,7 +5364,8 @@ throws>CreateAlgorithmFromUnderlyingMethod ( <var ignore>underlyingObject</var>,
 <var>args</var> )</h4>
 
 <div class="note">
-  PromiseCall is a variant of <a lt="call a user object's operation">promise-calling</a> that works on methods.
+  This encapsulates the relevant promise-related parts of the Web IDL <a>call a user object's operation</a> algorithm
+  for use while we work on <a href="https://github.com/whatwg/streams/issues/963">moving to Web IDL</a>.
 </div>
 
 <emu-alg>
