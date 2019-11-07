@@ -1122,6 +1122,7 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
      discretion.
   1. Otherwise, let _reader_ be ! AcquireReadableStreamDefaultReader(_source_).
   1. Let _writer_ be ! AcquireWritableStreamDefaultWriter(_dest_).
+  1. Set _source_.[[disturbed]] to *true*.
   1. Let _shuttingDown_ be *false*.
   1. Let _promise_ be <a>a new promise</a>.
   1. If _signal_ is not *undefined*,
@@ -1129,10 +1130,10 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
       1. Let _error_ be a new "`<a idl>AbortError</a>`" `<a idl>DOMException</a>`.
       1. Let _actions_ be an empty <a>ordered set</a>.
       1. If _preventAbort_ is *false*, <a for="set">append</a> the following action to _actions_:
-        1. If _dest_.[[_state_]] is `"writable"`, return ! WritableStreamAbort(_dest_, _error_).
+        1. If _dest_.[[state]] is `"writable"`, return ! WritableStreamAbort(_dest_, _error_).
         1. Otherwise, return <a>a promise resolved with</a> *undefined*.
       1. If _preventCancel_ is *false*, <a for="set">append</a> the following action action to _actions_:
-        1. If _source_.[[_state_]] is `"readable"`, return ! ReadableStreamCancel(_source_, _error_).
+        1. If _source_.[[state]] is `"readable"`, return ! ReadableStreamCancel(_source_, _error_).
         1. Otherwise, return <a>a promise resolved with</a> *undefined*.
       1. <a href="#rs-pipeTo-shutdown-with-action">Shutdown with an action</a> consisting of
          <a>getting a promise to wait for all</a> of the actions in _actions_, and with _error_.
