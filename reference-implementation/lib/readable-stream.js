@@ -356,6 +356,8 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
   const reader = AcquireReadableStreamDefaultReader(source);
   const writer = AcquireWritableStreamDefaultWriter(dest);
 
+  source._disturbed = true;
+
   let shuttingDown = false;
 
   // This is used to keep track of the spec's requirement that we wait for ongoing writes during shutdown.
