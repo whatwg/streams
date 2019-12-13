@@ -172,8 +172,8 @@ properly entangled. It wraps a <dfn>transformer</dfn>, which defines algorithms 
 performed. For web developer–created streams, the implementation details of a transformer are provided by <a
 href="#transformer-api">an object with certain methods and properties</a> that is passed to the {{TransformStream()}} constructor.
 
-An <dfn>identity transform stream</dfn> is a type of transform stream which forwards all <a>chunks</a> written to its
-<a>writable side</a> to its <a>readable side</a>, without any changes. This can be useful in <a
+An <dfn export>identity transform stream</dfn> is a type of transform stream which forwards all <a>chunks</a> written
+to its <a>writable side</a> to its <a>readable side</a>, without any changes. This can be useful in <a
 href="#example-transform-identity">a variety of scenarios</a>. By default, the {{TransformStream}} constructor will
 create an identity transform stream, when no {{transformer/transform()}} method is present on the <a>transformer</a>
 object.
