@@ -580,10 +580,12 @@ function ReadableStreamTee(stream, cloneForBranch2) {
       assert(typeof done === 'boolean');
 
       if (done === true) {
-        if (canceled1 === false) {
+        if (canceled1 === false &&
+            ReadableStreamDefaultControllerCanCloseOrEnqueue(branch1._readableStreamController) === true) {
           ReadableStreamDefaultControllerClose(branch1._readableStreamController);
         }
-        if (canceled2 === false) {
+        if (canceled2 === false &&
+            ReadableStreamDefaultControllerCanCloseOrEnqueue(branch2._readableStreamController) === true) {
           ReadableStreamDefaultControllerClose(branch2._readableStreamController);
         }
         return;
@@ -599,11 +601,13 @@ function ReadableStreamTee(stream, cloneForBranch2) {
       //   value2 = StructuredDeserialize(StructuredSerialize(value2));
       // }
 
-      if (canceled1 === false) {
+      if (canceled1 === false &&
+          ReadableStreamDefaultControllerCanCloseOrEnqueue(branch1._readableStreamController) === true) {
         ReadableStreamDefaultControllerEnqueue(branch1._readableStreamController, value1);
       }
 
-      if (canceled2 === false) {
+      if (canceled2 === false &&
+          ReadableStreamDefaultControllerCanCloseOrEnqueue(branch2._readableStreamController) === true) {
         ReadableStreamDefaultControllerEnqueue(branch2._readableStreamController, value2);
       }
     });

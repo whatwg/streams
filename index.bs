@@ -1065,9 +1065,11 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
       1. Let _done_ be ! Get(_result_, `"done"`).
       1. Assert: Type(_done_) is Boolean.
       1. If _done_ is *true*,
-        1. If _canceled1_ is *false*,
+        1. If _canceled1_ is *false* and !
+           ReadableStreamDefaultControllerCanCloseOrEnqueue(_branch1_.[[readableStreamController]) is *true*,
           1. Perform ! ReadableStreamDefaultControllerClose(_branch1_.[[readableStreamController]]).
-        1. If _canceled2_ is *false*,
+        1. If _canceled2_ is *false* and !
+           ReadableStreamDefaultControllerCanCloseOrEnqueue(_branch2_.[[readableStreamController]) is *true*,
           1. Perform ! ReadableStreamDefaultControllerClose(_branch2_.[[readableStreamController]]).
         1. Return.
       1. Let _value_ be ! Get(_result_, `"value"`).
@@ -1075,9 +1077,11 @@ noticeable asymmetry between the two branches, and limits the possible <a>chunks
       1. If _canceled2_ is *false* and _cloneForBranch2_ is *true*, set _value2_ to ? <a
          abstract-op>StructuredDeserialize</a>(? <a abstract-op>StructuredSerialize</a>(_value2_), the current Realm
          Record).
-      1. If _canceled1_ is *false*, perform ?
+      1. If _canceled1_ is *false* and !
+         ReadableStreamDefaultControllerCanCloseOrEnqueue(_branch1_.[[readableStreamController]) is *true*, perform ?
          ReadableStreamDefaultControllerEnqueue(_branch1_.[[readableStreamController]], _value1_).
-      1. If _canceled2_ is *false*, perform ?
+      1. If _canceled2_ is *false* and !
+         ReadableStreamDefaultControllerCanCloseOrEnqueue(_branch2_.[[readableStreamController]) is *true*, perform ?
          ReadableStreamDefaultControllerEnqueue(_branch2_.[[readableStreamController]], _value2_).
     1. Set _readPromise_.[[PromiseIsHandled]] to *true*.
     1. Return <a>a promise resolved with</a> *undefined*.
