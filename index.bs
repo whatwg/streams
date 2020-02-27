@@ -2065,11 +2065,11 @@ export>ReadableStreamDefaultControllerClose ( <var>controller</var> )</h4>
 
 This abstract operation can be called by other specifications that wish to close a readable stream, in the same way
 a developer-created stream would be closed by its associated controller object. Specifications should <em>not</em> do
-this to streams they did not create, and must ensure they have obeyed the preconditions (listed here as asserts).
+this to streams they did not create.
 
 <emu-alg>
+  1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_controller_) is *false*, return.
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
-  1. Assert: ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_controller_) is *true*.
   1. Set _controller_.[[closeRequested]] to *true*.
   1. If _controller_.[[queue]] is empty,
     1. Perform ! ReadableStreamDefaultControllerClearAlgorithms(_controller_).
@@ -2081,12 +2081,11 @@ export>ReadableStreamDefaultControllerEnqueue ( <var>controller</var>, <var>chun
 
 This abstract operation can be called by other specifications that wish to enqueue <a>chunks</a> in a readable stream,
 in the same way a developer would enqueue chunks using the stream's associated controller object. Specifications should
-<em>not</em> do this to streams they did not create, and must ensure they have obeyed the preconditions (listed here as
-asserts).
+<em>not</em> do this to streams they did not create.
 
 <emu-alg>
+  1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_controller_) is *false*, return.
   1. Let _stream_ be _controller_.[[controlledReadableStream]].
-  1. Assert: ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_controller_) is *true*.
   1. If ! IsReadableStreamLocked(_stream_) is *true* and ! ReadableStreamGetNumReadRequests(_stream_) > *0*, perform
      ! ReadableStreamFulfillReadRequest(_stream_, _chunk_, *false*).
   1. Otherwise,
@@ -2610,8 +2609,7 @@ throws>ReadableByteStreamControllerClose ( <var>controller</var> )</h4>
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
-  1. Assert: _controller_.[[closeRequested]] is *false*.
-  1. Assert: _stream_.[[state]] is `"readable"`.
+  1. If _controller_.[[closeRequested]] is *true* or _stream_.[[state]] is not `"readable"`, return.
   1. If _controller_.[[queueTotalSize]] > *0*,
     1. Set _controller_.[[closeRequested]] to *true*.
     1. Return.
@@ -2661,8 +2659,7 @@ nothrow>ReadableByteStreamControllerEnqueue ( <var>controller</var>, <var>chunk<
 
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledReadableByteStream]].
-  1. Assert: _controller_.[[closeRequested]] is *false*.
-  1. Assert: _stream_.[[state]] is `"readable"`.
+  1. If _controller_.[[closeRequested]] is *true* or _stream_.[[state]] is not `"readable"`, return.
   1. Let _buffer_ be _chunk_.[[ViewedArrayBuffer]].
   1. Let _byteOffset_ be _chunk_.[[ByteOffset]].
   1. Let _byteLength_ be _chunk_.[[ByteLength]].
@@ -4994,8 +4991,7 @@ this to streams they did not create.
 <emu-alg>
   1. Let _stream_ be _controller_.[[controlledTransformStream]].
   1. Let _readableController_ be _stream_.[[readable]].[[readableStreamController]].
-  1. If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(_readableController_) is *true*, perform !
-     ReadableStreamDefaultControllerClose(_readableController_).
+  1. Perform ! ReadableStreamDefaultControllerClose(_readableController_).
   1. Let _error_ be a *TypeError* exception indicating that the stream has been terminated.
   1. Perform ! TransformStreamErrorWritableAndUnblockWrite(_stream_, _error_).
 </emu-alg>
