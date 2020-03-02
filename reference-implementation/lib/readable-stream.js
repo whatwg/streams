@@ -1221,12 +1221,12 @@ function ReadableStreamDefaultControllerClearAlgorithms(controller) {
   controller._strategySizeAlgorithm = undefined;
 }
 
-// A client of ReadableStreamDefaultController may use these functions directly to bypass state check.
-
 function ReadableStreamDefaultControllerClose(controller) {
-  const stream = controller._controlledReadableStream;
+  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) === false) {
+    return;
+  }
 
-  assert(ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) === true);
+  const stream = controller._controlledReadableStream;
 
   controller._closeRequested = true;
 
@@ -1237,9 +1237,11 @@ function ReadableStreamDefaultControllerClose(controller) {
 }
 
 function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
-  const stream = controller._controlledReadableStream;
+  if (ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) === false) {
+    return;
+  }
 
-  assert(ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) === true);
+  const stream = controller._controlledReadableStream;
 
   if (IsReadableStreamLocked(stream) === true && ReadableStreamGetNumReadRequests(stream) > 0) {
     ReadableStreamFulfillReadRequest(stream, chunk, false);
@@ -1926,13 +1928,12 @@ function ReadableByteStreamControllerClearAlgorithms(controller) {
   controller._cancelAlgorithm = undefined;
 }
 
-// A client of ReadableByteStreamController may use these functions directly to bypass state check.
-
 function ReadableByteStreamControllerClose(controller) {
   const stream = controller._controlledReadableByteStream;
 
-  assert(controller._closeRequested === false);
-  assert(stream._state === 'readable');
+  if (controller._closeRequest === true || stream._state !== 'readable') {
+    return;
+  }
 
   if (controller._queueTotalSize > 0) {
     controller._closeRequested = true;
@@ -1957,8 +1958,9 @@ function ReadableByteStreamControllerClose(controller) {
 function ReadableByteStreamControllerEnqueue(controller, chunk) {
   const stream = controller._controlledReadableByteStream;
 
-  assert(controller._closeRequested === false);
-  assert(stream._state === 'readable');
+  if (controller._closeRequest === true || stream._state !== 'readable') {
+    return;
+  }
 
   const buffer = chunk.buffer;
   const byteOffset = chunk.byteOffset;
