@@ -1,7 +1,6 @@
-/node_modules/
-/npm-debug.log
 /streams.spec.whatwg.org/
-/index.html
-/index.html.*
 /deploy.sh
+/deploy_key
+/deploy_key.pub
+/index.html
 /review.sh
