@@ -1,3 +1,6 @@
+SHELL=/bin/bash -o pipefail
+.PHONY: local remote deploy review
+
 remote: index.bs
 	curl https://api.csswg.org/bikeshed/ -f -F file=@index.bs > index.html.postbs -F md-Text-Macro="SNAPSHOT-LINK LOCAL COPY"
 	node_modules/.bin/emu-algify --throwing-indicators < index.html.postbs > index.html

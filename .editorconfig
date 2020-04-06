@@ -4,9 +4,9 @@ root = true
 end_of_line = lf
 insert_final_newline = true
 charset = utf-8
+indent_size = 2
 indent_style = space
 trim_trailing_whitespace = true
-indent_size = 2
 
 [*.{js,bs}]
 max_line_length = 120
@@ -16,3 +16,6 @@ indent_style = tab
 
 [Makefile]
 indent_style = tab
+
+[.travis.yml]
+indent_size = 2
