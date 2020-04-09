@@ -4,6 +4,3 @@
 /deploy_key.pub
 /index.html
 /review.sh
-/index.html.*
-/node_modules/
-/npm-debug.log

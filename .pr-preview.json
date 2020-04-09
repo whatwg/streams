@@ -5,11 +5,5 @@
         "force": 1,
         "md-status": "LS-PR",
         "md-Text-Macro": "PR-NUMBER {{ pull_request.number }}"
-    },
-    "post_processing": {
-        "name": "emu-algify",
-        "options": {
-            "throwingIndicators": true
-        }
     }
 }
