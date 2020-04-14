@@ -453,7 +453,7 @@ The Web IDL definition for the {{ReadableStream}} class is given as follows:
 <xmp class="idl">
 [Exposed=(Window,Worker,Worklet)]
 interface ReadableStream {
-  constructor(object underlyingSource, optional QueuingStrategy strategy = {});
+  constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
   readonly attribute boolean locked;
 
@@ -745,6 +745,7 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
  The <dfn id="rs-constructor" constructor for="ReadableStream">ReadableStream(|underlyingSource|,
  |strategy|)</dfn> constructor steps are:
 
+ 1. If |underlyingSource| is missing, set it to null.
  1. Let |underlyingSourceDict| be |underlyingSource|, [=converted to an IDL value=] of type
     {{UnderlyingSource}}.
     <p class="note">We cannot declare the |underlyingSource| argument as having the
@@ -3173,7 +3174,7 @@ The Web IDL definition for the {{WritableStream}} class is given as follows:
 <xmp class="idl">
 [Exposed=(Window,Worker,Worklet)]
 interface WritableStream {
-  constructor(object underlyingSink, optional QueuingStrategy strategy = {});
+  constructor(optional object underlyingSink, optional QueuingStrategy strategy = {});
 
   readonly attribute boolean locked;
 
@@ -3404,6 +3405,7 @@ as seen for example in [[#example-ws-no-backpressure]].
  The <dfn id="ws-constructor" constructor for="WritableStream">WritableStream(|underlyingSink|,
  |strategy|)</dfn> constructor steps are:
 
+ 1. If |underlyingSink| is missing, set it to null.
  1. Let |underlyingSinkDict| be |underlyingSinkDict|, [=converted to an IDL value=] of type
     {{UnderlyingSink}}.
     <p class="note">We cannot declare the |underlyingSink| argument as having the {{UnderlyingSink}}
@@ -4554,7 +4556,7 @@ The Web IDL definition for the {{TransformStream}} class is given as follows:
 <xmp class="idl">
 [Exposed=(Window,Worker,Worklet)]
 interface TransformStream {
-  constructor(object transformer,
+  constructor(optional object transformer,
               optional QueuingStrategy writableStrategy = {},
               optional QueuingStrategy readableStrategy = {});
 
@@ -4686,10 +4688,14 @@ side=], or to terminate or error the stream.
 <h4 id="ts-prototype">Constructor and properties</h4>
 
 <dl class="domintro non-normative">
- <dt><code><var ignore>stream</var> = new {{TransformStream/constructor(transformer, writableStrategy, readableStrategy)|TransformStream}}(<var ignore>transformer</var>[, <var ignore>writableStrategy</var>[, <var ignore>readableStrategy</var>]])</code>
+ <dt><code><var ignore>stream</var> = new {{TransformStream/constructor(transformer, writableStrategy, readableStrategy)|TransformStream}}([<var ignore>transformer</var>[, <var ignore>writableStrategy</var>[, <var ignore>readableStrategy</var>]]])</code>
  <dd>
   <p>Creates a new {{TransformStream}} wrapping the provided [=transformer=]. See
   [[#transformer-api]] for more details on the <var ignore>transformer</var> argument.
+
+  <p>If no <var ignore>transformer</var> argument is supplied, then the result will be an [=identity
+  transform stream=]. See <a href="#example-transform-identity">this example</a> for some cases
+  where that can be useful.
 
   <p>The <var ignore>writableStrategy</var> and <var ignore>readableStrategy</var> arguments are
   the [=queuing strategy=] objects for the [=writable side|writable=] and [=readable
@@ -4712,6 +4718,7 @@ side=], or to terminate or error the stream.
  The <dfn id="ts-constructor" constructor for="TransformStream">TransformStream(|transformer|,
  |writableStrategy|, |readableStrategy|)</dfn> constructor steps are:
 
+ 1. If |transformer| is missing, set it to null.
  1. Let |transformerDict| be |transformer|, [=converted to an IDL value=] of type {{Transformer}}.
     <p class="note">We cannot declare the |transformer| argument as having the {{Transformer}} type
     directly, because doing so would lose the reference to the original object. We need to retain
