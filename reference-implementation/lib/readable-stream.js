@@ -1,5 +1,4 @@
 'use strict';
-/* global AbortSignal:false */
 
 const assert = require('assert');
 const { ArrayBufferCopy, CreateAlgorithmFromUnderlyingMethod, IsFiniteNonNegativeNumber, InvokeOrNoop,
