@@ -5286,8 +5286,8 @@ value given in the constructor.
  1. Perform ! [$SetFunctionName$](|F|, "`size`").
  1. Perform ! [$SetFunctionLength$](|F|, 1).
  1. Set |globalObject|'s [=byte length queuing strategy size function=] to a {{Function}} that
-    represents a reference to |F|. (The [=callback context=] does not matter, since this function is
-    never [=invoked=].)
+    represents a reference to |F|, with [=callback context=] equal to |globalObject|'s [=relevant
+    settings object=].
 
  <p class="note">This design is somewhat historical. It is motivated by the desire to ensure that
  {{ByteLengthQueuingStrategy/size}} is a function, not a method, i.e. it does not check its
@@ -5408,8 +5408,8 @@ value given in the constructor.
  1. Perform ! [$SetFunctionName$](|F|, "`size`").
  1. Perform ! [$SetFunctionLength$](|F|, 0).
  1. Set |globalObject|'s [=count queuing strategy size function=] to a {{Function}} that represents
-    a reference to |F|. (The [=callback context=] does not matter, since this function is never
-    [=invoked=].)
+    a reference to |F|, with [=callback context=] equal to |globalObject|'s [=relevant settings
+    object=].
 
  <p class="note">This design is somewhat historical. It is motivated by the desire to ensure that
  {{CountQueuingStrategy/size}} is a function, not a method, i.e. it does not check its
