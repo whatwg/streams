@@ -10,7 +10,8 @@ const output = path.resolve(__dirname, './generated');
 mkdirSync(output, { recursive: true });
 
 const transformer = new Transformer({
-  implSuffix: '-impl'
+  implSuffix: '-impl',
+  suppressErrors: true // until https://github.com/jsdom/webidl2js/pull/123 lands
 });
 
 transformer.addSource(input, input);

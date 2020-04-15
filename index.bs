@@ -3756,7 +3756,7 @@ as such the counterpart internal methods are used polymorphically.
  id="ws-default-controller-private-error">\[[ErrorSteps]]()</dfn> implements the
  [$WritableStreamController/[[ErrorSteps]]$] contract. It performs the following steps:
 
- 1. Perform ! ResetQueue([=this=]).
+ 1. Perform ! [$ResetQueue$]([=this=]).
 </div>
 
 <h3 id="ws-all-abstract-ops">Abstract operations</h3>
@@ -4393,6 +4393,15 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
+ <dfn abstract-op lt="WritableStreamDefaultControllerGetBackpressure"
+ id="writable-stream-default-controller-get-backpressure">WritableStreamDefaultControllerGetBackpressure(|controller|)</dfn>
+ performs the following steps:
+
+ 1. Let |desiredSize| be ! [$WritableStreamDefaultControllerGetDesiredSize$](|controller|).
+ 1. Return true if |desiredSize| ≤ 0, or false otherwise.
+</div>
+
+<div algorithm>
  <dfn abstract-op lt="WritableStreamDefaultControllerGetChunkSize"
  id="writable-stream-default-controller-get-chunk-size">WritableStreamDefaultControllerGetChunkSize(|controller|,
  |chunk|)</dfn> performs the following steps:
@@ -4404,15 +4413,6 @@ The following abstract operations support the implementation of the
      |returnValue|.\[[Value]]).
   1. Return 1.
  1. Return |returnValue|.\[[Value]].
-</div>
-
-<div algorithm>
- <dfn abstract-op lt="WritableStreamDefaultControllerGetBackpressure"
- id="writable-stream-default-controller-get-backpressure">WritableStreamDefaultControllerGetBackpressure(|controller|)</dfn>
- performs the following steps:
-
- 1. Let |desiredSize| be ! [$WritableStreamDefaultControllerGetDesiredSize$](|controller|).
- 1. Return true if |desiredSize| ≤ 0, or false otherwise.
 </div>
 
 <div algorithm>
@@ -5549,8 +5549,8 @@ trillions of chunks are enqueued.)
  following steps:
 
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
- 1. If ! [$IsNonNegativeNumber$](|v|) is false, throw a {{RangeError}} exception.
- 1. If |v| is +∞, throw a {{RangeError}} exception.
+ 1. If ! [$IsNonNegativeNumber$](|size|) is false, throw a {{RangeError}} exception.
+ 1. If |size| is +∞, throw a {{RangeError}} exception.
  1. [=list/Append=] Record {\[[value]]: |value|, \[[size]]: |size|} to |container|.\[[queue]].
  1. Set |container|.\[[queueTotalSize]] to |container|.\[[queueTotalSize]] + |size|.
 </div>
