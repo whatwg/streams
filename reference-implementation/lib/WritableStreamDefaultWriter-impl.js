@@ -1,8 +1,7 @@
 'use strict';
 const assert = require('assert');
 
-const { promiseRejectedWith } = require('./webidl-helpers.js');
-
+const { promiseRejectedWith } = require('./helpers/webidl.js');
 const aos = require('./abstract-ops/writable-streams.js');
 
 exports.implementation = class WritableStreamDefaultWriterImpl {

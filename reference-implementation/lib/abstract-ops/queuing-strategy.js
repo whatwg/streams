@@ -1,5 +1,5 @@
 'use strict';
-const { invoke } = require('../webidl-helpers.js');
+const { invoke } = require('../helpers/webidl.js');
 
 exports.ExtractHighWaterMark = (strategy, defaultHWM) => {
   if (!('highWaterMark' in strategy)) {

@@ -3,7 +3,7 @@ const assert = require('assert');
 const verbose = require('debug')('streams:writable-stream:verbose');
 
 const { webidlNew, promiseInvoke, invoke, promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise,
-        rejectPromise, uponPromise, setPromiseIsHandledToTrue, stateIsPending } = require('../webidl-helpers.js');
+        rejectPromise, uponPromise, setPromiseIsHandledToTrue, stateIsPending } = require('../helpers/webidl.js');
 const { IsNonNegativeNumber } = require('./miscellaneous.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 const { AbortSteps, ErrorSteps } = require('./internal-methods.js');
@@ -14,6 +14,7 @@ const WritableStreamDefaultWriterImpl = require('../WritableStreamDefaultWriter-
 
 Object.assign(exports, {
   AcquireWritableStreamDefaultWriter,
+  CreateWritableStream,
   InitializeWritableStream,
   IsWritableStreamLocked,
   SetUpWritableStreamDefaultControllerFromUnderlyingSink,
@@ -25,6 +26,7 @@ Object.assign(exports, {
   WritableStreamDefaultControllerError,
   WritableStreamDefaultWriterAbort,
   WritableStreamDefaultWriterClose,
+  WritableStreamDefaultWriterCloseWithErrorPropagation,
   WritableStreamDefaultWriterGetDesiredSize,
   WritableStreamDefaultWriterRelease,
   WritableStreamDefaultWriterWrite
@@ -585,8 +587,9 @@ function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyi
     abortAlgorithm = reason => promiseInvoke(underlyingSinkDict.abort, [reason], underlyingSink);
   }
 
-  SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
-                                       abortAlgorithm, highWaterMark, sizeAlgorithm);
+  SetUpWritableStreamDefaultController(
+    stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark, sizeAlgorithm
+  );
 }
 
 function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {

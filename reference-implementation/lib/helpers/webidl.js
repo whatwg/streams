@@ -1,6 +1,6 @@
 'use strict';
-const utils = require('../generated/utils.js');
-const { rethrowAssertionErrorRejection } = require('./helpers.js');
+const utils = require('../../generated/utils.js');
+const { rethrowAssertionErrorRejection } = require('./miscellaneous.js');
 
 // https://heycam.github.io/webidl/#new
 // https://github.com/jsdom/webidl2js/issues/193
@@ -138,7 +138,7 @@ Object.assign(exports, {
 });
 
 // https://heycam.github.io/webidl/#wait-for-all
-exports.WaitForAll = (promises, successSteps, failureSteps) => {
+function waitForAll(promises, successSteps, failureSteps) {
   let rejected = false;
   const rejectionHandler = arg => {
     if (rejected === false) {
@@ -166,10 +166,10 @@ exports.WaitForAll = (promises, successSteps, failureSteps) => {
     PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler);
     ++index;
   }
-};
+}
 
 // https://heycam.github.io/webidl/#waiting-for-all-promise
-exports.WaitForAllPromise = (promises, successSteps, failureSteps = undefined) => {
+exports.waitForAllPromise = (promises, successSteps, failureSteps = undefined) => {
   let resolveP;
   let rejectP;
   const promise = newPromise((resolve, reject) => {
@@ -197,6 +197,6 @@ exports.WaitForAllPromise = (promises, successSteps, failureSteps = undefined) =
       rejectP(e);
     }
   };
-  exports.WaitForAll(promises, successStepsWrapper, failureStepsWrapper);
+  waitForAll(promises, successStepsWrapper, failureStepsWrapper);
   return promise;
 };

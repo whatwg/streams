@@ -1,4 +1,5 @@
 'use strict';
+
 const aos = require('./abstract-ops/writable-streams.js');
 const { AbortSteps, ErrorSteps } = require('./abstract-ops/internal-methods.js');
 const { ResetQueue } = require('./abstract-ops/queue-with-sizes.js');

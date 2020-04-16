@@ -528,8 +528,8 @@ the [=underlying source=]. Such objects can contain any of the following propert
 
 <xmp class="idl">
 dictionary UnderlyingSource {
-  ReadableStreamControllerCallback start;
-  ReadableStreamControllerCallback pull;
+  ReadableStreamStartCallback start;
+  ReadableStreamPullCallback pull;
   ReadableStreamCancelCallback cancel;
   ReadableStreamType type;
   [EnforceRange] unsigned long long autoAllocateChunkSize;
@@ -537,7 +537,8 @@ dictionary UnderlyingSource {
 
 typedef (ReadableStreamDefaultController or ReadableByteStreamController) ReadableStreamController;
 
-callback ReadableStreamControllerCallback = Promise<void> (ReadableStreamController controller);
+callback ReadableStreamStartCallback = any (ReadableStreamController controller);
+callback ReadableStreamPullCallback = Promise<void> (ReadableStreamController controller);
 callback ReadableStreamCancelCallback = Promise<void> (optional any reason);
 
  enum ReadableStreamType { "bytes" };
@@ -1660,6 +1661,8 @@ following table:
  for="ReadableStreamBYOBRequest">respond(|bytesWritten|)</dfn> method steps are:
 
  1. If [=this=].\[[controller]] is undefined, throw a {{TypeError}} exception.
+ 1. If [$IsDetachedBuffer$]([=this=].\[[view]].\[[ArrayBuffer]]) is true, throw a {{TypeError}}
+    exception.
  1. Perform ? [$ReadableByteStreamControllerRespond$]([=this=].\[[controller]], |bytesWritten|).
 </div>
 
@@ -1781,7 +1784,6 @@ are even meant to be generally useful by other specifications.
  that wish to query whether or not a readable stream has ever been read from or canceled. It
  performs the following steps:
 
- 1. Assert: |stream| [=implements=] {{ReadableStream}}.
  1. Return |stream|.\[[disturbed]].
 </div>
 
@@ -1790,94 +1792,8 @@ are even meant to be generally useful by other specifications.
  export>IsReadableStreamLocked(|stream|)</dfn> is meant to be called from other specifications
  that wish to query whether or not a readable stream is [=locked to a reader=].
 
- 1. Assert: |stream| [=implements=] {{ReadableStream}}.
  1. If |stream|.\[[reader]] is undefined, return false.
  1. Return true.
-</div>
-
-<div algorithm>
- <dfn abstract-op lt="ReadableStreamTee" id="readable-stream-tee" export>ReadableStreamTee(|stream|,
- |cloneForBranch2|)</dfn> is meant to be called from other specifications that wish to [=tee a
- readable stream|tee=] a given readable stream.
-
- The second argument, |cloneForBranch2|, governs whether or not the data from the original stream
- will be cloned (using HTML's [=serializable objects=] framework) before appearing in the second of
- the returned branches. This is useful for scenarios where both branches are to be consumed in such
- a way that they might otherwise interfere with each other, such as by [=transferable
- objects|transferring=] their [=chunks=]. However, it does introduce a noticeable asymmetry between
- the two branches, and limits the possible [=chunks=] to serializable ones. [[!HTML]]
-
- <p class="note">In this standard ReadableStreamTee is always called with |cloneForBranch2| set to
- false; other specifications pass true.
-
- It performs the following steps:
-
- 1. Assert: |stream| [=implements=] {{ReadableStream}}.
- 1. Assert: |cloneForBranch2| is a boolean.
- 1. Let |reader| be ? [$AcquireReadableStreamDefaultReader$](|stream|).
- 1. Let |reading| be false.
- 1. Let |canceled1| be false.
- 1. Let |canceled2| be false.
- 1. Let |reason1| be undefined.
- 1. Let |reason2| be undefined.
- 1. Let |branch1| be undefined.
- 1. Let |branch2| be undefined.
- 1. Let |cancelPromise| be [=a new promise=].
- 1. Let |pullAlgorithm| be the following steps:
-  1. If |reading| is true, return [=a promise resolved with=] undefined.
-  1. Set |reading| to true.
-  1. Let |readPromise| be the result of [=reacting=] to !
-     [$ReadableStreamDefaultReaderRead$](|reader|) with the following fulfillment steps given the
-     argument |result|:
-   1. Set |reading| to false.
-   1. Assert: [$Type$](|result|) is Object.
-   1. Let |done| be ! [$Get$](|result|, "`done`").
-   1. Assert: [$Type$](|done|) is Boolean.
-   1. If |done| is true,
-    1. If |canceled1| is false,
-     1. Perform ! [$ReadableStreamDefaultControllerClose$](|branch1|.\[[readableStreamController]]).
-    1. If |canceled2| is false,
-      1. Perform !
-         [$ReadableStreamDefaultControllerClose$](|branch2|.\[[readableStreamController]]).
-    1. Return.
-   1. Let |value| be ! [$Get$](|result|, "`value`").
-   1. Let |value1| and |value2| be |value|.
-   1. If |canceled2| is false and |cloneForBranch2| is true, set |value2| to ?
-      [$StructuredDeserialize$](? [$StructuredSerialize$](|value2|), [=the current Realm=]).
-   1. If |canceled1| is false, perform ?
-      [$ReadableStreamDefaultControllerEnqueue$](|branch1|.\[[readableStreamController]],
-      |value1|).
-   1. If |canceled2| is false, perform ?
-      ReadableStreamDefaultControllerEnqueue(|branch2|.\[[readableStreamController]], |value2|).
-  1. Set |readPromise|.\[[PromiseIsHandled]] to true.
-  1. Return [=a promise resolved with=] undefined.
- 1. Let |cancel1Algorithm| be the following steps, taking a |reason| argument:
-  1. Set |canceled1| to true.
-  1. Set |reason1| to |reason|.
-  1. If |canceled2| is true,
-   1. Let |compositeReason| be ! [$CreateArrayFromList$](« |reason1|, |reason2| »).
-   1. Let |cancelResult| be ! [$ReadableStreamCancel$](|stream|, |compositeReason|).
-   1. [=Resolve=] |cancelPromise| with |cancelResult|.
-  1. Return |cancelPromise|.
- 1. Let |cancel2Algorithm| be the following steps, taking a |reason| argument:
-  1. Set |canceled2| to true.
-  1. Set |reason2| to |reason|.
-  1. If |canceled1| is true,
-   1. Let |compositeReason| be ! [$CreateArrayFromList$](« |reason1|, |reason2| »).
-   1. Let |cancelResult| be ! [$ReadableStreamCancel$](|stream|, |compositeReason|).
-   1. [=Resolve=] |cancelPromise| with |cancelResult|.
-  1. Return |cancelPromise|.
- 1. Let |startAlgorithm| be an algorithm that returns undefined.
- 1. Set |branch1| to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|,
-    |cancel1Algorithm|).
- 1. Set |branch2| to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|,
-    |cancel2Algorithm|).
- 1. [=Upon rejection=] of |reader|.\[[closedPromise]] with reason |r|,
-  1. Perform ! [$ReadableStreamDefaultControllerError$](|branch1|.\[[readableStreamController]],
-     |r|).
-  1. Perform ! [$ReadableStreamDefaultControllerError$](|branch2|.\[[readableStreamController]],
-     |r|).
- 1. Return « |branch1|, |branch2| ».
 </div>
 
 <div algorithm="ReadableStreamPipeTo">
@@ -2005,6 +1921,91 @@ promises), which usually would require specifying a realm for the created object
 of the locking, none of these objects can be observed by author code. As such, the realm used to
 create them does not matter.
 
+<div algorithm>
+ <dfn abstract-op lt="ReadableStreamTee" id="readable-stream-tee" export>ReadableStreamTee(|stream|,
+ |cloneForBranch2|)</dfn> is meant to be called from other specifications that wish to [=tee a
+ readable stream|tee=] a given readable stream.
+
+ The second argument, |cloneForBranch2|, governs whether or not the data from the original stream
+ will be cloned (using HTML's [=serializable objects=] framework) before appearing in the second of
+ the returned branches. This is useful for scenarios where both branches are to be consumed in such
+ a way that they might otherwise interfere with each other, such as by [=transferable
+ objects|transferring=] their [=chunks=]. However, it does introduce a noticeable asymmetry between
+ the two branches, and limits the possible [=chunks=] to serializable ones. [[!HTML]]
+
+ <p class="note">In this standard ReadableStreamTee is always called with |cloneForBranch2| set to
+ false; other specifications pass true.
+
+ It performs the following steps:
+
+ 1. Assert: |stream| [=implements=] {{ReadableStream}}.
+ 1. Assert: |cloneForBranch2| is a boolean.
+ 1. Let |reader| be ? [$AcquireReadableStreamDefaultReader$](|stream|).
+ 1. Let |reading| be false.
+ 1. Let |canceled1| be false.
+ 1. Let |canceled2| be false.
+ 1. Let |reason1| be undefined.
+ 1. Let |reason2| be undefined.
+ 1. Let |branch1| be undefined.
+ 1. Let |branch2| be undefined.
+ 1. Let |cancelPromise| be [=a new promise=].
+ 1. Let |pullAlgorithm| be the following steps:
+  1. If |reading| is true, return [=a promise resolved with=] undefined.
+  1. Set |reading| to true.
+  1. Let |readPromise| be the result of [=reacting=] to !
+     [$ReadableStreamDefaultReaderRead$](|reader|) with the following fulfillment steps given the
+     argument |result|:
+   1. Set |reading| to false.
+   1. Assert: [$Type$](|result|) is Object.
+   1. Let |done| be ! [$Get$](|result|, "`done`").
+   1. Assert: [$Type$](|done|) is Boolean.
+   1. If |done| is true,
+    1. If |canceled1| is false,
+     1. Perform ! [$ReadableStreamDefaultControllerClose$](|branch1|.\[[readableStreamController]]).
+    1. If |canceled2| is false,
+      1. Perform !
+         [$ReadableStreamDefaultControllerClose$](|branch2|.\[[readableStreamController]]).
+    1. Return.
+   1. Let |value| be ! [$Get$](|result|, "`value`").
+   1. Let |value1| and |value2| be |value|.
+   1. If |canceled2| is false and |cloneForBranch2| is true, set |value2| to ?
+      [$StructuredDeserialize$](? [$StructuredSerialize$](|value2|), [=the current Realm=]).
+   1. If |canceled1| is false, perform ?
+      [$ReadableStreamDefaultControllerEnqueue$](|branch1|.\[[readableStreamController]],
+      |value1|).
+   1. If |canceled2| is false, perform ?
+      ReadableStreamDefaultControllerEnqueue(|branch2|.\[[readableStreamController]], |value2|).
+  1. Set |readPromise|.\[[PromiseIsHandled]] to true.
+  1. Return [=a promise resolved with=] undefined.
+ 1. Let |cancel1Algorithm| be the following steps, taking a |reason| argument:
+  1. Set |canceled1| to true.
+  1. Set |reason1| to |reason|.
+  1. If |canceled2| is true,
+   1. Let |compositeReason| be ! [$CreateArrayFromList$](« |reason1|, |reason2| »).
+   1. Let |cancelResult| be ! [$ReadableStreamCancel$](|stream|, |compositeReason|).
+   1. [=Resolve=] |cancelPromise| with |cancelResult|.
+  1. Return |cancelPromise|.
+ 1. Let |cancel2Algorithm| be the following steps, taking a |reason| argument:
+  1. Set |canceled2| to true.
+  1. Set |reason2| to |reason|.
+  1. If |canceled1| is true,
+   1. Let |compositeReason| be ! [$CreateArrayFromList$](« |reason1|, |reason2| »).
+   1. Let |cancelResult| be ! [$ReadableStreamCancel$](|stream|, |compositeReason|).
+   1. [=Resolve=] |cancelPromise| with |cancelResult|.
+  1. Return |cancelPromise|.
+ 1. Let |startAlgorithm| be an algorithm that returns undefined.
+ 1. Set |branch1| to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|,
+    |cancel1Algorithm|).
+ 1. Set |branch2| to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|,
+    |cancel2Algorithm|).
+ 1. [=Upon rejection=] of |reader|.\[[closedPromise]] with reason |r|,
+  1. Perform ! [$ReadableStreamDefaultControllerError$](|branch1|.\[[readableStreamController]],
+     |r|).
+  1. Perform ! [$ReadableStreamDefaultControllerError$](|branch2|.\[[readableStreamController]],
+     |r|).
+ 1. Return « |branch1|, |branch2| ».
+</div>
+
 <h4 id="rs-abstract-ops-used-by-controllers">Interfacing with controllers</h4>
 
 In terms of specification factoring, the way that the {{ReadableStream}} class encapsulates the
@@ -2046,8 +2047,7 @@ the {{ReadableStream}}'s public API.
  1. Assert: |stream|.\[[reader]] [=implements=] {{ReadableStreamBYOBReader}}.
  1. Assert: |stream|.\[[state]] is "`readable"` or `"closed`".
  1. Let |promise| be [=a new promise=].
- 1. Let |readIntoRequest| be Record {\[[promise]]: |promise|}.
- 1. [=list/Append=] |readIntoRequest| to |stream|.\[[reader]].\[[readIntoRequests]].
+ 1. [=list/Append=] |promise| to |stream|.\[[reader]].\[[readIntoRequests]].
  1. Return |promise|.
 </div>
 
@@ -2059,8 +2059,7 @@ the {{ReadableStream}}'s public API.
  1. Assert: |stream|.\[[reader]] [=implements=] {{ReadableStreamDefaultReader}}.
  1. Assert: |stream|.\[[state]] is "`readable"`.
  1. Let |promise| be [=a new promise=].
- 1. Let |readIntoRequest| be Record {\[[promise]]: |promise|}.
- 1. [=list/Append=] |readIntoRequest| to |stream|.\[[reader]].\[[readRequests]].
+ 1. [=list/Append=] |promise| to |stream|.\[[reader]].\[[readRequests]].
  1. Return |promise|.
 </div>
 
@@ -2087,10 +2086,10 @@ the {{ReadableStream}}'s public API.
  1. Set |stream|.\[[state]] to "`closed`".
  1. Let |reader| be |stream|.\[[reader]].
  1. If |reader| is undefined, return.
- 1. If ! IsReadableStreamDefaultReader(|reader|) is true,
+ 1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
   1. [=list/For each=] |readRequest| of |reader|.\[[readRequests]],
-   1. [=Resolve=] |readRequest|.\[[promise]] with ! [$ReadableStreamCreateReadResult$](undefined,
-      true, |reader|.\[[forAuthorCode]]).
+   1. [=Resolve=] |readRequest| with ! [$ReadableStreamCreateReadResult$](undefined, true,
+      |reader|.\[[forAuthorCode]]).
   1. Set |reader|.\[[readRequests]] to an empty [=list=].
  1. [=Resolve=] |reader|.\[[closedPromise]] with undefined.
 
@@ -2141,7 +2140,6 @@ the {{ReadableStream}}'s public API.
  <dfn abstract-op lt="ReadableStreamError" id="readable-stream-error">ReadableStreamError(|stream|,
  |e|)</dfn> performs the following steps:
 
- 1. Assert: |stream|.\[[reader]] [=implements=] {{ReadableStreamDefaultReader}}.
  1. Assert: |stream|.\[[state]] is "`readable`".
  1. Set |stream|.\[[state]] to "`errored`".
  1. Set |stream|.\[[storedError]] to |e|.
@@ -2149,12 +2147,12 @@ the {{ReadableStream}}'s public API.
  1. If |reader| is undefined, return.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
   1. [=list/For each=] |readRequest| of |reader|.\[[readRequests]],
-    1. [=Reject=] |readRequest|.\[[promise]] with |e|.
+    1. [=Reject=] |readRequest| with |e|.
   1. Set |reader|.\[[readRequests]] to a new empty [=list=].
  1. Otherwise,
    1. Assert: |reader| [=implements=] {{ReadableStreamBYOBReader}}.
    1. [=list/For each=] |readIntoRequest| of |reader|.\[[readIntoRequests]],
-     1. [=Reject=] |readIntoRequest|.\[[promise]] with |e|.
+     1. [=Reject=] |readIntoRequest| with |e|.
    1. Set |reader|.\[[readIntoRequests]] to a new empty [=list=].
  1. [=Reject=] |reader|.\[[closedPromise]] with |e|.
  1. Set |reader|.\[[closedPromise]].\[[PromiseIsHandled]] to true.
@@ -2166,9 +2164,10 @@ the {{ReadableStream}}'s public API.
  |chunk|, |done|)</dfn> performs the following steps:
 
  1. Let |reader| be |stream|.\[[reader]].
+ 1. Assert: |reader|.\[[readIntoRequests]] is not [=list/is empty|empty=].
  1. Let |readIntoRequest| be |reader|.\[[readIntoRequests]][0].
  1. [=list/Remove=] |readIntoRequest| from |reader|.\[[readIntoRequests]].
- 1. [=Resolve=] |readIntoRequest|.\[[promise]] with ! [$ReadableStreamCreateReadResult$](|chunk|,
+ 1. [=Resolve=] |readIntoRequest| with ! [$ReadableStreamCreateReadResult$](|chunk|,
     |done|, |reader|.\[[forAuthorCode]]).
 </div>
 
@@ -2178,10 +2177,11 @@ the {{ReadableStream}}'s public API.
  |done|)</dfn> performs the following steps:
 
  1. Let |reader| be |stream|.\[[reader]].
+ 1. Assert: |reader|.\[[readRequests]] is not [=list/is empty|empty=].
  1. Let |readRequest| be |reader|.\[[readRequests]][0].
  1. [=list/Remove=] |readRequest| from |reader|.\[[readRequests]].
- 1. [=Resolve=] |readRequest|.\[[promise]] with ! [$ReadableStreamCreateReadResult$](|chunk|,
-    |done|, |reader|.\[[forAuthorCode]]).
+ 1. [=Resolve=] |readRequest| with ! [$ReadableStreamCreateReadResult$](|chunk|, |done|,
+    |reader|.\[[forAuthorCode]]).
 </div>
 
 <div algorithm>
@@ -2406,7 +2406,7 @@ The following abstract operations support the implementation of the
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamDefaultControllerEnqueue"
  id="readable-stream-default-controller-enqueue"
- export>ReadableStreamDefaultControllerClose(|controller|, |chunk|)</dfn> can be called by other
+ export>ReadableStreamDefaultControllerEnqueue(|controller|, |chunk|)</dfn> can be called by other
  specifications that wish to enqueue [=chunks=] in a readable stream, in the same way a developer
  would enqueue chunks using the stream's associated controller object. Specifications should
  <em>not</em> do this to streams or controllers they did not create.
@@ -2501,8 +2501,7 @@ The following abstract operations support the implementation of the
 
  1. Assert: |stream|.\[[readableStreamController]] is undefined.
  1. Set |controller|.\[[controlledReadableStream]] to |stream|.
- 1. Set |controller|.\[[queue]] and |controller|.\[[queueTotalSize]] to undefined, then perform !
-    [$ResetQueue$](|controller|).
+ 1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.\[[started]], |controller|.\[[closeRequested]], |controller|.\[[pullAgain]], and
     |controller|.\[[pulling]] to false.
  1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm| and |controller|.\[[strategyHWM]]
@@ -3258,7 +3257,7 @@ dictionary UnderlyingSink {
   any type;
 };
 
-callback WritableStreamStartCallback = Promise<void> (WritableStreamDefaultController controller);
+callback WritableStreamStartCallback = any (WritableStreamDefaultController controller);
 callback WritableStreamWriteCallback = Promise<void> (WritableStreamDefaultController controller, optional any chunk);
 callback WritableStreamCloseCallback = Promise<void> ();
 callback WritableStreamAbortCallback = Promise<void> (optional any reason);

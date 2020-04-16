@@ -1,6 +1,6 @@
 'use strict';
-const { promiseRejectedWith } = require('./webidl-helpers.js');
 
+const { promiseRejectedWith } = require('./helpers/webidl.js');
 const { ExtractHighWaterMark, ExtractSizeAlgorithm } = require('./abstract-ops/queuing-strategy.js');
 const aos = require('./abstract-ops/writable-streams.js');
 
