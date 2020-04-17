@@ -528,18 +528,18 @@ the [=underlying source=]. Such objects can contain any of the following propert
 
 <xmp class="idl">
 dictionary UnderlyingSource {
-  ReadableStreamStartCallback start;
-  ReadableStreamPullCallback pull;
-  ReadableStreamCancelCallback cancel;
+  UnderlyingSourceStartCallback start;
+  UnderlyingSourcePullCallback pull;
+  UnderlyingSourceCancelCallback cancel;
   ReadableStreamType type;
   [EnforceRange] unsigned long long autoAllocateChunkSize;
 };
 
 typedef (ReadableStreamDefaultController or ReadableByteStreamController) ReadableStreamController;
 
-callback ReadableStreamStartCallback = any (ReadableStreamController controller);
-callback ReadableStreamPullCallback = Promise<void> (ReadableStreamController controller);
-callback ReadableStreamCancelCallback = Promise<void> (optional any reason);
+callback UnderlyingSourceStartCallback = any (ReadableStreamController controller);
+callback UnderlyingSourcePullCallback = Promise<void> (ReadableStreamController controller);
+callback UnderlyingSourceCancelCallback = Promise<void> (optional any reason);
 
  enum ReadableStreamType { "bytes" };
 </xmp>
@@ -3250,17 +3250,17 @@ the [=underlying sink=]. Such objects can contain any of the following propertie
 
 <xmp class="idl">
 dictionary UnderlyingSink {
-  WritableStreamStartCallback start;
-  WritableStreamWriteCallback write;
-  WritableStreamCloseCallback close;
-  WritableStreamAbortCallback abort;
+  UnderlyingSinkStartCallback start;
+  UnderlyingSinkWriteCallback write;
+  UnderlyingSinkCloseCallback close;
+  UnderlyingSinkAbortCallback abort;
   any type;
 };
 
-callback WritableStreamStartCallback = any (WritableStreamDefaultController controller);
-callback WritableStreamWriteCallback = Promise<void> (WritableStreamDefaultController controller, optional any chunk);
-callback WritableStreamCloseCallback = Promise<void> ();
-callback WritableStreamAbortCallback = Promise<void> (optional any reason);
+callback UnderlyingSinkStartCallback = any (WritableStreamDefaultController controller);
+callback UnderlyingSinkWriteCallback = Promise<void> (WritableStreamDefaultController controller, optional any chunk);
+callback UnderlyingSinkCloseCallback = Promise<void> ();
+callback UnderlyingSinkAbortCallback = Promise<void> (optional any reason);
 </xmp>
 
 <dl>
@@ -3415,7 +3415,7 @@ as seen for example in [[#example-ws-no-backpressure]].
     <p class="note">This is to allow us to add new potential types in the future, without
     backward-compatibility concerns.
  1. Perform ! [$InitializeWritableStream$]([=this=]).
- 1. Let |sizeAlgorithm| be ? [$ExtractSizeAlgorithm$](|strategy|).
+ 1. Let |sizeAlgorithm| be ! [$ExtractSizeAlgorithm$](|strategy|).
  1. Let |highWaterMark| be ? [$ExtractHighWaterMark$](|strategy|, 1).
  1. Perform ? [$SetUpWritableStreamDefaultControllerFromUnderlyingSink$]([=this=], |underlyingSink|,
     |underlyingSinkDict|, |highWaterMark|, |sizeAlgorithm|).
@@ -4602,15 +4602,16 @@ the [=transformer=]. Such objects can contain any of the following methods:
 
 <xmp class="idl">
 dictionary Transformer {
-  TransformStreamControllerCallback start;
-  TransformStreamTransformCallback transform;
-  TransformStreamControllerCallback flush;
+  TransformerStartCallback start;
+  TransformerTransformCallback transform;
+  TransformerFlushCallback flush;
   any readableType;
   any writableType;
 };
 
-callback TransformStreamControllerCallback = Promise<void> (TransformStreamDefaultController controller);
-callback TransformStreamTransformCallback = Promise<void> (TransformStreamDefaultController controller, optional any chunk);
+callback TransformerStartCallback = any (TransformStreamDefaultController controller);
+callback TransformerFlushCallback = Promise<void> (TransformStreamDefaultController controller);
+callback TransformerTransformCallback = Promise<void> (TransformStreamDefaultController controller, optional any chunk);
 </xmp>
 
 <dl>
@@ -4726,10 +4727,10 @@ side=], or to terminate or error the stream.
     exception.
  1. If |transformerDict|["{{Transformer/writableType}}"] [=map/exists=], throw a {{RangeError}}
     exception.
- 1. Let |writableSizeAlgorithm| be ? [$ExtractSizeAlgorithm$](|writableStrategy|).
- 1. Let |writableHighWaterMark| be ? [$ExtractHighWaterMark$](|writableStrategy|, 1).
- 1. Let |readableSizeAlgorithm| be ? [$ExtractSizeAlgorithm$](|readableStrategy|).
  1. Let |readableHighWaterMark| be ? [$ExtractHighWaterMark$](|readableStrategy|, 0).
+ 1. Let |readableSizeAlgorithm| be ! [$ExtractSizeAlgorithm$](|readableStrategy|).
+ 1. Let |writableHighWaterMark| be ? [$ExtractHighWaterMark$](|writableStrategy|, 1).
+ 1. Let |writableSizeAlgorithm| be ! [$ExtractSizeAlgorithm$](|writableStrategy|).
  1. Let |startPromise| be [=a new promise=].
  1. Perform ! [$InitializeTransformStream$]([=this=], |startPromise|, |writableHighWaterMark|,
     |writableSizeAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
@@ -5155,7 +5156,7 @@ side=] of [=transform streams=].
    1. Throw |readable|.\[[storedError]].
 </div>
 
-<h4 id="ts-default-source-abstract-ops">Default source</h4>
+<h4 id="ts-default-source-abstract-ops">Default sources</h4>
 
 The following abstract operation is used to implement the [=underlying source=] for the [=readable
 side=] of [=transform streams=].

@@ -24,6 +24,7 @@ Object.assign(exports, {
   WritableStreamCloseQueuedOrInFlight,
   WritableStreamDefaultControllerClearAlgorithms,
   WritableStreamDefaultControllerError,
+  WritableStreamDefaultControllerErrorIfNeeded,
   WritableStreamDefaultWriterAbort,
   WritableStreamDefaultWriterClose,
   WritableStreamDefaultWriterCloseWithErrorPropagation,

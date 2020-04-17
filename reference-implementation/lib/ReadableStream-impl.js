@@ -59,6 +59,13 @@ exports.implementation = class ReadableStreamImpl {
   }
 
   pipeThrough(transform, options) {
+    // Conversion here is needed until https://github.com/jsdom/webidl2js/issues/81 is fixed.
+    if ('signal' in options) {
+      if (!isAbortSignal(options.signal)) {
+        return promiseRejectedWith(new TypeError('Invalid signal argument'));
+      }
+    }
+
     if (aos.IsReadableStreamLocked(this) === true) {
       throw new TypeError('ReadableStream.prototype.pipeThrough cannot be used on a locked ReadableStream');
     }
@@ -105,7 +112,7 @@ exports.implementation = class ReadableStreamImpl {
   }
 };
 
-// See pipeTo() for why this is needed.
+// See pipeTo()/pipeThrough() for why this is needed.
 const abortedGetter = Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted').get;
 function isAbortSignal(v) {
   try {

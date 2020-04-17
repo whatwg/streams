@@ -23,6 +23,7 @@ const WritableStreamImpl = require('../WritableStream-impl.js');
 Object.assign(exports, {
   AcquireReadableStreamBYOBReader,
   AcquireReadableStreamDefaultReader,
+  CreateReadableStream,
   InitializeReadableStream,
   IsReadableStreamLocked,
   ReadableByteStreamControllerCallPullIfNeeded,

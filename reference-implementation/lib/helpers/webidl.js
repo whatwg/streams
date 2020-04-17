@@ -76,7 +76,8 @@ function rejectPromise(p, reason) {
 
 // https://heycam.github.io/webidl/#a-promise-resolved-with
 function promiseResolvedWith(value) {
-  const promise = originalPromiseResolve.call(originalPromise, value);
+  // Cannot use original Promise.resolve since that will return value itself sometimes, unlike Web IDL.
+  const promise = new originalPromise(resolve => resolve(value));
   promiseSideTable.set(promise, { stateIsPending: false });
   return promise;
 }

@@ -1,12 +1,12 @@
 dictionary UnderlyingSink {
-  WritableStreamStartCallback start;
-  WritableStreamWriteCallback write;
-  WritableStreamCloseCallback close;
-  WritableStreamAbortCallback abort;
+  UnderlyingSinkStartCallback start;
+  UnderlyingSinkWriteCallback write;
+  UnderlyingSinkCloseCallback close;
+  UnderlyingSinkAbortCallback abort;
   any type;
 };
 
-callback WritableStreamStartCallback = any (WritableStreamDefaultController controller);
-callback WritableStreamWriteCallback = Promise<void> (WritableStreamDefaultController controller, optional any chunk);
-callback WritableStreamCloseCallback = Promise<void> ();
-callback WritableStreamAbortCallback = Promise<void> (optional any reason);
+callback UnderlyingSinkStartCallback = any (WritableStreamDefaultController controller);
+callback UnderlyingSinkWriteCallback = Promise<void> (WritableStreamDefaultController controller, optional any chunk);
+callback UnderlyingSinkCloseCallback = Promise<void> ();
+callback UnderlyingSinkAbortCallback = Promise<void> (optional any reason);
