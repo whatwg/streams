@@ -130,7 +130,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
   // This is used to keep track of the spec's requirement that we wait for ongoing writes during shutdown.
   let currentWrite = promiseResolvedWith(undefined);
 
-  return newPromise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     let abortAlgorithm;
     if (signal !== undefined) {
       abortAlgorithm = () => {
@@ -167,7 +167,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     // - Backpressure must be enforced
     // - Shutdown must stop all activity
     function pipeLoop() {
-      return newPromise((resolveLoop, rejectLoop) => {
+      return new Promise((resolveLoop, rejectLoop) => {
         function next(done) {
           if (done) {
             resolveLoop();
@@ -328,7 +328,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   let branch2;
 
   let resolveCancelPromise;
-  const cancelPromise = newPromise(resolve => {
+  const cancelPromise = new Promise(resolve => {
     resolveCancelPromise = resolve;
   });
 

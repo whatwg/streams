@@ -6,6 +6,7 @@ const { ExtractHighWaterMark, ExtractSizeAlgorithm } = require('./abstract-ops/q
 const aos = require('./abstract-ops/readable-streams.js');
 const wsAOs = require('./abstract-ops/writable-streams.js');
 
+const idlUtils = require('../generated/utils.js');
 const UnderlyingSource = require('../generated/UnderlyingSource.js');
 
 exports.implementation = class ReadableStreamImpl {
@@ -75,6 +76,13 @@ exports.implementation = class ReadableStreamImpl {
   }
 
   pipeTo(destination, options) {
+    // Conversion here is needed until https://github.com/jsdom/webidl2js/issues/81 is fixed.
+    if ('signal' in options) {
+      if (!isAbortSignal(options.signal)) {
+        return promiseRejectedWith(new TypeError('Invalid signal argument'));
+      }
+    }
+
     if (aos.IsReadableStreamLocked(this) === true) {
       return promiseRejectedWith(
         new TypeError('ReadableStream.prototype.pipeTo cannot be used on a locked ReadableStream')
@@ -92,6 +100,18 @@ exports.implementation = class ReadableStreamImpl {
   }
 
   tee() {
-    return aos.ReadableStreamTee(this, false);
+    // Conversion here is only needed until https://github.com/jsdom/webidl2js/pull/108 gets merged.
+    return aos.ReadableStreamTee(this, false).map(idlUtils.wrapperForImpl);
   }
 };
+
+// See pipeTo() for why this is needed.
+const abortedGetter = Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted').get;
+function isAbortSignal(v) {
+  try {
+    abortedGetter.call(v);
+    return true;
+  } catch {
+    return false;
+  }
+}

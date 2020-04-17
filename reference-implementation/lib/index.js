@@ -7,16 +7,16 @@
 // window.TransformStream = TransformStream;
 window.gc = gc;
 
-require('../generated/ByteLengthQueuingStrategy.js').install(window);
-require('../generated/CountQueuingStrategy.js').install(window);
+require('../generated/ByteLengthQueuingStrategy.js').install(window, ['Window']);
+require('../generated/CountQueuingStrategy.js').install(window, ['Window']);
 
-require('../generated/ReadableStream.js').install(window);
-require('../generated/ReadableStreamDefaultReader.js').install(window);
-require('../generated/ReadableStreamBYOBReader.js').install(window);
-require('../generated/ReadableStreamDefaultController.js').install(window);
-require('../generated/ReadableByteStreamController.js').install(window);
-require('../generated/ReadableStreamBYOBRequest.js').install(window);
+require('../generated/ReadableStream.js').install(window, ['Window']);
+require('../generated/ReadableStreamDefaultReader.js').install(window, ['Window']);
+require('../generated/ReadableStreamBYOBReader.js').install(window, ['Window']);
+require('../generated/ReadableStreamDefaultController.js').install(window, ['Window']);
+require('../generated/ReadableByteStreamController.js').install(window, ['Window']);
+require('../generated/ReadableStreamBYOBRequest.js').install(window, ['Window']);
 
-require('../generated/WritableStream.js').install(window);
-require('../generated/WritableStreamDefaultWriter.js').install(window);
-require('../generated/WritableStreamDefaultController.js').install(window);
+require('../generated/WritableStream.js').install(window, ['Window']);
+require('../generated/WritableStreamDefaultWriter.js').install(window, ['Window']);
+require('../generated/WritableStreamDefaultController.js').install(window, ['Window']);

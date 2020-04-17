@@ -172,7 +172,7 @@ function waitForAll(promises, successSteps, failureSteps) {
 exports.waitForAllPromise = (promises, successSteps, failureSteps = undefined) => {
   let resolveP;
   let rejectP;
-  const promise = newPromise((resolve, reject) => {
+  const promise = new Promise((resolve, reject) => {
     resolveP = resolve;
     rejectP = reject;
   });
