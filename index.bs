@@ -4146,7 +4146,7 @@ the {{WritableStream}}'s public API.
 
 <h4 id="ws-writer-abstract-ops">Writers</h4>
 
-The following abstract operations support the implementation and manipualtion of
+The following abstract operations support the implementation and manipulation of
 {{WritableStreamDefaultWriter}} instances.
 
 <div algorithm>
