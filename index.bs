@@ -2138,7 +2138,7 @@ the {{ReadableStream}}'s public API.
 
   The underlying issue here is that reading from streams always uses promises for <code>{ value,
   done }</code> objects, even in specifications. Although it is conceivable we could rephrase all
-  of the internal algorithms to not use promises and note use JavaScript objects, and instead only
+  of the internal algorithms to not use promises and not use JavaScript objects, and instead only
   package up the results into promise-for-<code>{ value, done }</code> when a <code>read()</code>
   method is called, this would be a large undertaking, which we have not done. See
   <a href="https://github.com/whatwg/infra/issues/181">whatwg/infra#181</a> for more background on
@@ -2317,7 +2317,7 @@ The following abstract operations support the implementation and manipulation of
  performs the following steps:
 
  1. If ! [$IsReadableStreamLocked$](|stream|) is true, throw a {{TypeError}} exception.
- 1. If ! |stream|.\[[readableStreamController]] does not [=implement=]
+ 1. If |stream|.\[[readableStreamController]] does not [=implement=]
     {{ReadableByteStreamController}}, throw a {{TypeError}} exception.
  1. Perform ! [$ReadableStreamReaderGenericInitialize$](|reader|, |stream|).
  1. Set |reader|.\[[readIntoRequests]] to a new empty [=list=].
@@ -3328,7 +3328,7 @@ callback UnderlyingSinkAbortCallback = Promise<void> (optional any reason);
    will error the stream, instead of letting it close successfully. Throwing an exception is
    treated the same as returning a rejected promise.
 
-  <dt><dfn dict-member for="UnderlyingSink" lt="abort">close(<var ignore>reason</var>)</dfn></dt>
+  <dt><dfn dict-member for="UnderlyingSink" lt="abort">abort(<var ignore>reason</var>)</dfn></dt>
   <dd>
    <p>A function that is called after the [=producer=] signals, via
    {{WritableStream/abort()|stream.abort()}} or
@@ -3415,7 +3415,7 @@ as seen for example in [[#example-ws-no-backpressure]].
  |strategy|)</dfn> constructor steps are:
 
  1. If |underlyingSink| is missing, set it to null.
- 1. Let |underlyingSinkDict| be |underlyingSinkDict|, [=converted to an IDL value=] of type
+ 1. Let |underlyingSinkDict| be |underlyingSink|, [=converted to an IDL value=] of type
     {{UnderlyingSink}}.
     <p class="note">We cannot declare the |underlyingSink| argument as having the {{UnderlyingSink}}
     type directly, because doing so would lose the reference to the original object. We need to
