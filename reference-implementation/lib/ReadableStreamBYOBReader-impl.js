@@ -24,6 +24,13 @@ exports.implementation = class ReadableStreamBYOBReaderImpl {
     if (view.byteLength === 0) {
       return promiseRejectedWith(new TypeError('view must have non-zero byteLength'));
     }
+    if (view.buffer.byteLength === 0) {
+      return promiseRejectedWith(new TypeError('view\'s buffer must have non-zero byteLength'));
+    }
+
+    if (this._ownerReadableStream === undefined) {
+      return promiseRejectedWith(readerLockException('cancel'));
+    }
 
     return aos.ReadableStreamBYOBReaderRead(this, view);
   }

@@ -44,6 +44,13 @@ exports.implementation = class ReadableByteStreamControllerImpl {
   }
 
   enqueue(chunk) {
+    if (chunk.byteLength === 0) {
+      throw new TypeError('chunk must have non-zero byteLength');
+    }
+    if (chunk.buffer.byteLength === 0) {
+      throw new TypeError('chunk\'s buffer must have non-zero byteLength');
+    }
+
     if (this._closeRequested === true) {
       throw new TypeError('stream is closed or draining');
     }
@@ -51,14 +58,6 @@ exports.implementation = class ReadableByteStreamControllerImpl {
     const state = this._controlledReadableStream._state;
     if (state !== 'readable') {
       throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be enqueued to`);
-    }
-
-    if (!ArrayBuffer.isView(chunk)) {
-      throw new TypeError('You can only enqueue array buffer views when using a ReadableByteStreamController');
-    }
-
-    if (IsDetachedBuffer(chunk.buffer) === true) {
-      throw new TypeError('Cannot enqueue a view onto a detached ArrayBuffer');
     }
 
     aos.ReadableByteStreamControllerEnqueue(this, chunk);

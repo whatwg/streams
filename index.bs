@@ -541,7 +541,7 @@ callback UnderlyingSourceStartCallback = any (ReadableStreamController controlle
 callback UnderlyingSourcePullCallback = Promise<void> (ReadableStreamController controller);
 callback UnderlyingSourceCancelCallback = Promise<void> (optional any reason);
 
- enum ReadableStreamType { "bytes" };
+enum ReadableStreamType { "bytes" };
 </xmp>
 
 <dl>
@@ -1162,9 +1162,11 @@ following table:
  The <dfn id="byob-reader-read" method for="ReadableStreamBYOBReader">read(|view|)</dfn>
  method steps are:
 
+ 1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
+ 1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, return [=a promise rejected
+    with=] a {{TypeError}} exception.
  1. If [=this=].\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
     {{TypeError}} exception.
- 1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
  1. Return ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|).
 </div>
 
@@ -1521,6 +1523,9 @@ following table:
  The <dfn id="rbs-controller-enqueue" method
 for="ReadableByteStreamController">enqueue(|chunk|)</dfn> method steps are:
 
+ 1. If |chunk|.\[[ByteLength]] is 0, throw a {{TypeError}} exception.
+ 1. If |chunk|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, throw a {{TypeError}}
+    exception.
  1. If [=this=].\[[closeRequested]] is true, throw a {{TypeError}} exception.
  1. If [=this=].\[[controlledReadableStream]].\[[state]] is not "`readable`", throw a {{TypeError}}
     exception.
@@ -1663,6 +1668,8 @@ following table:
  1. If [=this=].\[[controller]] is undefined, throw a {{TypeError}} exception.
  1. If [$IsDetachedBuffer$]([=this=].\[[view]].\[[ArrayBuffer]]) is true, throw a {{TypeError}}
     exception.
+ 1. Assert: [=this=].\[[view]].\[[ByteLength]] &gt; 0.
+ 1. Assert: [=this=].\[[view]].\[[ViewedArrayBuffer]].\[[ByeLength]] &gt; 0.
  1. Perform ? [$ReadableByteStreamControllerRespond$]([=this=].\[[controller]], |bytesWritten|).
 </div>
 
@@ -1670,6 +1677,9 @@ following table:
  The <dfn id="rs-byob-request-respond-with-new-view" method
  for="ReadableStreamBYOBRequest">respondWithNewView(|view|)</dfn> method steps are:
 
+ 1. If |view|.\[[ByteLength]] is 0, throw a {{TypeError}} exception.
+ 1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, throw a {{TypeError}}
+    exception.
  1. If [=this=].\[[controller]] is undefined, throw a {{TypeError}} exception.
  1. Return ? [$ReadableByteStreamControllerRespondWithNewView$]([=this=].\[[controller]], |view|).
 </div>
