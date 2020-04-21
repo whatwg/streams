@@ -1369,7 +1369,7 @@ The Web IDL definition for the {{ReadableByteStreamController}} class is given a
 <xmp class="idl">
 [Exposed=(Window,Worker,Worklet)]
 interface ReadableByteStreamController {
-  readonly attribute ReadableStreamBYOBRequest byobRequest;
+  readonly attribute ReadableStreamBYOBRequest? byobRequest;
   readonly attribute unrestricted double? desiredSize;
 
   void close();
@@ -1397,7 +1397,7 @@ following table:
   <tr>
    <td>\[[byobRequest]]
    <td class="non-normative">A {{ReadableStreamBYOBRequest}} instance representing the current BYOB
-   pull request, or undefined if there are no pending requests
+   pull request, or null if there are no pending requests
   <tr>
    <td>\[[cancelAlgorithm]]
    <td class="non-normative">A promise-returning algorithm, taking one argument (the cancel reason),
@@ -1459,7 +1459,7 @@ following table:
 <dl class="domintro non-normative">
  <dt><code><var ignore>byobRequest</var> = <var ignore>controller</var>.{{ReadableByteStreamController/byobRequest}}</code>
  <dd>
-  <p>Returns the current BYOB pull request.
+  <p>Returns the current BYOB pull request, or null if there isn't one.
 
  <dt><code><var ignore>desiredSize</var> = <var ignore>controller</var>.{{ReadableByteStreamController/desiredSize}}</code>
  <dd>
@@ -1489,7 +1489,7 @@ following table:
  The <dfn id="rbs-controller-byob-request" attribute
  for="ReadableByteStreamController">byobRequest</dfn> attribute's getter steps are:
 
- 1. If [=this=].\[[byobRequest]] is undefined and [=this=].\[[pendingPullIntos]] is not [=list/is
+ 1. If [=this=].\[[byobRequest]] is null and [=this=].\[[pendingPullIntos]] is not [=list/is
     empty|empty=],
   1. Let |firstDescriptor| be [=this=].\[[pendingPullIntos]][0].
   1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |firstDescriptor|.\[[buffer]],
@@ -2796,10 +2796,10 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-invalidate-byob-request">ReadableByteStreamControllerInvalidateBYOBRequest(|controller|)</dfn>
  performs the following steps:
 
- 1. If |controller|.\[[byobRequest]] is undefined, return.
+ 1. If |controller|.\[[byobRequest]] is null, return.
  1. Set |controller|.\[[byobRequest]].\[[controller]] to undefined.
  1. Set |controller|.\[[byobRequest]].\[[view]] to undefined.
- 1. Set |controller|.\[[byobRequest]] to undefined.
+ 1. Set |controller|.\[[byobRequest]] to null.
 </div>
 
 <div algorithm>
@@ -2991,7 +2991,7 @@ The following abstract operations support the implementation of the
   1. Assert: |autoAllocateChunkSize| is positive.
  1. Set |controller|.\[[controlledReadableStream]] to |stream|.
  1. Set |controller|.\[[pullAgain]] and |controller|.\[[pulling]] to false.
- 1. Set |controller|.\[[byobRequest]] to undefined.
+ 1. Set |controller|.\[[byobRequest]] to null.
  1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.\[[closeRequested]] and |controller|.\[[started]] to false.
  1. Set |controller|.\[[strategyHWM]] to |highWaterMark|.

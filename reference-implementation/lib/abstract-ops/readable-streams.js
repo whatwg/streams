@@ -1128,13 +1128,13 @@ function ReadableByteStreamControllerHandleQueueDrain(controller) {
 }
 
 function ReadableByteStreamControllerInvalidateBYOBRequest(controller) {
-  if (controller._byobRequest === undefined) {
+  if (controller._byobRequest === null) {
     return;
   }
 
   controller._byobRequest._controller = undefined;
   controller._byobRequest._view = undefined;
-  controller._byobRequest = undefined;
+  controller._byobRequest = null;
 }
 
 function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller) {
@@ -1356,7 +1356,7 @@ function SetUpReadableByteStreamController(stream, controller, startAlgorithm, p
   controller._pullAgain = false;
   controller._pulling = false;
 
-  controller._byobRequest = undefined;
+  controller._byobRequest = null;
 
   // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
   controller._queue = controller._queueTotalSize = undefined;

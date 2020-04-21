@@ -11,7 +11,7 @@ const ReadableStreamBYOBRequestImpl = require('./ReadableStreamBYOBRequest-impl.
 
 exports.implementation = class ReadableByteStreamControllerImpl {
   get byobRequest() {
-    if (this._byobRequest === undefined && this._pendingPullIntos.length > 0) {
+    if (this._byobRequest === null && this._pendingPullIntos.length > 0) {
       const firstDescriptor = this._pendingPullIntos[0];
       const view = new Uint8Array(firstDescriptor.buffer,
                                   firstDescriptor.byteOffset + firstDescriptor.bytesFilled,
