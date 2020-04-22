@@ -2,30 +2,8 @@
 const utils = require('../../generated/utils.js');
 const { rethrowAssertionErrorRejection } = require('./miscellaneous.js');
 
-// https://heycam.github.io/webidl/#new
-// https://github.com/jsdom/webidl2js/issues/193
-exports.webidlNew = (globalObject, typeName, implModule) => {
-  if (globalObject[utils.ctorRegistrySymbol] === undefined) {
-    throw new Error('Internal error: invalid global object');
-  }
-
-  const ctor = globalObject[utils.ctorRegistrySymbol][typeName];
-  if (ctor === undefined) {
-    throw new Error(`Internal error: constructor ${typeName} is not installed on the passed global object`);
-  }
-
-  const obj = Object.create(ctor.prototype);
-  Object.defineProperty(obj, utils.implSymbol, {
-    value: Object.create(implModule.implementation.prototype),
-    configurable: true
-  });
-  obj[utils.implSymbol][utils.wrapperSymbol] = obj;
-  return obj[utils.implSymbol];
-};
-
 const originalPromise = Promise;
 const originalPromiseThen = Promise.prototype.then;
-const originalPromiseResolve = Promise.resolve;
 const originalPromiseReject = Promise.reject;
 
 const promiseSideTable = new WeakMap();

@@ -1,13 +1,12 @@
 'use strict';
 const assert = require('assert');
 
-const { webidlNew, promiseResolvedWith, promiseRejectedWith } = require('./helpers/webidl.js');
-const { IsDetachedBuffer } = require('./abstract-ops/ecmascript.js');
+const { promiseResolvedWith, promiseRejectedWith } = require('./helpers/webidl.js');
 const { CancelSteps, PullSteps } = require('./abstract-ops/internal-methods.js');
 const { ResetQueue } = require('./abstract-ops/queue-with-sizes.js');
 const aos = require('./abstract-ops/readable-streams.js');
 
-const ReadableStreamBYOBRequestImpl = require('./ReadableStreamBYOBRequest-impl.js');
+const ReadableStreamBYOBRequest = require('../generated/ReadableStreamBYOBRequest.js');
 
 exports.implementation = class ReadableByteStreamControllerImpl {
   get byobRequest() {
@@ -17,7 +16,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
                                   firstDescriptor.byteOffset + firstDescriptor.bytesFilled,
                                   firstDescriptor.byteLength - firstDescriptor.bytesFilled);
 
-      const byobRequest = webidlNew(globalThis, 'ReadableStreamBYOBRequest', ReadableStreamBYOBRequestImpl);
+      const byobRequest = ReadableStreamBYOBRequest.new(globalThis);
       byobRequest._controller = this;
       byobRequest._view = view;
       this._byobRequest = byobRequest;

@@ -59,10 +59,10 @@ exports.implementation = class ReadableStreamImpl {
   }
 
   pipeThrough(transform, options) {
-    // Conversion here is needed until https://github.com/jsdom/webidl2js/issues/81 is fixed.
+    // Type checking here is needed until https://github.com/jsdom/webidl2js/issues/81 is fixed.
     if ('signal' in options) {
       if (!isAbortSignal(options.signal)) {
-        return promiseRejectedWith(new TypeError('Invalid signal argument'));
+        throw new TypeError('Invalid signal argument');
       }
     }
 
@@ -83,7 +83,7 @@ exports.implementation = class ReadableStreamImpl {
   }
 
   pipeTo(destination, options) {
-    // Conversion here is needed until https://github.com/jsdom/webidl2js/issues/81 is fixed.
+    // Type checking here is needed until https://github.com/jsdom/webidl2js/issues/81 is fixed.
     if ('signal' in options) {
       if (!isAbortSignal(options.signal)) {
         return promiseRejectedWith(new TypeError('Invalid signal argument'));

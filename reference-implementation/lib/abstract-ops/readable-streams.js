@@ -1,8 +1,8 @@
 'use strict';
 const assert = require('assert');
 
-const { webidlNew, promiseInvoke, invoke, promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise,
-        rejectPromise, uponPromise, setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment,
+const { promiseInvoke, invoke, promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise,
+        uponPromise, setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment,
         uponRejection } = require('../helpers/webidl.js');
 const { typeIsObject } = require('../helpers/miscellaneous.js');
 const { CopyDataBlockBytes, CreateArrayFromList, TransferArrayBuffer } = require('./ecmascript.js');
@@ -13,12 +13,12 @@ const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStre
         WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight } = require('./writable-streams.js');
 const { CancelSteps, PullSteps } = require('./internal-methods.js');
 
-const ReadableByteStreamControllerImpl = require('../ReadableByteStreamController-impl.js');
-const ReadableStreamBYOBReaderImpl = require('../ReadableStreamBYOBReader-impl.js');
-const ReadableStreamDefaultReaderImpl = require('../ReadableStreamDefaultReader-impl.js');
-const ReadableStreamDefaultControllerImpl = require('../ReadableStreamDefaultController-impl.js');
-const ReadableStreamImpl = require('../ReadableStream-impl.js');
-const WritableStreamImpl = require('../WritableStream-impl.js');
+const ReadableByteStreamController = require('../../generated/ReadableByteStreamController.js');
+const ReadableStreamBYOBReader = require('../../generated/ReadableStreamBYOBReader.js');
+const ReadableStreamDefaultReader = require('../../generated/ReadableStreamDefaultReader.js');
+const ReadableStreamDefaultController = require('../../generated/ReadableStreamDefaultController.js');
+const ReadableStream = require('../../generated/ReadableStream.js');
+const WritableStream = require('../../generated/WritableStream.js');
 
 Object.assign(exports, {
   AcquireReadableStreamBYOBReader,
@@ -64,14 +64,14 @@ Object.assign(exports, {
 // Working with readable streams
 
 function AcquireReadableStreamBYOBReader(stream, forAuthorCode = false) {
-  const reader = webidlNew(globalThis, 'ReadableStreamBYOBReader', ReadableStreamBYOBReaderImpl);
+  const reader = ReadableStreamBYOBReader.new(globalThis);
   SetUpReadableStreamBYOBReader(reader, stream);
   reader._forAuthorCode = forAuthorCode;
   return reader;
 }
 
 function AcquireReadableStreamDefaultReader(stream, forAuthorCode = false) {
-  const reader = webidlNew(globalThis, 'ReadableStreamDefaultReader', ReadableStreamDefaultReaderImpl);
+  const reader = ReadableStreamDefaultReader.new(globalThis);
   SetUpReadableStreamDefaultReader(reader, stream);
   reader._forAuthorCode = forAuthorCode;
   return reader;
@@ -81,10 +81,10 @@ function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, hi
                               sizeAlgorithm = () => 1) {
   assert(IsNonNegativeNumber(highWaterMark) === true);
 
-  const stream = webidlNew(globalThis, 'ReadableStream', ReadableStreamImpl);
+  const stream = ReadableStream.new(globalThis);
   InitializeReadableStream(stream);
 
-  const controller = webidlNew(globalThis, 'ReadableStreamDefaultController', ReadableStreamDefaultControllerImpl);
+  const controller = ReadableStreamDefaultController.new(globalThis);
   SetUpReadableStreamDefaultController(
     stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
   );
@@ -112,8 +112,8 @@ function IsReadableStreamLocked(stream) {
 }
 
 function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventCancel, signal) {
-  assert(source instanceof ReadableStreamImpl.implementation);
-  assert(dest instanceof WritableStreamImpl.implementation);
+  assert(ReadableStream.isImpl(source));
+  assert(WritableStream.isImpl(dest));
   assert(typeof preventClose === 'boolean');
   assert(typeof preventAbort === 'boolean');
   assert(typeof preventCancel === 'boolean');
@@ -315,7 +315,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
 }
 
 function ReadableStreamTee(stream, cloneForBranch2) {
-  assert(stream instanceof ReadableStreamImpl.implementation);
+  assert(ReadableStream.isImpl(stream));
   assert(typeof cloneForBranch2 === 'boolean');
 
   const reader = AcquireReadableStreamDefaultReader(stream);
@@ -419,7 +419,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 // Interfacing with controllers
 
 function ReadableStreamAddReadIntoRequest(stream) {
-  assert(stream._reader instanceof ReadableStreamBYOBReaderImpl.implementation);
+  assert(ReadableStreamBYOBReader.isImpl(stream._reader));
   assert(stream._state === 'readable' || stream._state === 'closed');
 
   const promise = newPromise();
@@ -428,7 +428,7 @@ function ReadableStreamAddReadIntoRequest(stream) {
 }
 
 function ReadableStreamAddReadRequest(stream) {
-  assert(stream._reader instanceof ReadableStreamDefaultReaderImpl.implementation);
+  assert(ReadableStreamDefaultReader.isImpl(stream._reader));
   assert(stream._state === 'readable');
 
   const promise = newPromise();
@@ -463,7 +463,7 @@ function ReadableStreamClose(stream) {
     return;
   }
 
-  if (reader instanceof ReadableStreamDefaultReaderImpl.implementation) {
+  if (ReadableStreamDefaultReader.isImpl(reader)) {
     for (const readRequest of reader._readRequests) {
       resolvePromise(readRequest, ReadableStreamCreateReadResult(undefined, true, reader._forAuthorCode));
     }
@@ -497,14 +497,14 @@ function ReadableStreamError(stream, e) {
     return;
   }
 
-  if (reader instanceof ReadableStreamDefaultReaderImpl.implementation) {
+  if (ReadableStreamDefaultReader.isImpl(reader)) {
     for (const readRequest of reader._readRequests) {
       rejectPromise(readRequest, e);
     }
 
     reader._readRequests = [];
   } else {
-    assert(reader instanceof ReadableStreamBYOBReaderImpl.implementation);
+    assert(ReadableStreamBYOBReader.isImpl(reader));
 
     for (const readIntoRequest of reader._readIntoRequests) {
       rejectPromise(readIntoRequest, e);
@@ -550,7 +550,7 @@ function ReadableStreamHasBYOBReader(stream) {
     return false;
   }
 
-  if (reader instanceof ReadableStreamBYOBReaderImpl.implementation) {
+  if (ReadableStreamBYOBReader.isImpl(reader)) {
     return true;
   }
 
@@ -564,7 +564,7 @@ function ReadableStreamHasDefaultReader(stream) {
     return false;
   }
 
-  if (reader instanceof ReadableStreamDefaultReaderImpl.implementation) {
+  if (ReadableStreamDefaultReader.isImpl(reader)) {
     return true;
   }
 
@@ -655,7 +655,7 @@ function SetUpReadableStreamBYOBReader(reader, stream) {
     throw new TypeError('This stream has already been locked for exclusive reading by another reader');
   }
 
-  if (!(stream._readableStreamController instanceof ReadableByteStreamControllerImpl.implementation)) {
+  if (!ReadableByteStreamController.isImpl(stream._readableStreamController)) {
     throw new TypeError('Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte source');
   }
 
@@ -872,7 +872,7 @@ function SetUpReadableStreamDefaultControllerFromUnderlyingSource(
   stream, underlyingSource, underlyingSourceDict, highWaterMark, sizeAlgorithm) {
   assert(underlyingSource !== undefined);
 
-  const controller = webidlNew(globalThis, 'ReadableStreamDefaultController', ReadableStreamDefaultControllerImpl);
+  const controller = ReadableStreamDefaultController.new(globalThis);
 
   let startAlgorithm = () => undefined;
   let pullAlgorithm = () => promiseResolvedWith(undefined);
@@ -1395,7 +1395,7 @@ function SetUpReadableByteStreamController(stream, controller, startAlgorithm, p
 
 function SetUpReadableByteStreamControllerFromUnderlyingSource(
   stream, underlyingSource, underlyingSourceDict, highWaterMark) {
-  const controller = webidlNew(globalThis, 'ReadableByteStreamController', ReadableByteStreamControllerImpl);
+  const controller = ReadableByteStreamController.new(globalThis);
 
   let startAlgorithm = () => undefined;
   let pullAlgorithm = () => promiseResolvedWith(undefined);

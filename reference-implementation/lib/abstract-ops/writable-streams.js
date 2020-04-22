@@ -2,15 +2,15 @@
 const assert = require('assert');
 const verbose = require('debug')('streams:writable-stream:verbose');
 
-const { webidlNew, promiseInvoke, invoke, promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise,
-        rejectPromise, uponPromise, setPromiseIsHandledToTrue, stateIsPending } = require('../helpers/webidl.js');
+const { promiseInvoke, invoke, promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise,
+        uponPromise, setPromiseIsHandledToTrue, stateIsPending } = require('../helpers/webidl.js');
 const { IsNonNegativeNumber } = require('./miscellaneous.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 const { AbortSteps, ErrorSteps } = require('./internal-methods.js');
 
-const WritableStreamImpl = require('../WritableStream-impl.js');
-const WritableStreamDefaultControllerImpl = require('../WritableStreamDefaultController-impl.js');
-const WritableStreamDefaultWriterImpl = require('../WritableStreamDefaultWriter-impl.js');
+const WritableStream = require('../../generated/WritableStream.js');
+const WritableStreamDefaultController = require('../../generated/WritableStreamDefaultController.js');
+const WritableStreamDefaultWriter = require('../../generated/WritableStreamDefaultWriter.js');
 
 Object.assign(exports, {
   AcquireWritableStreamDefaultWriter,
@@ -36,7 +36,7 @@ Object.assign(exports, {
 // Working with writable streams
 
 function AcquireWritableStreamDefaultWriter(stream) {
-  const writer = webidlNew(globalThis, 'WritableStreamDefaultWriter', WritableStreamDefaultWriterImpl);
+  const writer = WritableStreamDefaultWriter.new(globalThis);
   SetUpWritableStreamDefaultWriter(writer, stream);
   return writer;
 }
@@ -45,10 +45,10 @@ function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, ab
                               sizeAlgorithm = () => 1) {
   assert(IsNonNegativeNumber(highWaterMark) === true);
 
-  const stream = webidlNew(globalThis, 'WritableStream', WritableStreamImpl);
+  const stream = WritableStream.new(globalThis);
   InitializeWritableStream(stream);
 
-  const controller = webidlNew(globalThis, 'WritableStreamDefaultController', WritableStreamDefaultControllerImpl);
+  const controller = WritableStreamDefaultController.new(globalThis);
 
   SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
                                        abortAlgorithm, highWaterMark, sizeAlgorithm);
@@ -92,7 +92,7 @@ function InitializeWritableStream(stream) {
 }
 
 function IsWritableStreamLocked(stream) {
-  assert(stream instanceof WritableStreamImpl.implementation);
+  assert(WritableStream.isImpl(stream));
 
   if (stream._writer === undefined) {
     return false;
@@ -524,7 +524,7 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
 
 function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
                                               abortAlgorithm, highWaterMark, sizeAlgorithm) {
-  assert(stream instanceof WritableStreamImpl.implementation);
+  assert(WritableStream.isImpl(stream));
   assert(stream._writableStreamController === undefined);
 
   controller._controlledWritableStream = stream;
@@ -568,7 +568,7 @@ function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyi
                                                                 highWaterMark, sizeAlgorithm) {
   assert(underlyingSink !== undefined);
 
-  const controller = webidlNew(globalThis, 'WritableStreamDefaultController', WritableStreamDefaultControllerImpl);
+  const controller = WritableStreamDefaultController.new(globalThis);
 
   let startAlgorithm = () => undefined;
   let writeAlgorithm = () => promiseResolvedWith(undefined);

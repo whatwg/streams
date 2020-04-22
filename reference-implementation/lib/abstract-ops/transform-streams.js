@@ -2,15 +2,15 @@
 const assert = require('assert');
 const verbose = require('debug')('streams:transform-stream:verbose');
 
-const { webidlNew, promiseInvoke, promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise,
-        transformPromiseWith } = require('../helpers/webidl.js');
+const { promiseInvoke, promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, transformPromiseWith } =
+  require('../helpers/webidl.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerHasBackpressure,
         ReadableStreamDefaultControllerCanCloseOrEnqueue } = require('./readable-streams.js');
 const { CreateWritableStream, WritableStreamDefaultControllerErrorIfNeeded } = require('./writable-streams.js');
 
-const TransformStreamImpl = require('../TransformStream-impl.js');
-const TransformStreamDefaultControllerImpl = require('../TransformStreamDefaultController-impl.js');
+const TransformStream = require('../generated/TransformStream.js');
+const TransformStreamDefaultController = require('../../generated/TransformStreamDefaultController.js');
 
 Object.assign(exports, {
   InitializeTransformStream,
@@ -103,7 +103,7 @@ function TransformStreamSetBackpressure(stream, backpressure) {
 // Default controllers
 
 function SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm) {
-  assert(stream instanceof TransformStreamImpl.implementation);
+  assert(TransformStream.isImpl(stream));
   assert(stream._transformStreamController === undefined);
 
   controller._controlledTransformStream = stream;
@@ -116,7 +116,7 @@ function SetUpTransformStreamDefaultController(stream, controller, transformAlgo
 function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer, transformerDict) {
   assert(transformer !== undefined);
 
-  const controller = webidlNew(globalThis, 'TransformStreamDefaultController', TransformStreamDefaultControllerImpl);
+  const controller = TransformStreamDefaultController.new(globalThis);
 
   let transformAlgorithm = chunk => {
     try {

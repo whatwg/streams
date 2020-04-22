@@ -29,7 +29,7 @@ exports.implementation = class ReadableStreamBYOBReaderImpl {
     }
 
     if (this._ownerReadableStream === undefined) {
-      return promiseRejectedWith(readerLockException('cancel'));
+      return promiseRejectedWith(readerLockException('read'));
     }
 
     return aos.ReadableStreamBYOBReaderRead(this, view);
