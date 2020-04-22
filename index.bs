@@ -75,7 +75,7 @@ data, embodied in [=readable streams=], [=writable streams=], and [=transform st
 
 These APIs have been designed to efficiently map to low-level I/O primitives, including
 specializations for byte streams where appropriate. They allow easy composition of multiple streams
-into [=pipe chains=], or can be used directly via [=readers=] and [=writers=]. Finally, they are
+into [=pipe chains=], or can be used directly via [=/readers=] and [=writers=]. Finally, they are
 designed to automatically provide [=backpressure=] and queuing.
 
 This standard provides the base stream primitives which other parts of the web platform can use to
@@ -382,7 +382,7 @@ values.
 
 <div class="example" id="example-manual-read">
  Although readable streams will usually be used by piping them to a writable stream, you can also
- read them directly by acquiring a [=reader=] and using its <code>read()</code> method to get
+ read them directly by acquiring a [=/reader=] and using its <code>read()</code> method to get
  successive chunks. For example, this code logs the next [=chunk=] in the stream, if available:
 
  <xmp highlight="js">
@@ -463,7 +463,7 @@ interface ReadableStream {
   Promise<void> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
   sequence<ReadableStream> tee();
 
-  // TODO: async iterator
+  async iterable<any>(optional ReadableStreamIteratorOptions options = {});
 };
 
 typedef (ReadableStreamDefaultReader or ReadableStreamBYOBReader) ReadableStreamReader;
@@ -472,6 +472,10 @@ enum ReadableStreamReaderMode { "byob" };
 
 dictionary ReadableStreamGetReaderOptions {
   ReadableStreamReaderMode mode;
+};
+
+dictionary ReadableStreamIteratorOptions {
+  boolean preventCancel = false;
 };
 
 dictionary ReadableWritablePair {
@@ -892,7 +896,70 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
  </div>
 </div>
 
-<!-- TODO async iterator stuff -->
+<h4 id="rs-asynciterator" oldids="rs-asynciterator-prototype,
+default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h4>
+
+<dl class="domintro">
+ <dt><code>for await (const <var ignore>chunk</var> of <var ignore>stream</var>) { ... }</code>
+ <dt><code>for await (const <var ignore>chunk</var> of <var ignore>stream</var>.values([{ {{ReadableStreamIteratorOptions/preventCancel}} }])) { ... }</code>
+ <dd>
+  <p>Asynchronously iterates over the [=chunks=] in the stream's internal queue.
+
+  <p>Asynchronously iterating over the stream will [=locked to a reader|lock=] it, preventing any
+  other consumer from acquiring a reader. The lock will be released if the async iterator's
+  `return()` method is called.
+
+  <p>By default, calling the async iterator's `return()` method will also [=cancel a readable
+  stream|cancel=] the stream. To prevent this, set {{ReadableStreamIteratorOptions/preventCancel}}
+  to true.
+ </dd>
+</dl>
+
+<div algorithm="ReadableStream asynchronous iterator initialization steps" id="rs-get-iterator">
+ The [=asynchronous iterator initialization steps=] for a {{ReadableStream}}, given |stream|,
+ |iterator|, and |args|, are:
+
+ 1. Let |reader| be ? [$AcquireReadableStreamDefaultReader$](|stream|).
+ 1. Set |iterator|'s <dfn for="ReadableStream async iterator">reader</dfn> to |reader|.
+ 1. Let |preventCancel| be |args|[0]["{{ReadableStreamIteratorOptions/preventCancel}}"].
+ 1. Set |iterator|'s <dfn for="ReadableStream async iterator">prevent cancel</dfn> to
+    |preventCancel|.
+</div>
+
+<div algorithm="ReadableStream get the next iteration result" id="rs-asynciterator-prototype-next">
+ The [=get the next iteration result=] steps for a {{ReadableStream}}, given <var
+ ignore>stream</var> and |iterator|, are:
+
+ 1. Let |reader| be |iterator|'s [=ReadableStream async iterator/reader=].
+ 1. If |reader|.\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
+    {{TypeError}}.
+ 1. Return the result of [=reacting=] to ! [$ReadableStreamDefaultReaderRead$](|reader|) with the
+    following fulfillment steps given the argument |result|:
+  1. Assert: [$Type$](|result|) is Object.
+  1. Let |done| be ! [$Get$](|result|, "`done`").
+  1. Assert: [$Type$](|done|) is Boolean.
+  1. If |done| is true, perform [$ReadableStreamReaderGenericRelease$](|reader|).
+  1. Let |value| be ! [$Get$](|result|, "`value`").
+  1. Return |value|.
+</div>
+
+<div algorithm="ReadableStream asynchronous iterator return" id="rs-asynciterator-prototype-return">
+ The [=asynchronous iterator return=] steps for a {{ReadableStream}}, given <var
+ ignore>stream</var>, |iterator|, and |arg|, are:
+
+ 1. Let |reader| be |iterator|'s [=ReadableStream async iterator/reader=].
+ 1. If |reader|.\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
+    {{TypeError}}.
+ 1. If |reader|.\[[readRequests]] is not [=list/is empty|empty=], return [=a promise rejected with=]
+    a {{TypeError}}.
+ 1. Let |preventCancel| be |iterator|'s [=ReadableStream async iterator/prevent cancel=].
+ 1. If |preventCancel| is false:
+  1. Let |result| be ! [$ReadableStreamReaderGenericCancel$](|reader|, |arg|).
+  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+  1. Return |result|.
+ 1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+ 1. Return [=a promise resolved with=] undefined.
+</div>
 
 <h3 id="default-reader-class">The {{ReadableStreamDefaultReader}} class</h3>
 
