@@ -1601,7 +1601,7 @@ The Web IDL definition for the {{ReadableStreamBYOBRequest}} class is given as f
 <xmp class="idl">
 [Exposed=(Window,Worker,Worklet)]
 interface ReadableStreamBYOBRequest {
-  readonly attribute ArrayBufferView view;
+  readonly attribute ArrayBufferView? view;
 
   void respond([EnforceRange] unsigned long long bytesWritten);
   void respondWithNewView(ArrayBufferView view);
@@ -1625,7 +1625,7 @@ following table:
  <tr>
   <td>\[[view]]
   <td class="non-normative">A [=typed array=] representing the destination region to which the
-  controller can write generated data
+  controller can write generated data, or null after the BYOB request has been invalidated.
 </table>
 
 <h4 id="rs-byob-request-prototype">Methods and properties</h4>
@@ -1633,7 +1633,7 @@ following table:
 <dl class="domintro non-normative">
  <dt><code><var ignore>view</var> = <var ignore>byobRequest</var>.{{ReadableStreamBYOBRequest/view}}</code>
  <dd>
-  <p>Returns the view for writing in to.
+  <p>Returns the view for writing in to, or null if the BYOB request has already been responded to.
 
  <dt><code><var ignore>byobRequest</var>.{{ReadableStreamBYOBRequest/respond()|respond}}(<var ignore>bytesWritten</var>)</code>
  <dd>
@@ -2798,7 +2798,7 @@ The following abstract operations support the implementation of the
 
  1. If |controller|.\[[byobRequest]] is null, return.
  1. Set |controller|.\[[byobRequest]].\[[controller]] to undefined.
- 1. Set |controller|.\[[byobRequest]].\[[view]] to undefined.
+ 1. Set |controller|.\[[byobRequest]].\[[view]] to null.
  1. Set |controller|.\[[byobRequest]] to null.
 </div>
 

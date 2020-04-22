@@ -1133,7 +1133,7 @@ function ReadableByteStreamControllerInvalidateBYOBRequest(controller) {
   }
 
   controller._byobRequest._controller = undefined;
-  controller._byobRequest._view = undefined;
+  controller._byobRequest._view = null;
   controller._byobRequest = null;
 }
 
