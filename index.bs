@@ -910,7 +910,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
   `return()` method is called, e.g. by `break`ing out of the loop.
 
   <p>By default, calling the async iterator's `return()` method will also [=cancel a readable
-  stream|cancel=] the stream. To prevent this, use the stream's `values()`method, passing true for
+  stream|cancel=] the stream. To prevent this, use the stream's `values()` method, passing true for
   the {{ReadableStreamIteratorOptions/preventCancel}} option.
  </dd>
 </dl>
