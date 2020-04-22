@@ -901,17 +901,17 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
 
 <dl class="domintro">
  <dt><code>for await (const <var ignore>chunk</var> of <var ignore>stream</var>) { ... }</code>
- <dt><code>for await (const <var ignore>chunk</var> of <var ignore>stream</var>.values([{ {{ReadableStreamIteratorOptions/preventCancel}} }])) { ... }</code>
+ <dt><code>for await (const <var ignore>chunk</var> of <var ignore>stream</var>.values({ {{ReadableStreamIteratorOptions/preventCancel}}: true })) { ... }</code>
  <dd>
   <p>Asynchronously iterates over the [=chunks=] in the stream's internal queue.
 
   <p>Asynchronously iterating over the stream will [=locked to a reader|lock=] it, preventing any
   other consumer from acquiring a reader. The lock will be released if the async iterator's
-  `return()` method is called.
+  `return()` method is called, e.g. by `break`ing out of the loop.
 
   <p>By default, calling the async iterator's `return()` method will also [=cancel a readable
-  stream|cancel=] the stream. To prevent this, set {{ReadableStreamIteratorOptions/preventCancel}}
-  to true.
+  stream|cancel=] the stream. To prevent this, use the stream's `values()`method, passing true for
+  the {{ReadableStreamIteratorOptions/preventCancel}} option.
  </dd>
 </dl>
 
