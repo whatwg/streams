@@ -664,28 +664,27 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
   {{TypeError}} (without attempting to cancel the stream) if the stream is currently [=locked to a
   reader|locked=].
 
- <dt><code><var ignore>reader</var> = <var ignore>stream</var>.{{ReadableStream/getReader(options)|getReader}}([{ {{ReadableStreamGetReaderOptions/mode}}: "{{ReadableStreamReaderMode/byob}}" }])</code>
+ <dt><code><var ignore>reader</var> = <var ignore>stream</var>.{{ReadableStream/getReader(options)|getReader}}()</code>
  <dd>
-  <p>Creates a reader of the type specified by the {{ReadableStreamGetReaderOptions/mode}} option
-  and [=locked to a reader|locks=] the stream to the new reader. While the stream is locked, no
-  other reader can be acquired until this one is [=release a read lock|released=].
+  <p>Creates a {{ReadableStreamDefaultReader}} and [=locked to a reader|locks=] the stream to the
+  new reader. While the stream is locked, no other reader can be acquired until this one is
+  [=release a read lock|released=].
 
   <p>This functionality is especially useful for creating abstractions that desire the ability to
   consume a stream in its entirety. By getting a reader for the stream, you can ensure nobody else
   can interleave reads with yours or cancel the stream, which would interfere with your
   abstraction.
 
-  <p>When {{ReadableStreamGetReaderOptions/mode}} is undefined or not provided, the method creates
-  a [=default reader=] (an instance of {{ReadableStreamDefaultReader}}). The reader provides the
-  ability to directly read individual [=chunks=] from the stream via the reader's
-  {{ReadableStreamDefaultReader/read()}} method.
+  <dt><code><var ignore>reader</var> = <var ignore>stream</var>.{{ReadableStream/getReader(options)|getReader}}({ {{ReadableStreamGetReaderOptions/mode}}: "{{ReadableStreamReaderMode/byob}}" })</code>
+  <dd>
+   <p>Creates a {{ReadableStreamBYOBReader}} and [=locked to a reader|locks=] the stream to the new
+   reader.
 
-  <p>When {{ReadableStreamGetReaderOptions/mode}} is "{{ReadableStreamReaderMode/byob}}", the
-  method creates a [=BYOB reader=] (an instance of {{ReadableStreamBYOBReader}}). This feature only
-  works on [=readable byte streams=], i.e. streams which were constructed specifically with the
-  ability to handle "bring your own buffer" reading. The reader provides the ability to directly
-  read individual [=chunks=] from the stream via the reader's {{ReadableStreamBYOBReader/read()}}
-  method, into developer-supplied buffers, allowing more precise control over allocation.
+   <p>This call behaves the same way as the no-argument variant, except that it only works on
+   [=readable byte streams=], i.e. streams which were constructed specifically with the ability to
+   handle "bring your own buffer" reading. The returned [=BYOB reader=] provides the ability to
+   directly read individual [=chunks=] from the stream via its {{ReadableStreamBYOBReader/read()}}
+   method, into developer-supplied buffers, allowing more precise control over allocation.
 
  <dt><code><var ignore>readable</var> = <var ignore>stream</var>.{{ReadableStream/pipeThrough(transform, options)|pipeThrough}}({ {{ReadableWritablePair/writable}}, {{ReadableWritablePair/readable}} }[, { {{StreamPipeOptions/preventClose}}, {{StreamPipeOptions/preventCancel}}, {{StreamPipeOptions/preventCancel}}, {{StreamPipeOptions/signal}} }])</code></dt>
  <dd>
