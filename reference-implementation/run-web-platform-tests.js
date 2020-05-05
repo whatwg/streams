@@ -41,8 +41,17 @@ async function main() {
       window.eval(bundledJS);
     },
     filter(testPath) {
-      return !workerTestPattern.test(testPath) && // ignore the worker versions
-              filterGlobs.some(glob => minimatch(testPath, glob));
+      // Ignore the worker versions
+      if (workerTestPattern.test(testPath)) {
+        return false;
+      }
+
+      // Ignore for now: wpt-runner doesn't handle the cross-folder dependencies well.
+      if (testPath === 'idlharness.any.html') {
+        return false;
+      }
+
+      return filterGlobs.some(glob => minimatch(testPath, glob));
     }
   });
 

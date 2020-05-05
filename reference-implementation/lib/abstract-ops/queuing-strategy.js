@@ -1,5 +1,4 @@
 'use strict';
-const { invoke } = require('../helpers/webidl.js');
 
 exports.ExtractHighWaterMark = (strategy, defaultHWM) => {
   if (!('highWaterMark' in strategy)) {
@@ -15,12 +14,12 @@ exports.ExtractHighWaterMark = (strategy, defaultHWM) => {
 };
 
 exports.ExtractSizeAlgorithm = strategy => {
-  if (!('size' in strategy)) {
+  const { size } = strategy;
+
+  if (!size) {
     return () => 1;
   }
 
-  return chunk => {
-    // TODO: manual number conversion won't be necessary when https://github.com/jsdom/webidl2js/pull/123 lands.
-    return Number(invoke(strategy.size, [chunk]));
-  };
+  // This is silly, but more obviously matches the spec (which distinguishes between algorithms and JS functions).
+  return chunk => size(chunk);
 };

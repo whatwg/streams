@@ -1,5 +1,4 @@
 'use strict';
-const utils = require('../../generated/utils.js');
 const { rethrowAssertionErrorRejection } = require('./miscellaneous.js');
 
 const originalPromise = Promise;
@@ -7,24 +6,6 @@ const originalPromiseThen = Promise.prototype.then;
 const originalPromiseReject = Promise.reject;
 
 const promiseSideTable = new WeakMap();
-
-// A specialization of https://heycam.github.io/webidl/#invoke-a-callback-function
-// Can be replaced when https://github.com/jsdom/webidl2js/pull/123 lands.
-exports.promiseInvoke = (func, args, thisArg) => {
-  args = args.map(utils.tryWrapperForImpl);
-  try {
-    return Promise.resolve(Reflect.apply(func, thisArg, args));
-  } catch (e) {
-    return Promise.reject(e);
-  }
-};
-
-// A specialization of https://heycam.github.io/webidl/#invoke-a-callback-function
-// Can be replaced when https://github.com/jsdom/webidl2js/pull/123 lands.
-exports.invoke = (func, args, thisArg) => {
-  args = args.map(utils.tryWrapperForImpl);
-  return Reflect.apply(func, thisArg, args);
-};
 
 // https://heycam.github.io/webidl/#a-new-promise
 function newPromise() {

@@ -2,8 +2,8 @@
 const assert = require('assert');
 const verbose = require('debug')('streams:writable-stream:verbose');
 
-const { promiseInvoke, invoke, promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise,
-        uponPromise, setPromiseIsHandledToTrue, stateIsPending } = require('../helpers/webidl.js');
+const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise, uponPromise,
+        setPromiseIsHandledToTrue, stateIsPending } = require('../helpers/webidl.js');
 const { IsNonNegativeNumber } = require('./miscellaneous.js');
 const { DequeueValue, EnqueueValueWithSize, PeekQueueValue, ResetQueue } = require('./queue-with-sizes.js');
 const { AbortSteps, ErrorSteps } = require('./internal-methods.js');
@@ -576,16 +576,16 @@ function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyi
   let abortAlgorithm = () => promiseResolvedWith(undefined);
 
   if ('start' in underlyingSinkDict) {
-    startAlgorithm = () => invoke(underlyingSinkDict.start, [controller], underlyingSink);
+    startAlgorithm = () => underlyingSinkDict.start.call(underlyingSink, controller);
   }
   if ('write' in underlyingSinkDict) {
-    writeAlgorithm = chunk => promiseInvoke(underlyingSinkDict.write, [chunk, controller], underlyingSink);
+    writeAlgorithm = chunk => underlyingSinkDict.write.call(underlyingSink, chunk, controller);
   }
   if ('close' in underlyingSinkDict) {
-    closeAlgorithm = () => promiseInvoke(underlyingSinkDict.close, [], underlyingSink);
+    closeAlgorithm = () => underlyingSinkDict.close.call(underlyingSink);
   }
   if ('abort' in underlyingSinkDict) {
-    abortAlgorithm = reason => promiseInvoke(underlyingSinkDict.abort, [reason], underlyingSink);
+    abortAlgorithm = reason => underlyingSinkDict.abort.call(underlyingSink, reason);
   }
 
   SetUpWritableStreamDefaultController(

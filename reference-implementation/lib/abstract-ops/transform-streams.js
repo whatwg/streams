@@ -2,7 +2,7 @@
 const assert = require('assert');
 const verbose = require('debug')('streams:transform-stream:verbose');
 
-const { promiseInvoke, promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, transformPromiseWith } =
+const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, transformPromiseWith } =
   require('../helpers/webidl.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerHasBackpressure,
@@ -130,10 +130,10 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
   let flushAlgorithm = () => promiseResolvedWith(undefined);
 
   if ('transform' in transformerDict) {
-    transformAlgorithm = chunk => promiseInvoke(transformerDict.transform, [chunk, controller], transformer);
+    transformAlgorithm = chunk => transformerDict.transform.call(transformer, chunk, controller);
   }
   if ('flush' in transformerDict) {
-    flushAlgorithm = () => promiseInvoke(transformerDict.flush, [controller], transformer);
+    flushAlgorithm = () => transformerDict.flush.call(transformer, controller);
   }
 
   SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm);

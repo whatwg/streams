@@ -1,6 +1,6 @@
 'use strict';
 
-const { newPromise, resolvePromise, invoke } = require('./helpers/webidl.js');
+const { newPromise, resolvePromise } = require('./helpers/webidl.js');
 const { ExtractHighWaterMark, ExtractSizeAlgorithm } = require('./abstract-ops/queuing-strategy.js');
 const aos = require('./abstract-ops/transform-streams.js');
 
@@ -32,7 +32,7 @@ exports.implementation = class TransformStreamImpl {
     aos.SetUpTransformStreamDefaultControllerFromTransformer(this, transformer, transformerDict);
 
     if ('start' in transformerDict) {
-      resolvePromise(startPromise, invoke(transformerDict.start, [this._transformStreamController], transformer));
+      resolvePromise(startPromise, transformerDict.start.call(transformer, this._transformStreamController));
     } else {
       resolvePromise(startPromise, undefined);
     }

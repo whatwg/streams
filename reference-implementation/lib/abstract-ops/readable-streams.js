@@ -1,9 +1,9 @@
 'use strict';
 const assert = require('assert');
 
-const { promiseInvoke, invoke, promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise,
-        uponPromise, setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment,
-        uponRejection } = require('../helpers/webidl.js');
+const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise, uponPromise,
+        setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment, uponRejection } =
+  require('../helpers/webidl.js');
 const { typeIsObject } = require('../helpers/miscellaneous.js');
 const { CopyDataBlockBytes, CreateArrayFromList, TransferArrayBuffer } = require('./ecmascript.js');
 const { IsNonNegativeNumber } = require('./miscellaneous.js');
@@ -879,13 +879,13 @@ function SetUpReadableStreamDefaultControllerFromUnderlyingSource(
   let cancelAlgorithm = () => promiseResolvedWith(undefined);
 
   if ('start' in underlyingSourceDict) {
-    startAlgorithm = () => invoke(underlyingSourceDict.start, [controller], underlyingSource);
+    startAlgorithm = () => underlyingSourceDict.start.call(underlyingSource, controller);
   }
   if ('pull' in underlyingSourceDict) {
-    pullAlgorithm = () => promiseInvoke(underlyingSourceDict.pull, [controller], underlyingSource);
+    pullAlgorithm = () => underlyingSourceDict.pull.call(underlyingSource, controller);
   }
   if ('cancel' in underlyingSourceDict) {
-    cancelAlgorithm = reason => promiseInvoke(underlyingSourceDict.cancel, [reason], underlyingSource);
+    cancelAlgorithm = reason => underlyingSourceDict.cancel.call(underlyingSource, reason);
   }
 
   SetUpReadableStreamDefaultController(
@@ -1402,13 +1402,13 @@ function SetUpReadableByteStreamControllerFromUnderlyingSource(
   let cancelAlgorithm = () => promiseResolvedWith(undefined);
 
   if ('start' in underlyingSourceDict) {
-    startAlgorithm = () => invoke(underlyingSourceDict.start, [controller], underlyingSource);
+    startAlgorithm = () => underlyingSourceDict.start.call(underlyingSource, controller);
   }
   if ('pull' in underlyingSourceDict) {
-    pullAlgorithm = () => promiseInvoke(underlyingSourceDict.pull, [controller], underlyingSource);
+    pullAlgorithm = () => underlyingSourceDict.pull.call(underlyingSource, controller);
   }
   if ('cancel' in underlyingSourceDict) {
-    cancelAlgorithm = reason => promiseInvoke(underlyingSourceDict.cancel, [reason], underlyingSource);
+    cancelAlgorithm = reason => underlyingSourceDict.cancel.call(underlyingSource, reason);
   }
 
   const autoAllocateChunkSize = underlyingSourceDict.autoAllocateChunkSize;
