@@ -2,6 +2,6 @@
 interface ByteLengthQueuingStrategy {
   constructor(QueuingStrategyInit init);
 
-  attribute unrestricted double highWaterMark;
+  readonly attribute unrestricted double highWaterMark;
   readonly attribute Function size;
 };

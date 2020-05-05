@@ -5266,6 +5266,11 @@ callback QueuingStrategySize = unrestricted double (optional any chunk);
 </xmp>
 
 <dl>
+ <dt><dfn dict-member for="QueuingStrategy">highWaterMark</dfn></dt>
+ <dd>
+  <p>A non-negative number indicating the [=high water mark=] of the stream using this queuing
+  strategy.
+
  <dt><dfn dict-member for="QueuingStrategy" lt="size">size(<var ignore>chunk</var>)</dfn> (non-byte streams only)</dt>
  <dd>
   <p>A function that computes and returns the finite non-negative size of the given [=chunk=]
@@ -5284,11 +5289,6 @@ callback QueuingStrategySize = unrestricted double (optional any chunk);
 
   <p>For [=readable byte streams=], this function is not used, as chunks are always measured in
   bytes.
-
-  <dt><dfn dict-member for="QueuingStrategy">highWaterMark</dfn></dt>
-  <dd>
-   <p>A non-negative number indicating the [=high water mark=] of the stream using this queuing
-   strategy.
 </dl>
 
 Any object with these properties can be used when a queuing strategy object is expected. However,
@@ -5349,7 +5349,7 @@ The Web IDL definition for the {{ByteLengthQueuingStrategy}} class is given as f
 interface ByteLengthQueuingStrategy {
   constructor(QueuingStrategyInit init);
 
-  attribute unrestricted double highWaterMark;
+  readonly attribute unrestricted double highWaterMark;
   readonly attribute Function size;
 };
 </xmp>
@@ -5391,12 +5391,8 @@ value given in the constructor.
    corresponding stream constructor to throw.
 
  <dt><code><var ignore>highWaterMark</var> = <var ignore>strategy</var>.{{ByteLengthQueuingStrategy/highWaterMark}}</code>
- <dt><code><var ignore>strategy</var>.{{ByteLengthQueuingStrategy/highWaterMark}} = <var ignore>highWaterMark</var></code>
  <dd>
-  <p>Returns the [=high water mark=] provided to the constructor, or sets it to a new value.
-
-  <p>Note that high water marks are only read from [=queuing strategies=] upon stream construction,
-  i.e. setting this property will not change the behavior of any already-constructed streams.
+  <p>Returns the [=high water mark=] provided to the constructor.
 
  <dt><code><var ignore>strategy</var>.{{ByteLengthQueuingStrategy/size}}(<var ignore>chunk</var>)</code>
  <dd>
@@ -5416,10 +5412,6 @@ value given in the constructor.
  attribute's getter steps are:
 
  1. Return [=this=].\[[highWaterMark]].
-
- Its setter steps are:
-
- 1. Set [=this=].\[[highWaterMark]] to [=the given value=].
 </div>
 
 <div algorithm>
@@ -5471,7 +5463,7 @@ The Web IDL definition for the {{CountQueuingStrategy}} class is given as follow
 interface CountQueuingStrategy {
   constructor(QueuingStrategyInit init);
 
-  attribute unrestricted double highWaterMark;
+  readonly attribute unrestricted double highWaterMark;
   readonly attribute Function size;
 };
 </xmp>
@@ -5513,12 +5505,8 @@ value given in the constructor.
    corresponding stream constructor to throw.
 
  <dt><code><var ignore>highWaterMark</var> = <var ignore>strategy</var>.{{CountQueuingStrategy/highWaterMark}}</code>
- <dt><code><var ignore>strategy</var>.{{CountQueuingStrategy/highWaterMark}} = <var ignore>highWaterMark</var></code>
  <dd>
-  <p>Returns the [=high water mark=] provided to the constructor, or sets it to a new value.
-
-  <p>Note that high water marks are only read from [=queuing strategies=] upon stream construction,
-  i.e. setting this property will not change the behavior of any already-constructed streams.
+  <p>Returns the [=high water mark=] provided to the constructor.
 
  <dt><code><var ignore>strategy</var>.{{CountQueuingStrategy/size}}(<var ignore>chunk</var>)</code>
  <dd>
@@ -5538,10 +5526,6 @@ value given in the constructor.
  attribute's getter steps are:
 
  1. Return [=this=].\[[highWaterMark]].
-
- Its setter steps are:
-
- 1. Set [=this=].\[[highWaterMark]] to [=the given value=].
 </div>
 
 <div algorithm>
