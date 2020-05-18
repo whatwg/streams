@@ -937,7 +937,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
   1. Assert: [$Type$](|result|) is Object.
   1. Let |done| be ! [$Get$](|result|, "`done`").
   1. Assert: [$Type$](|done|) is Boolean.
-  1. If |done| is true, perform [$ReadableStreamReaderGenericRelease$](|reader|).
+  1. If |done| is true, perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
   1. Let |value| be ! [$Get$](|result|, "`value`").
   1. Return |value|.
 </div>
@@ -951,8 +951,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
     {{TypeError}}.
  1. If |reader|.\[[readRequests]] is not [=list/is empty|empty=], return [=a promise rejected with=]
     a {{TypeError}}.
- 1. Let |preventCancel| be |iterator|'s [=ReadableStream async iterator/prevent cancel=].
- 1. If |preventCancel| is false:
+ 1. If |iterator|'s [=ReadableStream async iterator/prevent cancel=] is false:
   1. Let |result| be ! [$ReadableStreamReaderGenericCancel$](|reader|, |arg|).
   1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
   1. Return |result|.

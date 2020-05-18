@@ -10,7 +10,7 @@ interface ReadableStream {
   Promise<void> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
   sequence<ReadableStream> tee();
 
-  // TODO: async iterator
+  [WebIDL2JSHasReturnSteps] async iterable<any>(optional ReadableStreamIteratorOptions options = {});
 };
 
 typedef (ReadableStreamDefaultReader or ReadableStreamBYOBReader) ReadableStreamReader;
@@ -19,6 +19,10 @@ enum ReadableStreamReaderMode { "byob" };
 
 dictionary ReadableStreamGetReaderOptions {
   ReadableStreamReaderMode mode;
+};
+
+dictionary ReadableStreamIteratorOptions {
+  boolean preventCancel = false;
 };
 
 dictionary ReadableWritablePair {

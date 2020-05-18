@@ -1,7 +1,9 @@
 'use strict';
 const assert = require('assert');
 
-const { promiseRejectedWith, setPromiseIsHandledToTrue } = require('./helpers/webidl.js');
+const { promiseResolvedWith, promiseRejectedWith, setPromiseIsHandledToTrue, transformPromiseWith } =
+  require('./helpers/webidl.js');
+const { typeIsObject } = require('./helpers/miscellaneous.js');
 const { ExtractHighWaterMark, ExtractSizeAlgorithm } = require('./abstract-ops/queuing-strategy.js');
 const aos = require('./abstract-ops/readable-streams.js');
 const wsAOs = require('./abstract-ops/writable-streams.js');
@@ -109,6 +111,58 @@ exports.implementation = class ReadableStreamImpl {
   tee() {
     // Conversion here is only needed until https://github.com/jsdom/webidl2js/pull/108 gets merged.
     return aos.ReadableStreamTee(this, false).map(idlUtils.wrapperForImpl);
+  }
+
+  [idlUtils.asyncIteratorInit](iterator, [options]) {
+    iterator._reader = aos.AcquireReadableStreamDefaultReader(this);
+    iterator._preventCancel = options.preventCancel;
+  }
+
+  [idlUtils.asyncIteratorNext](iterator) {
+    const reader = iterator._reader;
+    if (reader._ownerReadableStream === undefined) {
+      return promiseRejectedWith(
+        new TypeError('Cannot get the next iteration result once the reader has been released')
+      );
+    }
+
+    return transformPromiseWith(aos.ReadableStreamDefaultReaderRead(reader), result => {
+      assert(typeIsObject(result));
+
+      const { done } = result;
+      assert(typeof done === 'boolean');
+
+      if (done === true) {
+        aos.ReadableStreamReaderGenericRelease(reader);
+      }
+
+      const { value } = result;
+      return value;
+    });
+  }
+
+  [idlUtils.asyncIteratorReturn](iterator, arg) {
+    const reader = iterator._reader;
+    if (reader._ownerReadableStream === undefined) {
+      return promiseRejectedWith(
+        new TypeError('Cannot cancel the async iterator once the reader has been released')
+      );
+    }
+
+    if (reader._readRequests.length > 0) {
+      return promiseRejectedWith(
+        new TypeError('Cannot cancel the async iterator with read requests ongoing')
+      );
+    }
+
+    if (iterator._preventCancel === false) {
+      const result = aos.ReadableStreamReaderGenericCancel(reader, arg);
+      aos.ReadableStreamReaderGenericRelease(reader);
+      return result;
+    }
+
+    aos.ReadableStreamReaderGenericRelease(reader);
+    return promiseResolvedWith(undefined);
   }
 };
 
