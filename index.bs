@@ -331,12 +331,15 @@ writers to be acquired. This is done via the
 This specification depends on the Infra Standard. [[!INFRA]]
 
 This specification uses the [=abstract operation=] concept from [[!ECMASCRIPT]] for its internal
-algorithms. This includes treating their return values as [=completion records=], the use of ! and
-? prefixes for unwrapping those completion records.
+algorithms. This includes treating their return values as [=completion records=], and the use of !
+and ? prefixes for unwrapping those completion records.
 
 This specification also uses the [=internal slot=] and [=record=] concepts and notation from
 ECMAScript. (Although, the internal slots are on Web IDL [=platform objects=] instead of ECMAScript
 objects.)
+
+<p class="note">The reasons for the usage of these foreign ECMAScript conventions are largely
+historical. We urge you to avoid following our example when writing your own web specifications.
 
 Finally, as in [[!ECMASCRIPT]], all numbers are represented as double-precision floating point
 values, and all arithmetic operations performed on them must be done in the standard way for such
