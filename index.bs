@@ -37,6 +37,7 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: the current Realm; url: #current-realm
   text: the typed array constructors table; url: #table-49
   text: typed array; url: #sec-typedarray-objects
+  text: Number type; url: #sec-ecmascript-language-types-number-type
  type: abstract-op
   text: CloneArrayBuffer; url: #sec-clonearraybuffer
   text: CopyDataBlockBytes; url: #sec-copydatablockbytes
@@ -330,20 +331,22 @@ writers to be acquired. This is done via the
 
 This specification depends on the Infra Standard. [[!INFRA]]
 
-This specification uses the [=abstract operation=] concept from [[!ECMASCRIPT]] for its internal
-algorithms. This includes treating their return values as [=completion records=], and the use of !
-and ? prefixes for unwrapping those completion records.
+This specification uses the [=abstract operation=] concept from the JavaScript specification for its
+internal algorithms. This includes treating their return values as [=completion records=], and the
+use of ! and ? prefixes for unwrapping those completion records. [[!ECMASCRIPT]]
 
-This specification also uses the [=internal slot=] and [=record=] concepts and notation from
-ECMAScript. (Although, the internal slots are on Web IDL [=platform objects=] instead of ECMAScript
-objects.)
+This specification also uses the [=internal slot=] and [=record=] concepts and notation from the
+JavaScript specification. (Although, the internal slots are on Web IDL [=platform objects=] instead
+of on JavaScript objects.)
 
-<p class="note">The reasons for the usage of these foreign ECMAScript conventions are largely
-historical. We urge you to avoid following our example when writing your own web specifications.
+<p class="note">The reasons for the usage of these foreign JavaScript specification conventions are
+largely historical. We urge you to avoid following our example when writing your own web
+specifications.
 
-Finally, as in [[!ECMASCRIPT]], all numbers are represented as double-precision floating point
-values, and all arithmetic operations performed on them must be done in the standard way for such
-values.
+In this specification, all numbers are represented as double-precision 64-bit IEEE 754 floating
+point values (like the JavaScript [=Number type=] or Web IDL {{unrestricted double}} type), and all
+arithmetic operations performed on them must be done in the standard way for such values. This is
+particularly important for the data structure described in [[#queue-with-sizes]]. [[!IEEE-754]]
 
 <h2 id="rs">Readable streams</h2>
 
