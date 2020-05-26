@@ -943,7 +943,9 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
   1. Assert: [$Type$](|result|) is Object.
   1. Let |done| be ! [$Get$](|result|, "`done`").
   1. Assert: [$Type$](|done|) is Boolean.
-  1. If |done| is true, perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+  1. If |done| is true:
+   1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+   1. Return [=end of iteration=].
   1. Let |value| be ! [$Get$](|result|, "`value`").
   1. Return |value|.
 </div>

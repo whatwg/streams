@@ -134,6 +134,7 @@ exports.implementation = class ReadableStreamImpl {
 
       if (done === true) {
         aos.ReadableStreamReaderGenericRelease(reader);
+        return idlUtils.asyncIteratorEOI;
       }
 
       const { value } = result;
