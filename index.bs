@@ -948,6 +948,10 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
    1. Return [=end of iteration=].
   1. Let |value| be ! [$Get$](|result|, "`value`").
   1. Return |value|.
+
+  as well as the following rejection steps given the argument |reason|:
+  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+  1. Throw |reason|.
 </div>
 
 <div algorithm="ReadableStream asynchronous iterator return" id="rs-asynciterator-prototype-return">
@@ -955,10 +959,9 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  ignore>stream</var>, |iterator|, and |arg|, are:
 
  1. Let |reader| be |iterator|'s [=ReadableStream async iterator/reader=].
- 1. If |reader|.\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
-    {{TypeError}}.
- 1. If |reader|.\[[readRequests]] is not [=list/is empty|empty=], return [=a promise rejected with=]
-    a {{TypeError}}.
+ 1. If |reader|.\[[ownerReadableStream]] is undefined, return [=a promise resolved with=] undefined.
+ 1. Assert: |reader|.\[[readRequests]] is [=list/is empty|empty=], as the async iterator machinery
+    guarantees that any previous calls to `next()` have settled before this is called.
  1. If |iterator|'s [=ReadableStream async iterator/prevent cancel=] is false:
   1. Let |result| be ! [$ReadableStreamReaderGenericCancel$](|reader|, |arg|).
   1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).

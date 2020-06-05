@@ -126,35 +126,36 @@ exports.implementation = class ReadableStreamImpl {
       );
     }
 
-    return transformPromiseWith(aos.ReadableStreamDefaultReaderRead(reader), result => {
-      assert(typeIsObject(result));
+    return transformPromiseWith(
+      aos.ReadableStreamDefaultReaderRead(reader),
+      result => {
+        assert(typeIsObject(result));
 
-      const { done } = result;
-      assert(typeof done === 'boolean');
+        const { done } = result;
+        assert(typeof done === 'boolean');
 
-      if (done === true) {
+        if (done === true) {
+          aos.ReadableStreamReaderGenericRelease(reader);
+          return idlUtils.asyncIteratorEOI;
+        }
+
+        const { value } = result;
+        return value;
+      },
+      reason => {
         aos.ReadableStreamReaderGenericRelease(reader);
-        return idlUtils.asyncIteratorEOI;
+        throw reason;
       }
-
-      const { value } = result;
-      return value;
-    });
+    );
   }
 
   [idlUtils.asyncIteratorReturn](iterator, arg) {
     const reader = iterator._reader;
     if (reader._ownerReadableStream === undefined) {
-      return promiseRejectedWith(
-        new TypeError('Cannot cancel the async iterator once the reader has been released')
-      );
+      return promiseResolvedWith(undefined);
     }
 
-    if (reader._readRequests.length > 0) {
-      return promiseRejectedWith(
-        new TypeError('Cannot cancel the async iterator with read requests ongoing')
-      );
-    }
+    assert(reader._readRequests.length === 0);
 
     if (iterator._preventCancel === false) {
       const result = aos.ReadableStreamReaderGenericCancel(reader, arg);
