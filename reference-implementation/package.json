@@ -18,7 +18,7 @@
     "minimatch": "^3.0.4",
     "nyc": "^15.0.1",
     "opener": "^1.5.1",
-    "webidl2js": "jsdom/webidl2js#async-iterable",
+    "webidl2js": "^16.2.0",
     "wpt-runner": "^3.0.1"
   },
   "nyc": {
