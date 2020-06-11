@@ -3,19 +3,15 @@
   "env": {
     "node": true,
     "browser": true,
-    "es6": true
+    "es2020": true
   },
   "parserOptions": {
-    "ecmaVersion": 2018
+    "ecmaVersion": 2020
   },
   "globals": {
-    "ReadableStream": false,
-    "WritableStream": false,
-    "TransformStream": false,
-    "ByteLengthQueuingStrategy": false,
-    "CountQueuingStrategy": false,
     "GCController": false,
-    "gc": false
+    "gc": false,
+    "globalThis": false
   },
   "rules": {
     // Possible errors

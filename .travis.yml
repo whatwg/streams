@@ -1,6 +1,5 @@
 language: node_js
 node_js: stable
-sudo: false
 
 env:
   global:
@@ -12,7 +11,6 @@ before_install:
 script:
   - npm test
   - cd ..
-  - npm install
   - make deploy
 
 branches:

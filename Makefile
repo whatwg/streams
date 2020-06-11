@@ -2,17 +2,25 @@ SHELL=/bin/bash -o pipefail
 .PHONY: local remote deploy review
 
 remote: index.bs
-	curl https://api.csswg.org/bikeshed/ -f -F file=@index.bs > index.html.postbs -F md-Text-Macro="SNAPSHOT-LINK LOCAL COPY"
-	node_modules/.bin/emu-algify --throwing-indicators < index.html.postbs > index.html
+	@ (HTTP_STATUS=$$(curl https://api.csswg.org/bikeshed/ \
+	                       --output index.html \
+	                       --write-out "%{http_code}" \
+	                       --header "Accept: text/plain, text/html" \
+	                       -F die-on=warning \
+												 -F md-Text-Macro="COMMIT-SHA LOCAL COPY" \
+	                       -F file=@index.bs) && \
+	[[ "$$HTTP_STATUS" -eq "200" ]]) || ( \
+		echo ""; cat index.html; echo ""; \
+		rm -f index.html; \
+		exit 22 \
+	);
 
 local: index.bs
-	bikeshed spec index.bs index.html.postbs --md-Text-Macro="SNAPSHOT-LINK LOCAL COPY"
-	node_modules/.bin/emu-algify --throwing-indicators < index.html.postbs > index.html
+	bikeshed spec index.bs index.html --md-Text-Macro="COMMIT-SHA LOCAL COPY"
 
 deploy: index.bs
 	curl --remote-name --fail https://resources.whatwg.org/build/deploy.sh
 	EXTRA_FILES="demos/* demos/**/*" \
-	POST_BUILD_STEP='node_modules/.bin/emu-algify --throwing-indicators < "$$DIR/index.html" > "$$DIR/index.html.tmp"; mv "$$DIR/index.html.tmp" "$$DIR/index.html"' \
 	bash ./deploy.sh
 
 review: index.bs

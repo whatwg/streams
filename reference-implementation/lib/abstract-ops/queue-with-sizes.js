@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-const { IsFiniteNonNegativeNumber } = require('./helpers.js');
+const { IsNonNegativeNumber } = require('./miscellaneous.js');
 
 exports.DequeueValue = container => {
   assert('_queue' in container && '_queueTotalSize' in container);
@@ -18,8 +18,10 @@ exports.DequeueValue = container => {
 exports.EnqueueValueWithSize = (container, value, size) => {
   assert('_queue' in container && '_queueTotalSize' in container);
 
-  size = Number(size);
-  if (!IsFiniteNonNegativeNumber(size)) {
+  if (!IsNonNegativeNumber(size)) {
+    throw new RangeError('Size must be a finite, non-NaN, non-negative number.');
+  }
+  if (size === Infinity) {
     throw new RangeError('Size must be a finite, non-NaN, non-negative number.');
   }
 

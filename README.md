@@ -37,10 +37,6 @@ implementation in order to pass those tests.
 
 ## Building "locally"
 
-This standard requires a recent version of [Node.js](https://nodejs.org/en/) to be installed as a
-prerequisite. Once that's done, you'll need to do a one-time run of `npm install` to set up our
-tooling.
-
 For quick local iteration, run `make`. To verify your changes locally, run `make deploy`. See more
 in the
 [WHATWG Contributor Guidelines](https://github.com/whatwg/meta/blob/master/CONTRIBUTING.md#building).
