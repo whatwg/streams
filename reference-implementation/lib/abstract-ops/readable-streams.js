@@ -331,10 +331,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   let branch1;
   let branch2;
 
-  let resolveCancelPromise;
-  const cancelPromise = new Promise(resolve => {
-    resolveCancelPromise = resolve;
-  });
+  const cancelPromise = newPromise();
 
   function pullAlgorithm() {
     if (reading === true) {
@@ -376,7 +373,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
         if (canceled2 === false) {
           ReadableStreamDefaultControllerClose(branch2._controller);
         }
-        resolveCancelPromise(undefined);
+        resolvePromise(cancelPromise, undefined);
       },
       errorSteps: () => {
         reading = false;
@@ -393,7 +390,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
     if (canceled2 === true) {
       const compositeReason = CreateArrayFromList([reason1, reason2]);
       const cancelResult = ReadableStreamCancel(stream, compositeReason);
-      resolveCancelPromise(cancelResult);
+      resolvePromise(cancelPromise, cancelResult);
     }
     return cancelPromise;
   }
@@ -404,7 +401,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
     if (canceled1 === true) {
       const compositeReason = CreateArrayFromList([reason1, reason2]);
       const cancelResult = ReadableStreamCancel(stream, compositeReason);
-      resolveCancelPromise(cancelResult);
+      resolvePromise(cancelPromise, cancelResult);
     }
     return cancelPromise;
   }
