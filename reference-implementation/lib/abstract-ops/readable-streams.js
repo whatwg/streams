@@ -376,6 +376,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
         if (canceled2 === false) {
           ReadableStreamDefaultControllerClose(branch2._controller);
         }
+        resolveCancelPromise(undefined);
       },
       errorSteps: () => {
         reading = false;
