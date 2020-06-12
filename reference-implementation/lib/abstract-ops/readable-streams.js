@@ -414,6 +414,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   uponRejection(reader._closedPromise, r => {
     ReadableStreamDefaultControllerError(branch1._controller, r);
     ReadableStreamDefaultControllerError(branch2._controller, r);
+    resolvePromise(cancelPromise, undefined);
   });
 
   return [branch1, branch2];

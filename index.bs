@@ -2227,6 +2227,7 @@ create them does not matter.
  1. [=Upon rejection=] of |reader|.\[[closedPromise]] with reason |r|,
   1. Perform ! [$ReadableStreamDefaultControllerError$](|branch1|.\[[controller]], |r|).
   1. Perform ! [$ReadableStreamDefaultControllerError$](|branch2|.\[[controller]], |r|).
+  1. [=Resolve=] |cancelPromise| with undefined.
  1. Return « |branch1|, |branch2| ».
 </div>
 
