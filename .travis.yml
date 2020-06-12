@@ -1,16 +1,10 @@
-language: node_js
-node_js: stable
+language: generic
 
 env:
   global:
     - ENCRYPTION_LABEL="4a24edc7e7d1"
 
-before_install:
-  - cd reference-implementation
-
 script:
-  - npm test
-  - cd ..
   - make deploy
 
 branches:
