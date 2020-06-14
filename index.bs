@@ -722,7 +722,7 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
     rejected with the destination's error, or with any error that occurs during canceling the source.
 
   * When this source [=readable stream=] closes, |destination| will be closed, unless
-    {{StreamPipeOptions/preventCancel}} is truthy. The returned promise will be fulfilled once this
+    {{StreamPipeOptions/preventClose}} is truthy. The returned promise will be fulfilled once this
     process completes, unless an error is encountered while closing the destination, in which case
     it will be rejected with that error.
 
