@@ -5,6 +5,6 @@ interface ReadableStreamBYOBReader {
   readonly attribute Promise<void> closed;
 
   Promise<void> cancel(optional any reason);
-  Promise<any> read(ArrayBufferView view);
+  Promise<ReadableStreamReadResult> read(ArrayBufferView view);
   void releaseLock();
 };

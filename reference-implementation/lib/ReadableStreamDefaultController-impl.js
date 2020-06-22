@@ -37,7 +37,7 @@ exports.implementation = class ReadableStreamDefaultControllerImpl {
     return result;
   }
 
-  [PullSteps]() {
+  [PullSteps](chunkSteps, doneSteps, errorSteps) {
     const stream = this._controlledReadableStream;
 
     if (this._queue.length > 0) {
@@ -50,11 +50,10 @@ exports.implementation = class ReadableStreamDefaultControllerImpl {
         aos.ReadableStreamDefaultControllerCallPullIfNeeded(this);
       }
 
-      return promiseResolvedWith(aos.ReadableStreamCreateReadResult(chunk, false, stream._reader._forAuthorCode));
+      chunkSteps(chunk);
+    } else {
+      aos.ReadableStreamAddReadRequest(stream, chunkSteps, doneSteps, errorSteps);
+      aos.ReadableStreamDefaultControllerCallPullIfNeeded(this);
     }
-
-    const pendingPromise = aos.ReadableStreamAddReadRequest(stream);
-    aos.ReadableStreamDefaultControllerCallPullIfNeeded(this);
-    return pendingPromise;
   }
 };
