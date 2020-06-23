@@ -3,10 +3,12 @@
 /* eslint-disable no-console */
 'use strict';
 const path = require('path');
+const fs = require('fs');
 const { promisify } = require('util');
 const browserify = require('browserify');
 const wptRunner = require('wpt-runner');
 const minimatch = require('minimatch');
+const readFileAsync = promisify(fs.readFile);
 
 // wpt-runner does not yet support unhandled rejection tracking a la
 // https://github.com/w3c/testharness.js/commit/7716e2581a86dfd9405a9c00547a7504f0c7fe94
@@ -27,7 +29,8 @@ main().catch(e => {
 
 async function main() {
   const entryPath = path.resolve(__dirname, 'lib/index.js');
-  const testsPath = path.resolve(__dirname, 'web-platform-tests/streams');
+  const wptPath = path.resolve(__dirname, 'web-platform-tests');
+  const testsPath = path.resolve(wptPath, 'streams');
 
   const filterGlobs = process.argv.length >= 3 ? process.argv.slice(2) : ['**/*.html'];
   const workerTestPattern = /\.(?:dedicated|shared|service)worker(?:\.https)?\.html$/;
@@ -38,16 +41,23 @@ async function main() {
     rootURL: 'streams/',
     setup(window) {
       window.queueMicrotask = queueMicrotask;
+      window.fetch = async function (url) {
+        const filePath = path.join(wptPath, url);
+        if (!filePath.startsWith(wptPath)) {
+          throw new TypeError('Invalid URL');
+        }
+        return {
+          ok: true,
+          async text() {
+            return await readFileAsync(filePath, { encoding: 'utf8' });
+          }
+        };
+      };
       window.eval(bundledJS);
     },
     filter(testPath) {
       // Ignore the worker versions
       if (workerTestPattern.test(testPath)) {
-        return false;
-      }
-
-      // Ignore for now: wpt-runner doesn't handle the cross-folder dependencies well.
-      if (testPath === 'idlharness.any.html') {
         return false;
       }
 
