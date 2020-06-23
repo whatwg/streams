@@ -342,23 +342,28 @@ function ReadableStreamTee(stream, cloneForBranch2) {
     ReadableStreamDefaultReaderRead(
       reader,
       value => {
-        reading = false;
-        const value1 = value;
-        const value2 = value;
+        // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
+        // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
+        // successful synchronously-available reads get ahead of asynchronously-available errors.
+        queueMicrotask(() => {
+          reading = false;
+          const value1 = value;
+          const value2 = value;
 
-        // There is no way to access the cloning code right now in the reference implementation.
-        // If we add one then we'll need an implementation for serializable objects.
-        // if (canceled2 === false && cloneForBranch2 === true) {
-        //   value2 = StructuredDeserialize(StructuredSerialize(value2));
-        // }
+          // There is no way to access the cloning code right now in the reference implementation.
+          // If we add one then we'll need an implementation for serializable objects.
+          // if (canceled2 === false && cloneForBranch2 === true) {
+          //   value2 = StructuredDeserialize(StructuredSerialize(value2));
+          // }
 
-        if (canceled1 === false) {
-          ReadableStreamDefaultControllerEnqueue(branch1._readableStreamController, value1);
-        }
+          if (canceled1 === false) {
+            ReadableStreamDefaultControllerEnqueue(branch1._readableStreamController, value1);
+          }
 
-        if (canceled2 === false) {
-          ReadableStreamDefaultControllerEnqueue(branch2._readableStreamController, value2);
-        }
+          if (canceled2 === false) {
+            ReadableStreamDefaultControllerEnqueue(branch2._readableStreamController, value2);
+          }
+        });
       },
       () => {
         reading = false;
