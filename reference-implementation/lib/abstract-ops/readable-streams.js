@@ -492,7 +492,7 @@ function ReadableStreamError(stream, e) {
     assert(ReadableStreamBYOBReader.isImpl(reader));
 
     for (const readIntoRequest of reader._readIntoRequests) {
-      rejectPromise(readIntoRequest, e);
+      readIntoRequest.errorSteps(e);
     }
 
     reader._readIntoRequests = [];
