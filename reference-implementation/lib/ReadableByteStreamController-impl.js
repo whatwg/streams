@@ -1,7 +1,6 @@
 'use strict';
 const assert = require('assert');
 
-const { promiseResolvedWith, promiseRejectedWith } = require('./helpers/webidl.js');
 const { CancelSteps, PullSteps } = require('./abstract-ops/internal-methods.js');
 const { ResetQueue } = require('./abstract-ops/queue-with-sizes.js');
 const aos = require('./abstract-ops/readable-streams.js');

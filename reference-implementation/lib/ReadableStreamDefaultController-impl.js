@@ -1,6 +1,5 @@
 'use strict';
 
-const { promiseResolvedWith } = require('./helpers/webidl.js');
 const { CancelSteps, PullSteps } = require('./abstract-ops/internal-methods.js');
 const { DequeueValue, ResetQueue } = require('./abstract-ops/queue-with-sizes.js');
 const aos = require('./abstract-ops/readable-streams.js');
