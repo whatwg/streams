@@ -33,7 +33,6 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: abstract operation; url: #sec-algorithm-conventions-abstract-operations
   text: completion record; url: #sec-completion-record-specification-type
   text: internal slot; url: #sec-object-internal-methods-and-internal-slots
-  text: record; url: #sec-list-and-record-specification-type
   text: the current Realm; url: #current-realm
   text: the typed array constructors table; url: #table-49
   text: typed array; url: #sec-typedarray-objects
@@ -335,9 +334,9 @@ This specification uses the [=abstract operation=] concept from the JavaScript s
 internal algorithms. This includes treating their return values as [=completion records=], and the
 use of ! and ? prefixes for unwrapping those completion records. [[!ECMASCRIPT]]
 
-This specification also uses the [=internal slot=] and [=record=] concepts and notation from the
-JavaScript specification. (Although, the internal slots are on Web IDL [=platform objects=] instead
-of on JavaScript objects.)
+This specification also uses the [=internal slot=] concept and notation from the JavaScript
+specification. (Although, the internal slots are on Web IDL [=platform objects=] instead of on
+JavaScript objects.)
 
 <p class="note">The reasons for the usage of these foreign JavaScript specification conventions are
 largely historical. We urge you to avoid following our example when writing your own web
@@ -1505,7 +1504,8 @@ following table:
    <td class="non-normative">A [=list=] of [=pull-into descriptors=]
   <tr>
    <td>\[[queue]]
-   <td class="non-normative">A [=list=] representing the stream's internal queue of [=chunks=]
+   <td class="non-normative">A [=list=] of [=readable byte stream queue entry|readable byte stream
+   queue entries=] representing the stream's internal queue of [=chunks=]
   <tr>
    <td>\[[queueTotalSize]]
    <td class="non-normative">The total size, in bytes, of all the chunks stored in \[[queue]] (see
@@ -1529,6 +1529,20 @@ following table:
 
  <p>This might be cleaned up in a future spec refactoring.
 </div>
+
+A <dfn>readable byte stream queue entry</dfn> is a [=struct=] encapsulating the important aspects of
+a [=chunk=] for the specific case of [=readable byte streams=]. It has the following
+[=struct/items=]:
+
+: <dfn for="readable byte stream queue entry">buffer</dfn>
+:: An {{ArrayBuffer}}, which will be a <a href="#transfer-array-buffer">transferred</a> version of
+   the one originally supplied by the [=underlying byte source=]
+: <dfn for="readable byte stream queue entry">byte offset</dfn>
+:: A nonnegative integer number giving the byte offset derived from the view originally supplied by
+   the [=underlying byte source=]
+: <dfn for="readable byte stream queue entry">byte length</dfn>
+:: A nonnegative integer number giving the byte length derived from the view originally supplied by
+   the [=underlying byte source=]
 
 A <dfn>pull-into descriptor</dfn> is a [=struct=] used to represent pending BYOB pull requests. It
 has the following [=struct/items=]:
@@ -1672,10 +1686,12 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
   1. Assert: ! [$ReadableStreamGetNumReadRequests$](|stream|) is 0.
   1. Let |entry| be [=this=].\[[queue]][0].
   1. [=list/Remove=] |entry| from [=this=].\[[queue]].
-  1. Set [=this=].\[[queueTotalSize]] to [=this=].\[[queueTotalSize]] − |entry|.\[[byteLength]].
+  1. Set [=this=].\[[queueTotalSize]] to [=this=].\[[queueTotalSize]] − |entry|'s [=readable byte
+     stream queue entry/byte length=].
   1. Perform ! [$ReadableByteStreamControllerHandleQueueDrain$]([=this=]).
-  1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |entry|.\[[buffer]], |entry|.\[[byteOffset]],
-     |entry|.\[[byteLength]] »).
+  1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |entry|'s [=readable byte stream queue
+     entry/buffer=], |entry|'s [=readable byte stream queue entry/byte offset=], |entry|'s
+     [=readable byte stream queue entry/byte length=] »).
   1. Return [=a promise resolved with=] ! [$ReadableStreamCreateReadResult$](|view|, false,
      |stream|.\[[reader]].\[[forAuthorCode]]).
  1. Let |autoAllocateChunkSize| be [=this=].\[[autoAllocateChunkSize]].
@@ -2800,8 +2816,9 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-enqueue-chunk-to-queue">ReadableByteStreamControllerEnqueueChunkToQueue(|controller|,
  |buffer|, |byteOffset|, |byteLength|)</dfn> performs the following steps:
 
- 1. [=list/Append=] Record {\[[buffer]]: |buffer|, \[[byteOffset]]: |byteOffset|, \[[byteLength]]:
-    |byteLength|} to |controller|.\[[queue]].
+ 1. [=list/Append=] a new [=readable byte stream queue entry=] with [=readable byte stream queue
+    entry/buffer=] |buffer|, [=readable byte stream queue entry/byte offset=] |byteOffset|, and
+    [=readable byte stream queue entry/byte length=] |byteLength| to |controller|.\[[queue]].
  1. Set |controller|.\[[queueTotalSize]] to |controller|.\[[queueTotalSize]] + |byteLength|.
 </div>
 
@@ -2852,17 +2869,21 @@ The following abstract operations support the implementation of the
  1. Let |queue| be |controller|.\[[queue]].
  1. [=While=] |totalBytesToCopyRemaining| > 0,
   1. Let |headOfQueue| be |queue|[0].
-  1. Let |bytesToCopy| be min(|totalBytesToCopyRemaining|, |headOfQueue|.\[[byteLength]]).
+  1. Let |bytesToCopy| be min(|totalBytesToCopyRemaining|, |headOfQueue|'s [=readable byte stream
+     queue entry/byte length=]).
   1. Let |destStart| be |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=] +
      |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
   1. Perform ! [$CopyDataBlockBytes$](|pullIntoDescriptor|'s [=pull-into
      descriptor/buffer=].\[[ArrayBufferData]], |destStart|,
-     |headOfQueue|.\[[buffer]].\[[ArrayBufferData]], |headOfQueue|.\[[byteOffset]], |bytesToCopy|).
-  1. If |headOfQueue|.\[[byteLength]] is |bytesToCopy|,
+     |headOfQueue|'s [=readable byte stream queue entry/buffer=].\[[ArrayBufferData]],
+     |headOfQueue|'s [=readable byte stream queue entry/byte offset=], |bytesToCopy|).
+  1. If |headOfQueue|'s [=readable byte stream queue entry/byte length=] is |bytesToCopy|,
    1. [=list/Remove=] |queue|[0].
   1. Otherwise,
-   1. Set |headOfQueue|.\[[byteOffset]] to |headOfQueue|.\[[byteOffset]] + |bytesToCopy|.
-   1. Set |headOfQueue|.\[[byteLength]] to |headOfQueue|.\[[byteLength]] − |bytesToCopy|.
+   1. Set |headOfQueue|'s [=readable byte stream queue entry/byte offset=] to |headOfQueue|'s
+      [=readable byte stream queue entry/byte offset=] + |bytesToCopy|.
+   1. Set |headOfQueue|'s [=readable byte stream queue entry/byte length=] to |headOfQueue|'s
+      [=readable byte stream queue entry/byte length=] − |bytesToCopy|.
   1. Set |controller|.\[[queueTotalSize]] to |controller|.\[[queueTotalSize]] − |bytesToCopy|.
   1. Perform ! [$ReadableByteStreamControllerFillHeadPullIntoDescriptor$](|controller|,
      |bytesToCopy|, |pullIntoDescriptor|).
