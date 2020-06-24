@@ -5601,9 +5601,8 @@ and as such are not grouped under the major sections above.
 The streams in this specification use a "queue-with-sizes" data structure to store queued up
 values, along with their determined sizes. Various specification objects contain a
 queue-with-sizes, represented by the object having two paired internal slots, always named
-\[[queue]] and \[[queueTotalSize]]. \[[queue]] is a [=list=] of Records with \[[value]] and
-\[[size]] fields, and \[[queueTotalSize]] is a JavaScript {{Number}}, i.e. a double-precision
-floating point number.
+\[[queue]] and \[[queueTotalSize]]. \[[queue]] is a [=list=] of [=value-with-sizes=], and
+\[[queueTotalSize]] is a JavaScript {{Number}}, i.e. a double-precision floating point number.
 
 The following abstract operations are used when operating on objects that contain
 queues-with-sizes, in order to ensure that the two internal slots stay synchronized.
@@ -5614,18 +5613,22 @@ equivalent to adding up the size of all [=chunks=] in \[[queue]]. (However, this
 difference when there is a huge (~10<sup>15</sup>) variance in size between chunks, or when
 trillions of chunks are enqueued.)
 
+In what follows, a <dfn>value-with-size</dfn> is a [=struct=] with the two [=struct/items=] <dfn
+for="value-with-size">value</dfn> and <dfn for="value-with-size">size</dfn>.
+
 <div algorithm>
  <dfn abstract-op lt="DequeueValue" id="dequeue-value">DequeueValue(|container|)</dfn> performs the
  following steps:
 
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
  1. Assert: |container|.\[[queue]] is not [=list/is empty|empty=].
- 1. Let |pair| be |container|.\[[queue]][0].
- 1. [=list/Remove=] |pair| from |container|.\[[queue]].
- 1. Set |container|.\[[queueTotalSize]] to |container|.\[[queueTotalSize]] − |pair|.\[[size]].
+ 1. Let |valueWithSize| be |container|.\[[queue]][0].
+ 1. [=list/Remove=] |valueWithSize| from |container|.\[[queue]].
+ 1. Set |container|.\[[queueTotalSize]] to |container|.\[[queueTotalSize]] − |valueWithSize|'s
+    [=value-with-size/size=].
  1. If |container|.\[[queueTotalSize]] &lt; 0, set |container|.\[[queueTotalSize]] to 0. (This can
     occur due to rounding errors.)
- 1. Return |pair|.\[[value]].
+ 1. Return |valueWithSize|'s [=value-with-size/value=].
 </div>
 
 <div algorithm>
@@ -5636,7 +5639,8 @@ trillions of chunks are enqueued.)
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
  1. If ! [$IsNonNegativeNumber$](|size|) is false, throw a {{RangeError}} exception.
  1. If |size| is +∞, throw a {{RangeError}} exception.
- 1. [=list/Append=] Record {\[[value]]: |value|, \[[size]]: |size|} to |container|.\[[queue]].
+ 1. [=list/Append=] a new [=value-with-size=] with [=value-with-size/value=] |value| and
+    [=value-with-size/size=] |size| to |container|.\[[queue]].
  1. Set |container|.\[[queueTotalSize]] to |container|.\[[queueTotalSize]] + |size|.
 </div>
 
@@ -5646,8 +5650,8 @@ trillions of chunks are enqueued.)
 
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
  1. Assert: |container|.\[[queue]] is not [=list/is empty|empty=].
- 1. Let |pair| be |container|.\[[queue]][0].
- 1. Return |pair|.\[[value]].
+ 1. Let |valueWithSize| be |container|.\[[queue]][0].
+ 1. Return |valueWithSize|'s [=value-with-size/value=].
 </div>
 
 <div algorithm>
