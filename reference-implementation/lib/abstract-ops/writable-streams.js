@@ -12,6 +12,8 @@ const WritableStream = require('../../generated/WritableStream.js');
 const WritableStreamDefaultController = require('../../generated/WritableStreamDefaultController.js');
 const WritableStreamDefaultWriter = require('../../generated/WritableStreamDefaultWriter.js');
 
+const specialCloseValue = Symbol('special close value');
+
 Object.assign(exports, {
   AcquireWritableStreamDefaultWriter,
   CreateWritableStream,
@@ -616,11 +618,11 @@ function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
     return;
   }
 
-  const writeRecord = PeekQueueValue(controller);
-  if (writeRecord === 'close') {
+  const value = PeekQueueValue(controller);
+  if (value === specialCloseValue) {
     WritableStreamDefaultControllerProcessClose(controller);
   } else {
-    WritableStreamDefaultControllerProcessWrite(controller, writeRecord.chunk);
+    WritableStreamDefaultControllerProcessWrite(controller, value);
   }
 }
 
@@ -632,7 +634,7 @@ function WritableStreamDefaultControllerClearAlgorithms(controller) {
 }
 
 function WritableStreamDefaultControllerClose(controller) {
-  EnqueueValueWithSize(controller, 'close', 0);
+  EnqueueValueWithSize(controller, specialCloseValue, 0);
   WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
 }
 
@@ -723,10 +725,8 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
 }
 
 function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
-  const writeRecord = { chunk };
-
   try {
-    EnqueueValueWithSize(controller, writeRecord, chunkSize);
+    EnqueueValueWithSize(controller, chunk, chunkSize);
   } catch (enqueueE) {
     WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
     return;
