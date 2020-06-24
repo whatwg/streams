@@ -1502,7 +1502,7 @@ following table:
    calls
   <tr>
    <td>\[[pendingPullIntos]]
-   <td class="non-normative">A [=list=] of descriptors representing pending BYOB pull requests
+   <td class="non-normative">A [=list=] of [=pull-into descriptors=]
   <tr>
    <td>\[[queue]]
    <td class="non-normative">A [=list=] representing the stream's internal queue of [=chunks=]
@@ -1529,6 +1529,31 @@ following table:
 
  <p>This might be cleaned up in a future spec refactoring.
 </div>
+
+A <dfn>pull-into descriptor</dfn> is a [=struct=] used to represent pending BYOB pull requests. It
+has the following [=struct/items=]:
+
+: <dfn for="pull-into descriptor">buffer</dfn>
+:: An {{ArrayBuffer}}
+: <dfn for="pull-into descriptor">byte offset</dfn>
+:: A nonnegative integer byte offset into the [=pull-into descriptor/buffer=] where the
+   [=underlying byte source=] will start writing
+: <dfn for="pull-into descriptor">byte length</dfn>
+:: A nonnegative integer number of bytes which can be written into the [=pull-into
+   descriptor/buffer=]
+: <dfn for="pull-into descriptor">bytes filled</dfn>
+:: A nonnegative integer number of bytes that have been written into the [=pull-into
+   descriptor/buffer=] so far
+: <dfn for="pull-into descriptor">element size</dfn>
+:: A positive integer representing the number of bytes that can be written into the [=pull-into
+   descriptor/buffer=] at a time, using views of the type described by the [=pull-into
+   descriptor/view constructor=]
+: <dfn for="pull-into descriptor">view constructor</dfn>
+:: A [=the typed array constructors table|typed array constructor=] or {{%DataView%}}, which will be
+   used for constructing a view with which to write into the [=pull-into descriptor/buffer=]
+: <dfn for="pull-into descriptor">reader type</dfn>
+:: Either "`default`" or "`byob`", indicating what type of [=readable stream reader=] initiated this
+   request
 
 <h4 id="rbs-controller-prototype">Methods and properties</h4>
 
@@ -1568,9 +1593,10 @@ following table:
  1. If [=this=].\[[byobRequest]] is null and [=this=].\[[pendingPullIntos]] is not [=list/is
     empty|empty=],
   1. Let |firstDescriptor| be [=this=].\[[pendingPullIntos]][0].
-  1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |firstDescriptor|.\[[buffer]],
-     |firstDescriptor|.\[[byteOffset]] + |firstDescriptor|.\[[bytesFilled]],
-     |firstDescriptor|.\[[byteLength]] − |firstDescriptor|.\[[bytesFilled]] »).
+  1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |firstDescriptor|'s [=pull-into
+     descriptor/buffer=], |firstDescriptor|'s [=pull-into descriptor/byte offset=] +
+     |firstDescriptor|'s [=pull-into descriptor/bytes filled=], |firstDescriptor|'s [=pull-into
+     descriptor/byte length=] − |firstDescriptor|'s [=pull-into descriptor/bytes filled=] »).
   1. Let |byobRequest| be a [=new=] {{ReadableStreamBYOBRequest}}.
   1. Set |byobRequest|.\[[controller]] to [=this=].
   1. Set |byobRequest|.\[[view]] to |view|.
@@ -1628,7 +1654,7 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
 
  1. If [=this=].\[[pendingPullIntos]] is not [=list/is empty|empty=],
   1. Let |firstDescriptor| be [=this=].\[[pendingPullIntos]][0].
-  1. Set |firstDescriptor|.\[[bytesFilled]] to 0.
+  1. Set |firstDescriptor|'s [=pull-into descriptor/bytes filled=] to 0.
  1. Perform ! [$ResetQueue$]([=this=]).
  1. Let |result| be the result of performing [=this=].\[[cancelAlgorithm]], passing in |reason|.
  1. Perform ! [$ReadableByteStreamControllerClearAlgorithms$]([=this=]).
@@ -1656,9 +1682,11 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
  1. If |autoAllocateChunkSize| is not undefined,
   1. Let |buffer| be [$Construct$]({{%ArrayBuffer%}}, « |autoAllocateChunkSize| »).
   1. If |buffer| is an abrupt completion, return [=a promise rejected with=] |buffer|.\[[Value]].
-  1. Let |pullIntoDescriptor| be Record {\[[buffer]]: |buffer|.\[[Value]], \[[byteOffset]]: 0,
-     \[[byteLength]]: |autoAllocateChunkSize|, \[[bytesFilled]]: 0, \[[elementSize]]: 1, \[[ctor]]:
-     {{%Uint8Array%}}, \[[readerType]]: "`default`"}.
+  1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
+     |buffer|.\[[Value]], [=pull-into descriptor/byte offset=] 0, [=pull-into descriptor/byte
+     length=] |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into
+     descriptor/element size=] 1, [=pull-into descriptor/view constructor=] {{%Uint8Array%}}, and
+     [=pull-into descriptor/reader type=] "`default`".
   1. [=list/Append=] |pullIntoDescriptor| to [=this=].\[[pendingPullIntos]].
  1. Let |promise| be ! [$ReadableStreamAddReadRequest$](|stream|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$]([=this=]).
@@ -2695,7 +2723,7 @@ The following abstract operations support the implementation of the
   1. Return.
  1. If |controller|.\[[pendingPullIntos]] is not empty,
   1. Let |firstPendingPullInto| be |controller|.\[[pendingPullIntos]][0].
-  1. If |firstPendingPullInto|.\[[bytesFilled]] > 0,
+  1. If |firstPendingPullInto|'s [=pull-into descriptor/bytes filled=] > 0,
    1. Let |e| be a new {{TypeError}} exception.
    1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
    1. Throw |e|.
@@ -2711,14 +2739,14 @@ The following abstract operations support the implementation of the
  1. Assert: |stream|.\[[state]] is not "`errored`".
  1. Let |done| be false.
  1. If |stream|.\[[state]] is "`closed`",
-  1. Assert: |pullIntoDescriptor|.\[[bytesFilled]] is 0.
+  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
   1. Set |done| to true.
  1. Let |filledView| be !
     [$ReadableByteStreamControllerConvertPullIntoDescriptor$](|pullIntoDescriptor|).
- 1. If |pullIntoDescriptor|.\[[readerType]] is "`default`",
+ 1. If |pullIntoDescriptor|'s [=pull-into descriptor/reader type=] is "`default`",
   1. Perform ! [$ReadableStreamFulfillReadRequest$](|stream|, |filledView|, |done|).
  1. Otherwise,
-  1. Assert: |pullIntoDescriptor|.\[[readerType]] is "`byob`".
+  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/reader type=] is "`byob`".
   1. Perform ! [$ReadableStreamFulfillReadIntoRequest$](|stream|, |filledView|, |done|).
 </div>
 
@@ -2727,12 +2755,13 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-convert-pull-into-descriptor">ReadableByteStreamControllerConvertPullIntoDescriptor(|pullIntoDescriptor|)</dfn>
  performs the following steps:
 
- 1. Let |bytesFilled| be |pullIntoDescriptor|.\[[bytesFilled]].
- 1. Let |elementSize| be |pullIntoDescriptor|.\[[elementSize]].
- 1. Assert: |bytesFilled| ≤ |pullIntoDescriptor|.\[[byteLength]].
+ 1. Let |bytesFilled| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
+ 1. Let |elementSize| be |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
+ 1. Assert: |bytesFilled| ≤ |pullIntoDescriptor|'s [=pull-into descriptor/byte length=].
  1. Assert: |bytesFilled| mod |elementSize| is 0.
- 1. Return ! [$Construct$](|pullIntoDescriptor|.\[[ctor]], « |pullIntoDescriptor|.\[[buffer]],
-    |pullIntoDescriptor|.\[[byteOffset]], |bytesFilled| ÷ |elementSize| »).
+ 1. Return ! [$Construct$](|pullIntoDescriptor|'s [=pull-into descriptor/view constructor=], «
+    |pullIntoDescriptor|'s [=pull-into descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into
+    descriptor/byte offset=], |bytesFilled| ÷ |elementSize| »).
 </div>
 
 <div algorithm>
@@ -2797,7 +2826,8 @@ The following abstract operations support the implementation of the
  1. Assert: either |controller|.\[[pendingPullIntos]] [=list/is empty=], or
     |controller|.\[[pendingPullIntos]][0] is |pullIntoDescriptor|.
  1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
- 1. Set |pullIntoDescriptor|.\[[bytesFilled]] to |pullIntoDescriptor|.\[[bytesFilled]] + |size|.
+ 1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to [=pull-into
+    descriptor/bytes filled=] + |size|.
 </div>
 
 <div algorithm>
@@ -2806,26 +2836,28 @@ The following abstract operations support the implementation of the
  |pullIntoDescriptor|)</dfn> performs the following steps:
 
  1. Let |elementSize| be |pullIntoDescriptor|.\[[elementSize]].
- 1. Let |currentAlignedBytes| be |pullIntoDescriptor|.\[[bytesFilled]] −
-    (|pullIntoDescriptor|.\[[bytesFilled]] mod |elementSize|).
- 1. Let |maxBytesToCopy| be min(|controller|.\[[queueTotalSize]],
-    |pullIntoDescriptor|.\[[byteLength]] − |pullIntoDescriptor|.\[[bytesFilled]]).
- 1. Let |maxBytesFilled| be |pullIntoDescriptor|.\[[bytesFilled]] + |maxBytesToCopy|.
+ 1. Let |currentAlignedBytes| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] −
+    (|pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] mod |elementSize|).
+ 1. Let |maxBytesToCopy| be min(|controller|.\[[queueTotalSize]], |pullIntoDescriptor|'s [=pull-into
+    descriptor/byte length=] − |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]).
+ 1. Let |maxBytesFilled| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] +
+    |maxBytesToCopy|.
  1. Let |maxAlignedBytes| be |maxBytesFilled| − (|maxBytesFilled| mod |elementSize|).
  1. Let |totalBytesToCopyRemaining| be |maxBytesToCopy|.
  1. Let |ready| be false.
  1. If |maxAlignedBytes| > |currentAlignedBytes|,
-  1. Set |totalBytesToCopyRemaining| to |maxAlignedBytes| − |pullIntoDescriptor|.\[[bytesFilled]].
+  1. Set |totalBytesToCopyRemaining| to |maxAlignedBytes| − |pullIntoDescriptor|'s [=pull-into
+     descriptor/bytes filled=].
   1. Set |ready| to true.
  1. Let |queue| be |controller|.\[[queue]].
  1. [=While=] |totalBytesToCopyRemaining| > 0,
   1. Let |headOfQueue| be |queue|[0].
   1. Let |bytesToCopy| be min(|totalBytesToCopyRemaining|, |headOfQueue|.\[[byteLength]]).
-  1. Let |destStart| be |pullIntoDescriptor|.\[[byteOffset]] +
-     |pullIntoDescriptor|.\[[bytesFilled]].
-  1. Perform ! [$CopyDataBlockBytes$](|pullIntoDescriptor|.\[[buffer]].\[[ArrayBufferData]],
-     |destStart|, |headOfQueue|.\[[buffer]].\[[ArrayBufferData]], |headOfQueue|.\[[byteOffset]],
-     |bytesToCopy|).
+  1. Let |destStart| be |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=] +
+     |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
+  1. Perform ! [$CopyDataBlockBytes$](|pullIntoDescriptor|'s [=pull-into
+     descriptor/buffer=].\[[ArrayBufferData]], |destStart|,
+     |headOfQueue|.\[[buffer]].\[[ArrayBufferData]], |headOfQueue|.\[[byteOffset]], |bytesToCopy|).
   1. If |headOfQueue|.\[[byteLength]] is |bytesToCopy|,
    1. [=list/Remove=] |queue|[0].
   1. Otherwise,
@@ -2837,8 +2869,9 @@ The following abstract operations support the implementation of the
   1. Set |totalBytesToCopyRemaining| to |totalBytesToCopyRemaining| − |bytesToCopy|.
  1. If |ready| is false,
   1. Assert: |controller|.\[[queueTotalSize]] is 0.
-  1. Assert: |pullIntoDescriptor|.\[[bytesFilled]] > 0.
-  1. Assert: |pullIntoDescriptor|.\[[bytesFilled]] &lt; |pullIntoDescriptor|.\[[elementSize]].
+  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] > 0.
+  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt;
+     |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. Return |ready|.
 </div>
 
@@ -2911,15 +2944,17 @@ The following abstract operations support the implementation of the
  1. Let |byteOffset| be |view|.\[[ByteOffset]].
  1. Let |byteLength| be |view|.\[[ByteLength]].
  1. Let |buffer| be ! [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
- 1. Let |pullIntoDescriptor| be Record {\[[buffer]]: |buffer|, \[[byteOffset]]: |byteOffset|,
-    \[[byteLength]]: |byteLength|, \[[bytesFilled]]: 0, \[[elementSize]]: |elementSize|,
-    \[[ctor]]: |ctor|, \[[readerType]]: "`byob`"}.
+ 1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
+    |buffer|, [=pull-into descriptor/byte offset=] |byteOffset|, [=pull-into descriptor/byte
+    length=] |byteLength|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/element
+    size=] |elementSize|, [=pull-into descriptor/view constructor=] |ctor|, and [=pull-into
+    descriptor/reader type=] "`byob`".
  1. If |controller|.\[[pendingPullIntos]] is not empty,
   1. [=list/Append=] |pullIntoDescriptor| to |controller|.\[[pendingPullIntos]].
   1. Return ! [$ReadableStreamAddReadIntoRequest$](|stream|).
  1. If |stream|.\[[state]] is "`closed`",
-  1. Let |emptyView| be ! [$Construct$](|ctor|, « |pullIntoDescriptor|.\[[buffer]],
-     |pullIntoDescriptor|.\[[byteOffset]], 0 »).
+  1. Let |emptyView| be ! [$Construct$](|ctor|, « |pullIntoDescriptor|'s [=pull-into
+     descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=], 0 »).
   1. Return [=a promise resolved with=] ! [$ReadableStreamCreateReadResult$](|emptyView|, true,
      |stream|.\[[reader]].\[[forAuthorCode]]).
  1. If |controller|.\[[queueTotalSize]] > 0,
@@ -2954,8 +2989,9 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-in-closed-state">ReadableByteStreamControllerRespondInClosedState(|controller|,
  |firstDescriptor|)</dfn> performs the following steps:
 
- 1. Set |firstDescriptor|.\[[buffer]] to ! [$TransferArrayBuffer$](|firstDescriptor|.\[[buffer]]).
- 1. Assert: |firstDescriptor|.\[[bytesFilled]] is 0.
+ 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to !
+    [$TransferArrayBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]).
+ 1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
  1. Let |stream| be |controller|.\[[controlledReadableStream]].
  1. If ! [$ReadableStreamHasBYOBReader$](|stream|) is true,
   1. [=While=] ! [$ReadableStreamGetNumReadIntoRequests$](|stream|) > 0,
@@ -2970,22 +3006,26 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-in-readable-state">ReadableByteStreamControllerRespondInReadableState(|controller|,
  |bytesWritten|, |pullIntoDescriptor|)</dfn> performs the following steps:
 
- 1. If |pullIntoDescriptor|.\[[bytesFilled]] + |bytesWritten| >
-    |pullIntoDescriptor|.\[[byteLength]], throw a {{RangeError}} exception.
+ 1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] + |bytesWritten| >
+    |pullIntoDescriptor|'s [=pull-into descriptor/byte length=], throw a {{RangeError}} exception.
  1. Perform ! [$ReadableByteStreamControllerFillHeadPullIntoDescriptor$](|controller|,
     |bytesWritten|, |pullIntoDescriptor|).
- 1. If |pullIntoDescriptor|.\[[bytesFilled]] &lt; |pullIntoDescriptor|.\[[elementSize]], return.
+ 1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
+    [=pull-into descriptor/element size=], return.
  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
- 1. Let |remainderSize| be |pullIntoDescriptor|.\[[bytesFilled]] mod
-    |pullIntoDescriptor|.\[[elementSize]].
+ 1. Let |remainderSize| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] mod
+    |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. If |remainderSize| > 0,
-   1. Let |end| be |pullIntoDescriptor|.\[[byteOffset]] + |pullIntoDescriptor|.\[[bytesFilled]].
-   1. Let |remainder| be ? [$CloneArrayBuffer$](|pullIntoDescriptor|.\[[buffer]], |end| −
-      |remainderSize|, |remainderSize|, {{%ArrayBuffer%}}).
+   1. Let |end| be |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=] +
+      |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
+   1. Let |remainder| be ? [$CloneArrayBuffer$](|pullIntoDescriptor|'s [=pull-into
+      descriptor/buffer=], |end| − |remainderSize|, |remainderSize|, {{%ArrayBuffer%}}).
    1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|, |remainder|, 0,
       |remainder|.\[[ByteLength]]).
- 1. Set |pullIntoDescriptor|.\[[buffer]] to ! [$TransferArrayBuffer$](|pullIntoDescriptor|.\[[buffer]]).
- 1. Set |pullIntoDescriptor|.\[[bytesFilled]] to |pullIntoDescriptor|.\[[bytesFilled]] − |remainderSize|.
+ 1. Set |pullIntoDescriptor|'s [=pull-into descriptor/buffer=] to !
+    [$TransferArrayBuffer$](|pullIntoDescriptor|'s [=pull-into descriptor/buffer=]).
+ 1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to |pullIntoDescriptor|'s
+    [=pull-into descriptor/bytes filled=] − |remainderSize|.
  1. Perform !
     [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.\[[controlledReadableStream]],
     |pullIntoDescriptor|).
@@ -3017,11 +3057,11 @@ The following abstract operations support the implementation of the
 
  1. Assert: |controller|.\[[pendingPullIntos]] is not [=list/is empty|empty=].
  1. Let |firstDescriptor| be |controller|.\[[pendingPullIntos]][0].
- 1. If |firstDescriptor|.\[[byteOffset]] + |firstDescriptor|.\[[bytesFilled]] is not
-    |view|.\[[ByteOffset]], throw a {{RangeError}} exception.
- 1. If |firstDescriptor|.\[[byteLength]] is not |view|.\[[ByteLength]], throw a {{RangeError}}
-    exception.
- 1. Set |firstDescriptor|.\[[buffer]] to |view|.\[[ViewedArrayBuffer]].
+ 1. If |firstDescriptor|'s [=pull-into descriptor/byte offset=] + |firstDescriptor|' [=pull-into
+    descriptor/bytes filled=] is not |view|.\[[ByteOffset]], throw a {{RangeError}} exception.
+ 1. If |firstDescriptor|'s [=pull-into descriptor/byte length=] is not |view|.\[[ByteLength]], throw
+    a {{RangeError}} exception.
+ 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to |view|.\[[ViewedArrayBuffer]].
  1. Perform ? [$ReadableByteStreamControllerRespondInternal$](|controller|, |view|.\[[ByteLength]]).
 </div>
 
