@@ -3861,7 +3861,7 @@ the following table:
 </table>
 
 The <dfn>special close value</dfn> is a unique value enqueued into \[[queue]], in lieu of a
-[=chunk=], to signal that the stream is closed. It only used internally, and is never exposed to web
+[=chunk=], to signal that the stream is closed. It is only used internally, and is never exposed to web
 developers.
 
 <h4 id="ws-default-controller-prototype">Methods</h4>
