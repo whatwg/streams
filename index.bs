@@ -3860,8 +3860,8 @@ the following table:
    write), which writes data to the [=underlying sink=]
 </table>
 
-The <dfn>special close value</dfn> is a unique value enqueued into \[[queue]], in lieu of a
-[=chunk=], to signal that the stream is closed. It is only used internally, and is never exposed to web
+The <dfn>close sentinel</dfn> is a unique value enqueued into \[[queue]], in lieu of a [=chunk=], to
+signal that the stream is closed. It is only used internally, and is never exposed to web
 developers.
 
 <h4 id="ws-default-controller-prototype">Methods</h4>
@@ -4496,7 +4496,7 @@ The following abstract operations support the implementation of the
   1. Return.
  1. If |controller|.\[[queue]] is empty, return.
  1. Let |value| be ! [$PeekQueueValue$](|controller|).
- 1. If |value| is the [=special close value=], perform !
+ 1. If |value| is the [=close sentinel=], perform !
     [$WritableStreamDefaultControllerProcessClose$](|controller|).
  1. Otherwise, perform ! [$WritableStreamDefaultControllerProcessWrite$](|controller|,
     |value|).
@@ -4530,7 +4530,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-close">WritableStreamDefaultControllerClose(|controller|)</dfn>
  performs the following steps:
 
- 1. Perform ! [$EnqueueValueWithSize$](|controller|, [=special close value=], 0).
+ 1. Perform ! [$EnqueueValueWithSize$](|controller|, [=close sentinel=], 0).
  1. Perform ! [$WritableStreamDefaultControllerAdvanceQueueIfNeeded$](|controller|).
 </div>
 

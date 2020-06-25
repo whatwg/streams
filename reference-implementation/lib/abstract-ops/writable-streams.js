@@ -12,7 +12,7 @@ const WritableStream = require('../../generated/WritableStream.js');
 const WritableStreamDefaultController = require('../../generated/WritableStreamDefaultController.js');
 const WritableStreamDefaultWriter = require('../../generated/WritableStreamDefaultWriter.js');
 
-const specialCloseValue = Symbol('special close value');
+const closeSentinel = Symbol('close sentinel');
 
 Object.assign(exports, {
   AcquireWritableStreamDefaultWriter,
@@ -619,7 +619,7 @@ function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
   }
 
   const value = PeekQueueValue(controller);
-  if (value === specialCloseValue) {
+  if (value === closeSentinel) {
     WritableStreamDefaultControllerProcessClose(controller);
   } else {
     WritableStreamDefaultControllerProcessWrite(controller, value);
@@ -634,7 +634,7 @@ function WritableStreamDefaultControllerClearAlgorithms(controller) {
 }
 
 function WritableStreamDefaultControllerClose(controller) {
-  EnqueueValueWithSize(controller, specialCloseValue, 0);
+  EnqueueValueWithSize(controller, closeSentinel, 0);
   WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
 }
 
