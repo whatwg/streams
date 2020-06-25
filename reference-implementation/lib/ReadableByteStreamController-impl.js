@@ -78,7 +78,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
     return result;
   }
 
-  [PullSteps](chunkSteps, doneSteps, errorSteps) {
+  [PullSteps](readRequest) {
     const stream = this._controlledReadableStream;
     assert(aos.ReadableStreamHasDefaultReader(stream) === true);
 
@@ -92,7 +92,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
 
       const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
 
-      chunkSteps(view);
+      readRequest.chunkSteps(view);
       return;
     }
 
@@ -102,7 +102,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
       try {
         buffer = new ArrayBuffer(autoAllocateChunkSize);
       } catch (bufferE) {
-        errorSteps(bufferE);
+        readRequest.errorSteps(bufferE);
         return;
       }
 
@@ -119,7 +119,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
       this._pendingPullIntos.push(pullIntoDescriptor);
     }
 
-    aos.ReadableStreamAddReadRequest(stream, chunkSteps, doneSteps, errorSteps);
+    aos.ReadableStreamAddReadRequest(stream, readRequest);
     aos.ReadableByteStreamControllerCallPullIfNeeded(this);
   }
 };

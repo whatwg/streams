@@ -126,18 +126,18 @@ exports.implementation = class ReadableStreamImpl {
     }
 
     const promise = newPromise();
-    aos.ReadableStreamDefaultReaderRead(
-      reader,
-      chunk => resolvePromise(promise, chunk),
-      () => {
+    const readRequest = {
+      chunkSteps: chunk => resolvePromise(promise, chunk),
+      closeSteps: () => {
         aos.ReadableStreamReaderGenericRelease(reader);
         resolvePromise(promise, idlUtils.asyncIteratorEOI);
       },
-      err => {
+      errorSteps: e => {
         aos.ReadableStreamReaderGenericRelease(reader);
-        rejectPromise(promise, err);
+        rejectPromise(promise, e);
       }
-    );
+    };
+    aos.ReadableStreamDefaultReaderRead(reader, readRequest);
     return promise;
   }
 

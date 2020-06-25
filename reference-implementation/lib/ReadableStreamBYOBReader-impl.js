@@ -33,13 +33,12 @@ exports.implementation = class ReadableStreamBYOBReaderImpl {
     }
 
     const promise = newPromise();
-    aos.ReadableStreamBYOBReaderRead(
-      this,
-      view,
-      chunk => resolvePromise(promise, { value: chunk, done: false }),
-      chunk => resolvePromise(promise, { value: chunk, done: true }),
-      err => rejectPromise(promise, err)
-    );
+    const readIntoRequest = {
+      chunkSteps: chunk => resolvePromise(promise, { value: chunk, done: false }),
+      closeSteps: chunk => resolvePromise(promise, { value: chunk, done: true }),
+      errorSteps: e => rejectPromise(promise, e)
+    };
+    aos.ReadableStreamBYOBReaderRead(this, view, readIntoRequest);
     return promise;
   }
 

@@ -26,12 +26,13 @@ exports.implementation = class ReadableStreamDefaultReaderImpl {
     }
 
     const promise = newPromise();
-    aos.ReadableStreamDefaultReaderRead(
-      this,
-      chunk => resolvePromise(promise, { value: chunk, done: false }),
-      () => resolvePromise(promise, { value: undefined, done: true }),
-      err => rejectPromise(promise, err)
-    );
+    const readRequest = {
+      chunkSteps: chunk => resolvePromise(promise, { value: chunk, done: false }),
+      closeSteps: () => resolvePromise(promise, { value: undefined, done: true }),
+      errorSteps: e => rejectPromise(promise, e)
+    };
+
+    aos.ReadableStreamDefaultReaderRead(this, readRequest);
     return promise;
   }
 

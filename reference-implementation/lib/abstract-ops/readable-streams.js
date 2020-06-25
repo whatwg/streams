@@ -186,12 +186,16 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
         return new Promise((resolveRead, rejectRead) => {
           ReadableStreamDefaultReaderRead(
             reader,
-            chunk => {
-              currentWrite = transformPromiseWith(WritableStreamDefaultWriterWrite(writer, chunk), undefined, () => {});
-              resolveRead(false);
-            },
-            () => resolveRead(true),
-            rejectRead
+            {
+              chunkSteps: chunk => {
+                currentWrite = transformPromiseWith(
+                  WritableStreamDefaultWriterWrite(writer, chunk), undefined, () => {}
+                );
+                resolveRead(false);
+              },
+              closeSteps: () => resolveRead(true),
+              errorSteps: rejectRead
+            }
           );
         });
       });
@@ -339,9 +343,8 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
     reading = true;
 
-    ReadableStreamDefaultReaderRead(
-      reader,
-      value => {
+    const readRequest = {
+      chunkSteps: value => {
         // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
         // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
         // successful synchronously-available reads get ahead of asynchronously-available errors.
@@ -365,7 +368,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
           }
         });
       },
-      () => {
+      closeSteps: () => {
         reading = false;
         if (canceled1 === false) {
           ReadableStreamDefaultControllerClose(branch1._readableStreamController);
@@ -374,10 +377,11 @@ function ReadableStreamTee(stream, cloneForBranch2) {
           ReadableStreamDefaultControllerClose(branch2._readableStreamController);
         }
       },
-      () => {
+      errorSteps: () => {
         reading = false;
       }
-    );
+    };
+    ReadableStreamDefaultReaderRead(reader, readRequest);
 
     return promiseResolvedWith(undefined);
   }
@@ -419,18 +423,18 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
 // Interfacing with controllers
 
-function ReadableStreamAddReadIntoRequest(stream, chunkSteps, doneSteps, errorSteps) {
+function ReadableStreamAddReadIntoRequest(stream, readRequest) {
   assert(ReadableStreamBYOBReader.isImpl(stream._reader));
   assert(stream._state === 'readable' || stream._state === 'closed');
 
-  stream._reader._readIntoRequests.push({ chunkSteps, doneSteps, errorSteps });
+  stream._reader._readIntoRequests.push(readRequest);
 }
 
-function ReadableStreamAddReadRequest(stream, chunkSteps, doneSteps, errorSteps) {
+function ReadableStreamAddReadRequest(stream, readRequest) {
   assert(ReadableStreamDefaultReader.isImpl(stream._reader));
   assert(stream._state === 'readable');
 
-  stream._reader._readRequests.push({ chunkSteps, doneSteps, errorSteps });
+  stream._reader._readRequests.push(readRequest);
 }
 
 function ReadableStreamCancel(stream, reason) {
@@ -462,7 +466,7 @@ function ReadableStreamClose(stream) {
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     for (const readRequest of reader._readRequests) {
-      readRequest.doneSteps();
+      readRequest.closeSteps();
     }
     reader._readRequests = [];
   }
@@ -509,7 +513,7 @@ function ReadableStreamFulfillReadIntoRequest(stream, chunk, done) {
 
   const readIntoRequest = reader._readIntoRequests.shift();
   if (done) {
-    readIntoRequest.doneSteps(chunk);
+    readIntoRequest.closeSteps(chunk);
   } else {
     readIntoRequest.chunkSteps(chunk);
   }
@@ -522,7 +526,7 @@ function ReadableStreamFulfillReadRequest(stream, chunk, done) {
 
   const readRequest = reader._readRequests.shift();
   if (done) {
-    readRequest.doneSteps();
+    readRequest.closeSteps();
   } else {
     readRequest.chunkSteps(chunk);
   }
@@ -608,7 +612,7 @@ function ReadableStreamReaderGenericRelease(reader) {
   reader._ownerReadableStream = undefined;
 }
 
-function ReadableStreamBYOBReaderRead(reader, view, chunkSteps, doneSteps, errorSteps) {
+function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest) {
   const stream = reader._ownerReadableStream;
 
   assert(stream !== undefined);
@@ -616,13 +620,13 @@ function ReadableStreamBYOBReaderRead(reader, view, chunkSteps, doneSteps, error
   stream._disturbed = true;
 
   if (stream._state === 'errored') {
-    errorSteps(stream._storedError);
+    readIntoRequest.errorSteps(stream._storedError);
   } else {
-    ReadableByteStreamControllerPullInto(stream._readableStreamController, view, chunkSteps, doneSteps, errorSteps);
+    ReadableByteStreamControllerPullInto(stream._readableStreamController, view, readIntoRequest);
   }
 }
 
-function ReadableStreamDefaultReaderRead(reader, chunkSteps, doneSteps, errorSteps) {
+function ReadableStreamDefaultReaderRead(reader, readRequest) {
   const stream = reader._ownerReadableStream;
 
   assert(stream !== undefined);
@@ -630,12 +634,12 @@ function ReadableStreamDefaultReaderRead(reader, chunkSteps, doneSteps, errorSte
   stream._disturbed = true;
 
   if (stream._state === 'closed') {
-    doneSteps();
+    readRequest.closeSteps();
   } else if (stream._state === 'errored') {
-    errorSteps(stream._storedError);
+    readRequest.errorSteps(stream._storedError);
   } else {
     assert(stream._state === 'readable');
-    stream._readableStreamController[PullSteps](chunkSteps, doneSteps, errorSteps);
+    stream._readableStreamController[PullSteps](readRequest);
   }
 }
 
@@ -1147,7 +1151,7 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
   }
 }
 
-function ReadableByteStreamControllerPullInto(controller, view, chunkSteps, doneSteps, errorSteps) {
+function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest) {
   const stream = controller._controlledReadableStream;
 
   let elementSize = 1;
@@ -1175,13 +1179,13 @@ function ReadableByteStreamControllerPullInto(controller, view, chunkSteps, done
     // - No change happens on desiredSize
     // - The source has already been notified of that there's at least 1 pending read(view)
 
-    ReadableStreamAddReadIntoRequest(stream, chunkSteps, doneSteps, errorSteps);
+    ReadableStreamAddReadIntoRequest(stream, readIntoRequest);
     return;
   }
 
   if (stream._state === 'closed') {
     const emptyView = new view.constructor(pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, 0);
-    doneSteps(emptyView);
+    readIntoRequest.closeSteps(emptyView);
     return;
   }
 
@@ -1191,7 +1195,7 @@ function ReadableByteStreamControllerPullInto(controller, view, chunkSteps, done
 
       ReadableByteStreamControllerHandleQueueDrain(controller);
 
-      chunkSteps(filledView);
+      readIntoRequest.chunkSteps(filledView);
       return;
     }
 
@@ -1199,14 +1203,14 @@ function ReadableByteStreamControllerPullInto(controller, view, chunkSteps, done
       const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
       ReadableByteStreamControllerError(controller, e);
 
-      errorSteps(e);
+      readIntoRequest.errorSteps(e);
       return;
     }
   }
 
   controller._pendingPullIntos.push(pullIntoDescriptor);
 
-  ReadableStreamAddReadIntoRequest(stream, chunkSteps, doneSteps, errorSteps);
+  ReadableStreamAddReadIntoRequest(stream, readIntoRequest);
   ReadableByteStreamControllerCallPullIfNeeded(controller);
 }
 
