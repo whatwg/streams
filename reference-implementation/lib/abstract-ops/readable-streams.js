@@ -990,7 +990,7 @@ function ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescripto
   assert(bytesFilled <= pullIntoDescriptor.byteLength);
   assert(bytesFilled % elementSize === 0);
 
-  return new pullIntoDescriptor.ctor(
+  return new pullIntoDescriptor.viewConstructor(
     pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, bytesFilled / elementSize);
 }
 
@@ -1175,7 +1175,7 @@ function ReadableByteStreamControllerPullInto(controller, view) {
     byteLength: view.byteLength,
     bytesFilled: 0,
     elementSize,
-    ctor,
+    viewConstructor: ctor,
     readerType: 'byob'
   };
 

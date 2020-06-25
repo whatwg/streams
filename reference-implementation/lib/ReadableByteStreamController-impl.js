@@ -111,7 +111,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
         byteLength: autoAllocateChunkSize,
         bytesFilled: 0,
         elementSize: 1,
-        ctor: Uint8Array,
+        viewConstructor: Uint8Array,
         readerType: 'default'
       };
 
