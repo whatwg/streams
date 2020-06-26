@@ -1016,16 +1016,16 @@ following table:
    [=chunks=] sooner than they are available
 </table>
 
-A <dfn>read request</dfn> is a [=struct=] containing three algorithms to perform in reaction to
-filling the [=readable stream=]'s [=internal queue=] or changing its state. It has the following
+A <dfn export>read request</dfn> is a [=struct=] containing three algorithms to perform in reaction
+to filling the [=readable stream=]'s [=internal queue=] or changing its state. It has the following
 [=struct/items=]:
 
-: <dfn for="read request">chunk steps</dfn>
+: <dfn export for="read request">chunk steps</dfn>
 :: An algorithm taking a [=chunk=], called when a chunk is available for reading
-: <dfn for="read request">close steps</dfn>
+: <dfn export for="read request">close steps</dfn>
 :: An algorithm taking no arguments, called when no [=chunks=] are available because the stream is
    closed
-: <dfn for="read request">error steps</dfn>
+: <dfn export for="read request">error steps</dfn>
 :: An algorithm taking a JavaScript value, called when no [=chunks=] are available because the
    stream is errored
 
@@ -1184,16 +1184,16 @@ following table:
    [=chunks=] sooner than they are available
 </table>
 
-A <dfn>read-into request</dfn> is a [=struct=] containing three algorithms to perform in reaction to
-filling the [=readable byte stream=]'s [=internal queue=] or changing its state. It has the
-following [=struct/items=]:
+A <dfn export>read-into request</dfn> is a [=struct=] containing three algorithms to perform in
+reaction to filling the [=readable byte stream=]'s [=internal queue=] or changing its state. It has
+the following [=struct/items=]:
 
-: <dfn for="read-into request">chunk steps</dfn>
+: <dfn export for="read-into request">chunk steps</dfn>
 :: An algorithm taking a [=chunk=], called when a chunk is available for reading
-: <dfn for="read-into request">close steps</dfn>
+: <dfn export for="read-into request">close steps</dfn>
 :: An algorithm taking a [=chunk=], called when no chunks are available because the stream is
    closed
-: <dfn for="read-into request">error steps</dfn>
+: <dfn export for="read-into request">error steps</dfn>
 :: An algorithm taking a JavaScript value, called when no [=chunks=] are available because the
    stream is errored
 
