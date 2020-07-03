@@ -934,7 +934,7 @@ function ReadableByteStreamControllerClearPendingPullIntos(controller) {
 function ReadableByteStreamControllerClose(controller) {
   const stream = controller._controlledReadableStream;
 
-  if (controller._closeRequest === true || stream._state !== 'readable') {
+  if (controller._closeRequested === true || stream._state !== 'readable') {
     return;
   }
 
@@ -990,7 +990,7 @@ function ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescripto
 function ReadableByteStreamControllerEnqueue(controller, chunk) {
   const stream = controller._controlledReadableStream;
 
-  if (controller._closeRequest === true || stream._state !== 'readable') {
+  if (controller._closeRequested === true || stream._state !== 'readable') {
     return;
   }
 
