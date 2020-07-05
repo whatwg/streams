@@ -5328,9 +5328,7 @@ side=] of [=transform streams=].
  1. Return the result of [=reacting=] to |flushPromise|:
   1. If |flushPromise| was fulfilled, then:
    1. If |readable|.\[[state]] is "`errored`", throw |readable|.\[[storedError]].
-   1. Let |readableController| be |readable|.\[[readableStreamController]].
-   1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|readableController|) is true,
-      perform ! [$ReadableStreamDefaultControllerClose$](|readableController|).
+   1. Perform ! [$ReadableStreamDefaultControllerClose$](|readable|.\[[readableStreamController]]).
   1. If |flushPromise| was rejected with reason |r|, then:
    1. Perform ! [$TransformStreamError$](|stream|, |r|).
    1. Throw |readable|.\[[storedError]].
