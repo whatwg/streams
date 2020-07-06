@@ -1,7 +1,6 @@
 'use strict';
 const assert = require('assert');
 
-const { promiseResolvedWith, promiseRejectedWith } = require('./helpers/webidl.js');
 const { CancelSteps, PullSteps } = require('./abstract-ops/internal-methods.js');
 const { ResetQueue } = require('./abstract-ops/queue-with-sizes.js');
 const aos = require('./abstract-ops/readable-streams.js');
@@ -79,7 +78,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
     return result;
   }
 
-  [PullSteps]() {
+  [PullSteps](readRequest) {
     const stream = this._controlledReadableStream;
     assert(aos.ReadableStreamHasDefaultReader(stream) === true);
 
@@ -93,7 +92,8 @@ exports.implementation = class ReadableByteStreamControllerImpl {
 
       const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
 
-      return promiseResolvedWith(aos.ReadableStreamCreateReadResult(view, false, stream._reader._forAuthorCode));
+      readRequest.chunkSteps(view);
+      return;
     }
 
     const autoAllocateChunkSize = this._autoAllocateChunkSize;
@@ -102,7 +102,8 @@ exports.implementation = class ReadableByteStreamControllerImpl {
       try {
         buffer = new ArrayBuffer(autoAllocateChunkSize);
       } catch (bufferE) {
-        return promiseRejectedWith(bufferE);
+        readRequest.errorSteps(bufferE);
+        return;
       }
 
       const pullIntoDescriptor = {
@@ -118,10 +119,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
       this._pendingPullIntos.push(pullIntoDescriptor);
     }
 
-    const promise = aos.ReadableStreamAddReadRequest(stream);
-
+    aos.ReadableStreamAddReadRequest(stream, readRequest);
     aos.ReadableByteStreamControllerCallPullIfNeeded(this);
-
-    return promise;
   }
 };

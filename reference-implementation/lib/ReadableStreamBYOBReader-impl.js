@@ -1,6 +1,6 @@
 'use strict';
 
-const { promiseRejectedWith } = require('./helpers/webidl.js');
+const { newPromise, resolvePromise, rejectPromise, promiseRejectedWith } = require('./helpers/webidl.js');
 const aos = require('./abstract-ops/readable-streams.js');
 
 exports.implementation = class ReadableStreamBYOBReaderImpl {
@@ -32,7 +32,14 @@ exports.implementation = class ReadableStreamBYOBReaderImpl {
       return promiseRejectedWith(readerLockException('read'));
     }
 
-    return aos.ReadableStreamBYOBReaderRead(this, view);
+    const promise = newPromise();
+    const readIntoRequest = {
+      chunkSteps: chunk => resolvePromise(promise, { value: chunk, done: false }),
+      closeSteps: chunk => resolvePromise(promise, { value: chunk, done: true }),
+      errorSteps: e => rejectPromise(promise, e)
+    };
+    aos.ReadableStreamBYOBReaderRead(this, view, readIntoRequest);
+    return promise;
   }
 
   releaseLock() {

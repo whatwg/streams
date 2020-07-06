@@ -4,7 +4,6 @@ const assert = require('assert');
 const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise, uponPromise,
         setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment, uponRejection } =
   require('../helpers/webidl.js');
-const { typeIsObject } = require('../helpers/miscellaneous.js');
 const { CopyDataBlockBytes, CreateArrayFromList, TransferArrayBuffer } = require('./ecmascript.js');
 const { IsNonNegativeNumber } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
@@ -39,7 +38,6 @@ Object.assign(exports, {
   ReadableStreamBYOBReaderRead,
   ReadableStreamCancel,
   ReadableStreamClose,
-  ReadableStreamCreateReadResult,
   ReadableStreamDefaultControllerCallPullIfNeeded,
   ReadableStreamDefaultControllerCanCloseOrEnqueue,
   ReadableStreamDefaultControllerClearAlgorithms,
@@ -63,17 +61,15 @@ Object.assign(exports, {
 
 // Working with readable streams
 
-function AcquireReadableStreamBYOBReader(stream, forAuthorCode = false) {
+function AcquireReadableStreamBYOBReader(stream) {
   const reader = ReadableStreamBYOBReader.new(globalThis);
   SetUpReadableStreamBYOBReader(reader, stream);
-  reader._forAuthorCode = forAuthorCode;
   return reader;
 }
 
-function AcquireReadableStreamDefaultReader(stream, forAuthorCode = false) {
+function AcquireReadableStreamDefaultReader(stream) {
   const reader = ReadableStreamDefaultReader.new(globalThis);
   SetUpReadableStreamDefaultReader(reader, stream);
-  reader._forAuthorCode = forAuthorCode;
   return reader;
 }
 
@@ -187,13 +183,20 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       }
 
       return transformPromiseWith(writer._readyPromise, () => {
-        return transformPromiseWith(ReadableStreamDefaultReaderRead(reader), ({ value, done }) => {
-          if (done === true) {
-            return true;
-          }
-
-          currentWrite = transformPromiseWith(WritableStreamDefaultWriterWrite(writer, value), undefined, () => {});
-          return false;
+        return new Promise((resolveRead, rejectRead) => {
+          ReadableStreamDefaultReaderRead(
+            reader,
+            {
+              chunkSteps: chunk => {
+                currentWrite = transformPromiseWith(
+                  WritableStreamDefaultWriterWrite(writer, chunk), undefined, () => {}
+                );
+                resolveRead(false);
+              },
+              closeSteps: () => resolveRead(true),
+              errorSteps: rejectRead
+            }
+          );
         });
       });
     }
@@ -340,43 +343,45 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
     reading = true;
 
-    const readPromise = transformPromiseWith(ReadableStreamDefaultReaderRead(reader), result => {
-      reading = false;
+    const readRequest = {
+      chunkSteps: value => {
+        // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
+        // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
+        // successful synchronously-available reads get ahead of asynchronously-available errors.
+        queueMicrotask(() => {
+          reading = false;
+          const value1 = value;
+          const value2 = value;
 
-      assert(typeIsObject(result));
-      const done = result.done;
-      assert(typeof done === 'boolean');
+          // There is no way to access the cloning code right now in the reference implementation.
+          // If we add one then we'll need an implementation for serializable objects.
+          // if (canceled2 === false && cloneForBranch2 === true) {
+          //   value2 = StructuredDeserialize(StructuredSerialize(value2));
+          // }
 
-      if (done === true) {
+          if (canceled1 === false) {
+            ReadableStreamDefaultControllerEnqueue(branch1._readableStreamController, value1);
+          }
+
+          if (canceled2 === false) {
+            ReadableStreamDefaultControllerEnqueue(branch2._readableStreamController, value2);
+          }
+        });
+      },
+      closeSteps: () => {
+        reading = false;
         if (canceled1 === false) {
           ReadableStreamDefaultControllerClose(branch1._readableStreamController);
         }
         if (canceled2 === false) {
           ReadableStreamDefaultControllerClose(branch2._readableStreamController);
         }
-        return;
+      },
+      errorSteps: () => {
+        reading = false;
       }
-
-      const value = result.value;
-      const value1 = value;
-      const value2 = value;
-
-      // There is no way to access the cloning code right now in the reference implementation.
-      // If we add one then we'll need an implementation for serializable objects.
-      // if (canceled2 === false && cloneForBranch2 === true) {
-      //   value2 = StructuredDeserialize(StructuredSerialize(value2));
-      // }
-
-      if (canceled1 === false) {
-        ReadableStreamDefaultControllerEnqueue(branch1._readableStreamController, value1);
-      }
-
-      if (canceled2 === false) {
-        ReadableStreamDefaultControllerEnqueue(branch2._readableStreamController, value2);
-      }
-    });
-
-    setPromiseIsHandledToTrue(readPromise);
+    };
+    ReadableStreamDefaultReaderRead(reader, readRequest);
 
     return promiseResolvedWith(undefined);
   }
@@ -418,22 +423,18 @@ function ReadableStreamTee(stream, cloneForBranch2) {
 
 // Interfacing with controllers
 
-function ReadableStreamAddReadIntoRequest(stream) {
+function ReadableStreamAddReadIntoRequest(stream, readRequest) {
   assert(ReadableStreamBYOBReader.isImpl(stream._reader));
   assert(stream._state === 'readable' || stream._state === 'closed');
 
-  const promise = newPromise();
-  stream._reader._readIntoRequests.push(promise);
-  return promise;
+  stream._reader._readIntoRequests.push(readRequest);
 }
 
-function ReadableStreamAddReadRequest(stream) {
+function ReadableStreamAddReadRequest(stream, readRequest) {
   assert(ReadableStreamDefaultReader.isImpl(stream._reader));
   assert(stream._state === 'readable');
 
-  const promise = newPromise();
-  stream._reader._readRequests.push(promise);
-  return promise;
+  stream._reader._readRequests.push(readRequest);
 }
 
 function ReadableStreamCancel(stream, reason) {
@@ -465,24 +466,12 @@ function ReadableStreamClose(stream) {
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     for (const readRequest of reader._readRequests) {
-      resolvePromise(readRequest, ReadableStreamCreateReadResult(undefined, true, reader._forAuthorCode));
+      readRequest.closeSteps();
     }
     reader._readRequests = [];
   }
 
   resolvePromise(reader._closedPromise, undefined);
-}
-
-function ReadableStreamCreateReadResult(value, done, forAuthorCode) {
-  let prototype = null;
-  if (forAuthorCode === true) {
-    prototype = Object.prototype;
-  }
-  assert(typeof done === 'boolean');
-  const obj = Object.create(prototype);
-  Object.defineProperty(obj, 'value', { value, enumerable: true, writable: true, configurable: true });
-  Object.defineProperty(obj, 'done', { value: done, enumerable: true, writable: true, configurable: true });
-  return obj;
 }
 
 function ReadableStreamError(stream, e) {
@@ -499,7 +488,7 @@ function ReadableStreamError(stream, e) {
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     for (const readRequest of reader._readRequests) {
-      rejectPromise(readRequest, e);
+      readRequest.errorSteps(e);
     }
 
     reader._readRequests = [];
@@ -507,7 +496,7 @@ function ReadableStreamError(stream, e) {
     assert(ReadableStreamBYOBReader.isImpl(reader));
 
     for (const readIntoRequest of reader._readIntoRequests) {
-      rejectPromise(readIntoRequest, e);
+      readIntoRequest.errorSteps(e);
     }
 
     reader._readIntoRequests = [];
@@ -523,7 +512,11 @@ function ReadableStreamFulfillReadIntoRequest(stream, chunk, done) {
   assert(reader._readIntoRequests.length > 0);
 
   const readIntoRequest = reader._readIntoRequests.shift();
-  resolvePromise(readIntoRequest, ReadableStreamCreateReadResult(chunk, done, reader._forAuthorCode));
+  if (done) {
+    readIntoRequest.closeSteps(chunk);
+  } else {
+    readIntoRequest.chunkSteps(chunk);
+  }
 }
 
 function ReadableStreamFulfillReadRequest(stream, chunk, done) {
@@ -532,7 +525,11 @@ function ReadableStreamFulfillReadRequest(stream, chunk, done) {
   assert(reader._readRequests.length > 0);
 
   const readRequest = reader._readRequests.shift();
-  resolvePromise(readRequest, ReadableStreamCreateReadResult(chunk, done, reader._forAuthorCode));
+  if (done) {
+    readRequest.closeSteps();
+  } else {
+    readRequest.chunkSteps(chunk);
+  }
 }
 
 function ReadableStreamGetNumReadIntoRequests(stream) {
@@ -580,7 +577,6 @@ function ReadableStreamReaderGenericCancel(reader, reason) {
 }
 
 function ReadableStreamReaderGenericInitialize(reader, stream) {
-  reader._forAuthorCode = true;
   reader._ownerReadableStream = stream;
   stream._reader = reader;
 
@@ -616,7 +612,7 @@ function ReadableStreamReaderGenericRelease(reader) {
   reader._ownerReadableStream = undefined;
 }
 
-function ReadableStreamBYOBReaderRead(reader, view) {
+function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest) {
   const stream = reader._ownerReadableStream;
 
   assert(stream !== undefined);
@@ -624,13 +620,13 @@ function ReadableStreamBYOBReaderRead(reader, view) {
   stream._disturbed = true;
 
   if (stream._state === 'errored') {
-    return promiseRejectedWith(stream._storedError);
+    readIntoRequest.errorSteps(stream._storedError);
+  } else {
+    ReadableByteStreamControllerPullInto(stream._readableStreamController, view, readIntoRequest);
   }
-
-  return ReadableByteStreamControllerPullInto(stream._readableStreamController, view);
 }
 
-function ReadableStreamDefaultReaderRead(reader) {
+function ReadableStreamDefaultReaderRead(reader, readRequest) {
   const stream = reader._ownerReadableStream;
 
   assert(stream !== undefined);
@@ -638,16 +634,13 @@ function ReadableStreamDefaultReaderRead(reader) {
   stream._disturbed = true;
 
   if (stream._state === 'closed') {
-    return promiseResolvedWith(ReadableStreamCreateReadResult(undefined, true, reader._forAuthorCode));
+    readRequest.closeSteps();
+  } else if (stream._state === 'errored') {
+    readRequest.errorSteps(stream._storedError);
+  } else {
+    assert(stream._state === 'readable');
+    stream._readableStreamController[PullSteps](readRequest);
   }
-
-  if (stream._state === 'errored') {
-    return promiseRejectedWith(stream._storedError);
-  }
-
-  assert(stream._state === 'readable');
-
-  return stream._readableStreamController[PullSteps]();
 }
 
 function SetUpReadableStreamBYOBReader(reader, stream) {
@@ -1158,7 +1151,7 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
   }
 }
 
-function ReadableByteStreamControllerPullInto(controller, view) {
+function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest) {
   const stream = controller._controlledReadableStream;
 
   let elementSize = 1;
@@ -1186,12 +1179,14 @@ function ReadableByteStreamControllerPullInto(controller, view) {
     // - No change happens on desiredSize
     // - The source has already been notified of that there's at least 1 pending read(view)
 
-    return ReadableStreamAddReadIntoRequest(stream);
+    ReadableStreamAddReadIntoRequest(stream, readIntoRequest);
+    return;
   }
 
   if (stream._state === 'closed') {
     const emptyView = new view.constructor(pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, 0);
-    return promiseResolvedWith(ReadableStreamCreateReadResult(emptyView, true, stream._reader._forAuthorCode));
+    readIntoRequest.closeSteps(emptyView);
+    return;
   }
 
   if (controller._queueTotalSize > 0) {
@@ -1200,24 +1195,23 @@ function ReadableByteStreamControllerPullInto(controller, view) {
 
       ReadableByteStreamControllerHandleQueueDrain(controller);
 
-      return promiseResolvedWith(ReadableStreamCreateReadResult(filledView, false, stream._reader._forAuthorCode));
+      readIntoRequest.chunkSteps(filledView);
+      return;
     }
 
     if (controller._closeRequested === true) {
       const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
       ReadableByteStreamControllerError(controller, e);
 
-      return promiseRejectedWith(e);
+      readIntoRequest.errorSteps(e);
+      return;
     }
   }
 
   controller._pendingPullIntos.push(pullIntoDescriptor);
 
-  const promise = ReadableStreamAddReadIntoRequest(stream);
-
+  ReadableStreamAddReadIntoRequest(stream, readIntoRequest);
   ReadableByteStreamControllerCallPullIfNeeded(controller);
-
-  return promise;
 }
 
 function ReadableByteStreamControllerRespond(controller, bytesWritten) {

@@ -5,6 +5,6 @@ interface ReadableStreamDefaultReader {
   readonly attribute Promise<void> closed;
 
   Promise<void> cancel(optional any reason);
-  Promise<any> read();
+  Promise<ReadableStreamDefaultReadResult> read();
   void releaseLock();
 };

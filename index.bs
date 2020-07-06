@@ -24,7 +24,6 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: %DataView%; url: #sec-dataview-constructor
   text: %ArrayBuffer%; url: #sec-arraybuffer-constructor
  type: interface
-  text: %ObjectPrototype%; url: #sec-properties-of-the-object-prototype-object
   text: ArrayBuffer; url: #sec-arraybuffer-objects
   text: DataView; url: #sec-dataview-objects
   text: Number; url: #sec-ecmascript-language-types-number-type
@@ -42,15 +41,11 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: CopyDataBlockBytes; url: #sec-copydatablockbytes
   text: CreateArrayFromList; url: #sec-createarrayfromlist
   text: CreateBuiltinFunction; url: #sec-createbuiltinfunction
-  text: CreateDataProperty; url: #sec-createdataproperty
-  text: CreateIterResultObject; url: #sec-createiterresultobject
   text: Construct; url: #sec-construct
   text: DetachArrayBuffer; url: #sec-detacharraybuffer
-  text: Get; url: #sec-get
   text: GetV; url: #sec-getv
   text: IsDetachedBuffer; url: #sec-isdetachedbuffer
   text: IsInteger; url: #sec-isinteger
-  text: OrdinaryObjectCreate; url: #sec-ordinaryobjectcreate
   text: SetFunctionLength; url: #sec-setfunctionlength
   text: SetFunctionName; url: #sec-setfunctionname
   text: Type; url: #sec-ecmascript-data-types-and-values
@@ -793,10 +788,10 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
  are:
 
  1. If |options|["{{ReadableStreamGetReaderOptions/mode}}"] does not [=map/exist=], return ?
-    [$AcquireReadableStreamDefaultReader$]([=this=], true).
+    [$AcquireReadableStreamDefaultReader$]([=this=]).
  1. Assert: |options|["{{ReadableStreamGetReaderOptions/mode}}"] is
     "{{ReadableStreamReaderMode/byob}}".
- 1. Return ? [$AcquireReadableStreamBYOBReader$]([=this=], true).
+ 1. Return ? [$AcquireReadableStreamBYOBReader$]([=this=]).
 
  <div class="example" id="example-read-all-chunks">
   An example of an abstraction that might benefit from using a reader is a function like the
@@ -937,20 +932,21 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  1. Let |reader| be |iterator|'s [=ReadableStream async iterator/reader=].
  1. If |reader|.\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
     {{TypeError}}.
- 1. Return the result of [=reacting=] to ! [$ReadableStreamDefaultReaderRead$](|reader|) with the
-    following fulfillment steps given the argument |result|:
-  1. Assert: [$Type$](|result|) is Object.
-  1. Let |done| be ! [$Get$](|result|, "`done`").
-  1. Assert: [$Type$](|done|) is Boolean.
-  1. If |done| is true:
+ 1. Let |promise| be [=a new promise=].
+ 1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
+  : [=read request/chunk steps=], given |chunk|
+  ::
+   1. [=Resolve=] |promise| with |chunk|.
+  : [=read request/close steps=]
+  ::
    1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
-   1. Return [=end of iteration=].
-  1. Let |value| be ! [$Get$](|result|, "`value`").
-  1. Return |value|.
-
-  as well as the following rejection steps given the argument |reason|:
-  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
-  1. Throw |reason|.
+   1. [=Resolve=] |promise| with [=end of iteration=].
+  : [=read request/error steps=], given |e|
+  ::
+   1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+   1. [=Reject=] |promise| with |e|.
+ 1. Perform ! [$ReadableStreamDefaultReaderRead$]([=this=], |readRequest|).
+ 1. Return |promise|.
 </div>
 
 <div algorithm="ReadableStream asynchronous iterator return" id="rs-asynciterator-prototype-return">
@@ -986,8 +982,13 @@ interface ReadableStreamDefaultReader {
   readonly attribute Promise<void> closed;
 
   Promise<void> cancel(optional any reason);
-  Promise<any> read();
+  Promise<ReadableStreamDefaultReadResult> read();
   void releaseLock();
+};
+
+dictionary ReadableStreamDefaultReadResult {
+ any value;
+ boolean done;
 };
 </xmp>
 
@@ -1007,17 +1008,26 @@ following table:
    <td class="non-normative">A promise returned by the reader's
    {{ReadableStreamDefaultReader/closed}} getter
   <tr>
-   <td>\[[forAuthorCode]]
-   <td class="non-normative">A boolean flag indicating whether this reader is visible to author code
-  <tr>
    <td>\[[ownerReadableStream]]
    <td class="non-normative">A {{ReadableStream}} instance that owns this reader
   <tr>
    <td>\[[readRequests]]
-   <td class="non-normative">A [=list=] of promises returned by calls to the reader's
-   {{ReadableStreamDefaultReader/read()}} method that have not yet been resolved, due to the
-   [=consumer=] requesting [=chunks=] sooner than they are available
+   <td class="non-normative">A [=list=] of [=read requests=], used when a [=consumer=] requests
+   [=chunks=] sooner than they are available
 </table>
+
+A <dfn export>read request</dfn> is a [=struct=] containing three algorithms to perform in reaction
+to filling the [=readable stream=]'s [=internal queue=] or changing its state. It has the following
+[=struct/items=]:
+
+: <dfn export for="read request">chunk steps</dfn>
+:: An algorithm taking a [=chunk=], called when a chunk is available for reading
+: <dfn export for="read request">close steps</dfn>
+:: An algorithm taking no arguments, called when no [=chunks=] are available because the stream is
+   closed
+: <dfn export for="read request">error steps</dfn>
+:: An algorithm taking a JavaScript value, called when no [=chunks=] are available because the
+   stream is errored
 
 <h4 id="default-reader-prototype">Constructor, methods, and properties</h4>
 
@@ -1042,7 +1052,7 @@ following table:
   <p>Returns a promise that allows access to the next [=chunk=] from the stream's internal queue, if
   available.
 
-  <ul class="brief">
+  <ul>
    <li>If the chunk does become available, the promise will be fulfilled with an object of the form
    <code highlight="js">{ value: theChunk, done: false }</code>.
 
@@ -1097,7 +1107,21 @@ following table:
 
  1. If [=this=].\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
     {{TypeError}} exception.
- 1. Return ! [$ReadableStreamDefaultReaderRead$]([=this=]).
+ 1. Let |promise| be [=a new promise=].
+ 1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
+  : [=read request/chunk steps=], given |chunk|
+  ::
+   1. [=Resolve=] |promise| with «[ "{{ReadableStreamDefaultReadResult/value}}" → |chunk|,
+      "{{ReadableStreamDefaultReadResult/done}}" → false ]».
+  : [=read request/close steps=]
+  ::
+   1. [=Resolve=] |promise| with «[ "{{ReadableStreamDefaultReadResult/value}}" → undefined,
+      "{{ReadableStreamDefaultReadResult/done}}" → true ]».
+  : [=read request/error steps=], given |e|
+  ::
+   1. [=Reject=] |promise| with |e|.
+ 1. Perform ! [$ReadableStreamDefaultReaderRead$]([=this=], |readRequest|).
+ 1. Return |promise|.
 </div>
 
 <div algorithm>
@@ -1126,8 +1150,13 @@ interface ReadableStreamBYOBReader {
   readonly attribute Promise<void> closed;
 
   Promise<void> cancel(optional any reason);
-  Promise<any> read(ArrayBufferView view);
+  Promise<ReadableStreamBYOBReadResult> read(ArrayBufferView view);
   void releaseLock();
+};
+
+dictionary ReadableStreamBYOBReadResult {
+ ArrayBufferView value;
+ boolean done;
 };
 </xmp>
 
@@ -1147,17 +1176,32 @@ following table:
    <td class="non-normative">A promise returned by the reader's
    {{ReadableStreamBYOBReader/closed}} getter
   <tr>
-   <td>\[[forAuthorCode]]
-   <td class="non-normative">A boolean flag indicating whether this reader is visible to author code
-  <tr>
    <td>\[[ownerReadableStream]]
    <td class="non-normative">A {{ReadableStream}} instance that owns this reader
   <tr>
    <td>\[[readIntoRequests]]
-   <td class="non-normative">A [=list=] of promises returned by calls to the reader's
-    {{ReadableStreamBYOBReader/read(view)}} method that have not yet been resolved, due to the
-   [=consumer=] requesting [=chunks=] sooner than they are available
+   <td class="non-normative">A [=list=] of [=read-into requests=], used when a [=consumer=] requests
+   [=chunks=] sooner than they are available
 </table>
+
+A <dfn export>read-into request</dfn> is a [=struct=] containing three algorithms to perform in
+reaction to filling the [=readable byte stream=]'s [=internal queue=] or changing its state. It has
+the following [=struct/items=]:
+
+: <dfn export for="read-into request">chunk steps</dfn>
+:: An algorithm taking a [=chunk=], called when a chunk is available for reading
+: <dfn export for="read-into request">close steps</dfn>
+:: An algorithm taking a [=chunk=], called when no chunks are available because the stream is
+   closed
+: <dfn export for="read-into request">error steps</dfn>
+:: An algorithm taking a JavaScript value, called when no [=chunks=] are available because the
+   stream is errored
+
+<p class="note">The [=read-into request/close steps=] take a [=chunk=] so that it can return the
+backing memory to the caller if possible. For example,
+{{ReadableStreamBYOBReader/read()|byobReader.read(chunk)}} will fulfill with <code highlight="js">{
+value: newViewOnSameMemory, done: true }</code> for closed streams, instead of the more traditional
+<code highlight="js">{ value: undefined, done: true }</code>.
 
 <h4 id="byob-reader-prototype">Constructor, methods, and properties</h4>
 
@@ -1182,14 +1226,17 @@ following table:
  <dd>
   <p>Attempts to reads bytes into |view|, and returns a promise resolved with the result:
 
-  <ul class="brief">
+  <ul>
    <li>If the chunk does become available, the promise will be fulfilled with an object of the form
    <code highlight="js">{ value: theChunk, done: false }</code>. In this case, |view| will be
    [=ArrayBuffer/detached=] and no longer usable, but <code>theChunk</code> will be a new view (of
    the same type) onto the same backing memory region, with the chunk's data written into it.
 
    <li>If the stream becomes closed, the promise will be fulfilled with an object of the form
-   <code highlight="js">{ value: undefined, done: true }</code>.
+   <code highlight="js">{ value: theChunk, done: true }</code>. In this case, |view| will be
+   [=ArrayBuffer/detached=] and no longer usable, but <code>theChunk</code> will be a new view (of
+   the same type) onto the same backing memory region, with no modifications, to ensure the memory
+   is returned to the caller.
 
    <li>If the stream becomes errored, the promise will be rejected with the relevant error.
   </ul>
@@ -1242,7 +1289,21 @@ following table:
     with=] a {{TypeError}} exception.
  1. If [=this=].\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
     {{TypeError}} exception.
- 1. Return ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|).
+ 1. Let |promise| be [=a new promise=].
+ 1. Let |readIntoRequest| be a new [=read-into request=] with the following [=struct/items=]:
+  : [=read-into request/chunk steps=], given |chunk|
+  ::
+   1. [=Resolve=] |promise| with «[ "{{ReadableStreamBYOBReadResult/value}}" → |chunk|,
+      "{{ReadableStreamBYOBReadResult/done}}" → false ]».
+  : [=read-into request/close steps=], given |chunk|
+  ::
+   1. [=Resolve=] |promise| with «[ "{{ReadableStreamBYOBReadResult/value}}" → |chunk|,
+      "{{ReadableStreamBYOBReadResult/done}}" → true ]».
+  : [=read-into request/error steps=], given |e|
+  ::
+   1. [=Reject=] |promise| with |e|.
+ 1. Perform ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|, |readIntoRequest|).
+ 1. Return |promise|.
 </div>
 
 <div algorithm>
@@ -1413,7 +1474,7 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
 
 <div algorithm>
  <dfn abstract-op lt="[[PullSteps]]" for="ReadableStreamDefaultController"
- id="rs-default-controller-private-pull">\[[PullSteps]]()</dfn> implements the
+ id="rs-default-controller-private-pull">\[[PullSteps]](|readRequest|)</dfn> implements the
  [$ReadableStreamController/[[PullSteps]]$] contract. It performs the following steps:
 
  1. Let |stream| be [=this=].\[[controlledReadableStream]].
@@ -1423,11 +1484,10 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
    1. Perform ! [$ReadableStreamDefaultControllerClearAlgorithms$]([=this=]).
    1. Perform ! [$ReadableStreamClose$](|stream|).
   1. Otherwise, perform ! [$ReadableStreamDefaultControllerCallPullIfNeeded$]([=this=]).
-  1. Return [=a promise resolved with=] ! [$ReadableStreamCreateReadResult$](|chunk|, false,
-     |stream|.\[[reader]].\[[forAuthorCode]]).
- 1. Let |pendingPromise| be ! [$ReadableStreamAddReadRequest$](|stream|).
- 1. Perform ! [$ReadableStreamDefaultControllerCallPullIfNeeded$]([=this=]).
- 1. Return |pendingPromise|.
+  1. Perform |readRequest|'s [=read request/chunk steps=], given |chunk|.
+ 1. Otherwise,
+  1. Perform ! [$ReadableStreamAddReadRequest$](|stream|, |readRequest|).
+  1. Perform ! [$ReadableStreamDefaultControllerCallPullIfNeeded$]([=this=]).
 </div>
 
 <h3 id="rbs-controller-class">The {{ReadableByteStreamController}} class</h3>
@@ -1677,7 +1737,7 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
 
 <div algorithm>
  <dfn abstract-op lt="[[PullSteps]]" for="ReadableByteStreamController"
- id="rbs-controller-private-pull">\[[PullSteps]]()</dfn> implements the
+ id="rbs-controller-private-pull">\[[PullSteps]](|readRequest|)</dfn> implements the
  [$ReadableStreamController/[[PullSteps]]$] contract. It performs the following steps:
 
  1. Let |stream| be [=this=].\[[controlledReadableStream]].
@@ -1692,21 +1752,22 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
   1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |entry|'s [=readable byte stream queue
      entry/buffer=], |entry|'s [=readable byte stream queue entry/byte offset=], |entry|'s
      [=readable byte stream queue entry/byte length=] »).
-  1. Return [=a promise resolved with=] ! [$ReadableStreamCreateReadResult$](|view|, false,
-     |stream|.\[[reader]].\[[forAuthorCode]]).
+  1. Perform |readRequest|'s [=read request/chunk steps=], given |view|.
+  1. Return.
  1. Let |autoAllocateChunkSize| be [=this=].\[[autoAllocateChunkSize]].
  1. If |autoAllocateChunkSize| is not undefined,
   1. Let |buffer| be [$Construct$]({{%ArrayBuffer%}}, « |autoAllocateChunkSize| »).
-  1. If |buffer| is an abrupt completion, return [=a promise rejected with=] |buffer|.\[[Value]].
+  1. If |buffer| is an abrupt completion,
+   1. Perform |readRequest|'s [=read request/error steps=], given |buffer|.\[[Value]].
+   1. Return.
   1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
      |buffer|.\[[Value]], [=pull-into descriptor/byte offset=] 0, [=pull-into descriptor/byte
      length=] |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into
      descriptor/element size=] 1, [=pull-into descriptor/view constructor=] {{%Uint8Array%}}, and
      [=pull-into descriptor/reader type=] "`default`".
   1. [=list/Append=] |pullIntoDescriptor| to [=this=].\[[pendingPullIntos]].
- 1. Let |promise| be ! [$ReadableStreamAddReadRequest$](|stream|).
+ 1. Perform ! [$ReadableStreamAddReadRequest$](|stream|, |readRequest|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$]([=this=]).
- 1. Return |promise|.
 </div>
 
 <h3 id="rs-byob-request-class">The {{ReadableStreamBYOBRequest}} class</h3>
@@ -1813,36 +1874,24 @@ are even meant to be generally useful by other specifications.
 
 <div algorithm>
  <dfn abstract-op lt="AcquireReadableStreamBYOBReader" id="acquire-readable-stream-byob-reader"
- export>AcquireReadableStreamBYOBReader(|stream|[, |forAuthorCode|])</dfn> is meant to be called
- from other specifications that wish to acquire a [=BYOB reader=] for a given stream. It performs
- the following steps:
+ export>AcquireReadableStreamBYOBReader(|stream|)</dfn> is meant to be called from other
+ specifications that wish to acquire a [=BYOB reader=] for a given stream. It performs the following
+ steps:
 
- 1. If |forAuthorCode| was not passed, set it to false.
  1. Let |reader| be a [=new=] {{ReadableStreamBYOBReader}}.
  1. Perform ? [$SetUpReadableStreamBYOBReader$](|reader|, |stream|).
- 1. Set |reader|.\[[forAuthorCode]] to |forAuthorCode|.
  1. Return |reader|.
-
- <p class="note">Other specifications ought to leave |forAuthorCode| as its default value of
- false, unless they are planning to directly expose the resulting <code>{ value, done }</code>
- object to authors. See <a href="#rs-read-result-for-author-code">the note regarding
- ReadableStreamCreateReadResult</a> for more information.
 </div>
 
 <div algorithm>
  <dfn abstract-op lt="AcquireReadableStreamDefaultReader" id="acquire-readable-stream-reader"
- export>AcquireReadableStreamDefaultReader(|stream|[, |forAuthorCode|])</dfn> is meant to be called
- from other specifications that wish to acquire a [=default reader=] for a given stream. It performs
- the following steps:
+ export>AcquireReadableStreamDefaultReader(|stream|)</dfn> is meant to be called from other
+ specifications that wish to acquire a [=default reader=] for a given stream. It performs the
+ following steps:
 
-  1. If |forAuthorCode| was not passed, set it to false.
   1. Let |reader| be a [=new=] {{ReadableStreamDefaultReader}}.
   1. Perform [$SetUpReadableStreamDefaultReader$](|reader|, |stream|).
-  1. Set |reader|.\[[forAuthorCode]] to |forAuthorCode|.
   1. Return |reader|.
-
-  <p class="note">The same usage note for the |forAuthorCode| parameter applies here as it does for
-  [$AcquireReadableStreamBYOBReader$].
 </div>
 
 <div algorithm>
@@ -2082,30 +2131,38 @@ create them does not matter.
  1. Let |pullAlgorithm| be the following steps:
   1. If |reading| is true, return [=a promise resolved with=] undefined.
   1. Set |reading| to true.
-  1. Let |readPromise| be the result of [=reacting=] to !
-     [$ReadableStreamDefaultReaderRead$](|reader|) with the following fulfillment steps given the
-     argument |result|:
-   1. Set |reading| to false.
-   1. Assert: [$Type$](|result|) is Object.
-   1. Let |done| be ! [$Get$](|result|, "`done`").
-   1. Assert: [$Type$](|done|) is Boolean.
-   1. If |done| is true,
-    1. If |canceled1| is false,
-     1. Perform ! [$ReadableStreamDefaultControllerClose$](|branch1|.\[[readableStreamController]]).
-    1. If |canceled2| is false,
-      1. Perform !
-         [$ReadableStreamDefaultControllerClose$](|branch2|.\[[readableStreamController]]).
-    1. Return.
-   1. Let |value| be ! [$Get$](|result|, "`value`").
-   1. Let |value1| and |value2| be |value|.
-   1. If |canceled2| is false and |cloneForBranch2| is true, set |value2| to ?
-      [$StructuredDeserialize$](? [$StructuredSerialize$](|value2|), [=the current Realm=]).
-   1. If |canceled1| is false, perform ?
-      [$ReadableStreamDefaultControllerEnqueue$](|branch1|.\[[readableStreamController]],
-      |value1|).
-   1. If |canceled2| is false, perform ?
-      ReadableStreamDefaultControllerEnqueue(|branch2|.\[[readableStreamController]], |value2|).
-  1. Set |readPromise|.\[[PromiseIsHandled]] to true.
+  1. Let |readRequest| be a [=read request=] with the following [=struct/items=]:
+   : [=read request/chunk steps=], given |value|
+   ::
+    1. [=Queue a microtask=] to perform the following steps:
+     1. Set |reading| to false.
+     1. Let |value1| and |value2| be |value|.
+     1. If |canceled2| is false and |cloneForBranch2| is true, set |value2| to ?
+        [$StructuredDeserialize$](? [$StructuredSerialize$](|value2|), [=the current Realm=]).
+     1. If |canceled1| is false, perform ?
+        [$ReadableStreamDefaultControllerEnqueue$](|branch1|.\[[readableStreamController]],
+        |value1|).
+     1. If |canceled2| is false, perform ?
+        [$ReadableStreamDefaultControllerEnqueue$](|branch2|.\[[readableStreamController]],
+        |value2|).
+
+    <p class="note">The microtask delay here is necessary because it takes at least a microtask to
+    detect errors, when we use |reader|.\[[closedPromise]] below. We want errors in |stream| to
+    error both branches immediately, so we cannot let successful synchronously-available reads
+    happen ahead of asynchronously-available errors.
+
+   : [=read request/close steps=]
+   ::
+    1. Set |reading| to false.
+    1. If |canceled1| is false, perform !
+       [$ReadableStreamDefaultControllerClose$](|branch1|.\[[readableStreamController]]).
+    1. If |canceled2| is false, perform !
+       [$ReadableStreamDefaultControllerClose$](|branch2|.\[[readableStreamController]]).
+
+   : [=read request/error steps=]
+   ::
+    1. Set |reading| to false.
+  1. Perform ! [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
   1. Return [=a promise resolved with=] undefined.
  1. Let |cancel1Algorithm| be the following steps, taking a |reason| argument:
   1. Set |canceled1| to true.
@@ -2155,7 +2212,8 @@ algorithms:
   stream|canceled=], used to clean up the state stored in the controller and inform the
   [=underlying source=].
 
-  <dt><dfn abstract-op lt="[[PullSteps]]" for="ReadableStreamController">\[[PullSteps]]()</dfn>
+  <dt><dfn abstract-op lt="[[PullSteps]]" for="ReadableStreamController">\[[PullSteps]](<var
+  ignore>readRequest</var>)</dfn>
   <dd>The controller's steps that run when a [=default reader=] is read from, used to pull from the
   controller any queued [=chunks=], or pull from the [=underlying source=] to get more chunks.
 </dl>
@@ -2171,26 +2229,22 @@ the {{ReadableStream}}'s public API.
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamAddReadIntoRequest"
- id="readable-stream-add-read-into-request">ReadableStreamAddReadIntoRequest(|stream|)</dfn>
- performs the following steps:
+ id="readable-stream-add-read-into-request">ReadableStreamAddReadIntoRequest(|stream|,
+ |readRequest|)</dfn> performs the following steps:
 
  1. Assert: |stream|.\[[reader]] [=implements=] {{ReadableStreamBYOBReader}}.
  1. Assert: |stream|.\[[state]] is "`readable"` or `"closed`".
- 1. Let |promise| be [=a new promise=].
- 1. [=list/Append=] |promise| to |stream|.\[[reader]].\[[readIntoRequests]].
- 1. Return |promise|.
+ 1. [=list/Append=] |readRequest| to |stream|.\[[reader]].\[[readIntoRequests]].
 </div>
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamAddReadRequest"
- id="readable-stream-add-read-request">ReadableStreamAddReadRequest(|stream|)</dfn>
+ id="readable-stream-add-read-request">ReadableStreamAddReadRequest(|stream|, |readRequest|</dfn>
  performs the following steps:
 
  1. Assert: |stream|.\[[reader]] [=implements=] {{ReadableStreamDefaultReader}}.
  1. Assert: |stream|.\[[state]] is "`readable"`.
- 1. Let |promise| be [=a new promise=].
- 1. [=list/Append=] |promise| to |stream|.\[[reader]].\[[readRequests]].
- 1. Return |promise|.
+ 1. [=list/Append=] |readRequest| to |stream|.\[[reader]].\[[readRequests]].
 </div>
 
 <div algorithm>
@@ -2218,8 +2272,7 @@ the {{ReadableStream}}'s public API.
  1. If |reader| is undefined, return.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
   1. [=list/For each=] |readRequest| of |reader|.\[[readRequests]],
-   1. [=Resolve=] |readRequest| with ! [$ReadableStreamCreateReadResult$](undefined, true,
-      |reader|.\[[forAuthorCode]]).
+   1. Perform |readRequest|'s [=read request/close steps=].
   1. Set |reader|.\[[readRequests]] to an empty [=list=].
  1. [=Resolve=] |reader|.\[[closedPromise]] with undefined.
 
@@ -2228,42 +2281,6 @@ the {{ReadableStream}}'s public API.
  called: i.e., if the stream was closed by a call to {{ReadableStream/cancel(reason)}}. In this
  case we allow the controller's <code>close()</code> method to be called and silently do nothing,
  since the cancelation was outside the control of the underlying source.
-</div>
-
-<div algorithm>
- <dfn abstract-op lt="ReadableStreamCreateReadResult"
- id="readable-stream-create-read-result">ReadableStreamCreateReadResult(|value|, |done|,
- |forAuthorCode|)</dfn> performs the following steps:
-
- 1. Let |prototype| be null.
- 1. If |forAuthorCode| is true, set |prototype| to {{%ObjectPrototype%}}.
- 1. Assert: [$Type$](|done|) is Boolean.
- 1. Let |obj| be [$OrdinaryObjectCreate$](|prototype|).
- 1. Perform [$CreateDataProperty$](|obj|, "`value`", |value|).
- 1. Perform [$CreateDataProperty$](|obj|, "`done`", |done|).
- 1. Return |obj|.
-
- <div class="note" id="rs-read-result-for-author-code">
-  When |forAuthorCode| is true, this abstract operation gives the same result as
-  [$CreateIterResultObject$](|value|, |done|). This provides the expected semantics when the object
-  is to be returned from the {{ReadableStreamDefaultReader/read()|defaultReader.read()}} or
-  {{ReadableStreamBYOBReader/read()|byobReader.read()}} methods.
-
-  However, resolving promises with such objects will unavoidably result in an access to
-  <code>Object.prototype.then</code>. For internal use, particularly in {{ReadableStream/pipeTo()}}
-  and in other specifications, it is important that reads not be observable by author code—even if
-  that author code has tampered with
-  <code>Object.prototype</code>. For this reason, a false value of |forAuthorCode| results in an
-  object with a null prototype, keeping promise resolution unobservable.
-
-  The underlying issue here is that reading from streams always uses promises for <code>{ value,
-  done }</code> objects, even in specifications. Although it is conceivable we could rephrase all
-  of the internal algorithms to not use promises and not use JavaScript objects, and instead only
-  package up the results into promise-for-<code>{ value, done }</code> when a <code>read()</code>
-  method is called, this would be a large undertaking, which we have not done. See
-  <a href="https://github.com/whatwg/infra/issues/181">whatwg/infra#181</a> for more background on
-  this subject.
- </div>
 </div>
 
 <div algorithm>
@@ -2277,12 +2294,12 @@ the {{ReadableStream}}'s public API.
  1. If |reader| is undefined, return.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
   1. [=list/For each=] |readRequest| of |reader|.\[[readRequests]],
-    1. [=Reject=] |readRequest| with |e|.
+    1. Perform |readRequest|'s [=read request/error steps=], given |e|.
   1. Set |reader|.\[[readRequests]] to a new empty [=list=].
  1. Otherwise,
    1. Assert: |reader| [=implements=] {{ReadableStreamBYOBReader}}.
    1. [=list/For each=] |readIntoRequest| of |reader|.\[[readIntoRequests]],
-     1. [=Reject=] |readIntoRequest| with |e|.
+    1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
    1. Set |reader|.\[[readIntoRequests]] to a new empty [=list=].
  1. [=Reject=] |reader|.\[[closedPromise]] with |e|.
  1. Set |reader|.\[[closedPromise]].\[[PromiseIsHandled]] to true.
@@ -2297,8 +2314,8 @@ the {{ReadableStream}}'s public API.
  1. Assert: |reader|.\[[readIntoRequests]] is not [=list/is empty|empty=].
  1. Let |readIntoRequest| be |reader|.\[[readIntoRequests]][0].
  1. [=list/Remove=] |readIntoRequest| from |reader|.\[[readIntoRequests]].
- 1. [=Resolve=] |readIntoRequest| with ! [$ReadableStreamCreateReadResult$](|chunk|,
-    |done|, |reader|.\[[forAuthorCode]]).
+ 1. If |done| is true, perform |readIntoRequest|'s [=read-into request/close steps=], given |chunk|.
+ 1. Otherwise, perform |readIntoRequest|'s [=read-into request/chunk steps=], given |chunk|.
 </div>
 
 <div algorithm>
@@ -2310,8 +2327,8 @@ the {{ReadableStream}}'s public API.
  1. Assert: |reader|.\[[readRequests]] is not [=list/is empty|empty=].
  1. Let |readRequest| be |reader|.\[[readRequests]][0].
  1. [=list/Remove=] |readRequest| from |reader|.\[[readRequests]].
- 1. [=Resolve=] |readRequest| with ! [$ReadableStreamCreateReadResult$](|chunk|, |done|,
-    |reader|.\[[forAuthorCode]]).
+ 1. If |done| is true, perform |readRequest|'s [=read request/close steps=].
+ 1. Otherwise, perform |readRequest|'s [=read request/chunk steps=], given |chunk|.
 </div>
 
 <div algorithm>
@@ -2372,7 +2389,6 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-reader-generic-initialize">ReadableStreamReaderGenericInitialize(|reader|,
  |stream|)</dfn> performs the following steps:
 
- 1. Set |reader|.\[[forAuthorCode]] to true.
  1. Set |reader|.\[[ownerReadableStream]] to |stream|.
  1. Set |stream|.\[[reader]] to |reader|.
  1. If |stream|.\[[state]] is "`readable`",
@@ -2403,32 +2419,33 @@ The following abstract operations support the implementation and manipulation of
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamBYOBReaderRead"
- id="readable-stream-byob-reader-read">ReadableStreamBYOBReaderRead(|reader|, |view|)</dfn> performs
- the following steps:
+ id="readable-stream-byob-reader-read">ReadableStreamBYOBReaderRead(|reader|, |view|,
+ |readIntoRequest|)</dfn> performs the following steps:
 
  1. Let |stream| be |reader|.\[[ownerReadableStream]].
  1. Assert: |stream| is not undefined.
  1. Set |stream|.\[[disturbed]] to true.
- 1. If |stream|.\[[state]] is "`errored`", return [=a promise rejected with=]
-    |stream|.\[[storedError]].
+ 1. If |stream|.\[[state]] is "`errored`", perform |readIntoRequest|'s [=read-into request/error
+    steps=] given |stream|.\[[storedError]].
  1. Return ! [$ReadableByteStreamControllerPullInto$](|stream|.\[[readableStreamController]],
-    |view|).
+    |view|, |readIntoRequest|).
 </div>
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamDefaultReaderRead"
- id="readable-stream-default-reader-read">ReadableStreamDefaultReaderRead(|reader|)</dfn> performs
- the following steps:
+ id="readable-stream-default-reader-read">ReadableStreamDefaultReaderRead(|reader|,
+ |readRequest|)</dfn> performs the following steps:
 
  1. Let |stream| be |reader|.\[[ownerReadableStream]].
  1. Assert: |stream| is not undefined.
  1. Set |stream|.\[[disturbed]] to true.
- 1. If |stream|.\[[state]] is "`closed`", return [=a promise resolved with=] !
-    [$ReadableStreamCreateReadResult$](undefined, true, |reader|.\[[forAuthorCode]]).
- 1. If |stream|.\[[state]] is "`errored`", return [=a promise rejected with=]
-    |stream|.\[[storedError]].
- 1. Assert: |stream|.\[[state]] is "`readable`".
- 1. Return ! |stream|.\[[readableStreamController]].[$ReadableStreamController/[[PullSteps]]$]().
+ 1. If |stream|.\[[state]] is "`closed`", perform |readRequest|'s [=read request/close steps=].
+ 1. Otherwise, if |stream|.\[[state]] is "`errored`", perform |readRequest|'s [=read request/error
+    steps=] given |stream|.\[[storedError]].
+ 1. Otherwise,
+  1. Assert: |stream|.\[[state]] is "`readable`".
+  1. Perform !
+     |stream|.\[[readableStreamController]].[$ReadableStreamController/[[PullSteps]]$](|readRequest|).
 </div>
 
 <div algorithm>
@@ -2952,7 +2969,7 @@ The following abstract operations support the implementation of the
 <div algorithm>
  <dfn abstract-op lt="ReadableByteStreamControllerPullInto"
  id="readable-byte-stream-controller-pull-into">ReadableByteStreamControllerPullInto(|controller|,
- |view|)</dfn> performs the following steps:
+ |view|, |readIntoRequest|)</dfn> performs the following steps:
 
  1. Let |stream| be |controller|.\[[controlledReadableStream]].
  1. Let |elementSize| be 1.
@@ -2972,28 +2989,29 @@ The following abstract operations support the implementation of the
     descriptor/reader type=] "`byob`".
  1. If |controller|.\[[pendingPullIntos]] is not empty,
   1. [=list/Append=] |pullIntoDescriptor| to |controller|.\[[pendingPullIntos]].
-  1. Return ! [$ReadableStreamAddReadIntoRequest$](|stream|).
+  1. Perform ! [$ReadableStreamAddReadIntoRequest$](|stream|, |readIntoRequest|).
+  1. Return.
  1. If |stream|.\[[state]] is "`closed`",
   1. Let |emptyView| be ! [$Construct$](|ctor|, « |pullIntoDescriptor|'s [=pull-into
      descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=], 0 »).
-  1. Return [=a promise resolved with=] ! [$ReadableStreamCreateReadResult$](|emptyView|, true,
-     |stream|.\[[reader]].\[[forAuthorCode]]).
+  1. Perform |readIntoRequest|'s [=read-into request/close steps=], given |emptyView|.
+  1. Return.
  1. If |controller|.\[[queueTotalSize]] > 0,
   1. If ! [$ReadableByteStreamControllerFillPullIntoDescriptorFromQueue$](|controller|,
      |pullIntoDescriptor|) is true,
    1. Let |filledView| be !
       [$ReadableByteStreamControllerConvertPullIntoDescriptor$](|pullIntoDescriptor|).
    1. Perform ! [$ReadableByteStreamControllerHandleQueueDrain$](|controller|).
-   1. Return [=a promise resolved with=] ! [$ReadableStreamCreateReadResult$](|filledView|, false,
-      |stream|.\[[reader]].\[[forAuthorCode]]).
+   1. Perform |readIntoRequest|'s [=read-into request/chunk steps=], given |filledView|.
+   1. Return.
   1. If |controller|.\[[closeRequested]] is true,
    1. Let |e| be a {{TypeError}} exception.
    1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
-   1. Return [=a promise rejected with=] |e|.
+   1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
+   1. Return.
  1. [=list/Append=] |pullIntoDescriptor| to |controller|.\[[pendingPullIntos]].
- 1. Let |promise| be ! [$ReadableStreamAddReadIntoRequest$](|stream|).
+ 1. Perform ! [$ReadableStreamAddReadIntoRequest$](|stream|, |readIntoRequest|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$](|controller|).
- 1. Return |promise|.
 </div>
 
 <div algorithm>

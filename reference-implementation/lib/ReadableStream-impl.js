@@ -1,9 +1,8 @@
 'use strict';
 const assert = require('assert');
 
-const { promiseResolvedWith, promiseRejectedWith, setPromiseIsHandledToTrue, transformPromiseWith } =
-  require('./helpers/webidl.js');
-const { typeIsObject } = require('./helpers/miscellaneous.js');
+const { newPromise, resolvePromise, rejectPromise, promiseResolvedWith, promiseRejectedWith,
+        setPromiseIsHandledToTrue } = require('./helpers/webidl.js');
 const { ExtractHighWaterMark, ExtractSizeAlgorithm } = require('./abstract-ops/queuing-strategy.js');
 const aos = require('./abstract-ops/readable-streams.js');
 const wsAOs = require('./abstract-ops/writable-streams.js');
@@ -53,11 +52,11 @@ exports.implementation = class ReadableStreamImpl {
 
   getReader(options) {
     if (!('mode' in options)) {
-      return aos.AcquireReadableStreamDefaultReader(this, true);
+      return aos.AcquireReadableStreamDefaultReader(this);
     }
 
     assert(options.mode === 'byob');
-    return aos.AcquireReadableStreamBYOBReader(this, true);
+    return aos.AcquireReadableStreamBYOBReader(this);
   }
 
   pipeThrough(transform, options) {
@@ -126,27 +125,20 @@ exports.implementation = class ReadableStreamImpl {
       );
     }
 
-    return transformPromiseWith(
-      aos.ReadableStreamDefaultReaderRead(reader),
-      result => {
-        assert(typeIsObject(result));
-
-        const { done } = result;
-        assert(typeof done === 'boolean');
-
-        if (done === true) {
-          aos.ReadableStreamReaderGenericRelease(reader);
-          return idlUtils.asyncIteratorEOI;
-        }
-
-        const { value } = result;
-        return value;
-      },
-      reason => {
+    const promise = newPromise();
+    const readRequest = {
+      chunkSteps: chunk => resolvePromise(promise, chunk),
+      closeSteps: () => {
         aos.ReadableStreamReaderGenericRelease(reader);
-        throw reason;
+        resolvePromise(promise, idlUtils.asyncIteratorEOI);
+      },
+      errorSteps: e => {
+        aos.ReadableStreamReaderGenericRelease(reader);
+        rejectPromise(promise, e);
       }
-    );
+    };
+    aos.ReadableStreamDefaultReaderRead(reader, readRequest);
+    return promise;
   }
 
   [idlUtils.asyncIteratorReturn](iterator, arg) {

@@ -1,8 +1,6 @@
 'use strict';
 const assert = require('assert');
 
-exports.typeIsObject = x => (typeof x === 'object' && x !== null) || typeof x === 'function';
-
 exports.rethrowAssertionErrorRejection = e => {
   // Used throughout the reference implementation, as `.catch(rethrowAssertionErrorRejection)`, to ensure any errors
   // get shown. There are places in the spec where we do promise transformations and purposefully ignore or don't
