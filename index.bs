@@ -5215,7 +5215,7 @@ The following abstract operations support the implementaiton of the
 
 <div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultControllerEnqueue"
- id="set-up-transform-stream-default-controller-enqueue"
+ id="transform-stream-default-controller-enqueue"
  export>TransformStreamDefaultControllerEnqueue(|controller|, |chunk|)</dfn> is meant to be called
  by other specifications that wish to enqueue [=chunks=] in the [=readable side=], in the same way
  a developer would enqueue chunks using the stream's associated controller object. Specifications
@@ -5241,7 +5241,7 @@ The following abstract operations support the implementaiton of the
 </div>
 <div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultControllerError"
- id="set-up-transform-stream-default-controller-error"
+ id="transform-stream-default-controller-error"
  export>TransformStreamDefaultControllerError(|controller|, |e|)</dfn> is meant to be called by
  other specifications that wish to move the transform stream to an errored state, in the same way a
  developer would error the stream using the stream's associated controller object. Specifications
@@ -5254,7 +5254,7 @@ The following abstract operations support the implementaiton of the
 
 <div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultControllerPerformTransform"
- id="set-up-transform-stream-default-controller-perform-transform">TransformStreamDefaultControllerPerformTransform(|controller|, |chunk|)</dfn>
+ id="transform-stream-default-controller-perform-transform">TransformStreamDefaultControllerPerformTransform(|controller|, |chunk|)</dfn>
  performs the following steps:
 
  1. Let |transformPromise| be the result of performing
@@ -5267,7 +5267,7 @@ The following abstract operations support the implementaiton of the
 
 <div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultControllerTerminate"
- id="set-up-transform-stream-default-controller-terminate"
+ id="transform-stream-default-controller-terminate"
  export>TransformStreamDefaultControllerTerminate(|controller|)</dfn> is meant to be called by
  other specifications that wish to terminate the transform stream, in the same way a
  developer-created stream would be terminated by its associated controller object. Specifications
