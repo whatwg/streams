@@ -691,7 +691,7 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
    directly read individual [=chunks=] from the stream via its {{ReadableStreamBYOBReader/read()}}
    method, into developer-supplied buffers, allowing more precise control over allocation.
 
- <dt><code><var ignore>readable</var> = <var ignore>stream</var>.{{ReadableStream/pipeThrough(transform, options)|pipeThrough}}({ {{ReadableWritablePair/writable}}, {{ReadableWritablePair/readable}} }[, { {{StreamPipeOptions/preventClose}}, {{StreamPipeOptions/preventCancel}}, {{StreamPipeOptions/preventAbort}}, {{StreamPipeOptions/signal}} }])</code></dt>
+ <dt><code><var ignore>readable</var> = <var ignore>stream</var>.{{ReadableStream/pipeThrough(transform, options)|pipeThrough}}({ {{ReadableWritablePair/writable}}, {{ReadableWritablePair/readable}} }[, { {{StreamPipeOptions/preventClose}}, {{StreamPipeOptions/preventAbort}}, {{StreamPipeOptions/preventCancel}}, {{StreamPipeOptions/signal}} }])</code></dt>
  <dd>
   <p>Provides a convenient, chainable way of [=piping=] this [=readable stream=] through a
   [=transform stream=] (or any other <code>{ writable, readable }</code> pair). It simply pipes the
@@ -700,7 +700,7 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
   <p>Piping a stream will [=locked to a reader|lock=] it for the duration of the pipe, preventing
   any other consumer from acquiring a reader.
 
- <dt><code>await <var ignore>stream</var>.{{ReadableStream/pipeTo(destination, options)|pipeTo}}(<var ignore>destination</var>[, { {{StreamPipeOptions/preventClose}}, {{StreamPipeOptions/preventCancel}}, {{StreamPipeOptions/preventAbort}}, {{StreamPipeOptions/signal}} }])</code></dt>
+ <dt><code>await <var ignore>stream</var>.{{ReadableStream/pipeTo(destination, options)|pipeTo}}(<var ignore>destination</var>[, { {{StreamPipeOptions/preventClose}}, {{StreamPipeOptions/preventAbort}}, {{StreamPipeOptions/preventCancel}}, {{StreamPipeOptions/signal}} }])</code></dt>
  <dd>
   <p>[=piping|Pipes=] this [=readable stream=] to a given [=writable stream=] |destination|. The
   way in which the piping process behaves under various error conditions can be customized with a
