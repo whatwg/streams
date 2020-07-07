@@ -244,10 +244,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
     if (readable._state === 'errored') {
       throw readable._storedError;
     }
-    const readableController = readable._readableStreamController;
-    if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === true) {
-      ReadableStreamDefaultControllerClose(readableController);
-    }
+    ReadableStreamDefaultControllerClose(readable._readableStreamController);
   }, r => {
     TransformStreamError(stream, r);
     throw readable._storedError;
