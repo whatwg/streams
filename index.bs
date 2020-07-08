@@ -6123,7 +6123,7 @@ operations are used to implement these "cross-realm transforms".
  1. Add a handler for |port|'s {{MessagePort/messageerror}} event with the following steps:
   1. Let |error| be a new "{{DataCloneError}}" {{DOMException}}.
   1. Perform ! [$CrossRealmTransformSendError$](|port|, |error|).
-  1. Perform ! [$WritableStreamDefaultControllerError$](|controller|).
+  1. Perform ! [$WritableStreamDefaultControllerError$](|controller|, |error|).
   1. Disentangle |port|.
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |writeAlgorithm| be the following steps, taking a |chunk| argument:
