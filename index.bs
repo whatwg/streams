@@ -5149,7 +5149,7 @@ Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
     |value|.\[[writable]].
 
 <p class="note">These steps intentionally leave the \[[backpressure]],
-\[[backpressureChangePromise]] and \[[transformStreamController]] slots uninitialised. They are not
+\[[backpressureChangePromise]] and \[[transformStreamController]] slots uninitialized. They are not
 used in a transferred TransformStream.</p>
 
 </div>
