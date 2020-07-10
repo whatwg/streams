@@ -1036,11 +1036,9 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
 {{ReadableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value| and
 |dataHolder|, are:
 
- 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
-    |port1| be that object.
- 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
-    |port2| be that object.
- 1. [=Entangle=] the |port1| and |port2| objects.
+ 1. Let |port1| be a [=new=] {{MessagePort}} in [=the current Realm=].
+ 1. Let |port2| be a [=new=] {{MessagePort}} in [=the current Realm=].
+ 1. [=Entangle=] |port1| and |port2|.
  1. If ! [$IsReadableStreamLocked$](|value|) is true, throw a {{TypeError}} exception.
  1. Let |writable| be a [=new=] {{WritableStream}}.
  1. Perform ! [$SetUpCrossRealmTransformWritable$](|writable|, |port1|).
@@ -3817,11 +3815,9 @@ as seen for example in [[#example-ws-no-backpressure]].
 {{WritableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value| and
 |dataHolder|, are:
 
- 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
-    |port1| be that object.
- 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
-    |port2| be that object.
- 1. [=Entangle=] the |port1| and |port2| objects.
+ 1. Let |port1| be a [=new=] {{MessagePort}} in [=the current Realm=].
+ 1. Let |port2| be a [=new=] {{MessagePort}} in [=the current Realm=].
+ 1. [=Entangle=] |port1| and |port2|.
  1. If ! [$IsWritableStreamLocked$](|value|) is true, throw a {{TypeError}} exception.
  1. Let |readable| be a [=new=] {{ReadableStream}}.
  1. Perform ! [$SetUpCrossRealmTransformReadable$](|readable|, |port1|).
