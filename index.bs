@@ -1036,10 +1036,10 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
 {{ReadableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value| and
 |dataHolder|, are:
 
+ 1. If ! [$IsReadableStreamLocked$](|value|) is true, throw a "{{DataCloneError}}" {{DOMException}}.
  1. Let |port1| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. Let |port2| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. [=Entangle=] |port1| and |port2|.
- 1. If ! [$IsReadableStreamLocked$](|value|) is true, throw a {{TypeError}} exception.
  1. Let |writable| be a [=new=] {{WritableStream}}.
  1. Perform ! [$SetUpCrossRealmTransformWritable$](|writable|, |port1|).
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|value|, |writable|, false, false, false, undefined).
@@ -3815,10 +3815,10 @@ as seen for example in [[#example-ws-no-backpressure]].
 {{WritableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value| and
 |dataHolder|, are:
 
+ 1. If ! [$IsWritableStreamLocked$](|value|) is true, throw a "{{DataCloneError}}" {{DOMException}}.
  1. Let |port1| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. Let |port2| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. [=Entangle=] |port1| and |port2|.
- 1. If ! [$IsWritableStreamLocked$](|value|) is true, throw a {{TypeError}} exception.
  1. Let |readable| be a [=new=] {{ReadableStream}}.
  1. Perform ! [$SetUpCrossRealmTransformReadable$](|readable|, |port1|).
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|, |value|, false, false, false,
@@ -5206,8 +5206,10 @@ and |dataHolder|, are:
 
 <!-- Find a way to linkify ReadableStream transfer steps and WritableStream transfer steps -->
 
- 1. If ! [$IsReadableStreamLocked$](|value|.\[[readable]]) is true, throw a {{TypeError}} exception.
- 1. If ! [$IsWritableStreamLocked$](|value|.\[[writable]]) is true, throw a {{TypeError}} exception.
+ 1. If ! [$IsReadableStreamLocked$](|value|.\[[readable]]) is true, throw a "{{DataCloneError}}"
+    {{DOMException}}.
+ 1. If ! [$IsWritableStreamLocked$](|value|.\[[writable]]) is true, throw a "{{DataCloneError}}"
+    {{DOMException}}.
  1. Let |readableDataHolder| be { \[[Type]]: `"ReadableStream"` }.
  1. Perform {{ReadableStream}} transfer steps with |value|.\[[readable]] and |readableDataHolder|.
  1. Set |dataHolder|.\[[readable]] to |readableDataHolder|.
