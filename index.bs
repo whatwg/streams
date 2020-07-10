@@ -755,36 +755,6 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
   immutable, this could allow interference between the two branches.
 </dl>
 
-<div algorithm="ReadableStream transfer steps">
-{{ReadableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value| and
-|dataHolder|, are:
-
- 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
-    |port1| be that object.
- 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
-    |port2| be that object.
- 1. [=Entangle=] the |port1| and |port2| objects.
- 1. If ! [$IsReadableStreamLocked$](|value|) is true, throw a {{TypeError}} exception.
- 1. Let |writable| be a [=new=] {{WritableStream}}.
- 1. Perform ! [$SetUpCrossRealmTransformWritable$](|writable|, |port1|).
- 1. Let |promise| be ! [$ReadableStreamPipeTo$](|value|, |writable|, false, false, false, undefined).
- 1. Set |promise|.\[[PromiseIsHandled]] to true.
- 1. Let |messagePortDataHolder| be { \[[Type]]: `"MessagePort"` }.
- 1. Perform {{MessagePort}}'s transfer steps <!-- TODO(ricea): Link this somehow --> with |port2|
-    and |messagePortDataHolder|.
- 1. Set |dataHolder|.\[[port]] to |messagePortDataHolder|.
-
-</div>
-
-<div algorithm="ReadableStream transfer receiving steps">
-Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
-
- 1. Let |port| be a new {{MessagePort}}.
- 1. Perform {{MessagePort}}'s transfer-receiving steps with |dataHolder|.\[[port]] and |port|.
- 1. Perform ! [$SetUpCrossRealmTransformReadable$](|value|, |dataHolder|.\[[port]])
-
-</div>
-
 <div algorithm>
  The <dfn id="rs-constructor" constructor for="ReadableStream" lt="ReadableStream(underlyingSource,
  strategy)">new ReadableStream(|underlyingSource|, |strategy|)</dfn> constructor steps are:
@@ -1048,6 +1018,48 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
   1. Return |result|.
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
  1. Return [=a promise resolved with=] undefined.
+</div>
+
+<h4 id="rs-transfer">Transfer via postMessage()</h4>
+
+<dl class="domintro">
+ <dt><code>worker.postMessage(rs, [rs]);</code>
+ <dd>
+  <p>Sends a ReadableStream to another frame, window or worker.
+
+  <p>The transferred stream can be used exactly like the original. The original will become locked
+  and no longer directly usable.
+ </dd>
+</dl>
+
+<div algorithm="ReadableStream transfer steps">
+{{ReadableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value| and
+|dataHolder|, are:
+
+ 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
+    |port1| be that object.
+ 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
+    |port2| be that object.
+ 1. [=Entangle=] the |port1| and |port2| objects.
+ 1. If ! [$IsReadableStreamLocked$](|value|) is true, throw a {{TypeError}} exception.
+ 1. Let |writable| be a [=new=] {{WritableStream}}.
+ 1. Perform ! [$SetUpCrossRealmTransformWritable$](|writable|, |port1|).
+ 1. Let |promise| be ! [$ReadableStreamPipeTo$](|value|, |writable|, false, false, false, undefined).
+ 1. Set |promise|.\[[PromiseIsHandled]] to true.
+ 1. Let |messagePortDataHolder| be { \[[Type]]: `"MessagePort"` }.
+ 1. Perform {{MessagePort}}'s transfer steps <!-- TODO(ricea): Link this somehow --> with |port2|
+    and |messagePortDataHolder|.
+ 1. Set |dataHolder|.\[[port]] to |messagePortDataHolder|.
+
+</div>
+
+<div algorithm="ReadableStream transfer receiving steps">
+Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
+
+ 1. Let |port| be a new {{MessagePort}}.
+ 1. Perform {{MessagePort}}'s transfer-receiving steps with |dataHolder|.\[[port]] and |port|.
+ 1. Perform ! [$SetUpCrossRealmTransformReadable$](|value|, |dataHolder|.\[[port]])
+
 </div>
 
 <h3 id="generic-reader-mixin">The {{ReadableStreamGenericReader}} mixin</h3>
@@ -3738,38 +3750,6 @@ as seen for example in [[#example-ws-no-backpressure]].
   to be unpredictable and probably useless.
 </dl>
 
-<div algorithm="WritableStream transfer steps">
-{{WritableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value| and
-|dataHolder|, are:
-
- 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
-    |port1| be that object.
- 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
-    |port2| be that object.
- 1. [=Entangle=] the |port1| and |port2| objects.
- 1. If ! [$IsWritableStreamLocked$](|value|) is true, throw a {{TypeError}} exception.
- 1. Let |readable| be a [=new=] {{ReadableStream}}.
- 1. Perform ! [$SetUpCrossRealmTransformReadable$](|readable|, |port1|).
- 1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|, |value|, false, false, false,
-    undefined).
- 1. Set |promise|.\[[PromiseIsHandled]] to true.
- 1. Let |messagePortDataHolder| be { \[[Type]]: `"MessagePort"` }.
- 1. Perform {{MessagePort}}'s transfer steps
-    <!-- TODO(ricea): Link this to the HTML standard somehow --> with |port2| and
-    |messagePortDataHolder|.
- 1. Set |dataHolder|.\[[port]] to |messagePortDataHolder|.
-
-</div>
-
-<div algorithm="WritableStream transfer receiving steps">
-Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
-
- 1. Let |port| be a new {{MessagePort}}.
- 1. Perform {{MessagePort}}'s transfer-receiving steps with |dataHolder|.\[[port]] and |port|.
- 1. Perform ! [$SetUpCrossRealmTransformWritable$](|value|, |port|).
-
-</div>
-
 <div algorithm>
  The <dfn id="ws-constructor" constructor for="WritableStream" lt="WritableStream(underlyingSink,
  strategy)">new WritableStream(|underlyingSink|, |strategy|)</dfn> constructor steps are:
@@ -3819,6 +3799,50 @@ Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
  The <dfn id="ws-get-writer" method for="WritableStream">getWriter()</dfn> method steps are:
 
  1. Return ? [$AcquireWritableStreamDefaultWriter$]([=this=]).
+</div>
+
+<h4 id="ws-transfer">Transfer via postMessage()</h4>
+
+<dl class="domintro">
+ <dt><code>worker.postMessage(ws, [ws]);</code>
+ <dd>
+  <p>Sends a WritableStream to another frame, window or worker.
+
+  <p>The transferred stream can be used exactly like the original. The original will become locked
+  and no longer directly usable.
+ </dd>
+</dl>
+
+<div algorithm="WritableStream transfer steps">
+{{WritableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value| and
+|dataHolder|, are:
+
+ 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
+    |port1| be that object.
+ 1. [=Create a new MessagePort object=] whose [=owner=] is the [=incumbent settings object=] and let
+    |port2| be that object.
+ 1. [=Entangle=] the |port1| and |port2| objects.
+ 1. If ! [$IsWritableStreamLocked$](|value|) is true, throw a {{TypeError}} exception.
+ 1. Let |readable| be a [=new=] {{ReadableStream}}.
+ 1. Perform ! [$SetUpCrossRealmTransformReadable$](|readable|, |port1|).
+ 1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|, |value|, false, false, false,
+    undefined).
+ 1. Set |promise|.\[[PromiseIsHandled]] to true.
+ 1. Let |messagePortDataHolder| be { \[[Type]]: `"MessagePort"` }.
+ 1. Perform {{MessagePort}}'s transfer steps
+    <!-- TODO(ricea): Link this to the HTML standard somehow --> with |port2| and
+    |messagePortDataHolder|.
+ 1. Set |dataHolder|.\[[port]] to |messagePortDataHolder|.
+
+</div>
+
+<div algorithm="WritableStream transfer receiving steps">
+Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
+
+ 1. Let |port| be a new {{MessagePort}}.
+ 1. Perform {{MessagePort}}'s transfer-receiving steps with |dataHolder|.\[[port]] and |port|.
+ 1. Perform ! [$SetUpCrossRealmTransformWritable$](|value|, |port|).
+
 </div>
 
 <h3 id="default-writer-class">The {{WritableStreamDefaultWriter}} class</h3>
@@ -5123,37 +5147,6 @@ side=], or to terminate or error the stream.
   <p>Returns a {{WritableStream}} representing the [=writable side=] of this transform stream.
 </dl>
 
-<div algorithm="TransformStream transfer steps">
-{{TransformStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
-and |dataHolder|, are:
-
-<!-- Find a way to linkify ReadableStream transfer steps and WritableStream transfer steps -->
-
- 1. If ! [$IsReadableStreamLocked$](|value|.\[[readable]]) is true, throw a {{TypeError}} exception.
- 1. If ! [$IsWritableStreamLocked$](|value|.\[[writable]]) is true, throw a {{TypeError}} exception.
- 1. Let |readableDataHolder| be { \[[Type]]: `"ReadableStream"` }.
- 1. Perform {{ReadableStream}} transfer steps with |value|.\[[readable]] and |readableDataHolder|.
- 1. Set |dataHolder|.\[[readable]] to |readableDataHolder|.
- 1. Let |writableDataHolder| be { \[[Type]]: `"WritableStream"` }.
- 1. Perform {{WritableStream}} transfer steps with |value|.\[[writable]] and |writableDataHolder|.
- 1. Set |dataHolder|.\[[writable]] to |writableDataHolder|.
-
-</div>
-
-<div algorithm="TransformStream transfer receiving steps">
-Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
-
- 1. Perform {{ReadableStream}} transfer-receiving steps given |dataHolder|.\[[readable]] and
-    |value|.\[[readable]].
- 1. Perform {{WritableStream}} transfer-receiving steps given |dataHolder|.\[[writable]] and
-    |value|.\[[writable]].
-
-<p class="note">These steps intentionally leave the \[[backpressure]],
-\[[backpressureChangePromise]] and \[[transformStreamController]] slots uninitialized. They are not
-used in a transferred TransformStream.</p>
-
-</div>
-
 <div algorithm>
  The <dfn id="ts-constructor" constructor for="TransformStream" lt="TransformStream(transformer,
  writableStrategy, readableStrategy)">new TransformStream(|transformer|, |writableStrategy|,
@@ -5197,6 +5190,49 @@ used in a transferred TransformStream.</p>
  are:
 
  1. Return [=this=].[=TransformStream/[[writable]]=].
+</div>
+
+<h4 id="ts-transfer">Transfer via postMessage()</h4>
+
+<dl class="domintro">
+ <dt><code>worker.postMessage(ts, [ts]);</code>
+ <dd>
+  <p>Sends a TransformStream to another frame, window or worker.
+
+  <p>The transferred stream can be used exactly like the original. The original will become locked
+  and no longer directly usable.
+ </dd>
+</dl>
+
+<div algorithm="TransformStream transfer steps">
+{{TransformStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
+and |dataHolder|, are:
+
+<!-- Find a way to linkify ReadableStream transfer steps and WritableStream transfer steps -->
+
+ 1. If ! [$IsReadableStreamLocked$](|value|.\[[readable]]) is true, throw a {{TypeError}} exception.
+ 1. If ! [$IsWritableStreamLocked$](|value|.\[[writable]]) is true, throw a {{TypeError}} exception.
+ 1. Let |readableDataHolder| be { \[[Type]]: `"ReadableStream"` }.
+ 1. Perform {{ReadableStream}} transfer steps with |value|.\[[readable]] and |readableDataHolder|.
+ 1. Set |dataHolder|.\[[readable]] to |readableDataHolder|.
+ 1. Let |writableDataHolder| be { \[[Type]]: `"WritableStream"` }.
+ 1. Perform {{WritableStream}} transfer steps with |value|.\[[writable]] and |writableDataHolder|.
+ 1. Set |dataHolder|.\[[writable]] to |writableDataHolder|.
+
+</div>
+
+<div algorithm="TransformStream transfer receiving steps">
+Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
+
+ 1. Perform {{ReadableStream}} transfer-receiving steps given |dataHolder|.\[[readable]] and
+    |value|.\[[readable]].
+ 1. Perform {{WritableStream}} transfer-receiving steps given |dataHolder|.\[[writable]] and
+    |value|.\[[writable]].
+
+<p class="note">These steps intentionally leave the \[[backpressure]],
+\[[backpressureChangePromise]] and \[[transformStreamController]] slots uninitialized. They are not
+used in a transferred TransformStream.</p>
+
 </div>
 
 <h3 id="ts-default-controller-class">The {{TransformStreamDefaultController}} class</h3>
