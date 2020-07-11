@@ -5210,10 +5210,8 @@ and |dataHolder|, are:
     {{DOMException}}.
  1. If ! [$IsWritableStreamLocked$](|value|.\[[writable]]) is true, throw a "{{DataCloneError}}"
     {{DOMException}}.
- 1. Let |readableDataHolder| be { \[[Type]]: `"ReadableStream"` }.
  1. Perform {{ReadableStream}} transfer steps with |value|.\[[readable]] and |readableDataHolder|.
  1. Set |dataHolder|.\[[readable]] to |readableDataHolder|.
- 1. Let |writableDataHolder| be { \[[Type]]: `"WritableStream"` }.
  1. Perform {{WritableStream}} transfer steps with |value|.\[[writable]] and |writableDataHolder|.
  1. Set |dataHolder|.\[[writable]] to |writableDataHolder|.
 
