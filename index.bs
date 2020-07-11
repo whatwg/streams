@@ -6090,7 +6090,6 @@ operations are used to implement these "cross-realm transforms".
 
  1. Perform ! [$InitializeReadableStream$](|stream|).
  1. Let |controller| be a [=new=] {{ReadableStreamDefaultController}}.
- 1. Let |backpressurePromise| be [=a new promise=].
  1. Add a handler for |port|'s {{MessagePort/message}} event with the following steps:
   1. Let |data| be the data of the message.
   1. Assert: [$Type$](|data|) is Object.
@@ -6098,10 +6097,7 @@ operations are used to implement these "cross-realm transforms".
   1. Let |value| be ! [$Get$](|data|, "`value`").
   1. Assert: [$Type$](|type|) is String.
   1. If |type| is "`chunk`",
-   1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is true,
-    1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|controller|, |value|).
-    1. [=Resolve=] |backpressurePromise| with undefined.
-    1. Set |backpressurePromise| to [=a new promise=].
+   1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|controller|, |value|).
   1. Otherwise, if |type| is "`close`",
     1. Perform ! [$ReadableStreamDefaultControllerClose$](|controller|).
     1. Disentangle |port|.
@@ -6117,7 +6113,7 @@ operations are used to implement these "cross-realm transforms".
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |pullAlgorithm| be the following steps:
   1. Perform ! [$PackAndPostMessage$](|port|, "`pull`", undefined).
-  1. Return |backpressurePromise|.
+  1. Return [=a promise resolved with=] undefined.
  1. Let |cancelAlgorithm| be the following steps, taking a |reason| argument:
   1. Let |promise| be ! [$PackAndPostMessageHandlingError$](|port|, "`error`", |reason|).
   1. Disentangle |port|.
