@@ -40,6 +40,7 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: the typed array constructors table; url: #table-49
   text: typed array; url: #sec-typedarray-objects
   text: Number type; url: #sec-ecmascript-language-types-number-type
+  text: %ObjectPrototype%; url: #sec-properties-of-the-object-prototype-object
  type: abstract-op
   text: CloneArrayBuffer; url: #sec-clonearraybuffer
   text: CopyDataBlockBytes; url: #sec-copydatablockbytes
@@ -6061,7 +6062,7 @@ operations are used to implement these "cross-realm transforms".
 
  <p class="note">A JavaScript object is used for transfer to avoid having to duplicate the [=message
  port post message steps=]. The prototype of the object is set to null to avoid interference from
- the global object.</p>
+ [=%ObjectPrototype%=].</p>
 
 </div>
 
