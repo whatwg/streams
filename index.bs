@@ -6053,8 +6053,8 @@ operations are used to implement these "cross-realm transforms".
  the following steps:
 
  1. Let |message| be [$OrdinaryObjectCreate$](null).
- 1. Perform [$CreateDataProperty$](|message|, "`type`", |type|).
- 1. Perform [$CreateDataProperty$](|message|, `"value"`, |value|).
+ 1. Perform ! [$CreateDataProperty$](|message|, "`type`", |type|).
+ 1. Perform ! [$CreateDataProperty$](|message|, `"value"`, |value|).
  1. Let |targetPort| be the port with which |port| is entangled, if any; otherwise let it be null.
  1. Let |options| be «[ `"transfer"` → « » ]».
  1. Run the [=message port post message steps=] providing |targetPort|, |message| and |options|.
