@@ -19,6 +19,7 @@ spec:html; type:dfn; text:entangle
 spec:html; type:dfn; text:create a new messageport object
 spec:html; type:dfn; text:owner
 spec:html; type:dfn; text:message port post message steps
+spec:html; type:dfn; text:port message queue
 </pre>
 
 <pre class="anchors">
@@ -6112,6 +6113,7 @@ operations are used to implement these "cross-realm transforms".
   1. Perform ! [$CrossRealmTransformSendError$](|port|, |error|).
   1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |error|).
   1. Disentangle |port|.
+ 1. Enable |port|'s [=port message queue=].
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |pullAlgorithm| be the following steps:
   1. Perform ! [$PackAndPostMessage$](|port|, `"pull"`, undefined).
@@ -6157,6 +6159,7 @@ security issues.</p>
   1. Perform ! [$CrossRealmTransformSendError$](|port|, |error|).
   1. Perform ! [$WritableStreamDefaultControllerError$](|controller|, |error|).
   1. Disentangle |port|.
+ 1. Enable |port|'s [=port message queue=].
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |writeAlgorithm| be the following steps, taking a |chunk| argument:
   1. If |backpressurePromise| is undefined, set |backpressurePromise| to
