@@ -6050,9 +6050,9 @@ operations are used to implement these "cross-realm transforms".
 
  1. Let |message| be [$OrdinaryObjectCreate$](null).
  1. Perform ! [$CreateDataProperty$](|message|, "`type`", |type|).
- 1. Perform ! [$CreateDataProperty$](|message|, `"value"`, |value|).
+ 1. Perform ! [$CreateDataProperty$](|message|, "`value`", |value|).
  1. Let |targetPort| be the port with which |port| is entangled, if any; otherwise let it be null.
- 1. Let |options| be «[ `"transfer"` → « » ]».
+ 1. Let |options| be «[ "`transfer`" → « » ]».
  1. Run the [=message port post message steps=] providing |targetPort|, |message| and |options|.
 
  <p class="note">A JavaScript object is used for transfer to avoid having to duplicate the [=message
@@ -6077,7 +6077,7 @@ operations are used to implement these "cross-realm transforms".
  <dfn abstract-op lt="CrossRealmTransformSendError">CrossRealmTransformSendError(|port|,
  |error|)</dfn> performs the following steps:
 
- 1. Perform [$PackAndPostMessage$](|port|, `"error"`, |error|), discarding the result.
+ 1. Perform [$PackAndPostMessage$](|port|, "`error`", |error|), discarding the result.
 
  <p class="note">As we are already in an errored state when this abstract operation is performed, we
  cannot handle further errors, so we just discard them.</p>
@@ -6094,18 +6094,18 @@ operations are used to implement these "cross-realm transforms".
  1. Add a handler for |port|'s {{MessagePort/message}} event with the following steps:
   1. Let |data| be the data of the message.
   1. Assert: [$Type$](|data|) is Object.
-  1. Let |type| be ! [$Get$](|data|, `"type"`).
-  1. Let |value| be ! [$Get$](|data|, `"value"`).
+  1. Let |type| be ! [$Get$](|data|, "`type`").
+  1. Let |value| be ! [$Get$](|data|, "`value`").
   1. Assert: [$Type$](|type|) is String.
-  1. If |type| is `"chunk"`,
+  1. If |type| is "`chunk`",
    1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is true,
     1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|controller|, |value|).
     1. [=Resolve=] |backpressurePromise| with undefined.
     1. Set |backpressurePromise| to [=a new promise=].
-  1. Otherwise, if |type| is `"close"`,
+  1. Otherwise, if |type| is "`close`",
     1. Perform ! [$ReadableStreamDefaultControllerClose$](|controller|).
     1. Disentangle |port|.
-  1. Otherwise, if |type| is `"error"`,
+  1. Otherwise, if |type| is "`error`",
    1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |value|).
    1. Disentangle |port|.
  1. Add a handler for |port|'s {{MessagePort/messageerror}} event with the following steps:
@@ -6116,10 +6116,10 @@ operations are used to implement these "cross-realm transforms".
  1. Enable |port|'s [=port message queue=].
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |pullAlgorithm| be the following steps:
-  1. Perform ! [$PackAndPostMessage$](|port|, `"pull"`, undefined).
+  1. Perform ! [$PackAndPostMessage$](|port|, "`pull`", undefined).
   1. Return |backpressurePromise|.
  1. Let |cancelAlgorithm| be the following steps, taking a |reason| argument:
-  1. Let |promise| be ! [$PackAndPostMessageHandlingError$](|port|, `"error"`, |reason|).
+  1. Let |promise| be ! [$PackAndPostMessageHandlingError$](|port|, "`error`", |reason|).
   1. Disentangle |port|.
   1. Return |promise|.
  1. Let |sizeAlgorithm| be an algorithm that returns 1.
@@ -6142,14 +6142,14 @@ security issues.</p>
  1. Add a handler for |port|'s {{MessagePort/message}} event with the following steps:
   1. Let |data| be the data of the message.
   1. Assert: [$Type$](|data|) is Object.
-  1. Let |type| be ! [$Get$](|data|, `"type"`).
-  1. Let |value| be ! [$Get$](|data|, `"value"`).
+  1. Let |type| be ! [$Get$](|data|, "`type`").
+  1. Let |value| be ! [$Get$](|data|, "`value`").
   1. Assert: [$Type$](|type|) is String.
-  1. If |type| is `"pull"`,
+  1. If |type| is "`pull`",
    1. If |backpressurePromise| is not undefined,
     1. [=Resolve=] |backpressurePromise| with undefined.
     1. Set |backpressurePromise| to undefined.
-  1. Otherwise, if |type| is `"error"`,
+  1. Otherwise, if |type| is "`error`",
    1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|controller|, |value|).
    1. If |backpressurePromise| is not undefined,
     1. [=Resolve=] |backpressurePromise| with undefined.
@@ -6167,15 +6167,15 @@ security issues.</p>
   1. Return the result of [=reacting=] to |backpressurePromise| with the following
      fulfillment steps:
    1. Set |backpressurePromise| to [=a new promise=].
-   1. Let |promise| be ! [$PackAndPostMessageHandlingError$](|port|, `"chunk"`, |chunk|).
+   1. Let |promise| be ! [$PackAndPostMessageHandlingError$](|port|, "`chunk`", |chunk|).
    1. If |promise| is a rejected promise, disentangle |port|.
    1. Return |promise|.
  1. Let |closeAlgorithm| be the folowing steps:
-  1. Perform ! [$PackAndPostMessage$](|port|, `"close"`, undefined).
+  1. Perform ! [$PackAndPostMessage$](|port|, "`close`", undefined).
   1. Disentangle |port|.
   1. Return [=a promise resolved with=] undefined.
  1. Let |abortAlgorithm| be the following steps, taking a |reason| argument:
-  1. Let |promise| be ! [$PackAndPostMessageHandlingError$](|port|, `"error"`, |reason|).
+  1. Let |promise| be ! [$PackAndPostMessageHandlingError$](|port|, "`error`", |reason|).
   1. Disentangle |port|.
   1. Return |promise|.
  1. Let |sizeAlgorithm| be an algorithm that returns 1.
