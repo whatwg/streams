@@ -1043,7 +1043,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  1. [=Entangle=] |port1| and |port2|.
  1. Let |writable| be a [=new=] {{WritableStream}}.
  1. Perform ! [$SetUpCrossRealmTransformWritable$](|writable|, |port1|).
- 1. Let |promise| be ! [$ReadableStreamPipeTo$](|value|, |writable|, false, false, false, undefined).
+ 1. Let |promise| be ! [$ReadableStreamPipeTo$](|value|, |writable|, false, false, false).
  1. Set |promise|.\[[PromiseIsHandled]] to true.
  1. Let |messagePortDataHolder| be { \[[Type]]: `"MessagePort"` }.
  1. Perform {{MessagePort}}'s transfer steps <!-- TODO(ricea): Link this somehow --> with |port2|
@@ -3822,8 +3822,7 @@ as seen for example in [[#example-ws-no-backpressure]].
  1. [=Entangle=] |port1| and |port2|.
  1. Let |readable| be a [=new=] {{ReadableStream}}.
  1. Perform ! [$SetUpCrossRealmTransformReadable$](|readable|, |port1|).
- 1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|, |value|, false, false, false,
-    undefined).
+ 1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|, |value|, false, false, false).
  1. Set |promise|.\[[PromiseIsHandled]] to true.
  1. Let |messagePortDataHolder| be { \[[Type]]: `"MessagePort"` }.
  1. Perform {{MessagePort}}'s transfer steps
