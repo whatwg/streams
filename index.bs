@@ -5224,10 +5224,11 @@ Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
     |value|.\[[readable]].
  1. Perform {{WritableStream}} transfer-receiving steps given |dataHolder|.\[[writable]] and
     |value|.\[[writable]].
+ 1. Set |value|.\[[backpressure]], |value|.\[[backpressureChangePromise]], and
+    |value|.\[[transformStreamController]] to undefined.
 
-<p class="note">These steps intentionally leave the \[[backpressure]],
-\[[backpressureChangePromise]] and \[[transformStreamController]] slots uninitialized. They are not
-used in a transferred TransformStream.</p>
+<p class="note">The \[[backpressure]], \[[backpressureChangePromise]], and
+\[[transformStreamController]] slots are not used in a transferred TransformStream.</p>
 
 </div>
 
