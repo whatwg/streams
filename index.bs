@@ -1056,7 +1056,7 @@ Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
  1. Let |deserializedRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[port]],
     [=the current Realm=]).
  1. Let |port| be |deserializedRecord|.\[[Deserialized]].
- 1. Perform ! [$SetUpCrossRealmTransformReadable$](|value|, |port|)
+ 1. Perform ! [$SetUpCrossRealmTransformReadable$](|value|, |port|).
 
 </div>
 
@@ -6106,7 +6106,7 @@ operations are used to implement these "cross-realm transforms".
     1. Perform ! [$ReadableStreamDefaultControllerClose$](|controller|).
     1. Disentangle |port|.
   1. Otherwise, if |type| is `"error"`,
-   1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |value|)
+   1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |value|).
    1. Disentangle |port|.
  1. Add a handler for |port|'s {{MessagePort/messageerror}} event with the following steps:
   1. Let |error| be a new "{{DataCloneError}}" {{DOMException}}.
