@@ -6098,10 +6098,10 @@ operations are used to implement these "cross-realm transforms".
  1. Let |backpressurePromise| be [=a new promise=].
  1. Add a handler for |port|'s {{MessagePort/message}} event with the following steps:
   1. Let |data| be the data of the message.
-  1. If ! [$Type$](|data|) is not Object, return.
-  1. Let |type| be ? [$Get$](|data|, `"type"`).
-  1. Let |value| be ? [$Get$](|data|, `"value"`).
-  1. If ! [$Type$](|type|) is not String, return.
+  1. Assert: [$Type$](|data|) is Object.
+  1. Let |type| be ! [$Get$](|data|, `"type"`).
+  1. Let |value| be ! [$Get$](|data|, `"value"`).
+  1. Assert: [$Type$](|type|) is String.
   1. If |type| is `"chunk"`,
    1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is true,
     1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|controller|, |value|).
@@ -6130,6 +6130,10 @@ operations are used to implement these "cross-realm transforms".
  1. Perform ! [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
     |pullAlgorithm|, |cancelAlgorithm|, 0, |sizeAlgorithm|).
 
+<p class="note">Implementations are encouraged to explicitly handle failures from the asserts in
+this algorithm, as the input might come from an untrusted context. Failure to do so could lead to
+security issues.</p>
+
 </div>
 
 <div algorithm>
@@ -6141,10 +6145,10 @@ operations are used to implement these "cross-realm transforms".
  1. Let |backpressurePromise| be [=a new promise=].
  1. Add a handler for |port|'s {{MessagePort/message}} event with the following steps:
   1. Let |data| be the data of the message.
-  1. If ! [$Type$](|data|) is not Object, return.
-  1. Let |type| be ? [$Get$](|data|, `"type"`).
-  1. Let |value| be ? [$Get$](|data|, `"value"`).
-  1. If ! [$Type$](|type|) is not String, return.
+  1. Assert: [$Type$](|data|) is Object.
+  1. Let |type| be ! [$Get$](|data|, `"type"`).
+  1. Let |value| be ! [$Get$](|data|, `"value"`).
+  1. Assert: [$Type$](|type|) is String.
   1. If |type| is `"pull"`,
    1. If |backpressurePromise| is not undefined,
     1. [=Resolve=] |backpressurePromise| with undefined.
@@ -6180,6 +6184,10 @@ operations are used to implement these "cross-realm transforms".
  1. Let |sizeAlgorithm| be an algorithm that returns 1.
  1. Perform ! [$SetUpWritableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
     |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|, 1, |sizeAlgorithm|).
+
+<p class="note">Implementations are encouraged to explicitly handle failures from the asserts in
+this algorithm, as the input might come from an untrusted context. Failure to do so could lead to
+security issues.</p>
 
 </div>
 
