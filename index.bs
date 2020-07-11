@@ -1045,19 +1045,17 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  1. Perform ! [$SetUpCrossRealmTransformWritable$](|writable|, |port1|).
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|value|, |writable|, false, false, false).
  1. Set |promise|.\[[PromiseIsHandled]] to true.
- 1. Let |messagePortDataHolder| be { \[[Type]]: `"MessagePort"` }.
- 1. Perform {{MessagePort}}'s transfer steps <!-- TODO(ricea): Link this somehow --> with |port2|
-    and |messagePortDataHolder|.
- 1. Set |dataHolder|.\[[port]] to |messagePortDataHolder|.
+ 1. Set |dataHolder|.\[[port]] to ! [$StructuredSerializeWithTransfer$](port2, « |port2| »).
 
 </div>
 
 <div algorithm="ReadableStream transfer receiving steps">
 Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
 
- 1. Let |port| be a new {{MessagePort}}.
- 1. Perform {{MessagePort}}'s transfer-receiving steps with |dataHolder|.\[[port]] and |port|.
- 1. Perform ! [$SetUpCrossRealmTransformReadable$](|value|, |dataHolder|.\[[port]])
+ 1. Let |deserializedRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[port]],
+    [=the current Realm=]).
+ 1. Let |port| be |deserializedRecord|.\[[Deserialized]].
+ 1. Perform ! [$SetUpCrossRealmTransformReadable$](|value|, |port|)
 
 </div>
 
@@ -3824,19 +3822,16 @@ as seen for example in [[#example-ws-no-backpressure]].
  1. Perform ! [$SetUpCrossRealmTransformReadable$](|readable|, |port1|).
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|, |value|, false, false, false).
  1. Set |promise|.\[[PromiseIsHandled]] to true.
- 1. Let |messagePortDataHolder| be { \[[Type]]: `"MessagePort"` }.
- 1. Perform {{MessagePort}}'s transfer steps
-    <!-- TODO(ricea): Link this to the HTML standard somehow --> with |port2| and
-    |messagePortDataHolder|.
- 1. Set |dataHolder|.\[[port]] to |messagePortDataHolder|.
+ 1. Set |dataHolder|.\[[port]] to ! [$StructuredSerializeWithTransfer$](port2, « |port2| »).
 
 </div>
 
 <div algorithm="WritableStream transfer receiving steps">
 Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
 
- 1. Let |port| be a new {{MessagePort}}.
- 1. Perform {{MessagePort}}'s transfer-receiving steps with |dataHolder|.\[[port]] and |port|.
+ 1. Let |deserializedRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[port]],
+    [=the current Realm=]).
+ 1. Let |port| be a |deserializedRecord|.\[[Deserialized]].
  1. Perform ! [$SetUpCrossRealmTransformWritable$](|value|, |port|).
 
 </div>
