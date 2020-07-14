@@ -5200,26 +5200,28 @@ side=], or to terminate or error the stream.
 {{TransformStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
 and |dataHolder|, are:
 
-<!-- Find a way to linkify ReadableStream transfer steps and WritableStream transfer steps -->
-
- 1. If ! [$IsReadableStreamLocked$](|value|.\[[readable]]) is true, throw a "{{DataCloneError}}"
+ 1. Let |readable| be |value|.\[[readable]].
+ 1. Let |writable| be |value|.\[[writable]].
+ 1. If ! [$IsReadableStreamLocked$](|readable|) is true, throw a "{{DataCloneError}}"
     {{DOMException}}.
- 1. If ! [$IsWritableStreamLocked$](|value|.\[[writable]]) is true, throw a "{{DataCloneError}}"
+ 1. If ! [$IsWritableStreamLocked$](|writable|) is true, throw a "{{DataCloneError}}"
     {{DOMException}}.
- 1. Perform {{ReadableStream}} transfer steps with |value|.\[[readable]] and |readableDataHolder|.
- 1. Set |dataHolder|.\[[readable]] to |readableDataHolder|.
- 1. Perform {{WritableStream}} transfer steps with |value|.\[[writable]] and |writableDataHolder|.
- 1. Set |dataHolder|.\[[writable]] to |writableDataHolder|.
+ 1. Set |dataHolder|.\[[readable]] to ! [$StructuredSerializeWithTransfer$](|readable|,
+    « |readable| »).
+ 1. Set |dataHolder|.\[[writable]] to ! [$StructuredSerializeWithTransfer$](|writable|,
+    « |writable| »).
 
 </div>
 
 <div algorithm="TransformStream transfer receiving steps">
 Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
 
- 1. Perform {{ReadableStream}} transfer-receiving steps given |dataHolder|.\[[readable]] and
-    |value|.\[[readable]].
- 1. Perform {{WritableStream}} transfer-receiving steps given |dataHolder|.\[[writable]] and
-    |value|.\[[writable]].
+ 1. Let |readableRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[readable]],
+    [=the current Realm=]).
+ 1. Let |writableRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[writable]],
+    [=the current Realm=]).
+ 1. Set |value|.\[[readable]] to |readableRecord|.\[[Deserialized]].
+ 1. Set |value|.\[[writable]] to |writableRecord|.\[[Deserialized]].
  1. Set |value|.\[[backpressure]], |value|.\[[backpressureChangePromise]], and
     |value|.\[[transformStreamController]] to undefined.
 
