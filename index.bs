@@ -16,8 +16,6 @@ spec:webidl; type:dfn; text:resolve
 spec:webidl; type:dfn; text:new
 spec:infra; type:dfn; text:list
 spec:html; type:dfn; text:entangle
-spec:html; type:dfn; text:create a new messageport object
-spec:html; type:dfn; text:owner
 spec:html; type:dfn; text:message port post message steps
 spec:html; type:dfn; text:port message queue
 </pre>
@@ -33,15 +31,16 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: DataView; url: #sec-dataview-objects
   text: Number; url: #sec-ecmascript-language-types-number-type
   text: Uint8Array; url: #sec-typedarray-objects
+  text: %Object.prototype%; url: #sec-properties-of-the-object-prototype-object
  type: dfn
   text: abstract operation; url: #sec-algorithm-conventions-abstract-operations
   text: completion record; url: #sec-completion-record-specification-type
   text: internal slot; url: #sec-object-internal-methods-and-internal-slots
+  text: realm; url: #sec-code-realms
   text: the current Realm; url: #current-realm
   text: the typed array constructors table; url: #table-49
   text: typed array; url: #sec-typedarray-objects
   text: Number type; url: #sec-ecmascript-language-types-number-type
-  text: %Object.prototype%; url: #sec-properties-of-the-object-prototype-object
  type: abstract-op
   text: CloneArrayBuffer; url: #sec-clonearraybuffer
   text: CopyDataBlockBytes; url: #sec-copydatablockbytes
@@ -1029,29 +1028,28 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  <dd>
   <p>Sends a {{ReadableStream}} to another frame, window, or worker.
 
-  <p>The transferred stream can be used exactly like the original. The original will become locked
-  and no longer directly usable.
+  <p>The transferred stream can be used exactly like the original. The original will become
+  [=locked to a reader|locked=] and no longer directly usable.
  </dd>
 </dl>
 
 <div algorithm="ReadableStream transfer steps">
-{{ReadableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value| and
-|dataHolder|, are:
+ {{ReadableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
+ and |dataHolder|, are:
 
  1. If ! [$IsReadableStreamLocked$](|value|) is true, throw a "{{DataCloneError}}" {{DOMException}}.
  1. Let |port1| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. Let |port2| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. [=Entangle=] |port1| and |port2|.
- 1. Let |writable| be a [=new=] {{WritableStream}}.
+ 1. Let |writable| be a [=new=] {{WritableStream}} in [=the current Realm=].
  1. Perform ! [$SetUpCrossRealmTransformWritable$](|writable|, |port1|).
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|value|, |writable|, false, false, false).
  1. Set |promise|.\[[PromiseIsHandled]] to true.
  1. Set |dataHolder|.\[[port]] to ! [$StructuredSerializeWithTransfer$](|port2|, « |port2| »).
-
 </div>
 
-<div algorithm="ReadableStream transfer receiving steps">
-Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
+<div algorithm="ReadableStream transfer-receiving steps">
+ Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
 
  1. Let |deserializedRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[port]],
     [=the current Realm=]).
@@ -3806,35 +3804,33 @@ as seen for example in [[#example-ws-no-backpressure]].
  <dd>
   <p>Sends a {{WritableStream}} to another frame, window, or worker.
 
-  <p>The transferred stream can be used exactly like the original. The original will become locked
-  and no longer directly usable.
+  <p>The transferred stream can be used exactly like the original. The original will become
+  [=locked to a writer|lock=] and no longer directly usable.
  </dd>
 </dl>
 
 <div algorithm="WritableStream transfer steps">
-{{WritableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value| and
-|dataHolder|, are:
+ {{WritableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
+ and |dataHolder|, are:
 
  1. If ! [$IsWritableStreamLocked$](|value|) is true, throw a "{{DataCloneError}}" {{DOMException}}.
  1. Let |port1| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. Let |port2| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. [=Entangle=] |port1| and |port2|.
- 1. Let |readable| be a [=new=] {{ReadableStream}}.
+ 1. Let |readable| be a [=new=] {{ReadableStream}} in [=the current Realm=].
  1. Perform ! [$SetUpCrossRealmTransformReadable$](|readable|, |port1|).
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|, |value|, false, false, false).
  1. Set |promise|.\[[PromiseIsHandled]] to true.
  1. Set |dataHolder|.\[[port]] to ! [$StructuredSerializeWithTransfer$](|port2|, « |port2| »).
-
 </div>
 
-<div algorithm="WritableStream transfer receiving steps">
-Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
+<div algorithm="WritableStream transfer-receiving steps">
+ Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
 
  1. Let |deserializedRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[port]],
     [=the current Realm=]).
  1. Let |port| be a |deserializedRecord|.\[[Deserialized]].
  1. Perform ! [$SetUpCrossRealmTransformWritable$](|value|, |port|).
-
 </div>
 
 <h3 id="default-writer-class">The {{WritableStreamDefaultWriter}} class</h3>
@@ -5191,14 +5187,14 @@ side=], or to terminate or error the stream.
  <dd>
   <p>Sends a {{TransformStream}} to another frame, window, or worker.
 
-  <p>The transferred stream can be used exactly like the original. The original will become locked
-  and no longer directly usable.
+  <p>The transferred stream can be used exactly like the original. Its [=readable side|readable=]
+  and [=writable sides=] will become locked and no longer directly usable.
  </dd>
 </dl>
 
 <div algorithm="TransformStream transfer steps">
-{{TransformStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
-and |dataHolder|, are:
+ {{TransformStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
+ and |dataHolder|, are:
 
  1. Let |readable| be |value|.\[[readable]].
  1. Let |writable| be |value|.\[[writable]].
@@ -5210,11 +5206,10 @@ and |dataHolder|, are:
     « |readable| »).
  1. Set |dataHolder|.\[[writable]] to ! [$StructuredSerializeWithTransfer$](|writable|,
     « |writable| »).
-
 </div>
 
-<div algorithm="TransformStream transfer receiving steps">
-Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
+<div algorithm="TransformStream transfer-receiving steps">
+ Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
 
  1. Let |readableRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[readable]],
     [=the current Realm=]).
@@ -5225,9 +5220,8 @@ Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
  1. Set |value|.\[[backpressure]], |value|.\[[backpressureChangePromise]], and
     |value|.\[[transformStreamController]] to undefined.
 
-<p class="note">The \[[backpressure]], \[[backpressureChangePromise]], and
-\[[transformStreamController]] slots are not used in a transferred TransformStream.</p>
-
+ <p class="note">The \[[backpressure]], \[[backpressureChangePromise]], and
+ \[[transformStreamController]] slots are not used in a transferred {{TransformStream}}.</p>
 </div>
 
 <h3 id="ts-default-controller-class">The {{TransformStreamDefaultController}} class</h3>
@@ -6043,8 +6037,8 @@ for="value-with-size">value</dfn> and <dfn for="value-with-size">size</dfn>.
 <h3 id="transferrable-streams">Transferable streams</h3>
 
 Transferable streams are implemented using a special kind of identity transform which has the
-[=writable side=] in one realm and the [=readable side=] in another realm. The following abstract
-operations are used to implement these "cross-realm transforms".
+[=writable side=] in one [=realm=] and the [=readable side=] in another realm. The following
+abstract operations are used to implement these "cross-realm transforms".
 
 <div algorithm>
  <dfn abstract-op lt="CrossRealmTransformSendError">CrossRealmTransformSendError(|port|,
@@ -6054,7 +6048,6 @@ operations are used to implement these "cross-realm transforms".
 
  <p class="note">As we are already in an errored state when this abstract operation is performed, we
  cannot handle further errors, so we just discard them.</p>
-
 </div>
 
 <div algorithm>
@@ -6070,8 +6063,7 @@ operations are used to implement these "cross-realm transforms".
 
  <p class="note">A JavaScript object is used for transfer to avoid having to duplicate the [=message
  port post message steps=]. The prototype of the object is set to null to avoid interference from
- [=%Object.prototype%=].</p>
-
+ {{%Object.prototype%}}.</p>
 </div>
 
 <div algorithm>
@@ -6082,7 +6074,6 @@ operations are used to implement these "cross-realm transforms".
  1. If |result| is an abrupt completion,
   1. Perform ! [$CrossRealmTransformSendError$](|port|, |result|.\[[Value]]).
  1. Return |result| as a completion record.
-
 </div>
 
 <div algorithm>
@@ -6124,10 +6115,9 @@ operations are used to implement these "cross-realm transforms".
  1. Perform ! [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
     |pullAlgorithm|, |cancelAlgorithm|, 0, |sizeAlgorithm|).
 
-<p class="note">Implementations are encouraged to explicitly handle failures from the asserts in
-this algorithm, as the input might come from an untrusted context. Failure to do so could lead to
-security issues.</p>
-
+ <p class="note">Implementations are encouraged to explicitly handle failures from the asserts in
+ this algorithm, as the input might come from an untrusted context. Failure to do so could lead to
+ security issues.</p>
 </div>
 
 <div algorithm>
@@ -6183,10 +6173,9 @@ security issues.</p>
  1. Perform ! [$SetUpWritableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
     |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|, 1, |sizeAlgorithm|).
 
-<p class="note">Implementations are encouraged to explicitly handle failures from the asserts in
-this algorithm, as the input might come from an untrusted context. Failure to do so could lead to
-security issues.</p>
-
+ <p class="note">Implementations are encouraged to explicitly handle failures from the asserts in
+ this algorithm, as the input might come from an untrusted context. Failure to do so could lead to
+ security issues.</p>
 </div>
 
 <h3 id="misc-abstract-ops">Miscellaneous</h4>
