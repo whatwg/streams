@@ -1027,7 +1027,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
 <dl class="domintro">
  <dt><code>worker.postMessage(rs, [rs]);</code>
  <dd>
-  <p>Sends a ReadableStream to another frame, window or worker.
+  <p>Sends a {{ReadableStream}} to another frame, window, or worker.
 
   <p>The transferred stream can be used exactly like the original. The original will become locked
   and no longer directly usable.
