@@ -41,7 +41,7 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: the typed array constructors table; url: #table-49
   text: typed array; url: #sec-typedarray-objects
   text: Number type; url: #sec-ecmascript-language-types-number-type
-  text: %ObjectPrototype%; url: #sec-properties-of-the-object-prototype-object
+  text: %Object.prototype%; url: #sec-properties-of-the-object-prototype-object
  type: abstract-op
   text: CloneArrayBuffer; url: #sec-clonearraybuffer
   text: CopyDataBlockBytes; url: #sec-copydatablockbytes
@@ -1025,7 +1025,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
 <h4 id="rs-transfer">Transfer via `postMessage()`</h4>
 
 <dl class="domintro">
- <dt><code>worker.postMessage(rs, [rs]);</code>
+ <dt><code>destination.postMessage(rs, { transfer: [rs] });</code>
  <dd>
   <p>Sends a {{ReadableStream}} to another frame, window, or worker.
 
@@ -3802,7 +3802,7 @@ as seen for example in [[#example-ws-no-backpressure]].
 <h4 id="ws-transfer">Transfer via postMessage()</h4>
 
 <dl class="domintro">
- <dt><code>worker.postMessage(ws, [ws]);</code>
+ <dt><code>destination.postMessage(ws, { transfer: [ws] });</code>
  <dd>
   <p>Sends a WritableStream to another frame, window or worker.
 
@@ -5187,7 +5187,7 @@ side=], or to terminate or error the stream.
 <h4 id="ts-transfer">Transfer via postMessage()</h4>
 
 <dl class="domintro">
- <dt><code>worker.postMessage(ts, [ts]);</code>
+ <dt><code>destination.postMessage(ts, { transfer: [ts] });</code>
  <dd>
   <p>Sends a TransformStream to another frame, window or worker.
 
@@ -6057,7 +6057,7 @@ operations are used to implement these "cross-realm transforms".
 
  <p class="note">A JavaScript object is used for transfer to avoid having to duplicate the [=message
  port post message steps=]. The prototype of the object is set to null to avoid interference from
- [=%ObjectPrototype%=].</p>
+ [=%Object.prototype%=].</p>
 
 </div>
 
