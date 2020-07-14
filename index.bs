@@ -3799,12 +3799,12 @@ as seen for example in [[#example-ws-no-backpressure]].
  1. Return ? [$AcquireWritableStreamDefaultWriter$]([=this=]).
 </div>
 
-<h4 id="ws-transfer">Transfer via postMessage()</h4>
+<h4 id="ws-transfer">Transfer via `postMessage()`</h4>
 
 <dl class="domintro">
  <dt><code>destination.postMessage(ws, { transfer: [ws] });</code>
  <dd>
-  <p>Sends a WritableStream to another frame, window or worker.
+  <p>Sends a {{WritableStream}} to another frame, window, or worker.
 
   <p>The transferred stream can be used exactly like the original. The original will become locked
   and no longer directly usable.
@@ -3823,7 +3823,7 @@ as seen for example in [[#example-ws-no-backpressure]].
  1. Perform ! [$SetUpCrossRealmTransformReadable$](|readable|, |port1|).
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|, |value|, false, false, false).
  1. Set |promise|.\[[PromiseIsHandled]] to true.
- 1. Set |dataHolder|.\[[port]] to ! [$StructuredSerializeWithTransfer$](port2, « |port2| »).
+ 1. Set |dataHolder|.\[[port]] to ! [$StructuredSerializeWithTransfer$](|port2|, « |port2| »).
 
 </div>
 
@@ -5184,12 +5184,12 @@ side=], or to terminate or error the stream.
  1. Return [=this=].[=TransformStream/[[writable]]=].
 </div>
 
-<h4 id="ts-transfer">Transfer via postMessage()</h4>
+<h4 id="ts-transfer">Transfer via `postMessage()`</h4>
 
 <dl class="domintro">
  <dt><code>destination.postMessage(ts, { transfer: [ts] });</code>
  <dd>
-  <p>Sends a TransformStream to another frame, window or worker.
+  <p>Sends a {{TransformStream}} to another frame, window, or worker.
 
   <p>The transferred stream can be used exactly like the original. The original will become locked
   and no longer directly usable.
