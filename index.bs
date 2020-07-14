@@ -1022,7 +1022,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  1. Return [=a promise resolved with=] undefined.
 </div>
 
-<h4 id="rs-transfer">Transfer via postMessage()</h4>
+<h4 id="rs-transfer">Transfer via `postMessage()`</h4>
 
 <dl class="domintro">
  <dt><code>worker.postMessage(rs, [rs]);</code>
