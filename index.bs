@@ -1046,7 +1046,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  1. Perform ! [$SetUpCrossRealmTransformWritable$](|writable|, |port1|).
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|value|, |writable|, false, false, false).
  1. Set |promise|.\[[PromiseIsHandled]] to true.
- 1. Set |dataHolder|.\[[port]] to ! [$StructuredSerializeWithTransfer$](port2, « |port2| »).
+ 1. Set |dataHolder|.\[[port]] to ! [$StructuredSerializeWithTransfer$](|port2|, « |port2| »).
 
 </div>
 
