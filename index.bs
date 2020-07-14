@@ -6047,6 +6047,17 @@ Transferable streams are implemented using a special kind of identity transform 
 operations are used to implement these "cross-realm transforms".
 
 <div algorithm>
+ <dfn abstract-op lt="CrossRealmTransformSendError">CrossRealmTransformSendError(|port|,
+ |error|)</dfn> performs the following steps:
+
+ 1. Perform [$PackAndPostMessage$](|port|, "`error`", |error|), discarding the result.
+
+ <p class="note">As we are already in an errored state when this abstract operation is performed, we
+ cannot handle further errors, so we just discard them.</p>
+
+</div>
+
+<div algorithm>
  <dfn abstract-op lt="PackAndPostMessage">PackAndPostMessage(|port|, |type|, |value|)</dfn> performs
  the following steps:
 
@@ -6072,17 +6083,6 @@ operations are used to implement these "cross-realm transforms".
   1. Perform ! [$CrossRealmTransformSendError$](|port|, |result|.\[[Value]]).
   1. Return [=a promise rejected with=] |result|.\[[Value]].
  1. Otherwise, return [=a promise resolved with=] undefined.
-
-</div>
-
-<div algorithm>
- <dfn abstract-op lt="CrossRealmTransformSendError">CrossRealmTransformSendError(|port|,
- |error|)</dfn> performs the following steps:
-
- 1. Perform [$PackAndPostMessage$](|port|, "`error`", |error|), discarding the result.
-
- <p class="note">As we are already in an errored state when this abstract operation is performed, we
- cannot handle further errors, so we just discard them.</p>
 
 </div>
 
