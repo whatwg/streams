@@ -6081,8 +6081,7 @@ operations are used to implement these "cross-realm transforms".
  1. Let |result| be [$PackAndPostMessage$](|port|, |type|, |value|).
  1. If |result| is an abrupt completion,
   1. Perform ! [$CrossRealmTransformSendError$](|port|, |result|.\[[Value]]).
-  1. Return [=a promise rejected with=] |result|.\[[Value]].
- 1. Otherwise, return [=a promise resolved with=] undefined.
+ 1. Return |result| as a completion record.
 
 </div>
 
@@ -6117,9 +6116,10 @@ operations are used to implement these "cross-realm transforms".
   1. Perform ! [$PackAndPostMessage$](|port|, "`pull`", undefined).
   1. Return [=a promise resolved with=] undefined.
  1. Let |cancelAlgorithm| be the following steps, taking a |reason| argument:
-  1. Let |promise| be ! [$PackAndPostMessageHandlingError$](|port|, "`error`", |reason|).
+  1. Let |result| be [$PackAndPostMessageHandlingError$](|port|, "`error`", |reason|).
   1. Disentangle |port|.
-  1. Return |promise|.
+  1. If |result| is an abrupt completion, return [=a promise rejected with=] |result|.\[[Value]].
+  1. Otherwise, return [=a promise resolved with=] undefined.
  1. Let |sizeAlgorithm| be an algorithm that returns 1.
  1. Perform ! [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
     |pullAlgorithm|, |cancelAlgorithm|, 0, |sizeAlgorithm|).
@@ -6165,17 +6165,20 @@ security issues.</p>
   1. Return the result of [=reacting=] to |backpressurePromise| with the following
      fulfillment steps:
    1. Set |backpressurePromise| to [=a new promise=].
-   1. Let |promise| be ! [$PackAndPostMessageHandlingError$](|port|, "`chunk`", |chunk|).
-   1. If |promise| is a rejected promise, disentangle |port|.
-   1. Return |promise|.
+   1. Let |result| be [$PackAndPostMessageHandlingError$](|port|, "`chunk`", |chunk|).
+   1. If |result| is an abrupt completion,
+    1. Disentangle |port|.
+    1. Return [=a promise rejected with=] |result|.\[[Value]].
+   1. Otherwise, return [=a promise resolved with=] undefined.
  1. Let |closeAlgorithm| be the folowing steps:
   1. Perform ! [$PackAndPostMessage$](|port|, "`close`", undefined).
   1. Disentangle |port|.
   1. Return [=a promise resolved with=] undefined.
  1. Let |abortAlgorithm| be the following steps, taking a |reason| argument:
-  1. Let |promise| be ! [$PackAndPostMessageHandlingError$](|port|, "`error`", |reason|).
+  1. Let |result| be [$PackAndPostMessageHandlingError$](|port|, "`error`", |reason|).
   1. Disentangle |port|.
-  1. Return |promise|.
+  1. If |result| is an abrupt completion, return [=a promise rejected with=] |result|.\[[Value]].
+  1. Otherwise, return [=a promise resolved with=] undefined.
  1. Let |sizeAlgorithm| be an algorithm that returns 1.
  1. Perform ! [$SetUpWritableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
     |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|, 1, |sizeAlgorithm|).
