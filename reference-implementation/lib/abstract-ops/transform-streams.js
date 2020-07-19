@@ -114,8 +114,6 @@ function SetUpTransformStreamDefaultController(stream, controller, transformAlgo
 }
 
 function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer, transformerDict) {
-  assert(transformer !== undefined);
-
   const controller = TransformStreamDefaultController.new(globalThis);
 
   let transformAlgorithm = chunk => {
