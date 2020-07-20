@@ -568,8 +568,6 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
 
 function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyingSink, underlyingSinkDict,
                                                                 highWaterMark, sizeAlgorithm) {
-  assert(underlyingSink !== undefined);
-
   const controller = WritableStreamDefaultController.new(globalThis);
 
   let startAlgorithm = () => undefined;

@@ -863,8 +863,6 @@ function SetUpReadableStreamDefaultController(
 
 function SetUpReadableStreamDefaultControllerFromUnderlyingSource(
   stream, underlyingSource, underlyingSourceDict, highWaterMark, sizeAlgorithm) {
-  assert(underlyingSource !== undefined);
-
   const controller = ReadableStreamDefaultController.new(globalThis);
 
   let startAlgorithm = () => undefined;
