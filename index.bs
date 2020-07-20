@@ -3805,7 +3805,7 @@ as seen for example in [[#example-ws-no-backpressure]].
   <p>Sends a {{WritableStream}} to another frame, window, or worker.
 
   <p>The transferred stream can be used exactly like the original. The original will become
-  [=locked to a writer|lock=] and no longer directly usable.
+  [=locked to a writer|locked=] and no longer directly usable.
  </dd>
 </dl>
 
