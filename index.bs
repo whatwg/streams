@@ -868,6 +868,49 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
     |options|["{{StreamPipeOptions/preventClose}}"],
     |options|["{{StreamPipeOptions/preventAbort}}"],
     |options|["{{StreamPipeOptions/preventCancel}}"], |signal|).
+
+ <div class="example" id="example-pipe-abortsignal">
+  An ongoing [=pipe=] operation can be stopped using an {{AbortSignal}}, as follows:
+
+  <xmp highlight="js">
+   const controller = new AbortController();
+   readable.pipeTo(writable, { signal: controller.signal });
+
+   // ... some time later ...
+   controller.abort();
+  </xmp>
+
+  (The above omits error handling for the promise returned by {{ReadableStream/pipeTo()}}.
+  Additionally, the impact of the {{StreamPipeOptions/preventAbort}} and
+  {{StreamPipeOptions/preventCancel}} options what happens when piping is stopped are worth
+  considering.)
+ </div>
+
+ <div class="example" id="example-pipe-switch-dest">
+  The above technique can be used to switch the {{ReadableStream}} being piped, while writing into
+  the same {{WritableStream}}:
+
+  <xmp highlight="js">
+   const controller = new AbortController();
+   const pipePromise = readable1.pipeTo(writable, { preventAbort: true, signal: controller.signal });
+
+   // ... some time later ...
+   controller.abort();
+
+   // Wait for the pipe to complete before starting a new one:
+   try {
+    await pipePromise;
+   } catch (e) {
+    // Swallow "AbortError" DOMExceptions as expected, but rethrow any unexpected failures.
+    if (e.name !== "AbortError") {
+     throw e;
+    }
+   }
+
+   // Start the new pipe!
+   readable2.pipeTo(writable);
+  </xmp>
+ </div>
 </div>
 
 <div algorithm>
