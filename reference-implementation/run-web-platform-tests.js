@@ -33,7 +33,7 @@ async function main() {
   const testsPath = path.resolve(wptPath, 'streams');
 
   const filterGlobs = process.argv.length >= 3 ? process.argv.slice(2) : ['**/*.html'];
-  const workerTestPattern = /\.(?:dedicated|shared|service)worker(?:\.https)?\.html$/;
+  const anyTestPattern = /\.any\.html$/;
 
   const bundledJS = await bundle(entryPath);
 
@@ -56,8 +56,8 @@ async function main() {
       window.eval(bundledJS);
     },
     filter(testPath) {
-      // Ignore the worker versions
-      if (workerTestPattern.test(testPath)) {
+      // Ignore the window-specific and worker-specific tests
+      if (!anyTestPattern.test(testPath)) {
         return false;
       }
 
