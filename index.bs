@@ -746,8 +746,8 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
 </dl>
 
 <div algorithm>
- The <dfn id="rs-constructor" constructor for="ReadableStream">ReadableStream(|underlyingSource|,
- |strategy|)</dfn> constructor steps are:
+ The <dfn id="rs-constructor" constructor for="ReadableStream" lt="ReadableStream(underlyingSource,
+ strategy)">new ReadableStream(|underlyingSource|, |strategy|)</dfn> constructor steps are:
 
  1. If |underlyingSource| is missing, set it to null.
  1. Let |underlyingSourceDict| be |underlyingSource|, [=converted to an IDL value=] of type
@@ -770,7 +770,7 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
 </div>
 
 <div algorithm>
- The <dfn id="rs-locked" attribute for="ReadableStream">locked</dfn> attribute's getter steps are:
+ The <dfn id="rs-locked" attribute for="ReadableStream">locked</dfn> getter steps are:
 
  1. Return ! [$IsReadableStreamLocked$]([=this=]).
 </div>
@@ -1121,9 +1121,9 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
 </dl>
 
 <div algorithm>
- The <dfn id="default-reader-constructor" constructor
- for="ReadableStreamDefaultReader">ReadableStreamDefaultReader(|stream|)</dfn> constructor steps
- are:
+ The <dfn id="default-reader-constructor" constructor for="ReadableStreamDefaultReader"
+ lt="ReadableStreamDefaultReader(stream)">new ReadableStreamDefaultReader(|stream|)</dfn>
+ constructor steps are:
 
  1. Perform ? [$SetUpReadableStreamDefaultReader$]([=this=], |stream|).
 </div>
@@ -1300,9 +1300,9 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
 </dl>
 
 <div algorithm>
- The <dfn id="byob-reader-constructor" constructor
- for="ReadableStreamBYOBReader">ReadableStreamBYOBReader(|stream|)</dfn> constructor steps
- are:
+ The <dfn id="byob-reader-constructor" constructor for="ReadableStreamBYOBReader"
+ lt="ReadableStreamBYOBReader(stream)">new ReadableStreamBYOBReader(|stream|)</dfn> constructor
+ steps are:
 
  1. Perform ? [$SetUpReadableStreamBYOBReader$]([=this=], |stream|).
 </div>
@@ -1468,7 +1468,7 @@ the following table:
 
 <div algorithm>
  The <dfn id="rs-default-controller-desired-size" attribute
- for="ReadableStreamDefaultController">desiredSize</dfn> attribute's getter steps are:
+ for="ReadableStreamDefaultController">desiredSize</dfn> getter steps are:
 
  1. Return ! [$ReadableStreamDefaultControllerGetDesiredSize$]([=this=]).
 </div>
@@ -1705,7 +1705,7 @@ has the following [=struct/items=]:
 
 <div algorithm>
  The <dfn id="rbs-controller-byob-request" attribute
- for="ReadableByteStreamController">byobRequest</dfn> attribute's getter steps are:
+ for="ReadableByteStreamController">byobRequest</dfn> getter steps are:
 
  1. If [=this=].\[[byobRequest]] is null and [=this=].\[[pendingPullIntos]] is not [=list/is
     empty|empty=],
@@ -1723,7 +1723,7 @@ has the following [=struct/items=]:
 
 <div algorithm>
  The <dfn id="rbs-controller-desired-size" attribute
- for="ReadableByteStreamController">desiredSize</dfn> attribute's getter steps are:
+ for="ReadableByteStreamController">desiredSize</dfn> getter steps are:
 
  1. Return ! [$ReadableByteStreamControllerGetDesiredSize$]([=this=]).
 </div>
@@ -1880,7 +1880,7 @@ following table:
 
 <div algorithm>
  The <dfn id="rs-byob-request-view" attribute for="ReadableStreamBYOBRequest">view</dfn>
- attribute's getter steps are:
+ getter steps are:
 
  1. Return [=this=].\[[view]].
 </div>
@@ -3618,8 +3618,8 @@ as seen for example in [[#example-ws-no-backpressure]].
 </dl>
 
 <div algorithm>
- The <dfn id="ws-constructor" constructor for="WritableStream">WritableStream(|underlyingSink|,
- |strategy|)</dfn> constructor steps are:
+ The <dfn id="ws-constructor" constructor for="WritableStream" lt="WritableStream(underlyingSink,
+ strategy)">new WritableStream(|underlyingSink|, |strategy|)</dfn> constructor steps are:
 
  1. If |underlyingSink| is missing, set it to null.
  1. Let |underlyingSinkDict| be |underlyingSink|, [=converted to an IDL value=] of type
@@ -3639,7 +3639,7 @@ as seen for example in [[#example-ws-no-backpressure]].
 </div>
 
 <div algorithm>
- The <dfn id="ws-locked" attribute for="WritableStream">locked</dfn> attribute's getter steps are:
+ The <dfn id="ws-locked" attribute for="WritableStream">locked</dfn> getter steps are:
 
  1. Return ! [$IsWritableStreamLocked$]([=this=]).
 </div>
@@ -3788,9 +3788,9 @@ following table:
 </dl>
 
 <div algorithm>
- The <dfn id="default-writer-constructor" constructor
- for="WritableStreamDefaultWriter">WritableStreamDefaultWriter(|stream|)</dfn> constructor steps
- are:
+ The <dfn id="default-writer-constructor" constructor for="WritableStreamDefaultWriter"
+ lt="WritableStreamDefaultWriter(stream)">new WritableStreamDefaultWriter(|stream|)</dfn>
+ constructor steps are:
 
  1. Perform ? [$SetUpWritableStreamDefaultWriter$]([=this=], |stream|).
 </div>
@@ -4938,8 +4938,9 @@ side=], or to terminate or error the stream.
 </dl>
 
 <div algorithm>
- The <dfn id="ts-constructor" constructor for="TransformStream">TransformStream(|transformer|,
- |writableStrategy|, |readableStrategy|)</dfn> constructor steps are:
+ The <dfn id="ts-constructor" constructor for="TransformStream" lt="TransformStream(transformer,
+ writableStrategy, readableStrategy)">new TransformStream(|transformer|, |writableStrategy|,
+ |readableStrategy|)</dfn> constructor steps are:
 
  1. If |transformer| is missing, set it to null.
  1. Let |transformerDict| be |transformer|, [=converted to an IDL value=] of type {{Transformer}}.
@@ -4967,14 +4968,14 @@ side=], or to terminate or error the stream.
 </div>
 
 <div algorithm>
- The <dfn id="ts-readable" attribute for="TransformStream">readable</dfn> attribute's getter steps
+ The <dfn id="ts-readable" attribute for="TransformStream">readable</dfn> getter steps
  are:
 
  1. Return [=this=].\[[readable]].
 </div>
 
 <div algorithm>
- The <dfn id="ts-writable" attribute for="TransformStream">writable</dfn> attribute's getter steps
+ The <dfn id="ts-writable" attribute for="TransformStream">writable</dfn> getter steps
  are:
 
  1. Return [=this=].\[[writable]].
@@ -5054,7 +5055,7 @@ the following table:
 
 <div algorithm>
  The <dfn id="ts-default-controller-desired-size" attribute
- for="TransformStreamDefaultController">desiredSize</dfn> attribute's getter steps are:
+ for="TransformStreamDefaultController">desiredSize</dfn> getter steps are:
 
  1. Let |readableController| be
     [=this=].\[[controlledTransformStream]].\[[readable]].\[[readableStreamController]].
@@ -5546,22 +5547,22 @@ value given in the constructor.
 </dl>
 
 <div algorithm>
- The <dfn id="blqs-constructor" constructor
- for="ByteLengthQueuingStrategy">ByteLengthQueuingStrategy(|init|)</dfn> constructor steps are:
+ The <dfn id="blqs-constructor" constructor for="ByteLengthQueuingStrategy"
+ lt="ByteLengthQueuingStrategy(init)">new ByteLengthQueuingStrategy(|init|)</dfn> constructor steps
+ are:
 
  1. Set [=this=].\[[highWaterMark]] to |init|["{{QueuingStrategyInit/highWaterMark}}"].
 </div>
 
 <div algorithm>
  The <dfn id="blqs-high-water-mark" attribute for="ByteLengthQueuingStrategy">highWaterMark</dfn>
- attribute's getter steps are:
+ getter steps are:
 
  1. Return [=this=].\[[highWaterMark]].
 </div>
 
 <div algorithm>
- The <dfn id="blqs-size" attribute for="ByteLengthQueuingStrategy">size</dfn> attribute's getter
- steps are:
+ The <dfn id="blqs-size" attribute for="ByteLengthQueuingStrategy">size</dfn> getter steps are:
 
  1. Return [=this=]'s [=relevant global object=]'s [=byte length queuing strategy size function=].
 </div>
@@ -5660,22 +5661,21 @@ value given in the constructor.
 </dl>
 
 <div algorithm>
- The <dfn id="cqs-constructor" constructor
- for="CountQueuingStrategy">CountQueuingStrategy(|init|)</dfn> constructor steps are:
+ The <dfn id="cqs-constructor" constructor for="CountQueuingStrategy"
+ lt="CountQueuingStrategy(init)">new CountQueuingStrategy(|init|)</dfn> constructor steps are:
 
  1. Set [=this=].\[[highWaterMark]] to |init|["{{QueuingStrategyInit/highWaterMark}}"].
 </div>
 
 <div algorithm>
  The <dfn id="cqs-high-water-mark" attribute for="CountQueuingStrategy">highWaterMark</dfn>
- attribute's getter steps are:
+ getter steps are:
 
  1. Return [=this=].\[[highWaterMark]].
 </div>
 
 <div algorithm>
- The <dfn id="cqs-size" attribute for="CountQueuingStrategy">size</dfn> attribute's getter
- steps are:
+ The <dfn id="cqs-size" attribute for="CountQueuingStrategy">size</dfn> getter steps are:
 
  1. Return [=this=]'s [=relevant global object=]'s [=count queuing strategy size function=].
 </div>
