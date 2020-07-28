@@ -4795,12 +4795,12 @@ table:
    <td class="non-normative">A promise which is fulfilled and replaced every time the value of
    \[[backpressure]] changes
   <tr>
-   <td>\[[readable]]
-   <td class="non-normative">The {{ReadableStream}} instance controlled by this object
-  <tr>
-   <td>\[[transformStreamController]]
+   <td>\[[controller]]
    <td class="non-normative">A {{TransformStreamDefaultController}} created with the ability to
    control \[[readable]] and \[[writable]]
+  <tr>
+   <td>\[[readable]]
+   <td class="non-normative">The {{ReadableStream}} instance controlled by this object
   <tr>
    <td>\[[writable]]
    <td class="non-normative">The {{WritableStream}} instance controlled by this object
@@ -4951,7 +4951,7 @@ side=], or to terminate or error the stream.
  1. Let |startPromise| be [=a new promise=].
  1. If |transformerDict|["{{Transformer/start}}"] [=map/exists=], then [=resolve=] |startPromise|
     with the result of [=invoking=] |transformerDict|["{{Transformer/start}}"] with argument list
-    «&nbsp;[=this=].\[[transformStreamController]]&nbsp;» and [=callback this value=] |transformer|.
+    «&nbsp;[=this=].\[[controller]]&nbsp;» and [=callback this value=] |transformer|.
  1. Otherwise, [=resolve=] |startPromise| with undefined.
 </div>
 
@@ -5003,12 +5003,12 @@ the following table:
    <th>Description (<em>non-normative</em>)</th>
  <tbody>
   <tr>
-   <td>\[[controlledTransformStream]]
-   <td class="non-normative">The {{TransformStream}} instance controlled
-  <tr>
    <td>\[[flushAlgorithm]]
    <td class="non-normative">A promise-returning algorithm which communicates a requested close to
    the [=transformer=]
+  <tr>
+   <td>\[[stream]]
+   <td class="non-normative">The {{TransformStream}} instance controlled
   <tr>
    <td>\[[transformAlgorithm]]
    <td class="non-normative">A promise-returning algorithm, taking one argument (the [=chunk=] to
@@ -5045,8 +5045,7 @@ the following table:
  The <dfn id="ts-default-controller-desired-size" attribute
  for="TransformStreamDefaultController">desiredSize</dfn> getter steps are:
 
- 1. Let |readableController| be
-    [=this=].\[[controlledTransformStream]].\[[readable]].\[[controller]].
+ 1. Let |readableController| be [=this=].\[[stream]].\[[readable]].\[[controller]].
  1. Return ! [$ReadableStreamDefaultControllerGetDesiredSize$](|readableController|).
 </div>
 
@@ -5140,7 +5139,7 @@ are even meant to be generally useful by other specifications.
     user code so long as the initialization is correctly completed before the transformer's
     {{Transformer/start|start()}} method is called.
  1. Perform ! [$TransformStreamSetBackpressure$](|stream|, true).
- 1. Set |stream|.\[[transformStreamController]] to undefined.
+ 1. Set |stream|.\[[controller]] to undefined.
 </div>
 
 <div algorithm>
@@ -5160,8 +5159,7 @@ are even meant to be generally useful by other specifications.
  id="transform-stream-error-writable-and-unblock-write">TransformStreamErrorWritableAndUnblockWrite(|stream|,
  |e|)</dfn> performs the following steps:
 
- 1. Perform !
-    [$TransformStreamDefaultControllerClearAlgorithms$](|stream|.\[[transformStreamController]]).
+ 1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|stream|.\[[controller]]).
  1. Perform !
     [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.\[[writable]].\[[controller]], |e|).
  1. If |stream|.\[[backpressure]] is true, perform ! [$TransformStreamSetBackpressure$](|stream|,
@@ -5195,9 +5193,9 @@ The following abstract operations support the implementaiton of the
  |controller|, |transformAlgorithm|, |flushAlgorithm|)</dfn> performs the following steps:
 
  1. Assert: |stream| [=implements=] {{TransformStream}}.
- 1. Assert: |stream|.\[[transformStreamController]] is undefined.
- 1. Set |controller|.\[[controlledTransformStream]] to |stream|.
- 1. Set |stream|.\[[transformStreamController]] to |controller|.
+ 1. Assert: |stream|.\[[controller]] is undefined.
+ 1. Set |controller|.\[[stream]] to |stream|.
+ 1. Set |stream|.\[[controller]] to |controller|.
  1. Set |controller|.\[[transformAlgorithm]] to |transformAlgorithm|.
  1. Set |controller|.\[[flushAlgorithm]] to |flushAlgorithm|.
 </div>
@@ -5252,7 +5250,7 @@ The following abstract operations support the implementaiton of the
 
  It performs the following steps:
 
- 1. Let |stream| be |controller|.\[[controlledTransformStream]].
+ 1. Let |stream| be |controller|.\[[stream]].
  1. Let |readableController| be |stream|.\[[readable]].\[[controller]].
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|readableController|) is false, throw
     a {{TypeError}} exception.
@@ -5278,7 +5276,7 @@ The following abstract operations support the implementaiton of the
 
  It performs the following steps:
 
- 1. Perform ! [$TransformStreamError$](|controller|.\[[controlledTransformStream]], |e|).
+ 1. Perform ! [$TransformStreamError$](|controller|.\[[stream]], |e|).
 </div>
 
 <div algorithm>
@@ -5290,7 +5288,7 @@ The following abstract operations support the implementaiton of the
     |controller|.\[[transformAlgorithm]], passing |chunk|.
  1. Return the result of [=reacting=] to |transformPromise| with the following
     rejection steps given the argument |r|:
-   1. Perform ! [$TransformStreamError$](|controller|.\[[controlledTransformStream]], |r|).
+   1. Perform ! [$TransformStreamError$](|controller|.\[[stream]], |r|).
    1. Throw |r|.
 </div>
 
@@ -5304,7 +5302,7 @@ The following abstract operations support the implementaiton of the
 
  It performs the following steps:
 
- 1. Let |stream| be |controller|.\[[controlledTransformStream]].
+ 1. Let |stream| be |controller|.\[[stream]].
  1. Let |readableController| be |stream|.\[[readable]].\[[controller]].
  1. Perform ! [$ReadableStreamDefaultControllerClose$](|readableController|).
  1. Let |error| be a {{TypeError}} exception indicating that the stream has been terminated.
@@ -5322,7 +5320,7 @@ side=] of [=transform streams=].
  |chunk|)</dfn> performs the following steps:
 
  1. Assert: |stream|.\[[writable]].\[[state]] is "`writable`".
- 1. Let |controller| be |stream|.\[[transformStreamController]].
+ 1. Let |controller| be |stream|.\[[controller]].
  1. If |stream|.\[[backpressure]] is true,
   1. Let |backpressureChangePromise| be |stream|.\[[backpressureChangePromise]].
   1. Assert: |backpressureChangePromise| is not undefined.
@@ -5351,7 +5349,7 @@ side=] of [=transform streams=].
  performs the following steps:
 
  1. Let |readable| be |stream|.\[[readable]].
- 1. Let |controller| be |stream|.\[[transformStreamController]].
+ 1. Let |controller| be |stream|.\[[controller]].
  1. Let |flushPromise| be the result of performing |controller|.\[[flushAlgorithm]].
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|controller|).
  1. Return the result of [=reacting=] to |flushPromise|:

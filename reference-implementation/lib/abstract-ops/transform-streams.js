@@ -64,7 +64,7 @@ function InitializeTransformStream(
   stream._backpressureChangePromise = undefined;
   TransformStreamSetBackpressure(stream, true);
 
-  stream._transformStreamController = undefined;
+  stream._controller = undefined;
 }
 
 function TransformStreamError(stream, e) {
@@ -75,7 +75,7 @@ function TransformStreamError(stream, e) {
 }
 
 function TransformStreamErrorWritableAndUnblockWrite(stream, e) {
-  TransformStreamDefaultControllerClearAlgorithms(stream._transformStreamController);
+  TransformStreamDefaultControllerClearAlgorithms(stream._controller);
   WritableStreamDefaultControllerErrorIfNeeded(stream._writable._controller, e);
   if (stream._backpressure === true) {
     // Pretend that pull() was called to permit any pending write() calls to complete. TransformStreamSetBackpressure()
@@ -104,10 +104,10 @@ function TransformStreamSetBackpressure(stream, backpressure) {
 
 function SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm) {
   assert(TransformStream.isImpl(stream));
-  assert(stream._transformStreamController === undefined);
+  assert(stream._controller === undefined);
 
-  controller._controlledTransformStream = stream;
-  stream._transformStreamController = controller;
+  controller._stream = stream;
+  stream._controller = controller;
 
   controller._transformAlgorithm = transformAlgorithm;
   controller._flushAlgorithm = flushAlgorithm;
@@ -145,7 +145,7 @@ function TransformStreamDefaultControllerClearAlgorithms(controller) {
 function TransformStreamDefaultControllerEnqueue(controller, chunk) {
   verbose('TransformStreamDefaultControllerEnqueue()');
 
-  const stream = controller._controlledTransformStream;
+  const stream = controller._stream;
   const readableController = stream._readable._controller;
   if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === false) {
     throw new TypeError('Readable side is not in a state that permits enqueue');
@@ -171,13 +171,13 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
 }
 
 function TransformStreamDefaultControllerError(controller, e) {
-  TransformStreamError(controller._controlledTransformStream, e);
+  TransformStreamError(controller._stream, e);
 }
 
 function TransformStreamDefaultControllerPerformTransform(controller, chunk) {
   const transformPromise = controller._transformAlgorithm(chunk);
   return transformPromiseWith(transformPromise, undefined, r => {
-    TransformStreamError(controller._controlledTransformStream, r);
+    TransformStreamError(controller._stream, r);
     throw r;
   });
 }
@@ -185,7 +185,7 @@ function TransformStreamDefaultControllerPerformTransform(controller, chunk) {
 function TransformStreamDefaultControllerTerminate(controller) {
   verbose('TransformStreamDefaultControllerTerminate()');
 
-  const stream = controller._controlledTransformStream;
+  const stream = controller._stream;
   const readableController = stream._readable._controller;
 
   ReadableStreamDefaultControllerClose(readableController);
@@ -201,7 +201,7 @@ function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
 
   assert(stream._writable._state === 'writable');
 
-  const controller = stream._transformStreamController;
+  const controller = stream._controller;
 
   if (stream._backpressure === true) {
     const backpressureChangePromise = stream._backpressureChangePromise;
@@ -233,7 +233,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   // stream._readable cannot change after construction, so caching it across a call to user code is safe.
   const readable = stream._readable;
 
-  const controller = stream._transformStreamController;
+  const controller = stream._controller;
   const flushPromise = controller._flushAlgorithm();
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
