@@ -2642,8 +2642,7 @@ The following abstract operations support the implementation of the
 
  It performs the following steps:
 
- 1. Let |stream| be |controller|.\[[stream]].
- 1. Let |state| be |stream|.\[[state]].
+ 1. Let |state| be |controller|.\[[stream]].\[[state]].
  1. If |state| is "`errored`", return null.
  1. If |state| is "`closed`", return 0.
  1. Return |controller|.\[[strategyHWM]] − |controller|.\[[queueTotalSize]].
@@ -2953,8 +2952,7 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-get-desired-size">ReadableByteStreamControllerGetDesiredSize(|controller|)</dfn>
  performs the following steps:
 
- 1. Let |stream| be |controller|.\[[stream]].
- 1. Let |state| be |stream|.\[[state]].
+ 1. Let |state| be |controller|.\[[stream]].\[[state]].
  1. If |state| is "`errored`", return null.
  1. If |state| is "`closed`", return 0.
  1. Return |controller|.\[[strategyHWM]] − |controller|.\[[queueTotalSize]].
@@ -3110,13 +3108,13 @@ The following abstract operations support the implementation of the
  |bytesWritten|)</dfn> performs the following steps:
 
  1. Let |firstDescriptor| be |controller|.\[[pendingPullIntos]][0].
- 1. Let |stream| be |controller|.\[[stream]].
- 1. If |stream|.\[[state]] is "`closed`",
+ 1. Let |state| be |controller|.\[[stream]].\[[state]].
+ 1. If |state| is "`closed`",
   1. If |bytesWritten| is not 0, throw a {{TypeError}} exception.
   1. Perform ! [$ReadableByteStreamControllerRespondInClosedState$](|controller|,
      |firstDescriptor|).
  1. Otherwise,
-  1. Assert: |stream|.\[[state]] is "`readable`".
+  1. Assert: |state| is "`readable`".
   1. Perform ? [$ReadableByteStreamControllerRespondInReadableState$](|controller|, |bytesWritten|,
      |firstDescriptor|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$](|controller|).
