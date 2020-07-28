@@ -70,7 +70,7 @@ function InitializeTransformStream(
 function TransformStreamError(stream, e) {
   verbose('TransformStreamError()');
 
-  ReadableStreamDefaultControllerError(stream._readable._readableStreamController, e);
+  ReadableStreamDefaultControllerError(stream._readable._controller, e);
   TransformStreamErrorWritableAndUnblockWrite(stream, e);
 }
 
@@ -146,7 +146,7 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
   verbose('TransformStreamDefaultControllerEnqueue()');
 
   const stream = controller._controlledTransformStream;
-  const readableController = stream._readable._readableStreamController;
+  const readableController = stream._readable._controller;
   if (ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController) === false) {
     throw new TypeError('Readable side is not in a state that permits enqueue');
   }
@@ -186,7 +186,7 @@ function TransformStreamDefaultControllerTerminate(controller) {
   verbose('TransformStreamDefaultControllerTerminate()');
 
   const stream = controller._controlledTransformStream;
-  const readableController = stream._readable._readableStreamController;
+  const readableController = stream._readable._controller;
 
   ReadableStreamDefaultControllerClose(readableController);
 
@@ -242,7 +242,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
     if (readable._state === 'errored') {
       throw readable._storedError;
     }
-    ReadableStreamDefaultControllerClose(readable._readableStreamController);
+    ReadableStreamDefaultControllerClose(readable._controller);
   }, r => {
     TransformStreamError(stream, r);
     throw readable._storedError;

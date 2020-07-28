@@ -5,7 +5,7 @@ const rsAOs = require('./abstract-ops/readable-streams.js');
 
 exports.implementation = class TransformStreamDefaultController {
   get desiredSize() {
-    const readableController = this._controlledTransformStream._readable._readableStreamController;
+    const readableController = this._controlledTransformStream._readable._controller;
     return rsAOs.ReadableStreamDefaultControllerGetDesiredSize(readableController);
   }
 

@@ -360,21 +360,21 @@ function ReadableStreamTee(stream, cloneForBranch2) {
           // }
 
           if (canceled1 === false) {
-            ReadableStreamDefaultControllerEnqueue(branch1._readableStreamController, value1);
+            ReadableStreamDefaultControllerEnqueue(branch1._controller, value1);
           }
 
           if (canceled2 === false) {
-            ReadableStreamDefaultControllerEnqueue(branch2._readableStreamController, value2);
+            ReadableStreamDefaultControllerEnqueue(branch2._controller, value2);
           }
         });
       },
       closeSteps: () => {
         reading = false;
         if (canceled1 === false) {
-          ReadableStreamDefaultControllerClose(branch1._readableStreamController);
+          ReadableStreamDefaultControllerClose(branch1._controller);
         }
         if (canceled2 === false) {
-          ReadableStreamDefaultControllerClose(branch2._readableStreamController);
+          ReadableStreamDefaultControllerClose(branch2._controller);
         }
       },
       errorSteps: () => {
@@ -414,8 +414,8 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   branch2 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm);
 
   uponRejection(reader._closedPromise, r => {
-    ReadableStreamDefaultControllerError(branch1._readableStreamController, r);
-    ReadableStreamDefaultControllerError(branch2._readableStreamController, r);
+    ReadableStreamDefaultControllerError(branch1._controller, r);
+    ReadableStreamDefaultControllerError(branch2._controller, r);
   });
 
   return [branch1, branch2];
@@ -449,7 +449,7 @@ function ReadableStreamCancel(stream, reason) {
 
   ReadableStreamClose(stream);
 
-  const sourceCancelPromise = stream._readableStreamController[CancelSteps](reason);
+  const sourceCancelPromise = stream._controller[CancelSteps](reason);
   return transformPromiseWith(sourceCancelPromise, () => undefined);
 }
 
@@ -622,7 +622,7 @@ function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest) {
   if (stream._state === 'errored') {
     readIntoRequest.errorSteps(stream._storedError);
   } else {
-    ReadableByteStreamControllerPullInto(stream._readableStreamController, view, readIntoRequest);
+    ReadableByteStreamControllerPullInto(stream._controller, view, readIntoRequest);
   }
 }
 
@@ -639,7 +639,7 @@ function ReadableStreamDefaultReaderRead(reader, readRequest) {
     readRequest.errorSteps(stream._storedError);
   } else {
     assert(stream._state === 'readable');
-    stream._readableStreamController[PullSteps](readRequest);
+    stream._controller[PullSteps](readRequest);
   }
 }
 
@@ -648,7 +648,7 @@ function SetUpReadableStreamBYOBReader(reader, stream) {
     throw new TypeError('This stream has already been locked for exclusive reading by another reader');
   }
 
-  if (!ReadableByteStreamController.isImpl(stream._readableStreamController)) {
+  if (!ReadableByteStreamController.isImpl(stream._controller)) {
     throw new TypeError('Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte source');
   }
 
@@ -822,7 +822,7 @@ function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
 
 function SetUpReadableStreamDefaultController(
   stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm) {
-  assert(stream._readableStreamController === undefined);
+  assert(stream._controller === undefined);
 
   controller._controlledReadableStream = stream;
 
@@ -842,7 +842,7 @@ function SetUpReadableStreamDefaultController(
   controller._pullAlgorithm = pullAlgorithm;
   controller._cancelAlgorithm = cancelAlgorithm;
 
-  stream._readableStreamController = controller;
+  stream._controller = controller;
 
   const startResult = startAlgorithm();
   uponPromise(
@@ -1337,7 +1337,7 @@ function ReadableByteStreamControllerShouldCallPull(controller) {
 
 function SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm,
                                            highWaterMark, autoAllocateChunkSize) {
-  assert(stream._readableStreamController === undefined);
+  assert(stream._controller === undefined);
   if (autoAllocateChunkSize !== undefined) {
     assert(Number.isInteger(autoAllocateChunkSize) === true);
     assert(autoAllocateChunkSize > 0);
@@ -1366,7 +1366,7 @@ function SetUpReadableByteStreamController(stream, controller, startAlgorithm, p
 
   controller._pendingPullIntos = [];
 
-  stream._readableStreamController = controller;
+  stream._controller = controller;
 
   const startResult = startAlgorithm();
   uponPromise(
