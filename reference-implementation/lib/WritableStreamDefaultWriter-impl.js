@@ -14,7 +14,7 @@ exports.implementation = class WritableStreamDefaultWriterImpl {
   }
 
   get desiredSize() {
-    if (this._ownerWritableStream === undefined) {
+    if (this._stream === undefined) {
       throw defaultWriterLockException('desiredSize');
     }
 
@@ -26,7 +26,7 @@ exports.implementation = class WritableStreamDefaultWriterImpl {
   }
 
   abort(reason) {
-    if (this._ownerWritableStream === undefined) {
+    if (this._stream === undefined) {
       return promiseRejectedWith(defaultWriterLockException('abort'));
     }
 
@@ -34,7 +34,7 @@ exports.implementation = class WritableStreamDefaultWriterImpl {
   }
 
   close() {
-    const stream = this._ownerWritableStream;
+    const stream = this._stream;
 
     if (stream === undefined) {
       return promiseRejectedWith(defaultWriterLockException('close'));
@@ -48,7 +48,7 @@ exports.implementation = class WritableStreamDefaultWriterImpl {
   }
 
   releaseLock() {
-    const stream = this._ownerWritableStream;
+    const stream = this._stream;
 
     if (stream === undefined) {
       return;
@@ -60,7 +60,7 @@ exports.implementation = class WritableStreamDefaultWriterImpl {
   }
 
   write(chunk) {
-    if (this._ownerWritableStream === undefined) {
+    if (this._stream === undefined) {
       return promiseRejectedWith(defaultWriterLockException('write to'));
     }
 

@@ -136,7 +136,7 @@ function SetUpWritableStreamDefaultWriter(writer, stream) {
     throw new TypeError('This stream has already been locked for exclusive writing by another writer');
   }
 
-  writer._ownerWritableStream = stream;
+  writer._stream = stream;
   stream._writer = writer;
 
   const state = stream._state;
@@ -403,7 +403,7 @@ function WritableStreamUpdateBackpressure(stream, backpressure) {
 
 
 function WritableStreamDefaultWriterAbort(writer, reason) {
-  const stream = writer._ownerWritableStream;
+  const stream = writer._stream;
 
   assert(stream !== undefined);
 
@@ -411,7 +411,7 @@ function WritableStreamDefaultWriterAbort(writer, reason) {
 }
 
 function WritableStreamDefaultWriterClose(writer) {
-  const stream = writer._ownerWritableStream;
+  const stream = writer._stream;
 
   assert(stream !== undefined);
 
@@ -419,7 +419,7 @@ function WritableStreamDefaultWriterClose(writer) {
 }
 
 function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
-  const stream = writer._ownerWritableStream;
+  const stream = writer._stream;
 
   assert(stream !== undefined);
 
@@ -457,7 +457,7 @@ function WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error) {
 }
 
 function WritableStreamDefaultWriterGetDesiredSize(writer) {
-  const stream = writer._ownerWritableStream;
+  const stream = writer._stream;
   const state = stream._state;
 
   if (state === 'errored' || state === 'erroring') {
@@ -472,7 +472,7 @@ function WritableStreamDefaultWriterGetDesiredSize(writer) {
 }
 
 function WritableStreamDefaultWriterRelease(writer) {
-  const stream = writer._ownerWritableStream;
+  const stream = writer._stream;
   assert(stream !== undefined);
   assert(stream._writer === writer);
 
@@ -486,11 +486,11 @@ function WritableStreamDefaultWriterRelease(writer) {
   WritableStreamDefaultWriterEnsureClosedPromiseRejected(writer, releasedError);
 
   stream._writer = undefined;
-  writer._ownerWritableStream = undefined;
+  writer._stream = undefined;
 }
 
 function WritableStreamDefaultWriterWrite(writer, chunk) {
-  const stream = writer._ownerWritableStream;
+  const stream = writer._stream;
 
   assert(stream !== undefined);
 
@@ -498,7 +498,7 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
 
   const chunkSize = WritableStreamDefaultControllerGetChunkSize(controller, chunk);
 
-  if (stream !== writer._ownerWritableStream) {
+  if (stream !== writer._stream) {
     return promiseRejectedWith(new TypeError('Cannot write to a stream using a released writer'));
   }
 
