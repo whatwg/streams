@@ -3400,6 +3400,10 @@ table:
   <td class="non-normative">The promise returned from the writer's
   {{WritableStreamDefaultWriter/close()}} method
  <tr>
+  <td>\[[controller]]
+  <td class="non-normative">A {{WritableStreamDefaultController}} created with the ability to
+  control the state and queue of this stream
+ <tr>
   <td>\[[inFlightWriteRequest]]
   <td class="non-normative">A slot set to the promise for the current in-flight write operation
   while the [=underlying sink=]'s write algorithm is executing and has not yet fulfilled, used to
@@ -3420,10 +3424,6 @@ table:
   <td>\[[storedError]]
   <td class="non-normative">A value indicating how the stream failed, to be given as a failure
   reason or exception when trying to operate on the stream while in the "`errored`" state
- <tr>
-  <td>\[[writableStreamController]]
-  <td class="non-normative">A {{WritableStreamDefaultController}} created with the ability to
-  control the state and queue of this stream
  <tr>
   <td>\[[writer]]
   <td class="non-normative">A {{WritableStreamDefaultWriter}} instance, if the stream is [=locked to
@@ -4019,7 +4019,7 @@ are even meant to be generally useful by other specifications.
  steps:
 
  1. Set |stream|.\[[state]] to "`writable`".
- 1. Set |stream|.\[[storedError]], |stream|.\[[writer]], |stream|.\[[writableStreamController]],
+ 1. Set |stream|.\[[storedError]], |stream|.\[[writer]], |stream|.\[[controller]],
     |stream|.\[[inFlightWriteRequest]], |stream|.\[[closeRequest]],
     |stream|.\[[inFlightCloseRequest]] and |stream|.\[[pendingAbortRequest]] to undefined.
  1. Set |stream|.\[[writeRequests]] to a new empty [=list=].
@@ -4102,7 +4102,7 @@ are even meant to be generally useful by other specifications.
  1. Let |writer| be |stream|.\[[writer]].
  1. If |writer| is not undefined, and |stream|.\[[backpressure]] is true, and |state| is
     "`writable`", [=resolve=] |writer|.\[[readyPromise]] with undefined.
- 1. Perform ! [$WritableStreamDefaultControllerClose$](|stream|.\[[writableStreamController]]).
+ 1. Perform ! [$WritableStreamDefaultControllerClose$](|stream|.\[[controller]]).
  1. Return |promise|.
 </div>
 
@@ -4180,7 +4180,7 @@ the {{WritableStream}}'s public API.
  1. Assert: |stream|.\[[state]] is "`erroring`".
  1. Assert: ! [$WritableStreamHasOperationMarkedInFlight$](|stream|) is false.
  1. Set |stream|.\[[state]] to "`errored`".
- 1. Perform ! |stream|.\[[writableStreamController]].\[[ErrorSteps]]().
+ 1. Perform ! |stream|.\[[controller]].\[[ErrorSteps]]().
  1. Let |storedError| be |stream|.\[[storedError]].
  1. [=list/For each=] |writeRequest| of |stream|.\[[writeRequests]]:
   1. [=Reject=] |writeRequest| with |storedError|.
@@ -4194,8 +4194,7 @@ the {{WritableStream}}'s public API.
   1. [=Reject=] |abortRequest|'s [=pending abort request/promise=] with |storedError|.
   1. Perform ! [$WritableStreamRejectCloseAndClosedPromiseIfNeeded$](|stream|).
   1. Return.
- 1. Let |promise| be !
-    stream.\[[writableStreamController]].\[[AbortSteps]](|abortRequest|'s [=pending abort
+ 1. Let |promise| be ! stream.\[[controller]].\[[AbortSteps]](|abortRequest|'s [=pending abort
     request/reason=]).
  1. [=Upon fulfillment=] of |promise|,
   1. [=Resolve=] |abortRequest|'s [=pending abort request/promise=] with undefined.
@@ -4271,7 +4270,7 @@ the {{WritableStream}}'s public API.
  performs the following steps:
 
  1. If |stream|.\[[inFlightWriteRequest]] is undefined and
-    |stream|.\[[writableStreamController]].\[[inFlightCloseRequest]] is undefined, return false.
+    |stream|.\[[controller]].\[[inFlightCloseRequest]] is undefined, return false.
  1. Return true.
 </div>
 
@@ -4321,7 +4320,7 @@ the {{WritableStream}}'s public API.
 
  1. Assert: |stream|.\[[storedError]] is undefined.
  1. Assert: |stream|.\[[state]] is "`writable`".
- 1. Let |controller| be |stream|.\[[writableStreamController]].
+ 1. Let |controller| be |stream|.\[[controller]].
  1. Assert: |controller| is not undefined.
  1. Set |stream|.\[[state]] to "`erroring`".
  1. Set |stream|.\[[storedError]] to |reason|.
@@ -4422,8 +4421,7 @@ The following abstract operations support the implementation and manipulation of
  1. Let |state| be |stream|.\[[state]].
  1. If |state| is "`errored"` or `"erroring`", return null.
  1. If |state| is "`closed`", return 0.
- 1. Return !
-    [$WritableStreamDefaultControllerGetDesiredSize$](|stream|.\[[writableStreamController]]).
+ 1. Return ! [$WritableStreamDefaultControllerGetDesiredSize$](|stream|.\[[controller]]).
 </div>
 
 <div algorithm>
@@ -4448,7 +4446,7 @@ The following abstract operations support the implementation and manipulation of
 
  1. Let |stream| be |writer|.\[[ownerWritableStream]].
  1. Assert: |stream| is not undefined.
- 1. Let |controller| be |stream|.\[[writableStreamController]].
+ 1. Let |controller| be |stream|.\[[controller]].
  1. Let |chunkSize| be ! [$WritableStreamDefaultControllerGetChunkSize$](|controller|, |chunk|).
  1. If |stream| is not equal to |writer|.\[[ownerWritableStream]], return [=a promise rejected
     with=] a {{TypeError}} exception.
@@ -4477,9 +4475,9 @@ The following abstract operations support the implementation of the
  |highWaterMark|, |sizeAlgorithm|)</dfn> performs the following steps:
 
  1. Assert: |stream| [=implements=] {{WritableStream}}.
- 1. Assert: |stream|.\[[writableStreamController]] is undefined.
+ 1. Assert: |stream|.\[[controller]] is undefined.
  1. Set |controller|.\[[controlledWritableStream]] to |stream|.
- 1. Set |stream|.\[[writableStreamController]] to |controller|.
+ 1. Set |stream|.\[[controller]] to |controller|.
  1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.\[[started]] to false.
  1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm|.
@@ -5165,8 +5163,7 @@ are even meant to be generally useful by other specifications.
  1. Perform !
     [$TransformStreamDefaultControllerClearAlgorithms$](|stream|.\[[transformStreamController]]).
  1. Perform !
-    [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.\[[writable]].\[[writableStreamController]],
-    |e|).
+    [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.\[[writable]].\[[controller]], |e|).
  1. If |stream|.\[[backpressure]] is true, perform ! [$TransformStreamSetBackpressure$](|stream|,
     false).
 

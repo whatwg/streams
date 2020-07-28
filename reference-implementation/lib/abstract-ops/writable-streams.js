@@ -68,7 +68,7 @@ function InitializeWritableStream(stream) {
 
   // Initialize to undefined first because the constructor of the controller checks this
   // variable to validate the caller.
-  stream._writableStreamController = undefined;
+  stream._controller = undefined;
 
   // Write requests are removed from _writeRequests when write() is called on the underlying sink. This prevents
   // them from being erroneously rejected on error. If a write() call is in-flight, the request is stored here.
@@ -185,7 +185,7 @@ function WritableStreamClose(stream) {
     resolvePromise(writer._readyPromise, undefined);
   }
 
-  WritableStreamDefaultControllerClose(stream._writableStreamController);
+  WritableStreamDefaultControllerClose(stream._controller);
 
   return promise;
 }
@@ -227,7 +227,7 @@ function WritableStreamFinishErroring(stream) {
   assert(stream._state === 'erroring');
   assert(WritableStreamHasOperationMarkedInFlight(stream) === false);
   stream._state = 'errored';
-  stream._writableStreamController[ErrorSteps]();
+  stream._controller[ErrorSteps]();
 
   const storedError = stream._storedError;
   for (const writeRequest of stream._writeRequests) {
@@ -249,7 +249,7 @@ function WritableStreamFinishErroring(stream) {
     return;
   }
 
-  const promise = stream._writableStreamController[AbortSteps](abortRequest.reason);
+  const promise = stream._controller[AbortSteps](abortRequest.reason);
   uponPromise(
     promise,
     () => {
@@ -366,7 +366,7 @@ function WritableStreamStartErroring(stream, reason) {
   assert(stream._storedError === undefined);
   assert(stream._state === 'writable');
 
-  const controller = stream._writableStreamController;
+  const controller = stream._controller;
   assert(controller !== undefined);
 
   stream._state = 'erroring';
@@ -468,7 +468,7 @@ function WritableStreamDefaultWriterGetDesiredSize(writer) {
     return 0;
   }
 
-  return WritableStreamDefaultControllerGetDesiredSize(stream._writableStreamController);
+  return WritableStreamDefaultControllerGetDesiredSize(stream._controller);
 }
 
 function WritableStreamDefaultWriterRelease(writer) {
@@ -494,7 +494,7 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
 
   assert(stream !== undefined);
 
-  const controller = stream._writableStreamController;
+  const controller = stream._controller;
 
   const chunkSize = WritableStreamDefaultControllerGetChunkSize(controller, chunk);
 
@@ -527,10 +527,10 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
 function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
                                               abortAlgorithm, highWaterMark, sizeAlgorithm) {
   assert(WritableStream.isImpl(stream));
-  assert(stream._writableStreamController === undefined);
+  assert(stream._controller === undefined);
 
   controller._controlledWritableStream = stream;
-  stream._writableStreamController = controller;
+  stream._controller = controller;
 
   // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
   controller._queue = undefined;
