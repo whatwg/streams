@@ -973,8 +973,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  ignore>stream</var> and |iterator|, are:
 
  1. Let |reader| be |iterator|'s [=ReadableStream async iterator/reader=].
- 1. If |reader|.\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
-    {{TypeError}}.
+ 1. If |reader|.\[[stream]] is undefined, return [=a promise rejected with=] a {{TypeError}}.
  1. Let |promise| be [=a new promise=].
  1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
   : [=read request/chunk steps=], given |chunk|
@@ -997,7 +996,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  ignore>stream</var>, |iterator|, and |arg|, are:
 
  1. Let |reader| be |iterator|'s [=ReadableStream async iterator/reader=].
- 1. If |reader|.\[[ownerReadableStream]] is undefined, return [=a promise resolved with=] undefined.
+ 1. If |reader|.\[[stream]] is undefined, return [=a promise resolved with=] undefined.
  1. Assert: |reader|.\[[readRequests]] is [=list/is empty|empty=], as the async iterator machinery
     guarantees that any previous calls to `next()` have settled before this is called.
  1. If |iterator|'s [=ReadableStream async iterator/prevent cancel=] is false:
@@ -1051,12 +1050,12 @@ following table:
    <td class="non-normative">A promise returned by the reader's
    {{ReadableStreamDefaultReader/closed}} getter
   <tr>
-   <td>\[[ownerReadableStream]]
-   <td class="non-normative">A {{ReadableStream}} instance that owns this reader
-  <tr>
    <td>\[[readRequests]]
    <td class="non-normative">A [=list=] of [=read requests=], used when a [=consumer=] requests
    [=chunks=] sooner than they are available
+  <tr>
+   <td>\[[stream]]
+   <td class="non-normative">A {{ReadableStream}} instance that owns this reader
 </table>
 
 A <dfn export>read request</dfn> is a [=struct=] containing three algorithms to perform in reaction
@@ -1139,8 +1138,8 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
  The <dfn id="default-reader-cancel" method for="ReadableStreamDefaultReader">cancel(|reason|)</dfn>
  method steps are:
 
- 1. If [=this=].\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
-    {{TypeError}} exception.
+ 1. If [=this=].\[[stream]] is undefined, return [=a promise rejected with=] a {{TypeError}}
+    exception.
  1. Return ! [$ReadableStreamReaderGenericCancel$]([=this=], |reason|).
 </div>
 
@@ -1148,8 +1147,8 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
  The <dfn id="default-reader-read" method for="ReadableStreamDefaultReader">read()</dfn>
  method steps are:
 
- 1. If [=this=].\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
-    {{TypeError}} exception.
+ 1. If [=this=].\[[stream]] is undefined, return [=a promise rejected with=] a {{TypeError}}
+    exception.
  1. Let |promise| be [=a new promise=].
  1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
   : [=read request/chunk steps=], given |chunk|
@@ -1171,7 +1170,7 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
  The <dfn id="default-reader-release-lock" method
  for="ReadableStreamDefaultReader">releaseLock()</dfn> method steps are:
 
- 1. If [=this=].\[[ownerReadableStream]] is undefined, return.
+ 1. If [=this=].\[[stream]] is undefined, return.
  1. If [=this=].\[[readRequests]] is not [=list/is empty|empty=], throw a {{TypeError}} exception.
  1. Perform ! [$ReadableStreamReaderGenericRelease$]([=this=]).
 </div>
@@ -1219,12 +1218,12 @@ following table:
    <td class="non-normative">A promise returned by the reader's
    {{ReadableStreamBYOBReader/closed}} getter
   <tr>
-   <td>\[[ownerReadableStream]]
-   <td class="non-normative">A {{ReadableStream}} instance that owns this reader
-  <tr>
    <td>\[[readIntoRequests]]
    <td class="non-normative">A [=list=] of [=read-into requests=], used when a [=consumer=] requests
    [=chunks=] sooner than they are available
+  <tr>
+   <td>\[[stream]]
+   <td class="non-normative">A {{ReadableStream}} instance that owns this reader
 </table>
 
 A <dfn export>read-into request</dfn> is a [=struct=] containing three algorithms to perform in
@@ -1318,8 +1317,8 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
  The <dfn id="byob-reader-cancel" method for="ReadableStreamBYOBReader">cancel(|reason|)</dfn>
  method steps are:
 
- 1. If [=this=].\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
-    {{TypeError}} exception.
+ 1. If [=this=].\[[stream]] is undefined, return [=a promise rejected with=] a {{TypeError}}
+    exception.
  1. Return ! [$ReadableStreamReaderGenericCancel$]([=this=], |reason|).
 </div>
 
@@ -1330,8 +1329,8 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
  1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
  1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, return [=a promise rejected
     with=] a {{TypeError}} exception.
- 1. If [=this=].\[[ownerReadableStream]] is undefined, return [=a promise rejected with=] a
-    {{TypeError}} exception.
+ 1. If [=this=].\[[stream]] is undefined, return [=a promise rejected with=] a {{TypeError}}
+    exception.
  1. Let |promise| be [=a new promise=].
  1. Let |readIntoRequest| be a new [=read-into request=] with the following [=struct/items=]:
   : [=read-into request/chunk steps=], given |chunk|
@@ -1353,7 +1352,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
  The <dfn id="byob-reader-release-lock" method
  for="ReadableStreamBYOBReader">releaseLock()</dfn> method steps are:
 
- 1. If [=this=].\[[ownerReadableStream]] is undefined, return.
+ 1. If [=this=].\[[stream]] is undefined, return.
  1. If [=this=].\[[readIntoRequests]] is not [=list/is empty|empty=], throw a {{TypeError}}
     exception.
  1. Perform ! [$ReadableStreamReaderGenericRelease$]([=this=]).
@@ -2418,7 +2417,7 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-reader-generic-cancel">ReadableStreamReaderGenericCancel(|reader|,
  |reason|)</dfn> performs the following steps:
 
- 1. Let |stream| be |reader|.\[[ownerReadableStream]].
+ 1. Let |stream| be |reader|.\[[stream]].
  1. Assert: |stream| is not undefined.
  1. Return ! [$ReadableStreamCancel$](|stream|, |reason|).
 </div>
@@ -2428,7 +2427,7 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-reader-generic-initialize">ReadableStreamReaderGenericInitialize(|reader|,
  |stream|)</dfn> performs the following steps:
 
- 1. Set |reader|.\[[ownerReadableStream]] to |stream|.
+ 1. Set |reader|.\[[stream]] to |stream|.
  1. Set |stream|.\[[reader]] to |reader|.
  1. If |stream|.\[[state]] is "`readable`",
   1. Set |reader|.\[[closedPromise]] to [=a new promise=].
@@ -2445,15 +2444,15 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-reader-generic-release">ReadableStreamReaderGenericRelease(|reader|)</dfn>
  performs the following steps:
 
- 1. Assert: |reader|.\[[ownerReadableStream]] is not undefined.
- 1. Assert: |reader|.\[[ownerReadableStream]].\[[reader]] is |reader|.
- 1. If |reader|.\[[ownerReadableStream]].\[[state]] is "`readable`", [=reject=]
-    |reader|.\[[closedPromise]] with a {{TypeError}} exception.
+ 1. Assert: |reader|.\[[stream]] is not undefined.
+ 1. Assert: |reader|.\[[stream]].\[[reader]] is |reader|.
+ 1. If |reader|.\[[stream]].\[[state]] is "`readable`", [=reject=] |reader|.\[[closedPromise]] with
+    a {{TypeError}} exception.
  1. Otherwise, set |reader|.\[[closedPromise]] to [=a promise rejected with=] a {{TypeError}}
     exception.
  1. Set |reader|.\[[closedPromise]].\[[PromiseIsHandled]] to true.
- 1. Set |reader|.\[[ownerReadableStream]].\[[reader]] to undefined.
- 1. Set |reader|.\[[ownerReadableStream]] to undefined.
+ 1. Set |reader|.\[[stream]].\[[reader]] to undefined.
+ 1. Set |reader|.\[[stream]] to undefined.
 </div>
 
 <div algorithm>
@@ -2461,7 +2460,7 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-byob-reader-read">ReadableStreamBYOBReaderRead(|reader|, |view|,
  |readIntoRequest|)</dfn> performs the following steps:
 
- 1. Let |stream| be |reader|.\[[ownerReadableStream]].
+ 1. Let |stream| be |reader|.\[[stream]].
  1. Assert: |stream| is not undefined.
  1. Set |stream|.\[[disturbed]] to true.
  1. If |stream|.\[[state]] is "`errored`", perform |readIntoRequest|'s [=read-into request/error
@@ -2475,7 +2474,7 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-default-reader-read">ReadableStreamDefaultReaderRead(|reader|,
  |readRequest|)</dfn> performs the following steps:
 
- 1. Let |stream| be |reader|.\[[ownerReadableStream]].
+ 1. Let |stream| be |reader|.\[[stream]].
  1. Assert: |stream| is not undefined.
  1. Set |stream|.\[[disturbed]] to true.
  1. If |stream|.\[[state]] is "`closed`", perform |readRequest|'s [=read request/close steps=].

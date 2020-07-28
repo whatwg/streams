@@ -571,13 +571,13 @@ function ReadableStreamHasDefaultReader(stream) {
 // Readers
 
 function ReadableStreamReaderGenericCancel(reader, reason) {
-  const stream = reader._ownerReadableStream;
+  const stream = reader._stream;
   assert(stream !== undefined);
   return ReadableStreamCancel(stream, reason);
 }
 
 function ReadableStreamReaderGenericInitialize(reader, stream) {
-  reader._ownerReadableStream = stream;
+  reader._stream = stream;
   stream._reader = reader;
 
   if (stream._state === 'readable') {
@@ -593,10 +593,10 @@ function ReadableStreamReaderGenericInitialize(reader, stream) {
 }
 
 function ReadableStreamReaderGenericRelease(reader) {
-  assert(reader._ownerReadableStream !== undefined);
-  assert(reader._ownerReadableStream._reader === reader);
+  assert(reader._stream !== undefined);
+  assert(reader._stream._reader === reader);
 
-  if (reader._ownerReadableStream._state === 'readable') {
+  if (reader._stream._state === 'readable') {
     rejectPromise(
       reader._closedPromise,
       new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness')
@@ -608,12 +608,12 @@ function ReadableStreamReaderGenericRelease(reader) {
   }
   setPromiseIsHandledToTrue(reader._closedPromise);
 
-  reader._ownerReadableStream._reader = undefined;
-  reader._ownerReadableStream = undefined;
+  reader._stream._reader = undefined;
+  reader._stream = undefined;
 }
 
 function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest) {
-  const stream = reader._ownerReadableStream;
+  const stream = reader._stream;
 
   assert(stream !== undefined);
 
@@ -627,7 +627,7 @@ function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest) {
 }
 
 function ReadableStreamDefaultReaderRead(reader, readRequest) {
-  const stream = reader._ownerReadableStream;
+  const stream = reader._stream;
 
   assert(stream !== undefined);
 

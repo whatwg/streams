@@ -119,7 +119,7 @@ exports.implementation = class ReadableStreamImpl {
 
   [idlUtils.asyncIteratorNext](iterator) {
     const reader = iterator._reader;
-    if (reader._ownerReadableStream === undefined) {
+    if (reader._stream === undefined) {
       return promiseRejectedWith(
         new TypeError('Cannot get the next iteration result once the reader has been released')
       );
@@ -143,7 +143,7 @@ exports.implementation = class ReadableStreamImpl {
 
   [idlUtils.asyncIteratorReturn](iterator, arg) {
     const reader = iterator._reader;
-    if (reader._ownerReadableStream === undefined) {
+    if (reader._stream === undefined) {
       return promiseResolvedWith(undefined);
     }
 

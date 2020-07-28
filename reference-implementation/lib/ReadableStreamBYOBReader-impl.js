@@ -13,7 +13,7 @@ exports.implementation = class ReadableStreamBYOBReaderImpl {
   }
 
   cancel(reason) {
-    if (this._ownerReadableStream === undefined) {
+    if (this._stream === undefined) {
       return promiseRejectedWith(readerLockException('cancel'));
     }
 
@@ -28,7 +28,7 @@ exports.implementation = class ReadableStreamBYOBReaderImpl {
       return promiseRejectedWith(new TypeError('view\'s buffer must have non-zero byteLength'));
     }
 
-    if (this._ownerReadableStream === undefined) {
+    if (this._stream === undefined) {
       return promiseRejectedWith(readerLockException('read'));
     }
 
@@ -43,7 +43,7 @@ exports.implementation = class ReadableStreamBYOBReaderImpl {
   }
 
   releaseLock() {
-    if (this._ownerReadableStream === undefined) {
+    if (this._stream === undefined) {
       return;
     }
 
