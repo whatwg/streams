@@ -702,7 +702,7 @@ function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
 }
 
 function ReadableStreamDefaultControllerShouldCallPull(controller) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
 
   if (ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) === false) {
     return false;
@@ -736,7 +736,7 @@ function ReadableStreamDefaultControllerClose(controller) {
     return;
   }
 
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
 
   controller._closeRequested = true;
 
@@ -751,7 +751,7 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
     return;
   }
 
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
 
   if (IsReadableStreamLocked(stream) === true && ReadableStreamGetNumReadRequests(stream) > 0) {
     ReadableStreamFulfillReadRequest(stream, chunk, false);
@@ -776,7 +776,7 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
 }
 
 function ReadableStreamDefaultControllerError(controller, e) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
 
   if (stream._state !== 'readable') {
     return;
@@ -789,7 +789,7 @@ function ReadableStreamDefaultControllerError(controller, e) {
 }
 
 function ReadableStreamDefaultControllerGetDesiredSize(controller) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
   const state = stream._state;
 
   if (state === 'errored') {
@@ -811,7 +811,7 @@ function ReadableStreamDefaultControllerHasBackpressure(controller) {
 }
 
 function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
-  const state = controller._controlledReadableStream._state;
+  const state = controller._stream._state;
 
   if (controller._closeRequested === false && state === 'readable') {
     return true;
@@ -824,7 +824,7 @@ function SetUpReadableStreamDefaultController(
   stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm) {
   assert(stream._controller === undefined);
 
-  controller._controlledReadableStream = stream;
+  controller._stream = stream;
 
   // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
   controller._queue = undefined;
@@ -930,7 +930,7 @@ function ReadableByteStreamControllerClearPendingPullIntos(controller) {
 }
 
 function ReadableByteStreamControllerClose(controller) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
 
   if (controller._closeRequested === true || stream._state !== 'readable') {
     return;
@@ -986,7 +986,7 @@ function ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescripto
 }
 
 function ReadableByteStreamControllerEnqueue(controller, chunk) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
 
   if (controller._closeRequested === true || stream._state !== 'readable') {
     return;
@@ -1024,7 +1024,7 @@ function ReadableByteStreamControllerEnqueueChunkToQueue(controller, buffer, byt
 }
 
 function ReadableByteStreamControllerError(controller, e) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
 
   if (stream._state !== 'readable') {
     return;
@@ -1094,7 +1094,7 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
 }
 
 function ReadableByteStreamControllerGetDesiredSize(controller) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
   const state = stream._state;
 
   if (state === 'errored') {
@@ -1108,11 +1108,11 @@ function ReadableByteStreamControllerGetDesiredSize(controller) {
 }
 
 function ReadableByteStreamControllerHandleQueueDrain(controller) {
-  assert(controller._controlledReadableStream._state === 'readable');
+  assert(controller._stream._state === 'readable');
 
   if (controller._queueTotalSize === 0 && controller._closeRequested === true) {
     ReadableByteStreamControllerClearAlgorithms(controller);
-    ReadableStreamClose(controller._controlledReadableStream);
+    ReadableStreamClose(controller._stream);
   } else {
     ReadableByteStreamControllerCallPullIfNeeded(controller);
   }
@@ -1142,7 +1142,7 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
       ReadableByteStreamControllerShiftPendingPullInto(controller);
 
       ReadableByteStreamControllerCommitPullIntoDescriptor(
-        controller._controlledReadableStream,
+        controller._stream,
         pullIntoDescriptor
       );
     }
@@ -1150,7 +1150,7 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
 }
 
 function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
 
   let elementSize = 1;
   if (view.constructor !== DataView) {
@@ -1223,7 +1223,7 @@ function ReadableByteStreamControllerRespondInClosedState(controller, firstDescr
 
   assert(firstDescriptor.bytesFilled === 0);
 
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
   if (ReadableStreamHasBYOBReader(stream) === true) {
     while (ReadableStreamGetNumReadIntoRequests(stream) > 0) {
       const pullIntoDescriptor = ReadableByteStreamControllerShiftPendingPullInto(controller);
@@ -1255,7 +1255,7 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
 
   pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
   pullIntoDescriptor.bytesFilled -= remainderSize;
-  ReadableByteStreamControllerCommitPullIntoDescriptor(controller._controlledReadableStream, pullIntoDescriptor);
+  ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, pullIntoDescriptor);
 
   ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
 }
@@ -1263,7 +1263,7 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
 function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
   const firstDescriptor = controller._pendingPullIntos[0];
 
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
 
   if (stream._state === 'closed') {
     if (bytesWritten !== 0) {
@@ -1304,7 +1304,7 @@ function ReadableByteStreamControllerShiftPendingPullInto(controller) {
 }
 
 function ReadableByteStreamControllerShouldCallPull(controller) {
-  const stream = controller._controlledReadableStream;
+  const stream = controller._stream;
 
   if (stream._state !== 'readable') {
     return false;
@@ -1343,7 +1343,7 @@ function SetUpReadableByteStreamController(stream, controller, startAlgorithm, p
     assert(autoAllocateChunkSize > 0);
   }
 
-  controller._controlledReadableStream = stream;
+  controller._stream = stream;
 
   controller._pullAgain = false;
   controller._pulling = false;
