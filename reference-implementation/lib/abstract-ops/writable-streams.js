@@ -529,7 +529,7 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
   assert(WritableStream.isImpl(stream));
   assert(stream._controller === undefined);
 
-  controller._controlledWritableStream = stream;
+  controller._stream = stream;
   stream._controller = controller;
 
   // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
@@ -595,7 +595,7 @@ function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyi
 
 function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
   verbose('WritableStreamDefaultControllerAdvanceQueueIfNeeded()');
-  const stream = controller._controlledWritableStream;
+  const stream = controller._stream;
 
   if (controller._started === false) {
     return;
@@ -637,7 +637,7 @@ function WritableStreamDefaultControllerClose(controller) {
 }
 
 function WritableStreamDefaultControllerError(controller, error) {
-  const stream = controller._controlledWritableStream;
+  const stream = controller._stream;
 
   assert(stream._state === 'writable');
 
@@ -646,7 +646,7 @@ function WritableStreamDefaultControllerError(controller, error) {
 }
 
 function WritableStreamDefaultControllerErrorIfNeeded(controller, error) {
-  if (controller._controlledWritableStream._state === 'writable') {
+  if (controller._stream._state === 'writable') {
     WritableStreamDefaultControllerError(controller, error);
   }
 }
@@ -670,7 +670,7 @@ function WritableStreamDefaultControllerGetDesiredSize(controller) {
 }
 
 function WritableStreamDefaultControllerProcessClose(controller) {
-  const stream = controller._controlledWritableStream;
+  const stream = controller._stream;
 
   WritableStreamMarkCloseRequestInFlight(stream);
 
@@ -691,7 +691,7 @@ function WritableStreamDefaultControllerProcessClose(controller) {
 }
 
 function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
-  const stream = controller._controlledWritableStream;
+  const stream = controller._stream;
 
   WritableStreamMarkFirstWriteRequestInFlight(stream);
 
@@ -730,7 +730,7 @@ function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
     return;
   }
 
-  const stream = controller._controlledWritableStream;
+  const stream = controller._stream;
   if (WritableStreamCloseQueuedOrInFlight(stream) === false && stream._state === 'writable') {
     const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
     WritableStreamUpdateBackpressure(stream, backpressure);

@@ -6,7 +6,7 @@ const { ResetQueue } = require('./abstract-ops/queue-with-sizes.js');
 
 exports.implementation = class WritableStreamDefaultControllerImpl {
   error(e) {
-    const state = this._controlledWritableStream._state;
+    const state = this._stream._state;
 
     if (state !== 'writable') {
       // The stream is closed, errored or will be soon. The sink can't do anything useful if it gets an error here, so
