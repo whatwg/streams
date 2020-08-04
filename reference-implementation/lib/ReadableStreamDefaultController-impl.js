@@ -37,7 +37,7 @@ exports.implementation = class ReadableStreamDefaultControllerImpl {
   }
 
   [PullSteps](readRequest) {
-    const stream = this._controlledReadableStream;
+    const stream = this._stream;
 
     if (this._queue.length > 0) {
       const chunk = DequeueValue(this);

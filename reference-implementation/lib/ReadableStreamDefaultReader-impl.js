@@ -13,7 +13,7 @@ exports.implementation = class ReadableStreamDefaultReaderImpl {
   }
 
   cancel(reason) {
-    if (this._ownerReadableStream === undefined) {
+    if (this._stream === undefined) {
       return promiseRejectedWith(readerLockException('cancel'));
     }
 
@@ -21,7 +21,7 @@ exports.implementation = class ReadableStreamDefaultReaderImpl {
   }
 
   read() {
-    if (this._ownerReadableStream === undefined) {
+    if (this._stream === undefined) {
       return promiseRejectedWith(readerLockException('read from'));
     }
 
@@ -37,7 +37,7 @@ exports.implementation = class ReadableStreamDefaultReaderImpl {
   }
 
   releaseLock() {
-    if (this._ownerReadableStream === undefined) {
+    if (this._stream === undefined) {
       return;
     }
 

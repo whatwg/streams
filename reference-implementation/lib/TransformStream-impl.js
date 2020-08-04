@@ -32,7 +32,7 @@ exports.implementation = class TransformStreamImpl {
     aos.SetUpTransformStreamDefaultControllerFromTransformer(this, transformer, transformerDict);
 
     if ('start' in transformerDict) {
-      resolvePromise(startPromise, transformerDict.start.call(transformer, this._transformStreamController));
+      resolvePromise(startPromise, transformerDict.start.call(transformer, this._controller));
     } else {
       resolvePromise(startPromise, undefined);
     }

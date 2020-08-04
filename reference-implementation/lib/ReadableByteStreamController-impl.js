@@ -33,7 +33,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
       throw new TypeError('The stream has already been closed; do not close it again!');
     }
 
-    const state = this._controlledReadableStream._state;
+    const state = this._stream._state;
     if (state !== 'readable') {
       throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be closed`);
     }
@@ -53,7 +53,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
       throw new TypeError('stream is closed or draining');
     }
 
-    const state = this._controlledReadableStream._state;
+    const state = this._stream._state;
     if (state !== 'readable') {
       throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be enqueued to`);
     }
@@ -79,7 +79,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
   }
 
   [PullSteps](readRequest) {
-    const stream = this._controlledReadableStream;
+    const stream = this._stream;
     assert(aos.ReadableStreamHasDefaultReader(stream) === true);
 
     if (this._queueTotalSize > 0) {
