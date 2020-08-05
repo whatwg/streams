@@ -1994,7 +1994,7 @@ are even meant to be generally useful by other specifications.
 
  1. Set |stream|.\[[state]] to "`readable`".
  1. Set |stream|.\[[reader]] and |stream|.\[[storedError]] to undefined.
- 1. Set |stream|.\[[disturbed]] to false.
+ 1. Set |stream|.[=ReadableStream/[[disturbed]]=] to false.
 </div>
 
 <div algorithm>
@@ -2003,7 +2003,7 @@ are even meant to be generally useful by other specifications.
  that wish to query whether or not a readable stream has ever been read from or canceled. It
  performs the following steps:
 
- 1. Return |stream|.\[[disturbed]].
+ 1. Return |stream|.[=ReadableStream/[[disturbed]]=].
 </div>
 
 <div algorithm>
@@ -2033,7 +2033,7 @@ are even meant to be generally useful by other specifications.
    [$AcquireReadableStreamDefaultReader$](|source|), at the user agent's discretion.
  1. Otherwise, let |reader| be ! [$AcquireReadableStreamDefaultReader$](|source|).
  1. Let |writer| be ! [$AcquireWritableStreamDefaultWriter$](|dest|).
- 1. Set |source|.\[[disturbed]] to true.
+ 1. Set |source|.[=ReadableStream/[[disturbed]]=] to true.
  1. Let |shuttingDown| be false.
  1. Let |promise| be [=a new promise=].
  1. If |signal| is not undefined,
@@ -2289,7 +2289,7 @@ the {{ReadableStream}}'s public API.
  <dfn abstract-op lt="ReadableStreamCancel" id="readable-stream-cancel"
  export>ReadableStreamCancel(|stream|, |reason|)</dfn> performs the following steps:
 
- 1. Set |stream|.\[[disturbed]] to true.
+ 1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
  1. If |stream|.\[[state]] is "`closed`", return [=a promise resolved with=] undefined.
  1. If |stream|.\[[state]] is "`errored`", return [=a promise rejected with=]
     |stream|.\[[storedError]].
@@ -2462,7 +2462,7 @@ The following abstract operations support the implementation and manipulation of
 
  1. Let |stream| be |reader|.\[[stream]].
  1. Assert: |stream| is not undefined.
- 1. Set |stream|.\[[disturbed]] to true.
+ 1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
  1. If |stream|.\[[state]] is "`errored`", perform |readIntoRequest|'s [=read-into request/error
     steps=] given |stream|.\[[storedError]].
  1. Return ! [$ReadableByteStreamControllerPullInto$](|stream|.\[[controller]], |view|,
@@ -2476,7 +2476,7 @@ The following abstract operations support the implementation and manipulation of
 
  1. Let |stream| be |reader|.\[[stream]].
  1. Assert: |stream| is not undefined.
- 1. Set |stream|.\[[disturbed]] to true.
+ 1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
  1. If |stream|.\[[state]] is "`closed`", perform |readRequest|'s [=read request/close steps=].
  1. Otherwise, if |stream|.\[[state]] is "`errored`", perform |readRequest|'s [=read request/error
     steps=] given |stream|.\[[storedError]].
