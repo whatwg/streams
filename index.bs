@@ -1732,7 +1732,7 @@ has the following [=struct/items=]:
  steps are:
 
  1. If [=this=].\[[closeRequested]] is true, throw a {{TypeError}} exception.
- 1. If [=this=].\[[stream]].\[[state]] is not "`readable`", throw a {{TypeError}} exception.
+ 1. If [=this=].\[[stream]].[=ReadableStream/[[state]]=] is not "`readable`", throw a {{TypeError}} exception.
  1. Perform ? [$ReadableByteStreamControllerClose$]([=this=]).
 </div>
 
@@ -1744,7 +1744,7 @@ for="ReadableByteStreamController">enqueue(|chunk|)</dfn> method steps are:
  1. If |chunk|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, throw a {{TypeError}}
     exception.
  1. If [=this=].\[[closeRequested]] is true, throw a {{TypeError}} exception.
- 1. If [=this=].\[[stream]].\[[state]] is not "`readable`", throw a {{TypeError}} exception.
+ 1. If [=this=].\[[stream]].[=ReadableStream/[[state]]=] is not "`readable`", throw a {{TypeError}} exception.
  1. Return ! [$ReadableByteStreamControllerEnqueue$]([=this=], |chunk|).
 </div>
 
@@ -1992,7 +1992,7 @@ are even meant to be generally useful by other specifications.
  id="initialize-readable-stream">InitializeReadableStream(|stream|)</dfn> performs the following
  steps:
 
- 1. Set |stream|.\[[state]] to "`readable`".
+ 1. Set |stream|.[=ReadableStream/[[state]]=] to "`readable`".
  1. Set |stream|.[=ReadableStream/[[reader]]=] and |stream|.\[[storedError]] to undefined.
  1. Set |stream|.[=ReadableStream/[[disturbed]]=] to false.
 </div>
@@ -2044,7 +2044,7 @@ are even meant to be generally useful by other specifications.
      1. If |dest|.\[[state]] is "`writable`", return ! [$WritableStreamAbort$](|dest|, |error|).
      1. Otherwise, return [=a promise resolved with=] undefined.
    1. If |preventCancel| is false, [=set/append=] the following action action to |actions|:
-     1. If |source|.\[[state]] is "`readable`", return ! [$ReadableStreamCancel$](|source|, |error|).
+     1. If |source|.[=ReadableStream/[[state]]=] is "`readable`", return ! [$ReadableStreamCancel$](|source|, |error|).
      1. Otherwise, return [=a promise resolved with=] undefined.
    1. [=Shutdown with an action=] consisting of [=getting a promise to wait for all=] of the actions
       in |actions|, and with |error|.
@@ -2079,7 +2079,7 @@ are even meant to be generally useful by other specifications.
     before performing any reads or writes, since they might lead to immediate shutdown.
   * <strong>Error and close states must be propagated:</strong> the following conditions must be
     applied in order.
-   1. <strong>Errors must be propagated forward:</strong> if |source|.\[[state]] is or becomes
+   1. <strong>Errors must be propagated forward:</strong> if |source|.[=ReadableStream/[[state]]=] is or becomes
       "`errored`", then
     1. If |preventAbort| is false, [=shutdown with an action=] of ! [$WritableStreamAbort$](|dest|,
        |source|.\[[storedError]]) and with |source|.\[[storedError]].
@@ -2089,7 +2089,7 @@ are even meant to be generally useful by other specifications.
     1. If |preventCancel| is false, [=shutdown with an action=] of !
        [$ReadableStreamCancel$](|source|, |dest|.\[[storedError]]) and with |dest|.\[[storedError]].
     1. Otherwise, [=shutdown=] with |dest|.\[[storedError]].
-   1. <strong>Closing must be propagated forward:</strong> if |source|.\[[state]] is or becomes
+   1. <strong>Closing must be propagated forward:</strong> if |source|.[=ReadableStream/[[state]]=] is or becomes
       "`closed`", then
     1. If |preventClose| is false, [=shutdown with an action=] of !
        [$WritableStreamDefaultWriterCloseWithErrorPropagation$](|writer|).
@@ -2271,7 +2271,7 @@ the {{ReadableStream}}'s public API.
  |readRequest|)</dfn> performs the following steps:
 
  1. Assert: |stream|.[=ReadableStream/[[reader]]=] [=implements=] {{ReadableStreamBYOBReader}}.
- 1. Assert: |stream|.\[[state]] is "`readable`" or "`closed`".
+ 1. Assert: |stream|.[=ReadableStream/[[state]]=] is "`readable`" or "`closed`".
  1. [=list/Append=] |readRequest| to |stream|.[=ReadableStream/[[reader]]=].\[[readIntoRequests]].
 </div>
 
@@ -2281,7 +2281,7 @@ the {{ReadableStream}}'s public API.
  performs the following steps:
 
  1. Assert: |stream|.[=ReadableStream/[[reader]]=] [=implements=] {{ReadableStreamDefaultReader}}.
- 1. Assert: |stream|.\[[state]] is "`readable`".
+ 1. Assert: |stream|.[=ReadableStream/[[state]]=] is "`readable`".
  1. [=list/Append=] |readRequest| to |stream|.[=ReadableStream/[[reader]]=].\[[readRequests]].
 </div>
 
@@ -2290,8 +2290,8 @@ the {{ReadableStream}}'s public API.
  export>ReadableStreamCancel(|stream|, |reason|)</dfn> performs the following steps:
 
  1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
- 1. If |stream|.\[[state]] is "`closed`", return [=a promise resolved with=] undefined.
- 1. If |stream|.\[[state]] is "`errored`", return [=a promise rejected with=]
+ 1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`", return [=a promise resolved with=] undefined.
+ 1. If |stream|.[=ReadableStream/[[state]]=] is "`errored`", return [=a promise rejected with=]
     |stream|.\[[storedError]].
  1. Perform ! [$ReadableStreamClose$](|stream|).
  1. Let |sourceCancelPromise| be !
@@ -2304,8 +2304,8 @@ the {{ReadableStream}}'s public API.
  <dfn abstract-op lt="ReadableStreamClose"
  id="readable-stream-close">ReadableStreamClose(|stream|)</dfn> performs the following steps:
 
- 1. Assert: |stream|.\[[state]] is "`readable`".
- 1. Set |stream|.\[[state]] to "`closed`".
+ 1. Assert: |stream|.[=ReadableStream/[[state]]=] is "`readable`".
+ 1. Set |stream|.[=ReadableStream/[[state]]=] to "`closed`".
  1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. If |reader| is undefined, return.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
@@ -2314,7 +2314,7 @@ the {{ReadableStream}}'s public API.
   1. Set |reader|.\[[readRequests]] to an empty [=list=].
  1. [=Resolve=] |reader|.\[[closedPromise]] with undefined.
 
- <p class="note">The case where |stream|.\[[state]] is "`closed`", but |stream|.\[[closeRequested]]
+ <p class="note">The case where |stream|.[=ReadableStream/[[state]]=] is "`closed`", but |stream|.\[[closeRequested]]
  is false, will happen if the stream was closed without its controller's close method ever being
  called: i.e., if the stream was closed by a call to {{ReadableStream/cancel(reason)}}. In this
  case we allow the controller's <code>close()</code> method to be called and silently do nothing,
@@ -2325,8 +2325,8 @@ the {{ReadableStream}}'s public API.
  <dfn abstract-op lt="ReadableStreamError" id="readable-stream-error">ReadableStreamError(|stream|,
  |e|)</dfn> performs the following steps:
 
- 1. Assert: |stream|.\[[state]] is "`readable`".
- 1. Set |stream|.\[[state]] to "`errored`".
+ 1. Assert: |stream|.[=ReadableStream/[[state]]=] is "`readable`".
+ 1. Set |stream|.[=ReadableStream/[[state]]=] to "`errored`".
  1. Set |stream|.\[[storedError]] to |e|.
  1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. If |reader| is undefined, return.
@@ -2429,12 +2429,12 @@ The following abstract operations support the implementation and manipulation of
 
  1. Set |reader|.\[[stream]] to |stream|.
  1. Set |stream|.[=ReadableStream/[[reader]]=] to |reader|.
- 1. If |stream|.\[[state]] is "`readable`",
+ 1. If |stream|.[=ReadableStream/[[state]]=] is "`readable`",
   1. Set |reader|.\[[closedPromise]] to [=a new promise=].
- 1. Otherwise, if |stream|.\[[state]] is "`closed`",
+ 1. Otherwise, if |stream|.[=ReadableStream/[[state]]=] is "`closed`",
   1. Set |reader|.\[[closedPromise]] to [=a promise resolved with=] undefined.
  1. Otherwise,
-  1. Assert: |stream|.\[[state]] is "`errored`".
+  1. Assert: |stream|.[=ReadableStream/[[state]]=] is "`errored`".
   1. Set |reader|.\[[closedPromise]] to [=a promise rejected with=] |stream|.\[[storedError]].
   1. Set |reader|.\[[closedPromise]].\[[PromiseIsHandled]] to true.
 </div>
@@ -2446,7 +2446,7 @@ The following abstract operations support the implementation and manipulation of
 
  1. Assert: |reader|.\[[stream]] is not undefined.
  1. Assert: |reader|.\[[stream]].[=ReadableStream/[[reader]]=] is |reader|.
- 1. If |reader|.\[[stream]].\[[state]] is "`readable`", [=reject=] |reader|.\[[closedPromise]] with
+ 1. If |reader|.\[[stream]].[=ReadableStream/[[state]]=] is "`readable`", [=reject=] |reader|.\[[closedPromise]] with
     a {{TypeError}} exception.
  1. Otherwise, set |reader|.\[[closedPromise]] to [=a promise rejected with=] a {{TypeError}}
     exception.
@@ -2463,7 +2463,7 @@ The following abstract operations support the implementation and manipulation of
  1. Let |stream| be |reader|.\[[stream]].
  1. Assert: |stream| is not undefined.
  1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
- 1. If |stream|.\[[state]] is "`errored`", perform |readIntoRequest|'s [=read-into request/error
+ 1. If |stream|.[=ReadableStream/[[state]]=] is "`errored`", perform |readIntoRequest|'s [=read-into request/error
     steps=] given |stream|.\[[storedError]].
  1. Return ! [$ReadableByteStreamControllerPullInto$](|stream|.[=ReadableStream/[[controller]]=], |view|,
     |readIntoRequest|).
@@ -2477,11 +2477,11 @@ The following abstract operations support the implementation and manipulation of
  1. Let |stream| be |reader|.\[[stream]].
  1. Assert: |stream| is not undefined.
  1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
- 1. If |stream|.\[[state]] is "`closed`", perform |readRequest|'s [=read request/close steps=].
- 1. Otherwise, if |stream|.\[[state]] is "`errored`", perform |readRequest|'s [=read request/error
+ 1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`", perform |readRequest|'s [=read request/close steps=].
+ 1. Otherwise, if |stream|.[=ReadableStream/[[state]]=] is "`errored`", perform |readRequest|'s [=read request/error
     steps=] given |stream|.\[[storedError]].
  1. Otherwise,
-  1. Assert: |stream|.\[[state]] is "`readable`".
+  1. Assert: |stream|.[=ReadableStream/[[state]]=] is "`readable`".
   1. Perform ! |stream|.[=ReadableStream/[[controller]]=].[$ReadableStreamController/[[PullSteps]]$](|readRequest|).
 </div>
 
@@ -2627,7 +2627,7 @@ The following abstract operations support the implementation of the
  It performs the following steps:
 
  1. Let |stream| be |controller|.\[[stream]].
- 1. If |stream|.\[[state]] is not "`readable`", return.
+ 1. If |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
  1. Perform ! [$ResetQueue$](|controller|).
  1. Perform ! [$ReadableStreamDefaultControllerClearAlgorithms$](|controller|).
  1. Perform ! [$ReadableStreamError$](|stream|, |e|).
@@ -2644,7 +2644,7 @@ The following abstract operations support the implementation of the
 
  It performs the following steps:
 
- 1. Let |state| be |controller|.\[[stream]].\[[state]].
+ 1. Let |state| be |controller|.\[[stream]].[=ReadableStream/[[state]]=].
  1. If |state| is "`errored`", return null.
  1. If |state| is "`closed`", return 0.
  1. Return |controller|.\[[strategyHWM]] − |controller|.\[[queueTotalSize]].
@@ -2664,7 +2664,7 @@ The following abstract operations support the implementation of the
  id="readable-stream-default-controller-can-close-or-enqueue">ReadableStreamDefaultControllerCanCloseOrEnqueue(|controller|)</dfn>
  performs the following steps:
 
- 1. Let |state| be |controller|.\[[stream]].\[[state]].
+ 1. Let |state| be |controller|.\[[stream]].[=ReadableStream/[[state]]=].
  1. If |controller|.\[[closeRequested]] is false and |state| is "`readable`", return true.
  1. Otherwise, return false.
 
@@ -2786,7 +2786,7 @@ The following abstract operations support the implementation of the
  performs the following steps:
 
  1. Let |stream| be |controller|.\[[stream]].
- 1. If |controller|.\[[closeRequested]] is true or |stream|.\[[state]] is not "`readable`", return.
+ 1. If |controller|.\[[closeRequested]] is true or |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
  1. If |controller|.\[[queueTotalSize]] > 0,
   1. Set |controller|.\[[closeRequested]] to true.
   1. Return.
@@ -2805,9 +2805,9 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-commit-pull-into-descriptor">ReadableByteStreamControllerCommitPullIntoDescriptor(|stream|,
  |pullIntoDescriptor|)</dfn> performs the following steps:
 
- 1. Assert: |stream|.\[[state]] is not "`errored`".
+ 1. Assert: |stream|.[=ReadableStream/[[state]]=] is not "`errored`".
  1. Let |done| be false.
- 1. If |stream|.\[[state]] is "`closed`",
+ 1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`",
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
   1. Set |done| to true.
  1. Let |filledView| be !
@@ -2839,7 +2839,7 @@ The following abstract operations support the implementation of the
  |chunk|)</dfn> performs the following steps:
 
  1. Let |stream| be |controller|.\[[stream]].
- 1. If |controller|.\[[closeRequested]] is true or |stream|.\[[state]] is not "`readable`", return.
+ 1. If |controller|.\[[closeRequested]] is true or |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
  1. Let |buffer| be |chunk|.\[[ViewedArrayBuffer]].
  1. Let |byteOffset| be |chunk|.\[[ByteOffset]].
  1. Let |byteLength| be |chunk|.\[[ByteLength]].
@@ -2881,7 +2881,7 @@ The following abstract operations support the implementation of the
  |e|)</dfn> performs the following steps:
 
  1. Let |stream| be |controller|.\[[stream]].
- 1. If |stream|.\[[state]] is not "`readable`", return.
+ 1. If |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
  1. Perform ! [$ReadableByteStreamControllerClearPendingPullIntos$](|controller|).
  1. Perform ! [$ResetQueue$](|controller|).
  1. Perform ! [$ReadableByteStreamControllerClearAlgorithms$](|controller|).
@@ -2954,7 +2954,7 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-get-desired-size">ReadableByteStreamControllerGetDesiredSize(|controller|)</dfn>
  performs the following steps:
 
- 1. Let |state| be |controller|.\[[stream]].\[[state]].
+ 1. Let |state| be |controller|.\[[stream]].[=ReadableStream/[[state]]=].
  1. If |state| is "`errored`", return null.
  1. If |state| is "`closed`", return 0.
  1. Return |controller|.\[[strategyHWM]] − |controller|.\[[queueTotalSize]].
@@ -2965,7 +2965,7 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-handle-queue-drain">ReadableByteStreamControllerHandleQueueDrain(|controller|)</dfn>
  performs the following steps:
 
- 1. Assert: |controller|.\[[stream]].\[[state]] is "`readable`".
+ 1. Assert: |controller|.\[[stream]].[=ReadableStream/[[state]]=] is "`readable`".
  1. If |controller|.\[[queueTotalSize]] is 0 and |controller|.\[[closeRequested]] is true,
   1. Perform ! [$ReadableByteStreamControllerClearAlgorithms$](|controller|).
   1. Perform ! [$ReadableStreamClose$](|controller|.\[[stream]]).
@@ -3025,7 +3025,7 @@ The following abstract operations support the implementation of the
   1. [=list/Append=] |pullIntoDescriptor| to |controller|.\[[pendingPullIntos]].
   1. Perform ! [$ReadableStreamAddReadIntoRequest$](|stream|, |readIntoRequest|).
   1. Return.
- 1. If |stream|.\[[state]] is "`closed`",
+ 1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`",
   1. Let |emptyView| be ! [$Construct$](|ctor|, « |pullIntoDescriptor|'s [=pull-into
      descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=], 0 »).
   1. Perform |readIntoRequest|'s [=read-into request/close steps=], given |emptyView|.
@@ -3110,7 +3110,7 @@ The following abstract operations support the implementation of the
  |bytesWritten|)</dfn> performs the following steps:
 
  1. Let |firstDescriptor| be |controller|.\[[pendingPullIntos]][0].
- 1. Let |state| be |controller|.\[[stream]].\[[state]].
+ 1. Let |state| be |controller|.\[[stream]].[=ReadableStream/[[state]]=].
  1. If |state| is "`closed`",
   1. If |bytesWritten| is not 0, throw a {{TypeError}} exception.
   1. Perform ! [$ReadableByteStreamControllerRespondInClosedState$](|controller|,
@@ -3154,7 +3154,7 @@ The following abstract operations support the implementation of the
  performs the following steps:
 
  1. Let |stream| be |controller|.\[[stream]].
- 1. If |stream|.\[[state]] is not "`readable`", return false.
+ 1. If |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return false.
  1. If |controller|.\[[closeRequested]] is true, return false.
  1. If |controller|.\[[started]] is false, return false.
  1. If ! [$ReadableStreamHasDefaultReader$](|stream|) is true and !
@@ -5354,7 +5354,7 @@ side=] of [=transform streams=].
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|controller|).
  1. Return the result of [=reacting=] to |flushPromise|:
   1. If |flushPromise| was fulfilled, then:
-   1. If |readable|.\[[state]] is "`errored`", throw |readable|.\[[storedError]].
+   1. If |readable|.[=ReadableStream/[[state]]=] is "`errored`", throw |readable|.\[[storedError]].
    1. Perform ! [$ReadableStreamDefaultControllerClose$](|readable|.[=ReadableStream/[[controller]]=]).
   1. If |flushPromise| was rejected with reason |r|, then:
    1. Perform ! [$TransformStreamError$](|stream|, |r|).
