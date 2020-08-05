@@ -1993,7 +1993,7 @@ are even meant to be generally useful by other specifications.
  steps:
 
  1. Set |stream|.\[[state]] to "`readable`".
- 1. Set |stream|.\[[reader]] and |stream|.\[[storedError]] to undefined.
+ 1. Set |stream|.[=ReadableStream/[[reader]]=] and |stream|.\[[storedError]] to undefined.
  1. Set |stream|.[=ReadableStream/[[disturbed]]=] to false.
 </div>
 
@@ -2011,7 +2011,7 @@ are even meant to be generally useful by other specifications.
  export>IsReadableStreamLocked(|stream|)</dfn> is meant to be called from other specifications
  that wish to query whether or not a readable stream is [=locked to a reader=].
 
- 1. If |stream|.\[[reader]] is undefined, return false.
+ 1. If |stream|.[=ReadableStream/[[reader]]=] is undefined, return false.
  1. Return true.
 </div>
 
@@ -2270,9 +2270,9 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-add-read-into-request">ReadableStreamAddReadIntoRequest(|stream|,
  |readRequest|)</dfn> performs the following steps:
 
- 1. Assert: |stream|.\[[reader]] [=implements=] {{ReadableStreamBYOBReader}}.
+ 1. Assert: |stream|.[=ReadableStream/[[reader]]=] [=implements=] {{ReadableStreamBYOBReader}}.
  1. Assert: |stream|.\[[state]] is "`readable`" or "`closed`".
- 1. [=list/Append=] |readRequest| to |stream|.\[[reader]].\[[readIntoRequests]].
+ 1. [=list/Append=] |readRequest| to |stream|.[=ReadableStream/[[reader]]=].\[[readIntoRequests]].
 </div>
 
 <div algorithm>
@@ -2280,9 +2280,9 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-add-read-request">ReadableStreamAddReadRequest(|stream|, |readRequest|</dfn>
  performs the following steps:
 
- 1. Assert: |stream|.\[[reader]] [=implements=] {{ReadableStreamDefaultReader}}.
+ 1. Assert: |stream|.[=ReadableStream/[[reader]]=] [=implements=] {{ReadableStreamDefaultReader}}.
  1. Assert: |stream|.\[[state]] is "`readable`".
- 1. [=list/Append=] |readRequest| to |stream|.\[[reader]].\[[readRequests]].
+ 1. [=list/Append=] |readRequest| to |stream|.[=ReadableStream/[[reader]]=].\[[readRequests]].
 </div>
 
 <div algorithm>
@@ -2306,7 +2306,7 @@ the {{ReadableStream}}'s public API.
 
  1. Assert: |stream|.\[[state]] is "`readable`".
  1. Set |stream|.\[[state]] to "`closed`".
- 1. Let |reader| be |stream|.\[[reader]].
+ 1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. If |reader| is undefined, return.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
   1. [=list/For each=] |readRequest| of |reader|.\[[readRequests]],
@@ -2328,7 +2328,7 @@ the {{ReadableStream}}'s public API.
  1. Assert: |stream|.\[[state]] is "`readable`".
  1. Set |stream|.\[[state]] to "`errored`".
  1. Set |stream|.\[[storedError]] to |e|.
- 1. Let |reader| be |stream|.\[[reader]].
+ 1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. If |reader| is undefined, return.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
   1. [=list/For each=] |readRequest| of |reader|.\[[readRequests]],
@@ -2348,7 +2348,7 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-fulfill-read-into-request">ReadableStreamFulfillReadIntoRequest(|stream|,
  |chunk|, |done|)</dfn> performs the following steps:
 
- 1. Let |reader| be |stream|.\[[reader]].
+ 1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. Assert: |reader|.\[[readIntoRequests]] is not [=list/is empty|empty=].
  1. Let |readIntoRequest| be |reader|.\[[readIntoRequests]][0].
  1. [=list/Remove=] |readIntoRequest| from |reader|.\[[readIntoRequests]].
@@ -2361,7 +2361,7 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-fulfill-read-request">ReadableStreamFulfillReadRequest(|stream|, |chunk|,
  |done|)</dfn> performs the following steps:
 
- 1. Let |reader| be |stream|.\[[reader]].
+ 1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. Assert: |reader|.\[[readRequests]] is not [=list/is empty|empty=].
  1. Let |readRequest| be |reader|.\[[readRequests]][0].
  1. [=list/Remove=] |readRequest| from |reader|.\[[readRequests]].
@@ -2374,7 +2374,7 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-get-num-read-into-requests">ReadableStreamGetNumReadIntoRequests(|stream|)</dfn>
  performs the following steps:
 
- 1. Return |stream|.\[[reader]].\[[readIntoRequests]]'s [=list/size=].
+ 1. Return |stream|.[=ReadableStream/[[reader]]=].\[[readIntoRequests]]'s [=list/size=].
 </div>
 
 <div algorithm>
@@ -2382,7 +2382,7 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-get-num-read-requests">ReadableStreamGetNumReadRequests(|stream|)</dfn>
  performs the following steps:
 
- 1. Return |stream|.\[[reader]].\[[readRequests]]'s [=list/size=].
+ 1. Return |stream|.[=ReadableStream/[[reader]]=].\[[readRequests]]'s [=list/size=].
 </div>
 
 <div algorithm>
@@ -2390,7 +2390,7 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-has-byob-reader">ReadableStreamHasBYOBReader(|stream|)</dfn> performs the
  following steps:
 
- 1. Let |reader| be |stream|.\[[reader]].
+ 1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. If |reader| is undefined, return false.
  1. If |reader| [=implements=] {{ReadableStreamBYOBReader}}, return true.
  1. Return false.
@@ -2401,7 +2401,7 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-has-default-reader">ReadableStreamHasDefaultReader(|stream|)</dfn> performs the
  following steps:
 
- 1. Let |reader| be |stream|.\[[reader]].
+ 1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. If |reader| is undefined, return false.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}}, return true.
  1. Return false.
@@ -2428,7 +2428,7 @@ The following abstract operations support the implementation and manipulation of
  |stream|)</dfn> performs the following steps:
 
  1. Set |reader|.\[[stream]] to |stream|.
- 1. Set |stream|.\[[reader]] to |reader|.
+ 1. Set |stream|.[=ReadableStream/[[reader]]=] to |reader|.
  1. If |stream|.\[[state]] is "`readable`",
   1. Set |reader|.\[[closedPromise]] to [=a new promise=].
  1. Otherwise, if |stream|.\[[state]] is "`closed`",
@@ -2445,13 +2445,13 @@ The following abstract operations support the implementation and manipulation of
  performs the following steps:
 
  1. Assert: |reader|.\[[stream]] is not undefined.
- 1. Assert: |reader|.\[[stream]].\[[reader]] is |reader|.
+ 1. Assert: |reader|.\[[stream]].[=ReadableStream/[[reader]]=] is |reader|.
  1. If |reader|.\[[stream]].\[[state]] is "`readable`", [=reject=] |reader|.\[[closedPromise]] with
     a {{TypeError}} exception.
  1. Otherwise, set |reader|.\[[closedPromise]] to [=a promise rejected with=] a {{TypeError}}
     exception.
  1. Set |reader|.\[[closedPromise]].\[[PromiseIsHandled]] to true.
- 1. Set |reader|.\[[stream]].\[[reader]] to undefined.
+ 1. Set |reader|.\[[stream]].[=ReadableStream/[[reader]]=] to undefined.
  1. Set |reader|.\[[stream]] to undefined.
 </div>
 
