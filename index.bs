@@ -1039,23 +1039,25 @@ dictionary ReadableStreamDefaultReadResult {
 Instances of {{ReadableStreamDefaultReader}} are created with the internal slots described in the
 following table:
 
-<table>
+<table dfn-for="ReadableStreamDefaultReader">
  <thead>
   <tr>
    <th>Internal Slot
    <th>Description (<em>non-normative</em>)
  <tbody>
   <tr>
-   <td>\[[closedPromise]]
+   <td><dfn>\[[closedPromise]]</dfn>
    <td class="non-normative">A promise returned by the reader's
-   {{ReadableStreamDefaultReader/closed}} getter
+   {{ReadableStreamDefaultReader/closed}} getter.
+   This fulfills the [=ReadableStreamGenericReader/[[closedPromise]]=] contract.
   <tr>
-   <td>\[[readRequests]]
+   <td><dfn>\[[readRequests]]</dfn>
    <td class="non-normative">A [=list=] of [=read requests=], used when a [=consumer=] requests
    [=chunks=] sooner than they are available
   <tr>
-   <td>\[[stream]]
+   <td><dfn>\[[stream]]</dfn>
    <td class="non-normative">A {{ReadableStream}} instance that owns this reader
+   This fulfills the [=ReadableStreamGenericReader/[[stream]]=] contract.
 </table>
 
 A <dfn export>read request</dfn> is a [=struct=] containing three algorithms to perform in reaction
@@ -1207,23 +1209,25 @@ dictionary ReadableStreamBYOBReadResult {
 Instances of {{ReadableStreamBYOBReader}} are created with the internal slots described in the
 following table:
 
-<table>
+<table dfn-for="ReadableStreamBYOBReader">
  <thead>
   <tr>
    <th>Internal Slot
    <th>Description (<em>non-normative</em>)
  <tbody>
   <tr>
-   <td>\[[closedPromise]]
+   <td><dfn>\[[closedPromise]]</dfn>
    <td class="non-normative">A promise returned by the reader's
-   {{ReadableStreamBYOBReader/closed}} getter
+   {{ReadableStreamBYOBReader/closed}} getter.
+   This fulfills the [=ReadableStreamGenericReader/[[closedPromise]]=] contract.
   <tr>
-   <td>\[[readIntoRequests]]
+   <td><dfn>\[[readIntoRequests]]</dfn>
    <td class="non-normative">A [=list=] of [=read-into requests=], used when a [=consumer=] requests
    [=chunks=] sooner than they are available
   <tr>
-   <td>\[[stream]]
-   <td class="non-normative">A {{ReadableStream}} instance that owns this reader
+   <td><dfn>\[[stream]]</dfn>
+   <td class="non-normative">A {{ReadableStream}} instance that owns this reader.
+   This fulfills the [=ReadableStreamGenericReader/[[stream]]=] contract.
 </table>
 
 A <dfn export>read-into request</dfn> is a [=struct=] containing three algorithms to perform in
@@ -2408,6 +2412,23 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <h4 id="rs-reader-abstract-ops">Readers</h4>
+
+Instances of {{ReadableStreamDefaultReader}} and {{ReadableStreamBYOBReader}} are created with the
+internal slots described in the following table:
+
+<table dfn-for="ReadableStreamGenericReader">
+ <thead>
+  <tr>
+   <th>Internal Slot
+   <th>Description (<em>non-normative</em>)
+ <tbody>
+  <tr>
+   <td><dfn>\[[closedPromise]]</dfn>
+   <td class="non-normative">A promise returned by the reader's <code>closed</code> getter
+  <tr>
+   <td><dfn>\[[stream]]</dfn>
+   <td class="non-normative">A {{ReadableStream}} instance that owns this reader
+</table>
 
 The following abstract operations support the implementation and manipulation of
 {{ReadableStreamDefaultReader}} and {{ReadableStreamBYOBReader}} instances.
