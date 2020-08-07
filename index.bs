@@ -973,7 +973,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  ignore>stream</var> and |iterator|, are:
 
  1. Let |reader| be |iterator|'s [=ReadableStream async iterator/reader=].
- 1. If |reader|.[=ReadableStreamDefaultReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}.
+ 1. If |reader|.[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}.
  1. Let |promise| be [=a new promise=].
  1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
   : [=read request/chunk steps=], given |chunk|
@@ -996,7 +996,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  ignore>stream</var>, |iterator|, and |arg|, are:
 
  1. Let |reader| be |iterator|'s [=ReadableStream async iterator/reader=].
- 1. If |reader|.[=ReadableStreamDefaultReader/[[stream]]=] is undefined, return [=a promise resolved with=] undefined.
+ 1. If |reader|.[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise resolved with=] undefined.
  1. Assert: |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is [=list/is empty|empty=], as the async iterator machinery
     guarantees that any previous calls to `next()` have settled before this is called.
  1. If |iterator|'s [=ReadableStream async iterator/prevent cancel=] is false:
@@ -1005,6 +1005,62 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
   1. Return |result|.
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
  1. Return [=a promise resolved with=] undefined.
+</div>
+
+<h3 id="generic-reader-mixin">The {{ReadableStreamGenericReader}} interface mixin</h3>
+
+The {{ReadableStreamGenericReader}} interface mixin defines common internal slots, getters and
+methods that are shared between {{ReadableStreamDefaultReader}} and {{ReadableStreamBYOBReader}}
+objects.
+
+<h4 id="generic-reader-mixin-definition">Interface definition</h4>
+
+The Web IDL definition for the {{ReadableStreamGenericReader}} interface mixin is given as follows:
+
+<xmp class="idl">
+interface mixin ReadableStreamGenericReader {
+  readonly attribute Promise<void> closed;
+
+  Promise<void> cancel(optional any reason);
+};
+</xmp>
+
+<h4 id="generic-reader-internal-slots">Internal slots</h4>
+
+Instances of classes implementing the {{ReadableStreamGenericReader}} mixin are created with the
+internal slots described in the following table:
+
+<table dfn-for="ReadableStreamGenericReader">
+ <thead>
+  <tr>
+   <th>Internal Slot
+   <th>Description (<em>non-normative</em>)
+ <tbody>
+  <tr>
+   <td><dfn>\[[closedPromise]]</dfn>
+   <td class="non-normative">A promise returned by the reader's
+   {{ReadableStreamGenericReader/closed}} getter
+  <tr>
+   <td><dfn>\[[stream]]</dfn>
+   <td class="non-normative">A {{ReadableStream}} instance that owns this reader
+</table>
+
+<h4 id="generic-reader-prototype">Methods and properties</h4>
+
+<div algorithm>
+ The <dfn id="generic-reader-closed" attribute for="ReadableStreamGenericReader">closed</dfn>
+ getter steps are:
+
+ 1. Return [=this=].[=ReadableStreamGenericReader/[[closedPromise]]=].
+</div>
+
+<div algorithm>
+ The <dfn id="generic-reader-cancel" method for="ReadableStreamGenericReader">cancel(|reason|)</dfn>
+ method steps are:
+
+ 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
+    exception.
+ 1. Return ! [$ReadableStreamReaderGenericCancel$]([=this=], |reason|).
 </div>
 
 <h3 id="default-reader-class">The {{ReadableStreamDefaultReader}} class</h3>
@@ -1021,12 +1077,10 @@ The Web IDL definition for the {{ReadableStreamDefaultReader}} class is given as
 interface ReadableStreamDefaultReader {
   constructor(ReadableStream stream);
 
-  readonly attribute Promise<void> closed;
-
-  Promise<void> cancel(optional any reason);
   Promise<ReadableStreamDefaultReadResult> read();
   void releaseLock();
 };
+ReadableStreamDefaultReader includes ReadableStreamGenericReader;
 
 dictionary ReadableStreamDefaultReadResult {
  any value;
@@ -1036,8 +1090,8 @@ dictionary ReadableStreamDefaultReadResult {
 
 <h4 id="default-reader-internal-slots">Internal slots</h4>
 
-Instances of {{ReadableStreamDefaultReader}} are created with the internal slots described in the
-following table:
+Instances of {{ReadableStreamDefaultReader}} are created with the internal slots defined by
+{{ReadableStreamGenericReader}}, and those described in the following table:
 
 <table dfn-for="ReadableStreamDefaultReader">
  <thead>
@@ -1046,18 +1100,9 @@ following table:
    <th>Description (<em>non-normative</em>)
  <tbody>
   <tr>
-   <td><dfn>\[[closedPromise]]</dfn>
-   <td class="non-normative">A promise returned by the reader's
-   {{ReadableStreamDefaultReader/closed}} getter.
-   This fulfills the [=ReadableStreamGenericReader/[[closedPromise]]=] contract.
-  <tr>
    <td><dfn>\[[readRequests]]</dfn>
    <td class="non-normative">A [=list=] of [=read requests=], used when a [=consumer=] requests
    [=chunks=] sooner than they are available
-  <tr>
-   <td><dfn>\[[stream]]</dfn>
-   <td class="non-normative">A {{ReadableStream}} instance that owns this reader
-   This fulfills the [=ReadableStreamGenericReader/[[stream]]=] contract.
 </table>
 
 A <dfn export>read request</dfn> is a [=struct=] containing three algorithms to perform in reaction
@@ -1133,14 +1178,14 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
  The <dfn id="default-reader-closed" attribute for="ReadableStreamDefaultReader">closed</dfn>
  getter steps are:
 
- 1. Return [=this=].[=ReadableStreamDefaultReader/[[closedPromise]]=].
+ 1. Return [=this=].[=ReadableStreamGenericReader/[[closedPromise]]=].
 </div>
 
 <div algorithm>
  The <dfn id="default-reader-cancel" method for="ReadableStreamDefaultReader">cancel(|reason|)</dfn>
  method steps are:
 
- 1. If [=this=].[=ReadableStreamDefaultReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
+ 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
     exception.
  1. Return ! [$ReadableStreamReaderGenericCancel$]([=this=], |reason|).
 </div>
@@ -1149,7 +1194,7 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
  The <dfn id="default-reader-read" method for="ReadableStreamDefaultReader">read()</dfn>
  method steps are:
 
- 1. If [=this=].[=ReadableStreamDefaultReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
+ 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
     exception.
  1. Let |promise| be [=a new promise=].
  1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
@@ -1172,7 +1217,7 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
  The <dfn id="default-reader-release-lock" method
  for="ReadableStreamDefaultReader">releaseLock()</dfn> method steps are:
 
- 1. If [=this=].[=ReadableStreamDefaultReader/[[stream]]=] is undefined, return.
+ 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return.
  1. If [=this=].[=ReadableStreamDefaultReader/[[readRequests]]=] is not [=list/is empty|empty=], throw a {{TypeError}} exception.
  1. Perform ! [$ReadableStreamReaderGenericRelease$]([=this=]).
 </div>
@@ -1191,12 +1236,10 @@ The Web IDL definition for the {{ReadableStreamBYOBReader}} class is given as fo
 interface ReadableStreamBYOBReader {
   constructor(ReadableStream stream);
 
-  readonly attribute Promise<void> closed;
-
-  Promise<void> cancel(optional any reason);
   Promise<ReadableStreamBYOBReadResult> read(ArrayBufferView view);
   void releaseLock();
 };
+ReadableStreamBYOBReader includes ReadableStreamGenericReader;
 
 dictionary ReadableStreamBYOBReadResult {
  ArrayBufferView value;
@@ -1206,8 +1249,8 @@ dictionary ReadableStreamBYOBReadResult {
 
 <h4 id="byob-reader-internal-slots">Internal slots</h4>
 
-Instances of {{ReadableStreamBYOBReader}} are created with the internal slots described in the
-following table:
+Instances of {{ReadableStreamBYOBReader}} are created with the internal slots defined by
+{{ReadableStreamGenericReader}}, and those described in the following table:
 
 <table dfn-for="ReadableStreamBYOBReader">
  <thead>
@@ -1216,18 +1259,9 @@ following table:
    <th>Description (<em>non-normative</em>)
  <tbody>
   <tr>
-   <td><dfn>\[[closedPromise]]</dfn>
-   <td class="non-normative">A promise returned by the reader's
-   {{ReadableStreamBYOBReader/closed}} getter.
-   This fulfills the [=ReadableStreamGenericReader/[[closedPromise]]=] contract.
-  <tr>
    <td><dfn>\[[readIntoRequests]]</dfn>
    <td class="non-normative">A [=list=] of [=read-into requests=], used when a [=consumer=] requests
    [=chunks=] sooner than they are available
-  <tr>
-   <td><dfn>\[[stream]]</dfn>
-   <td class="non-normative">A {{ReadableStream}} instance that owns this reader.
-   This fulfills the [=ReadableStreamGenericReader/[[stream]]=] contract.
 </table>
 
 A <dfn export>read-into request</dfn> is a [=struct=] containing three algorithms to perform in
@@ -1314,14 +1348,14 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
  The <dfn id="byob-reader-closed" attribute for="ReadableStreamBYOBReader">closed</dfn>
  getter steps are:
 
- 1. Return [=this=].[=ReadableStreamBYOBReader/[[closedPromise]]=].
+ 1. Return [=this=].[=ReadableStreamGenericReader/[[closedPromise]]=].
 </div>
 
 <div algorithm>
  The <dfn id="byob-reader-cancel" method for="ReadableStreamBYOBReader">cancel(|reason|)</dfn>
  method steps are:
 
- 1. If [=this=].[=ReadableStreamBYOBReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
+ 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
     exception.
  1. Return ! [$ReadableStreamReaderGenericCancel$]([=this=], |reason|).
 </div>
@@ -1333,7 +1367,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
  1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
  1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, return [=a promise rejected
     with=] a {{TypeError}} exception.
- 1. If [=this=].[=ReadableStreamBYOBReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
+ 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
     exception.
  1. Let |promise| be [=a new promise=].
  1. Let |readIntoRequest| be a new [=read-into request=] with the following [=struct/items=]:
@@ -1356,7 +1390,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
  The <dfn id="byob-reader-release-lock" method
  for="ReadableStreamBYOBReader">releaseLock()</dfn> method steps are:
 
- 1. If [=this=].[=ReadableStreamBYOBReader/[[stream]]=] is undefined, return.
+ 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return.
  1. If [=this=].[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is not [=list/is empty|empty=], throw a {{TypeError}}
     exception.
  1. Perform ! [$ReadableStreamReaderGenericRelease$]([=this=]).
@@ -1523,7 +1557,7 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
  id="rs-default-controller-private-pull">\[[PullSteps]](|readRequest|)</dfn> implements the
  [$ReadableStreamController/[[PullSteps]]$] contract. It performs the following steps:
 
- 1. Let |stream| be [=this=].[=ReadableStreamBYOBReader/[[stream]]=].
+ 1. Let |stream| be [=this=].[=ReadableStreamGenericReader/[[stream]]=].
  1. If [=this=].\[[queue]] is not [=list/is empty|empty=],
   1. Let |chunk| be ! [$DequeueValue$]([=this=]).
   1. If [=this=].\[[closeRequested]] is true and [=this=].\[[queue]] [=list/is empty=],
@@ -1736,7 +1770,7 @@ has the following [=struct/items=]:
  steps are:
 
  1. If [=this=].\[[closeRequested]] is true, throw a {{TypeError}} exception.
- 1. If [=this=].[=ReadableStreamBYOBReader/[[stream]]=].[=ReadableStream/[[state]]=] is not "`readable`", throw a {{TypeError}} exception.
+ 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is not "`readable`", throw a {{TypeError}} exception.
  1. Perform ? [$ReadableByteStreamControllerClose$]([=this=]).
 </div>
 
@@ -1748,7 +1782,7 @@ for="ReadableByteStreamController">enqueue(|chunk|)</dfn> method steps are:
  1. If |chunk|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, throw a {{TypeError}}
     exception.
  1. If [=this=].\[[closeRequested]] is true, throw a {{TypeError}} exception.
- 1. If [=this=].[=ReadableStreamBYOBReader/[[stream]]=].[=ReadableStream/[[state]]=] is not "`readable`", throw a {{TypeError}} exception.
+ 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is not "`readable`", throw a {{TypeError}} exception.
  1. Return ! [$ReadableByteStreamControllerEnqueue$]([=this=], |chunk|).
 </div>
 
@@ -2189,7 +2223,7 @@ create them does not matter.
         [$ReadableStreamDefaultControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=], |value2|).
 
     <p class="note">The microtask delay here is necessary because it takes at least a microtask to
-    detect errors, when we use |reader|.[=ReadableStreamDefaultReader/[[closedPromise]]=] below. We want errors in |stream| to
+    detect errors, when we use |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] below. We want errors in |stream| to
     error both branches immediately, so we cannot let successful synchronously-available reads
     happen ahead of asynchronously-available errors.
 
@@ -2228,7 +2262,7 @@ create them does not matter.
     |cancel1Algorithm|).
  1. Set |branch2| to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|,
     |cancel2Algorithm|).
- 1. [=Upon rejection=] of |reader|.[=ReadableStreamDefaultReader/[[closedPromise]]=] with reason |r|,
+ 1. [=Upon rejection=] of |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with reason |r|,
   1. Perform ! [$ReadableStreamDefaultControllerError$](|branch1|.[=ReadableStream/[[controller]]=], |r|).
   1. Perform ! [$ReadableStreamDefaultControllerError$](|branch2|.[=ReadableStream/[[controller]]=], |r|).
   1. [=Resolve=] |cancelPromise| with undefined.
@@ -2413,23 +2447,6 @@ the {{ReadableStream}}'s public API.
 
 <h4 id="rs-reader-abstract-ops">Readers</h4>
 
-Instances of {{ReadableStreamDefaultReader}} and {{ReadableStreamBYOBReader}} are created with the
-internal slots described in the following table:
-
-<table dfn-for="ReadableStreamGenericReader">
- <thead>
-  <tr>
-   <th>Internal Slot
-   <th>Description (<em>non-normative</em>)
- <tbody>
-  <tr>
-   <td><dfn>\[[closedPromise]]</dfn>
-   <td class="non-normative">A promise returned by the reader's <code>closed</code> getter
-  <tr>
-   <td><dfn>\[[stream]]</dfn>
-   <td class="non-normative">A {{ReadableStream}} instance that owns this reader
-</table>
-
 The following abstract operations support the implementation and manipulation of
 {{ReadableStreamDefaultReader}} and {{ReadableStreamBYOBReader}} instances.
 
@@ -2481,7 +2498,7 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-byob-reader-read">ReadableStreamBYOBReaderRead(|reader|, |view|,
  |readIntoRequest|)</dfn> performs the following steps:
 
- 1. Let |stream| be |reader|.[=ReadableStreamBYOBReader/[[stream]]=].
+ 1. Let |stream| be |reader|.[=ReadableStreamGenericReader/[[stream]]=].
  1. Assert: |stream| is not undefined.
  1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`errored`", perform |readIntoRequest|'s [=read-into request/error
@@ -2495,7 +2512,7 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-default-reader-read">ReadableStreamDefaultReaderRead(|reader|,
  |readRequest|)</dfn> performs the following steps:
 
- 1. Let |stream| be |reader|.[=ReadableStreamDefaultReader/[[stream]]=].
+ 1. Let |stream| be |reader|.[=ReadableStreamGenericReader/[[stream]]=].
  1. Assert: |stream| is not undefined.
  1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`", perform |readRequest|'s [=read request/close steps=].
