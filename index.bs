@@ -1712,7 +1712,7 @@ has the following [=struct/items=]:
  The <dfn id="rbs-controller-byob-request" attribute
  for="ReadableByteStreamController">byobRequest</dfn> getter steps are:
 
- 1. If [=this=].\[[byobRequest]] is null and [=this=].\[[pendingPullIntos]] is not [=list/is
+ 1. If [=this=].[=ReadableByteStreamController/[[byobRequest]]=] is null and [=this=].\[[pendingPullIntos]] is not [=list/is
     empty|empty=],
   1. Let |firstDescriptor| be [=this=].\[[pendingPullIntos]][0].
   1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |firstDescriptor|'s [=pull-into
@@ -1722,8 +1722,8 @@ has the following [=struct/items=]:
   1. Let |byobRequest| be a [=new=] {{ReadableStreamBYOBRequest}}.
   1. Set |byobRequest|.\[[controller]] to [=this=].
   1. Set |byobRequest|.\[[view]] to |view|.
-  1. Set [=this=].\[[byobRequest]] to |byobRequest|.
- 1. Return [=this=].\[[byobRequest]].
+  1. Set [=this=].[=ReadableByteStreamController/[[byobRequest]]=] to |byobRequest|.
+ 1. Return [=this=].[=ReadableByteStreamController/[[byobRequest]]=].
 </div>
 
 <div algorithm>
@@ -2984,10 +2984,10 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-invalidate-byob-request">ReadableByteStreamControllerInvalidateBYOBRequest(|controller|)</dfn>
  performs the following steps:
 
- 1. If |controller|.\[[byobRequest]] is null, return.
- 1. Set |controller|.\[[byobRequest]].\[[controller]] to undefined.
- 1. Set |controller|.\[[byobRequest]].\[[view]] to null.
- 1. Set |controller|.\[[byobRequest]] to null.
+ 1. If |controller|.[=ReadableByteStreamController/[[byobRequest]]=] is null, return.
+ 1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=].\[[controller]] to undefined.
+ 1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=].\[[view]] to null.
+ 1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=] to null.
 </div>
 
 <div algorithm>
@@ -3185,7 +3185,7 @@ The following abstract operations support the implementation of the
   1. Assert: |autoAllocateChunkSize| is positive.
  1. Set |controller|.[=ReadableByteStreamController/[[stream]]=] to |stream|.
  1. Set |controller|.[=ReadableByteStreamController/[[pullAgain]]=] and |controller|.[=ReadableByteStreamController/[[pulling]]=] to false.
- 1. Set |controller|.\[[byobRequest]] to null.
+ 1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=] to null.
  1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.[=ReadableByteStreamController/[[closeRequested]]=] and |controller|.[=ReadableByteStreamController/[[started]]=] to false.
  1. Set |controller|.[=ReadableByteStreamController/[[strategyHWM]]=] to |highWaterMark|.
