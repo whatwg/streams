@@ -1800,7 +1800,7 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
      [=readable byte stream queue entry/byte length=] »).
   1. Perform |readRequest|'s [=read request/chunk steps=], given |view|.
   1. Return.
- 1. Let |autoAllocateChunkSize| be [=this=].\[[autoAllocateChunkSize]].
+ 1. Let |autoAllocateChunkSize| be [=this=].[=ReadableByteStreamController/[[autoAllocateChunkSize]]=].
  1. If |autoAllocateChunkSize| is not undefined,
   1. Let |buffer| be [$Construct$]({{%ArrayBuffer%}}, « |autoAllocateChunkSize| »).
   1. If |buffer| is an abrupt completion,
@@ -3191,7 +3191,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.[=ReadableByteStreamController/[[strategyHWM]]=] to |highWaterMark|.
  1. Set |controller|.[=ReadableByteStreamController/[[pullAlgorithm]]=] to |pullAlgorithm|.
  1. Set |controller|.[=ReadableByteStreamController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
- 1. Set |controller|.\[[autoAllocateChunkSize]] to |autoAllocateChunkSize|.
+ 1. Set |controller|.[=ReadableByteStreamController/[[autoAllocateChunkSize]]=] to |autoAllocateChunkSize|.
  1. Set |controller|.\[[pendingPullIntos]] to a new empty [=list=].
  1. Set |stream|.[=ReadableStream/[[controller]]=] to |controller|.
  1. Let |startResult| be the result of performing |startAlgorithm|.
