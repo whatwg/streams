@@ -1788,11 +1788,11 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
 
  1. Let |stream| be [=this=].\[[stream]].
  1. Assert: ! [$ReadableStreamHasDefaultReader$](|stream|) is true.
- 1. If [=this=].\[[queueTotalSize]] > 0,
+ 1. If [=this=].[=ReadableByteStreamController/[[queueTotalSize]]=] > 0,
   1. Assert: ! [$ReadableStreamGetNumReadRequests$](|stream|) is 0.
   1. Let |entry| be [=this=].[=ReadableByteStreamController/[[queue]]=][0].
   1. [=list/Remove=] |entry| from [=this=].[=ReadableByteStreamController/[[queue]]=].
-  1. Set [=this=].\[[queueTotalSize]] to [=this=].\[[queueTotalSize]] − |entry|'s [=readable byte
+  1. Set [=this=].[=ReadableByteStreamController/[[queueTotalSize]]=] to [=this=].[=ReadableByteStreamController/[[queueTotalSize]]=] − |entry|'s [=readable byte
      stream queue entry/byte length=].
   1. Perform ! [$ReadableByteStreamControllerHandleQueueDrain$]([=this=]).
   1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |entry|'s [=readable byte stream queue
@@ -2653,7 +2653,7 @@ The following abstract operations support the implementation of the
  1. Let |state| be |controller|.\[[stream]].[=ReadableStream/[[state]]=].
  1. If |state| is "`errored`", return null.
  1. If |state| is "`closed`", return 0.
- 1. Return |controller|.\[[strategyHWM]] − |controller|.\[[queueTotalSize]].
+ 1. Return |controller|.\[[strategyHWM]] − |controller|.[=ReadableStreamDefaultController/[[queueTotalSize]]=].
 </div>
 
 <div algorithm>
@@ -2793,7 +2793,7 @@ The following abstract operations support the implementation of the
 
  1. Let |stream| be |controller|.\[[stream]].
  1. If |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true or |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
- 1. If |controller|.\[[queueTotalSize]] > 0,
+ 1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] > 0,
   1. Set |controller|.[=ReadableByteStreamController/[[closeRequested]]=] to true.
   1. Return.
  1. If |controller|.\[[pendingPullIntos]] is not empty,
@@ -2878,7 +2878,7 @@ The following abstract operations support the implementation of the
  1. [=list/Append=] a new [=readable byte stream queue entry=] with [=readable byte stream queue
     entry/buffer=] |buffer|, [=readable byte stream queue entry/byte offset=] |byteOffset|, and
     [=readable byte stream queue entry/byte length=] |byteLength| to |controller|.[=ReadableByteStreamController/[[queue]]=].
- 1. Set |controller|.\[[queueTotalSize]] to |controller|.\[[queueTotalSize]] + |byteLength|.
+ 1. Set |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] to |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] + |byteLength|.
 </div>
 
 <div algorithm>
@@ -2914,7 +2914,7 @@ The following abstract operations support the implementation of the
  1. Let |elementSize| be |pullIntoDescriptor|.\[[elementSize]].
  1. Let |currentAlignedBytes| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] −
     (|pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] mod |elementSize|).
- 1. Let |maxBytesToCopy| be min(|controller|.\[[queueTotalSize]], |pullIntoDescriptor|'s [=pull-into
+ 1. Let |maxBytesToCopy| be min(|controller|.[=ReadableByteStreamController/[[queueTotalSize]]=], |pullIntoDescriptor|'s [=pull-into
     descriptor/byte length=] − |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]).
  1. Let |maxBytesFilled| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] +
     |maxBytesToCopy|.
@@ -2943,12 +2943,12 @@ The following abstract operations support the implementation of the
       [=readable byte stream queue entry/byte offset=] + |bytesToCopy|.
    1. Set |headOfQueue|'s [=readable byte stream queue entry/byte length=] to |headOfQueue|'s
       [=readable byte stream queue entry/byte length=] − |bytesToCopy|.
-  1. Set |controller|.\[[queueTotalSize]] to |controller|.\[[queueTotalSize]] − |bytesToCopy|.
+  1. Set |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] to |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] − |bytesToCopy|.
   1. Perform ! [$ReadableByteStreamControllerFillHeadPullIntoDescriptor$](|controller|,
      |bytesToCopy|, |pullIntoDescriptor|).
   1. Set |totalBytesToCopyRemaining| to |totalBytesToCopyRemaining| − |bytesToCopy|.
  1. If |ready| is false,
-  1. Assert: |controller|.\[[queueTotalSize]] is 0.
+  1. Assert: |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0.
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] > 0.
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt;
      |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
@@ -2963,7 +2963,7 @@ The following abstract operations support the implementation of the
  1. Let |state| be |controller|.\[[stream]].[=ReadableStream/[[state]]=].
  1. If |state| is "`errored`", return null.
  1. If |state| is "`closed`", return 0.
- 1. Return |controller|.\[[strategyHWM]] − |controller|.\[[queueTotalSize]].
+ 1. Return |controller|.\[[strategyHWM]] − |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=].
 </div>
 
 <div algorithm>
@@ -2972,7 +2972,7 @@ The following abstract operations support the implementation of the
  performs the following steps:
 
  1. Assert: |controller|.\[[stream]].[=ReadableStream/[[state]]=] is "`readable`".
- 1. If |controller|.\[[queueTotalSize]] is 0 and |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true,
+ 1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0 and |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true,
   1. Perform ! [$ReadableByteStreamControllerClearAlgorithms$](|controller|).
   1. Perform ! [$ReadableStreamClose$](|controller|.\[[stream]]).
  1. Otherwise,
@@ -2997,7 +2997,7 @@ The following abstract operations support the implementation of the
 
  1. Assert: |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is false.
  1. [=While=] |controller|.\[[pendingPullIntos]] is not [=list/is empty|empty=],
-  1. If |controller|.\[[queueTotalSize]] is 0, return.
+  1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0, return.
   1. Let |pullIntoDescriptor| be |controller|.\[[pendingPullIntos]][0].
   1. If ! [$ReadableByteStreamControllerFillPullIntoDescriptorFromQueue$](|controller|,
      |pullIntoDescriptor|) is true,
@@ -3036,7 +3036,7 @@ The following abstract operations support the implementation of the
      descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=], 0 »).
   1. Perform |readIntoRequest|'s [=read-into request/close steps=], given |emptyView|.
   1. Return.
- 1. If |controller|.\[[queueTotalSize]] > 0,
+ 1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] > 0,
   1. If ! [$ReadableByteStreamControllerFillPullIntoDescriptorFromQueue$](|controller|,
      |pullIntoDescriptor|) is true,
    1. Let |filledView| be !
