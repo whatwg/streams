@@ -2653,7 +2653,7 @@ The following abstract operations support the implementation of the
  1. Let |state| be |controller|.\[[stream]].[=ReadableStream/[[state]]=].
  1. If |state| is "`errored`", return null.
  1. If |state| is "`closed`", return 0.
- 1. Return |controller|.\[[strategyHWM]] − |controller|.[=ReadableStreamDefaultController/[[queueTotalSize]]=].
+ 1. Return |controller|.[=ReadableStreamDefaultController/[[strategyHWM]]=] − |controller|.[=ReadableStreamDefaultController/[[queueTotalSize]]=].
 </div>
 
 <div algorithm>
@@ -2693,7 +2693,7 @@ The following abstract operations support the implementation of the
  1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.[=ReadableStreamDefaultController/[[started]]=], |controller|.[=ReadableStreamDefaultController/[[closeRequested]]=], |controller|.[=ReadableStreamDefaultController/[[pullAgain]]=], and
     |controller|.[=ReadableStreamDefaultController/[[pulling]]=] to false.
- 1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm| and |controller|.\[[strategyHWM]]
+ 1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm| and |controller|.[=ReadableStreamDefaultController/[[strategyHWM]]=]
     to |highWaterMark|.
  1. Set |controller|.[=ReadableStreamDefaultController/[[pullAlgorithm]]=] to |pullAlgorithm|.
  1. Set |controller|.[=ReadableStreamDefaultController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
@@ -2963,7 +2963,7 @@ The following abstract operations support the implementation of the
  1. Let |state| be |controller|.\[[stream]].[=ReadableStream/[[state]]=].
  1. If |state| is "`errored`", return null.
  1. If |state| is "`closed`", return 0.
- 1. Return |controller|.\[[strategyHWM]] − |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=].
+ 1. Return |controller|.[=ReadableByteStreamController/[[strategyHWM]]=] − |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=].
 </div>
 
 <div algorithm>
@@ -3188,7 +3188,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.\[[byobRequest]] to null.
  1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.[=ReadableByteStreamController/[[closeRequested]]=] and |controller|.[=ReadableByteStreamController/[[started]]=] to false.
- 1. Set |controller|.\[[strategyHWM]] to |highWaterMark|.
+ 1. Set |controller|.[=ReadableByteStreamController/[[strategyHWM]]=] to |highWaterMark|.
  1. Set |controller|.[=ReadableByteStreamController/[[pullAlgorithm]]=] to |pullAlgorithm|.
  1. Set |controller|.[=ReadableByteStreamController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
  1. Set |controller|.\[[autoAllocateChunkSize]] to |autoAllocateChunkSize|.
