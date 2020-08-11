@@ -2547,7 +2547,7 @@ The following abstract operations support the implementation of the
 
  1. Let |stream| be |controller|.\[[stream]].
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is false, return false.
- 1. If |controller|.\[[started]] is false, return false.
+ 1. If |controller|.[=ReadableStreamDefaultController/[[started]]=] is false, return false.
  1. If ! [$IsReadableStreamLocked$](|stream|) is true and !
     [$ReadableStreamGetNumReadRequests$](|stream|) > 0, return true.
  1. Let |desiredSize| be ! [$ReadableStreamDefaultControllerGetDesiredSize$](|controller|).
@@ -2691,7 +2691,7 @@ The following abstract operations support the implementation of the
  1. Assert: |stream|.[=ReadableStream/[[controller]]=] is undefined.
  1. Set |controller|.\[[stream]] to |stream|.
  1. Perform ! [$ResetQueue$](|controller|).
- 1. Set |controller|.\[[started]], |controller|.[=ReadableStreamDefaultController/[[closeRequested]]=], |controller|.[=ReadableStreamDefaultController/[[pullAgain]]=], and
+ 1. Set |controller|.[=ReadableStreamDefaultController/[[started]]=], |controller|.[=ReadableStreamDefaultController/[[closeRequested]]=], |controller|.[=ReadableStreamDefaultController/[[pullAgain]]=], and
     |controller|.[=ReadableStreamDefaultController/[[pulling]]=] to false.
  1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm| and |controller|.\[[strategyHWM]]
     to |highWaterMark|.
@@ -2701,7 +2701,7 @@ The following abstract operations support the implementation of the
  1. Let |startResult| be the result of performing |startAlgorithm|. (This might throw an exception.)
  1. Let |startPromise| be [=a promise resolved with=] |startResult|.
  1. [=Upon fulfillment=]  of |startPromise|,
-  1. Set |controller|.\[[started]] to true.
+  1. Set |controller|.[=ReadableStreamDefaultController/[[started]]=] to true.
   1. Assert: |controller|.[=ReadableStreamDefaultController/[[pulling]]=] is false.
   1. Assert: |controller|.[=ReadableStreamDefaultController/[[pullAgain]]=] is false.
   1. Perform ! [$ReadableStreamDefaultControllerCallPullIfNeeded$](|controller|).
@@ -3162,7 +3162,7 @@ The following abstract operations support the implementation of the
  1. Let |stream| be |controller|.\[[stream]].
  1. If |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return false.
  1. If |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true, return false.
- 1. If |controller|.\[[started]] is false, return false.
+ 1. If |controller|.[=ReadableByteStreamController/[[started]]=] is false, return false.
  1. If ! [$ReadableStreamHasDefaultReader$](|stream|) is true and !
     [$ReadableStreamGetNumReadRequests$](|stream|) > 0, return true.
  1. If ! [$ReadableStreamHasBYOBReader$](|stream|) is true and !
@@ -3187,7 +3187,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.[=ReadableByteStreamController/[[pullAgain]]=] and |controller|.[=ReadableByteStreamController/[[pulling]]=] to false.
  1. Set |controller|.\[[byobRequest]] to null.
  1. Perform ! [$ResetQueue$](|controller|).
- 1. Set |controller|.[=ReadableByteStreamController/[[closeRequested]]=] and |controller|.\[[started]] to false.
+ 1. Set |controller|.[=ReadableByteStreamController/[[closeRequested]]=] and |controller|.[=ReadableByteStreamController/[[started]]=] to false.
  1. Set |controller|.\[[strategyHWM]] to |highWaterMark|.
  1. Set |controller|.[=ReadableByteStreamController/[[pullAlgorithm]]=] to |pullAlgorithm|.
  1. Set |controller|.[=ReadableByteStreamController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
@@ -3197,7 +3197,7 @@ The following abstract operations support the implementation of the
  1. Let |startResult| be the result of performing |startAlgorithm|.
  1. Let |startPromise| be [=a promise resolved with=] |startResult|.
  1. [=Upon fulfillment=]  of |startPromise|,
-   1. Set |controller|.\[[started]] to true.
+   1. Set |controller|.[=ReadableByteStreamController/[[started]]=] to true.
    1. Assert: |controller|.[=ReadableByteStreamController/[[pulling]]=] is false.
    1. Assert: |controller|.[=ReadableByteStreamController/[[pullAgain]]=] is false.
    1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$](|controller|).
