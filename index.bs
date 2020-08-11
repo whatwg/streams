@@ -1840,17 +1840,17 @@ interface ReadableStreamBYOBRequest {
 Instances of {{ReadableStreamBYOBRequest}} are created with the internal slots described in the
 following table:
 
-<table>
+<table dfn-for="ReadableStreamBYOBRequest">
  <thead>
   <tr>
    <th>Internal Slot</th>
    <th>Description (<em>non-normative</em>)</th>
  <tbody>
  <tr>
-  <td>\[[controller]]
+  <td><dfn>\[[controller]]</dfn>
   <td class="non-normative">The parent {{ReadableByteStreamController}} instance
  <tr>
-  <td>\[[view]]
+  <td><dfn>\[[view]]</dfn>
   <td class="non-normative">A [=typed array=] representing the destination region to which the
   controller can write generated data, or null after the BYOB request has been invalidated.
 </table>
