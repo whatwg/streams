@@ -1721,7 +1721,7 @@ has the following [=struct/items=]:
      descriptor/byte length=] − |firstDescriptor|'s [=pull-into descriptor/bytes filled=] »).
   1. Let |byobRequest| be a [=new=] {{ReadableStreamBYOBRequest}}.
   1. Set |byobRequest|.[=ReadableStreamBYOBRequest/[[controller]]=] to [=this=].
-  1. Set |byobRequest|.\[[view]] to |view|.
+  1. Set |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=] to |view|.
   1. Set [=this=].[=ReadableByteStreamController/[[byobRequest]]=] to |byobRequest|.
  1. Return [=this=].[=ReadableByteStreamController/[[byobRequest]]=].
 </div>
@@ -1885,7 +1885,7 @@ following table:
  The <dfn id="rs-byob-request-view" attribute for="ReadableStreamBYOBRequest">view</dfn>
  getter steps are:
 
- 1. Return [=this=].\[[view]].
+ 1. Return [=this=].[=ReadableStreamBYOBRequest/[[view]]=].
 </div>
 
 <div algorithm>
@@ -1893,10 +1893,10 @@ following table:
  for="ReadableStreamBYOBRequest">respond(|bytesWritten|)</dfn> method steps are:
 
  1. If [=this=].[=ReadableStreamBYOBRequest/[[controller]]=] is undefined, throw a {{TypeError}} exception.
- 1. If [$IsDetachedBuffer$]([=this=].\[[view]].\[[ArrayBuffer]]) is true, throw a {{TypeError}}
+ 1. If [$IsDetachedBuffer$]([=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ArrayBuffer]]) is true, throw a {{TypeError}}
     exception.
- 1. Assert: [=this=].\[[view]].\[[ByteLength]] &gt; 0.
- 1. Assert: [=this=].\[[view]].\[[ViewedArrayBuffer]].\[[ByeLength]] &gt; 0.
+ 1. Assert: [=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ByteLength]] &gt; 0.
+ 1. Assert: [=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ViewedArrayBuffer]].\[[ByeLength]] &gt; 0.
  1. Perform ? [$ReadableByteStreamControllerRespond$]([=this=].[=ReadableStreamBYOBRequest/[[controller]]=], |bytesWritten|).
 </div>
 
@@ -2986,7 +2986,7 @@ The following abstract operations support the implementation of the
 
  1. If |controller|.[=ReadableByteStreamController/[[byobRequest]]=] is null, return.
  1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=].[=ReadableStreamBYOBRequest/[[controller]]=] to undefined.
- 1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=].\[[view]] to null.
+ 1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=].[=ReadableStreamBYOBRequest/[[view]]=] to null.
  1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=] to null.
 </div>
 
