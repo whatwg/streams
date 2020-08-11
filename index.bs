@@ -1391,57 +1391,57 @@ interface ReadableStreamDefaultController {
 Instances of {{ReadableStreamDefaultController}} are created with the internal slots described in
 the following table:
 
-<table>
+<table dfn-for="ReadableStreamDefaultController">
  <thead>
   <tr>
    <th>Internal Slot</th>
    <th>Description (<em>non-normative</em>)</th>
  <tbody>
   <tr>
-   <td>\[[cancelAlgorithm]]
+   <td><dfn>\[[cancelAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm, taking one argument (the cancel reason),
    which communicates a requested cancelation to the [=underlying source=]
   <tr>
-   <td>\[[closeRequested]]
+   <td><dfn>\[[closeRequested]]</dfn>
    <td class="non-normative">A boolean flag indicating whether the stream has been closed by its
    [=underlying source=], but still has [=chunks=] in its internal queue that have not yet been
    read
   <tr>
-   <td>\[[pullAgain]]
+   <td><dfn>\[[pullAgain]]</dfn>
    <td class="non-normative">A boolean flag set to true if the stream's mechanisms requested a call
    to the [=underlying source=]'s pull algorithm to pull more data, but the pull could not yet be
    done since a previous call is still executing
   <tr>
-   <td>\[[pullAlgorithm]]
+   <td><dfn>\[[pullAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm that pulls data from the [=underlying
    source=]
   <tr>
-   <td>\[[pulling]]
+   <td><dfn>\[[pulling]]</dfn>
    <td class="non-normative">A boolean flag set to true while the [=underlying source=]'s pull
    algorithm is executing and the returned promise has not yet fulfilled, used to prevent reentrant
    calls
   <tr>
-   <td>\[[queue]]
+   <td><dfn>\[[queue]]</dfn>
    <td class="non-normative">A [=list=] representing the stream's internal queue of [=chunks=]
   <tr>
-   <td>\[[queueTotalSize]]
+   <td><dfn>\[[queueTotalSize]]</dfn>
    <td class="non-normative">The total size of all the chunks stored in \[[queue]] (see
    [[#queue-with-sizes]])
   <tr>
-   <td>\[[started]]
+   <td><dfn>\[[started]]</dfn>
    <td class="non-normative">A boolean flag indicating whether the [=underlying source=] has
    finished starting
   <tr>
-   <td>\[[strategyHWM]]
+   <td><dfn>\[[strategyHWM]]</dfn>
    <td class="non-normative">A number supplied to the constructor as part of the stream's [=queuing
    strategy=], indicating the point at which the stream will apply [=backpressure=] to its
    [=underlying source=]
   <tr>
-   <td>\[[strategySizeAlgorithm]]
+   <td><dfn>\[[strategySizeAlgorithm]]</dfn>
    <td class="non-normative">An algorithm to calculate the size of enqueued [=chunks=], as part of
    the stream's [=queuing strategy=]
   <tr>
-   <td>\[[stream]]
+   <td><dfn>\[[stream]]</dfn>
    <td class="non-normative">The {{ReadableStream}} instance controlled
 </table>
 
@@ -1566,66 +1566,66 @@ interface ReadableByteStreamController {
 Instances of {{ReadableByteStreamController}} are created with the internal slots described in the
 following table:
 
-<table>
+<table dfn-for="ReadableByteStreamController">
  <thead>
   <tr>
    <th>Internal Slot</th>
    <th>Description (<em>non-normative</em>)</th>
  <tbody>
   <tr>
-   <td>\[[autoAllocateChunkSize]]
+   <td><dfn>\[[autoAllocateChunkSize]]</dfn>
    <td class="non-normative">A positive integer, when the automatic buffer allocation feature is
    enabled. In that case, this value specifies the size of buffer to allocate. It is undefined
    otherwise.
   <tr>
-   <td>\[[byobRequest]]
+   <td><dfn>\[[byobRequest]]</dfn>
    <td class="non-normative">A {{ReadableStreamBYOBRequest}} instance representing the current BYOB
    pull request, or null if there are no pending requests
   <tr>
-   <td>\[[cancelAlgorithm]]
+   <td><dfn>\[[cancelAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm, taking one argument (the cancel reason),
    which communicates a requested cancelation to the [=underlying byte source=]
   <tr>
-   <td>\[[closeRequested]]
+   <td><dfn>\[[closeRequested]]</dfn>
    <td class="non-normative">A boolean flag indicating whether the stream has been closed by its
    [=underlying byte source=], but still has [=chunks=] in its internal queue that have not yet been
    read
   <tr>
-   <td>\[[pullAgain]]
+   <td><dfn>\[[pullAgain]]</dfn>
    <td class="non-normative">A boolean flag set to true if the stream's mechanisms requested a call
    to the [=underlying byte source=]'s pull algorithm to pull more data, but the pull could not yet
    be done since a previous call is still executing
   <tr>
-   <td>\[[pullAlgorithm]]
+   <td><dfn>\[[pullAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm that pulls data from the [=underlying
    byte source=]
   <tr>
-   <td>\[[pulling]]
+   <td><dfn>\[[pulling]]</dfn>
    <td class="non-normative">A boolean flag set to true while the [=underlying byte source=]'s pull
    algorithm is executing and the returned promise has not yet fulfilled, used to prevent reentrant
    calls
   <tr>
-   <td>\[[pendingPullIntos]]
+   <td><dfn>\[[pendingPullIntos]]</dfn>
    <td class="non-normative">A [=list=] of [=pull-into descriptors=]
   <tr>
-   <td>\[[queue]]
+   <td><dfn>\[[queue]]</dfn>
    <td class="non-normative">A [=list=] of [=readable byte stream queue entry|readable byte stream
    queue entries=] representing the stream's internal queue of [=chunks=]
   <tr>
-   <td>\[[queueTotalSize]]
+   <td><dfn>\[[queueTotalSize]]</dfn>
    <td class="non-normative">The total size, in bytes, of all the chunks stored in \[[queue]] (see
    [[#queue-with-sizes]])
   <tr>
-   <td>\[[started]]
+   <td><dfn>\[[started]]</dfn>
    <td class="non-normative">A boolean flag indicating whether the [=underlying byte source=] has
    finished starting
   <tr>
-   <td>\[[strategyHWM]]
+   <td><dfn>\[[strategyHWM]]</dfn>
    <td class="non-normative">A number supplied to the constructor as part of the stream's [=queuing
    strategy=], indicating the point at which the stream will apply [=backpressure=] to its
    [=underlying byte source=]
   <tr>
-   <td>\[[stream]]
+   <td><dfn>\[[stream]]</dfn>
    <td class="non-normative">The {{ReadableStream}} instance controlled
 </table>
 
