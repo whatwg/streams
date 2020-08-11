@@ -2572,7 +2572,7 @@ The following abstract operations support the implementation of the
 
  1. Set |controller|.[=ReadableStreamDefaultController/[[pullAlgorithm]]=] to undefined.
  1. Set |controller|.[=ReadableStreamDefaultController/[[cancelAlgorithm]]=] to undefined.
- 1. Set |controller|.\[[strategySizeAlgorithm]] to undefined.
+ 1. Set |controller|.[=ReadableStreamDefaultController/[[strategySizeAlgorithm]]=] to undefined.
 </div>
 
 <div algorithm>
@@ -2609,7 +2609,7 @@ The following abstract operations support the implementation of the
     [$ReadableStreamGetNumReadRequests$](|stream|) > 0, perform !
     [$ReadableStreamFulfillReadRequest$](|stream|, |chunk|, false).
  1. Otherwise,
-  1. Let |result| be the result of performing |controller|.\[[strategySizeAlgorithm]], passing in
+  1. Let |result| be the result of performing |controller|.[=ReadableStreamDefaultController/[[strategySizeAlgorithm]]=], passing in
      |chunk|, and interpreting the result as a [=completion record=].
   1. If |result| is an abrupt completion,
    1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |result|.\[[Value]]).
@@ -2693,7 +2693,7 @@ The following abstract operations support the implementation of the
  1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.[=ReadableStreamDefaultController/[[started]]=], |controller|.[=ReadableStreamDefaultController/[[closeRequested]]=], |controller|.[=ReadableStreamDefaultController/[[pullAgain]]=], and
     |controller|.[=ReadableStreamDefaultController/[[pulling]]=] to false.
- 1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm| and |controller|.[=ReadableStreamDefaultController/[[strategyHWM]]=]
+ 1. Set |controller|.[=ReadableStreamDefaultController/[[strategySizeAlgorithm]]=] to |sizeAlgorithm| and |controller|.[=ReadableStreamDefaultController/[[strategyHWM]]=]
     to |highWaterMark|.
  1. Set |controller|.[=ReadableStreamDefaultController/[[pullAlgorithm]]=] to |pullAlgorithm|.
  1. Set |controller|.[=ReadableStreamDefaultController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
