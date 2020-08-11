@@ -1007,13 +1007,13 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  1. Return [=a promise resolved with=] undefined.
 </div>
 
-<h3 id="generic-reader-mixin">The {{ReadableStreamGenericReader}} interface mixin</h3>
+<h3 id="generic-reader-mixin">The {{ReadableStreamGenericReader}} mixin</h3>
 
 The {{ReadableStreamGenericReader}} interface mixin defines common internal slots, getters and
 methods that are shared between {{ReadableStreamDefaultReader}} and {{ReadableStreamBYOBReader}}
 objects.
 
-<h4 id="generic-reader-mixin-definition">Interface definition</h4>
+<h4 id="generic-reader-mixin-definition">Mixin definition</h4>
 
 The Web IDL definition for the {{ReadableStreamGenericReader}} interface mixin is given as follows:
 
@@ -1027,7 +1027,7 @@ interface mixin ReadableStreamGenericReader {
 
 <h4 id="generic-reader-internal-slots">Internal slots</h4>
 
-Instances of classes implementing the {{ReadableStreamGenericReader}} mixin are created with the
+Instances of classes including the {{ReadableStreamGenericReader}} mixin are created with the
 internal slots described in the following table:
 
 <table dfn-for="ReadableStreamGenericReader">
