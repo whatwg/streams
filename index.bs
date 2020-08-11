@@ -1515,7 +1515,7 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
  [$ReadableStreamController/[[CancelSteps]]$] contract. It performs the following steps:
 
  1. Perform ! [$ResetQueue$]([=this=]).
- 1. Let |result| be the result of performing [=this=].\[[cancelAlgorithm]], passing |reason|.
+ 1. Let |result| be the result of performing [=this=].[=ReadableStreamDefaultController/[[cancelAlgorithm]]=], passing |reason|.
  1. Perform ! [$ReadableStreamDefaultControllerClearAlgorithms$]([=this=]).
  1. Return |result|.
 </div>
@@ -1776,7 +1776,7 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
   1. Let |firstDescriptor| be [=this=].\[[pendingPullIntos]][0].
   1. Set |firstDescriptor|'s [=pull-into descriptor/bytes filled=] to 0.
  1. Perform ! [$ResetQueue$]([=this=]).
- 1. Let |result| be the result of performing [=this=].\[[cancelAlgorithm]], passing in |reason|.
+ 1. Let |result| be the result of performing [=this=].[=ReadableByteStreamController/[[cancelAlgorithm]]=], passing in |reason|.
  1. Perform ! [$ReadableByteStreamControllerClearAlgorithms$]([=this=]).
  1. Return |result|.
 </div>
@@ -2571,7 +2571,7 @@ The following abstract operations support the implementation of the
  It performs the following steps:
 
  1. Set |controller|.\[[pullAlgorithm]] to undefined.
- 1. Set |controller|.\[[cancelAlgorithm]] to undefined.
+ 1. Set |controller|.[=ReadableStreamDefaultController/[[cancelAlgorithm]]=] to undefined.
  1. Set |controller|.\[[strategySizeAlgorithm]] to undefined.
 </div>
 
@@ -2696,7 +2696,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm| and |controller|.\[[strategyHWM]]
     to |highWaterMark|.
  1. Set |controller|.\[[pullAlgorithm]] to |pullAlgorithm|.
- 1. Set |controller|.\[[cancelAlgorithm]] to |cancelAlgorithm|.
+ 1. Set |controller|.[=ReadableStreamDefaultController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
  1. Set |stream|.[=ReadableStream/[[controller]]=] to |controller|.
  1. Let |startResult| be the result of performing |startAlgorithm|. (This might throw an exception.)
  1. Let |startPromise| be [=a promise resolved with=] |startResult|.
@@ -2774,7 +2774,7 @@ The following abstract operations support the implementation of the
  It performs the following steps:
 
  1. Set |controller|.\[[pullAlgorithm]] to undefined.
- 1. Set |controller|.\[[cancelAlgorithm]] to undefined.
+ 1. Set |controller|.[=ReadableByteStreamController/[[cancelAlgorithm]]=] to undefined.
 </div>
 
 <div algorithm>
@@ -3190,7 +3190,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.\[[closeRequested]] and |controller|.\[[started]] to false.
  1. Set |controller|.\[[strategyHWM]] to |highWaterMark|.
  1. Set |controller|.\[[pullAlgorithm]] to |pullAlgorithm|.
- 1. Set |controller|.\[[cancelAlgorithm]] to |cancelAlgorithm|.
+ 1. Set |controller|.[=ReadableByteStreamController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
  1. Set |controller|.\[[autoAllocateChunkSize]] to |autoAllocateChunkSize|.
  1. Set |controller|.\[[pendingPullIntos]] to a new empty [=list=].
  1. Set |stream|.[=ReadableStream/[[controller]]=] to |controller|.
