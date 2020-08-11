@@ -1720,7 +1720,7 @@ has the following [=struct/items=]:
      |firstDescriptor|'s [=pull-into descriptor/bytes filled=], |firstDescriptor|'s [=pull-into
      descriptor/byte length=] − |firstDescriptor|'s [=pull-into descriptor/bytes filled=] »).
   1. Let |byobRequest| be a [=new=] {{ReadableStreamBYOBRequest}}.
-  1. Set |byobRequest|.\[[controller]] to [=this=].
+  1. Set |byobRequest|.[=ReadableStreamBYOBRequest/[[controller]]=] to [=this=].
   1. Set |byobRequest|.\[[view]] to |view|.
   1. Set [=this=].[=ReadableByteStreamController/[[byobRequest]]=] to |byobRequest|.
  1. Return [=this=].[=ReadableByteStreamController/[[byobRequest]]=].
@@ -1892,12 +1892,12 @@ following table:
  The <dfn id="rs-byob-request-respond" method
  for="ReadableStreamBYOBRequest">respond(|bytesWritten|)</dfn> method steps are:
 
- 1. If [=this=].\[[controller]] is undefined, throw a {{TypeError}} exception.
+ 1. If [=this=].[=ReadableStreamBYOBRequest/[[controller]]=] is undefined, throw a {{TypeError}} exception.
  1. If [$IsDetachedBuffer$]([=this=].\[[view]].\[[ArrayBuffer]]) is true, throw a {{TypeError}}
     exception.
  1. Assert: [=this=].\[[view]].\[[ByteLength]] &gt; 0.
  1. Assert: [=this=].\[[view]].\[[ViewedArrayBuffer]].\[[ByeLength]] &gt; 0.
- 1. Perform ? [$ReadableByteStreamControllerRespond$]([=this=].\[[controller]], |bytesWritten|).
+ 1. Perform ? [$ReadableByteStreamControllerRespond$]([=this=].[=ReadableStreamBYOBRequest/[[controller]]=], |bytesWritten|).
 </div>
 
 <div algorithm>
@@ -1907,8 +1907,8 @@ following table:
  1. If |view|.\[[ByteLength]] is 0, throw a {{TypeError}} exception.
  1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, throw a {{TypeError}}
     exception.
- 1. If [=this=].\[[controller]] is undefined, throw a {{TypeError}} exception.
- 1. Return ? [$ReadableByteStreamControllerRespondWithNewView$]([=this=].\[[controller]], |view|).
+ 1. If [=this=].[=ReadableStreamBYOBRequest/[[controller]]=] is undefined, throw a {{TypeError}} exception.
+ 1. Return ? [$ReadableByteStreamControllerRespondWithNewView$]([=this=].[=ReadableStreamBYOBRequest/[[controller]]=], |view|).
 </div>
 
 <h3 id="rs-all-abstract-ops">Abstract operations</h3>
@@ -2985,7 +2985,7 @@ The following abstract operations support the implementation of the
  performs the following steps:
 
  1. If |controller|.[=ReadableByteStreamController/[[byobRequest]]=] is null, return.
- 1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=].\[[controller]] to undefined.
+ 1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=].[=ReadableStreamBYOBRequest/[[controller]]=] to undefined.
  1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=].\[[view]] to null.
  1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=] to null.
 </div>
