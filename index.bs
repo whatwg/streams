@@ -1528,7 +1528,7 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
  1. Let |stream| be [=this=].[=ReadableStreamGenericReader/[[stream]]=].
  1. If [=this=].\[[queue]] is not [=list/is empty|empty=],
   1. Let |chunk| be ! [$DequeueValue$]([=this=]).
-  1. If [=this=].\[[closeRequested]] is true and [=this=].\[[queue]] [=list/is empty=],
+  1. If [=this=].[=ReadableStreamDefaultController/[[closeRequested]]=] is true and [=this=].\[[queue]] [=list/is empty=],
    1. Perform ! [$ReadableStreamDefaultControllerClearAlgorithms$]([=this=]).
    1. Perform ! [$ReadableStreamClose$](|stream|).
   1. Otherwise, perform ! [$ReadableStreamDefaultControllerCallPullIfNeeded$]([=this=]).
@@ -1737,7 +1737,7 @@ has the following [=struct/items=]:
  The <dfn id="rbs-controller-close" method for="ReadableByteStreamController">close()</dfn> method
  steps are:
 
- 1. If [=this=].\[[closeRequested]] is true, throw a {{TypeError}} exception.
+ 1. If [=this=].[=ReadableByteStreamController/[[closeRequested]]=] is true, throw a {{TypeError}} exception.
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is not "`readable`", throw a {{TypeError}} exception.
  1. Perform ? [$ReadableByteStreamControllerClose$]([=this=]).
 </div>
@@ -1749,7 +1749,7 @@ for="ReadableByteStreamController">enqueue(|chunk|)</dfn> method steps are:
  1. If |chunk|.\[[ByteLength]] is 0, throw a {{TypeError}} exception.
  1. If |chunk|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, throw a {{TypeError}}
     exception.
- 1. If [=this=].\[[closeRequested]] is true, throw a {{TypeError}} exception.
+ 1. If [=this=].[=ReadableByteStreamController/[[closeRequested]]=] is true, throw a {{TypeError}} exception.
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is not "`readable`", throw a {{TypeError}} exception.
  1. Return ! [$ReadableByteStreamControllerEnqueue$]([=this=], |chunk|).
 </div>
@@ -2587,7 +2587,7 @@ The following abstract operations support the implementation of the
 
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is false, return.
  1. Let |stream| be |controller|.\[[stream]].
- 1. Set |controller|.\[[closeRequested]] to true.
+ 1. Set |controller|.[=ReadableStreamDefaultController/[[closeRequested]]=] to true.
  1. If |controller|.\[[queue]] [=list/is empty=],
   1. Perform ! [$ReadableStreamDefaultControllerClearAlgorithms$](|controller|).
   1. Perform ! [$ReadableStreamClose$](|stream|).
@@ -2671,10 +2671,10 @@ The following abstract operations support the implementation of the
  performs the following steps:
 
  1. Let |state| be |controller|.\[[stream]].[=ReadableStream/[[state]]=].
- 1. If |controller|.\[[closeRequested]] is false and |state| is "`readable`", return true.
+ 1. If |controller|.[=ReadableStreamDefaultController/[[closeRequested]]=] is false and |state| is "`readable`", return true.
  1. Otherwise, return false.
 
- <p class="note">The case where |controller|.\[[closeRequested]] is false, but |state| is not
+ <p class="note">The case where |controller|.[=ReadableStreamDefaultController/[[closeRequested]]=] is false, but |state| is not
  "`readable`", happens when the stream is errored via
  {{ReadableStreamDefaultController/error(e)|controller.error()}}, or when it is closed without its
  controller's {{ReadableStreamDefaultController/close()|controller.close()}} method ever being
@@ -2691,7 +2691,7 @@ The following abstract operations support the implementation of the
  1. Assert: |stream|.[=ReadableStream/[[controller]]=] is undefined.
  1. Set |controller|.\[[stream]] to |stream|.
  1. Perform ! [$ResetQueue$](|controller|).
- 1. Set |controller|.\[[started]], |controller|.\[[closeRequested]], |controller|.\[[pullAgain]], and
+ 1. Set |controller|.\[[started]], |controller|.[=ReadableStreamDefaultController/[[closeRequested]]=], |controller|.\[[pullAgain]], and
     |controller|.\[[pulling]] to false.
  1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm| and |controller|.\[[strategyHWM]]
     to |highWaterMark|.
@@ -2792,9 +2792,9 @@ The following abstract operations support the implementation of the
  performs the following steps:
 
  1. Let |stream| be |controller|.\[[stream]].
- 1. If |controller|.\[[closeRequested]] is true or |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
+ 1. If |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true or |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
  1. If |controller|.\[[queueTotalSize]] > 0,
-  1. Set |controller|.\[[closeRequested]] to true.
+  1. Set |controller|.[=ReadableByteStreamController/[[closeRequested]]=] to true.
   1. Return.
  1. If |controller|.\[[pendingPullIntos]] is not empty,
   1. Let |firstPendingPullInto| be |controller|.\[[pendingPullIntos]][0].
@@ -2845,7 +2845,7 @@ The following abstract operations support the implementation of the
  |chunk|)</dfn> performs the following steps:
 
  1. Let |stream| be |controller|.\[[stream]].
- 1. If |controller|.\[[closeRequested]] is true or |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
+ 1. If |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true or |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
  1. Let |buffer| be |chunk|.\[[ViewedArrayBuffer]].
  1. Let |byteOffset| be |chunk|.\[[ByteOffset]].
  1. Let |byteLength| be |chunk|.\[[ByteLength]].
@@ -2972,7 +2972,7 @@ The following abstract operations support the implementation of the
  performs the following steps:
 
  1. Assert: |controller|.\[[stream]].[=ReadableStream/[[state]]=] is "`readable`".
- 1. If |controller|.\[[queueTotalSize]] is 0 and |controller|.\[[closeRequested]] is true,
+ 1. If |controller|.\[[queueTotalSize]] is 0 and |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true,
   1. Perform ! [$ReadableByteStreamControllerClearAlgorithms$](|controller|).
   1. Perform ! [$ReadableStreamClose$](|controller|.\[[stream]]).
  1. Otherwise,
@@ -2995,7 +2995,7 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-process-pull-into-descriptors-using-queue">ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(|controller|)</dfn>
  performs the following steps:
 
- 1. Assert: |controller|.\[[closeRequested]] is false.
+ 1. Assert: |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is false.
  1. [=While=] |controller|.\[[pendingPullIntos]] is not [=list/is empty|empty=],
   1. If |controller|.\[[queueTotalSize]] is 0, return.
   1. Let |pullIntoDescriptor| be |controller|.\[[pendingPullIntos]][0].
@@ -3044,7 +3044,7 @@ The following abstract operations support the implementation of the
    1. Perform ! [$ReadableByteStreamControllerHandleQueueDrain$](|controller|).
    1. Perform |readIntoRequest|'s [=read-into request/chunk steps=], given |filledView|.
    1. Return.
-  1. If |controller|.\[[closeRequested]] is true,
+  1. If |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true,
    1. Let |e| be a {{TypeError}} exception.
    1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
    1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
@@ -3161,7 +3161,7 @@ The following abstract operations support the implementation of the
 
  1. Let |stream| be |controller|.\[[stream]].
  1. If |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return false.
- 1. If |controller|.\[[closeRequested]] is true, return false.
+ 1. If |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true, return false.
  1. If |controller|.\[[started]] is false, return false.
  1. If ! [$ReadableStreamHasDefaultReader$](|stream|) is true and !
     [$ReadableStreamGetNumReadRequests$](|stream|) > 0, return true.
@@ -3187,7 +3187,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.\[[pullAgain]] and |controller|.\[[pulling]] to false.
  1. Set |controller|.\[[byobRequest]] to null.
  1. Perform ! [$ResetQueue$](|controller|).
- 1. Set |controller|.\[[closeRequested]] and |controller|.\[[started]] to false.
+ 1. Set |controller|.[=ReadableByteStreamController/[[closeRequested]]=] and |controller|.\[[started]] to false.
  1. Set |controller|.\[[strategyHWM]] to |highWaterMark|.
  1. Set |controller|.\[[pullAlgorithm]] to |pullAlgorithm|.
  1. Set |controller|.[=ReadableByteStreamController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
