@@ -1425,7 +1425,7 @@ the following table:
    <td class="non-normative">A [=list=] representing the stream's internal queue of [=chunks=]
   <tr>
    <td><dfn>\[[queueTotalSize]]</dfn>
-   <td class="non-normative">The total size of all the chunks stored in \[[queue]] (see
+   <td class="non-normative">The total size of all the chunks stored in [=ReadableStreamDefaultController/[[queue]]=] (see
    [[#queue-with-sizes]])
   <tr>
    <td><dfn>\[[started]]</dfn>
@@ -1613,7 +1613,7 @@ following table:
    queue entries=] representing the stream's internal queue of [=chunks=]
   <tr>
    <td><dfn>\[[queueTotalSize]]</dfn>
-   <td class="non-normative">The total size, in bytes, of all the chunks stored in \[[queue]] (see
+   <td class="non-normative">The total size, in bytes, of all the chunks stored in [=ReadableByteStreamController/[[queue]]=] (see
    [[#queue-with-sizes]])
   <tr>
    <td><dfn>\[[started]]</dfn>
@@ -1630,7 +1630,7 @@ following table:
 </table>
 
 <div class="note">
- <p>Although {{ReadableByteStreamController}} instances have \[[queue]] and \[[queueTotalSize]]
+ <p>Although {{ReadableByteStreamController}} instances have [=ReadableByteStreamController/[[queue]]=] and [=ReadableByteStreamController/[[queueTotalSize]]=]
  slots, we do not use most of the abstract operations in [[#queue-with-sizes]] on them, as the way
  in which we manipulate this queue is rather different than the others in the spec. Instead, we
  update the two slots together manually.
