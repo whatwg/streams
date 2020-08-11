@@ -1526,9 +1526,9 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
  [$ReadableStreamController/[[PullSteps]]$] contract. It performs the following steps:
 
  1. Let |stream| be [=this=].[=ReadableStreamGenericReader/[[stream]]=].
- 1. If [=this=].\[[queue]] is not [=list/is empty|empty=],
+ 1. If [=this=].[=ReadableStreamDefaultController/[[queue]]=] is not [=list/is empty|empty=],
   1. Let |chunk| be ! [$DequeueValue$]([=this=]).
-  1. If [=this=].[=ReadableStreamDefaultController/[[closeRequested]]=] is true and [=this=].\[[queue]] [=list/is empty=],
+  1. If [=this=].[=ReadableStreamDefaultController/[[closeRequested]]=] is true and [=this=].[=ReadableStreamDefaultController/[[queue]]=] [=list/is empty=],
    1. Perform ! [$ReadableStreamDefaultControllerClearAlgorithms$]([=this=]).
    1. Perform ! [$ReadableStreamClose$](|stream|).
   1. Otherwise, perform ! [$ReadableStreamDefaultControllerCallPullIfNeeded$]([=this=]).
@@ -1790,8 +1790,8 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
  1. Assert: ! [$ReadableStreamHasDefaultReader$](|stream|) is true.
  1. If [=this=].\[[queueTotalSize]] > 0,
   1. Assert: ! [$ReadableStreamGetNumReadRequests$](|stream|) is 0.
-  1. Let |entry| be [=this=].\[[queue]][0].
-  1. [=list/Remove=] |entry| from [=this=].\[[queue]].
+  1. Let |entry| be [=this=].[=ReadableByteStreamController/[[queue]]=][0].
+  1. [=list/Remove=] |entry| from [=this=].[=ReadableByteStreamController/[[queue]]=].
   1. Set [=this=].\[[queueTotalSize]] to [=this=].\[[queueTotalSize]] − |entry|'s [=readable byte
      stream queue entry/byte length=].
   1. Perform ! [$ReadableByteStreamControllerHandleQueueDrain$]([=this=]).
@@ -2588,7 +2588,7 @@ The following abstract operations support the implementation of the
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is false, return.
  1. Let |stream| be |controller|.\[[stream]].
  1. Set |controller|.[=ReadableStreamDefaultController/[[closeRequested]]=] to true.
- 1. If |controller|.\[[queue]] [=list/is empty=],
+ 1. If |controller|.[=ReadableStreamDefaultController/[[queue]]=] [=list/is empty=],
   1. Perform ! [$ReadableStreamDefaultControllerClearAlgorithms$](|controller|).
   1. Perform ! [$ReadableStreamClose$](|stream|).
 </div>
@@ -2855,7 +2855,7 @@ The following abstract operations support the implementation of the
    1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
       |transferredBuffer|, |byteOffset|, |byteLength|).
   1. Otherwise,
-   1. Assert: |controller|.\[[queue]] [=list/is empty=].
+   1. Assert: |controller|.[=ReadableByteStreamController/[[queue]]=] [=list/is empty=].
    1. Let |transferredView| be ! [$Construct$]({{%Uint8Array%}}, « |transferredBuffer|,
       |byteOffset|, |byteLength| »).
    1. Perform ! [$ReadableStreamFulfillReadRequest$](|stream|, |transferredView|, false).
@@ -2877,7 +2877,7 @@ The following abstract operations support the implementation of the
 
  1. [=list/Append=] a new [=readable byte stream queue entry=] with [=readable byte stream queue
     entry/buffer=] |buffer|, [=readable byte stream queue entry/byte offset=] |byteOffset|, and
-    [=readable byte stream queue entry/byte length=] |byteLength| to |controller|.\[[queue]].
+    [=readable byte stream queue entry/byte length=] |byteLength| to |controller|.[=ReadableByteStreamController/[[queue]]=].
  1. Set |controller|.\[[queueTotalSize]] to |controller|.\[[queueTotalSize]] + |byteLength|.
 </div>
 
@@ -2925,7 +2925,7 @@ The following abstract operations support the implementation of the
   1. Set |totalBytesToCopyRemaining| to |maxAlignedBytes| − |pullIntoDescriptor|'s [=pull-into
      descriptor/bytes filled=].
   1. Set |ready| to true.
- 1. Let |queue| be |controller|.\[[queue]].
+ 1. Let |queue| be |controller|.[=ReadableByteStreamController/[[queue]]=].
  1. [=While=] |totalBytesToCopyRemaining| > 0,
   1. Let |headOfQueue| be |queue|[0].
   1. Let |bytesToCopy| be min(|totalBytesToCopyRemaining|, |headOfQueue|'s [=readable byte stream
