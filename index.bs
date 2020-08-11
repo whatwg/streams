@@ -2530,7 +2530,7 @@ The following abstract operations support the implementation of the
   1. Return.
  1. Assert: |controller|.[=ReadableStreamDefaultController/[[pullAgain]]=] is false.
  1. Set |controller|.\[[pulling]] to true.
- 1. Let |pullPromise| be the result of performing |controller|.\[[pullAlgorithm]].
+ 1. Let |pullPromise| be the result of performing |controller|.[=ReadableStreamDefaultController/[[pullAlgorithm]]=].
  1. [=Upon fulfillment=] of |pullPromise|,
   1. Set |controller|.\[[pulling]] to false.
   1. If |controller|.[=ReadableStreamDefaultController/[[pullAgain]]=] is true,
@@ -2570,7 +2570,7 @@ The following abstract operations support the implementation of the
 
  It performs the following steps:
 
- 1. Set |controller|.\[[pullAlgorithm]] to undefined.
+ 1. Set |controller|.[=ReadableStreamDefaultController/[[pullAlgorithm]]=] to undefined.
  1. Set |controller|.[=ReadableStreamDefaultController/[[cancelAlgorithm]]=] to undefined.
  1. Set |controller|.\[[strategySizeAlgorithm]] to undefined.
 </div>
@@ -2695,7 +2695,7 @@ The following abstract operations support the implementation of the
     |controller|.\[[pulling]] to false.
  1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm| and |controller|.\[[strategyHWM]]
     to |highWaterMark|.
- 1. Set |controller|.\[[pullAlgorithm]] to |pullAlgorithm|.
+ 1. Set |controller|.[=ReadableStreamDefaultController/[[pullAlgorithm]]=] to |pullAlgorithm|.
  1. Set |controller|.[=ReadableStreamDefaultController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
  1. Set |stream|.[=ReadableStream/[[controller]]=] to |controller|.
  1. Let |startResult| be the result of performing |startAlgorithm|. (This might throw an exception.)
@@ -2749,7 +2749,7 @@ The following abstract operations support the implementation of the
   1. Return.
  1. Assert: |controller|.[=ReadableByteStreamController/[[pullAgain]]=] is false.
  1. Set |controller|.\[[pulling]] to true.
- 1. Let |pullPromise| be the result of performing |controller|.\[[pullAlgorithm]].
+ 1. Let |pullPromise| be the result of performing |controller|.[=ReadableByteStreamController/[[pullAlgorithm]]=].
  1. [=Upon fulfillment=] of |pullPromise|,
   1. Set |controller|.\[[pulling]] to false.
   1. If |controller|.[=ReadableByteStreamController/[[pullAgain]]=] is true,
@@ -2773,7 +2773,7 @@ The following abstract operations support the implementation of the
 
  It performs the following steps:
 
- 1. Set |controller|.\[[pullAlgorithm]] to undefined.
+ 1. Set |controller|.[=ReadableByteStreamController/[[pullAlgorithm]]=] to undefined.
  1. Set |controller|.[=ReadableByteStreamController/[[cancelAlgorithm]]=] to undefined.
 </div>
 
@@ -3189,7 +3189,7 @@ The following abstract operations support the implementation of the
  1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.[=ReadableByteStreamController/[[closeRequested]]=] and |controller|.\[[started]] to false.
  1. Set |controller|.\[[strategyHWM]] to |highWaterMark|.
- 1. Set |controller|.\[[pullAlgorithm]] to |pullAlgorithm|.
+ 1. Set |controller|.[=ReadableByteStreamController/[[pullAlgorithm]]=] to |pullAlgorithm|.
  1. Set |controller|.[=ReadableByteStreamController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
  1. Set |controller|.\[[autoAllocateChunkSize]] to |autoAllocateChunkSize|.
  1. Set |controller|.\[[pendingPullIntos]] to a new empty [=list=].
