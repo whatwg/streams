@@ -1712,9 +1712,9 @@ has the following [=struct/items=]:
  The <dfn id="rbs-controller-byob-request" attribute
  for="ReadableByteStreamController">byobRequest</dfn> getter steps are:
 
- 1. If [=this=].[=ReadableByteStreamController/[[byobRequest]]=] is null and [=this=].\[[pendingPullIntos]] is not [=list/is
+ 1. If [=this=].[=ReadableByteStreamController/[[byobRequest]]=] is null and [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is
     empty|empty=],
-  1. Let |firstDescriptor| be [=this=].\[[pendingPullIntos]][0].
+  1. Let |firstDescriptor| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
   1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |firstDescriptor|'s [=pull-into
      descriptor/buffer=], |firstDescriptor|'s [=pull-into descriptor/byte offset=] +
      |firstDescriptor|'s [=pull-into descriptor/bytes filled=], |firstDescriptor|'s [=pull-into
@@ -1772,8 +1772,8 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
  id="rbs-controller-private-cancel">\[[CancelSteps]](|reason|)</dfn> implements the
  [$ReadableStreamController/[[CancelSteps]]$] contract. It performs the following steps:
 
- 1. If [=this=].\[[pendingPullIntos]] is not [=list/is empty|empty=],
-  1. Let |firstDescriptor| be [=this=].\[[pendingPullIntos]][0].
+ 1. If [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
+  1. Let |firstDescriptor| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
   1. Set |firstDescriptor|'s [=pull-into descriptor/bytes filled=] to 0.
  1. Perform ! [$ResetQueue$]([=this=]).
  1. Let |result| be the result of performing [=this=].[=ReadableByteStreamController/[[cancelAlgorithm]]=], passing in |reason|.
@@ -1811,7 +1811,7 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
      length=] |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into
      descriptor/element size=] 1, [=pull-into descriptor/view constructor=] {{%Uint8Array%}}, and
      [=pull-into descriptor/reader type=] "`default`".
-  1. [=list/Append=] |pullIntoDescriptor| to [=this=].\[[pendingPullIntos]].
+  1. [=list/Append=] |pullIntoDescriptor| to [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=].
  1. Perform ! [$ReadableStreamAddReadRequest$](|stream|, |readRequest|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$]([=this=]).
 </div>
@@ -2783,7 +2783,7 @@ The following abstract operations support the implementation of the
  performs the following steps:
 
  1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
- 1. Set |controller|.\[[pendingPullIntos]] to a new empty [=list=].
+ 1. Set |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] to a new empty [=list=].
 </div>
 
 <div algorithm>
@@ -2796,8 +2796,8 @@ The following abstract operations support the implementation of the
  1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] > 0,
   1. Set |controller|.[=ReadableByteStreamController/[[closeRequested]]=] to true.
   1. Return.
- 1. If |controller|.\[[pendingPullIntos]] is not empty,
-  1. Let |firstPendingPullInto| be |controller|.\[[pendingPullIntos]][0].
+ 1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty,
+  1. Let |firstPendingPullInto| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
   1. If |firstPendingPullInto|'s [=pull-into descriptor/bytes filled=] > 0,
    1. Let |e| be a new {{TypeError}} exception.
    1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
@@ -2899,8 +2899,8 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-fill-head-pull-into-descriptor">ReadableByteStreamControllerFillHeadPullIntoDescriptor(|controller|,
  |size|, |pullIntoDescriptor|)</dfn> performs the following steps:
 
- 1. Assert: either |controller|.\[[pendingPullIntos]] [=list/is empty=], or
-    |controller|.\[[pendingPullIntos]][0] is |pullIntoDescriptor|.
+ 1. Assert: either |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] [=list/is empty=], or
+    |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0] is |pullIntoDescriptor|.
  1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
  1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to [=pull-into
     descriptor/bytes filled=] + |size|.
@@ -2996,9 +2996,9 @@ The following abstract operations support the implementation of the
  performs the following steps:
 
  1. Assert: |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is false.
- 1. [=While=] |controller|.\[[pendingPullIntos]] is not [=list/is empty|empty=],
+ 1. [=While=] |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
   1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0, return.
-  1. Let |pullIntoDescriptor| be |controller|.\[[pendingPullIntos]][0].
+  1. Let |pullIntoDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
   1. If ! [$ReadableByteStreamControllerFillPullIntoDescriptorFromQueue$](|controller|,
      |pullIntoDescriptor|) is true,
    1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
@@ -3027,8 +3027,8 @@ The following abstract operations support the implementation of the
     length=] |byteLength|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/element
     size=] |elementSize|, [=pull-into descriptor/view constructor=] |ctor|, and [=pull-into
     descriptor/reader type=] "`byob`".
- 1. If |controller|.\[[pendingPullIntos]] is not empty,
-  1. [=list/Append=] |pullIntoDescriptor| to |controller|.\[[pendingPullIntos]].
+ 1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty,
+  1. [=list/Append=] |pullIntoDescriptor| to |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=].
   1. Perform ! [$ReadableStreamAddReadIntoRequest$](|stream|, |readIntoRequest|).
   1. Return.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`",
@@ -3049,7 +3049,7 @@ The following abstract operations support the implementation of the
    1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
    1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
    1. Return.
- 1. [=list/Append=] |pullIntoDescriptor| to |controller|.\[[pendingPullIntos]].
+ 1. [=list/Append=] |pullIntoDescriptor| to |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=].
  1. Perform ! [$ReadableStreamAddReadIntoRequest$](|stream|, |readIntoRequest|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$](|controller|).
 </div>
@@ -3059,7 +3059,7 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond">ReadableByteStreamControllerRespond(|controller|,
  |bytesWritten|)</dfn> performs the following steps:
 
- 1. Assert: |controller|.\[[pendingPullIntos]] is not empty.
+ 1. Assert: |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty.
  1. Perform ? [$ReadableByteStreamControllerRespondInternal$](|controller|, |bytesWritten|).
 </div>
 
@@ -3115,7 +3115,7 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-internal">ReadableByteStreamControllerRespondInternal(|controller|,
  |bytesWritten|)</dfn> performs the following steps:
 
- 1. Let |firstDescriptor| be |controller|.\[[pendingPullIntos]][0].
+ 1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
  1. Let |state| be |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
  1. If |state| is "`closed`",
   1. If |bytesWritten| is not 0, throw a {{TypeError}} exception.
@@ -3133,8 +3133,8 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-with-new-view">ReadableByteStreamControllerRespondWithNewView(|controller|,
  |view|)</dfn> performs the following steps:
 
- 1. Assert: |controller|.\[[pendingPullIntos]] is not [=list/is empty|empty=].
- 1. Let |firstDescriptor| be |controller|.\[[pendingPullIntos]][0].
+ 1. Assert: |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=].
+ 1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
  1. If |firstDescriptor|'s [=pull-into descriptor/byte offset=] + |firstDescriptor|' [=pull-into
     descriptor/bytes filled=] is not |view|.\[[ByteOffset]], throw a {{RangeError}} exception.
  1. If |firstDescriptor|'s [=pull-into descriptor/byte length=] is not |view|.\[[ByteLength]], throw
@@ -3148,8 +3148,8 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-shift-pending-pull-into">ReadableByteStreamControllerShiftPendingPullInto(|controller|)</dfn>
  performs the following steps:
 
- 1. Let |descriptor| be |controller|.\[[pendingPullIntos]][0].
- 1. [=list/Remove=] |descriptor| from |controller|.\[[pendingPullIntos]].
+ 1. Let |descriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+ 1. [=list/Remove=] |descriptor| from |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=].
  1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
  1. Return |descriptor|.
 </div>
@@ -3192,7 +3192,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.[=ReadableByteStreamController/[[pullAlgorithm]]=] to |pullAlgorithm|.
  1. Set |controller|.[=ReadableByteStreamController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
  1. Set |controller|.[=ReadableByteStreamController/[[autoAllocateChunkSize]]=] to |autoAllocateChunkSize|.
- 1. Set |controller|.\[[pendingPullIntos]] to a new empty [=list=].
+ 1. Set |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] to a new empty [=list=].
  1. Set |stream|.[=ReadableStream/[[controller]]=] to |controller|.
  1. Let |startResult| be the result of performing |startAlgorithm|.
  1. Let |startPromise| be [=a promise resolved with=] |startResult|.
