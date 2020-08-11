@@ -586,9 +586,8 @@ enum ReadableStreamType { "bytes" };
  <dt><dfn dict-member for="UnderlyingSource" lt="cancel">cancel(<var ignore>reason</var>)</dfn></dt>
  <dd>
   <p>A function that is called whenever the [=consumer=] [=cancel a readable stream|cancels=] the
-  stream, via {{ReadableStream/cancel()|stream.cancel()}},
-  {{ReadableStreamDefaultReader/cancel()|defaultReader.cancel()}}, or
-  {{ReadableStreamBYOBReader/cancel()|byobReader.cancel()}}. It takes as its argument the same
+  stream, via {{ReadableStream/cancel()|stream.cancel()}} or
+  {{ReadableStreamGenericReader/cancel()|reader.cancel()}}. It takes as its argument the same
   value as was passed to those methods by the consumer.
 
   <p>Readable streams can additionally be canceled under certain conditions during [=piping=]; see
@@ -1048,14 +1047,16 @@ internal slots described in the following table:
 <h4 id="generic-reader-prototype">Methods and properties</h4>
 
 <div algorithm>
- The <dfn id="generic-reader-closed" attribute for="ReadableStreamGenericReader">closed</dfn>
+ The <dfn id="generic-reader-closed" oldids="default-reader-closed,byob-reader-closed" attribute
+ for="ReadableStreamGenericReader">closed</dfn>
  getter steps are:
 
  1. Return [=this=].[=ReadableStreamGenericReader/[[closedPromise]]=].
 </div>
 
 <div algorithm>
- The <dfn id="generic-reader-cancel" method for="ReadableStreamGenericReader">cancel(|reason|)</dfn>
+ The <dfn id="generic-reader-cancel" oldids="default-reader-cancel,byob-reader-cancel" method
+ for="ReadableStreamGenericReader">cancel(|reason|)</dfn>
  method steps are:
 
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
@@ -1125,13 +1126,13 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
   <dd>
    <p>This is equivalent to calling <code>|stream|.{{ReadableStream/getReader()}}</code>.
 
- <dt><code>await <var ignore>reader</var>.{{ReadableStreamDefaultReader/closed}}</code>
+ <dt><code>await <var ignore>reader</var>.{{ReadableStreamGenericReader/closed}}</code>
  <dd>
   <p>Returns a promise that will be fulfilled when the stream becomes closed, or rejected if the
   stream ever errors or the reader's lock is [=release a read lock|released=] before the stream
   finishes closing.
 
- <dt><code>await <var ignore>reader</var>.{{ReadableStreamDefaultReader/cancel(reason)|cancel}}([ <var ignore>reason</var> ])</code>
+ <dt><code>await <var ignore>reader</var>.{{ReadableStreamGenericReader/cancel(reason)|cancel}}([ <var ignore>reason</var> ])</code>
  <dd>
   <p>If the reader is [=active reader|active=], behaves the same as
   <code>|stream|.{{ReadableStream/cancel(reason)|cancel}}(<var ignore>reason</var>)</code>.
@@ -1172,22 +1173,6 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
  constructor steps are:
 
  1. Perform ? [$SetUpReadableStreamDefaultReader$]([=this=], |stream|).
-</div>
-
-<div algorithm>
- The <dfn id="default-reader-closed" attribute for="ReadableStreamDefaultReader">closed</dfn>
- getter steps are:
-
- 1. Return [=this=].[=ReadableStreamGenericReader/[[closedPromise]]=].
-</div>
-
-<div algorithm>
- The <dfn id="default-reader-cancel" method for="ReadableStreamDefaultReader">cancel(|reason|)</dfn>
- method steps are:
-
- 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
-    exception.
- 1. Return ! [$ReadableStreamReaderGenericCancel$]([=this=], |reason|).
 </div>
 
 <div algorithm>
@@ -1291,13 +1276,13 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
    <p>This is equivalent to calling <code>|stream|.{{ReadableStream/getReader}}({
    {{ReadableStreamGetReaderOptions/mode}}: "{{ReadableStreamReaderMode/byob}}" })</code>.
 
- <dt><code>await <var ignore>reader</var>.{{ReadableStreamBYOBReader/closed}}</code>
+ <dt><code>await <var ignore>reader</var>.{{ReadableStreamGenericReader/closed}}</code>
  <dd>
   <p>Returns a promise that will be fulfilled when the stream becomes closed, or rejected if the
   stream ever errors or the reader's lock is [=release a read lock|released=] before the stream
   finishes closing.
 
- <dt><code>await <var ignore>reader</var>.{{ReadableStreamBYOBReader/cancel(reason)|cancel}}([ <var ignore>reason</var> ])</code>
+ <dt><code>await <var ignore>reader</var>.{{ReadableStreamGenericReader/cancel(reason)|cancel}}([ <var ignore>reason</var> ])</code>
  <dd>
   <p>If the reader is [=active reader|active=], behaves the same
   <code>|stream|.{{ReadableStream/cancel(reason)|cancel}}(<var ignore>reason</var>)</code>.
@@ -1342,22 +1327,6 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
  steps are:
 
  1. Perform ? [$SetUpReadableStreamBYOBReader$]([=this=], |stream|).
-</div>
-
-<div algorithm>
- The <dfn id="byob-reader-closed" attribute for="ReadableStreamBYOBReader">closed</dfn>
- getter steps are:
-
- 1. Return [=this=].[=ReadableStreamGenericReader/[[closedPromise]]=].
-</div>
-
-<div algorithm>
- The <dfn id="byob-reader-cancel" method for="ReadableStreamBYOBReader">cancel(|reason|)</dfn>
- method steps are:
-
- 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
-    exception.
- 1. Return ! [$ReadableStreamReaderGenericCancel$]([=this=], |reason|).
 </div>
 
 <div algorithm>
