@@ -5485,7 +5485,7 @@ interface ByteLengthQueuingStrategy {
 
 <h4 id="blqs-internal-slots">Internal slots</h4>
 
-Instances of {{ByteLengthQueuingStrategy}} have a \[[highWaterMark]] internal slot, storing the
+Instances of {{ByteLengthQueuingStrategy}} have a <dfn for="ByteLengthQueuingStrategy">\[[highWaterMark]]</dfn> internal slot, storing the
 value given in the constructor.
 
 <div algorithm>
