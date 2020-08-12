@@ -3688,22 +3688,22 @@ interface WritableStreamDefaultWriter {
 Instances of {{WritableStreamDefaultWriter}} are created with the internal slots described in the
 following table:
 
-<table>
+<table dfn-for="WritableStreamDefaultWriter">
  <thead>
   <tr>
    <th>Internal Slot
    <th>Description (<em>non-normative</em>)
  <tbody>
   <tr>
-   <td>\[[closedPromise]]
+   <td><dfn>\[[closedPromise]]</dfn>
    <td class="non-normative">A promise returned by the writer's
    {{WritableStreamDefaultWriter/closed}} getter
   <tr>
-   <td>\[[readyPromise]]
+   <td><dfn>\[[readyPromise]]</dfn>
    <td class="non-normative">A promise returned by the writer's
    {{WritableStreamDefaultWriter/ready}} getter
   <tr>
-   <td>\[[stream]]
+   <td><dfn>\[[stream]]</dfn>
    <td class="non-normative">A {{WritableStream}} instance that owns this reader
 </table>
 
