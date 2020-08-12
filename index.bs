@@ -2093,8 +2093,8 @@ are even meant to be generally useful by other specifications.
    1. <strong>Errors must be propagated backward:</strong> if |dest|.[=WritableStream/[[state]]=] is or becomes
       "`errored`", then
     1. If |preventCancel| is false, [=shutdown with an action=] of !
-       [$ReadableStreamCancel$](|source|, |dest|.\[[storedError]]) and with |dest|.\[[storedError]].
-    1. Otherwise, [=shutdown=] with |dest|.\[[storedError]].
+       [$ReadableStreamCancel$](|source|, |dest|.[=WritableStream/[[storedError]]=]) and with |dest|.[=WritableStream/[[storedError]]=].
+    1. Otherwise, [=shutdown=] with |dest|.[=WritableStream/[[storedError]]=].
    1. <strong>Closing must be propagated forward:</strong> if |source|.[=ReadableStream/[[state]]=] is or becomes
       "`closed`", then
     1. If |preventClose| is false, [=shutdown with an action=] of !
@@ -4019,7 +4019,7 @@ are even meant to be generally useful by other specifications.
  steps:
 
  1. Set |stream|.[=WritableStream/[[state]]=] to "`writable`".
- 1. Set |stream|.\[[storedError]], |stream|.\[[writer]], |stream|.[=WritableStream/[[controller]]=],
+ 1. Set |stream|.[=WritableStream/[[storedError]]=], |stream|.\[[writer]], |stream|.[=WritableStream/[[controller]]=],
     |stream|.[=WritableStream/[[inFlightWriteRequest]]=], |stream|.[=WritableStream/[[closeRequest]]=],
     |stream|.[=WritableStream/[[inFlightCloseRequest]]=] and |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
  1. Set |stream|.\[[writeRequests]] to a new empty [=list=].
@@ -4051,7 +4051,7 @@ are even meant to be generally useful by other specifications.
   1. Otherwise, set |writer|.\[[readyPromise]] to [=a promise resolved with=] undefined.
   1. Set |writer|.\[[closedPromise]] to [=a new promise=].
  1. Otherwise, if |state| is "`erroring`",
-  1. Set |writer|.\[[readyPromise]] to [=a promise rejected with=] |stream|.\[[storedError]].
+  1. Set |writer|.\[[readyPromise]] to [=a promise rejected with=] |stream|.[=WritableStream/[[storedError]]=].
   1. Set |writer|.\[[readyPromise]].\[[PromiseIsHandled]] to true.
   1. Set |writer|.\[[closedPromise]] to [=a new promise=].
  1. Otherwise, if |state| is "`closed`",
@@ -4059,7 +4059,7 @@ are even meant to be generally useful by other specifications.
   1. Set |writer|.\[[closedPromise]] to [=a promise resolved with=] undefined.
  1. Otherwise,
   1. Assert: |state| is "`errored`".
-  1. Let |storedError| be |stream|.\[[storedError]].
+  1. Let |storedError| be |stream|.[=WritableStream/[[storedError]]=].
   1. Set |writer|.\[[readyPromise]] to [=a promise rejected with=] |storedError|.
   1. Set |writer|.\[[readyPromise]].\[[PromiseIsHandled]] to true.
   1. Set |writer|.\[[closedPromise]] to [=a promise rejected with=] |storedError|.
@@ -4181,7 +4181,7 @@ the {{WritableStream}}'s public API.
  1. Assert: ! [$WritableStreamHasOperationMarkedInFlight$](|stream|) is false.
  1. Set |stream|.[=WritableStream/[[state]]=] to "`errored`".
  1. Perform ! |stream|.[=WritableStream/[[controller]]=].\[[ErrorSteps]]().
- 1. Let |storedError| be |stream|.\[[storedError]].
+ 1. Let |storedError| be |stream|.[=WritableStream/[[storedError]]=].
  1. [=list/For each=] |writeRequest| of |stream|.\[[writeRequests]]:
   1. [=Reject=] |writeRequest| with |storedError|.
  1. Set |stream|.\[[writeRequests]] to an empty [=list=].
@@ -4215,7 +4215,7 @@ the {{WritableStream}}'s public API.
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`" or "`erroring`".
  1. If |state| is "`erroring`",
-  1. Set |stream|.\[[storedError]] to undefined.
+  1. Set |stream|.[=WritableStream/[[storedError]]=] to undefined.
   1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is not undefined,
    1. [=Resolve=] |stream|.[=WritableStream/[[pendingAbortRequest]]=]'s [=pending abort request/promise=] with
       undefined.
@@ -4224,7 +4224,7 @@ the {{WritableStream}}'s public API.
  1. Let |writer| be |stream|.\[[writer]].
  1. If |writer| is not undefined, [=resolve=] |writer|.\[[closedPromise]] with undefined.
  1. Assert: |stream|.[=WritableStream/[[pendingAbortRequest]]=] is undefined.
- 1. Assert: |stream|.\[[storedError]] is undefined.
+ 1. Assert: |stream|.[=WritableStream/[[storedError]]=] is undefined.
 </div>
 
 <div algorithm>
@@ -4305,11 +4305,11 @@ the {{WritableStream}}'s public API.
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`errored`".
  1. If |stream|.[=WritableStream/[[closeRequest]]=] is not undefined,
   1. Assert: |stream|.[=WritableStream/[[inFlightCloseRequest]]=] is undefined.
-  1. [=Reject=] |stream|.[=WritableStream/[[closeRequest]]=] with |stream|.\[[storedError]].
+  1. [=Reject=] |stream|.[=WritableStream/[[closeRequest]]=] with |stream|.[=WritableStream/[[storedError]]=].
   1. Set |stream|.[=WritableStream/[[closeRequest]]=] to undefined.
  1. Let |writer| be |stream|.\[[writer]].
  1. If |writer| is not undefined,
-  1. [=Reject=] |writer|.\[[closedPromise]] with |stream|.\[[storedError]].
+  1. [=Reject=] |writer|.\[[closedPromise]] with |stream|.[=WritableStream/[[storedError]]=].
   1. Set |writer|.\[[closedPromise]].\[[PromiseIsHandled]] to true.
 </div>
 
@@ -4318,12 +4318,12 @@ the {{WritableStream}}'s public API.
  id="writable-stream-start-erroring">WritableStreamStartErroring(|stream|, |reason|)</dfn>
  performs the following steps:
 
- 1. Assert: |stream|.\[[storedError]] is undefined.
+ 1. Assert: |stream|.[=WritableStream/[[storedError]]=] is undefined.
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`".
  1. Let |controller| be |stream|.[=WritableStream/[[controller]]=].
  1. Assert: |controller| is not undefined.
  1. Set |stream|.[=WritableStream/[[state]]=] to "`erroring`".
- 1. Set |stream|.\[[storedError]] to |reason|.
+ 1. Set |stream|.[=WritableStream/[[storedError]]=] to |reason|.
  1. Let |writer| be |stream|.\[[writer]].
  1. If |writer| is not undefined, perform !
     [$WritableStreamDefaultWriterEnsureReadyPromiseRejected$](|writer|, |reason|).
@@ -4382,7 +4382,7 @@ The following abstract operations support the implementation and manipulation of
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. If ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is true or |state| is "`closed`", return
     [=a promise resolved with=] undefined.
- 1. If |state| is "`errored`", return [=a promise rejected with=] |stream|.\[[storedError]].
+ 1. If |state| is "`errored`", return [=a promise rejected with=] |stream|.[=WritableStream/[[storedError]]=].
  1. Assert: |state| is "`writable`" or "`erroring`".
  1. Return ! [$WritableStreamDefaultWriterClose$](|writer|).
 
@@ -4451,11 +4451,11 @@ The following abstract operations support the implementation and manipulation of
  1. If |stream| is not equal to |writer|.\[[stream]], return [=a promise rejected with=] a
     {{TypeError}} exception.
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
- 1. If |state| is "`errored`", return [=a promise rejected with=] |stream|.\[[storedError]].
+ 1. If |state| is "`errored`", return [=a promise rejected with=] |stream|.[=WritableStream/[[storedError]]=].
  1. If ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is true or |state| is "`closed`", return
     [=a promise rejected with=] a {{TypeError}} exception indicating that the stream is closing or
     closed.
- 1. If |state| is "`erroring`", return [=a promise rejected with=] |stream|.\[[storedError]].
+ 1. If |state| is "`erroring`", return [=a promise rejected with=] |stream|.[=WritableStream/[[storedError]]=].
  1. Assert: |state| is "`writable`".
  1. Let |promise| be ! [$WritableStreamAddWriteRequest$](|stream|).
  1. Perform ! [$WritableStreamDefaultControllerWrite$](|controller|, |chunk|, |chunkSize|).
@@ -5328,7 +5328,7 @@ side=] of [=transform streams=].
      steps:
    1. Let |writable| be |stream|.\[[writable]].
    1. Let |state| be |writable|.[=WritableStream/[[state]]=].
-   1. If |state| is "`erroring`", throw |writable|.\[[storedError]].
+   1. If |state| is "`erroring`", throw |writable|.[=WritableStream/[[storedError]]=].
    1. Assert: |state| is "`writable`".
    1. Return ! [$TransformStreamDefaultControllerPerformTransform$](|controller|, |chunk|).
  1. Return ! [$TransformStreamDefaultControllerPerformTransform$](|controller|, |chunk|).
