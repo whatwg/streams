@@ -4793,7 +4793,7 @@ table:
   <tr>
    <td><dfn>\[[backpressureChangePromise]]</dfn>
    <td class="non-normative">A promise which is fulfilled and replaced every time the value of
-   \[[backpressure]] changes
+   [=TransformStream/[[backpressure]]=] changes
   <tr>
    <td><dfn>\[[controller]]</dfn>
    <td class="non-normative">A {{TransformStreamDefaultController}} created with the ability to
@@ -5132,10 +5132,10 @@ are even meant to be generally useful by other specifications.
   1. Return [=a promise resolved with=] undefined.
  1. Set |stream|.\[[readable]] to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|,
     |cancelAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
- 1. Set |stream|.\[[backpressure]] and |stream|.\[[backpressureChangePromise]] to undefined.
-    <p class="note">The \[[backpressure]] slot is set to undefined so that it can be initialized by
+ 1. Set |stream|.[=TransformStream/[[backpressure]]=] and |stream|.\[[backpressureChangePromise]] to undefined.
+    <p class="note">The [=TransformStream/[[backpressure]]=] slot is set to undefined so that it can be initialized by
     [$TransformStreamSetBackpressure$]. Alternatively, implementations can use a strictly boolean
-    value for \[[backpressure]] and change the way it is initialized. This will not be visible to
+    value for [=TransformStream/[[backpressure]]=] and change the way it is initialized. This will not be visible to
     user code so long as the initialization is correctly completed before the transformer's
     {{Transformer/start|start()}} method is called.
  1. Perform ! [$TransformStreamSetBackpressure$](|stream|, true).
@@ -5162,7 +5162,7 @@ are even meant to be generally useful by other specifications.
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|stream|.\[[controller]]).
  1. Perform !
     [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.\[[writable]].[=WritableStream/[[controller]]=], |e|).
- 1. If |stream|.\[[backpressure]] is true, perform ! [$TransformStreamSetBackpressure$](|stream|,
+ 1. If |stream|.[=TransformStream/[[backpressure]]=] is true, perform ! [$TransformStreamSetBackpressure$](|stream|,
     false).
 
  <p class="note">The [$TransformStreamDefaultSinkWriteAlgorithm$] abstract operation could be
@@ -5175,11 +5175,11 @@ are even meant to be generally useful by other specifications.
  id="transform-stream-set-backpressure">TransformStreamSetBackpressure(|stream|,
  |backpressure|)</dfn> performs the following steps:
 
- 1. Assert: |stream|.\[[backpressure]] is not |backpressure|.
+ 1. Assert: |stream|.[=TransformStream/[[backpressure]]=] is not |backpressure|.
  1. If |stream|.\[[backpressureChangePromise]] is not undefined, [=resolve=]
     stream.\[[backpressureChangePromise]] with undefined.
  1. Set |stream|.\[[backpressureChangePromise]] to [=a new promise=].
- 1. Set |stream|.\[[backpressure]] to |backpressure|.
+ 1. Set |stream|.[=TransformStream/[[backpressure]]=] to |backpressure|.
 </div>
 
 <h4 id="ts-default-controller-abstract-ops">Default controllers</h4>
@@ -5262,7 +5262,7 @@ The following abstract operations support the implementaiton of the
    1. Throw |stream|.\[[readable]].[=ReadableStream/[[storedError]]=].
  1. Let |backpressure| be !
     [$ReadableStreamDefaultControllerHasBackpressure$](|readableController|).
- 1. If |backpressure| is not |stream|.\[[backpressure]],
+ 1. If |backpressure| is not |stream|.[=TransformStream/[[backpressure]]=],
    1. Assert: |backpressure| is true.
    1. Perform ! [$TransformStreamSetBackpressure$](|stream|, true).
 </div>
@@ -5321,7 +5321,7 @@ side=] of [=transform streams=].
 
  1. Assert: |stream|.\[[writable]].[=WritableStream/[[state]]=] is "`writable`".
  1. Let |controller| be |stream|.\[[controller]].
- 1. If |stream|.\[[backpressure]] is true,
+ 1. If |stream|.[=TransformStream/[[backpressure]]=] is true,
   1. Let |backpressureChangePromise| be |stream|.\[[backpressureChangePromise]].
   1. Assert: |backpressureChangePromise| is not undefined.
   1. Return the result of [=reacting=] to |backpressureChangePromise| with the following fulfillment
@@ -5371,7 +5371,7 @@ side=] of [=transform streams=].
  id="transform-stream-default-source-pull">TransformStreamDefaultSourcePullAlgorithm(|stream|)</dfn>
  performs the following steps:
 
- 1. Assert: |stream|.\[[backpressure]] is true.
+ 1. Assert: |stream|.[=TransformStream/[[backpressure]]=] is true.
  1. Assert: |stream|.\[[backpressureChangePromise]] is not undefined.
  1. Perform ! [$TransformStreamSetBackpressure$](|stream|, false).
  1. Return |stream|.\[[backpressureChangePromise]].
