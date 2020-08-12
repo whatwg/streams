@@ -4021,7 +4021,7 @@ are even meant to be generally useful by other specifications.
  1. Set |stream|.\[[state]] to "`writable`".
  1. Set |stream|.\[[storedError]], |stream|.\[[writer]], |stream|.[=WritableStream/[[controller]]=],
     |stream|.[=WritableStream/[[inFlightWriteRequest]]=], |stream|.[=WritableStream/[[closeRequest]]=],
-    |stream|.[=WritableStream/[[inFlightCloseRequest]]=] and |stream|.\[[pendingAbortRequest]] to undefined.
+    |stream|.[=WritableStream/[[inFlightCloseRequest]]=] and |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
  1. Set |stream|.\[[writeRequests]] to a new empty [=list=].
  1. Set |stream|.[=WritableStream/[[backpressure]]=] to false.
 </div>
@@ -4073,15 +4073,15 @@ are even meant to be generally useful by other specifications.
 
  1. Let |state| be |stream|.\[[state]].
  1. If |state| is "`closed`" or "`errored`", return [=a promise resolved with=] undefined.
- 1. If |stream|.\[[pendingAbortRequest]] is not undefined, return
-    |stream|.\[[pendingAbortRequest]]'s [=pending abort request/promise=].
+ 1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is not undefined, return
+    |stream|.[=WritableStream/[[pendingAbortRequest]]=]'s [=pending abort request/promise=].
  1. Assert: |state| is "`writable`" or "`erroring`".
  1. Let |wasAlreadyErroring| be false.
  1. If |state| is "`erroring`",
    1. Set |wasAlreadyErroring| to true.
    1. Set |reason| to undefined.
  1. Let |promise| be [=a new promise=].
- 1. Set |stream|.\[[pendingAbortRequest]] to a new [=pending abort request=] whose [=pending abort
+ 1. Set |stream|.[=WritableStream/[[pendingAbortRequest]]=] to a new [=pending abort request=] whose [=pending abort
     request/promise=] is |promise|, [=pending abort request/reason=] is |reason|, and [=pending
     abort request/was already erroring=] is |wasAlreadyErroring|.
  1. If |wasAlreadyErroring| is false, perform ! [$WritableStreamStartErroring$](|stream|, |reason|).
@@ -4185,11 +4185,11 @@ the {{WritableStream}}'s public API.
  1. [=list/For each=] |writeRequest| of |stream|.\[[writeRequests]]:
   1. [=Reject=] |writeRequest| with |storedError|.
  1. Set |stream|.\[[writeRequests]] to an empty [=list=].
- 1. If |stream|.\[[pendingAbortRequest]] is undefined,
+ 1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is undefined,
   1. Perform ! [$WritableStreamRejectCloseAndClosedPromiseIfNeeded$](|stream|).
   1. Return.
- 1. Let |abortRequest| be |stream|.\[[pendingAbortRequest]].
- 1. Set |stream|.\[[pendingAbortRequest]] to undefined.
+ 1. Let |abortRequest| be |stream|.[=WritableStream/[[pendingAbortRequest]]=].
+ 1. Set |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
  1. If |abortRequest|'s [=pending abort request/was already erroring=] is true,
   1. [=Reject=] |abortRequest|'s [=pending abort request/promise=] with |storedError|.
   1. Perform ! [$WritableStreamRejectCloseAndClosedPromiseIfNeeded$](|stream|).
@@ -4216,14 +4216,14 @@ the {{WritableStream}}'s public API.
  1. Assert: |stream|.\[[state]] is "`writable`" or "`erroring`".
  1. If |state| is "`erroring`",
   1. Set |stream|.\[[storedError]] to undefined.
-  1. If |stream|.\[[pendingAbortRequest]] is not undefined,
-   1. [=Resolve=] |stream|.\[[pendingAbortRequest]]'s [=pending abort request/promise=] with
+  1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is not undefined,
+   1. [=Resolve=] |stream|.[=WritableStream/[[pendingAbortRequest]]=]'s [=pending abort request/promise=] with
       undefined.
-   1. Set |stream|.\[[pendingAbortRequest]] to undefined.
+   1. Set |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
  1. Set |stream|.\[[state]] to "`closed`".
  1. Let |writer| be |stream|.\[[writer]].
  1. If |writer| is not undefined, [=resolve=] |writer|.\[[closedPromise]] with undefined.
- 1. Assert: |stream|.\[[pendingAbortRequest]] is undefined.
+ 1. Assert: |stream|.[=WritableStream/[[pendingAbortRequest]]=] is undefined.
  1. Assert: |stream|.\[[storedError]] is undefined.
 </div>
 
@@ -4236,9 +4236,9 @@ the {{WritableStream}}'s public API.
  1. [=Reject=] |stream|.[=WritableStream/[[inFlightCloseRequest]]=] with |error|.
  1. Set |stream|.[=WritableStream/[[inFlightCloseRequest]]=] to undefined.
  1. Assert: |stream|.\[[state]] is "`writable`" or "`erroring`".
- 1. If |stream|.\[[pendingAbortRequest]] is not undefined,
-  1. [=Reject=] |stream|.\[[pendingAbortRequest]]'s [=pending abort request/promise=] with |error|.
-  1. Set |stream|.\[[pendingAbortRequest]] to undefined.
+ 1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is not undefined,
+  1. [=Reject=] |stream|.[=WritableStream/[[pendingAbortRequest]]=]'s [=pending abort request/promise=] with |error|.
+  1. Set |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
  1. Perform ! WritableStreamDealWithRejection(|stream|, |error|).
 </div>
 
