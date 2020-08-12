@@ -4481,7 +4481,7 @@ The following abstract operations support the implementation of the
  1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to false.
  1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm|.
- 1. Set |controller|.\[[strategyHWM]] to |highWaterMark|.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[strategyHWM]]=] to |highWaterMark|.
  1. Set |controller|.\[[writeAlgorithm]] to |writeAlgorithm|.
  1. Set |controller|.[=WritableStreamDefaultController/[[closeAlgorithm]]=] to |closeAlgorithm|.
  1. Set |controller|.[=WritableStreamDefaultController/[[abortAlgorithm]]=] to |abortAlgorithm|.
@@ -4631,7 +4631,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-get-desired-size">WritableStreamDefaultControllerGetDesiredSize(|controller|)</dfn>
  performs the following steps:
 
- 1. Return |controller|.\[[strategyHWM]] − |controller|.[=WritableStreamDefaultController/[[queueTotalSize]]=].
+ 1. Return |controller|.[=WritableStreamDefaultController/[[strategyHWM]]=] − |controller|.[=WritableStreamDefaultController/[[queueTotalSize]]=].
 </div>
 
 <div algorithm>
