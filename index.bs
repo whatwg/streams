@@ -3434,7 +3434,7 @@ table:
   requests not yet processed by the [=underlying sink=]
 </table>
 
-<p class="note">The \[[inFlightCloseRequest]] slot and \[[closeRequest]] slot are mutually
+<p class="note">The \[[inFlightCloseRequest]] slot and [=WritableStream/[[closeRequest]]=] slot are mutually
 exclusive. Similarly, no element will be removed from \[[writeRequests]] while
 \[[inFlightWriteRequest]] is not undefined. Implementations can optimize storage for these slots
 based on these invariants.
@@ -4020,7 +4020,7 @@ are even meant to be generally useful by other specifications.
 
  1. Set |stream|.\[[state]] to "`writable`".
  1. Set |stream|.\[[storedError]], |stream|.\[[writer]], |stream|.\[[controller]],
-    |stream|.\[[inFlightWriteRequest]], |stream|.\[[closeRequest]],
+    |stream|.\[[inFlightWriteRequest]], |stream|.[=WritableStream/[[closeRequest]]=],
     |stream|.\[[inFlightCloseRequest]] and |stream|.\[[pendingAbortRequest]] to undefined.
  1. Set |stream|.\[[writeRequests]] to a new empty [=list=].
  1. Set |stream|.[=WritableStream/[[backpressure]]=] to false.
@@ -4098,7 +4098,7 @@ are even meant to be generally useful by other specifications.
  1. Assert: |state| is "`writable`" or "`erroring`".
  1. Assert: ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false.
  1. Let |promise| be [=a new promise=].
- 1. Set |stream|.\[[closeRequest]] to |promise|.
+ 1. Set |stream|.[=WritableStream/[[closeRequest]]=] to |promise|.
  1. Let |writer| be |stream|.\[[writer]].
  1. If |writer| is not undefined, and |stream|.[=WritableStream/[[backpressure]]=] is true, and |state| is
     "`writable`", [=resolve=] |writer|.\[[readyPromise]] with undefined.
@@ -4154,7 +4154,7 @@ the {{WritableStream}}'s public API.
  id="writable-stream-close-queued-or-in-flight">WritableStreamCloseQueuedOrInFlight(|stream|)</dfn>
  performs the following steps:
 
- 1. If |stream|.\[[closeRequest]] is undefined and |stream|.\[[inFlightCloseRequest]] is undefined,
+ 1. If |stream|.[=WritableStream/[[closeRequest]]=] is undefined and |stream|.\[[inFlightCloseRequest]] is undefined,
     return false.
  1. Return true.
 </div>
@@ -4280,9 +4280,9 @@ the {{WritableStream}}'s public API.
  performs the following steps:
 
  1. Assert: |stream|.\[[inFlightCloseRequest]] is undefined.
- 1. Assert: |stream|.\[[closeRequest]] is not undefined.
- 1. Set |stream|.\[[inFlightCloseRequest]] to |stream|.\[[closeRequest]].
- 1. Set |stream|.\[[closeRequest]] to undefined.
+ 1. Assert: |stream|.[=WritableStream/[[closeRequest]]=] is not undefined.
+ 1. Set |stream|.\[[inFlightCloseRequest]] to |stream|.[=WritableStream/[[closeRequest]]=].
+ 1. Set |stream|.[=WritableStream/[[closeRequest]]=] to undefined.
 </div>
 
 <div algorithm>
@@ -4303,10 +4303,10 @@ the {{WritableStream}}'s public API.
  performs the following steps:
 
  1. Assert: |stream|.\[[state]] is "`errored`".
- 1. If |stream|.\[[closeRequest]] is not undefined,
+ 1. If |stream|.[=WritableStream/[[closeRequest]]=] is not undefined,
   1. Assert: |stream|.\[[inFlightCloseRequest]] is undefined.
-  1. [=Reject=] |stream|.\[[closeRequest]] with |stream|.\[[storedError]].
-  1. Set |stream|.\[[closeRequest]] to undefined.
+  1. [=Reject=] |stream|.[=WritableStream/[[closeRequest]]=] with |stream|.\[[storedError]].
+  1. Set |stream|.[=WritableStream/[[closeRequest]]=] to undefined.
  1. Let |writer| be |stream|.\[[writer]].
  1. If |writer| is not undefined,
   1. [=Reject=] |writer|.\[[closedPromise]] with |stream|.\[[storedError]].
