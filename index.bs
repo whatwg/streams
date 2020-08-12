@@ -4483,7 +4483,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm|.
  1. Set |controller|.\[[strategyHWM]] to |highWaterMark|.
  1. Set |controller|.\[[writeAlgorithm]] to |writeAlgorithm|.
- 1. Set |controller|.\[[closeAlgorithm]] to |closeAlgorithm|.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[closeAlgorithm]]=] to |closeAlgorithm|.
  1. Set |controller|.[=WritableStreamDefaultController/[[abortAlgorithm]]=] to |abortAlgorithm|.
  1. Let |backpressure| be ! [$WritableStreamDefaultControllerGetBackpressure$](|controller|).
  1. Perform ! [$WritableStreamUpdateBackpressure$](|stream|, |backpressure|).
@@ -4566,7 +4566,7 @@ The following abstract operations support the implementation of the
  It performs the following steps:
 
  1. Set |controller|.\[[writeAlgorithm]] to undefined.
- 1. Set |controller|.\[[closeAlgorithm]] to undefined.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[closeAlgorithm]]=] to undefined.
  1. Set |controller|.[=WritableStreamDefaultController/[[abortAlgorithm]]=] to undefined.
  1. Set |controller|.\[[strategySizeAlgorithm]] to undefined.
 
@@ -4643,7 +4643,7 @@ The following abstract operations support the implementation of the
  1. Perform ! [$WritableStreamMarkCloseRequestInFlight$](|stream|).
  1. Perform ! [$DequeueValue$](|controller|).
  1. Assert: |controller|.\[[queue]] is empty.
- 1. Let |sinkClosePromise| be the result of performing |controller|.\[[closeAlgorithm]].
+ 1. Let |sinkClosePromise| be the result of performing |controller|.[=WritableStreamDefaultController/[[closeAlgorithm]]=].
  1. Perform ! [$WritableStreamDefaultControllerClearAlgorithms$](|controller|).
  1. [=Upon fulfillment=] of |sinkClosePromise|,
   1. Perform ! [$WritableStreamFinishInFlightClose$](|stream|).
