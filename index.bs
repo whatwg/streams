@@ -3868,45 +3868,45 @@ interface WritableStreamDefaultController {
 Instances of {{WritableStreamDefaultController}} are created with the internal slots described in
 the following table:
 
-<table>
+<table dfn-for="WritableStreamDefaultController">
  <thead>
   <tr>
    <th>Internal Slot</th>
    <th>Description (<em>non-normative</em>)</th>
  <tbody>
   <tr>
-   <td>\[[abortAlgorithm]]
+   <td><dfn>\[[abortAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm, taking one argument (the abort reason),
    which communicates a requested abort to the [=underlying sink=]
   <tr>
-   <td>\[[closeAlgorithm]]
+   <td><dfn>\[[closeAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm which communicates a requested close to
    the [=underlying sink=]
   <tr>
-   <td>\[[queue]]
+   <td><dfn>\[[queue]]</dfn>
    <td class="non-normative">A [=list=] representing the stream's internal queue of [=chunks=]
   <tr>
-   <td>\[[queueTotalSize]]
+   <td><dfn>\[[queueTotalSize]]</dfn>
    <td class="non-normative">The total size of all the chunks stored in \[[queue]] (see
    [[#queue-with-sizes]])
   <tr>
-   <td>\[[started]]
+   <td><dfn>\[[started]]</dfn>
    <td class="non-normative">A boolean flag indicating whether the [=underlying sink=] has finished
    starting
   <tr>
-   <td>\[[strategyHWM]]
+   <td><dfn>\[[strategyHWM]]</dfn>
    <td class="non-normative">A number supplied by the creator of the stream as part of the stream's
    [=queuing strategy=], indicating the point at which the stream will apply [=backpressure=] to its
    [=underlying sink=]
   <tr>
-   <td>\[[strategySizeAlgorithm]]
+   <td><dfn>\[[strategySizeAlgorithm]]</dfn>
    <td class="non-normative">An algorithm to calculate the size of enqueued [=chunks=], as part of
     the stream's [=queuing strategy=]
   <tr>
-   <td>\[[stream]]
+   <td><dfn>\[[stream]]</dfn>
    <td class="non-normative">The {{WritableStream}} instance controlled
   <tr>
-   <td>\[[writeAlgorithm]]
+   <td><dfn>\[[writeAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm, taking one argument (the [=chunk=] to
    write), which writes data to the [=underlying sink=]
 </table>
