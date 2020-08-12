@@ -4996,21 +4996,21 @@ interface TransformStreamDefaultController {
 Instances of {{TransformStreamDefaultController}} are created with the internal slots described in
 the following table:
 
-<table>
+<table dfn-for="TransformStreamDefaultController">
  <thead>
   <tr>
    <th>Internal Slot</th>
    <th>Description (<em>non-normative</em>)</th>
  <tbody>
   <tr>
-   <td>\[[flushAlgorithm]]
+   <td><dfn>\[[flushAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm which communicates a requested close to
    the [=transformer=]
   <tr>
-   <td>\[[stream]]
+   <td><dfn>\[[stream]]</dfn>
    <td class="non-normative">The {{TransformStream}} instance controlled
   <tr>
-   <td>\[[transformAlgorithm]]
+   <td><dfn>\[[transformAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm, taking one argument (the [=chunk=] to
    transform), which requests the [=transformer=] perform its transformation
 </table>
