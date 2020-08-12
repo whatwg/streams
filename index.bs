@@ -3833,7 +3833,7 @@ following table:
 
  1. Let |stream| be [=this=].\[[stream]].
  1. If |stream| is undefined, return.
- 1. Assert: |stream|.\[[writer]] is not undefined.
+ 1. Assert: |stream|.[=WritableStream/[[writer]]=] is not undefined.
  1. Perform ! [$WritableStreamDefaultWriterRelease$]([=this=]).
 </div>
 
@@ -4019,7 +4019,7 @@ are even meant to be generally useful by other specifications.
  steps:
 
  1. Set |stream|.[=WritableStream/[[state]]=] to "`writable`".
- 1. Set |stream|.[=WritableStream/[[storedError]]=], |stream|.\[[writer]], |stream|.[=WritableStream/[[controller]]=],
+ 1. Set |stream|.[=WritableStream/[[storedError]]=], |stream|.[=WritableStream/[[writer]]=], |stream|.[=WritableStream/[[controller]]=],
     |stream|.[=WritableStream/[[inFlightWriteRequest]]=], |stream|.[=WritableStream/[[closeRequest]]=],
     |stream|.[=WritableStream/[[inFlightCloseRequest]]=] and |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
  1. Set |stream|.\[[writeRequests]] to a new empty [=list=].
@@ -4032,7 +4032,7 @@ are even meant to be generally useful by other specifications.
  other specifications that wish to query whether or not a writable stream is [=locked to a writer=].
  It performs the following steps:
 
- 1. If |stream|.\[[writer]] is undefined, return false.
+ 1. If |stream|.[=WritableStream/[[writer]]=] is undefined, return false.
  1. Return true.
 </div>
 
@@ -4043,7 +4043,7 @@ are even meant to be generally useful by other specifications.
 
  1. If ! [$IsWritableStreamLocked$](|stream|) is true, throw a {{TypeError}} exception.
  1. Set |writer|.\[[stream]] to |stream|.
- 1. Set |stream|.\[[writer]] to |writer|.
+ 1. Set |stream|.[=WritableStream/[[writer]]=] to |writer|.
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. If |state| is "`writable`",
   1. If ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false and |stream|.[=WritableStream/[[backpressure]]=]
@@ -4099,7 +4099,7 @@ are even meant to be generally useful by other specifications.
  1. Assert: ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false.
  1. Let |promise| be [=a new promise=].
  1. Set |stream|.[=WritableStream/[[closeRequest]]=] to |promise|.
- 1. Let |writer| be |stream|.\[[writer]].
+ 1. Let |writer| be |stream|.[=WritableStream/[[writer]]=].
  1. If |writer| is not undefined, and |stream|.[=WritableStream/[[backpressure]]=] is true, and |state| is
     "`writable`", [=resolve=] |writer|.\[[readyPromise]] with undefined.
  1. Perform ! [$WritableStreamDefaultControllerClose$](|stream|.[=WritableStream/[[controller]]=]).
@@ -4221,7 +4221,7 @@ the {{WritableStream}}'s public API.
       undefined.
    1. Set |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
  1. Set |stream|.[=WritableStream/[[state]]=] to "`closed`".
- 1. Let |writer| be |stream|.\[[writer]].
+ 1. Let |writer| be |stream|.[=WritableStream/[[writer]]=].
  1. If |writer| is not undefined, [=resolve=] |writer|.\[[closedPromise]] with undefined.
  1. Assert: |stream|.[=WritableStream/[[pendingAbortRequest]]=] is undefined.
  1. Assert: |stream|.[=WritableStream/[[storedError]]=] is undefined.
@@ -4307,7 +4307,7 @@ the {{WritableStream}}'s public API.
   1. Assert: |stream|.[=WritableStream/[[inFlightCloseRequest]]=] is undefined.
   1. [=Reject=] |stream|.[=WritableStream/[[closeRequest]]=] with |stream|.[=WritableStream/[[storedError]]=].
   1. Set |stream|.[=WritableStream/[[closeRequest]]=] to undefined.
- 1. Let |writer| be |stream|.\[[writer]].
+ 1. Let |writer| be |stream|.[=WritableStream/[[writer]]=].
  1. If |writer| is not undefined,
   1. [=Reject=] |writer|.\[[closedPromise]] with |stream|.[=WritableStream/[[storedError]]=].
   1. Set |writer|.\[[closedPromise]].\[[PromiseIsHandled]] to true.
@@ -4324,7 +4324,7 @@ the {{WritableStream}}'s public API.
  1. Assert: |controller| is not undefined.
  1. Set |stream|.[=WritableStream/[[state]]=] to "`erroring`".
  1. Set |stream|.[=WritableStream/[[storedError]]=] to |reason|.
- 1. Let |writer| be |stream|.\[[writer]].
+ 1. Let |writer| be |stream|.[=WritableStream/[[writer]]=].
  1. If |writer| is not undefined, perform !
     [$WritableStreamDefaultWriterEnsureReadyPromiseRejected$](|writer|, |reason|).
  1. If ! [$WritableStreamHasOperationMarkedInFlight$](|stream|) is false and
@@ -4338,7 +4338,7 @@ the {{WritableStream}}'s public API.
 
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`".
  1. Assert: ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false.
- 1. Let |writer| be |stream|.\[[writer]].
+ 1. Let |writer| be |stream|.[=WritableStream/[[writer]]=].
  1. If |writer| is not undefined and |backpressure| is not |stream|.[=WritableStream/[[backpressure]]=],
   1. If |backpressure| is true, set |writer|.\[[readyPromise]] to [=a new promise=].
   1. Otherwise,
@@ -4431,11 +4431,11 @@ The following abstract operations support the implementation and manipulation of
 
  1. Let |stream| be |writer|.\[[stream]].
  1. Assert: |stream| is not undefined.
- 1. Assert: |stream|.\[[writer]] is |writer|.
+ 1. Assert: |stream|.[=WritableStream/[[writer]]=] is |writer|.
  1. Let |releasedError| be a new {{TypeError}}.
  1. Perform ! [$WritableStreamDefaultWriterEnsureReadyPromiseRejected$](|writer|, |releasedError|).
  1. Perform ! [$WritableStreamDefaultWriterEnsureClosedPromiseRejected$](|writer|, |releasedError|).
- 1. Set |stream|.\[[writer]] to undefined.
+ 1. Set |stream|.[=WritableStream/[[writer]]=] to undefined.
  1. Set |writer|.\[[stream]] to undefined.
 </div>
 
