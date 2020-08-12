@@ -5132,7 +5132,7 @@ are even meant to be generally useful by other specifications.
   1. Return [=a promise resolved with=] undefined.
  1. Set |stream|.\[[readable]] to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|,
     |cancelAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
- 1. Set |stream|.[=TransformStream/[[backpressure]]=] and |stream|.\[[backpressureChangePromise]] to undefined.
+ 1. Set |stream|.[=TransformStream/[[backpressure]]=] and |stream|.[=TransformStream/[[backpressureChangePromise]]=] to undefined.
     <p class="note">The [=TransformStream/[[backpressure]]=] slot is set to undefined so that it can be initialized by
     [$TransformStreamSetBackpressure$]. Alternatively, implementations can use a strictly boolean
     value for [=TransformStream/[[backpressure]]=] and change the way it is initialized. This will not be visible to
@@ -5166,7 +5166,7 @@ are even meant to be generally useful by other specifications.
     false).
 
  <p class="note">The [$TransformStreamDefaultSinkWriteAlgorithm$] abstract operation could be
- waiting for the promise stored in the \[[backpressureChangePromise]] slot to resolve. The call to
+ waiting for the promise stored in the [=TransformStream/[[backpressureChangePromise]]=] slot to resolve. The call to
  [$TransformStreamSetBackpressure$] ensures that the promise always resolves.
 </div>
 
@@ -5176,9 +5176,9 @@ are even meant to be generally useful by other specifications.
  |backpressure|)</dfn> performs the following steps:
 
  1. Assert: |stream|.[=TransformStream/[[backpressure]]=] is not |backpressure|.
- 1. If |stream|.\[[backpressureChangePromise]] is not undefined, [=resolve=]
-    stream.\[[backpressureChangePromise]] with undefined.
- 1. Set |stream|.\[[backpressureChangePromise]] to [=a new promise=].
+ 1. If |stream|.[=TransformStream/[[backpressureChangePromise]]=] is not undefined, [=resolve=]
+    stream.[=TransformStream/[[backpressureChangePromise]]=] with undefined.
+ 1. Set |stream|.[=TransformStream/[[backpressureChangePromise]]=] to [=a new promise=].
  1. Set |stream|.[=TransformStream/[[backpressure]]=] to |backpressure|.
 </div>
 
@@ -5322,7 +5322,7 @@ side=] of [=transform streams=].
  1. Assert: |stream|.\[[writable]].[=WritableStream/[[state]]=] is "`writable`".
  1. Let |controller| be |stream|.\[[controller]].
  1. If |stream|.[=TransformStream/[[backpressure]]=] is true,
-  1. Let |backpressureChangePromise| be |stream|.\[[backpressureChangePromise]].
+  1. Let |backpressureChangePromise| be |stream|.[=TransformStream/[[backpressureChangePromise]]=].
   1. Assert: |backpressureChangePromise| is not undefined.
   1. Return the result of [=reacting=] to |backpressureChangePromise| with the following fulfillment
      steps:
@@ -5372,9 +5372,9 @@ side=] of [=transform streams=].
  performs the following steps:
 
  1. Assert: |stream|.[=TransformStream/[[backpressure]]=] is true.
- 1. Assert: |stream|.\[[backpressureChangePromise]] is not undefined.
+ 1. Assert: |stream|.[=TransformStream/[[backpressureChangePromise]]=] is not undefined.
  1. Perform ! [$TransformStreamSetBackpressure$](|stream|, false).
- 1. Return |stream|.\[[backpressureChangePromise]].
+ 1. Return |stream|.[=TransformStream/[[backpressureChangePromise]]=].
 </div>
 
 <h2 id="qs">Queuing strategies</h2>
