@@ -4480,7 +4480,7 @@ The following abstract operations support the implementation of the
  1. Set |stream|.[=WritableStream/[[controller]]=] to |controller|.
  1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to false.
- 1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm|.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=] to |sizeAlgorithm|.
  1. Set |controller|.[=WritableStreamDefaultController/[[strategyHWM]]=] to |highWaterMark|.
  1. Set |controller|.\[[writeAlgorithm]] to |writeAlgorithm|.
  1. Set |controller|.[=WritableStreamDefaultController/[[closeAlgorithm]]=] to |closeAlgorithm|.
@@ -4568,7 +4568,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.\[[writeAlgorithm]] to undefined.
  1. Set |controller|.[=WritableStreamDefaultController/[[closeAlgorithm]]=] to undefined.
  1. Set |controller|.[=WritableStreamDefaultController/[[abortAlgorithm]]=] to undefined.
- 1. Set |controller|.\[[strategySizeAlgorithm]] to undefined.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=] to undefined.
 
  <p class="note">This algorithm will be performed multiple times in some edge cases. After the first
  time it will do nothing.
@@ -4617,7 +4617,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-get-chunk-size">WritableStreamDefaultControllerGetChunkSize(|controller|,
  |chunk|)</dfn> performs the following steps:
 
- 1. Let |returnValue| be the result of performing |controller|.\[[strategySizeAlgorithm]], passing
+ 1. Let |returnValue| be the result of performing |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=], passing
     in |chunk|, and interpreting the result as a [=completion record=].
  1. If |returnValue| is an abrupt completion,
   1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|controller|,
