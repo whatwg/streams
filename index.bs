@@ -3789,7 +3789,7 @@ following table:
  The <dfn id="default-writer-closed" attribute for="WritableStreamDefaultWriter">closed</dfn>
  getter steps are:
 
- 1. Return [=this=].\[[closedPromise]].
+ 1. Return [=this=].[=WritableStreamDefaultWriter/[[closedPromise]]=].
 </div>
 
 <div algorithm>
@@ -4049,21 +4049,21 @@ are even meant to be generally useful by other specifications.
   1. If ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false and |stream|.[=WritableStream/[[backpressure]]=]
      is true, set |writer|.\[[readyPromise]] to [=a new promise=].
   1. Otherwise, set |writer|.\[[readyPromise]] to [=a promise resolved with=] undefined.
-  1. Set |writer|.\[[closedPromise]] to [=a new promise=].
+  1. Set |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=] to [=a new promise=].
  1. Otherwise, if |state| is "`erroring`",
   1. Set |writer|.\[[readyPromise]] to [=a promise rejected with=] |stream|.[=WritableStream/[[storedError]]=].
   1. Set |writer|.\[[readyPromise]].\[[PromiseIsHandled]] to true.
-  1. Set |writer|.\[[closedPromise]] to [=a new promise=].
+  1. Set |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=] to [=a new promise=].
  1. Otherwise, if |state| is "`closed`",
   1. Set |writer|.\[[readyPromise]] to [=a promise resolved with=] undefined.
-  1. Set |writer|.\[[closedPromise]] to [=a promise resolved with=] undefined.
+  1. Set |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=] to [=a promise resolved with=] undefined.
  1. Otherwise,
   1. Assert: |state| is "`errored`".
   1. Let |storedError| be |stream|.[=WritableStream/[[storedError]]=].
   1. Set |writer|.\[[readyPromise]] to [=a promise rejected with=] |storedError|.
   1. Set |writer|.\[[readyPromise]].\[[PromiseIsHandled]] to true.
-  1. Set |writer|.\[[closedPromise]] to [=a promise rejected with=] |storedError|.
-  1. Set |writer|.\[[closedPromise]].\[[PromiseIsHandled]] to true.
+  1. Set |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=] to [=a promise rejected with=] |storedError|.
+  1. Set |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=].\[[PromiseIsHandled]] to true.
 </div>
 
 <div algorithm>
@@ -4222,7 +4222,7 @@ the {{WritableStream}}'s public API.
    1. Set |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
  1. Set |stream|.[=WritableStream/[[state]]=] to "`closed`".
  1. Let |writer| be |stream|.[=WritableStream/[[writer]]=].
- 1. If |writer| is not undefined, [=resolve=] |writer|.\[[closedPromise]] with undefined.
+ 1. If |writer| is not undefined, [=resolve=] |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=] with undefined.
  1. Assert: |stream|.[=WritableStream/[[pendingAbortRequest]]=] is undefined.
  1. Assert: |stream|.[=WritableStream/[[storedError]]=] is undefined.
 </div>
@@ -4309,8 +4309,8 @@ the {{WritableStream}}'s public API.
   1. Set |stream|.[=WritableStream/[[closeRequest]]=] to undefined.
  1. Let |writer| be |stream|.[=WritableStream/[[writer]]=].
  1. If |writer| is not undefined,
-  1. [=Reject=] |writer|.\[[closedPromise]] with |stream|.[=WritableStream/[[storedError]]=].
-  1. Set |writer|.\[[closedPromise]].\[[PromiseIsHandled]] to true.
+  1. [=Reject=] |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=] with |stream|.[=WritableStream/[[storedError]]=].
+  1. Set |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=].\[[PromiseIsHandled]] to true.
 </div>
 
 <div algorithm>
@@ -4395,10 +4395,10 @@ The following abstract operations support the implementation and manipulation of
  id="writable-stream-default-writer-ensure-closed-promise-rejected">WritableStreamDefaultWriterEnsureClosedPromiseRejected(|writer|,
  |error|)</dfn> performs the following steps:
 
- 1. If |writer|.\[[closedPromise]].\[[PromiseState]] is "`pending`", [=reject=]
-    |writer|.\[[closedPromise]] with |error|.
- 1. Otherwise, set |writer|.\[[closedPromise]] to [=a promise rejected with=] |error|.
- 1. Set |writer|.\[[closedPromise]].\[[PromiseIsHandled]] to true.
+ 1. If |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=].\[[PromiseState]] is "`pending`", [=reject=]
+    |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=] with |error|.
+ 1. Otherwise, set |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=] to [=a promise rejected with=] |error|.
+ 1. Set |writer|.[=WritableStreamDefaultWriter/[[closedPromise]]=].\[[PromiseIsHandled]] to true.
 </div>
 
 <div algorithm>
