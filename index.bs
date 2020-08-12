@@ -3887,7 +3887,7 @@ the following table:
    <td class="non-normative">A [=list=] representing the stream's internal queue of [=chunks=]
   <tr>
    <td><dfn>\[[queueTotalSize]]</dfn>
-   <td class="non-normative">The total size of all the chunks stored in \[[queue]] (see
+   <td class="non-normative">The total size of all the chunks stored in [=WritableStreamDefaultController/[[queue]]=] (see
    [[#queue-with-sizes]])
   <tr>
    <td><dfn>\[[started]]</dfn>
@@ -3911,7 +3911,7 @@ the following table:
    write), which writes data to the [=underlying sink=]
 </table>
 
-The <dfn>close sentinel</dfn> is a unique value enqueued into \[[queue]], in lieu of a [=chunk=], to
+The <dfn>close sentinel</dfn> is a unique value enqueued into [=WritableStreamDefaultController/[[queue]]=], in lieu of a [=chunk=], to
 signal that the stream is closed. It is only used internally, and is never exposed to web
 developers.
 
@@ -4543,7 +4543,7 @@ The following abstract operations support the implementation of the
  1. If |state| is "`erroring`",
   1. Perform ! [$WritableStreamFinishErroring$](|stream|).
   1. Return.
- 1. If |controller|.\[[queue]] is empty, return.
+ 1. If |controller|.[=WritableStreamDefaultController/[[queue]]=] is empty, return.
  1. Let |value| be ! [$PeekQueueValue$](|controller|).
  1. If |value| is the [=close sentinel=], perform !
     [$WritableStreamDefaultControllerProcessClose$](|controller|).
@@ -4642,7 +4642,7 @@ The following abstract operations support the implementation of the
  1. Let |stream| be |controller|.\[[stream]].
  1. Perform ! [$WritableStreamMarkCloseRequestInFlight$](|stream|).
  1. Perform ! [$DequeueValue$](|controller|).
- 1. Assert: |controller|.\[[queue]] is empty.
+ 1. Assert: |controller|.[=WritableStreamDefaultController/[[queue]]=] is empty.
  1. Let |sinkClosePromise| be the result of performing |controller|.[=WritableStreamDefaultController/[[closeAlgorithm]]=].
  1. Perform ! [$WritableStreamDefaultControllerClearAlgorithms$](|controller|).
  1. [=Upon fulfillment=] of |sinkClosePromise|,
