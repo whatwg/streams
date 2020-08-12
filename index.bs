@@ -3435,7 +3435,7 @@ table:
 </table>
 
 <p class="note">The [=WritableStream/[[inFlightCloseRequest]]=] slot and [=WritableStream/[[closeRequest]]=] slot are mutually
-exclusive. Similarly, no element will be removed from \[[writeRequests]] while
+exclusive. Similarly, no element will be removed from [=WritableStream/[[writeRequests]]=] while
 [=WritableStream/[[inFlightWriteRequest]]=] is not undefined. Implementations can optimize storage for these slots
 based on these invariants.
 
@@ -4022,7 +4022,7 @@ are even meant to be generally useful by other specifications.
  1. Set |stream|.[=WritableStream/[[storedError]]=], |stream|.[=WritableStream/[[writer]]=], |stream|.[=WritableStream/[[controller]]=],
     |stream|.[=WritableStream/[[inFlightWriteRequest]]=], |stream|.[=WritableStream/[[closeRequest]]=],
     |stream|.[=WritableStream/[[inFlightCloseRequest]]=] and |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
- 1. Set |stream|.\[[writeRequests]] to a new empty [=list=].
+ 1. Set |stream|.[=WritableStream/[[writeRequests]]=] to a new empty [=list=].
  1. Set |stream|.[=WritableStream/[[backpressure]]=] to false.
 </div>
 
@@ -4145,7 +4145,7 @@ the {{WritableStream}}'s public API.
  1. Assert: ! [$IsWritableStreamLocked$](|stream|) is true.
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`".
  1. Let |promise| be [=a new promise=].
- 1. [=list/Append=] |promise| to |stream|.\[[writeRequests]].
+ 1. [=list/Append=] |promise| to |stream|.[=WritableStream/[[writeRequests]]=].
  1. Return |promise|.
 </div>
 
@@ -4182,9 +4182,9 @@ the {{WritableStream}}'s public API.
  1. Set |stream|.[=WritableStream/[[state]]=] to "`errored`".
  1. Perform ! |stream|.[=WritableStream/[[controller]]=].\[[ErrorSteps]]().
  1. Let |storedError| be |stream|.[=WritableStream/[[storedError]]=].
- 1. [=list/For each=] |writeRequest| of |stream|.\[[writeRequests]]:
+ 1. [=list/For each=] |writeRequest| of |stream|.[=WritableStream/[[writeRequests]]=]:
   1. [=Reject=] |writeRequest| with |storedError|.
- 1. Set |stream|.\[[writeRequests]] to an empty [=list=].
+ 1. Set |stream|.[=WritableStream/[[writeRequests]]=] to an empty [=list=].
  1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is undefined,
   1. Perform ! [$WritableStreamRejectCloseAndClosedPromiseIfNeeded$](|stream|).
   1. Return.
@@ -4291,9 +4291,9 @@ the {{WritableStream}}'s public API.
  performs the following steps:
 
  1. Assert: |stream|.[=WritableStream/[[inFlightWriteRequest]]=] is undefined.
- 1. Assert: |stream|.\[[writeRequests]] is not empty.
- 1. Let |writeRequest| be |stream|.\[[writeRequests]][0].
- 1. [=list/Remove=] |writeRequest| from |stream|.\[[writeRequests]].
+ 1. Assert: |stream|.[=WritableStream/[[writeRequests]]=] is not empty.
+ 1. Let |writeRequest| be |stream|.[=WritableStream/[[writeRequests]]=][0].
+ 1. [=list/Remove=] |writeRequest| from |stream|.[=WritableStream/[[writeRequests]]=].
  1. Set |stream|.[=WritableStream/[[inFlightWriteRequest]]=] to |writeRequest|.
 </div>
 
