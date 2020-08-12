@@ -4023,7 +4023,7 @@ are even meant to be generally useful by other specifications.
     |stream|.\[[inFlightWriteRequest]], |stream|.\[[closeRequest]],
     |stream|.\[[inFlightCloseRequest]] and |stream|.\[[pendingAbortRequest]] to undefined.
  1. Set |stream|.\[[writeRequests]] to a new empty [=list=].
- 1. Set |stream|.\[[backpressure]] to false.
+ 1. Set |stream|.[=WritableStream/[[backpressure]]=] to false.
 </div>
 
 <div algorithm>
@@ -4046,7 +4046,7 @@ are even meant to be generally useful by other specifications.
  1. Set |stream|.\[[writer]] to |writer|.
  1. Let |state| be |stream|.\[[state]].
  1. If |state| is "`writable`",
-  1. If ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false and |stream|.\[[backpressure]]
+  1. If ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false and |stream|.[=WritableStream/[[backpressure]]=]
      is true, set |writer|.\[[readyPromise]] to [=a new promise=].
   1. Otherwise, set |writer|.\[[readyPromise]] to [=a promise resolved with=] undefined.
   1. Set |writer|.\[[closedPromise]] to [=a new promise=].
@@ -4100,7 +4100,7 @@ are even meant to be generally useful by other specifications.
  1. Let |promise| be [=a new promise=].
  1. Set |stream|.\[[closeRequest]] to |promise|.
  1. Let |writer| be |stream|.\[[writer]].
- 1. If |writer| is not undefined, and |stream|.\[[backpressure]] is true, and |state| is
+ 1. If |writer| is not undefined, and |stream|.[=WritableStream/[[backpressure]]=] is true, and |state| is
     "`writable`", [=resolve=] |writer|.\[[readyPromise]] with undefined.
  1. Perform ! [$WritableStreamDefaultControllerClose$](|stream|.\[[controller]]).
  1. Return |promise|.
@@ -4339,12 +4339,12 @@ the {{WritableStream}}'s public API.
  1. Assert: |stream|.\[[state]] is "`writable`".
  1. Assert: ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false.
  1. Let |writer| be |stream|.\[[writer]].
- 1. If |writer| is not undefined and |backpressure| is not |stream|.\[[backpressure]],
+ 1. If |writer| is not undefined and |backpressure| is not |stream|.[=WritableStream/[[backpressure]]=],
   1. If |backpressure| is true, set |writer|.\[[readyPromise]] to [=a new promise=].
   1. Otherwise,
    1. Assert: |backpressure| is false.
    1. [=Resolve=] |writer|.\[[readyPromise]] with undefined.
- 1. Set |stream|.\[[backpressure]] to |backpressure|.
+ 1. Set |stream|.[=WritableStream/[[backpressure]]=] to |backpressure|.
 </div>
 
 <h4 id="ws-writer-abstract-ops">Writers</h4>
