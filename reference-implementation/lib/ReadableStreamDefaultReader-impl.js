@@ -2,22 +2,12 @@
 
 const { newPromise, resolvePromise, rejectPromise, promiseRejectedWith } = require('./helpers/webidl.js');
 const aos = require('./abstract-ops/readable-streams.js');
+const { mixin } = require('./helpers/miscellaneous.js');
+const ReadableStreamGenericReaderImpl = require('./ReadableStreamGenericReader-impl.js').implementation;
 
-exports.implementation = class ReadableStreamDefaultReaderImpl {
+class ReadableStreamDefaultReaderImpl {
   constructor(globalObject, [stream]) {
     aos.SetUpReadableStreamDefaultReader(this, stream);
-  }
-
-  get closed() {
-    return this._closedPromise;
-  }
-
-  cancel(reason) {
-    if (this._stream === undefined) {
-      return promiseRejectedWith(readerLockException('cancel'));
-    }
-
-    return aos.ReadableStreamReaderGenericCancel(this, reason);
   }
 
   read() {
@@ -47,7 +37,11 @@ exports.implementation = class ReadableStreamDefaultReaderImpl {
 
     aos.ReadableStreamReaderGenericRelease(this);
   }
-};
+}
+
+mixin(ReadableStreamDefaultReaderImpl.prototype, ReadableStreamGenericReaderImpl.prototype);
+
+exports.implementation = ReadableStreamDefaultReaderImpl;
 
 function readerLockException(name) {
   return new TypeError('Cannot ' + name + ' a stream using a released reader');
