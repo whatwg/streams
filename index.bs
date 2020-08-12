@@ -5534,14 +5534,14 @@ value given in the constructor.
  lt="ByteLengthQueuingStrategy(init)">new ByteLengthQueuingStrategy(|init|)</dfn> constructor steps
  are:
 
- 1. Set [=this=].\[[highWaterMark]] to |init|["{{QueuingStrategyInit/highWaterMark}}"].
+ 1. Set [=this=].[=ByteLengthQueuingStrategy/[[highWaterMark]]=] to |init|["{{QueuingStrategyInit/highWaterMark}}"].
 </div>
 
 <div algorithm>
  The <dfn id="blqs-high-water-mark" attribute for="ByteLengthQueuingStrategy">highWaterMark</dfn>
  getter steps are:
 
- 1. Return [=this=].\[[highWaterMark]].
+ 1. Return [=this=].[=ByteLengthQueuingStrategy/[[highWaterMark]]=].
 </div>
 
 <div algorithm>
