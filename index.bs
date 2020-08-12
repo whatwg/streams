@@ -2319,12 +2319,6 @@ the {{ReadableStream}}'s public API.
    1. Perform |readRequest|'s [=read request/close steps=].
   1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to an empty [=list=].
  1. [=Resolve=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with undefined.
-
- <p class="note">The case where |stream|.[=ReadableStream/[[state]]=] is "`closed`", but |stream|.[=ReadableStream/[[controller]]=].\[[closeRequested]]
- is false, will happen if the stream was closed without its controller's close method ever being
- called: i.e., if the stream was closed by a call to {{ReadableStream/cancel(reason)}}. In this
- case we allow the controller's <code>close()</code> method to be called and silently do nothing,
- since the cancelation was outside the control of the underlying source.
 </div>
 
 <div algorithm>
