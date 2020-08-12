@@ -5197,7 +5197,7 @@ The following abstract operations support the implementaiton of the
  1. Set |controller|.\[[stream]] to |stream|.
  1. Set |stream|.[=TransformStream/[[controller]]=] to |controller|.
  1. Set |controller|.\[[transformAlgorithm]] to |transformAlgorithm|.
- 1. Set |controller|.\[[flushAlgorithm]] to |flushAlgorithm|.
+ 1. Set |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=] to |flushAlgorithm|.
 </div>
 
 <div algorithm>
@@ -5237,7 +5237,7 @@ The following abstract operations support the implementaiton of the
  It performs the following steps:
 
  1. Set |controller|.\[[transformAlgorithm]] to undefined.
- 1. Set |controller|.\[[flushAlgorithm]] to undefined.
+ 1. Set |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=] to undefined.
 </div>
 
 <div algorithm>
@@ -5350,7 +5350,7 @@ side=] of [=transform streams=].
 
  1. Let |readable| be |stream|.[=TransformStream/[[readable]]=].
  1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
- 1. Let |flushPromise| be the result of performing |controller|.\[[flushAlgorithm]].
+ 1. Let |flushPromise| be the result of performing |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=].
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|controller|).
  1. Return the result of [=reacting=] to |flushPromise|:
   1. If |flushPromise| was fulfilled, then:
