@@ -3956,7 +3956,7 @@ as such the counterpart internal methods are used polymorphically.
  oldids="writable-stream-default-controller-abort">\[[AbortSteps]](|reason|)</dfn> implements the
  [$WritableStreamController/[[AbortSteps]]$] contract. It performs the following steps:
 
- 1. Let |result| be the result of performing [=this=].\[[abortAlgorithm]], passing |reason|.
+ 1. Let |result| be the result of performing [=this=].[=WritableStreamDefaultController/[[abortAlgorithm]]=], passing |reason|.
  1. Perform ! [$WritableStreamDefaultControllerClearAlgorithms$]([=this=]).
  1. Return |result|.
 </div>
@@ -4484,7 +4484,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.\[[strategyHWM]] to |highWaterMark|.
  1. Set |controller|.\[[writeAlgorithm]] to |writeAlgorithm|.
  1. Set |controller|.\[[closeAlgorithm]] to |closeAlgorithm|.
- 1. Set |controller|.\[[abortAlgorithm]] to |abortAlgorithm|.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[abortAlgorithm]]=] to |abortAlgorithm|.
  1. Let |backpressure| be ! [$WritableStreamDefaultControllerGetBackpressure$](|controller|).
  1. Perform ! [$WritableStreamUpdateBackpressure$](|stream|, |backpressure|).
  1. Let |startResult| be the result of performing |startAlgorithm|. (This may throw an exception.)
@@ -4567,7 +4567,7 @@ The following abstract operations support the implementation of the
 
  1. Set |controller|.\[[writeAlgorithm]] to undefined.
  1. Set |controller|.\[[closeAlgorithm]] to undefined.
- 1. Set |controller|.\[[abortAlgorithm]] to undefined.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[abortAlgorithm]]=] to undefined.
  1. Set |controller|.\[[strategySizeAlgorithm]] to undefined.
 
  <p class="note">This algorithm will be performed multiple times in some edge cases. After the first
