@@ -4482,7 +4482,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to false.
  1. Set |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=] to |sizeAlgorithm|.
  1. Set |controller|.[=WritableStreamDefaultController/[[strategyHWM]]=] to |highWaterMark|.
- 1. Set |controller|.\[[writeAlgorithm]] to |writeAlgorithm|.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[writeAlgorithm]]=] to |writeAlgorithm|.
  1. Set |controller|.[=WritableStreamDefaultController/[[closeAlgorithm]]=] to |closeAlgorithm|.
  1. Set |controller|.[=WritableStreamDefaultController/[[abortAlgorithm]]=] to |abortAlgorithm|.
  1. Let |backpressure| be ! [$WritableStreamDefaultControllerGetBackpressure$](|controller|).
@@ -4565,7 +4565,7 @@ The following abstract operations support the implementation of the
 
  It performs the following steps:
 
- 1. Set |controller|.\[[writeAlgorithm]] to undefined.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[writeAlgorithm]]=] to undefined.
  1. Set |controller|.[=WritableStreamDefaultController/[[closeAlgorithm]]=] to undefined.
  1. Set |controller|.[=WritableStreamDefaultController/[[abortAlgorithm]]=] to undefined.
  1. Set |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=] to undefined.
@@ -4658,7 +4658,7 @@ The following abstract operations support the implementation of the
 
  1. Let |stream| be |controller|.[=WritableStreamDefaultController/[[stream]]=].
  1. Perform ! [$WritableStreamMarkFirstWriteRequestInFlight$](|stream|).
- 1. Let |sinkWritePromise| be the result of performing |controller|.\[[writeAlgorithm]], passing in
+ 1. Let |sinkWritePromise| be the result of performing |controller|.[=WritableStreamDefaultController/[[writeAlgorithm]]=], passing in
     |chunk|.
  1. [=Upon fulfillment=] of |sinkWritePromise|,
   1. Perform ! [$WritableStreamFinishInFlightWrite$](|stream|).
