@@ -4631,7 +4631,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-get-desired-size">WritableStreamDefaultControllerGetDesiredSize(|controller|)</dfn>
  performs the following steps:
 
- 1. Return |controller|.\[[strategyHWM]] − |controller|.\[[queueTotalSize]].
+ 1. Return |controller|.\[[strategyHWM]] − |controller|.[=WritableStreamDefaultController/[[queueTotalSize]]=].
 </div>
 
 <div algorithm>
