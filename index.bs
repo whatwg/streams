@@ -5196,7 +5196,7 @@ The following abstract operations support the implementaiton of the
  1. Assert: |stream|.[=TransformStream/[[controller]]=] is undefined.
  1. Set |controller|.[=TransformStreamDefaultController/[[stream]]=] to |stream|.
  1. Set |stream|.[=TransformStream/[[controller]]=] to |controller|.
- 1. Set |controller|.\[[transformAlgorithm]] to |transformAlgorithm|.
+ 1. Set |controller|.[=TransformStreamDefaultController/[[transformAlgorithm]]=] to |transformAlgorithm|.
  1. Set |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=] to |flushAlgorithm|.
 </div>
 
@@ -5236,7 +5236,7 @@ The following abstract operations support the implementaiton of the
 
  It performs the following steps:
 
- 1. Set |controller|.\[[transformAlgorithm]] to undefined.
+ 1. Set |controller|.[=TransformStreamDefaultController/[[transformAlgorithm]]=] to undefined.
  1. Set |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=] to undefined.
 </div>
 
@@ -5285,7 +5285,7 @@ The following abstract operations support the implementaiton of the
  performs the following steps:
 
  1. Let |transformPromise| be the result of performing
-    |controller|.\[[transformAlgorithm]], passing |chunk|.
+    |controller|.[=TransformStreamDefaultController/[[transformAlgorithm]]=], passing |chunk|.
  1. Return the result of [=reacting=] to |transformPromise| with the following
     rejection steps given the argument |r|:
    1. Perform ! [$TransformStreamError$](|controller|.[=TransformStreamDefaultController/[[stream]]=], |r|).
