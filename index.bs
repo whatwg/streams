@@ -5045,7 +5045,7 @@ the following table:
  The <dfn id="ts-default-controller-desired-size" attribute
  for="TransformStreamDefaultController">desiredSize</dfn> getter steps are:
 
- 1. Let |readableController| be [=this=].\[[stream]].[=TransformStream/[[readable]]=].[=ReadableStream/[[controller]]=].
+ 1. Let |readableController| be [=this=].[=TransformStreamDefaultController/[[stream]]=].[=TransformStream/[[readable]]=].[=ReadableStream/[[controller]]=].
  1. Return ! [$ReadableStreamDefaultControllerGetDesiredSize$](|readableController|).
 </div>
 
@@ -5194,7 +5194,7 @@ The following abstract operations support the implementaiton of the
 
  1. Assert: |stream| [=implements=] {{TransformStream}}.
  1. Assert: |stream|.[=TransformStream/[[controller]]=] is undefined.
- 1. Set |controller|.\[[stream]] to |stream|.
+ 1. Set |controller|.[=TransformStreamDefaultController/[[stream]]=] to |stream|.
  1. Set |stream|.[=TransformStream/[[controller]]=] to |controller|.
  1. Set |controller|.\[[transformAlgorithm]] to |transformAlgorithm|.
  1. Set |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=] to |flushAlgorithm|.
@@ -5250,7 +5250,7 @@ The following abstract operations support the implementaiton of the
 
  It performs the following steps:
 
- 1. Let |stream| be |controller|.\[[stream]].
+ 1. Let |stream| be |controller|.[=TransformStreamDefaultController/[[stream]]=].
  1. Let |readableController| be |stream|.[=TransformStream/[[readable]]=].[=ReadableStream/[[controller]]=].
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|readableController|) is false, throw
     a {{TypeError}} exception.
@@ -5276,7 +5276,7 @@ The following abstract operations support the implementaiton of the
 
  It performs the following steps:
 
- 1. Perform ! [$TransformStreamError$](|controller|.\[[stream]], |e|).
+ 1. Perform ! [$TransformStreamError$](|controller|.[=TransformStreamDefaultController/[[stream]]=], |e|).
 </div>
 
 <div algorithm>
@@ -5288,7 +5288,7 @@ The following abstract operations support the implementaiton of the
     |controller|.\[[transformAlgorithm]], passing |chunk|.
  1. Return the result of [=reacting=] to |transformPromise| with the following
     rejection steps given the argument |r|:
-   1. Perform ! [$TransformStreamError$](|controller|.\[[stream]], |r|).
+   1. Perform ! [$TransformStreamError$](|controller|.[=TransformStreamDefaultController/[[stream]]=], |r|).
    1. Throw |r|.
 </div>
 
@@ -5302,7 +5302,7 @@ The following abstract operations support the implementaiton of the
 
  It performs the following steps:
 
- 1. Let |stream| be |controller|.\[[stream]].
+ 1. Let |stream| be |controller|.[=TransformStreamDefaultController/[[stream]]=].
  1. Let |readableController| be |stream|.[=TransformStream/[[readable]]=].[=ReadableStream/[[controller]]=].
  1. Perform ! [$ReadableStreamDefaultControllerClose$](|readableController|).
  1. Let |error| be a {{TypeError}} exception indicating that the stream has been terminated.
