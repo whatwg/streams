@@ -3933,7 +3933,7 @@ developers.
  The <dfn id="ws-default-controller-error" method
  for="WritableStreamDefaultController">error(|e|)</dfn> method steps are:
 
- 1. Let |state| be [=this=].\[[stream]].[=WritableStream/[[state]]=].
+ 1. Let |state| be [=this=].[=WritableStreamDefaultController/[[stream]]=].[=WritableStream/[[state]]=].
  1. If |state| is not "`writable`", return.
  1. Perform ! [$WritableStreamDefaultControllerError$]([=this=], |e|).
 </div>
@@ -4476,7 +4476,7 @@ The following abstract operations support the implementation of the
 
  1. Assert: |stream| [=implements=] {{WritableStream}}.
  1. Assert: |stream|.[=WritableStream/[[controller]]=] is undefined.
- 1. Set |controller|.\[[stream]] to |stream|.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[stream]]=] to |stream|.
  1. Set |stream|.[=WritableStream/[[controller]]=] to |controller|.
  1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to false.
@@ -4535,7 +4535,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-advance-queue-if-needed">WritableStreamDefaultControllerAdvanceQueueIfNeeded(|controller|)</dfn>
  performs the following steps:
 
- 1. Let |stream| be |controller|.\[[stream]].
+ 1. Let |stream| be |controller|.[=WritableStreamDefaultController/[[stream]]=].
  1. If |controller|.[=WritableStreamDefaultController/[[started]]=] is false, return.
  1. If |stream|.[=WritableStream/[[inFlightWriteRequest]]=] is not undefined, return.
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
@@ -4588,7 +4588,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-error">WritableStreamDefaultControllerError(|controller|,
  |error|)</dfn> performs the following steps:
 
- 1. Let |stream| be |controller|.\[[stream]].
+ 1. Let |stream| be |controller|.[=WritableStreamDefaultController/[[stream]]=].
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`".
  1. Perform ! [$WritableStreamDefaultControllerClearAlgorithms$](|controller|).
  1. Perform ! [$WritableStreamStartErroring$](|stream|, |error|).
@@ -4599,7 +4599,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-error-if-needed">WritableStreamDefaultControllerErrorIfNeeded(|controller|,
  |error|)</dfn> performs the following steps:
 
- 1. If |controller|.\[[stream]].[=WritableStream/[[state]]=] is "`writable`", perform !
+ 1. If |controller|.[=WritableStreamDefaultController/[[stream]]=].[=WritableStream/[[state]]=] is "`writable`", perform !
     [$WritableStreamDefaultControllerError$](|controller|, |error|).
 </div>
 
@@ -4639,7 +4639,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-process-close">WritableStreamDefaultControllerProcessClose(|controller|)</dfn>
  performs the following steps:
 
- 1. Let |stream| be |controller|.\[[stream]].
+ 1. Let |stream| be |controller|.[=WritableStreamDefaultController/[[stream]]=].
  1. Perform ! [$WritableStreamMarkCloseRequestInFlight$](|stream|).
  1. Perform ! [$DequeueValue$](|controller|).
  1. Assert: |controller|.[=WritableStreamDefaultController/[[queue]]=] is empty.
@@ -4656,7 +4656,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-process-write">WritableStreamDefaultControllerProcessWrite(|controller|,
  |chunk|)</dfn> performs the following steps:
 
- 1. Let |stream| be |controller|.\[[stream]].
+ 1. Let |stream| be |controller|.[=WritableStreamDefaultController/[[stream]]=].
  1. Perform ! [$WritableStreamMarkFirstWriteRequestInFlight$](|stream|).
  1. Let |sinkWritePromise| be the result of performing |controller|.\[[writeAlgorithm]], passing in
     |chunk|.
@@ -4685,7 +4685,7 @@ The following abstract operations support the implementation of the
   1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|controller|,
      |enqueueResult|.\[[Value]]).
   1. Return.
- 1. Let |stream| be |controller|.\[[stream]].
+ 1. Let |stream| be |controller|.[=WritableStreamDefaultController/[[stream]]=].
  1. If ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false and |stream|.[=WritableStream/[[state]]=] is
     "`writable`",
   1. Let |backpressure| be ! [$WritableStreamDefaultControllerGetBackpressure$](|controller|).
