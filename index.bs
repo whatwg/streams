@@ -3796,7 +3796,7 @@ following table:
  The <dfn id="default-writer-desired-size" attribute
  for="WritableStreamDefaultWriter">desiredSize</dfn> getter steps are:
 
- 1. If [=this=].\[[stream]] is undefined, throw a {{TypeError}} exception.
+ 1. If [=this=].[=WritableStreamDefaultWriter/[[stream]]=] is undefined, throw a {{TypeError}} exception.
  1. Return ! [$WritableStreamDefaultWriterGetDesiredSize$]([=this=]).
 </div>
 
@@ -3811,7 +3811,7 @@ following table:
  The <dfn id="default-writer-abort" method for="WritableStreamDefaultWriter">abort(|reason|)</dfn>
  method steps are:
 
- 1. If [=this=].\[[stream]] is undefined, return [=a promise rejected with=] a {{TypeError}}
+ 1. If [=this=].[=WritableStreamDefaultWriter/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
     exception.
  1. Return ! [$WritableStreamDefaultWriterAbort$]([=this=], |reason|).
 </div>
@@ -3820,7 +3820,7 @@ following table:
  The <dfn id="default-writer-close" method for="WritableStreamDefaultWriter">close()</dfn> method
  steps are:
 
- 1. Let |stream| be [=this=].\[[stream]].
+ 1. Let |stream| be [=this=].[=WritableStreamDefaultWriter/[[stream]]=].
  1. If |stream| is undefined, return [=a promise rejected with=] a {{TypeError}} exception.
  1. If ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is true, return [=a promise rejected
     with=] a {{TypeError}} exception.
@@ -3831,7 +3831,7 @@ following table:
  The <dfn id="default-writer-release-lock" method
  for="WritableStreamDefaultWriter">releaseLock()</dfn> method steps are:
 
- 1. Let |stream| be [=this=].\[[stream]].
+ 1. Let |stream| be [=this=].[=WritableStreamDefaultWriter/[[stream]]=].
  1. If |stream| is undefined, return.
  1. Assert: |stream|.[=WritableStream/[[writer]]=] is not undefined.
  1. Perform ! [$WritableStreamDefaultWriterRelease$]([=this=]).
@@ -3841,7 +3841,7 @@ following table:
  The <dfn id="default-writer-write" method for="WritableStreamDefaultWriter">write(|chunk|)</dfn>
  method steps are:
 
- 1. If [=this=].\[[stream]] is undefined, return [=a promise rejected with=] a {{TypeError}}
+ 1. If [=this=].[=WritableStreamDefaultWriter/[[stream]]=] is undefined, return [=a promise rejected with=] a {{TypeError}}
     exception.
  1. Return ! [$WritableStreamDefaultWriterWrite$]([=this=], |chunk|).
 </div>
@@ -4042,7 +4042,7 @@ are even meant to be generally useful by other specifications.
  |stream|)</dfn> performs the following steps:
 
  1. If ! [$IsWritableStreamLocked$](|stream|) is true, throw a {{TypeError}} exception.
- 1. Set |writer|.\[[stream]] to |stream|.
+ 1. Set |writer|.[=WritableStreamDefaultWriter/[[stream]]=] to |stream|.
  1. Set |stream|.[=WritableStream/[[writer]]=] to |writer|.
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. If |state| is "`writable`",
@@ -4357,7 +4357,7 @@ The following abstract operations support the implementation and manipulation of
  id="writable-stream-default-writer-abort">WritableStreamDefaultWriterAbort(|writer|,
  |reason|)</dfn> performs the following steps:
 
- 1. Let |stream| be |writer|.\[[stream]].
+ 1. Let |stream| be |writer|.[=WritableStreamDefaultWriter/[[stream]]=].
  1. Assert: |stream| is not undefined.
  1. Return ! [$WritableStreamAbort$](|stream|, |reason|).
 </div>
@@ -4367,7 +4367,7 @@ The following abstract operations support the implementation and manipulation of
  id="writable-stream-default-writer-close">WritableStreamDefaultWriterClose(|writer|)</dfn> performs
  the following steps:
 
- 1. Let |stream| be |writer|.\[[stream]].
+ 1. Let |stream| be |writer|.[=WritableStreamDefaultWriter/[[stream]]=].
  1. Assert: |stream| is not undefined.
  1. Return ! [$WritableStreamClose$](|stream|).
 </div>
@@ -4377,7 +4377,7 @@ The following abstract operations support the implementation and manipulation of
  id="writable-stream-default-writer-close-with-error-propagation">WritableStreamDefaultWriterCloseWithErrorPropagation(|writer|)</dfn>
  performs the following steps:
 
- 1. Let |stream| be |writer|.\[[stream]].
+ 1. Let |stream| be |writer|.[=WritableStreamDefaultWriter/[[stream]]=].
  1. Assert: |stream| is not undefined.
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. If ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is true or |state| is "`closed`", return
@@ -4417,7 +4417,7 @@ The following abstract operations support the implementation and manipulation of
  id="writable-stream-default-writer-get-desired-size">WritableStreamDefaultWriterGetDesiredSize(|writer|)</dfn>
  performs the following steps:
 
- 1. Let |stream| be |writer|.\[[stream]].
+ 1. Let |stream| be |writer|.[=WritableStreamDefaultWriter/[[stream]]=].
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. If |state| is "`errored`" or "`erroring`", return null.
  1. If |state| is "`closed`", return 0.
@@ -4429,14 +4429,14 @@ The following abstract operations support the implementation and manipulation of
  id="writable-stream-default-writer-release">WritableStreamDefaultWriterRelease(|writer|)</dfn>
  performs the following steps:
 
- 1. Let |stream| be |writer|.\[[stream]].
+ 1. Let |stream| be |writer|.[=WritableStreamDefaultWriter/[[stream]]=].
  1. Assert: |stream| is not undefined.
  1. Assert: |stream|.[=WritableStream/[[writer]]=] is |writer|.
  1. Let |releasedError| be a new {{TypeError}}.
  1. Perform ! [$WritableStreamDefaultWriterEnsureReadyPromiseRejected$](|writer|, |releasedError|).
  1. Perform ! [$WritableStreamDefaultWriterEnsureClosedPromiseRejected$](|writer|, |releasedError|).
  1. Set |stream|.[=WritableStream/[[writer]]=] to undefined.
- 1. Set |writer|.\[[stream]] to undefined.
+ 1. Set |writer|.[=WritableStreamDefaultWriter/[[stream]]=] to undefined.
 </div>
 
 <div algorithm>
@@ -4444,11 +4444,11 @@ The following abstract operations support the implementation and manipulation of
  id="writable-stream-default-writer-write">WritableStreamDefaultWriterWrite(|writer|, |chunk|)</dfn>
  performs the following steps:
 
- 1. Let |stream| be |writer|.\[[stream]].
+ 1. Let |stream| be |writer|.[=WritableStreamDefaultWriter/[[stream]]=].
  1. Assert: |stream| is not undefined.
  1. Let |controller| be |stream|.[=WritableStream/[[controller]]=].
  1. Let |chunkSize| be ! [$WritableStreamDefaultControllerGetChunkSize$](|controller|, |chunk|).
- 1. If |stream| is not equal to |writer|.\[[stream]], return [=a promise rejected with=] a
+ 1. If |stream| is not equal to |writer|.[=WritableStreamDefaultWriter/[[stream]]=], return [=a promise rejected with=] a
     {{TypeError}} exception.
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. If |state| is "`errored`", return [=a promise rejected with=] |stream|.[=WritableStream/[[storedError]]=].
