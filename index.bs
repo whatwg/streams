@@ -5647,14 +5647,14 @@ value given in the constructor.
  The <dfn id="cqs-constructor" constructor for="CountQueuingStrategy"
  lt="CountQueuingStrategy(init)">new CountQueuingStrategy(|init|)</dfn> constructor steps are:
 
- 1. Set [=this=].\[[highWaterMark]] to |init|["{{QueuingStrategyInit/highWaterMark}}"].
+ 1. Set [=this=].[=CountQueuingStrategy/[[highWaterMark]]=] to |init|["{{QueuingStrategyInit/highWaterMark}}"].
 </div>
 
 <div algorithm>
  The <dfn id="cqs-high-water-mark" attribute for="CountQueuingStrategy">highWaterMark</dfn>
  getter steps are:
 
- 1. Return [=this=].\[[highWaterMark]].
+ 1. Return [=this=].[=CountQueuingStrategy/[[highWaterMark]]=].
 </div>
 
 <div algorithm>
