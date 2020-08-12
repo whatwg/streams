@@ -3436,7 +3436,7 @@ table:
 
 <p class="note">The \[[inFlightCloseRequest]] slot and [=WritableStream/[[closeRequest]]=] slot are mutually
 exclusive. Similarly, no element will be removed from \[[writeRequests]] while
-\[[inFlightWriteRequest]] is not undefined. Implementations can optimize storage for these slots
+[=WritableStream/[[inFlightWriteRequest]]=] is not undefined. Implementations can optimize storage for these slots
 based on these invariants.
 
 A <dfn>pending abort request</dfn> is a [=struct=] used to track a request to abort the stream
@@ -4020,7 +4020,7 @@ are even meant to be generally useful by other specifications.
 
  1. Set |stream|.\[[state]] to "`writable`".
  1. Set |stream|.\[[storedError]], |stream|.\[[writer]], |stream|.[=WritableStream/[[controller]]=],
-    |stream|.\[[inFlightWriteRequest]], |stream|.[=WritableStream/[[closeRequest]]=],
+    |stream|.[=WritableStream/[[inFlightWriteRequest]]=], |stream|.[=WritableStream/[[closeRequest]]=],
     |stream|.\[[inFlightCloseRequest]] and |stream|.\[[pendingAbortRequest]] to undefined.
  1. Set |stream|.\[[writeRequests]] to a new empty [=list=].
  1. Set |stream|.[=WritableStream/[[backpressure]]=] to false.
@@ -4247,9 +4247,9 @@ the {{WritableStream}}'s public API.
  id="writable-stream-finish-in-flight-write">WritableStreamFinishInFlightWrite(|stream|)</dfn>
  performs the following steps:
 
- 1. Assert: |stream|.\[[inFlightWriteRequest]] is not undefined.
- 1. [=Resolve=] |stream|.\[[inFlightWriteRequest]] with undefined.
- 1. Set |stream|.\[[inFlightWriteRequest]] to undefined.
+ 1. Assert: |stream|.[=WritableStream/[[inFlightWriteRequest]]=] is not undefined.
+ 1. [=Resolve=] |stream|.[=WritableStream/[[inFlightWriteRequest]]=] with undefined.
+ 1. Set |stream|.[=WritableStream/[[inFlightWriteRequest]]=] to undefined.
 </div>
 
 <div algorithm>
@@ -4257,9 +4257,9 @@ the {{WritableStream}}'s public API.
  id="writable-stream-finish-in-flight-write-with-error">WritableStreamFinishInFlightWriteWithError(|stream|,
  |error|)</dfn> performs the following steps:
 
- 1. Assert: |stream|.\[[inFlightWriteRequest]] is not undefined.
- 1. [=Reject=] |stream|.\[[inFlightWriteRequest]] with |error|.
- 1. Set |stream|.\[[inFlightWriteRequest]] to undefined.
+ 1. Assert: |stream|.[=WritableStream/[[inFlightWriteRequest]]=] is not undefined.
+ 1. [=Reject=] |stream|.[=WritableStream/[[inFlightWriteRequest]]=] with |error|.
+ 1. Set |stream|.[=WritableStream/[[inFlightWriteRequest]]=] to undefined.
  1. Assert: |stream|.\[[state]] is "`writable`" or "`erroring`".
  1. Perform ! [$WritableStreamDealWithRejection$](|stream|, |error|).
 </div>
@@ -4269,7 +4269,7 @@ the {{WritableStream}}'s public API.
  id="writable-stream-has-operation-marked-in-flight">WritableStreamHasOperationMarkedInFlight(|stream|)</dfn>
  performs the following steps:
 
- 1. If |stream|.\[[inFlightWriteRequest]] is undefined and
+ 1. If |stream|.[=WritableStream/[[inFlightWriteRequest]]=] is undefined and
     |stream|.[=WritableStream/[[controller]]=].\[[inFlightCloseRequest]] is undefined, return false.
  1. Return true.
 </div>
@@ -4290,11 +4290,11 @@ the {{WritableStream}}'s public API.
  id="writable-stream-mark-first-write-request-in-flight">WritableStreamMarkFirstWriteRequestInFlight(|stream|)</dfn>
  performs the following steps:
 
- 1. Assert: |stream|.\[[inFlightWriteRequest]] is undefined.
+ 1. Assert: |stream|.[=WritableStream/[[inFlightWriteRequest]]=] is undefined.
  1. Assert: |stream|.\[[writeRequests]] is not empty.
  1. Let |writeRequest| be |stream|.\[[writeRequests]][0].
  1. [=list/Remove=] |writeRequest| from |stream|.\[[writeRequests]].
- 1. Set |stream|.\[[inFlightWriteRequest]] to |writeRequest|.
+ 1. Set |stream|.[=WritableStream/[[inFlightWriteRequest]]=] to |writeRequest|.
 </div>
 
 <div algorithm>
@@ -4537,7 +4537,7 @@ The following abstract operations support the implementation of the
 
  1. Let |stream| be |controller|.\[[stream]].
  1. If |controller|.\[[started]] is false, return.
- 1. If |stream|.\[[inFlightWriteRequest]] is not undefined, return.
+ 1. If |stream|.[=WritableStream/[[inFlightWriteRequest]]=] is not undefined, return.
  1. Let |state| be |stream|.\[[state]].
  1. Assert: |state| is not "`closed`" or "`errored`".
  1. If |state| is "`erroring`",
