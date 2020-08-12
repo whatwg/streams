@@ -4788,7 +4788,7 @@ table:
  <tbody>
   <tr>
    <td><dfn>\[[backpressure]]</dfn>
-   <td class="non-normative">Whether there was backpressure on \[[readable]] the last time it was
+   <td class="non-normative">Whether there was backpressure on [=TransformStream/[[readable]]=] the last time it was
    observed
   <tr>
    <td><dfn>\[[backpressureChangePromise]]</dfn>
@@ -4797,7 +4797,7 @@ table:
   <tr>
    <td><dfn>\[[controller]]</dfn>
    <td class="non-normative">A {{TransformStreamDefaultController}} created with the ability to
-   control \[[readable]] and \[[writable]]
+   control [=TransformStream/[[readable]]=] and \[[writable]]
   <tr>
    <td><dfn>\[[readable]]</dfn>
    <td class="non-normative">The {{ReadableStream}} instance controlled by this object
@@ -4959,7 +4959,7 @@ side=], or to terminate or error the stream.
  The <dfn id="ts-readable" attribute for="TransformStream">readable</dfn> getter steps
  are:
 
- 1. Return [=this=].\[[readable]].
+ 1. Return [=this=].[=TransformStream/[[readable]]=].
 </div>
 
 <div algorithm>
@@ -5045,7 +5045,7 @@ the following table:
  The <dfn id="ts-default-controller-desired-size" attribute
  for="TransformStreamDefaultController">desiredSize</dfn> getter steps are:
 
- 1. Let |readableController| be [=this=].\[[stream]].\[[readable]].[=ReadableStream/[[controller]]=].
+ 1. Let |readableController| be [=this=].\[[stream]].[=TransformStream/[[readable]]=].[=ReadableStream/[[controller]]=].
  1. Return ! [$ReadableStreamDefaultControllerGetDesiredSize$](|readableController|).
 </div>
 
@@ -5130,7 +5130,7 @@ are even meant to be generally useful by other specifications.
  1. Let |cancelAlgorithm| be the following steps, taking a |reason| argument:
   1. Perform ! [$TransformStreamErrorWritableAndUnblockWrite$](|stream|, |reason|).
   1. Return [=a promise resolved with=] undefined.
- 1. Set |stream|.\[[readable]] to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|,
+ 1. Set |stream|.[=TransformStream/[[readable]]=] to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|,
     |cancelAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
  1. Set |stream|.[=TransformStream/[[backpressure]]=] and |stream|.[=TransformStream/[[backpressureChangePromise]]=] to undefined.
     <p class="note">The [=TransformStream/[[backpressure]]=] slot is set to undefined so that it can be initialized by
@@ -5146,7 +5146,7 @@ are even meant to be generally useful by other specifications.
  <dfn abstract-op lt="TransformStreamError"
  id="transform-stream-error">TransformStreamError(|stream|, |e|)</dfn> performs the following steps:
 
- 1. Perform ! [$ReadableStreamDefaultControllerError$](|stream|.\[[readable]].[=ReadableStream/[[controller]]=], |e|).
+ 1. Perform ! [$ReadableStreamDefaultControllerError$](|stream|.[=TransformStream/[[readable]]=].[=ReadableStream/[[controller]]=], |e|).
  1. Perform ! [$TransformStreamErrorWritableAndUnblockWrite$](|stream|, |e|).
 
  <p class="note">This operation works correctly when one or both sides are already errored. As a
@@ -5251,7 +5251,7 @@ The following abstract operations support the implementaiton of the
  It performs the following steps:
 
  1. Let |stream| be |controller|.\[[stream]].
- 1. Let |readableController| be |stream|.\[[readable]].[=ReadableStream/[[controller]]=].
+ 1. Let |readableController| be |stream|.[=TransformStream/[[readable]]=].[=ReadableStream/[[controller]]=].
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|readableController|) is false, throw
     a {{TypeError}} exception.
  1. Let |enqueueResult| be [$ReadableStreamDefaultControllerEnqueue$](|readableController|,
@@ -5259,7 +5259,7 @@ The following abstract operations support the implementaiton of the
  1. If |enqueueResult| is an abrupt completion,
    1. Perform ! [$TransformStreamErrorWritableAndUnblockWrite$](|stream|,
       |enqueueResult|.\[[Value]]).
-   1. Throw |stream|.\[[readable]].[=ReadableStream/[[storedError]]=].
+   1. Throw |stream|.[=TransformStream/[[readable]]=].[=ReadableStream/[[storedError]]=].
  1. Let |backpressure| be !
     [$ReadableStreamDefaultControllerHasBackpressure$](|readableController|).
  1. If |backpressure| is not |stream|.[=TransformStream/[[backpressure]]=],
@@ -5303,7 +5303,7 @@ The following abstract operations support the implementaiton of the
  It performs the following steps:
 
  1. Let |stream| be |controller|.\[[stream]].
- 1. Let |readableController| be |stream|.\[[readable]].[=ReadableStream/[[controller]]=].
+ 1. Let |readableController| be |stream|.[=TransformStream/[[readable]]=].[=ReadableStream/[[controller]]=].
  1. Perform ! [$ReadableStreamDefaultControllerClose$](|readableController|).
  1. Let |error| be a {{TypeError}} exception indicating that the stream has been terminated.
  1. Perform ! [$TransformStreamErrorWritableAndUnblockWrite$](|stream|, |error|).
@@ -5348,7 +5348,7 @@ side=] of [=transform streams=].
  id="transform-stream-default-sink-close-algorithm">TransformStreamDefaultSinkCloseAlgorithm(|stream|)</dfn>
  performs the following steps:
 
- 1. Let |readable| be |stream|.\[[readable]].
+ 1. Let |readable| be |stream|.[=TransformStream/[[readable]]=].
  1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
  1. Let |flushPromise| be the result of performing |controller|.\[[flushAlgorithm]].
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|controller|).
