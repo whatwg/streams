@@ -4780,29 +4780,29 @@ interface TransformStream {
 Instances of {{TransformStream}} are created with the internal slots described in the following
 table:
 
-<table>
+<table dfn-for="TransformStream">
  <thead>
   <tr>
    <th>Internal Slot</th>
    <th>Description (<em>non-normative</em>)</th>
  <tbody>
   <tr>
-   <td>\[[backpressure]]
+   <td><dfn>\[[backpressure]]</dfn>
    <td class="non-normative">Whether there was backpressure on \[[readable]] the last time it was
    observed
   <tr>
-   <td>\[[backpressureChangePromise]]
+   <td><dfn>\[[backpressureChangePromise]]</dfn>
    <td class="non-normative">A promise which is fulfilled and replaced every time the value of
    \[[backpressure]] changes
   <tr>
-   <td>\[[controller]]
+   <td><dfn>\[[controller]]</dfn>
    <td class="non-normative">A {{TransformStreamDefaultController}} created with the ability to
    control \[[readable]] and \[[writable]]
   <tr>
-   <td>\[[readable]]
+   <td><dfn>\[[readable]]</dfn>
    <td class="non-normative">The {{ReadableStream}} instance controlled by this object
   <tr>
-   <td>\[[writable]]
+   <td><dfn>\[[writable]]</dfn>
    <td class="non-normative">The {{WritableStream}} instance controlled by this object
 </table>
 
