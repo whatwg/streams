@@ -5599,7 +5599,7 @@ interface CountQueuingStrategy {
 
 <h4 id="cqs-internal-slots">Internal slots</h4>
 
-Instances of {{CountQueuingStrategy}} have a \[[highWaterMark]] internal slot, storing the
+Instances of {{CountQueuingStrategy}} have a <dfn for="CountQueuingStrategy">\[[highWaterMark]]</dfn> internal slot, storing the
 value given in the constructor.
 
 <div algorithm>
