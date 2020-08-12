@@ -4797,7 +4797,7 @@ table:
   <tr>
    <td><dfn>\[[controller]]</dfn>
    <td class="non-normative">A {{TransformStreamDefaultController}} created with the ability to
-   control [=TransformStream/[[readable]]=] and \[[writable]]
+   control [=TransformStream/[[readable]]=] and [=TransformStream/[[writable]]=]
   <tr>
    <td><dfn>\[[readable]]</dfn>
    <td class="non-normative">The {{ReadableStream}} instance controlled by this object
@@ -4966,7 +4966,7 @@ side=], or to terminate or error the stream.
  The <dfn id="ts-writable" attribute for="TransformStream">writable</dfn> getter steps
  are:
 
- 1. Return [=this=].\[[writable]].
+ 1. Return [=this=].[=TransformStream/[[writable]]=].
 </div>
 
 <h3 id="ts-default-controller-class">The {{TransformStreamDefaultController}} class</h3>
@@ -5123,7 +5123,7 @@ are even meant to be generally useful by other specifications.
   1. Return ! [$TransformStreamDefaultSinkAbortAlgorithm$](|stream|, |reason|).
  1. Let |closeAlgorithm| be the following steps:
   1. Return ! [$TransformStreamDefaultSinkCloseAlgorithm$](|stream|).
- 1. Set |stream|.\[[writable]] to ! [$CreateWritableStream$](|startAlgorithm|, |writeAlgorithm|,
+ 1. Set |stream|.[=TransformStream/[[writable]]=] to ! [$CreateWritableStream$](|startAlgorithm|, |writeAlgorithm|,
     |closeAlgorithm|, |abortAlgorithm|, |writableHighWaterMark|, |writableSizeAlgorithm|).
  1. Let |pullAlgorithm| be the following steps:
   1. Return ! [$TransformStreamDefaultSourcePullAlgorithm$](|stream|).
@@ -5161,7 +5161,7 @@ are even meant to be generally useful by other specifications.
 
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|stream|.[=TransformStream/[[controller]]=]).
  1. Perform !
-    [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.\[[writable]].[=WritableStream/[[controller]]=], |e|).
+    [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.[=TransformStream/[[writable]]=].[=WritableStream/[[controller]]=], |e|).
  1. If |stream|.[=TransformStream/[[backpressure]]=] is true, perform ! [$TransformStreamSetBackpressure$](|stream|,
     false).
 
@@ -5319,14 +5319,14 @@ side=] of [=transform streams=].
  id="transform-stream-default-sink-write-algorithm">TransformStreamDefaultSinkWriteAlgorithm(|stream|,
  |chunk|)</dfn> performs the following steps:
 
- 1. Assert: |stream|.\[[writable]].[=WritableStream/[[state]]=] is "`writable`".
+ 1. Assert: |stream|.[=TransformStream/[[writable]]=].[=WritableStream/[[state]]=] is "`writable`".
  1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
  1. If |stream|.[=TransformStream/[[backpressure]]=] is true,
   1. Let |backpressureChangePromise| be |stream|.[=TransformStream/[[backpressureChangePromise]]=].
   1. Assert: |backpressureChangePromise| is not undefined.
   1. Return the result of [=reacting=] to |backpressureChangePromise| with the following fulfillment
      steps:
-   1. Let |writable| be |stream|.\[[writable]].
+   1. Let |writable| be |stream|.[=TransformStream/[[writable]]=].
    1. Let |state| be |writable|.[=WritableStream/[[state]]=].
    1. If |state| is "`erroring`", throw |writable|.[=WritableStream/[[storedError]]=].
    1. Assert: |state| is "`writable`".
