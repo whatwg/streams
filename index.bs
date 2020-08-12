@@ -3386,50 +3386,50 @@ interface WritableStream {
 Instances of {{WritableStream}} are created with the internal slots described in the following
 table:
 
-<table>
+<table dfn-for="WritableStream">
  <thead>
   <tr>
    <th>Internal Slot
    <th>Description (<em>non-normative</em>)
  <tbody>
   <tr>
-  <td>\[[backpressure]]
+  <td><dfn>\[[backpressure]]</dfn>
   <td class="non-normative">A boolean indicating the backpressure signal set by the controller
  <tr>
-  <td>\[[closeRequest]]
+  <td><dfn>\[[closeRequest]]</dfn>
   <td class="non-normative">The promise returned from the writer's
   {{WritableStreamDefaultWriter/close()}} method
  <tr>
-  <td>\[[controller]]
+  <td><dfn>\[[controller]]</dfn>
   <td class="non-normative">A {{WritableStreamDefaultController}} created with the ability to
   control the state and queue of this stream
  <tr>
-  <td>\[[inFlightWriteRequest]]
+  <td><dfn>\[[inFlightWriteRequest]]</dfn>
   <td class="non-normative">A slot set to the promise for the current in-flight write operation
   while the [=underlying sink=]'s write algorithm is executing and has not yet fulfilled, used to
   prevent reentrant calls
  <tr>
-  <td>\[[inFlightCloseRequest]]
+  <td><dfn>\[[inFlightCloseRequest]]</dfn>
   <td class="non-normative">A slot set to the promise for the current in-flight close operation
   while the [=underlying sink=]'s close algorithm is executing and has not yet fulfilled, used to
   prevent the {{WritableStreamDefaultWriter/abort()}} method from interrupting close
  <tr>
-  <td>\[[pendingAbortRequest]]
+  <td><dfn>\[[pendingAbortRequest]]</dfn>
   <td class="non-normative">A [=pending abort request=]
  <tr>
-  <td>\[[state]]
+  <td><dfn>\[[state]]</dfn>
   <td class="non-normative">A string containing the stream's current state, used internally; one of
   "`writable`", "`closed`", "`erroring`", or "`errored`"
  <tr>
-  <td>\[[storedError]]
+  <td><dfn>\[[storedError]]</dfn>
   <td class="non-normative">A value indicating how the stream failed, to be given as a failure
   reason or exception when trying to operate on the stream while in the "`errored`" state
  <tr>
-  <td>\[[writer]]
+  <td><dfn>\[[writer]]</dfn>
   <td class="non-normative">A {{WritableStreamDefaultWriter}} instance, if the stream is [=locked to
   a writer=], or undefined if it is not
  <tr>
-  <td>\[[writeRequests]]
+  <td><dfn>\[[writeRequests]]</dfn>
   <td class="non-normative">A [=list=] of promises representing the stream's internal queue of write
   requests not yet processed by the [=underlying sink=]
 </table>
