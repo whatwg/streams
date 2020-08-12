@@ -4328,7 +4328,7 @@ the {{WritableStream}}'s public API.
  1. If |writer| is not undefined, perform !
     [$WritableStreamDefaultWriterEnsureReadyPromiseRejected$](|writer|, |reason|).
  1. If ! [$WritableStreamHasOperationMarkedInFlight$](|stream|) is false and
-    |controller|.\[[started]] is true, perform ! [$WritableStreamFinishErroring$](|stream|).
+    |controller|.[=WritableStreamDefaultController/[[started]]=] is true, perform ! [$WritableStreamFinishErroring$](|stream|).
 </div>
 
 <div algorithm>
@@ -4479,7 +4479,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.\[[stream]] to |stream|.
  1. Set |stream|.[=WritableStream/[[controller]]=] to |controller|.
  1. Perform ! [$ResetQueue$](|controller|).
- 1. Set |controller|.\[[started]] to false.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to false.
  1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm|.
  1. Set |controller|.\[[strategyHWM]] to |highWaterMark|.
  1. Set |controller|.\[[writeAlgorithm]] to |writeAlgorithm|.
@@ -4491,11 +4491,11 @@ The following abstract operations support the implementation of the
  1. Let |startPromise| be [=a promise resolved with=] |startResult|.
  1. [=Upon fulfillment=] of |startPromise|,
   1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`" or "`erroring`".
-  1. Set |controller|.\[[started]] to true.
+  1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to true.
   1. Perform ! [$WritableStreamDefaultControllerAdvanceQueueIfNeeded$](|controller|).
  1. [=Upon rejection=] of |startPromise| with reason |r|,
   1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`" or "`erroring`".
-  1. Set |controller|.\[[started]] to true.
+  1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to true.
   1. Perform ! [$WritableStreamDealWithRejection$](|stream|, |r|).
 </div>
 
@@ -4536,7 +4536,7 @@ The following abstract operations support the implementation of the
  performs the following steps:
 
  1. Let |stream| be |controller|.\[[stream]].
- 1. If |controller|.\[[started]] is false, return.
+ 1. If |controller|.[=WritableStreamDefaultController/[[started]]=] is false, return.
  1. If |stream|.[=WritableStream/[[inFlightWriteRequest]]=] is not undefined, return.
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. Assert: |state| is not "`closed`" or "`errored`".
