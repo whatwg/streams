@@ -4019,7 +4019,7 @@ are even meant to be generally useful by other specifications.
  steps:
 
  1. Set |stream|.\[[state]] to "`writable`".
- 1. Set |stream|.\[[storedError]], |stream|.\[[writer]], |stream|.\[[controller]],
+ 1. Set |stream|.\[[storedError]], |stream|.\[[writer]], |stream|.[=WritableStream/[[controller]]=],
     |stream|.\[[inFlightWriteRequest]], |stream|.[=WritableStream/[[closeRequest]]=],
     |stream|.\[[inFlightCloseRequest]] and |stream|.\[[pendingAbortRequest]] to undefined.
  1. Set |stream|.\[[writeRequests]] to a new empty [=list=].
@@ -4102,7 +4102,7 @@ are even meant to be generally useful by other specifications.
  1. Let |writer| be |stream|.\[[writer]].
  1. If |writer| is not undefined, and |stream|.[=WritableStream/[[backpressure]]=] is true, and |state| is
     "`writable`", [=resolve=] |writer|.\[[readyPromise]] with undefined.
- 1. Perform ! [$WritableStreamDefaultControllerClose$](|stream|.\[[controller]]).
+ 1. Perform ! [$WritableStreamDefaultControllerClose$](|stream|.[=WritableStream/[[controller]]=]).
  1. Return |promise|.
 </div>
 
@@ -4180,7 +4180,7 @@ the {{WritableStream}}'s public API.
  1. Assert: |stream|.\[[state]] is "`erroring`".
  1. Assert: ! [$WritableStreamHasOperationMarkedInFlight$](|stream|) is false.
  1. Set |stream|.\[[state]] to "`errored`".
- 1. Perform ! |stream|.\[[controller]].\[[ErrorSteps]]().
+ 1. Perform ! |stream|.[=WritableStream/[[controller]]=].\[[ErrorSteps]]().
  1. Let |storedError| be |stream|.\[[storedError]].
  1. [=list/For each=] |writeRequest| of |stream|.\[[writeRequests]]:
   1. [=Reject=] |writeRequest| with |storedError|.
@@ -4194,7 +4194,7 @@ the {{WritableStream}}'s public API.
   1. [=Reject=] |abortRequest|'s [=pending abort request/promise=] with |storedError|.
   1. Perform ! [$WritableStreamRejectCloseAndClosedPromiseIfNeeded$](|stream|).
   1. Return.
- 1. Let |promise| be ! stream.\[[controller]].\[[AbortSteps]](|abortRequest|'s [=pending abort
+ 1. Let |promise| be ! stream.[=WritableStream/[[controller]]=].\[[AbortSteps]](|abortRequest|'s [=pending abort
     request/reason=]).
  1. [=Upon fulfillment=] of |promise|,
   1. [=Resolve=] |abortRequest|'s [=pending abort request/promise=] with undefined.
@@ -4270,7 +4270,7 @@ the {{WritableStream}}'s public API.
  performs the following steps:
 
  1. If |stream|.\[[inFlightWriteRequest]] is undefined and
-    |stream|.\[[controller]].\[[inFlightCloseRequest]] is undefined, return false.
+    |stream|.[=WritableStream/[[controller]]=].\[[inFlightCloseRequest]] is undefined, return false.
  1. Return true.
 </div>
 
@@ -4320,7 +4320,7 @@ the {{WritableStream}}'s public API.
 
  1. Assert: |stream|.\[[storedError]] is undefined.
  1. Assert: |stream|.\[[state]] is "`writable`".
- 1. Let |controller| be |stream|.\[[controller]].
+ 1. Let |controller| be |stream|.[=WritableStream/[[controller]]=].
  1. Assert: |controller| is not undefined.
  1. Set |stream|.\[[state]] to "`erroring`".
  1. Set |stream|.\[[storedError]] to |reason|.
@@ -4421,7 +4421,7 @@ The following abstract operations support the implementation and manipulation of
  1. Let |state| be |stream|.\[[state]].
  1. If |state| is "`errored`" or "`erroring`", return null.
  1. If |state| is "`closed`", return 0.
- 1. Return ! [$WritableStreamDefaultControllerGetDesiredSize$](|stream|.\[[controller]]).
+ 1. Return ! [$WritableStreamDefaultControllerGetDesiredSize$](|stream|.[=WritableStream/[[controller]]=]).
 </div>
 
 <div algorithm>
@@ -4446,7 +4446,7 @@ The following abstract operations support the implementation and manipulation of
 
  1. Let |stream| be |writer|.\[[stream]].
  1. Assert: |stream| is not undefined.
- 1. Let |controller| be |stream|.\[[controller]].
+ 1. Let |controller| be |stream|.[=WritableStream/[[controller]]=].
  1. Let |chunkSize| be ! [$WritableStreamDefaultControllerGetChunkSize$](|controller|, |chunk|).
  1. If |stream| is not equal to |writer|.\[[stream]], return [=a promise rejected with=] a
     {{TypeError}} exception.
@@ -4475,9 +4475,9 @@ The following abstract operations support the implementation of the
  |highWaterMark|, |sizeAlgorithm|)</dfn> performs the following steps:
 
  1. Assert: |stream| [=implements=] {{WritableStream}}.
- 1. Assert: |stream|.\[[controller]] is undefined.
+ 1. Assert: |stream|.[=WritableStream/[[controller]]=] is undefined.
  1. Set |controller|.\[[stream]] to |stream|.
- 1. Set |stream|.\[[controller]] to |controller|.
+ 1. Set |stream|.[=WritableStream/[[controller]]=] to |controller|.
  1. Perform ! [$ResetQueue$](|controller|).
  1. Set |controller|.\[[started]] to false.
  1. Set |controller|.\[[strategySizeAlgorithm]] to |sizeAlgorithm|.
@@ -5161,7 +5161,7 @@ are even meant to be generally useful by other specifications.
 
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|stream|.\[[controller]]).
  1. Perform !
-    [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.\[[writable]].\[[controller]], |e|).
+    [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.\[[writable]].[=WritableStream/[[controller]]=], |e|).
  1. If |stream|.\[[backpressure]] is true, perform ! [$TransformStreamSetBackpressure$](|stream|,
     false).
 
