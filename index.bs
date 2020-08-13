@@ -1914,7 +1914,7 @@ following table:
  1. If [$IsDetachedBuffer$]([=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ArrayBuffer]]) is
     true, throw a {{TypeError}} exception.
  1. Assert: [=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ByteLength]] &gt; 0.
- 1. Assert: [=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ViewedArrayBuffer]].\[[ByeLength]]
+ 1. Assert: [=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ViewedArrayBuffer]].\[[ByteLength]]
     &gt; 0.
  1. Perform ?
     [$ReadableByteStreamControllerRespond$]([=this=].[=ReadableStreamBYOBRequest/[[controller]]=],
@@ -2112,7 +2112,7 @@ are even meant to be generally useful by other specifications.
     before performing any reads or writes, since they might lead to immediate shutdown.
   * <strong>Error and close states must be propagated:</strong> the following conditions must be
     applied in order.
-   1. <strong>Errors must be propagated forward:</strong>  if |source|.[=ReadableStream/[[state]]=]
+   1. <strong>Errors must be propagated forward:</strong> if |source|.[=ReadableStream/[[state]]=]
       is or becomes "`errored`", then
     1. If |preventAbort| is false, [=shutdown with an action=] of ! [$WritableStreamAbort$](|dest|,
        |source|.[=ReadableStream/[[storedError]]=]) and with
