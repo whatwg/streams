@@ -15,6 +15,9 @@ Markup Shorthands: markdown yes
 spec:webidl; type:dfn; text:resolve
 spec:webidl; type:dfn; text:new
 spec:infra; type:dfn; text:list
+spec:html; type:dfn; text:entangle
+spec:html; type:dfn; text:message port post message steps
+spec:html; type:dfn; text:port message queue
 </pre>
 
 <pre class="anchors">
@@ -28,10 +31,12 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: DataView; url: #sec-dataview-objects
   text: Number; url: #sec-ecmascript-language-types-number-type
   text: Uint8Array; url: #sec-typedarray-objects
+  text: %Object.prototype%; url: #sec-properties-of-the-object-prototype-object
  type: dfn
   text: abstract operation; url: #sec-algorithm-conventions-abstract-operations
   text: completion record; url: #sec-completion-record-specification-type
   text: internal slot; url: #sec-object-internal-methods-and-internal-slots
+  text: realm; url: #sec-code-realms
   text: the current Realm; url: #current-realm
   text: the typed array constructors table; url: #table-49
   text: typed array; url: #sec-typedarray-objects
@@ -41,11 +46,14 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: CopyDataBlockBytes; url: #sec-copydatablockbytes
   text: CreateArrayFromList; url: #sec-createarrayfromlist
   text: CreateBuiltinFunction; url: #sec-createbuiltinfunction
+  text: CreateDataProperty; url: #sec-createdataproperty
   text: Construct; url: #sec-construct
   text: DetachArrayBuffer; url: #sec-detacharraybuffer
+  text: Get; url: #sec-get-o-p
   text: GetV; url: #sec-getv
   text: IsDetachedBuffer; url: #sec-isdetachedbuffer
   text: IsInteger; url: #sec-isinteger
+  text: OrdinaryObjectCreate; url: #sec-ordinaryobjectcreate
   text: SetFunctionLength; url: #sec-setfunctionlength
   text: SetFunctionName; url: #sec-setfunctionname
   text: Type; url: #sec-ecmascript-data-types-and-values
@@ -451,7 +459,7 @@ by the [=underlying source=] but not yet read by any consumer.
 The Web IDL definition for the {{ReadableStream}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=(Window,Worker,Worklet), Transferable]
 interface ReadableStream {
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
@@ -507,6 +515,10 @@ table:
    <td class="non-normative">A {{ReadableStreamDefaultController}} or
    {{ReadableByteStreamController}} created with the ability to control the state and queue of this
    stream
+  <tr>
+   <td><!-- TODO(ricea): Style this as <dfn unused> when that is supported.
+            See https://github.com/tabatkins/bikeshed/issues/1747 --><b>\[[detached]]</b>
+   <td class="non-normative">A boolean flag set to true when the stream is transferred
   <tr>
    <td><dfn>\[[disturbed]]</dfn>
    <td class="non-normative">A boolean flag set to true when the stream has been read from or
@@ -1008,6 +1020,43 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
   1. Return |result|.
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
  1. Return [=a promise resolved with=] undefined.
+</div>
+
+<h4 id="rs-transfer">Transfer via `postMessage()`</h4>
+
+<dl class="domintro">
+ <dt><code>destination.postMessage(rs, { transfer: [rs] });</code>
+ <dd>
+  <p>Sends a {{ReadableStream}} to another frame, window, or worker.
+
+  <p>The transferred stream can be used exactly like the original. The original will become
+  [=locked to a reader|locked=] and no longer directly usable.
+ </dd>
+</dl>
+
+<div algorithm="ReadableStream transfer steps">
+ {{ReadableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
+ and |dataHolder|, are:
+
+ 1. If ! [$IsReadableStreamLocked$](|value|) is true, throw a "{{DataCloneError}}" {{DOMException}}.
+ 1. Let |port1| be a [=new=] {{MessagePort}} in [=the current Realm=].
+ 1. Let |port2| be a [=new=] {{MessagePort}} in [=the current Realm=].
+ 1. [=Entangle=] |port1| and |port2|.
+ 1. Let |writable| be a [=new=] {{WritableStream}} in [=the current Realm=].
+ 1. Perform ! [$SetUpCrossRealmTransformWritable$](|writable|, |port1|).
+ 1. Let |promise| be ! [$ReadableStreamPipeTo$](|value|, |writable|, false, false, false).
+ 1. Set |promise|.\[[PromiseIsHandled]] to true.
+ 1. Set |dataHolder|.\[[port]] to ! [$StructuredSerializeWithTransfer$](|port2|, « |port2| »).
+</div>
+
+<div algorithm="ReadableStream transfer-receiving steps">
+ Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
+
+ 1. Let |deserializedRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[port]],
+    [=the current Realm=]).
+ 1. Let |port| be |deserializedRecord|.\[[Deserialized]].
+ 1. Perform ! [$SetUpCrossRealmTransformReadable$](|value|, |port|).
+
 </div>
 
 <h3 id="generic-reader-mixin">The {{ReadableStreamGenericReader}} mixin</h3>
@@ -3457,7 +3506,7 @@ The {{WritableStream}} represents a [=writable stream=].
 The Web IDL definition for the {{WritableStream}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=(Window,Worker,Worklet), Transferable]
 interface WritableStream {
   constructor(optional object underlyingSink, optional QueuingStrategy strategy = {});
 
@@ -3491,6 +3540,9 @@ table:
   <td><dfn>\[[controller]]</dfn>
   <td class="non-normative">A {{WritableStreamDefaultController}} created with the ability to
   control the state and queue of this stream
+ <tr>
+  <td><!-- TODO(ricea): Style this as <dfn unused> when that is supported --><b>\[[detached]]</b>
+  <td class="non-normative">A boolean flag set to true when the stream is transferred
  <tr>
   <td><dfn>\[[inFlightWriteRequest]]</dfn>
   <td class="non-normative">A slot set to the promise for the current in-flight write operation
@@ -3744,6 +3796,42 @@ as seen for example in [[#example-ws-no-backpressure]].
  The <dfn id="ws-get-writer" method for="WritableStream">getWriter()</dfn> method steps are:
 
  1. Return ? [$AcquireWritableStreamDefaultWriter$]([=this=]).
+</div>
+
+<h4 id="ws-transfer">Transfer via `postMessage()`</h4>
+
+<dl class="domintro">
+ <dt><code>destination.postMessage(ws, { transfer: [ws] });</code>
+ <dd>
+  <p>Sends a {{WritableStream}} to another frame, window, or worker.
+
+  <p>The transferred stream can be used exactly like the original. The original will become
+  [=locked to a writer|locked=] and no longer directly usable.
+ </dd>
+</dl>
+
+<div algorithm="WritableStream transfer steps">
+ {{WritableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
+ and |dataHolder|, are:
+
+ 1. If ! [$IsWritableStreamLocked$](|value|) is true, throw a "{{DataCloneError}}" {{DOMException}}.
+ 1. Let |port1| be a [=new=] {{MessagePort}} in [=the current Realm=].
+ 1. Let |port2| be a [=new=] {{MessagePort}} in [=the current Realm=].
+ 1. [=Entangle=] |port1| and |port2|.
+ 1. Let |readable| be a [=new=] {{ReadableStream}} in [=the current Realm=].
+ 1. Perform ! [$SetUpCrossRealmTransformReadable$](|readable|, |port1|).
+ 1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|, |value|, false, false, false).
+ 1. Set |promise|.\[[PromiseIsHandled]] to true.
+ 1. Set |dataHolder|.\[[port]] to ! [$StructuredSerializeWithTransfer$](|port2|, « |port2| »).
+</div>
+
+<div algorithm="WritableStream transfer-receiving steps">
+ Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
+
+ 1. Let |deserializedRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[port]],
+    [=the current Realm=]).
+ 1. Let |port| be a |deserializedRecord|.\[[Deserialized]].
+ 1. Perform ! [$SetUpCrossRealmTransformWritable$](|value|, |port|).
 </div>
 
 <h3 id="default-writer-class">The {{WritableStreamDefaultWriter}} class</h3>
@@ -4884,7 +4972,7 @@ The {{TransformStream}} class is a concrete instance of the general [=transform 
 The Web IDL definition for the {{TransformStream}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=(Window,Worker,Worklet), Transferable]
 interface TransformStream {
   constructor(optional object transformer,
               optional QueuingStrategy writableStrategy = {},
@@ -4918,6 +5006,9 @@ table:
    <td><dfn>\[[controller]]</dfn>
    <td class="non-normative">A {{TransformStreamDefaultController}} created with the ability to
    control [=TransformStream/[[readable]]=] and [=TransformStream/[[writable]]=]
+  <tr>
+   <td><!-- TODO(ricea): Style this as <dfn unused> when that is supported --><b>\[[detached]]</b>
+   <td class="non-normative">A boolean flag set to true when the stream is transferred
   <tr>
    <td><dfn>\[[readable]]</dfn>
    <td class="non-normative">The {{ReadableStream}} instance controlled by this object
@@ -5088,6 +5179,52 @@ side=], or to terminate or error the stream.
  are:
 
  1. Return [=this=].[=TransformStream/[[writable]]=].
+</div>
+
+<h4 id="ts-transfer">Transfer via `postMessage()`</h4>
+
+<dl class="domintro">
+ <dt><code>destination.postMessage(ts, { transfer: [ts] });</code>
+ <dd>
+  <p>Sends a {{TransformStream}} to another frame, window, or worker.
+
+  <p>The transferred stream can be used exactly like the original. Its [=readable side|readable=]
+  and [=writable sides=] will become locked and no longer directly usable.
+ </dd>
+</dl>
+
+<div algorithm="TransformStream transfer steps">
+ {{TransformStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
+ and |dataHolder|, are:
+
+ 1. Let |readable| be |value|.[=TransformStream/[[readable]]=].
+ 1. Let |writable| be |value|.[=TransformStream/[[writable]]=].
+ 1. If ! [$IsReadableStreamLocked$](|readable|) is true, throw a "{{DataCloneError}}"
+    {{DOMException}}.
+ 1. If ! [$IsWritableStreamLocked$](|writable|) is true, throw a "{{DataCloneError}}"
+    {{DOMException}}.
+ 1. Set |dataHolder|.\[[readable]] to ! [$StructuredSerializeWithTransfer$](|readable|,
+    « |readable| »).
+ 1. Set |dataHolder|.\[[writable]] to ! [$StructuredSerializeWithTransfer$](|writable|,
+    « |writable| »).
+</div>
+
+<div algorithm="TransformStream transfer-receiving steps">
+ Their [=transfer-receiving steps=], given |dataHolder| and |value|, are:
+
+ 1. Let |readableRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[readable]],
+    [=the current Realm=]).
+ 1. Let |writableRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[writable]],
+    [=the current Realm=]).
+ 1. Set |value|.[=TransformStream/[[readable]]=] to |readableRecord|.\[[Deserialized]].
+ 1. Set |value|.[=TransformStream/[[writable]]=] to |writableRecord|.\[[Deserialized]].
+ 1. Set |value|.[=TransformStream/[[backpressure]]=],
+    |value|.[=TransformStream/[[backpressureChangePromise]]=], and
+    |value|.[=TransformStream/[[controller]]=] to undefined.
+
+ <p class="note">The [=TransformStream/[[backpressure]]=],
+ [=TransformStream/[[backpressureChangePromise]]=], and [=TransformStream/[[controller]]=] slots are
+ not used in a transferred {{TransformStream}}.</p>
 </div>
 
 <h3 id="ts-default-controller-class">The {{TransformStreamDefaultController}} class</h3>
@@ -5898,6 +6035,150 @@ for="value-with-size">value</dfn> and <dfn for="value-with-size">size</dfn>.
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
  1. Set |container|.\[[queue]] to a new empty [=list=].
  1. Set |container|.\[[queueTotalSize]] to 0.
+</div>
+
+<h3 id="transferrable-streams">Transferable streams</h3>
+
+Transferable streams are implemented using a special kind of identity transform which has the
+[=writable side=] in one [=realm=] and the [=readable side=] in another realm. The following
+abstract operations are used to implement these "cross-realm transforms".
+
+<div algorithm>
+ <dfn abstract-op lt="CrossRealmTransformSendError">CrossRealmTransformSendError(|port|,
+ |error|)</dfn> performs the following steps:
+
+ 1. Perform [$PackAndPostMessage$](|port|, "`error`", |error|), discarding the result.
+
+ <p class="note">As we are already in an errored state when this abstract operation is performed, we
+ cannot handle further errors, so we just discard them.</p>
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="PackAndPostMessage">PackAndPostMessage(|port|, |type|, |value|)</dfn> performs
+ the following steps:
+
+ 1. Let |message| be [$OrdinaryObjectCreate$](null).
+ 1. Perform ! [$CreateDataProperty$](|message|, "`type`", |type|).
+ 1. Perform ! [$CreateDataProperty$](|message|, "`value`", |value|).
+ 1. Let |targetPort| be the port with which |port| is entangled, if any; otherwise let it be null.
+ 1. Let |options| be «[ "`transfer`" → « » ]».
+ 1. Run the [=message port post message steps=] providing |targetPort|, |message|, and |options|.
+
+ <p class="note">A JavaScript object is used for transfer to avoid having to duplicate the [=message
+ port post message steps=]. The prototype of the object is set to null to avoid interference from
+ {{%Object.prototype%}}.</p>
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="PackAndPostMessageHandlingError">PackAndPostMessageHandlingError(|port|,
+ |type|, |value|)</dfn> performs the following steps:
+
+ 1. Let |result| be [$PackAndPostMessage$](|port|, |type|, |value|).
+ 1. If |result| is an abrupt completion,
+  1. Perform ! [$CrossRealmTransformSendError$](|port|, |result|.\[[Value]]).
+ 1. Return |result| as a completion record.
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="SetUpCrossRealmTransformReadable">SetUpCrossRealmTransformReadable(|stream|,
+ |port|)</dfn> performs the following steps:
+
+ 1. Perform ! [$InitializeReadableStream$](|stream|).
+ 1. Let |controller| be a [=new=] {{ReadableStreamDefaultController}}.
+ 1. Add a handler for |port|'s {{MessagePort/message}} event with the following steps:
+  1. Let |data| be the data of the message.
+  1. Assert: [$Type$](|data|) is Object.
+  1. Let |type| be ! [$Get$](|data|, "`type`").
+  1. Let |value| be ! [$Get$](|data|, "`value`").
+  1. Assert: [$Type$](|type|) is String.
+  1. If |type| is "`chunk`",
+   1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|controller|, |value|).
+  1. Otherwise, if |type| is "`close`",
+    1. Perform ! [$ReadableStreamDefaultControllerClose$](|controller|).
+    1. Disentangle |port|.
+  1. Otherwise, if |type| is "`error`",
+   1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |value|).
+   1. Disentangle |port|.
+ 1. Add a handler for |port|'s {{MessagePort/messageerror}} event with the following steps:
+  1. Let |error| be a new "{{DataCloneError}}" {{DOMException}}.
+  1. Perform ! [$CrossRealmTransformSendError$](|port|, |error|).
+  1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |error|).
+  1. Disentangle |port|.
+ 1. Enable |port|'s [=port message queue=].
+ 1. Let |startAlgorithm| be an algorithm that returns undefined.
+ 1. Let |pullAlgorithm| be the following steps:
+  1. Perform ! [$PackAndPostMessage$](|port|, "`pull`", undefined).
+  1. Return [=a promise resolved with=] undefined.
+ 1. Let |cancelAlgorithm| be the following steps, taking a |reason| argument:
+  1. Let |result| be [$PackAndPostMessageHandlingError$](|port|, "`error`", |reason|).
+  1. Disentangle |port|.
+  1. If |result| is an abrupt completion, return [=a promise rejected with=] |result|.\[[Value]].
+  1. Otherwise, return [=a promise resolved with=] undefined.
+ 1. Let |sizeAlgorithm| be an algorithm that returns 1.
+ 1. Perform ! [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
+    |pullAlgorithm|, |cancelAlgorithm|, 0, |sizeAlgorithm|).
+
+ <p class="note">Implementations are encouraged to explicitly handle failures from the asserts in
+ this algorithm, as the input might come from an untrusted context. Failure to do so could lead to
+ security issues.</p>
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="SetUpCrossRealmTransformWritable">SetUpCrossRealmTransformWritable(|stream|,
+ |port|)</dfn> performs the following steps:
+
+ 1. Perform ! [$InitializeWritableStream$](|stream|).
+ 1. Let |controller| be a [=new=] {{WritableStreamDefaultController}}.
+ 1. Let |backpressurePromise| be [=a new promise=].
+ 1. Add a handler for |port|'s {{MessagePort/message}} event with the following steps:
+  1. Let |data| be the data of the message.
+  1. Assert: [$Type$](|data|) is Object.
+  1. Let |type| be ! [$Get$](|data|, "`type`").
+  1. Let |value| be ! [$Get$](|data|, "`value`").
+  1. Assert: [$Type$](|type|) is String.
+  1. If |type| is "`pull`",
+   1. If |backpressurePromise| is not undefined,
+    1. [=Resolve=] |backpressurePromise| with undefined.
+    1. Set |backpressurePromise| to undefined.
+  1. Otherwise, if |type| is "`error`",
+   1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|controller|, |value|).
+   1. If |backpressurePromise| is not undefined,
+    1. [=Resolve=] |backpressurePromise| with undefined.
+    1. Set |backpressurePromise| to undefined.
+ 1. Add a handler for |port|'s {{MessagePort/messageerror}} event with the following steps:
+  1. Let |error| be a new "{{DataCloneError}}" {{DOMException}}.
+  1. Perform ! [$CrossRealmTransformSendError$](|port|, |error|).
+  1. Perform ! [$WritableStreamDefaultControllerError$](|controller|, |error|).
+  1. Disentangle |port|.
+ 1. Enable |port|'s [=port message queue=].
+ 1. Let |startAlgorithm| be an algorithm that returns undefined.
+ 1. Let |writeAlgorithm| be the following steps, taking a |chunk| argument:
+  1. If |backpressurePromise| is undefined, set |backpressurePromise| to
+     [=a promise resolved with=] undefined.
+  1. Return the result of [=reacting=] to |backpressurePromise| with the following
+     fulfillment steps:
+   1. Set |backpressurePromise| to [=a new promise=].
+   1. Let |result| be [$PackAndPostMessageHandlingError$](|port|, "`chunk`", |chunk|).
+   1. If |result| is an abrupt completion,
+    1. Disentangle |port|.
+    1. Return [=a promise rejected with=] |result|.\[[Value]].
+   1. Otherwise, return [=a promise resolved with=] undefined.
+ 1. Let |closeAlgorithm| be the folowing steps:
+  1. Perform ! [$PackAndPostMessage$](|port|, "`close`", undefined).
+  1. Disentangle |port|.
+  1. Return [=a promise resolved with=] undefined.
+ 1. Let |abortAlgorithm| be the following steps, taking a |reason| argument:
+  1. Let |result| be [$PackAndPostMessageHandlingError$](|port|, "`error`", |reason|).
+  1. Disentangle |port|.
+  1. If |result| is an abrupt completion, return [=a promise rejected with=] |result|.\[[Value]].
+  1. Otherwise, return [=a promise resolved with=] undefined.
+ 1. Let |sizeAlgorithm| be an algorithm that returns 1.
+ 1. Perform ! [$SetUpWritableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
+    |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|, 1, |sizeAlgorithm|).
+
+ <p class="note">Implementations are encouraged to explicitly handle failures from the asserts in
+ this algorithm, as the input might come from an untrusted context. Failure to do so could lead to
+ security issues.</p>
 </div>
 
 <h3 id="misc-abstract-ops">Miscellaneous</h4>
