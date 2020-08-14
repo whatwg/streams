@@ -516,7 +516,8 @@ table:
    {{ReadableByteStreamController}} created with the ability to control the state and queue of this
    stream
   <tr>
-   <td>\[[detached]]
+   <td><!-- TODO(ricea): Style this as <dfn unused> when that is supported.
+            See https://github.com/tabatkins/bikeshed/issues/1747 --><b>\[[detached]]</b>
    <td class="non-normative">A boolean flag set to true when the stream is transferred
   <tr>
    <td><dfn>\[[disturbed]]</dfn>
@@ -3540,7 +3541,7 @@ table:
   <td class="non-normative">A {{WritableStreamDefaultController}} created with the ability to
   control the state and queue of this stream
  <tr>
-  <td>\[[detached]]
+  <td><!-- TODO(ricea): Style this as <dfn unused> when that is supported --><b>\[[detached]]</b>
   <td class="non-normative">A boolean flag set to true when the stream is transferred
  <tr>
   <td><dfn>\[[inFlightWriteRequest]]</dfn>
@@ -5006,7 +5007,7 @@ table:
    <td class="non-normative">A {{TransformStreamDefaultController}} created with the ability to
    control [=TransformStream/[[readable]]=] and [=TransformStream/[[writable]]=]
   <tr>
-   <td>\[[detached]]
+   <td><!-- TODO(ricea): Style this as <dfn unused> when that is supported --><b>\[[detached]]</b>
    <td class="non-normative">A boolean flag set to true when the stream is transferred
   <tr>
    <td><dfn>\[[readable]]</dfn>
@@ -5196,8 +5197,8 @@ side=], or to terminate or error the stream.
  {{TransformStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
  and |dataHolder|, are:
 
- 1. Let |readable| be |value|.\[[readable]].
- 1. Let |writable| be |value|.\[[writable]].
+ 1. Let |readable| be |value|.[=TransformStream/[[readable]]=].
+ 1. Let |writable| be |value|.[=TransformStream/[[writable]]=].
  1. If ! [$IsReadableStreamLocked$](|readable|) is true, throw a "{{DataCloneError}}"
     {{DOMException}}.
  1. If ! [$IsWritableStreamLocked$](|writable|) is true, throw a "{{DataCloneError}}"
@@ -5215,13 +5216,15 @@ side=], or to terminate or error the stream.
     [=the current Realm=]).
  1. Let |writableRecord| be ! [$StructuredDeserializeWithTransfer$](|dataHolder|.\[[writable]],
     [=the current Realm=]).
- 1. Set |value|.\[[readable]] to |readableRecord|.\[[Deserialized]].
- 1. Set |value|.\[[writable]] to |writableRecord|.\[[Deserialized]].
- 1. Set |value|.\[[backpressure]], |value|.\[[backpressureChangePromise]], and
-    |value|.\[[transformStreamController]] to undefined.
+ 1. Set |value|.[=TransformStream/[[readable]]=] to |readableRecord|.\[[Deserialized]].
+ 1. Set |value|.[=TransformStream/[[writable]]=] to |writableRecord|.\[[Deserialized]].
+ 1. Set |value|.[=TransformStream/[[backpressure]]=],
+    |value|.[=TransformStream/[[backpressureChangePromise]]=], and
+    |value|.[=TransformStream/[[controller]]=] to undefined.
 
- <p class="note">The \[[backpressure]], \[[backpressureChangePromise]], and
- \[[transformStreamController]] slots are not used in a transferred {{TransformStream}}.</p>
+ <p class="note">The [=TransformStream/[[backpressure]]=],
+ [=TransformStream/[[backpressureChangePromise]]=], and [=TransformStream/[[controller]]=] slots are
+ not used in a transferred {{TransformStream}}.</p>
 </div>
 
 <h3 id="ts-default-controller-class">The {{TransformStreamDefaultController}} class</h3>
