@@ -516,8 +516,7 @@ table:
    {{ReadableByteStreamController}} created with the ability to control the state and queue of this
    stream
   <tr>
-   <td><!-- TODO(ricea): Style this as <dfn unused> when that is supported.
-            See https://github.com/tabatkins/bikeshed/issues/1747 --><b>\[[detached]]</b>
+   <td><dfn export>\[[detached]]</dfn>
    <td class="non-normative">A boolean flag set to true when the stream is transferred
   <tr>
    <td><dfn>\[[disturbed]]</dfn>
@@ -3541,7 +3540,7 @@ table:
   <td class="non-normative">A {{WritableStreamDefaultController}} created with the ability to
   control the state and queue of this stream
  <tr>
-  <td><!-- TODO(ricea): Style this as <dfn unused> when that is supported --><b>\[[detached]]</b>
+  <td><dfn export>\[[detached]]</dfn>
   <td class="non-normative">A boolean flag set to true when the stream is transferred
  <tr>
   <td><dfn>\[[inFlightWriteRequest]]</dfn>
@@ -5007,7 +5006,7 @@ table:
    <td class="non-normative">A {{TransformStreamDefaultController}} created with the ability to
    control [=TransformStream/[[readable]]=] and [=TransformStream/[[writable]]=]
   <tr>
-   <td><!-- TODO(ricea): Style this as <dfn unused> when that is supported --><b>\[[detached]]</b>
+   <td><dfn export>\[[detached]]</dfn>
    <td class="non-normative">A boolean flag set to true when the stream is transferred
   <tr>
    <td><dfn>\[[readable]]</dfn>
