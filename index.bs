@@ -516,7 +516,7 @@ table:
    {{ReadableByteStreamController}} created with the ability to control the state and queue of this
    stream
   <tr>
-   <td><dfn export>\[[detached]]</dfn>
+   <td><dfn export>\[[Detached]]</dfn>
    <td class="non-normative">A boolean flag set to true when the stream is transferred
   <tr>
    <td><dfn>\[[disturbed]]</dfn>
@@ -3540,7 +3540,7 @@ table:
   <td class="non-normative">A {{WritableStreamDefaultController}} created with the ability to
   control the state and queue of this stream
  <tr>
-  <td><dfn export>\[[detached]]</dfn>
+  <td><dfn export>\[[Detached]]</dfn>
   <td class="non-normative">A boolean flag set to true when the stream is transferred
  <tr>
   <td><dfn>\[[inFlightWriteRequest]]</dfn>
@@ -5006,7 +5006,7 @@ table:
    <td class="non-normative">A {{TransformStreamDefaultController}} created with the ability to
    control [=TransformStream/[[readable]]=] and [=TransformStream/[[writable]]=]
   <tr>
-   <td><dfn export>\[[detached]]</dfn>
+   <td><dfn export>\[[Detached]]</dfn>
    <td class="non-normative">A boolean flag set to true when the stream is transferred
   <tr>
    <td><dfn>\[[readable]]</dfn>
