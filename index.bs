@@ -5158,7 +5158,6 @@ side=], or to terminate or error the stream.
     |writableSizeAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
  1. Perform ? [$SetUpTransformStreamDefaultControllerFromTransformer$]([=this=], |transformer|,
     |transformerDict|).
- 1. Let |startPromise| be [=a new promise=].
  1. If |transformerDict|["{{Transformer/start}}"] [=map/exists=], then [=resolve=] |startPromise|
     with the result of [=invoking=] |transformerDict|["{{Transformer/start}}"] with argument list
     «&nbsp;[=this=].[=TransformStream/[[controller]]=]&nbsp;» and [=callback this value=]
