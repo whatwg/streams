@@ -5286,7 +5286,7 @@ the following table:
 
  <dt><code><var ignore>controller</var>.{{TransformStreamDefaultController/error()|error}}(<var ignore>e</var>)</code>
  <dd>
-  <p>Errors the both the [=readable side=] and the [=writable side=] of the controlled transform
+  <p>Errors both the [=readable side=] and the [=writable side=] of the controlled transform
   stream, making all future interactions with it fail with the given error <var ignore>e</var>. Any
   [=chunks=] queued for transformation will be discarded.
 
