@@ -6863,6 +6863,67 @@ reader.read().catch(e => console.error(e));
 writer.write("{}").catch(e => console.error(e));
 </xmp>
 
+<h3 id="example-identity-transform-usages">Using an identity transform stream as a primitive to
+create new readable streams</h3>
+
+Combining an [=identity transform stream=] with {{pipeTo()}} is a powerful way to manipulate
+streams. This section contains a couple of examples of this general technique.
+
+It's sometimes natural to treat a promise for a [=readable stream=] as if it were a readable stream.
+A simple adapter function is all that's needed:
+
+<xmp highlight="js">
+function promiseToReadable(promiseForReadable) {
+  const ts = new TransformStream();
+
+  promiseForReadable
+      .then(readable => readable.pipeTo(ts.writable))
+      .catch(reason => ts.writable.abort(reason))
+      .catch(() => {});
+
+  return ts.readable;
+}
+</xmp>
+
+Here, we pipe the data to the [=writable side=] and return the [=readable side=]. If the pipe
+errors, we [=abort a writable stream|abort=] the writable side, which automatically propagates the
+error to the returned readable side. If the writable side had already been errored by
+{{ReadableStream/pipeTo()}}, then the {{WritableStream/abort()}} call will return a rejection, which
+we can safely ignore.
+
+A more complex extension of this is concatenating multiple readable streams into one:
+
+<xmp highlight="js">
+function concatenateReadables(readables) {
+  const ts = new TransformStream();
+  let promise = Promise.resolve();
+
+  for (const readable of readables) {
+    promise = promise.then(
+     () => readable.pipeTo(ts.writable, { preventClose: true }),
+     reason => {
+       return Promise.all([
+         ts.writable.abort(reason),
+         readable.cancel(reason)
+       ]);
+     }
+   );
+  }
+
+  promise.then(() => ts.writable.close(),
+               reason => ts.writable.abort(reason))
+         .catch(() => {});
+
+  return ts.readable;
+}
+</xmp>
+
+The error handling here is subtle because canceling the concatenated stream has to cancel all the
+input streams. However, the success case is simple enough. We just pipe each stream in the
+<code>readables</code> iterable one at a time to the [=identity transform stream=]'s [=writable
+side=], and then close it when we are done. The [=readable side=] is then a concatenation of all the
+chunks from all of of the streams. We return it from the function. Backpressure is applied as usual.
+
 <h2 id="acks" class="no-num">Acknowledgments</h2>
 
 The editors would like to thank
