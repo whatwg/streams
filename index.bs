@@ -6357,21 +6357,22 @@ failures should be handled by the calling specification.
  <p class="note">This will throw an exception if |stream| is already locked.
 </div>
 
-<p algorithm>To <dfn export for="WritableStreamDefaultWriter">write a chunk</dfn> to a
-{{WritableStreamDefaultWriter}} |writer|, given a value |chunk|, perform !
-[$WritableStreamDefaultWriterWrite$](|writer|, |chunk|).
+<p algorithm>To <dfn export for="WritableStreamDefaultWriter" lt="write a chunk|writing a
+chunk">write a chunk</dfn> to a {{WritableStreamDefaultWriter}} |writer|, given a value |chunk|,
+return ! [$WritableStreamDefaultWriterWrite$](|writer|, |chunk|).
 
 <p algorithm>To <dfn export for="WritableStreamDefaultWriter">release</dfn> a
 {{WritableStreamDefaultWriter}} |writer|, perform !
 [$WritableStreamDefaultWriterRelease$](|writer|).
 
-<p algorithm>To <dfn export for="WritableStream">close</dfn> a {{WritableStream}} |stream|, return !
-[$WritableStreamClose$](|stream|). The return value will be a promise that either fulfills with
-undefined, or rejects with a failure reason.
+<p algorithm>To <dfn export for="WritableStream" lt="close|closing">close</dfn> a {{WritableStream}}
+|stream|, return ! [$WritableStreamClose$](|stream|). The return value will be a promise that either
+fulfills with undefined, or rejects with a failure reason.
 
-<p algorithm>To <dfn export for="WritableStream">abort</dfn> a {{WritableStream}} |stream| with
-|reason|, return ! [$WritableStreamAbort$](|stream|, |reason|). The return value will be a promise
-that either fulfills with undefined, or rejects with a failure reason.
+<p algorithm>To <dfn export for="WritableStream" lt="abort|aborting">abort</dfn> a
+{{WritableStream}} |stream| with |reason|, return ! [$WritableStreamAbort$](|stream|, |reason|). The
+return value will be a promise that either fulfills with undefined, or rejects with a failure
+reason.
 
 <h3 id="other-specs-ts">Transform streams</h3>
 
