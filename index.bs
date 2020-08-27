@@ -6402,7 +6402,7 @@ reason.
  1. Perform ! [$SetUpTransformStreamDefaultController$](|stream|, |controller|,
     |transformAlgorithmWrapper|, |flushAlgorithmWrapper|).
  1. Return |stream|.
-</dfn>
+</div>
 
 <p algorithm>To <dfn export lt="create an identity TransformStream|creating an identity
 TransformStream">create an identity {{TransformStream}}</dfn>, return the result of
@@ -6472,6 +6472,81 @@ Existing examples of this pattern on the web platform include `CompressionStream
 base {{TransformStream}} class provides. The most common driver for such a wrapper is needing a
 custom [=constructor operation=], but if your conceptual transform stream isn't meant to be
 constructed, then using {{TransformStream}} directly is fine.
+
+<h3 id="other-specs-pairs">Other stream pairs</h3>
+
+Apart from [=transform streams=], discussed above, specifications often create pairs of [=readable
+stream|readable=] and [=writable stream|writable=] streams. This section gives some guidance for
+such situations.
+
+In all such cases, specifications should use the names `readable` and `writable` for the two
+properties exposing the streams in question. They should not use other names (such as
+`input`/`output` or `readableStream`/`writableStream`), and they should not use methods or other
+non-property means of access to the streams.
+
+<h4 id="other-specs-duplex">Duplex streams</h4>
+
+The most common readable/writable pair is a <dfn export>duplex stream</dfn>, where the readable and
+writable streams represent two sides of a single shared resource, such as a socket, connection, or
+device.
+
+The trickiest thing to consider when specifying duplex streams is how to handle operations like
+[=cancel a readable stream|canceling=] the readable side, or closing or [=abort a writable
+stream|aborting=] the writable side. It might make sense to leave duplex streams "half open", with
+such operations one one side not impacting the other side. Or it might be best to carry over their
+effects to the other side, e.g. by specifying that your readable side's
+<var ignore>[=ReadableStream/create/cancelAlgorithm=]</var> will [=WritableStream/close=] the
+writable side.
+
+<p class="example" id="example-basic-duplex">A basic example of a duplex stream, created through
+JavaScript instead of through specification prose, is found in [[#example-both]]. It illustrates
+this carry-over behavior.
+
+Another consideration is how to handle the creation of duplex streams which need to be acquired
+asynchronously, e.g. via establishing a connection. The preferred pattern here is to have a
+constructible class with a promise-returning property that fulfills with the actual duplex stream
+object. That duplex stream object can also then expose any information that is only available
+asynchronously, e.g. connection data. The container class can then provide convenience APIs, such as
+a function to close the entire connection instead of only closing individual sides.
+
+<p class="example" id="example-duplex-with-container">An example of this more complex type of duplex
+stream is the still-being-specified `WebSocketStream`. See its <a
+href="https://github.com/ricea/websocketstream-explainer/blob/master/README.md">explainer</a> and <a
+href="https://docs.google.com/document/d/1La1ehXw76HP6n1uUeks-WJGFgAnpX2tCjKts7QFJ57Y/edit#">design
+notes</a>.
+
+Because duplex streams obey the `readable`/`writable` property contract, they can be used with
+{{ReadableStream/pipeThrough()}}. This doesn't always make sense, but it could in cases where the
+underlying resource is in fact performing some sort of transformation.
+
+<p class="example" id="example-duplex-pipethrough">For an arbitrary WebSocket, piping through a
+WebSocket-derived duplex stream doesn't make sense. However, if the WebSocket server is specifically
+written so that it responds to incoming messages by sending the same data back in some transformed
+form, then this could be useful and convenient.
+
+<h4 id="other-specs-endpoints">Endpoint pairs</h4>
+
+Another type of readable/writable pair is a <dfn export>endpoint pair</dfn>. In these cases the
+readable and writable streams represent the two ends of a longer pipeline, with the intention that
+web developer code insert [=transform streams=] into the middle of them.
+
+<div class="example" id="example-endpoint-pair-usage">
+ Assuming we had a web-platform-provided function `createEndpointPair()`, web developers would write
+ code like so:
+
+ <xmp highlight="js">
+ const { readable, writable } = createEndpointPair();
+ readable.pipeThrough(new TransformStream(...)).pipeTo(writable);
+ </xmp>
+</div>
+
+<p class="example" id="example-endpoint-pair-webrtc"><cite>WebRTC Insertable Media using
+Streams</cite> is an example of this technique, with its `sender.createEncodedStreams()` and
+`receiver.createEncodedStreams()` methods.
+<!-- TODO cite it and cross-link to it https://github.com/tobie/specref/issues/620 -->
+
+Despite such endpoint pairs obeying the `readable`/`writable` property contract, it never makes
+sense to pass them to {{ReadableStream/pipeThrough()}}.
 
 <h2 id="creating-examples">Examples of creating streams</h2>
 
