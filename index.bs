@@ -6194,12 +6194,12 @@ failures should be handled by the calling specification.
  <p class="note">This will throw an exception if |stream| is already [=ReadableStream/locked=].
 </div>
 
-<p algorithm>To <dfn export for="ReadableStreamReader">read a chunk</dfn> from a
+<p algorithm>To <dfn export for="ReadableStreamDefaultReader">read a chunk</dfn> from a
 {{ReadableStreamDefaultReader}} |reader|, given a [=read request=] |readRequest|, perform !
 [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
 
 <div algorithm="read all bytes">
- <p>To <dfn export for="ReadableStreamReader" lt="read all bytes|reading all bytes">read all
+ <p>To <dfn export for="ReadableStreamDefaultReader" lt="read all bytes|reading all bytes">read all
  bytes</dfn> from a {{ReadableStreamDefaultReader}} |reader|, perform the following steps. The
  result will be a {{Promise}} for a [=byte sequence=].
 
@@ -6233,11 +6233,11 @@ failures should be handled by the calling specification.
  mechanism if convenient.
 </div>
 
-<p algorithm>To <dfn export for="ReadableStreamReader">release a reader</dfn> given a
+<p algorithm>To <dfn export for="ReadableStreamDefaultReader">release</dfn> a
 {{ReadableStreamDefaultReader}} |reader|, perform !
 [$ReadableStreamReaderGenericRelease$](|reader|).
 
-<p algorithm>To <dfn export for="ReadableStreamReader">cancel</dfn> a
+<p algorithm>To <dfn export for="ReadableStreamDefaultReader">cancel</dfn> a
 {{ReadableStreamDefaultReader}} |reader| with |reason|, perform !
 [$ReadableStreamReaderGenericCancel$](|reader|, |reason|). The return value will be a promise
 that either fulfills with undefined, or rejects with a failure reason.
@@ -6357,11 +6357,11 @@ failures should be handled by the calling specification.
  <p class="note">This will throw an exception if |stream| is already locked.
 </div>
 
-<p algorithm>To <dfn export for="WritableStream">write a chunk</dfn> to a
+<p algorithm>To <dfn export for="WritableStreamDefaultWriter">write a chunk</dfn> to a
 {{WritableStreamDefaultWriter}} |writer|, given a value |chunk|, perform !
 [$WritableStreamDefaultWriterWrite$](|writer|, |chunk|).
 
-<p algorithm>To <dfn export for="WritableStream">release a writer</dfn> given a
+<p algorithm>To <dfn export for="WritableStreamDefaultWriter">release</dfn> a
 {{WritableStreamDefaultWriter}} |writer|, perform !
 [$WritableStreamDefaultWriterRelease$](|writer|).
 
