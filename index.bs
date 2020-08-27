@@ -6168,10 +6168,10 @@ JavaScript value |e|, perform !
 [$ReadableStreamDefaultControllerError$](|stream|.[=ReadableStream/[[controller]]=], |e|).
 
 <div algorithm>
- To <dfn export for="ReadableStream">create a proxy</dfn> around a {{ReadableStream}} |stream|,
- perform the following steps. The result will be a new {{ReadableStream}} object which pulls its
- data from |stream|, while |stream| itself becomes immediately [=ReadableStream/locked=] and
- [=ReadableStream/disturbed=].
+ To <dfn export for="ReadableStream" lt="create a proxy|creating a proxy">create a proxy</dfn> for a
+ {{ReadableStream}} |stream|, perform the following steps. The result will be a new
+ {{ReadableStream}} object which pulls its data from |stream|, while |stream| itself becomes
+ immediately [=ReadableStream/locked=] and [=ReadableStream/disturbed=].
 
  1. Let |identityTransform| be the result of <a>creating an identity `TransformStream`</a>.
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|stream|,
@@ -6187,9 +6187,9 @@ are created by web developers. They can all fail in various operation-specific w
 failures should be handled by the calling specification.
 
 <div algorithm>
- <p>To <dfn export for="ReadableStream">get a reader</dfn> for a {{ReadableStream}} |stream|, return
- ? [$AcquireReadableStreamDefaultReader$](|stream|). The result will be a
- {{ReadableStreamDefaultReader}}.
+ <p>To <dfn export for="ReadableStream" lt="get a reader|getting a reader">get a reader</dfn> for a
+ {{ReadableStream}} |stream|, return ? [$AcquireReadableStreamDefaultReader$](|stream|). The result
+ will be a {{ReadableStreamDefaultReader}}.
 
  <p class="note">This will throw an exception if |stream| is already [=ReadableStream/locked=].
 </div>
@@ -6199,8 +6199,9 @@ failures should be handled by the calling specification.
 [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
 
 <div algorithm="read all bytes">
- <p>To <dfn export for="ReadableStream">read all bytes</dfn> from a {{ReadableStreamDefaultReader}}
- |reader|, perform the following steps. The result will be a {{Promise}} for a [=byte sequence=].
+ <p>To <dfn export for="ReadableStream" lt="read all bytes|reading all bytes">read all bytes</dfn>
+ from a {{ReadableStreamDefaultReader}} |reader|, perform the following steps. The result will be a
+ {{Promise}} for a [=byte sequence=].
 
  1. Let |promise| be [=a new promise=].
  1. Let |bytes| be an empty [=byte sequence=].
@@ -6241,8 +6242,8 @@ failures should be handled by the calling specification.
 that either fulfills with undefined, or rejects with a failure reason.
 
 <div algorithm>
- <p>To <dfn export for="ReadableStream">tee</dfn> a {{ReadableStream}} |stream|, return ?
- [$ReadableStreamTee$](|stream|, true).
+ <p>To <dfn export for="ReadableStream" lt="tee|teeing">tee</dfn> a {{ReadableStream}} |stream|,
+ return ? [$ReadableStreamTee$](|stream|, true).
 
  <p class="note">Because we pass true as the second argument to [$ReadableStreamTee$], the second
  branch returned will have its [=chunks=] cloned (using HTML's [=serializable objects=] framework)
@@ -6344,9 +6345,9 @@ are created by web developers. They can all fail in various operation-specific w
 failures should be handled by the calling specification.
 
 <div algorithm>
- <p>To <dfn export for="WritableStream">get a writer</dfn> for a {{WritableStream}} |stream|,
- return ? [$AcquireWritableStreamDefaultWriter$](|stream|). The result will be a
- {{WritableStreamDefaultWriter}}.
+ <p>To <dfn export for="WritableStream" lt="get a writer|getting a writer">get a writer</dfn> for a
+ {{WritableStream}} |stream|, return ? [$AcquireWritableStreamDefaultWriter$](|stream|). The result
+ will be a {{WritableStreamDefaultWriter}}.
 
  <p class="note">This will throw an exception if |stream| is already locked.
 </div>
