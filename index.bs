@@ -6526,7 +6526,7 @@ form, then this could be useful and convenient.
 
 <h4 id="other-specs-endpoints">Endpoint pairs</h4>
 
-Another type of readable/writable pair is a <dfn export>endpoint pair</dfn>. In these cases the
+Another type of readable/writable pair is an <dfn export>endpoint pair</dfn>. In these cases the
 readable and writable streams represent the two ends of a longer pipeline, with the intention that
 web developer code insert [=transform streams=] into the middle of them.
 
