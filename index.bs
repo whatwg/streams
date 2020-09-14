@@ -2057,7 +2057,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
  1. Assert: |source| [=implements=] {{ReadableStream}}.
  1. Assert: |dest| [=implements=] {{WritableStream}}.
  1. Assert: |preventClose|, |preventAbort|, and |preventCancel| are all booleans.
- 1. If |signal| is not given, let |signal| be undefined.
+ 1. If |signal| was not given, let |signal| be undefined.
  1. Assert: either |signal| is undefined, or |signal| [=implements=] {{AbortSignal}}.
  1. Assert: ! [$IsReadableStreamLocked$](|source|) is false.
  1. Assert: ! [$IsWritableStreamLocked$](|dest|) is false.
@@ -6115,7 +6115,7 @@ to grow organically as needed.
  1. Let |cancelAlgorithmWrapper| be an algorithm that runs these steps:
   1. If |cancelAlgorithm| was given, run it.
   1. Return [=a promise resolved with=] undefined.
- 1. If |sizeAlgorithm| is not given, then set it to an algorithm that returns 1.
+ 1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
  1. Return ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithmWrapper|,
     |cancelAlgorithmWrapper|, |highWaterMark|, |sizeAlgorithm|).
 </div>
@@ -6136,7 +6136,7 @@ to grow organically as needed.
  1. Let |cancelAlgorithmWrapper| be an algorithm that runs these steps:
   1. If |cancelAlgorithm| was given, run it.
   1. Return [=a promise resolved with=] undefined.
- 1. If |sizeAlgorithm| is not given, then set it to an algorithm that returns 1.
+ 1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
  1. Perform [$InitializeReadableStream$](|stream|).
  1. Let |controller| be a [=new=] {{ReadableStreamDefaultController}}.
  1. Perform ! [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
@@ -6259,10 +6259,10 @@ that either fulfills with undefined, or rejects with a failure reason.
 <h4 id="other-specs-rs-introspect">Introspection</h4>
 
 The following predicates can be used on arbitrary {{ReadableStream}} objects. However, note that
-this direct introspection is not possible via the public JavaScript API, and so specifications
-should instead use the algorithms in [[#other-specs-rs-reading]]. (For
-example, instead of testing if the stream is [=ReadableStream/locked=], attempt to
-[=ReadableStream/get a reader=] and handle any exception.)
+apart from checking whether or not the stream is [=ReadableStream/locked=], this direct
+introspection is not possible via the public JavaScript API, and so specifications should instead
+use the algorithms in [[#other-specs-rs-reading]]. (For example, instead of testing if the stream is
+[=ReadableStream/readable=], attempt to [=ReadableStream/get a reader=] and handle any exception.)
 
 <p algorithm>A {{ReadableStream}} |stream| is <dfn export for="ReadableStream">readable</dfn> if
 |stream|.[=ReadableStream/[[state]]=] is "`readable`".
@@ -6310,7 +6310,7 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
  1. Let |abortAlgorithmWrapper| be an algorithm that runs these steps:
   1. If |abortAlgorithm| was given, return the result of running it.
   1. Return [=a promise resolved with=] undefined.
- 1. If |sizeAlgorithm| is not given, then set it to an algorithm that returns 1.
+ 1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
  1. Return ! [$CreateWritableStream$](|startAlgorithm|, |writeAlgorithm|, |closeAlgorithmWrapper|,
     |abortAlgorithmWrapper|, |highWaterMark|, |sizeAlgorithm|).
 </div>
@@ -6332,7 +6332,7 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
  1. Let |abortAlgorithmWrapper| be an algorithm that runs these steps:
   1. If |abortAlgorithm| was given, return the result of running it.
   1. Return [=a promise resolved with=] undefined.
- 1. If |sizeAlgorithm| is not given, then set it to an algorithm that returns 1.
+ 1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
  1. Perform [$InitializeWritableStream$](|stream|).
  1. Let |controller| be a [=new=] {{WritableStreamDefaultController}}.
  1. Perform ! [$SetUpWritableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
