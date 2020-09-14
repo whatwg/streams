@@ -6459,7 +6459,7 @@ function makeReadableByteFileStream(filename) {
       fileHandle = await fs.open(filename, "r");
     },
 
-    pull(controller) {
+    async pull(controller) {
       // Even when the consumer is using the default reader, the auto-allocation
       // feature allocates a buffer and passes it to us via byobRequest.
       const v = controller.byobRequest.view;
