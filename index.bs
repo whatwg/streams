@@ -62,7 +62,7 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
 </pre>
 
 <style>
-  .algorithm + .algorithm { margin-top: 3em; }
+  div.algorithm + div.algorithm { margin-top: 3em; }
 </style>
 
 <h2 id="intro">Introduction</h2>
@@ -201,7 +201,9 @@ easier to create such a pair that is properly entangled. It wraps a <dfn>transfo
 defines algorithms for the specific transformation to be performed. For web developer–created
 streams, the implementation details of a transformer are provided by <a href="#transformer-api">an
 object with certain methods and properties</a> that is passed to the {{TransformStream()}}
-constructor.
+constructor. Other specifications might use the {{GenericTransformStream}} mixin to create classes
+with the same <code>writable</code>/<code>readable</code> property pair but other custom APIs
+layered on top.
 
 An <dfn export>identity transform stream</dfn> is a type of transform stream which forwards all
 [=chunks=] written to its [=writable side=] to its [=readable side=], without any changes. This can
@@ -1987,14 +1989,12 @@ following table:
 
 <h4 id="rs-abstract-ops">Working with readable streams</h4>
 
-The following abstract operations operate on {{ReadableStream}} instances at a higher level. Some
-are even meant to be generally useful by other specifications.
+The following abstract operations operate on {{ReadableStream}} instances at a higher level.
 
 <div algorithm>
- <dfn abstract-op lt="AcquireReadableStreamBYOBReader" id="acquire-readable-stream-byob-reader"
- export>AcquireReadableStreamBYOBReader(|stream|)</dfn> is meant to be called from other
- specifications that wish to acquire a [=BYOB reader=] for a given stream. It performs the following
- steps:
+ <dfn abstract-op lt="AcquireReadableStreamBYOBReader"
+ id="acquire-readable-stream-byob-reader">AcquireReadableStreamBYOBReader(|stream|)</dfn> performs
+ the following steps:
 
  1. Let |reader| be a [=new=] {{ReadableStreamBYOBReader}}.
  1. Perform ? [$SetUpReadableStreamBYOBReader$](|reader|, |stream|).
@@ -2002,26 +2002,19 @@ are even meant to be generally useful by other specifications.
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="AcquireReadableStreamDefaultReader" id="acquire-readable-stream-reader"
- export>AcquireReadableStreamDefaultReader(|stream|)</dfn> is meant to be called from other
- specifications that wish to acquire a [=default reader=] for a given stream. It performs the
+ <dfn abstract-op lt="AcquireReadableStreamDefaultReader"
+ id="acquire-readable-stream-reader">AcquireReadableStreamDefaultReader(|stream|)</dfn> performs the
  following steps:
 
   1. Let |reader| be a [=new=] {{ReadableStreamDefaultReader}}.
-  1. Perform [$SetUpReadableStreamDefaultReader$](|reader|, |stream|).
+  1. Perform ? [$SetUpReadableStreamDefaultReader$](|reader|, |stream|).
   1. Return |reader|.
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="CreateReadableStream" id="create-readable-stream"
- export>CreateReadableStream(|startAlgorithm|, |pullAlgorithm|, |cancelAlgorithm|[,
- |highWaterMark|, [, |sizeAlgorithm|]])</dfn> is meant to be called from other specifications that
- wish to create {{ReadableStream}} instances. The |pullAlgorithm| and |cancelAlgorithm| algorithms
- must return promises; if supplied, |sizeAlgorithm| must be an algorithm accepting [=chunk=]
- objects and returning a number; and if supplied, |highWaterMark| must be a non-negative, non-NaN
- number.
-
- It performs the following steps:
+ <dfn abstract-op lt="CreateReadableStream"
+ id="create-readable-stream">CreateReadableStream(|startAlgorithm|, |pullAlgorithm|,
+ |cancelAlgorithm|[, |highWaterMark|, [, |sizeAlgorithm|]])</dfn> performs the following steps:
 
  1. If |highWaterMark| was not passed, set it to 1.
  1. If |sizeAlgorithm| was not passed, set it to an algorithm that returns 1.
@@ -2031,34 +2024,6 @@ are even meant to be generally useful by other specifications.
  1. Let |controller| be a [=new=] {{ReadableStreamDefaultController}}.
  1. Perform ? [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
     |pullAlgorithm|, |cancelAlgorithm|, |highWaterMark|, |sizeAlgorithm|).
- 1. Return |stream|.
-
- <p class="note">This abstract operation will throw an exception if and only if the supplied
- |startAlgorithm| throws.
-</div>
-
-<div algorithm>
- <dfn abstract-op lt="CreateReadableByteStream" id="create-readable-byte-stream"
- export>CreateReadableByteStream(|startAlgorithm|, |pullAlgorithm|, |cancelAlgorithm|[,
- |highWaterMark|, [, |autoAllocateChunkSize|]])</dfn> is meant to be called from other
- specifications that wish to create {{ReadableStream}} instances that represent [=readable byte
- streams=]. The |pullAlgorithm| and |cancelAlgorithm| algorithms must return promises; if supplied,
- |highWaterMark| must be a non-negative, non-NaN number, and, if supplied, |autoAllocateChunkSize|
- must be a positive integer.
-
- It performs the following steps:
-
- 1. If |highWaterMark| was not passed, set it to 0.
- 1. If |autoAllocateChunkSize| was not passed, set it to undefined.
- 1. Assert: ! [$IsNonNegativeNumber$](|highWaterMark|) is true.
- 1. If |autoAllocateChunkSize| is not undefined,
-  1. Assert: ! [$IsInteger$](|autoAllocateChunkSize|) is true.
-  1. Assert: |autoAllocateChunkSize| is positive.
- 1. Let |stream| be a [=new=] {{ReadableStream}}.
- 1. Perform ! [$InitializeReadableStream$](|stream|).
- 1. Let |controller| be a [=new=] {{ReadableByteStreamController}}.
- 1. Perform ? [$SetUpReadableByteStreamController$](|stream|, |controller|, |startAlgorithm|,
-    |pullAlgorithm|, |cancelAlgorithm|, |highWaterMark|, |autoAllocateChunkSize|).
  1. Return |stream|.
 
  <p class="note">This abstract operation will throw an exception if and only if the supplied
@@ -2077,33 +2042,22 @@ are even meant to be generally useful by other specifications.
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="IsReadableStreamDisturbed" id="is-readable-stream-disturbed"
- export>IsReadableStreamDisturbed(|stream|)</dfn> is meant to be called from other specifications
- that wish to query whether or not a readable stream has ever been read from or canceled. It
- performs the following steps:
-
- 1. Return |stream|.[=ReadableStream/[[disturbed]]=].
-</div>
-
-<div algorithm>
- <dfn abstract-op lt="IsReadableStreamLocked" id="is-readable-stream-locked"
- export>IsReadableStreamLocked(|stream|)</dfn> is meant to be called from other specifications
- that wish to query whether or not a readable stream is [=locked to a reader=].
+ <dfn abstract-op lt="IsReadableStreamLocked"
+ id="is-readable-stream-locked">IsReadableStreamLocked(|stream|)</dfn> performs the following steps:
 
  1. If |stream|.[=ReadableStream/[[reader]]=] is undefined, return false.
  1. Return true.
 </div>
 
 <div algorithm="ReadableStreamPipeTo">
- <dfn abstract-op lt="ReadableStreamPipeTo" id="readable-stream-pipe-to"
- export>ReadableStreamPipeTo(|source|, |dest|, |preventClose|, |preventAbort|, |preventCancel|[,
- |signal|])</dfn> is meant to be called from other specifications that wish to [=piping|pipe=] a
- given readable stream to a destination [=writable stream=]. It performs the following steps:
+ <dfn abstract-op lt="ReadableStreamPipeTo"
+ id="readable-stream-pipe-to">ReadableStreamPipeTo(|source|, |dest|, |preventClose|, |preventAbort|,
+ |preventCancel|[, |signal|])</dfn> performs the following steps:
 
  1. Assert: |source| [=implements=] {{ReadableStream}}.
  1. Assert: |dest| [=implements=] {{WritableStream}}.
  1. Assert: |preventClose|, |preventAbort|, and |preventCancel| are all booleans.
- 1. If |signal| is not given, let |signal| be undefined.
+ 1. If |signal| was not given, let |signal| be undefined.
  1. Assert: either |signal| is undefined, or |signal| [=implements=] {{AbortSignal}}.
  1. Assert: ! [$IsReadableStreamLocked$](|source|) is false.
  1. Assert: ! [$IsWritableStreamLocked$](|dest|) is false.
@@ -2224,9 +2178,8 @@ of the locking, none of these objects can be observed by author code. As such, t
 create them does not matter.
 
 <div algorithm>
- <dfn abstract-op lt="ReadableStreamTee" id="readable-stream-tee" export>ReadableStreamTee(|stream|,
- |cloneForBranch2|)</dfn> is meant to be called from other specifications that wish to [=tee a
- readable stream|tee=] a given readable stream.
+ <dfn abstract-op lt="ReadableStreamTee" id="readable-stream-tee">ReadableStreamTee(|stream|,
+ |cloneForBranch2|)</dfn> will [=tee a readable stream|tee=] a given readable stream.
 
  The second argument, |cloneForBranch2|, governs whether or not the data from the original stream
  will be cloned (using HTML's [=serializable objects=] framework) before appearing in the second of
@@ -2236,7 +2189,7 @@ create them does not matter.
  the two branches, and limits the possible [=chunks=] to serializable ones. [[!HTML]]
 
  <p class="note">In this standard ReadableStreamTee is always called with |cloneForBranch2| set to
- false; other specifications pass true.
+ false; other specifications pass true via the [=ReadableStream/tee=] wrapper algorithm.
 
  It performs the following steps:
 
@@ -2376,8 +2329,9 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableStreamCancel" id="readable-stream-cancel"
- export>ReadableStreamCancel(|stream|, |reason|)</dfn> performs the following steps:
+ <dfn abstract-op lt="ReadableStreamCancel"
+ id="readable-stream-cancel">ReadableStreamCancel(|stream|, |reason|)</dfn> performs the following
+ steps:
 
  1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`", return [=a promise resolved with=]
@@ -2671,13 +2625,8 @@ The following abstract operations support the implementation of the
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamDefaultControllerClose"
- id="readable-stream-default-controller-close"
- export>ReadableStreamDefaultControllerClose(|controller|)</dfn> can be called by other
- specifications that wish to close a readable stream, in the same way a developer-created stream
- would be closed by its associated controller object. Specifications should <em>not</em> do this to
- streams or controllers they did not create.
-
- It performs the following steps:
+ id="readable-stream-default-controller-close">ReadableStreamDefaultControllerClose(|controller|)</dfn>
+ performs the following steps:
 
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is false, return.
  1. Let |stream| be |controller|.[=ReadableStreamDefaultController/[[stream]]=].
@@ -2689,13 +2638,8 @@ The following abstract operations support the implementation of the
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamDefaultControllerEnqueue"
- id="readable-stream-default-controller-enqueue"
- export>ReadableStreamDefaultControllerEnqueue(|controller|, |chunk|)</dfn> can be called by other
- specifications that wish to enqueue [=chunks=] in a readable stream, in the same way a developer
- would enqueue chunks using the stream's associated controller object. Specifications should
- <em>not</em> do this to streams or controllers they did not create.
-
- It performs the following steps:
+ id="readable-stream-default-controller-enqueue">ReadableStreamDefaultControllerEnqueue(|controller|,
+ |chunk|)</dfn> performs the following steps:
 
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is false, return.
  1. Let |stream| be |controller|.[=ReadableStreamDefaultController/[[stream]]=].
@@ -2719,13 +2663,8 @@ The following abstract operations support the implementation of the
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamDefaultControllerError"
- id="readable-stream-default-controller-error"
- export>ReadableStreamDefaultControllerError(|controller|, |e|)</dfn> can be called by other
- specifications that wish to move a readable stream to an errored state, in the same way a
- developer would error a stream using its associated controller object. Specifications should
- <em>not</em> do this to streams or controllers they did not create.
-
- It performs the following steps:
+ id="readable-stream-default-controller-error">ReadableStreamDefaultControllerError(|controller|,
+ |e|)</dfn> performs the following steps:
 
  1. Let |stream| be |controller|.[=ReadableStreamDefaultController/[[stream]]=].
  1. If |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
@@ -2736,14 +2675,8 @@ The following abstract operations support the implementation of the
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamDefaultControllerGetDesiredSize"
- id="readable-stream-default-controller-get-desired-size"
- export>ReadableStreamDefaultControllerGetDesiredSize(|controller|)</dfn> can be called by other
- specifications that wish to determine the [=desired size to fill a stream's internal queue|desired
- size to fill this stream's internal queue=], similar to how a developer would consult the
- {{ReadableStreamDefaultController/desiredSize}} property of the stream's associated controller
- object. Specifications should <em>not</em> use this on streams or controllers they did not create.
-
- It performs the following steps:
+ id="readable-stream-default-controller-get-desired-size">ReadableStreamDefaultControllerGetDesiredSize(|controller|)</dfn>
+ performs the following steps:
 
  1. Let |state| be
     |controller|.[=ReadableStreamDefaultController/[[stream]]=].[=ReadableStream/[[state]]=].
@@ -4150,15 +4083,12 @@ as such the counterpart internal methods are used polymorphically.
 
 <h4 id="ws-abstract-ops">Working with writable streams</h4>
 
-The following abstract operations operate on {{WritableStream}} instances at a higher level. Some
-are even meant to be generally useful by other specifications.
+The following abstract operations operate on {{WritableStream}} instances at a higher level.
 
 <div algorithm>
  <dfn abstract-op lt="AcquireWritableStreamDefaultWriter"
- id="acquire-writable-stream-default-writer"
- export>AcquireWritableStreamDefaultWriter(|stream|)</dfn> is meant to be called from other
- specifications that wish to acquire a [=writer=] for a given writable stream. It performs the
- following steps:
+ id="acquire-writable-stream-default-writer">AcquireWritableStreamDefaultWriter(|stream|)</dfn>
+ performs the following steps:
 
  1. Let |writer| be a [=new=] {{WritableStreamDefaultWriter}}.
  1. Perform ? [$SetUpWritableStreamDefaultWriter$](|writer|, |stream|).
@@ -4166,18 +4096,11 @@ are even meant to be generally useful by other specifications.
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="CreateWritableStream" id="create-writable-stream"
- export>CreateWritableStream(|startAlgorithm|, |writeAlgorithm|, |closeAlgorithm|,
- |abortAlgorithm|[, |highWaterMark|[, |sizeAlgorithm|]])</dfn> is meant to be called from other
- specifications that wish to create {{WritableStream}} instances. The |writeAlgorithm|,
- |closeAlgorithm|, and |abortAlgorithm| algorithms must return promises; if supplied,
- |sizeAlgorithm| must be an algorithm accepting [=chunk=] objects and returning a number; and if
- supplied, |highWaterMark| must be a non-negative, non-NaN number.
+ <dfn abstract-op lt="CreateWritableStream"
+ id="create-writable-stream">CreateWritableStream(|startAlgorithm|, |writeAlgorithm|,
+ |closeAlgorithm|, |abortAlgorithm|, |highWaterMark|, |sizeAlgorithm|)</dfn> performs the following
+ steps:
 
- It performs the following steps:
-
- 1. If |highWaterMark| was not passed, set it to 1.
- 1. If |sizeAlgorithm| was not passed, set it to an algorithm that returns 1.
  1. Assert: ! [$IsNonNegativeNumber$](|highWaterMark|) is true.
  1. Let |stream| be a [=new=] {{WritableStream}}.
  1. Perform ! [$InitializeWritableStream$](|stream|).
@@ -4208,9 +4131,7 @@ are even meant to be generally useful by other specifications.
 
 <div algorithm>
  <dfn abstract-op lt="IsWritableStreamLocked"
- id="is-writable-stream-locked">IsWritableStreamLocked(|stream|)</dfn> is meant to be called from
- other specifications that wish to query whether or not a writable stream is [=locked to a writer=].
- It performs the following steps:
+ id="is-writable-stream-locked">IsWritableStreamLocked(|stream|)</dfn> performs the following steps:
 
  1. If |stream|.[=WritableStream/[[writer]]=] is undefined, return false.
  1. Return true.
@@ -5330,41 +5251,7 @@ the following table:
 
 <h4 id="ts-abstract-ops">Working with transform streams</h4>
 
-The following abstract operations operate on {{TransformStream}} instances at a higher level. Some
-are even meant to be generally useful by other specifications.
-
-<div algorithm>
- <dfn abstract-op lt="CreateTransformStream" id="create-transform-stream"
- export>CreateTransformStream(|startAlgorithm|, |transformAlgorithm|, |flushAlgorithm|[,
- |writableHighWaterMark|[, |writableSizeAlgorithm|[, |readableHighWaterMark|[,
- |readableSizeAlgorithm|]]]])</dfn> is meant to be called from other specifications that wish to
- create {{TransformStream}} instances. The |transformAlgorithm| and |flushAlgorithm| algorithms
- must return promises; if supplied, |writableHighWaterMark| and |readableHighWaterMark| must be
- non-negative, non-NaN numbers; and if supplied, |writableSizeAlgorithm| and
- |readableSizeAlgorithm| must be algorithms accepting [=chunk=] objects and returning numbers.
-
- It performs the following steps:
-
- 1. If |writableHighWaterMark| was not passed, set it to 1.
- 1. If |writableSizeAlgorithm| was not passed, set it to an algorithm that returns 1.
- 1. If |readableHighWaterMark| was not passed, set it to 0.
- 1. If |readableSizeAlgorithm| was not passed, set it to an algorithm that returns 1.
- 1. Assert: ! [$IsNonNegativeNumber$](|writableHighWaterMark|) is true.
- 1. Assert: ! [$IsNonNegativeNumber$](|readableHighWaterMark|) is true.
- 1. Let |stream| be a [=new=] {{TransformStream}}.
- 1. Let |startPromise| be [=a new promise=].
- 1. Perform ! [$InitializeTransformStream$](|stream|, |startPromise|, |writableHighWaterMark|,
-    |writableSizeAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
- 1. Let |controller| be a [=new=] {{TransformStreamDefaultController}}.
- 1. Perform ! [$SetUpTransformStreamDefaultController$](|stream|, |controller|,
-    |transformAlgorithm|, |flushAlgorithm|).
- 1. Let |startResult| be the result of performing |startAlgorithm|. (This may throw an exception.)
- 1. [=Resolve=] |startPromise| with |startResult|.
- 1. Return |stream|.
-
- <p class="note">This abstract operation will throw an exception if and only if the supplied
- |startAlgorithm| throws.
-</div>
+The following abstract operations operate on {{TransformStream}} instances at a higher level.
 
 <div algorithm>
  <dfn abstract-op lt="InitializeTransformStream"
@@ -5473,7 +5360,7 @@ The following abstract operations support the implementaiton of the
  1. If |transformerDict|["{{Transformer/transform}}"] [=map/exists=], set |transformAlgorithm| to an
     algorithm which takes an argument |chunk| and returns the result of [=invoking=]
     |transformerDict|["{{Transformer/transform}}"] with argument list «&nbsp;|chunk|,
-    |controller|&nbsp;») and [=callback this value=] |transformer|.
+    |controller|&nbsp;» and [=callback this value=] |transformer|.
  1. If |transformerDict|["{{Transformer/flush}}"] [=map/exists=], set |flushAlgorithm| to an
     algorithm which returns the result of [=invoking=] |transformerDict|["{{Transformer/flush}}"]
     with argument list «&nbsp;|controller|&nbsp;» and [=callback this value=] |transformer|.
@@ -5501,13 +5388,8 @@ The following abstract operations support the implementaiton of the
 
 <div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultControllerEnqueue"
- id="transform-stream-default-controller-enqueue"
- export>TransformStreamDefaultControllerEnqueue(|controller|, |chunk|)</dfn> is meant to be called
- by other specifications that wish to enqueue [=chunks=] in the [=readable side=], in the same way
- a developer would enqueue chunks using the stream's associated controller object. Specifications
- should <em>not</em> do this to streams or controllers they did not create.
-
- It performs the following steps:
+ id="transform-stream-default-controller-enqueue">TransformStreamDefaultControllerEnqueue(|controller|,
+ |chunk|)</dfn> performs the following steps:
 
  1. Let |stream| be |controller|.[=TransformStreamDefaultController/[[stream]]=].
  1. Let |readableController| be
@@ -5528,13 +5410,8 @@ The following abstract operations support the implementaiton of the
 </div>
 <div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultControllerError"
- id="transform-stream-default-controller-error"
- export>TransformStreamDefaultControllerError(|controller|, |e|)</dfn> is meant to be called by
- other specifications that wish to move the transform stream to an errored state, in the same way a
- developer would error the stream using the stream's associated controller object. Specifications
- should <em>not</em> do this to streams or controllers they did not create.
-
- It performs the following steps:
+ id="transform-stream-default-controller-error">TransformStreamDefaultControllerError(|controller|,
+ |e|)</dfn> performs the following steps:
 
  1. Perform ! [$TransformStreamError$](|controller|.[=TransformStreamDefaultController/[[stream]]=],
     |e|).
@@ -5542,8 +5419,8 @@ The following abstract operations support the implementaiton of the
 
 <div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultControllerPerformTransform"
- id="transform-stream-default-controller-perform-transform">TransformStreamDefaultControllerPerformTransform(|controller|, |chunk|)</dfn>
- performs the following steps:
+ id="transform-stream-default-controller-perform-transform">TransformStreamDefaultControllerPerformTransform(|controller|,
+ |chunk|)</dfn> performs the following steps:
 
  1. Let |transformPromise| be the result of performing
     |controller|.[=TransformStreamDefaultController/[[transformAlgorithm]]=], passing |chunk|.
@@ -5556,13 +5433,8 @@ The following abstract operations support the implementaiton of the
 
 <div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultControllerTerminate"
- id="transform-stream-default-controller-terminate"
- export>TransformStreamDefaultControllerTerminate(|controller|)</dfn> is meant to be called by
- other specifications that wish to terminate the transform stream, in the same way a
- developer-created stream would be terminated by its associated controller object. Specifications
- should <em>not</em> do this to streams or controllers they did not create.
-
- It performs the following steps:
+ id="transform-stream-default-controller-terminate">TransformStreamDefaultControllerTerminate(|controller|)</dfn>
+ performs the following steps:
 
  1. Let |stream| be |controller|.[=TransformStreamDefaultController/[[stream]]=].
  1. Let |readableController| be
@@ -6207,6 +6079,479 @@ The following abstract operations are a grab-bag of utilities.
     \[[ArrayBufferData]] internal slot value is |arrayBufferData| and whose
     \[[ArrayBufferByteLength]] internal slot value is |arrayBufferByteLength|.
 </div>
+
+<h2 id="other-specs">Using streams in other specifications</h2>
+
+Much of this standard concerns itself with the internal machinery of streams. Other specifications
+generally do not need to worry about these details. Instead, they should interface with this
+standard via the various IDL types it defines, along with the following definitions.
+
+Specifications should not directly inspect or manipulate the various internal slots defined in this
+standard. Similarly, they should not use the abstract operations defined here. Such direct usage can
+break invariants that this standard otherwise maintains.
+
+<p class="note">If your specification wants to interface with streams in a way not supported here,
+<a href="https://github.com/whatwg/streams/issues/new">file an issue</a>. This section is intended
+to grow organically as needed.
+
+<h3 id="other-specs-rs">Readable streams</h3>
+
+<h4 id="other-specs-rs-create">Creation and manipulation</h4>
+
+<div algorithm="create a ReadableStream">
+ To <dfn export for="ReadableStream" lt="create|creating">create</dfn> a {{ReadableStream}} given an
+ optional algorithm <dfn export for="ReadableStream/create"><var>pullAlgorithm</var></dfn>, an
+ optional algorithm <dfn export for="ReadableStream/create"><var>cancelAlgorithm</var></dfn>, an
+ optional number <dfn export for="ReadableStream/create"><var>highWaterMark</var></dfn> (default 1),
+ an optional algorithm <dfn export for="ReadableStream/create"><var>sizeAlgorithm</var></dfn>,
+ perform the following steps. If given, |sizeAlgorithm| must be an algorithm accepting [=chunk=]
+ objects and returning a number; and if given, |highWaterMark| must be a non-negative, non-NaN
+ number.
+
+ 1. Let |startAlgorithm| be an algorithm that returns undefined.
+ 1. Let |pullAlgorithmWrapper| be an algorithm that runs these steps:
+  1. If |pullAlgorithm| was given, run it.
+  1. Return [=a promise resolved with=] undefined.
+ 1. Let |cancelAlgorithmWrapper| be an algorithm that runs these steps:
+  1. If |cancelAlgorithm| was given, run it.
+  1. Return [=a promise resolved with=] undefined.
+ 1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
+ 1. Return ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithmWrapper|,
+    |cancelAlgorithmWrapper|, |highWaterMark|, |sizeAlgorithm|).
+</div>
+
+<div algorithm="set up a ReadableStream">
+ To <dfn export for="ReadableStream">set up</dfn> an existing, but newly-[=new|created-via-Web IDL=]
+ {{ReadableStream}} object |stream|, given an optional algorithm <dfn export for="ReadableStream/set
+ up"><var>pullAlgorithm</var></dfn>, an optional algorithm <dfn export for="ReadableStream/set
+ up"><var>cancelAlgorithm</var></dfn>, an optional number <dfn export for="ReadableStream/set
+ up"><var>highWaterMark</var></dfn> (default 1), an optional algorithm <dfn export
+ for="ReadableStream/set up"><var>sizeAlgorithm</var></dfn>, perform the following steps.
+ Constraints on arguments are the same as for [=ReadableStream/create|creation=].
+
+ 1. Let |startAlgorithm| be an algorithm that returns undefined.
+ 1. Let |pullAlgorithmWrapper| be an algorithm that runs these steps:
+  1. If |pullAlgorithm| was given, run it.
+  1. Return [=a promise resolved with=] undefined.
+ 1. Let |cancelAlgorithmWrapper| be an algorithm that runs these steps:
+  1. If |cancelAlgorithm| was given, run it.
+  1. Return [=a promise resolved with=] undefined.
+ 1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
+ 1. Perform [$InitializeReadableStream$](|stream|).
+ 1. Let |controller| be a [=new=] {{ReadableStreamDefaultController}}.
+ 1. Perform ! [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
+    |pullAlgorithmWrapper|, |cancelAlgorithmWrapper|, |highWaterMark|, |sizeAlgorithm|).
+
+ <p class="note">This algorithm is mainly intended for use in the [=constructor operations=] of any
+ {{ReadableStream}} subclasses.
+</div>
+
+<hr>
+
+The following algorithms must only be used on {{ReadableStream}} instances created via the above
+[=ReadableStream/create|creation=] or [=ReadableStream/set up=] algorithms:
+
+<p algorithm>A {{ReadableStream}} |stream| <dfn export for="ReadableStream" lt="need more
+data|needs more data">needs more data</dfn> if |stream| is [=ReadableStream/readable=] and !
+[$ReadableStreamDefaultControllerGetDesiredSize$](|stream|.[=ReadableStream/[[controller]]=])
+returns a positive number.
+
+<p algorithm>To <dfn export for="ReadableStream">enqueue</dfn> the JavaScript value |chunk| into a
+{{ReadableStream}} |stream|, perform !
+[$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=], |chunk|).
+
+<p algorithm>To <dfn export for="ReadableStream">close</dfn> a {{ReadableStream}} |stream|, perform
+! [$ReadableStreamDefaultControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
+
+<p algorithm>To <dfn export for="ReadableStream">error</dfn> a {{ReadableStream}} |stream| given a
+JavaScript value |e|, perform !
+[$ReadableStreamDefaultControllerError$](|stream|.[=ReadableStream/[[controller]]=], |e|).
+
+<div algorithm>
+ To <dfn export for="ReadableStream" lt="create a proxy|creating a proxy">create a proxy</dfn> for a
+ {{ReadableStream}} |stream|, perform the following steps. The result will be a new
+ {{ReadableStream}} object which pulls its data from |stream|, while |stream| itself becomes
+ immediately [=ReadableStream/locked=] and [=ReadableStream/disturbed=].
+
+ 1. Let |identityTransform| be the result of <a>creating an identity `TransformStream`</a>.
+ 1. Let |promise| be ! [$ReadableStreamPipeTo$](|stream|,
+    |identityTransform|.[=TransformStream/[[writable]]=], false, false, false, undefined).
+ 1. Set |promise|.\[[PromiseIsHandled]] to true.
+ 1. Return |identityTransform|.[=TransformStream/[[readable]]=].
+</div>
+
+<h4 id="other-specs-rs-reading">Reading</h4>
+
+The following algorithms can be used on arbitrary {{ReadableStream}} instances, including ones that
+are created by web developers. They can all fail in various operation-specific ways, and these
+failures should be handled by the calling specification.
+
+<div algorithm>
+ <p>To <dfn export for="ReadableStream" lt="get a reader|getting a reader">get a reader</dfn> for a
+ {{ReadableStream}} |stream|, return ? [$AcquireReadableStreamDefaultReader$](|stream|). The result
+ will be a {{ReadableStreamDefaultReader}}.
+
+ <p class="note">This will throw an exception if |stream| is already [=ReadableStream/locked=].
+</div>
+
+<p algorithm>To <dfn export for="ReadableStreamDefaultReader">read a chunk</dfn> from a
+{{ReadableStreamDefaultReader}} |reader|, given a [=read request=] |readRequest|, perform !
+[$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
+
+<div algorithm="read all bytes">
+ <p>To <dfn export for="ReadableStreamDefaultReader" lt="read all bytes|reading all bytes">read all
+ bytes</dfn> from a {{ReadableStreamDefaultReader}} |reader|, perform the following steps. The
+ result will be a {{Promise}} for a [=byte sequence=].
+
+ 1. Let |promise| be [=a new promise=].
+ 1. Let |bytes| be an empty [=byte sequence=].
+ 1. [=Read-loop=] given |reader|, |bytes|, and |promise|.
+ 1. Return |promise|.
+
+ <div algorithm="read-loop">
+  For the purposes of the above algorithm, to <dfn>read-loop</dfn> given |reader|, |bytes|, and
+  |promise|:
+
+  1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
+   : [=read request/chunk steps=], given |chunk|
+   ::
+    1. If |chunk| is not a {{Uint8Array}} object, [=reject=] |promise| with a {{TypeError}} and
+       abort these steps.
+    1. Append the bytes represented by |chunk| to |bytes|.
+    1. [=Read-loop=] given |reader|, |bytes|, and |promise|.
+       <p class="note">This recursion could potentially cause a stack overflow if implemented
+       directly. Implementations will need to mitigate this, e.g. by using a non-recursive variant
+       of this algorithm, or [=queue a microtask|queuing a microtask=], or using a more direct
+       method of byte-reading as noted below.
+
+   : [=read request/close steps=]
+   ::
+    1. [=Resolve=] |promise| with |bytes|.
+   : [=read request/error steps=], given |e|
+   ::
+    1. [=Reject=] |promise| with |e|.
+  1. Perform ! [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
+ </div>
+
+ <p class="note">Because |reader| grants exclusive access to its corresponding {{ReadableStream}},
+ the actual mechanism of how to read cannot be observed. Implementations could use a more direct
+ mechanism if convenient.
+</div>
+
+<p algorithm>To <dfn export for="ReadableStreamDefaultReader">release</dfn> a
+{{ReadableStreamDefaultReader}} |reader|, perform !
+[$ReadableStreamReaderGenericRelease$](|reader|).
+
+<p algorithm>To <dfn export for="ReadableStreamDefaultReader">cancel</dfn> a
+{{ReadableStreamDefaultReader}} |reader| with |reason|, perform !
+[$ReadableStreamReaderGenericCancel$](|reader|, |reason|). The return value will be a promise
+that either fulfills with undefined, or rejects with a failure reason.
+
+<p algorithm>To <dfn export for="ReadableStream">cancel</dfn> a {{ReadableStream}} |stream| with
+|reason|, return ! [$ReadableStreamCancel$](|stream|, |reason|). The return value will be a promise
+that either fulfills with undefined, or rejects with a failure reason.
+
+<div algorithm>
+ <p>To <dfn export for="ReadableStream" lt="tee|teeing">tee</dfn> a {{ReadableStream}} |stream|,
+ return ? [$ReadableStreamTee$](|stream|, true).
+
+ <p class="note">Because we pass true as the second argument to [$ReadableStreamTee$], the second
+ branch returned will have its [=chunks=] cloned (using HTML's [=serializable objects=] framework)
+ from those of the first branch. This prevents consumption of one of the branches from interfering
+ with the other.
+</div>
+
+<h4 id="other-specs-rs-introspect">Introspection</h4>
+
+The following predicates can be used on arbitrary {{ReadableStream}} objects. However, note that
+apart from checking whether or not the stream is [=ReadableStream/locked=], this direct
+introspection is not possible via the public JavaScript API, and so specifications should instead
+use the algorithms in [[#other-specs-rs-reading]]. (For example, instead of testing if the stream is
+[=ReadableStream/readable=], attempt to [=ReadableStream/get a reader=] and handle any exception.)
+
+<p algorithm>A {{ReadableStream}} |stream| is <dfn export for="ReadableStream">readable</dfn> if
+|stream|.[=ReadableStream/[[state]]=] is "`readable`".
+
+<p algorithm>A {{ReadableStream}} |stream| is <dfn export for="ReadableStream">closed</dfn> if
+|stream|.[=ReadableStream/[[state]]=] is "`closed`".
+
+<p algorithm>A {{ReadableStream}} |stream| is <dfn export for="ReadableStream">errored</dfn> if
+|stream|.[=ReadableStream/[[state]]=] is "`errored`".
+
+<p algorithm="ReadableStream locked">A {{ReadableStream}} |stream| is <dfn export
+for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) returns true.
+
+<div algorithm>
+ <p>A {{ReadableStream}} |stream| is <dfn export for="ReadableStream"
+ id="is-readable-stream-disturbed">disturbed</dfn> if |stream|.[=ReadableStream/[[disturbed]]=] is
+ true.
+
+ <p class="note">This indicates whether the stream has ever been read from or canceled. Even more so
+ than other predicates in this section, it is best consulted sparingly, since this is not
+ information web developers have access to even indirectly. As such, branching platform behavior on
+ it is undesirable.
+</div>
+
+<h3 id="other-specs-ws">Writable streams</h3>
+
+<h4 id="other-specs-ws-creation">Creation and manipulation</h4>
+
+<div algorithm="create a WritableStream">
+ To <dfn export for="WritableStream" lt="create|creating">create</dfn> a {{WritableStream}} given an
+ algorithm <dfn export for="WritableStream/create"><var>writeAlgorithm</var></dfn>, an optional
+ algorithm <dfn export for="WritableStream/create"><var>closeAlgorithm</var></dfn>, an optional
+ algorithm <dfn export for="WritableStream/create"><var>abortAlgorithm</var></dfn>, an optional
+ number <dfn export for="WritableStream/create"><var>highWaterMark</var></dfn> (default 1), an
+ optional algorithm <dfn export for="WritableStream/create"><var>sizeAlgorithm</var></dfn>, perform
+ the following steps. |writeAlgorithm| must be an algorithm that accepts a [=chunk=] object and
+ returns a promise. If given, |closeAlgorithm| and |abortAlgorithm| must return a promise. If
+ given, |sizeAlgorithm| must be an algorithm accepting [=chunk=] objects and
+ returning a number; and if given, |highWaterMark| must be a non-negative, non-NaN number.
+
+ 1. Let |startAlgorithm| be an algorithm that returns undefined.
+ 1. Let |closeAlgorithmWrapper| be an algorithm that runs these steps:
+  1. If |closeAlgorithm| was given, return the result of running it.
+  1. Return [=a promise resolved with=] undefined.
+ 1. Let |abortAlgorithmWrapper| be an algorithm that runs these steps:
+  1. If |abortAlgorithm| was given, return the result of running it.
+  1. Return [=a promise resolved with=] undefined.
+ 1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
+ 1. Return ! [$CreateWritableStream$](|startAlgorithm|, |writeAlgorithm|, |closeAlgorithmWrapper|,
+    |abortAlgorithmWrapper|, |highWaterMark|, |sizeAlgorithm|).
+</div>
+
+<div algorithm="set up a WritableStream">
+ To <dfn export for="WritableStream">set up</dfn> an existing, but newly-[=new|created-via-Web IDL=]
+ {{WritableStream}} object |stream|, given an algorithm <dfn export for="WritableStream/set
+ up"><var>writeAlgorithm</var></dfn>, an optional algorithm <dfn export for="WritableStream/set
+ up"><var>closeAlgorithm</var></dfn>, an optional algorithm <dfn export for="WritableStream/set
+ up"><var>abortAlgorithm</var></dfn>, an optional number <dfn export for="WritableStream/set
+ up"><var>highWaterMark</var></dfn> (default 1), an optional algorithm <dfn export
+ for="WritableStream/set up"><var>sizeAlgorithm</var></dfn>, perform the following steps.
+ Constraints on arguments are the same as for [=WritableStream/create|creation=].
+
+ 1. Let |startAlgorithm| be an algorithm that returns undefined.
+ 1. Let |closeAlgorithmWrapper| be an algorithm that runs these steps:
+  1. If |closeAlgorithm| was given, return the result of running it.
+  1. Return [=a promise resolved with=] undefined.
+ 1. Let |abortAlgorithmWrapper| be an algorithm that runs these steps:
+  1. If |abortAlgorithm| was given, return the result of running it.
+  1. Return [=a promise resolved with=] undefined.
+ 1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
+ 1. Perform [$InitializeWritableStream$](|stream|).
+ 1. Let |controller| be a [=new=] {{WritableStreamDefaultController}}.
+ 1. Perform ! [$SetUpWritableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
+    |writeAlgorithm|, |closeAlgorithmWrapper|, |abortAlgorithmWrapper|, |highWaterMark|,
+    |sizeAlgorithm|).
+
+ <p class="note">This algorithm is mainly intended for use in the [=constructor operations=] of any
+ {{WritableStream}} subclasses.
+</div>
+
+<h4 id="other-specs-ws-writing">Writing</h4>
+
+The following algorithms can be used on arbitrary {{WritableStream}} instances, including ones that
+are created by web developers. They can all fail in various operation-specific ways, and these
+failures should be handled by the calling specification.
+
+<div algorithm>
+ <p>To <dfn export for="WritableStream" lt="get a writer|getting a writer">get a writer</dfn> for a
+ {{WritableStream}} |stream|, return ? [$AcquireWritableStreamDefaultWriter$](|stream|). The result
+ will be a {{WritableStreamDefaultWriter}}.
+
+ <p class="note">This will throw an exception if |stream| is already locked.
+</div>
+
+<p algorithm>To <dfn export for="WritableStreamDefaultWriter" lt="write a chunk|writing a
+chunk">write a chunk</dfn> to a {{WritableStreamDefaultWriter}} |writer|, given a value |chunk|,
+return ! [$WritableStreamDefaultWriterWrite$](|writer|, |chunk|).
+
+<p algorithm>To <dfn export for="WritableStreamDefaultWriter">release</dfn> a
+{{WritableStreamDefaultWriter}} |writer|, perform !
+[$WritableStreamDefaultWriterRelease$](|writer|).
+
+<p algorithm>To <dfn export for="WritableStream" lt="close|closing">close</dfn> a {{WritableStream}}
+|stream|, return ! [$WritableStreamClose$](|stream|). The return value will be a promise that either
+fulfills with undefined, or rejects with a failure reason.
+
+<p algorithm>To <dfn export for="WritableStream" lt="abort|aborting">abort</dfn> a
+{{WritableStream}} |stream| with |reason|, return ! [$WritableStreamAbort$](|stream|, |reason|). The
+return value will be a promise that either fulfills with undefined, or rejects with a failure
+reason.
+
+<h3 id="other-specs-ts">Transform streams</h3>
+
+<h4 id="other-specs-ts-creation">Creation and manipulation</h4>
+
+<div algorithm="create a TransformStream">
+ To <dfn export for="TransformStream" lt="create|creating">create</dfn> a {{TransformStream}} given
+ an algorithm <dfn export for="TransformStream/create"><var>transformAlgorithm</var></dfn> and an
+ optional algorithm <dfn export for="TransformStream/create"><var>flushAlgorithm</var></dfn>:
+
+ 1. Let |writableHighWaterMark| be 1.
+ 1. Let |writableSizeAlgorithm| be an algorithm that returns 1.
+ 1. Let |readableHighWaterMark| be 0.
+ 1. Let |readableSizeAlgorithm| be an algorithm that returns 1.
+ 1. Let |transformAlgorithmWrapper| be an algorithm that runs these steps given a value |chunk|:
+  1. Run |transformAlgorithm| given |chunk|. If this throws an exception |e|, return [=a promise
+     rejected with=] |e|.
+  1. Return [=a promise resolved with=] undefined.
+ 1. Let |flushAlgorithmWrapper| be an algorithm that runs these steps:
+  1. If |flushAlgorithm| was given, run it.
+  1. Return [=a promise resolved with=] undefined.
+ 1. Let |startPromise| be [=a promise resolved with=] undefined.
+ 1. Let |stream| be a [=new=] {{TransformStream}}.
+ 1. Perform ! [$InitializeTransformStream$](|stream|, |startPromise|, |writableHighWaterMark|,
+    |writableSizeAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
+ 1. Let |controller| be a [=new=] {{TransformStreamDefaultController}}.
+ 1. Perform ! [$SetUpTransformStreamDefaultController$](|stream|, |controller|,
+    |transformAlgorithmWrapper|, |flushAlgorithmWrapper|).
+ 1. Return |stream|.
+</div>
+
+<p algorithm>To <dfn export lt="create an identity TransformStream|creating an identity
+TransformStream">create an identity {{TransformStream}}</dfn>, return the result of
+[=TransformStream/creating=] a {{TransformStream}} with <var
+ignore>[=TransformStream/create/transformAlgorithm=]</var> set to an algorithm which, given |chunk|,
+[=TransformStream/enqueues=] |chunk| in the created {{TransformStream}}.
+
+<hr>
+
+The following algorithms must only be used on {{TransformStream}} instances created via the above
+[=TransformStream/create|creation=] algorithm. Usually they are called as part of
+<var>[=TransformStream/create/transformAlgorithm=]</var> or
+<var>[=TransformStream/create/flushAlgorithm=]</var>.
+
+<p algorithm>To <dfn export for="TransformStream">enqueue</dfn> the JavaScript value |chunk| into a
+{{TransformStream}} |stream|, perform !
+[$TransformStreamDefaultControllerEnqueue$](|stream|.[=TransformStream/[[controller]]=], |chunk|).
+
+<p algorithm>To <dfn export for="TransformStream">terminate</dfn> a {{TransformStream}} |stream|,
+perform !
+[$TransformStreamDefaultControllerTerminate$](|stream|.[=TransformStream/[[controller]]=]).
+
+<p algorithm>To <dfn export for="TransformStream">error</dfn> a {{TransformStream}} |stream| given a
+JavaScript value |e|, perform !
+[$TransformStreamDefaultControllerError$](|stream|.[=TransformStream/[[controller]]=], |e|).
+
+<h4 id="other-specs-ts-wrapping">Wrapping into a custom class</h4>
+
+Other specifications which mean to define custom [=transform streams=] should not subclass from the
+{{TransformStream}} interface directly. Instead, if they need a new class, they should create their
+own independent Web IDL interfaces, and use the following mixin:
+
+<xmp class="idl">
+interface mixin GenericTransformStream {
+  readonly attribute ReadableStream readable;
+  readonly attribute WritableStream writable;
+};
+</xmp>
+
+Any [=platform object=] that [=includes=] the {{GenericTransformStream}} mixin has an associated
+<dfn export for="GenericTransformStream">transform</dfn>, which is an actual {{TransformStream}}.
+
+The <dfn attribute for="GenericTransformStream">readable</dfn> getter steps are to return [=this=]'s
+[=GenericTransformStream/transform=].[=TransformStream/[[readable]]=].
+
+The <dfn attribute for="GenericTransformStream">writable</dfn> getter steps are to return [=this=]'s
+[=GenericTransformStream/transform=].[=TransformStream/[[writable]]=].
+
+<hr>
+
+Including the {{GenericTransformStream}} mixin will give an IDL interface the appropriate
+{{GenericTransformStream/readable}} and {{GenericTransformStream/writable}} properties. To customize
+the behavior of the resulting interface, its constructor (or other initialization code) must set
+each instance's [=GenericTransformStream/transform=] to the result of [=TransformStream/creating=] a
+{{TransformStream}}, with appropriate customizations via the
+<var>[=TransformStream/create/transformAlgorithm=]</var> and optionally
+<var>[=TransformStream/create/flushAlgorithm=]</var> arguments.
+
+Existing examples of this pattern on the web platform include `CompressionStream` and
+{{TextDecoderStream}}. [[ENCODING]]
+<!-- TODO cite COMPRESSION and link CompressionStream:
+ - https://github.com/tobie/specref/issues/619
+ - https://github.com/tabatkins/bikeshed/issues/1756
+-->
+
+<p class="note">There's no need to create a wrapper class if you don't need any API beyond what the
+base {{TransformStream}} class provides. The most common driver for such a wrapper is needing a
+custom [=constructor operation=], but if your conceptual transform stream isn't meant to be
+constructed, then using {{TransformStream}} directly is fine.
+
+<h3 id="other-specs-pairs">Other stream pairs</h3>
+
+Apart from [=transform streams=], discussed above, specifications often create pairs of [=readable
+stream|readable=] and [=writable stream|writable=] streams. This section gives some guidance for
+such situations.
+
+In all such cases, specifications should use the names `readable` and `writable` for the two
+properties exposing the streams in question. They should not use other names (such as
+`input`/`output` or `readableStream`/`writableStream`), and they should not use methods or other
+non-property means of access to the streams.
+
+<h4 id="other-specs-duplex">Duplex streams</h4>
+
+The most common readable/writable pair is a <dfn export>duplex stream</dfn>, where the readable and
+writable streams represent two sides of a single shared resource, such as a socket, connection, or
+device.
+
+The trickiest thing to consider when specifying duplex streams is how to handle operations like
+[=cancel a readable stream|canceling=] the readable side, or closing or [=abort a writable
+stream|aborting=] the writable side. It might make sense to leave duplex streams "half open", with
+such operations one one side not impacting the other side. Or it might be best to carry over their
+effects to the other side, e.g. by specifying that your readable side's
+<var ignore>[=ReadableStream/create/cancelAlgorithm=]</var> will [=WritableStream/close=] the
+writable side.
+
+<p class="example" id="example-basic-duplex">A basic example of a duplex stream, created through
+JavaScript instead of through specification prose, is found in [[#example-both]]. It illustrates
+this carry-over behavior.
+
+Another consideration is how to handle the creation of duplex streams which need to be acquired
+asynchronously, e.g. via establishing a connection. The preferred pattern here is to have a
+constructible class with a promise-returning property that fulfills with the actual duplex stream
+object. That duplex stream object can also then expose any information that is only available
+asynchronously, e.g. connection data. The container class can then provide convenience APIs, such as
+a function to close the entire connection instead of only closing individual sides.
+
+<p class="example" id="example-duplex-with-container">An example of this more complex type of duplex
+stream is the still-being-specified `WebSocketStream`. See its <a
+href="https://github.com/ricea/websocketstream-explainer/blob/master/README.md">explainer</a> and <a
+href="https://docs.google.com/document/d/1La1ehXw76HP6n1uUeks-WJGFgAnpX2tCjKts7QFJ57Y/edit#">design
+notes</a>.
+
+Because duplex streams obey the `readable`/`writable` property contract, they can be used with
+{{ReadableStream/pipeThrough()}}. This doesn't always make sense, but it could in cases where the
+underlying resource is in fact performing some sort of transformation.
+
+<p class="example" id="example-duplex-pipethrough">For an arbitrary WebSocket, piping through a
+WebSocket-derived duplex stream doesn't make sense. However, if the WebSocket server is specifically
+written so that it responds to incoming messages by sending the same data back in some transformed
+form, then this could be useful and convenient.
+
+<h4 id="other-specs-endpoints">Endpoint pairs</h4>
+
+Another type of readable/writable pair is an <dfn export>endpoint pair</dfn>. In these cases the
+readable and writable streams represent the two ends of a longer pipeline, with the intention that
+web developer code insert [=transform streams=] into the middle of them.
+
+<div class="example" id="example-endpoint-pair-usage">
+ Assuming we had a web-platform-provided function `createEndpointPair()`, web developers would write
+ code like so:
+
+ <xmp highlight="js">
+ const { readable, writable } = createEndpointPair();
+ readable.pipeThrough(new TransformStream(...)).pipeTo(writable);
+ </xmp>
+</div>
+
+<p class="example" id="example-endpoint-pair-webrtc"><cite>WebRTC Insertable Media using
+Streams</cite> is an example of this technique, with its `sender.createEncodedStreams()` and
+`receiver.createEncodedStreams()` methods.
+<!-- TODO cite it and cross-link to it https://github.com/tobie/specref/issues/620 -->
+
+Despite such endpoint pairs obeying the `readable`/`writable` property contract, it never makes
+sense to pass them to {{ReadableStream/pipeThrough()}}.
 
 <h2 id="creating-examples">Examples of creating streams</h2>
 
