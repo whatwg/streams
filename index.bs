@@ -3,6 +3,7 @@ Group: WHATWG
 H1: Streams
 Shortname: streams
 Text Macro: TWITTER streamsstandard
+Text Macro: LATESTRD 2020-08
 Abstract: This specification provides APIs for creating, composing, and consuming streams of data
 Abstract: that map efficiently to low-level I/O primitives.
 Translation: ja https://triple-underscore.github.io/Streams-ja.html
