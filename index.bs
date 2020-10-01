@@ -6100,7 +6100,7 @@ to grow organically as needed.
 <h4 id="other-specs-rs-create">Creation and manipulation</h4>
 
 <div algorithm="create a ReadableStream">
- To <dfn export for="ReadableStream" lt="create|creating">create</dfn> a {{ReadableStream}} given an
+ To <dfn export lt="create a ReadableStream|creating a ReadableStream">create a ReadableStream</dfn> given an
  optional algorithm <dfn export for="ReadableStream/create"><var>pullAlgorithm</var></dfn>, an
  optional algorithm <dfn export for="ReadableStream/create"><var>cancelAlgorithm</var></dfn>, an
  optional number <dfn export for="ReadableStream/create"><var>highWaterMark</var></dfn> (default 1),
