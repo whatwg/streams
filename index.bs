@@ -6195,9 +6195,9 @@ failures should be handled by the calling specification.
  <p class="note">This will throw an exception if |stream| is already [=ReadableStream/locked=].
 </div>
 
-<p algorithm>To <dfn export for="ReadableStreamDefaultReader">read a chunk</dfn> from a
-{{ReadableStreamDefaultReader}} |reader|, given a [=read request=] |readRequest|, perform !
-[$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
+<p algorithm>To <dfn export for="ReadableStreamDefaultReader" lt="read a chunk|reading a chunk">read
+a chunk</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given a [=read request=]
+|readRequest|, perform ! [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
 
 <div algorithm="read all bytes">
  <p>To <dfn export for="ReadableStreamDefaultReader" lt="read all bytes|reading all bytes">read all
@@ -7294,6 +7294,7 @@ Jake Archibald,
 Jake Verbaten,
 Janessa Det,
 Jason Orendorff,
+Jeffrey Yasskin,
 Jens Nockert,
 Lennart Grahl,
 Mangala Sadhu Sangeet Singh Khalsa,
