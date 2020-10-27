@@ -7309,6 +7309,7 @@ Marvin Hagemeister,
 Mattias Buelens,
 Michael Mior,
 Mihai Potra,
+Nidhi Jaju,
 Romain Bellessort, <!-- rombel on GitHub -->
 Simon Menke,
 Stephen Sugden,
