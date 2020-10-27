@@ -426,19 +426,25 @@ particularly important for the data structure described in [[#queue-with-sizes]]
  const reader = readableStream.getReader({ mode: "byob" });
 
  let startingAB = new ArrayBuffer(1024);
- readInto(startingAB)
-   .then(buffer => console.log("The first 1024 bytes:", buffer))
-   .catch(e => console.error("Something went wrong!", e));
+ const buffer = await readInto(startingAB);
+ console.log("The first 1024 bytes: ", buffer);
 
- function readInto(buffer, offset = 0) {
-   if (offset === buffer.byteLength) {
-     return Promise.resolve(buffer);
-   }
+ async function readInto(buffer) {
+   let offset = 0;
+   let view;
+   let done;
 
-   const view = new Uint8Array(buffer, offset, buffer.byteLength - offset);
-   return reader.read(view).then(newView => {
-     return readInto(newView.buffer, offset + newView.byteLength);
-   });
+   do {
+     ({value: view, done} =
+      await reader.read(new Uint8Array(buffer, offset, buffer.byteLength - offset)));
+     buffer = view.buffer;
+     if (done) {
+       break;
+     }
+     offset += view.byteLength;
+   } while (offset < buffer.byteLength);
+
+   return buffer;
  }
  </xmp>
 
