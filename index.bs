@@ -426,29 +426,33 @@ particularly important for the data structure described in [[#queue-with-sizes]]
  const reader = readableStream.getReader({ mode: "byob" });
 
  let startingAB = new ArrayBuffer(1024);
- readInto(startingAB)
-   .then(buffer => console.log("The first 1024 bytes:", buffer))
-   .catch(e => console.error("Something went wrong!", e));
+ const buffer = await readInto(startingAB);
+ console.log("The first 1024 bytes: ", buffer);
 
- function readInto(buffer, offset = 0) {
-   if (offset === buffer.byteLength) {
-     return Promise.resolve(buffer);
+ async function readInto(buffer) {
+   let offset = 0;
+
+   while (offset < buffer.byteLength) {
+     const {value: view, done} =
+      await reader.read(new Uint8Array(buffer, offset, buffer.byteLength - offset));
+     buffer = view.buffer;
+     if (done) {
+       break;
+     }
+     offset += view.byteLength;
    }
 
-   const view = new Uint8Array(buffer, offset, buffer.byteLength - offset);
-   return reader.read(view).then(newView => {
-     return readInto(newView.buffer, offset + newView.byteLength);
-   });
+   return buffer;
  }
  </xmp>
 
  An important thing to note here is that the final <code>buffer</code> value is different from the
  <code>startingAB</code>, but it (and all intermediate buffers) shares the same backing memory
  allocation. At each step, the buffer is <a href="#transfer-array-buffer">transferred</a> to a new
- {{ArrayBuffer}} object. The <code>newView</code> is a new {{Uint8Array}}, with that {{ArrayBuffer}}
- object as its <code>buffer</code> property, the offset that bytes were written to as its
- <code>byteOffset</code> property, and the number of bytes that were written as its
- <code>byteLength</code> property.
+ {{ArrayBuffer}} object. The <code>view</code> is destructured from the return value of reading a
+ new {{Uint8Array}}, with that {{ArrayBuffer}} object as its <code>buffer</code> property, the
+ offset that bytes were written to as its <code>byteOffset</code> property, and the number of
+ bytes that were written as its <code>byteLength</code> property.
 </div>
 
 <h3 id="rs-class">The {{ReadableStream}} class</h3>
@@ -7303,6 +7307,7 @@ Marvin Hagemeister,
 Mattias Buelens,
 Michael Mior,
 Mihai Potra,
+Nidhi Jaju,
 Romain Bellessort, <!-- rombel on GitHub -->
 Simon Menke,
 Stephen Sugden,
