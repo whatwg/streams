@@ -431,18 +431,16 @@ particularly important for the data structure described in [[#queue-with-sizes]]
 
  async function readInto(buffer) {
    let offset = 0;
-   let view;
-   let done;
 
-   do {
-     ({value: view, done} =
-      await reader.read(new Uint8Array(buffer, offset, buffer.byteLength - offset)));
+   while (offset < buffer.byteLength) {
+     const {value: view, done} =
+      await reader.read(new Uint8Array(buffer, offset, buffer.byteLength - offset));
      buffer = view.buffer;
      if (done) {
        break;
      }
      offset += view.byteLength;
-   } while (offset < buffer.byteLength);
+   }
 
    return buffer;
  }
@@ -451,10 +449,10 @@ particularly important for the data structure described in [[#queue-with-sizes]]
  An important thing to note here is that the final <code>buffer</code> value is different from the
  <code>startingAB</code>, but it (and all intermediate buffers) shares the same backing memory
  allocation. At each step, the buffer is <a href="#transfer-array-buffer">transferred</a> to a new
- {{ArrayBuffer}} object. The <code>newView</code> is a new {{Uint8Array}}, with that {{ArrayBuffer}}
- object as its <code>buffer</code> property, the offset that bytes were written to as its
- <code>byteOffset</code> property, and the number of bytes that were written as its
- <code>byteLength</code> property.
+ {{ArrayBuffer}} object. The <code>view</code> is destructured from the return value of reading a
+ new {{Uint8Array}}, with that {{ArrayBuffer}} object as its <code>buffer</code> property, the
+ offset that bytes were written to as its <code>byteOffset</code> property, and the number of
+ bytes that were written as its <code>byteLength</code> property.
 </div>
 
 <h3 id="rs-class">The {{ReadableStream}} class</h3>
