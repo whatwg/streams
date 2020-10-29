@@ -26,7 +26,7 @@ stream is a readable byte stream, you can also acquire a BYOB reader for it, whi
 buffer allocation in order to avoid copies.
 
 
-```
+```javascript
 const reader = readableStream.getReader({ mode: "byob" });
 
 let startingAB = new ArrayBuffer(1024);
@@ -62,7 +62,7 @@ array. Instead of using a predetermined chunk size of 1024, it attempts to fill 
 allowing full control.
 
 
-```
+```javascript
 const DEFAULT_CHUNK_SIZE = 1024;
 
 function makeReadableByteStream() {
@@ -83,6 +83,6 @@ function makeReadableByteStream() {
 ```
 
 
-With this in hand, we can create and use BYOB readers for the returned ReadableStream. The adaptation between the
-low-level byte tracking of the underlying byte source shown here, is all taken care of automatically by the streams
-implementation.
+With this in hand, we can create and use BYOB readers for the returned `ReadableStream`. The adaptation between the
+low-level byte tracking of the underlying byte source shown here, and the higher-level chunk-based consumption of
+a default reader, is all taken care of automatically by the streams implementation.
