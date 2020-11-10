@@ -192,11 +192,21 @@ exports.implementation = class ReadableStreamImpl {
     }
 
     function cancelAlgorithm() {
-      const returnMethod = GetMethod(iteratorRecord.iterator, 'return');
+      let returnMethod;
+      try {
+        returnMethod = GetMethod(iteratorRecord.iterator, 'return');
+      } catch (e) {
+        return promiseRejectedWith(e);
+      }
       if (returnMethod === undefined) {
         return promiseResolvedWith(undefined);
       }
-      const returnResult = Call(returnMethod, iteratorRecord.iterator);
+      let returnResult;
+      try {
+        returnResult = Call(returnMethod, iteratorRecord.iterator);
+      } catch (e) {
+        return promiseRejectedWith(e);
+      }
       return promiseResolvedWith(returnResult);
     }
 
