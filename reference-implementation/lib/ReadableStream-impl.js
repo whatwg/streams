@@ -189,7 +189,7 @@ exports.implementation = class ReadableStreamImpl {
       });
     }
 
-    function cancelAlgorithm() {
+    function cancelAlgorithm(reason) {
       let returnMethod;
       try {
         returnMethod = GetMethod(iteratorRecord.iterator, 'return');
@@ -201,7 +201,7 @@ exports.implementation = class ReadableStreamImpl {
       }
       let returnResult;
       try {
-        returnResult = Call(returnMethod, iteratorRecord.iterator);
+        returnResult = Call(returnMethod, iteratorRecord.iterator, [reason]);
       } catch (e) {
         return promiseRejectedWith(e);
       }
