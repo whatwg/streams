@@ -829,7 +829,7 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
      |nextResult|.\[[Value]].
   1. Let |nextPromise| be [=a promise resolved with=] |nextResult|.\[[Value]].
   1. Return the result of [=reacting=] to |nextPromise| with the following fulfillment steps,
-     given the argument |iterResult|:
+     given |iterResult|:
    1. If [$Type$](|iterResult|) is not Object, throw a {{TypeError}}.
    1. Let |done| be ? [$IteratorComplete$](|iterResult|).
    1. If |done| is true:
@@ -838,12 +838,13 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
     1. Let |value| be ? [$IteratorValue$](|iterResult|).
     1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](stream.[=ReadableStream/[[controller]]=],
        |value|).
- 1. Let |cancelAlgorithm| be the following steps:
+ 1. Let |cancelAlgorithm| be the following steps, given |reason|:
   1. Let |returnMethod| be [$GetMethod$](|iteratorRecord|.\[[Iterator]], "`return`").
   1. If |returnMethod| is an abrupt completion, return [=a promise rejected with=]
      |returnMethod|.\[[Value]].
   1. If |returnMethod|.\[[Value]] is undefined, return [=a promise resolved with=] undefined.
-  1. Let |returnResult| be [$Call$](|returnMethod|.\[[Value]], |iteratorRecord|.\[[Iterator]]).
+  1. Let |returnResult| be [$Call$](|returnMethod|.\[[Value]], |iteratorRecord|.\[[Iterator]],
+     « |reason| »).
   1. If |returnResult| is an abrupt completion, return [=a promise rejected with=]
      |returnResult|.\[[Value]].
   1. Return [=a promise resolved with=] |returnResult|.\[[Value]].
