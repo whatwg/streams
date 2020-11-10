@@ -163,11 +163,9 @@ exports.implementation = class ReadableStreamImpl {
 
   static from(asyncIterable) {
     let stream;
-    let iteratorRecord;
+    const iteratorRecord = GetIterator(asyncIterable, 'async');
 
-    function startAlgorithm() {
-      iteratorRecord = GetIterator(asyncIterable, 'async');
-    }
+    const startAlgorithm = () => undefined;
 
     function pullAlgorithm() {
       let nextResult;
