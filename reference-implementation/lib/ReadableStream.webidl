@@ -2,6 +2,8 @@
 interface ReadableStream {
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
+  static ReadableStream from(any asyncIterable);
+
   readonly attribute boolean locked;
 
   Promise<void> cancel(optional any reason);
