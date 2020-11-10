@@ -39,3 +39,67 @@ exports.CanTransferArrayBuffer = O => {
 exports.IsDetachedBuffer = O => {
   return isFakeDetached in O;
 };
+
+exports.Call = (F, V, args) => {
+  if (typeof F !== 'function') {
+    throw new TypeError('Argument is not a function');
+  }
+
+  return Function.prototype.apply.call(F, V, args);
+};
+
+exports.GetMethod = (V, P) => {
+  const func = V[P];
+  if (func === undefined || func === null) {
+    return undefined;
+  }
+  if (typeof func !== 'function') {
+    throw new TypeError();
+  }
+  return func;
+};
+
+exports.GetIterator = (obj, hint = 'sync', method) => {
+  assert(hint === 'sync' || hint === 'async');
+  if (method === undefined) {
+    if (hint === 'async') {
+      method = exports.GetMethod(obj, Symbol.asyncIterator);
+      if (method === undefined) {
+        const syncMethod = exports.GetMethod(obj, Symbol.iterator);
+        const syncIterator = exports.GetIterator(obj, 'sync', syncMethod);
+        return syncIterator; // TODO sync to async iterator
+      }
+    } else {
+      method = exports.GetMethod(obj, Symbol.iterator);
+    }
+  }
+  const iterator = exports.Call(method, obj);
+  if (typeof iterator !== 'object') {
+    throw new TypeError();
+  }
+  const nextMethod = iterator.next;
+  return { iterator, nextMethod, done: false };
+};
+
+exports.IteratorNext = (iteratorRecord, value) => {
+  let result;
+  if (value === undefined) {
+    result = exports.Call(iteratorRecord.nextMethod, iteratorRecord.iterator);
+  } else {
+    result = exports.Call(iteratorRecord.nextMethod, iteratorRecord.iterator, [value]);
+  }
+  if (typeof result !== 'object') {
+    throw new TypeError();
+  }
+  return result;
+};
+
+exports.IteratorComplete = iterResult => {
+  assert(typeof iterResult === 'object');
+  return Boolean(iterResult.done);
+};
+
+exports.IteratorValue = iterResult => {
+  assert(typeof iterResult === 'object');
+  return iterResult.value;
+};
