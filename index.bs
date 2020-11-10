@@ -823,7 +823,7 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
  1. Let |stream| be undefined.
  1. Let |iteratorRecord| be undefined.
  1. Let |startAlgorithm| be the following steps:
-  1. Set |iteratorRecord| to ? [$GetIterator$](|asyncIterable|, async).
+  1. Set |iteratorRecord| to ? [$GetIterator$](|asyncIterable|, `async`).
  1. Let |pullAlgorithm| be the following steps:
   1. Let |nextResult| be [$IteratorNext$](|iteratorRecord|).
   1. If |nextResult| is an abrupt completion, return [=a promise rejected with=]
@@ -840,7 +840,7 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
     1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](stream.[=ReadableStream/[[controller]]=],
        |value|).
  1. Let |cancelAlgorithm| be the following steps:
-  1. Let |returnMethod| be ? [$GetMethod$](|iteratorRecord|.\[[Iterator]], "return").
+  1. Let |returnMethod| be ? [$GetMethod$](|iteratorRecord|.\[[Iterator]], "`return`").
   1. If |returnMethod| is undefined, return [=a promise resolved with=] undefined.
   1. Let |returnResult| be ? [$Call$](|returnMethod|, |iteratorRecord|.\[[Iterator]]).
   1. Return [=a promise resolved with=] |returnResult|.
