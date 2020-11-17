@@ -1998,7 +1998,6 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
  the following steps:
 
  1. Let |reader| be a [=new=] {{ReadableStreamBYOBReader}}.
- 1. Perform ? [$SetUpReadableStreamBYOBReader$](|reader|, |stream|).
  1. Return |reader|.
 </div>
 
@@ -2008,7 +2007,6 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
  following steps:
 
   1. Let |reader| be a [=new=] {{ReadableStreamDefaultReader}}.
-  1. Perform ? [$SetUpReadableStreamDefaultReader$](|reader|, |stream|).
   1. Return |reader|.
 </div>
 
