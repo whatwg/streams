@@ -162,6 +162,10 @@ exports.implementation = class ReadableStreamImpl {
   static from(asyncIterable) {
     return aos.ReadableStreamFromIterable(asyncIterable);
   }
+
+  static of(...chunks) {
+    return aos.ReadableStreamFromIterable(chunks);
+  }
 };
 
 // See pipeTo()/pipeThrough() for why this is needed.
