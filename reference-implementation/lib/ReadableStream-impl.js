@@ -1,10 +1,8 @@
 'use strict';
 const assert = require('assert');
 
-const { Call, GetMethod, GetIterator, IteratorNext, IteratorComplete,
-        IteratorValue } = require('./abstract-ops/ecmascript.js');
 const { newPromise, resolvePromise, rejectPromise, promiseResolvedWith, promiseRejectedWith,
-        setPromiseIsHandledToTrue, transformPromiseWith } = require('./helpers/webidl.js');
+        setPromiseIsHandledToTrue } = require('./helpers/webidl.js');
 const { ExtractHighWaterMark, ExtractSizeAlgorithm } = require('./abstract-ops/queuing-strategy.js');
 const aos = require('./abstract-ops/readable-streams.js');
 const wsAOs = require('./abstract-ops/writable-streams.js');
@@ -162,54 +160,7 @@ exports.implementation = class ReadableStreamImpl {
   }
 
   static from(asyncIterable) {
-    let stream;
-    const iteratorRecord = GetIterator(asyncIterable, 'async');
-
-    const startAlgorithm = () => undefined;
-
-    function pullAlgorithm() {
-      let nextResult;
-      try {
-        nextResult = IteratorNext(iteratorRecord);
-      } catch (e) {
-        return promiseRejectedWith(e);
-      }
-      const nextPromise = promiseResolvedWith(nextResult);
-      return transformPromiseWith(nextPromise, iterResult => {
-        if (typeof iterResult !== 'object') {
-          throw new TypeError();
-        }
-        const done = IteratorComplete(iterResult);
-        if (done === true) {
-          aos.ReadableStreamDefaultControllerClose(stream._controller);
-        } else {
-          const value = IteratorValue(iterResult);
-          aos.ReadableStreamDefaultControllerEnqueue(stream._controller, value);
-        }
-      });
-    }
-
-    function cancelAlgorithm(reason) {
-      let returnMethod;
-      try {
-        returnMethod = GetMethod(iteratorRecord.iterator, 'return');
-      } catch (e) {
-        return promiseRejectedWith(e);
-      }
-      if (returnMethod === undefined) {
-        return promiseResolvedWith(undefined);
-      }
-      let returnResult;
-      try {
-        returnResult = Call(returnMethod, iteratorRecord.iterator, [reason]);
-      } catch (e) {
-        return promiseRejectedWith(e);
-      }
-      return promiseResolvedWith(returnResult);
-    }
-
-    stream = aos.CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm);
-    return stream;
+    return aos.ReadableStreamFromIterable(asyncIterable);
   }
 };
 
