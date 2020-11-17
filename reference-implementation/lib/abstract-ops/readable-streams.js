@@ -4,8 +4,8 @@ const assert = require('assert');
 const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise, uponPromise,
         setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment, uponRejection } =
   require('../helpers/webidl.js');
-const { CanTransferArrayBuffer, CopyDataBlockBytes, CreateArrayFromList, IsDetachedBuffer, TransferArrayBuffer } =
-  require('./ecmascript.js');
+const { CanTransferArrayBuffer, Call, CopyDataBlockBytes, CreateArrayFromList, GetIterator, GetMethod, IsDetachedBuffer,
+        IteratorComplete, IteratorNext, IteratorValue, TransferArrayBuffer } = require('./ecmascript.js');
 const { CloneAsUint8Array, IsNonNegativeNumber } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
@@ -55,6 +55,7 @@ Object.assign(exports, {
   ReadableStreamDefaultControllerHasBackpressure,
   ReadableStreamDefaultReaderRead,
   ReadableStreamDefaultReaderRelease,
+  ReadableStreamFromIterable,
   ReadableStreamGetNumReadRequests,
   ReadableStreamHasDefaultReader,
   ReadableStreamPipeTo,
@@ -1878,4 +1879,55 @@ function SetUpReadableByteStreamControllerFromUnderlyingSource(
   SetUpReadableByteStreamController(
     stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, autoAllocateChunkSize
   );
+}
+
+function ReadableStreamFromIterable(asyncIterable) {
+  let stream;
+  const iteratorRecord = GetIterator(asyncIterable, 'async');
+
+  const startAlgorithm = () => undefined;
+
+  function pullAlgorithm() {
+    let nextResult;
+    try {
+      nextResult = IteratorNext(iteratorRecord);
+    } catch (e) {
+      return promiseRejectedWith(e);
+    }
+    const nextPromise = promiseResolvedWith(nextResult);
+    return transformPromiseWith(nextPromise, iterResult => {
+      if (typeof iterResult !== 'object') {
+        throw new TypeError();
+      }
+      const done = IteratorComplete(iterResult);
+      if (done === true) {
+        ReadableStreamDefaultControllerClose(stream._controller);
+      } else {
+        const value = IteratorValue(iterResult);
+        ReadableStreamDefaultControllerEnqueue(stream._controller, value);
+      }
+    });
+  }
+
+  function cancelAlgorithm(reason) {
+    let returnMethod;
+    try {
+      returnMethod = GetMethod(iteratorRecord.iterator, 'return');
+    } catch (e) {
+      return promiseRejectedWith(e);
+    }
+    if (returnMethod === undefined) {
+      return promiseResolvedWith(undefined);
+    }
+    let returnResult;
+    try {
+      returnResult = Call(returnMethod, iteratorRecord.iterator, [reason]);
+    } catch (e) {
+      return promiseRejectedWith(e);
+    }
+    return promiseResolvedWith(returnResult);
+  }
+
+  stream = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm);
+  return stream;
 }
