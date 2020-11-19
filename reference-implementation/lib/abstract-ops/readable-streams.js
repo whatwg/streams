@@ -5,7 +5,7 @@ const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, re
         setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment, uponRejection } =
   require('../helpers/webidl.js');
 const { CanTransferArrayBuffer, Call, CopyDataBlockBytes, CreateArrayFromList, GetIterator, GetMethod, IsDetachedBuffer,
-        IteratorComplete, IteratorNext, IteratorValue, TransferArrayBuffer } = require('./ecmascript.js');
+        IteratorComplete, IteratorNext, IteratorValue, TransferArrayBuffer, typeIsObject } = require('./ecmascript.js');
 const { CloneAsUint8Array, IsNonNegativeNumber } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
@@ -1896,7 +1896,7 @@ function ReadableStreamFromIterable(asyncIterable) {
     }
     const nextPromise = promiseResolvedWith(nextResult);
     return transformPromiseWith(nextPromise, iterResult => {
-      if (typeof iterResult !== 'object') {
+      if (!typeIsObject(iterResult)) {
         throw new TypeError();
       }
       const done = IteratorComplete(iterResult);

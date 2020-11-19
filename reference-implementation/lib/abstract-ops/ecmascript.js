@@ -3,6 +3,8 @@ const assert = require('assert');
 
 const isFakeDetached = Symbol('is "detached" for our purposes');
 
+exports.typeIsObject = x => (typeof x === 'object' && x !== null) || typeof x === 'function';
+
 exports.CreateArrayFromList = elements => {
   // We use arrays to represent lists, so this is basically a no-op.
   // Do a slice though just in case we happen to depend on the unique-ness.
@@ -74,7 +76,7 @@ exports.GetIterator = (obj, hint = 'sync', method) => {
     }
   }
   const iterator = exports.Call(method, obj);
-  if (typeof iterator !== 'object') {
+  if (!exports.typeIsObject(iterator)) {
     throw new TypeError();
   }
   const nextMethod = iterator.next;
@@ -88,18 +90,18 @@ exports.IteratorNext = (iteratorRecord, value) => {
   } else {
     result = exports.Call(iteratorRecord.nextMethod, iteratorRecord.iterator, [value]);
   }
-  if (typeof result !== 'object') {
+  if (!exports.typeIsObject(result)) {
     throw new TypeError();
   }
   return result;
 };
 
 exports.IteratorComplete = iterResult => {
-  assert(typeof iterResult === 'object');
+  assert(exports.typeIsObject(iterResult));
   return Boolean(iterResult.done);
 };
 
 exports.IteratorValue = iterResult => {
-  assert(typeof iterResult === 'object');
+  assert(exports.typeIsObject(iterResult));
   return iterResult.value;
 };
