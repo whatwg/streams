@@ -3,7 +3,6 @@ interface ReadableStream {
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
   static ReadableStream from(any asyncIterable);
-  static ReadableStream of(any... chunks);
 
   readonly attribute boolean locked;
 

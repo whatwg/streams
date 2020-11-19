@@ -485,7 +485,6 @@ interface ReadableStream {
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
   static ReadableStream from(any asyncIterable);
-  static ReadableStream of(any... chunks);
 
   readonly attribute boolean locked;
 
@@ -822,12 +821,6 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
  are:
 
  1. Return ? [$ReadableStreamFromIterable$](|asyncIterable|).
-</div>
-
-<div algorithm>
- The static <dfn id="rs-of" method for="ReadableStream">of(...|chunks|)</dfn> method steps are:
-
- 1. Return ? [$ReadableStreamFromIterable$](|chunks|).
 </div>
 
 <div algorithm>
