@@ -2573,10 +2573,10 @@ create them does not matter.
    1. If [$Type$](|iterResult|) is not Object, throw a {{TypeError}}.
    1. Let |done| be ? [$IteratorComplete$](|iterResult|).
    1. If |done| is true:
-    1. Perform ! [$ReadableStreamDefaultControllerClose$](stream.[=ReadableStream/[[controller]]=]).
+    1. Perform ! [$ReadableStreamDefaultControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
    1. Otherwise:
     1. Let |value| be ? [$IteratorValue$](|iterResult|).
-    1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](stream.[=ReadableStream/[[controller]]=],
+    1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
        |value|).
  1. Let |cancelAlgorithm| be the following steps, given |reason|:
   1. Let |returnMethod| be [$GetMethod$](|iteratorRecord|.\[[Iterator]], "`return`").
