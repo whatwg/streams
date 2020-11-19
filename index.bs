@@ -2561,7 +2561,7 @@ create them does not matter.
  ReadableStreamFromIterable(|asyncIterable|)</dfn> performs the following steps:
 
  1. Let |stream| be undefined.
- 1. Let |iteratorRecord| be ? [$GetIterator$](|asyncIterable|, `async`).
+ 1. Let |iteratorRecord| be ? [$GetIterator$](|asyncIterable|, async).
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |pullAlgorithm| be the following steps:
   1. Let |nextResult| be [$IteratorNext$](|iteratorRecord|).
