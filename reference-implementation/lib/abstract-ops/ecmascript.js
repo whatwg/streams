@@ -45,7 +45,7 @@ exports.Call = (F, V, args) => {
     throw new TypeError('Argument is not a function');
   }
 
-  return Function.prototype.apply.call(F, V, args);
+  return Reflect.apply(F, V, args);
 };
 
 exports.GetMethod = (V, P) => {
