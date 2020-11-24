@@ -16,9 +16,9 @@ readers can reduce the number of times we run garbage collection, because we can
 ## API Proposed
 
 *   Constructing a Readable Byte Stream
-    *   `new ReadableStream({ type: "bytes" })`
+    *   <code>new [ReadableStream](https://streams.spec.whatwg.org/#rs-constructor)({ type: "bytes" })</code>
 *   Getting a BYOB reader
-    *   `getReader({ mode: "byob" })`
+    *   <code>[getReader](https://streams.spec.whatwg.org/#rs-get-reader)({ mode: "byob" })</code>
 *   As part of the implementation, there are 3 main classes that will be added to the Streams API:
     *   The [ReadableStreamBYOBReader](https://streams.spec.whatwg.org/#byob-reader-class) class
         *   This class represents a BYOB reader designed to be vended by a `ReadableStream` instance.
@@ -106,9 +106,8 @@ a default reader, is all taken care of automatically by the streams implementati
 
 ## Goals
 
-*   Support for {type: “bytes”} in the [ReadableStream constructor](https://streams.spec.whatwg.org/#rs-constructor).
-*   Support for {mode: “byob”} in [getReader()](https://streams.spec.whatwg.org/#rs-get-reader).
-
+*   Provide a way to represent a [ReadableStream](https://streams.spec.whatwg.org/#rs-class) for bytes efficiently.
+*   Avoid races caused by multiple access for the same buffer.
 
 ## Non-Goals
 
