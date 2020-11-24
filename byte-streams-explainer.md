@@ -13,6 +13,22 @@ output. Furthermore, being able to have BYOB readers has benefits in terms of st
 detaches, it can guarantee that one does not write into the same buffer twice, hence avoiding race conditions. BYOB
 readers can reduce the number of times we run garbage collection, because we can reuse buffers.
 
+## API Proposed
+
+*   Constructing a Readable Byte Stream
+    *   `new ReadableStream({ type: "bytes" })`
+*   Getting a BYOB reader
+    *   `getReader({ mode: "byob" })`
+*   As part of the implementation, there are 3 main classes that will be added to the Streams API:
+    *   The [ReadableStreamBYOBReader](https://streams.spec.whatwg.org/#byob-reader-class) class
+        *   This class represents a BYOB reader designed to be vended by a `ReadableStream` instance.
+    *   The [ReadableByteStreamController](https://streams.spec.whatwg.org/#rbs-controller-class) class
+        *   This class has methods that allow control of a `ReadableStream`’s state and internal queue. When
+        constructing a `ReadableStream` that is a readable byte stream, the underlying source is given a corresponding
+        `ReadableByteStreamController` instance to manipulate.
+    *   The [ReadableStreamBYOBRequest](https://streams.spec.whatwg.org/#rs-byob-request-class) class
+        *   This class represents a pull-into request in a `ReadableByteStreamController`.
+
 
 ## Examples
 
@@ -86,3 +102,24 @@ function makeReadableByteStream() {
 With this in hand, we can create and use BYOB readers for the returned `ReadableStream`. The adaptation between the
 low-level byte tracking of the underlying byte source shown here, and the higher-level chunk-based consumption of
 a default reader, is all taken care of automatically by the streams implementation.
+
+
+## Goals
+
+*   Support for {type: “bytes”} in the [ReadableStream constructor](https://streams.spec.whatwg.org/#rs-constructor).
+*   Support for {mode: “byob”} in [getReader()](https://streams.spec.whatwg.org/#rs-get-reader).
+
+
+## Non-Goals
+
+*   Ports for non-binary types will not be supported; only Bytes, Int16, etc. are supported by the default readable
+stream and readable byte stream implementations.
+*   Shared array buffers will still not be supported. Currently, we always detach buffers, but shared array buffers
+cannot be detached.
+
+
+## Alternatives
+
+*   Some of the early versions of the standard had a specific ReadableByteStream constructor which would keep the two
+types of streams completely separate. However, this was unnecessary and we decided to just use separate controllers
+to support byte streams and non-byte streams with the same ReadableStream API to make it simpler.
