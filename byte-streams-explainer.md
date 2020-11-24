@@ -108,12 +108,12 @@ a default reader, is all taken care of automatically by the streams implementati
 
 *   Provide a way to represent a [ReadableStream](https://streams.spec.whatwg.org/#rs-class) for bytes efficiently.
 *   Avoid races caused by multiple access for the same buffer.
+*   Permit buffer re-use to reduce GC churn.
 
 ## Non-Goals
 
-*   Ports for non-binary types will not be supported; only Bytes, Int16, etc. are supported by the default readable
-stream and readable byte stream implementations.
-*   Shared array buffers will still not be supported. Currently, we always detach buffers, but shared array buffers
+*   Non-binary chunk types will not be supported. They can still use the default type of readable stream.
+*   Shared array buffers will not be supported. Currently, we always detach buffers, but shared array buffers
 cannot be detached.
 
 
