@@ -3246,8 +3246,9 @@ The following abstract operations support the implementation of the
 
  1. Assert: |stream|.[=ReadableStream/[[controller]]=] is undefined.
  1. If |autoAllocateChunkSize| is not undefined,
-  1. Assert: ! IsInteger(|autoAllocateChunkSize|) is true.
-  1. Assert: |autoAllocateChunkSize| is positive.
+  1. Assert: ! [$IsInteger$](|autoAllocateChunkSize|) is true.
+  1. Assert: |autoAllocateChunkSize| is non-negative.
+  1. If |autoAllocateChunkSize| is 0, throw a TypeError exception.
  1. Set |controller|.[=ReadableByteStreamController/[[stream]]=] to |stream|.
  1. Set |controller|.[=ReadableByteStreamController/[[pullAgain]]=] and
     |controller|.[=ReadableByteStreamController/[[pulling]]=] to false.
