@@ -2521,7 +2521,7 @@ The following abstract operations support the implementation and manipulation of
  1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`errored`", perform |readIntoRequest|'s [=read-into
     request/error steps=] given |stream|.[=ReadableStream/[[storedError]]=].
- 1. Otherwise, return ! [$ReadableByteStreamControllerPullInto$](|stream|.[=ReadableStream/[[controller]]=],
+ 1. Otherwise, perform ! [$ReadableByteStreamControllerPullInto$](|stream|.[=ReadableStream/[[controller]]=],
     |view|, |readIntoRequest|).
 </div>
 
