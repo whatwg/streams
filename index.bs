@@ -2393,7 +2393,7 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-fulfill-read-into-request">ReadableStreamFulfillReadIntoRequest(|stream|,
  |chunk|, |done|)</dfn> performs the following steps:
 
- 1. Assert: |stream|.[=ReadableStream/[[reader]]=] [=implements=] {{ReadableStreamBYOBReader}}.
+ 1. Assert: ! [$ReadableStreamHasBYOBReader$](|stream|) is true.
  1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. Assert: |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is not [=list/is
     empty|empty=].
@@ -2409,7 +2409,7 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-fulfill-read-request">ReadableStreamFulfillReadRequest(|stream|, |chunk|,
  |done|)</dfn> performs the following steps:
 
- 1. Assert: |stream|.[=ReadableStream/[[reader]]=] [=implements=] {{ReadableStreamDefaultReader}}.
+ 1. Assert: ! [$ReadableStreamHasDefaultReader$](|stream|) is true.
  1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. Assert: |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is not [=list/is
     empty|empty=].
@@ -2424,7 +2424,7 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-get-num-read-into-requests">ReadableStreamGetNumReadIntoRequests(|stream|)</dfn>
  performs the following steps:
 
- 1. Assert: |stream|.[=ReadableStream/[[reader]]=] [=implements=] {{ReadableStreamBYOBReader}}.
+ 1. Assert: ! [$ReadableStreamHasBYOBReader$](|stream|) is true.
  1. Return
     |stream|.[=ReadableStream/[[reader]]=].[=ReadableStreamBYOBReader/[[readIntoRequests]]=]'s
     [=list/size=].
@@ -2435,7 +2435,7 @@ the {{ReadableStream}}'s public API.
  id="readable-stream-get-num-read-requests">ReadableStreamGetNumReadRequests(|stream|)</dfn>
  performs the following steps:
 
- 1. Assert: |stream|.[=ReadableStream/[[reader]]=] [=implements=] {{ReadableStreamDefaultReader}}.
+ 1. Assert: ! [$ReadableStreamHasDefaultReader$](|stream|) is true.
  1. Return |stream|.[=ReadableStream/[[reader]]=].[=ReadableStreamDefaultReader/[[readRequests]]=]'s
     [=list/size=].
 </div>
