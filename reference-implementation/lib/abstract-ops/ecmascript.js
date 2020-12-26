@@ -42,7 +42,7 @@ exports.IsDetachedBuffer = O => {
   return isFakeDetached in O;
 };
 
-exports.Call = (F, V, args) => {
+exports.Call = (F, V, args = []) => {
   if (typeof F !== 'function') {
     throw new TypeError('Argument is not a function');
   }
