@@ -1928,6 +1928,6 @@ function ReadableStreamFromIterable(asyncIterable) {
     return promiseResolvedWith(returnResult);
   }
 
-  stream = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm);
+  stream = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, 0);
   return stream;
 }
