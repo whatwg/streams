@@ -61,6 +61,23 @@ exports.GetMethod = (V, P) => {
   return func;
 };
 
+exports.CreateAsyncFromSyncIterator = syncIteratorRecord => {
+  // Instead of re-implementing CreateAsyncFromSyncIterator and %AsyncFromSyncIteratorPrototype%,
+  // we use yield* inside an async generator function to achieve the same result.
+
+  // Wrap the sync iterator inside a sync iterable, so we can use it with yield*.
+  const syncIterable = {
+    [Symbol.iterator]: () => syncIteratorRecord.iterator
+  };
+  // Create an async generator function and immediately invoke it.
+  const asyncIterator = (async function* () {
+    return yield* syncIterable;
+  }());
+  // Return as an async iterator record.
+  const nextMethod = asyncIterator.next;
+  return { iterator: asyncIterator, nextMethod, done: false };
+};
+
 exports.GetIterator = (obj, hint = 'sync', method) => {
   assert(hint === 'sync' || hint === 'async');
   if (method === undefined) {
@@ -68,8 +85,8 @@ exports.GetIterator = (obj, hint = 'sync', method) => {
       method = exports.GetMethod(obj, Symbol.asyncIterator);
       if (method === undefined) {
         const syncMethod = exports.GetMethod(obj, Symbol.iterator);
-        const syncIterator = exports.GetIterator(obj, 'sync', syncMethod);
-        return syncIterator; // TODO sync to async iterator
+        const syncIteratorRecord = exports.GetIterator(obj, 'sync', syncMethod);
+        return exports.CreateAsyncFromSyncIterator(syncIteratorRecord);
       }
     } else {
       method = exports.GetMethod(obj, Symbol.iterator);
