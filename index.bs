@@ -523,7 +523,7 @@ table:
    {{ReadableByteStreamController}} created with the ability to control the state and queue of this
    stream
   <tr>
-   <td><dfn export>\[[Detached]]</dfn>
+   <td><dfn export>\[[detached]]</dfn>
    <td class="non-normative">A boolean flag set to true when the stream is transferred
   <tr>
    <td><dfn>\[[disturbed]]</dfn>
