@@ -1,6 +1,6 @@
 # Streams Standard contributor guidelines
 
-These are the guidelines for contributing to the Streams Standard. First see the [WHATWG contributor guidelines](https://github.com/whatwg/meta/blob/master/CONTRIBUTING.md).
+These are the guidelines for contributing to the Streams Standard. First see the [WHATWG contributor guidelines](https://github.com/whatwg/meta/blob/main/CONTRIBUTING.md).
 
 We label [good first issues](https://github.com/whatwg/streams/labels/good%20first%20issue) that you could help us fix, to get a taste for how to submit pull requests, how the build process works, and so on.
 
