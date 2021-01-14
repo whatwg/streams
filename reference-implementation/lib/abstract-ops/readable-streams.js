@@ -463,14 +463,14 @@ function ReadableStreamClose(stream) {
     return;
   }
 
+  resolvePromise(reader._closedPromise, undefined);
+
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     for (const readRequest of reader._readRequests) {
       readRequest.closeSteps();
     }
     reader._readRequests = [];
   }
-
-  resolvePromise(reader._closedPromise, undefined);
 }
 
 function ReadableStreamError(stream, e) {
@@ -484,6 +484,9 @@ function ReadableStreamError(stream, e) {
   if (reader === undefined) {
     return;
   }
+
+  rejectPromise(reader._closedPromise, e);
+  setPromiseIsHandledToTrue(reader._closedPromise);
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     for (const readRequest of reader._readRequests) {
@@ -500,9 +503,6 @@ function ReadableStreamError(stream, e) {
 
     reader._readIntoRequests = [];
   }
-
-  rejectPromise(reader._closedPromise, e);
-  setPromiseIsHandledToTrue(reader._closedPromise);
 }
 
 function ReadableStreamFulfillReadIntoRequest(stream, chunk, done) {

@@ -2358,11 +2358,11 @@ the {{ReadableStream}}'s public API.
  1. Set |stream|.[=ReadableStream/[[state]]=] to "`closed`".
  1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. If |reader| is undefined, return.
+ 1. [=Resolve=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with undefined.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
   1. [=list/For each=] |readRequest| of |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=],
    1. Perform |readRequest|'s [=read request/close steps=].
   1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to an empty [=list=].
- 1. [=Resolve=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with undefined.
 </div>
 
 <div algorithm>
@@ -2374,6 +2374,8 @@ the {{ReadableStream}}'s public API.
  1. Set |stream|.[=ReadableStream/[[storedError]]=] to |e|.
  1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. If |reader| is undefined, return.
+ 1. [=Reject=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with |e|.
+ 1. Set |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=].\[[PromiseIsHandled]] to true.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
   1. [=list/For each=] |readRequest| of |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=],
     1. Perform |readRequest|'s [=read request/error steps=], given |e|.
@@ -2384,8 +2386,6 @@ the {{ReadableStream}}'s public API.
       |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=],
     1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
    1. Set |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] to a new empty [=list=].
- 1. [=Reject=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with |e|.
- 1. Set |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=].\[[PromiseIsHandled]] to true.
 </div>
 
 <div algorithm>
