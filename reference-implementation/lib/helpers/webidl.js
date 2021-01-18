@@ -23,12 +23,18 @@ function newPromise() {
 
 // https://heycam.github.io/webidl/#resolve
 function resolvePromise(p, value) {
+  if (promiseSideTable.get(p).stateIsPending === false) {
+    return;
+  }
   promiseSideTable.get(p).resolve(value);
   promiseSideTable.get(p).stateIsPending = false;
 }
 
 // https://heycam.github.io/webidl/#reject
 function rejectPromise(p, reason) {
+  if (promiseSideTable.get(p).stateIsPending === false) {
+    return;
+  }
   promiseSideTable.get(p).reject(reason);
   promiseSideTable.get(p).stateIsPending = false;
 }
