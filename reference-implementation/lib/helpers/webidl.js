@@ -1,4 +1,5 @@
 'use strict';
+const assert = require('assert');
 const { rethrowAssertionErrorRejection } = require('./miscellaneous.js');
 
 const originalPromise = Promise;
@@ -23,12 +24,18 @@ function newPromise() {
 
 // https://heycam.github.io/webidl/#resolve
 function resolvePromise(p, value) {
+  // We intend to only resolve or reject promises that are still pending.
+  // When this is not the case, it usually means there's a bug in the specification that we want to fix.
+  // This assertion is NOT a normative requirement. It is part of the reference implementation only
+  // to help detect bugs in the specification. Other implementors MUST NOT replicate this assertion.
+  assert(stateIsPending(p) === true);
   promiseSideTable.get(p).resolve(value);
   promiseSideTable.get(p).stateIsPending = false;
 }
 
 // https://heycam.github.io/webidl/#reject
 function rejectPromise(p, reason) {
+  assert(stateIsPending(p) === true);
   promiseSideTable.get(p).reject(reason);
   promiseSideTable.get(p).stateIsPending = false;
 }
