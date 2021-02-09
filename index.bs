@@ -571,9 +571,9 @@ enum ReadableStreamType { "bytes" };
  <dd>
    <p>A function that is called immediately during creation of the {{ReadableStream}}.
 
-   <p>Typically this is used to adapt a [=push source=] by setting up relevant event listeners, as in
-   the example of [[#example-rs-push-no-backpressure]], or to acquire access to a [=pull source=],
-   as in [[#example-rs-pull]].
+   <p>Typically this is used to adapt a [=push source=] by setting up relevant event listeners, as
+   in the example of [[#example-rs-push-no-backpressure]], or to acquire access to a
+   [=pull source=], as in [[#example-rs-pull]].
 
    <p>If this setup process is asynchronous, it can return a promise to signal success or failure;
    a rejected promise will error the stream. Any thrown exceptions will be re-thrown by the
