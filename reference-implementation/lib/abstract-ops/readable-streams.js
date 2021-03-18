@@ -23,6 +23,7 @@ const WritableStream = require('../../generated/WritableStream.js');
 Object.assign(exports, {
   AcquireReadableStreamBYOBReader,
   AcquireReadableStreamDefaultReader,
+  CreateReadableByteStream,
   CreateReadableStream,
   InitializeReadableStream,
   IsReadableStreamLocked,
@@ -90,7 +91,24 @@ function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, hi
   return stream;
 }
 
-// CreateReadableByteStream is not implemented since it is only meant for external specs.
+function CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark = 0,
+                                  autoAllocateChunkSize = undefined) {
+  assert(IsNonNegativeNumber(highWaterMark) === true);
+  if (autoAllocateChunkSize !== undefined) {
+    assert(Number.isInteger(autoAllocateChunkSize) === true);
+    assert(autoAllocateChunkSize > 0);
+  }
+
+  const stream = ReadableStream.new(globalThis);
+  InitializeReadableStream(stream);
+
+  const controller = ReadableByteStreamController.new(globalThis);
+  SetUpReadableByteStreamController(
+    stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, autoAllocateChunkSize
+  );
+
+  return stream;
+}
 
 function InitializeReadableStream(stream) {
   stream._state = 'readable';
