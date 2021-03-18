@@ -2054,15 +2054,10 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="CreateReadableByteStream" id="create-readable-byte-stream"
- export>CreateReadableByteStream(|startAlgorithm|, |pullAlgorithm|, |cancelAlgorithm|[,
- |highWaterMark|, [, |autoAllocateChunkSize|]])</dfn> is meant to be called from other
- specifications that wish to create {{ReadableStream}} instances that represent [=readable byte
- streams=]. The |pullAlgorithm| and |cancelAlgorithm| algorithms must return promises; if supplied,
- |highWaterMark| must be a non-negative, non-NaN number, and, if supplied, |autoAllocateChunkSize|
- must be a positive integer.
-
- It performs the following steps:
+ <dfn abstract-op lt="CreateReadableByteStream"
+ id="create-readable-byte-stream">CreateReadableByteStream(|startAlgorithm|, |pullAlgorithm|,
+ |cancelAlgorithm|[, |highWaterMark|, [, |autoAllocateChunkSize|]])</dfn> performs the following
+ steps:
 
  1. If |highWaterMark| was not passed, set it to 0.
  1. If |autoAllocateChunkSize| was not passed, set it to undefined.
