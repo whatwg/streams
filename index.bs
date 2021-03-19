@@ -2307,6 +2307,101 @@ create them does not matter.
  1. Return « |branch1|, |branch2| ».
 </div>
 
+<div algorithm>
+ <dfn abstract-op lt="ReadableStreamTee2" id="readable-stream-tee2">ReadableStreamTee2(|stream|,
+ |cloneForBranch2|)</dfn> will [=tee a readable stream|tee=] a given readable stream.
+
+ The second argument, |cloneForBranch2|, governs whether or not the data from the original stream
+ will be cloned (using HTML's [=serializable objects=] framework) before appearing in the second of
+ the returned branches. This is useful for scenarios where both branches are to be consumed in such
+ a way that they might otherwise interfere with each other, such as by [=transferable
+ objects|transferring=] their [=chunks=]. However, it does introduce a noticeable asymmetry between
+ the two branches, and limits the possible [=chunks=] to serializable ones. [[!HTML]]
+
+ <p class="note">In this standard ReadableStreamTee is always called with |cloneForBranch2| set to
+ false; other specifications pass true via the [=ReadableStream/tee=] wrapper algorithm.
+
+ It performs the following steps:
+
+ 1. Assert: |stream| [=implements=] {{ReadableStream}}.
+ 1. Assert: |cloneForBranch2| is a boolean.
+ 1. Let |reader| be ? [$AcquireReadableStreamDefaultReader$](|stream|).
+ 1. Let |reading| be false.
+ 1. Let |canceled1| be false.
+ 1. Let |canceled2| be false.
+ 1. Let |reason1| be undefined.
+ 1. Let |reason2| be undefined.
+ 1. Let |branch1| be undefined.
+ 1. Let |branch2| be undefined.
+ 1. Let |cancelPromise| be [=a new promise=].
+ 1. Let |pullAlgorithm| be the following steps:
+  1. If |reading| is true, return [=a promise resolved with=] undefined.
+  1. Set |reading| to true.
+  1. Let |readRequest| be a [=read request=] with the following [=struct/items=]:
+   : [=read request/chunk steps=], given |value|
+   ::
+    1. [=Queue a microtask=] to perform the following steps:
+     1. Set |reading| to false.
+     1. Let |value1| and |value2| be |value|.
+     1. If |canceled2| is false and |cloneForBranch2| is true, set |value2| to ?
+        [$StructuredDeserialize$](? [$StructuredSerialize$](|value2|), [=the current Realm=]).
+     1. If |canceled1| is false, perform ?
+        [$ReadableStreamDefaultControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
+        |value1|).
+     1. If |canceled2| is false, perform ?
+        [$ReadableStreamDefaultControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
+        |value2|).
+
+    <p class="note">The microtask delay here is necessary because it takes at least a microtask to
+    detect errors, when we use |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] below.
+    We want errors in |stream| to error both branches immediately, so we cannot let successful
+    synchronously-available reads happen ahead of asynchronously-available errors.
+
+   : [=read request/close steps=]
+   ::
+    1. Set |reading| to false.
+    1. If |canceled1| is false, perform !
+       [$ReadableStreamDefaultControllerClose$](|branch1|.[=ReadableStream/[[controller]]=]).
+    1. If |canceled2| is false, perform !
+       [$ReadableStreamDefaultControllerClose$](|branch2|.[=ReadableStream/[[controller]]=]).
+    1. If |canceled1| is false or |canceled2| is false, [=resolve=] |cancelPromise| with undefined.
+
+   : [=read request/error steps=]
+   ::
+    1. Set |reading| to false.
+  1. Perform ! [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
+  1. Return [=a promise resolved with=] undefined.
+ 1. Let |cancel1Algorithm| be the following steps, taking a |reason| argument:
+  1. Set |canceled1| to true.
+  1. Set |reason1| to |reason|.
+  1. If |canceled2| is true,
+   1. Let |compositeReason| be ! [$CreateArrayFromList$](« |reason1|, |reason2| »).
+   1. Let |cancelResult| be ! [$ReadableStreamCancel$](|stream|, |compositeReason|).
+   1. [=Resolve=] |cancelPromise| with |cancelResult|.
+  1. Return |cancelPromise|.
+ 1. Let |cancel2Algorithm| be the following steps, taking a |reason| argument:
+  1. Set |canceled2| to true.
+  1. Set |reason2| to |reason|.
+  1. If |canceled1| is true,
+   1. Let |compositeReason| be ! [$CreateArrayFromList$](« |reason1|, |reason2| »).
+   1. Let |cancelResult| be ! [$ReadableStreamCancel$](|stream|, |compositeReason|).
+   1. [=Resolve=] |cancelPromise| with |cancelResult|.
+  1. Return |cancelPromise|.
+ 1. Let |startAlgorithm| be an algorithm that returns undefined.
+ 1. Set |branch1| to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|,
+    |cancel1Algorithm|).
+ 1. Set |branch2| to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|,
+    |cancel2Algorithm|).
+ 1. [=Upon rejection=] of |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with reason
+    |r|,
+  1. Perform ! [$ReadableStreamDefaultControllerError$](|branch1|.[=ReadableStream/[[controller]]=],
+     |r|).
+  1. Perform ! [$ReadableStreamDefaultControllerError$](|branch2|.[=ReadableStream/[[controller]]=],
+     |r|).
+  1. If |canceled1| is false or |canceled2| is false, [=resolve=] |cancelPromise| with undefined.
+ 1. Return « |branch1|, |branch2| ».
+</div>
+
 <h4 id="rs-abstract-ops-used-by-controllers">Interfacing with controllers</h4>
 
 In terms of specification factoring, the way that the {{ReadableStream}} class encapsulates the
