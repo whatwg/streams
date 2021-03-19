@@ -342,6 +342,15 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
 function ReadableStreamTee(stream, cloneForBranch2) {
   assert(ReadableStream.isImpl(stream));
   assert(typeof cloneForBranch2 === 'boolean');
+  if (ReadableByteStreamController.isImpl(stream._controller)) {
+    return ReadableByteStreamTee(stream);
+  }
+  return ReadableStreamDefaultTee(stream, cloneForBranch2);
+}
+
+function ReadableStreamDefaultTee(stream, cloneForBranch2) {
+  assert(ReadableStream.isImpl(stream));
+  assert(typeof cloneForBranch2 === 'boolean');
 
   const reader = AcquireReadableStreamDefaultReader(stream);
 
@@ -446,9 +455,9 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   return [branch1, branch2];
 }
 
-function ReadableStreamTee2(stream, cloneForBranch2) {
+function ReadableByteStreamTee(stream) {
   assert(ReadableStream.isImpl(stream));
-  assert(typeof cloneForBranch2 === 'boolean');
+  assert(ReadableByteStreamController.isImpl(stream._controller));
 
   const reader = AcquireReadableStreamDefaultReader(stream);
 
@@ -470,37 +479,37 @@ function ReadableStreamTee2(stream, cloneForBranch2) {
     reading = true;
 
     const readRequest = {
-      chunkSteps: value => {
+      chunkSteps: chunk => {
         // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
         // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
         // successful synchronously-available reads get ahead of asynchronously-available errors.
         queueMicrotask(() => {
           reading = false;
-          const value1 = value;
-          const value2 = value;
 
-          // There is no way to access the cloning code right now in the reference implementation.
-          // If we add one then we'll need an implementation for serializable objects.
-          // if (canceled2 === false && cloneForBranch2 === true) {
-          //   value2 = StructuredDeserialize(StructuredSerialize(value2));
-          // }
-
-          if (canceled1 === false) {
-            ReadableStreamDefaultControllerEnqueue(branch1._controller, value1);
-          }
-
-          if (canceled2 === false) {
-            ReadableStreamDefaultControllerEnqueue(branch2._controller, value2);
+          if (canceled1 === false && canceled2 === false) {
+            const clonedChunk = new chunk.constructor(chunk);
+            ReadableByteStreamControllerEnqueue(branch1._controller, chunk);
+            ReadableByteStreamControllerEnqueue(branch2._controller, clonedChunk);
+          } else if (canceled1 === false) {
+            ReadableByteStreamControllerEnqueue(branch1._controller, chunk);
+          } else if (canceled2 === false) {
+            ReadableByteStreamControllerEnqueue(branch2._controller, chunk);
           }
         });
       },
       closeSteps: () => {
         reading = false;
         if (canceled1 === false) {
-          ReadableStreamDefaultControllerClose(branch1._controller);
+          ReadableByteStreamControllerClose(branch1._controller);
+          if (branch1._controller._pendingPullIntos.length > 0) {
+            ReadableByteStreamControllerRespond(branch1._controller, 0);
+          }
         }
         if (canceled2 === false) {
-          ReadableStreamDefaultControllerClose(branch2._controller);
+          ReadableByteStreamControllerClose(branch2._controller);
+          if (branch2._controller._pendingPullIntos.length > 0) {
+            ReadableByteStreamControllerRespond(branch2._controller, 0);
+          }
         }
         if (canceled1 === false || canceled2 === false) {
           resolvePromise(cancelPromise, undefined);
@@ -518,6 +527,9 @@ function ReadableStreamTee2(stream, cloneForBranch2) {
   function cancel1Algorithm(reason) {
     canceled1 = true;
     reason1 = reason;
+    if (branch1._controller._pendingPullIntos.length > 0) {
+      ReadableByteStreamControllerRespond(branch1._controller, 0);
+    }
     if (canceled2 === true) {
       const compositeReason = CreateArrayFromList([reason1, reason2]);
       const cancelResult = ReadableStreamCancel(stream, compositeReason);
@@ -529,6 +541,9 @@ function ReadableStreamTee2(stream, cloneForBranch2) {
   function cancel2Algorithm(reason) {
     canceled2 = true;
     reason2 = reason;
+    if (branch2._controller._pendingPullIntos.length > 0) {
+      ReadableByteStreamControllerRespond(branch2._controller, 0);
+    }
     if (canceled1 === true) {
       const compositeReason = CreateArrayFromList([reason1, reason2]);
       const cancelResult = ReadableStreamCancel(stream, compositeReason);
@@ -539,12 +554,12 @@ function ReadableStreamTee2(stream, cloneForBranch2) {
 
   function startAlgorithm() {}
 
-  branch1 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm);
-  branch2 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm);
+  branch1 = CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancel1Algorithm);
+  branch2 = CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancel2Algorithm);
 
   uponRejection(reader._closedPromise, r => {
-    ReadableStreamDefaultControllerError(branch1._controller, r);
-    ReadableStreamDefaultControllerError(branch2._controller, r);
+    ReadableByteStreamControllerError(branch1._controller, r);
+    ReadableByteStreamControllerError(branch2._controller, r);
     if (canceled1 === false || canceled2 === false) {
       resolvePromise(cancelPromise, undefined);
     }
