@@ -1789,18 +1789,7 @@ has the following [=struct/items=]:
  The <dfn id="rbs-controller-byob-request" attribute
  for="ReadableByteStreamController">byobRequest</dfn> getter steps are:
 
- 1. If [=this=].[=ReadableByteStreamController/[[byobRequest]]=] is null and [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is
-    empty|empty=],
-  1. Let |firstDescriptor| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
-  1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |firstDescriptor|'s [=pull-into
-     descriptor/buffer=], |firstDescriptor|'s [=pull-into descriptor/byte offset=] +
-     |firstDescriptor|'s [=pull-into descriptor/bytes filled=], |firstDescriptor|'s [=pull-into
-     descriptor/byte length=] − |firstDescriptor|'s [=pull-into descriptor/bytes filled=] »).
-  1. Let |byobRequest| be a [=new=] {{ReadableStreamBYOBRequest}}.
-  1. Set |byobRequest|.[=ReadableStreamBYOBRequest/[[controller]]=] to [=this=].
-  1. Set |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=] to |view|.
-  1. Set [=this=].[=ReadableByteStreamController/[[byobRequest]]=] to |byobRequest|.
- 1. Return [=this=].[=ReadableByteStreamController/[[byobRequest]]=].
+ 1. Return ! [$ReadableByteStreamControllerGetBYOBRequest$]([=this=]).
 </div>
 
 <div algorithm>
@@ -3063,6 +3052,25 @@ The following abstract operations support the implementation of the
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt;
      |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. Return |ready|.
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="ReadableByteStreamControllerGetBYOBRequest"
+ id="readable-byte-stream-controller-get-byob-request">ReadableByteStreamControllerGetBYOBRequest(|controller|)</dfn>
+ performs the following steps:
+
+ 1. If |controller|.[=ReadableByteStreamController/[[byobRequest]]=] is null and
+    |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
+  1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+  1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |firstDescriptor|'s [=pull-into
+     descriptor/buffer=], |firstDescriptor|'s [=pull-into descriptor/byte offset=] +
+     |firstDescriptor|'s [=pull-into descriptor/bytes filled=], |firstDescriptor|'s [=pull-into
+     descriptor/byte length=] − |firstDescriptor|'s [=pull-into descriptor/bytes filled=] »).
+  1. Let |byobRequest| be a [=new=] {{ReadableStreamBYOBRequest}}.
+  1. Set |byobRequest|.[=ReadableStreamBYOBRequest/[[controller]]=] to |controller|.
+  1. Set |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=] to |view|.
+  1. Set |controller|.[=ReadableByteStreamController/[[byobRequest]]=] to |byobRequest|.
+ 1. Return |controller|.[=ReadableByteStreamController/[[byobRequest]]=].
 </div>
 
 <div algorithm>

@@ -15,6 +15,7 @@ const { CancelSteps, PullSteps } = require('./internal-methods.js');
 
 const ReadableByteStreamController = require('../../generated/ReadableByteStreamController.js');
 const ReadableStreamBYOBReader = require('../../generated/ReadableStreamBYOBReader.js');
+const ReadableStreamBYOBRequest = require('../../generated/ReadableStreamBYOBRequest.js');
 const ReadableStreamDefaultReader = require('../../generated/ReadableStreamDefaultReader.js');
 const ReadableStreamDefaultController = require('../../generated/ReadableStreamDefaultController.js');
 const ReadableStream = require('../../generated/ReadableStream.js');
@@ -33,6 +34,7 @@ Object.assign(exports, {
   ReadableByteStreamControllerClose,
   ReadableByteStreamControllerEnqueue,
   ReadableByteStreamControllerError,
+  ReadableByteStreamControllerGetBYOBRequest,
   ReadableByteStreamControllerGetDesiredSize,
   ReadableByteStreamControllerHandleQueueDrain,
   ReadableByteStreamControllerRespond,
@@ -1135,6 +1137,22 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
   }
 
   return ready;
+}
+
+function ReadableByteStreamControllerGetBYOBRequest(controller) {
+  if (controller._byobRequest === null && controller._pendingPullIntos.length > 0) {
+    const firstDescriptor = controller._pendingPullIntos[0];
+    const view = new Uint8Array(firstDescriptor.buffer,
+                                firstDescriptor.byteOffset + firstDescriptor.bytesFilled,
+                                firstDescriptor.byteLength - firstDescriptor.bytesFilled);
+
+    const byobRequest = ReadableStreamBYOBRequest.new(globalThis);
+    byobRequest._controller = controller;
+    byobRequest._view = view;
+    controller._byobRequest = byobRequest;
+  }
+
+  return controller._byobRequest;
 }
 
 function ReadableByteStreamControllerGetDesiredSize(controller) {
