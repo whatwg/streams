@@ -2273,7 +2273,7 @@ create them does not matter.
      |r|).
   1. Perform ! [$ReadableStreamDefaultControllerError$](|branch2|.[=ReadableStream/[[controller]]=],
      |r|).
-  1. [=Resolve=] |cancelPromise| with undefined.
+  1. If |canceled1| is false or |canceled2| is false, [=resolve=] |cancelPromise| with undefined.
  1. Return « |branch1|, |branch2| ».
 </div>
 
