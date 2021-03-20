@@ -459,7 +459,8 @@ function ReadableByteStreamTee(stream) {
   assert(ReadableStream.isImpl(stream));
   assert(ReadableByteStreamController.isImpl(stream._controller));
 
-  const reader = AcquireReadableStreamDefaultReader(stream);
+  let reader;
+  let readerType;
 
   let reading = false;
   let canceled1 = false;
@@ -471,12 +472,45 @@ function ReadableByteStreamTee(stream) {
 
   const cancelPromise = newPromise();
 
-  function pullAlgorithm() {
-    if (reading === true) {
-      return promiseResolvedWith(undefined);
+  function createReader(newReaderType) {
+    let newReader;
+    if (newReaderType === 'default') {
+      newReader = AcquireReadableStreamDefaultReader(stream);
+    } else {
+      assert(newReaderType === 'byob');
+      newReader = AcquireReadableStreamBYOBReader(stream);
     }
 
-    reading = true;
+    reader = newReader;
+    readerType = newReaderType;
+
+    uponRejection(newReader._closedPromise, r => {
+      if (reader !== newReader) {
+        return;
+      }
+      ReadableByteStreamControllerError(branch1._controller, r);
+      ReadableByteStreamControllerError(branch2._controller, r);
+      if (canceled1 === false || canceled2 === false) {
+        resolvePromise(cancelPromise, undefined);
+      }
+    });
+  }
+
+  function releaseReader() {
+    if (readerType === 'default') {
+      assert(reader._readRequests.length === 0);
+    } else {
+      assert(readerType === 'byob');
+      assert(reader._readIntoRequests.length === 0);
+    }
+    ReadableStreamReaderGenericRelease(reader);
+  }
+
+  function pullWithDefaultReader() {
+    if (readerType !== 'default') {
+      releaseReader();
+      createReader('default');
+    }
 
     const readRequest = {
       chunkSteps: chunk => {
@@ -501,15 +535,15 @@ function ReadableByteStreamTee(stream) {
         reading = false;
         if (canceled1 === false) {
           ReadableByteStreamControllerClose(branch1._controller);
-          if (branch1._controller._pendingPullIntos.length > 0) {
-            ReadableByteStreamControllerRespond(branch1._controller, 0);
-          }
         }
         if (canceled2 === false) {
           ReadableByteStreamControllerClose(branch2._controller);
-          if (branch2._controller._pendingPullIntos.length > 0) {
-            ReadableByteStreamControllerRespond(branch2._controller, 0);
-          }
+        }
+        if (branch1._controller._pendingPullIntos.length > 0) {
+          ReadableByteStreamControllerRespond(branch1._controller, 0);
+        }
+        if (branch2._controller._pendingPullIntos.length > 0) {
+          ReadableByteStreamControllerRespond(branch2._controller, 0);
         }
         if (canceled1 === false || canceled2 === false) {
           resolvePromise(cancelPromise, undefined);
@@ -520,6 +554,111 @@ function ReadableByteStreamTee(stream) {
       }
     };
     ReadableStreamDefaultReaderRead(reader, readRequest);
+  }
+
+  function pullWithBYOBReader(view, forBranch2) {
+    if (readerType !== 'byob') {
+      releaseReader();
+      createReader('byob');
+    }
+
+    const readIntoRequest = {
+      chunkSteps: chunk => {
+        // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
+        // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
+        // successful synchronously-available reads get ahead of asynchronously-available errors.
+        queueMicrotask(() => {
+          reading = false;
+
+          if (forBranch2 === true) {
+            if (canceled1 === false) {
+              const clonedChunk = new chunk.constructor(chunk);
+              ReadableByteStreamControllerEnqueue(branch1._controller, clonedChunk);
+            }
+            if (canceled2 === true) {
+              const emptyChunk = new Uint8Array(chunk.buffer, chunk.byteOffset, 0);
+              ReadableByteStreamControllerRespondWithNewView(branch2._controller, emptyChunk);
+            } else {
+              ReadableByteStreamControllerRespond(branch2._controller, chunk.byteLength);
+            }
+          } else {
+            if (canceled2 === false) {
+              const clonedChunk = new chunk.constructor(chunk);
+              ReadableByteStreamControllerEnqueue(branch2._controller, clonedChunk);
+            }
+            if (canceled1 === true) {
+              const emptyChunk = new Uint8Array(chunk.buffer, chunk.byteOffset, 0);
+              ReadableByteStreamControllerRespondWithNewView(branch1._controller, emptyChunk);
+            } else {
+              ReadableByteStreamControllerRespondWithNewView(branch1._controller, chunk);
+            }
+          }
+        });
+      },
+      closeSteps: chunk => {
+        assert(chunk.byteLength === 0);
+        reading = false;
+
+        if (canceled1 === false) {
+          ReadableByteStreamControllerClose(branch1._controller);
+        }
+        if (canceled2 === false) {
+          ReadableByteStreamControllerClose(branch2._controller);
+        }
+
+        if (forBranch2 === true) {
+          ReadableByteStreamControllerRespondWithNewView(branch2._controller, chunk);
+          if (branch1._controller._pendingPullIntos.length > 0) {
+            ReadableByteStreamControllerRespond(branch1._controller, 0);
+          }
+        } else {
+          ReadableByteStreamControllerRespondWithNewView(branch1._controller, chunk);
+          if (branch2._controller._pendingPullIntos.length > 0) {
+            ReadableByteStreamControllerRespond(branch2._controller, 0);
+          }
+        }
+
+        if (canceled1 === false || canceled2 === false) {
+          resolvePromise(cancelPromise, undefined);
+        }
+      },
+      errorSteps: () => {
+        reading = false;
+      }
+    };
+    ReadableStreamBYOBReaderRead(reader, view, readIntoRequest);
+  }
+
+  function pull1Algorithm() {
+    if (reading === true) {
+      return promiseResolvedWith(undefined);
+    }
+
+    reading = true;
+
+    const byobRequest = ReadableByteStreamControllerGetBYOBRequest(branch1._controller);
+    if (byobRequest === null) {
+      pullWithDefaultReader();
+    } else {
+      pullWithBYOBReader(byobRequest._view, false);
+    }
+
+    return promiseResolvedWith(undefined);
+  }
+
+  function pull2Algorithm() {
+    if (reading === true) {
+      return promiseResolvedWith(undefined);
+    }
+
+    reading = true;
+
+    const byobRequest = ReadableByteStreamControllerGetBYOBRequest(branch2._controller);
+    if (byobRequest === null) {
+      pullWithDefaultReader();
+    } else {
+      pullWithBYOBReader(byobRequest._view, true);
+    }
 
     return promiseResolvedWith(undefined);
   }
@@ -527,7 +666,7 @@ function ReadableByteStreamTee(stream) {
   function cancel1Algorithm(reason) {
     canceled1 = true;
     reason1 = reason;
-    if (branch1._controller._pendingPullIntos.length > 0) {
+    if (reading === false && branch1._controller._pendingPullIntos.length > 0) {
       ReadableByteStreamControllerRespond(branch1._controller, 0);
     }
     if (canceled2 === true) {
@@ -541,7 +680,7 @@ function ReadableByteStreamTee(stream) {
   function cancel2Algorithm(reason) {
     canceled2 = true;
     reason2 = reason;
-    if (branch2._controller._pendingPullIntos.length > 0) {
+    if (reading === false && branch2._controller._pendingPullIntos.length > 0) {
       ReadableByteStreamControllerRespond(branch2._controller, 0);
     }
     if (canceled1 === true) {
@@ -554,16 +693,10 @@ function ReadableByteStreamTee(stream) {
 
   function startAlgorithm() {}
 
-  branch1 = CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancel1Algorithm);
-  branch2 = CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancel2Algorithm);
+  createReader('default');
 
-  uponRejection(reader._closedPromise, r => {
-    ReadableByteStreamControllerError(branch1._controller, r);
-    ReadableByteStreamControllerError(branch2._controller, r);
-    if (canceled1 === false || canceled2 === false) {
-      resolvePromise(cancelPromise, undefined);
-    }
-  });
+  branch1 = CreateReadableByteStream(startAlgorithm, pull1Algorithm, cancel1Algorithm);
+  branch2 = CreateReadableByteStream(startAlgorithm, pull2Algorithm, cancel2Algorithm);
 
   return [branch1, branch2];
 }

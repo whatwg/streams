@@ -2328,7 +2328,8 @@ create them does not matter.
  1. Assert: |stream| [=implements=] {{ReadableStream}}.
  1. Assert: |stream|.[=ReadableStream/[[controller]]=] [=implements=]
     {{ReadableByteStreamController}}.
- 1. Let |reader| be ? [$AcquireReadableStreamDefaultReader$](|stream|).
+ 1. Let |reader| be undefined.
+ 1. Let |readerType| be undefined.
  1. Let |reading| be false.
  1. Let |canceled1| be false.
  1. Let |canceled2| be false.
@@ -2337,9 +2338,34 @@ create them does not matter.
  1. Let |branch1| be undefined.
  1. Let |branch2| be undefined.
  1. Let |cancelPromise| be [=a new promise=].
- 1. Let |pullAlgorithm| be the following steps:
-  1. If |reading| is true, return [=a promise resolved with=] undefined.
-  1. Set |reading| to true.
+ 1. Let |createReader| be the following steps, taking a |newReaderType| argument:
+  1. Let |newReader| be undefined.
+  1. If |newReaderType| is "`default`", set |newReader| to ?
+     [$AcquireReadableStreamDefaultReader$](|stream|).
+  1. Otherwise,
+   1. Assert: |newReaderType| is "`byob`".
+   1. Set |newReader| to ? [$AcquireReadableStreamBYOBReader$](|stream|).
+  1. Set |reader| to |newReader|.
+  1. Set |readerType| to |newReaderType|.
+  1. [=Upon rejection=] of |newReader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with reason
+     |r|,
+   1. If |reader| is not |newReader|, return.
+   1. Perform ! [$ReadableByteStreamControllerError$](|branch1|.[=ReadableStream/[[controller]]=],
+      |r|).
+   1. Perform ! [$ReadableByteStreamControllerError$](|branch2|.[=ReadableStream/[[controller]]=],
+      |r|).
+   1. If |canceled1| is false or |canceled2| is false, [=resolve=] |cancelPromise| with undefined.
+ 1. Let |releaseReader| be the following steps:
+  1. If |readerType| is "`default`",
+   1. Assert: |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is [=list/is empty|empty=].
+  1. Otherwise,
+   1. Assert: |readerType| is "`byob`".
+   1. Assert: |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is [=list/is empty|empty=].
+  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+ 1. Let |pullWithDefaultReader| be the following steps:
+  1. If |readerType| is not "`default`",
+    1. Perform |releaseReader|.
+    1. Perform |createReader|, given "`default`".
   1. Let |readRequest| be a [=read request=] with the following [=struct/items=]:
    : [=read request/chunk steps=], given |chunk|
    ::
@@ -2369,31 +2395,116 @@ create them does not matter.
    : [=read request/close steps=]
    ::
     1. Set |reading| to false.
-    1. If |canceled1| is false,
-     1. Perform !
-        [$ReadableStreamDefaultControllerClose$](|branch1|.[=ReadableStream/[[controller]]=]).
-     1. If |branch1|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
-        is not [=list/is empty|empty=], perform !
-        [$ReadableByteStreamControllerRespond$](|branch1|.[=ReadableStream/[[controller]]=], 0).
-    1. If |canceled2| is false,
-     1. Perform !
-        [$ReadableStreamDefaultControllerClose$](|branch2|.[=ReadableStream/[[controller]]=]).
-     1. If |branch2|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
-        is not [=list/is empty|empty=], perform !
-        [$ReadableByteStreamControllerRespond$](|branch2|.[=ReadableStream/[[controller]]=], 0).
+    1. If |canceled1| is false, perform !
+       [$ReadableStreamDefaultControllerClose$](|branch1|.[=ReadableStream/[[controller]]=]).
+    1. If |canceled2| is false, perform !
+       [$ReadableStreamDefaultControllerClose$](|branch2|.[=ReadableStream/[[controller]]=]).
+    1. If |branch1|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+       is not [=list/is empty|empty=], perform !
+       [$ReadableByteStreamControllerRespond$](|branch1|.[=ReadableStream/[[controller]]=], 0).
+    1. If |branch2|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+       is not [=list/is empty|empty=], perform !
+       [$ReadableByteStreamControllerRespond$](|branch2|.[=ReadableStream/[[controller]]=], 0).
     1. If |canceled1| is false or |canceled2| is false, [=resolve=] |cancelPromise| with undefined.
 
    : [=read request/error steps=]
    ::
     1. Set |reading| to false.
   1. Perform ! [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
+ 1. Let |pullWithBYOBReader| be the following steps, given |view| and |forBranch2|:
+  1. If |readerType| is not "`byob`",
+    1. Perform |releaseReader|.
+    1. Perform |createReader|, given "`byob`".
+  1. Let |readIntoRequest| be a [=read-into request=] with the following [=struct/items=]:
+   : [=read-into request/chunk steps=], given |chunk|
+   ::
+    1. [=Queue a microtask=] to perform the following steps:
+     1. Set |reading| to false.
+     1. If |forBranch2| is true,
+      1. If |canceled1| is false,
+       1. Let |clonedChunk| be ! [$Construct$](|chunk|.constructor, « |chunk| »).
+          <!-- TODO: Create abstract op for cloning a TypedArray or DataView -->
+       1. Perform ! [$ReadableByteStreamControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
+          |clonedChunk|).
+      1. If |canceled2| is true,
+       1. Let |emptyChunk| be ! [$Construct$]({{%Uint8Array%}}, « |chunk|.\[[ViewedArrayBuffer]],
+          chunk.\[[ByteOffset]], 0 »).
+       1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch2|.[=ReadableStream/[[controller]]=],
+          |emptyChunk|).
+      1. Otherwise,
+       1. Perform ! [$ReadableByteStreamControllerRespond$](|branch2|.[=ReadableStream/[[controller]]=],
+          |chunk|.\[[ByteLength]]).
+     1. Otherwise,
+      1. If |canceled2| is false,
+       1. Let |clonedChunk| be ! [$Construct$](|chunk|.constructor, « |chunk| »).
+          <!-- TODO: Create abstract op for cloning a TypedArray or DataView -->
+       1. Perform ! [$ReadableByteStreamControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
+          |clonedChunk|).
+      1. If |canceled1| is true,
+       1. Let |emptyChunk| be ! [$Construct$]({{%Uint8Array%}}, « |chunk|.\[[ViewedArrayBuffer]],
+          chunk.\[[ByteOffset]], 0 »).
+       1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch1|.[=ReadableStream/[[controller]]=],
+          |emptyChunk|).
+      1. Otherwise,
+       1. Perform ! [$ReadableByteStreamControllerRespond$](|branch1|.[=ReadableStream/[[controller]]=],
+          |chunk|.\[[ByteLength]]).
+
+    <p class="note">The microtask delay here is necessary because it takes at least a microtask to
+    detect errors, when we use |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] below.
+    We want errors in |stream| to error both branches immediately, so we cannot let successful
+    synchronously-available reads happen ahead of asynchronously-available errors.
+
+   : [=read-into request/close steps=], given |chunk|
+   ::
+    1. Assert: |chunk|.\[[ByteLength]] is 0.
+    1. Set |reading| to false.
+    1. If |canceled1| is false, perform !
+       [$ReadableStreamDefaultControllerClose$](|branch1|.[=ReadableStream/[[controller]]=]).
+    1. If |canceled2| is false, perform !
+       [$ReadableStreamDefaultControllerClose$](|branch2|.[=ReadableStream/[[controller]]=]).
+    1. If |forBranch2| is true,
+     1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch2|.[=ReadableStream/[[controller]]=],
+        |chunk|).
+     1. If |branch1|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+        is not [=list/is empty|empty=], perform !
+        [$ReadableByteStreamControllerRespond$](|branch1|.[=ReadableStream/[[controller]]=], 0).
+    1. Otherwise,
+     1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch1|.[=ReadableStream/[[controller]]=],
+        |chunk|).
+     1. If |branch2|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+        is not [=list/is empty|empty=], perform !
+        [$ReadableByteStreamControllerRespond$](|branch2|.[=ReadableStream/[[controller]]=], 0).
+    1. If |canceled1| is false or |canceled2| is false, [=resolve=] |cancelPromise| with undefined.
+
+   : [=read-into request/error steps=]
+   ::
+    1. Set |reading| to false.
+  1. Perform ! [$ReadableStreamBYOBReaderRead$](|reader|, |view|, |readIntoRequest|).
+ 1. Let |pull1Algorithm| be the following steps:
+  1. If |reading| is true, return [=a promise resolved with=] undefined.
+  1. Set |reading| to true.
+  1. Let |byobRequest| be ! [$ReadableByteStreamControllerGetBYOBRequest$](|branch1|.[=ReadableStream/[[controller]]=]).
+  1. If |byobRequest| is null,
+   1. Perform |pullWithDefaultReader|.
+  1. Otherwise,
+   1. Perform |pullWithBYOBReader|, given |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=] and false.
+  1. Return [=a promise resolved with=] undefined.
+ 1. Let |pull2Algorithm| be the following steps:
+  1. If |reading| is true, return [=a promise resolved with=] undefined.
+  1. Set |reading| to true.
+  1. Let |byobRequest| be ! [$ReadableByteStreamControllerGetBYOBRequest$](|branch2|.[=ReadableStream/[[controller]]=]).
+  1. If |byobRequest| is null,
+   1. Perform |pullWithDefaultReader|.
+  1. Otherwise,
+   1. Perform |pullWithBYOBReader|, given |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=] and true.
   1. Return [=a promise resolved with=] undefined.
  1. Let |cancel1Algorithm| be the following steps, taking a |reason| argument:
   1. Set |canceled1| to true.
   1. Set |reason1| to |reason|.
-  1. If |branch1|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
-     is not [=list/is empty|empty=], perform !
-     [$ReadableByteStreamControllerRespond$](|branch1|.[=ReadableStream/[[controller]]=], 0).
+  1. If |reading| is false and
+     |branch1|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+     is not [=list/is empty|empty=],
+   1. Perform ! [$ReadableByteStreamControllerRespond$](|branch1|.[=ReadableStream/[[controller]]=], 0).
   1. If |canceled2| is true,
    1. Let |compositeReason| be ! [$CreateArrayFromList$](« |reason1|, |reason2| »).
    1. Let |cancelResult| be ! [$ReadableStreamCancel$](|stream|, |compositeReason|).
@@ -2402,26 +2513,22 @@ create them does not matter.
  1. Let |cancel2Algorithm| be the following steps, taking a |reason| argument:
   1. Set |canceled2| to true.
   1. Set |reason2| to |reason|.
-  1. If |branch2|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
-     is not [=list/is empty|empty=], perform !
-     [$ReadableByteStreamControllerRespond$](|branch2|.[=ReadableStream/[[controller]]=], 0).
+  1. If |reading| is false and
+     |branch2|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+     is not [=list/is empty|empty=],
+   1. Perform ! [$ReadableByteStreamControllerRespond$](|branch2|.[=ReadableStream/[[controller]]=], 0).
   1. If |canceled1| is true,
    1. Let |compositeReason| be ! [$CreateArrayFromList$](« |reason1|, |reason2| »).
    1. Let |cancelResult| be ! [$ReadableStreamCancel$](|stream|, |compositeReason|).
    1. [=Resolve=] |cancelPromise| with |cancelResult|.
   1. Return |cancelPromise|.
  1. Let |startAlgorithm| be an algorithm that returns undefined.
- 1. Set |branch1| to ! [$CreateReadableByteStream$](|startAlgorithm|, |pullAlgorithm|,
+ 1. Perform |createReader|, given "`default`".
+    <!-- TODO This can throw if the stream is locked, is that allowed? -->
+ 1. Set |branch1| to ! [$CreateReadableByteStream$](|startAlgorithm|, |pull1Algorithm|,
     |cancel1Algorithm|).
- 1. Set |branch2| to ! [$CreateReadableByteStream$](|startAlgorithm|, |pullAlgorithm|,
+ 1. Set |branch2| to ! [$CreateReadableByteStream$](|startAlgorithm|, |pull2Algorithm|,
     |cancel2Algorithm|).
- 1. [=Upon rejection=] of |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with reason
-    |r|,
-  1. Perform ! [$ReadableByteStreamControllerError$](|branch1|.[=ReadableStream/[[controller]]=],
-     |r|).
-  1. Perform ! [$ReadableByteStreamControllerError$](|branch2|.[=ReadableStream/[[controller]]=],
-     |r|).
-  1. If |canceled1| is false or |canceled2| is false, [=resolve=] |cancelPromise| with undefined.
  1. Return « |branch1|, |branch2| ».
 </div>
 
