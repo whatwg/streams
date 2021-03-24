@@ -2238,7 +2238,7 @@ create them does not matter.
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamDefaultTee"
- id="readable-stream-default-tee">ReadableStreamTee(|stream|, |cloneForBranch2|)</dfn>
+ id="readable-stream-default-tee">ReadableStreamDefaultTee(|stream|, |cloneForBranch2|)</dfn>
  performs the following steps:
 
  1. Assert: |stream| [=implements=] {{ReadableStream}}.
