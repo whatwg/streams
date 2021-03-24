@@ -2328,8 +2328,7 @@ create them does not matter.
  1. Assert: |stream| [=implements=] {{ReadableStream}}.
  1. Assert: |stream|.[=ReadableStream/[[controller]]=] [=implements=]
     {{ReadableByteStreamController}}.
- 1. Let |reader| be undefined.
- 1. Let |readerType| be undefined.
+ 1. Let |reader| be ? [$AcquireReadableStreamDefaultReader$](|stream|).
  1. Let |reading| be false.
  1. Let |canceled1| be false.
  1. Let |canceled2| be false.
@@ -2338,34 +2337,21 @@ create them does not matter.
  1. Let |branch1| be undefined.
  1. Let |branch2| be undefined.
  1. Let |cancelPromise| be [=a new promise=].
- 1. Let |createReader| be the following steps, taking a |newReaderType| argument:
-  1. Let |newReader| be undefined.
-  1. If |newReaderType| is "`default`", set |newReader| to ?
-     [$AcquireReadableStreamDefaultReader$](|stream|).
-  1. Otherwise,
-   1. Assert: |newReaderType| is "`byob`".
-   1. Set |newReader| to ? [$AcquireReadableStreamBYOBReader$](|stream|).
-  1. Set |reader| to |newReader|.
-  1. Set |readerType| to |newReaderType|.
-  1. [=Upon rejection=] of |newReader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with reason
+ 1. Let |forwardReaderError| be the following steps, taking a |thisReader| argument:
+  1. [=Upon rejection=] of |thisReader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with reason
      |r|,
-   1. If |reader| is not |newReader|, return.
+   1. If |reader| is not |thisReader|, return.
    1. Perform ! [$ReadableByteStreamControllerError$](|branch1|.[=ReadableStream/[[controller]]=],
       |r|).
    1. Perform ! [$ReadableByteStreamControllerError$](|branch2|.[=ReadableStream/[[controller]]=],
       |r|).
    1. If |canceled1| is false or |canceled2| is false, [=resolve=] |cancelPromise| with undefined.
- 1. Let |releaseReader| be the following steps:
-  1. If |readerType| is "`default`",
-   1. Assert: |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is [=list/is empty|empty=].
-  1. Otherwise,
-   1. Assert: |readerType| is "`byob`".
-   1. Assert: |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is [=list/is empty|empty=].
-  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
  1. Let |pullWithDefaultReader| be the following steps:
-  1. If |readerType| is not "`default`",
-    1. Perform |releaseReader|.
-    1. Perform |createReader|, given "`default`".
+  1. If |reader| [=implements=] {{ReadableStreamBYOBReader}},
+   1. Assert: |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is [=list/is empty|empty=].
+   1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+   1. Set |reader| to ! [$AcquireReadableStreamDefaultReader$](|stream|).
+   1. Perform |forwardReaderError|, given |reader|.
   1. Let |readRequest| be a [=read request=] with the following [=struct/items=]:
    : [=read request/chunk steps=], given |chunk|
    ::
@@ -2407,9 +2393,11 @@ create them does not matter.
     1. Set |reading| to false.
   1. Perform ! [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
  1. Let |pullWithBYOBReader| be the following steps, given |view| and |forBranch2|:
-  1. If |readerType| is not "`byob`",
-    1. Perform |releaseReader|.
-    1. Perform |createReader|, given "`byob`".
+  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
+   1. Assert: |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is [=list/is empty|empty=].
+   1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+   1. Set |reader| to ! [$AcquireReadableStreamBYOBReader$](|stream|).
+   1. Perform |forwardReaderError|, given |reader|.
   1. Let |readIntoRequest| be a [=read-into request=] with the following [=struct/items=]:
    : [=read-into request/chunk steps=], given |chunk|
    ::
@@ -2518,12 +2506,11 @@ create them does not matter.
    1. [=Resolve=] |cancelPromise| with |cancelResult|.
   1. Return |cancelPromise|.
  1. Let |startAlgorithm| be an algorithm that returns undefined.
- 1. Perform |createReader|, given "`default`".
-    <!-- TODO This can throw if the stream is locked, is that allowed? -->
  1. Set |branch1| to ! [$CreateReadableByteStream$](|startAlgorithm|, |pull1Algorithm|,
     |cancel1Algorithm|).
  1. Set |branch2| to ! [$CreateReadableByteStream$](|startAlgorithm|, |pull2Algorithm|,
     |cancel2Algorithm|).
+ 1. Perform |forwardReaderError|, given |reader|.
  1. Return « |branch1|, |branch2| ».
 </div>
 

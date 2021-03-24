@@ -459,9 +459,7 @@ function ReadableByteStreamTee(stream) {
   assert(ReadableStream.isImpl(stream));
   assert(ReadableByteStreamController.isImpl(stream._controller));
 
-  let reader;
-  let readerType;
-
+  let reader = AcquireReadableStreamDefaultReader(stream);
   let reading = false;
   let canceled1 = false;
   let canceled2 = false;
@@ -472,20 +470,9 @@ function ReadableByteStreamTee(stream) {
 
   const cancelPromise = newPromise();
 
-  function createReader(newReaderType) {
-    let newReader;
-    if (newReaderType === 'default') {
-      newReader = AcquireReadableStreamDefaultReader(stream);
-    } else {
-      assert(newReaderType === 'byob');
-      newReader = AcquireReadableStreamBYOBReader(stream);
-    }
-
-    reader = newReader;
-    readerType = newReaderType;
-
-    uponRejection(newReader._closedPromise, r => {
-      if (reader !== newReader) {
+  function forwardReaderError(thisReader) {
+    uponRejection(thisReader._closedPromise, r => {
+      if (reader !== thisReader) {
         return;
       }
       ReadableByteStreamControllerError(branch1._controller, r);
@@ -496,20 +483,13 @@ function ReadableByteStreamTee(stream) {
     });
   }
 
-  function releaseReader() {
-    if (readerType === 'default') {
-      assert(reader._readRequests.length === 0);
-    } else {
-      assert(readerType === 'byob');
-      assert(reader._readIntoRequests.length === 0);
-    }
-    ReadableStreamReaderGenericRelease(reader);
-  }
-
   function pullWithDefaultReader() {
-    if (readerType !== 'default') {
-      releaseReader();
-      createReader('default');
+    if (ReadableStreamBYOBReader.isImpl(reader)) {
+      assert(reader._readIntoRequests.length === 0);
+      ReadableStreamReaderGenericRelease(reader);
+
+      reader = AcquireReadableStreamDefaultReader(stream);
+      forwardReaderError(reader);
     }
 
     const readRequest = {
@@ -560,9 +540,12 @@ function ReadableByteStreamTee(stream) {
   }
 
   function pullWithBYOBReader(view, forBranch2) {
-    if (readerType !== 'byob') {
-      releaseReader();
-      createReader('byob');
+    if (ReadableStreamDefaultReader.isImpl(reader)) {
+      assert(reader._readRequests.length === 0);
+      ReadableStreamReaderGenericRelease(reader);
+
+      reader = AcquireReadableStreamBYOBReader(stream);
+      forwardReaderError(reader);
     }
 
     const readIntoRequest = {
@@ -696,10 +679,10 @@ function ReadableByteStreamTee(stream) {
 
   function startAlgorithm() {}
 
-  createReader('default');
-
   branch1 = CreateReadableByteStream(startAlgorithm, pull1Algorithm, cancel1Algorithm);
   branch2 = CreateReadableByteStream(startAlgorithm, pull2Algorithm, cancel2Algorithm);
+
+  forwardReaderError(reader);
 
   return [branch1, branch2];
 }
