@@ -520,14 +520,17 @@ function ReadableByteStreamTee(stream) {
         queueMicrotask(() => {
           reading = false;
 
+          const chunk1 = chunk;
+          let chunk2 = chunk;
           if (canceled1 === false && canceled2 === false) {
-            const clonedChunk = new chunk.constructor(chunk);
-            ReadableByteStreamControllerEnqueue(branch1._controller, chunk);
-            ReadableByteStreamControllerEnqueue(branch2._controller, clonedChunk);
-          } else if (canceled1 === false) {
-            ReadableByteStreamControllerEnqueue(branch1._controller, chunk);
-          } else if (canceled2 === false) {
-            ReadableByteStreamControllerEnqueue(branch2._controller, chunk);
+            chunk2 = new chunk.constructor(chunk);
+          }
+
+          if (canceled1 === false) {
+            ReadableByteStreamControllerEnqueue(branch1._controller, chunk1);
+          }
+          if (canceled2 === false) {
+            ReadableByteStreamControllerEnqueue(branch2._controller, chunk2);
           }
         });
       },
