@@ -562,22 +562,18 @@ function ReadableByteStreamTee(stream) {
               ReadableByteStreamControllerEnqueue(branch1._controller, clonedChunk);
             }
             if (canceled2 === true) {
-              const emptyChunk = new Uint8Array(chunk.buffer, chunk.byteOffset, 0);
-              ReadableByteStreamControllerRespondWithNewView(branch2._controller, emptyChunk);
-            } else {
-              ReadableByteStreamControllerRespond(branch2._controller, chunk.byteLength);
+              chunk = new Uint8Array(chunk.buffer, chunk.byteOffset, 0);
             }
+            ReadableByteStreamControllerRespondWithNewView(branch2._controller, chunk);
           } else {
             if (canceled2 === false) {
               const clonedChunk = CloneArrayBufferView(chunk);
               ReadableByteStreamControllerEnqueue(branch2._controller, clonedChunk);
             }
             if (canceled1 === true) {
-              const emptyChunk = new Uint8Array(chunk.buffer, chunk.byteOffset, 0);
-              ReadableByteStreamControllerRespondWithNewView(branch1._controller, emptyChunk);
-            } else {
-              ReadableByteStreamControllerRespondWithNewView(branch1._controller, chunk);
+              chunk = new Uint8Array(chunk.buffer, chunk.byteOffset, 0);
             }
+            ReadableByteStreamControllerRespondWithNewView(branch1._controller, chunk);
           }
         });
       },
