@@ -2358,8 +2358,8 @@ create them does not matter.
     1. [=Queue a microtask=] to perform the following steps:
      1. Set |reading| to false.
      1. Let |chunk1| and |chunk2| be |chunk|.
-     1. If |canceled1| is false and |canceled2| is false, set |chunk2| to !
-        [$StructuredDeserialize$](? [$StructuredSerialize$](|chunk|), [=the current Realm=]).
+     1. If |canceled1| is false and |canceled2| is false, set |chunk2| to ?
+        [$CloneAsUint8Array$](|chunk|).
      1. If |canceled1| is false, perform !
         [$ReadableByteStreamControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
         |chunk1|).
@@ -2404,8 +2404,7 @@ create them does not matter.
      1. Set |reading| to false.
      1. If |forBranch2| is true,
       1. If |canceled1| is false,
-       1. Let |clonedChunk| be ! [$StructuredDeserialize$](? [$StructuredSerialize$](|chunk|),
-          [=the current Realm=]).
+       1. Let |clonedChunk| be ? [$CloneAsUint8Array$](|chunk|).
        1. Perform ! [$ReadableByteStreamControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
           |clonedChunk|).
       1. If |canceled2| is true,
@@ -2415,8 +2414,7 @@ create them does not matter.
          |chunk|).
      1. Otherwise,
       1. If |canceled2| is false,
-       1. Let |clonedChunk| be ! [$StructuredDeserialize$](? [$StructuredSerialize$](|chunk|),
-          [=the current Realm=]).
+       1. Let |clonedChunk| be ? [$CloneAsUint8Array$](|chunk|).
        1. Perform ! [$ReadableByteStreamControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
           |clonedChunk|).
       1. If |canceled1| is true,
@@ -6431,6 +6429,19 @@ The following abstract operations are a grab-bag of utilities.
  1. Return a new {{ArrayBuffer}} object, created in [=the current Realm=], whose
     \[[ArrayBufferData]] internal slot value is |arrayBufferData| and whose
     \[[ArrayBufferByteLength]] internal slot value is |arrayBufferByteLength|.
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="CloneAsUint8Array"
+ id="clone-as-uint8-array">CloneAsUint8Array(|O|)</dfn> performs the following steps:
+
+ 1. Assert: [$Type$](|O|) is Object.
+ 1. Assert: |O| has an \[[ViewedArrayBuffer]] internal slot.
+ 1. Assert: ! [$IsDetachedBuffer$](|O|.\[[ViewedArrayBuffer]]) is false.
+ 1. Let |buffer| be ? [$CloneArrayBuffer$](|O|.\[[ViewedArrayBuffer]], |O|.\[[ByteOffset]],
+    |O|.\[[ByteLength]], {{%ArrayBuffer%}}).
+ 1. Let |array| be ! [$Construct$]({{%Uint8Array%}}, « |buffer| »).
+ 1. Return |array|.
 </div>
 
 <h2 id="other-specs">Using streams in other specifications</h2>
