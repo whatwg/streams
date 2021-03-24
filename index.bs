@@ -2359,8 +2359,7 @@ create them does not matter.
      1. Set |reading| to false.
      1. Let |chunk1| and |chunk2| be |chunk|.
      1. If |canceled1| is false and |canceled2| is false, set |chunk2| to !
-        [$Construct$](|chunk|.constructor, « |chunk| »).
-         <!-- TODO: Create abstract op for cloning a TypedArray or DataView -->
+        [$StructuredDeserialize$](? [$StructuredSerialize$](|chunk|), [=the current Realm=]).
      1. If |canceled1| is false, perform !
         [$ReadableByteStreamControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
         |chunk1|).
@@ -2405,8 +2404,8 @@ create them does not matter.
      1. Set |reading| to false.
      1. If |forBranch2| is true,
       1. If |canceled1| is false,
-       1. Let |clonedChunk| be ! [$Construct$](|chunk|.constructor, « |chunk| »).
-          <!-- TODO: Create abstract op for cloning a TypedArray or DataView -->
+       1. Let |clonedChunk| be ! [$StructuredDeserialize$](? [$StructuredSerialize$](|chunk|),
+          [=the current Realm=]).
        1. Perform ! [$ReadableByteStreamControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
           |clonedChunk|).
       1. If |canceled2| is true,
@@ -2419,8 +2418,8 @@ create them does not matter.
           |chunk|.\[[ByteLength]]).
      1. Otherwise,
       1. If |canceled2| is false,
-       1. Let |clonedChunk| be ! [$Construct$](|chunk|.constructor, « |chunk| »).
-          <!-- TODO: Create abstract op for cloning a TypedArray or DataView -->
+       1. Let |clonedChunk| be ! [$StructuredDeserialize$](? [$StructuredSerialize$](|chunk|),
+          [=the current Realm=]).
        1. Perform ! [$ReadableByteStreamControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
           |clonedChunk|).
       1. If |canceled1| is true,
