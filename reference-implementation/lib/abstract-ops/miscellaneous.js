@@ -15,3 +15,8 @@ exports.IsNonNegativeNumber = v => {
 
   return true;
 };
+
+// Implements StructuredDeserialize(StructuredSerialize(view)), but only for typed arrays and DataViews
+exports.CloneArrayBufferView = view => {
+  return new view.constructor(view.buffer.slice(), view.byteOffset, view.byteLength);
+};

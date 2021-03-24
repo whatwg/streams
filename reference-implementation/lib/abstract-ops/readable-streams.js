@@ -6,7 +6,7 @@ const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, re
   require('../helpers/webidl.js');
 const { CanTransferArrayBuffer, CopyDataBlockBytes, CreateArrayFromList, IsDetachedBuffer, TransferArrayBuffer } =
   require('./ecmascript.js');
-const { IsNonNegativeNumber } = require('./miscellaneous.js');
+const { CloneArrayBufferView, IsNonNegativeNumber } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
         WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
@@ -503,7 +503,7 @@ function ReadableByteStreamTee(stream) {
           const chunk1 = chunk;
           let chunk2 = chunk;
           if (canceled1 === false && canceled2 === false) {
-            chunk2 = new chunk.constructor(chunk);
+            chunk2 = CloneArrayBufferView(chunk);
           }
 
           if (canceled1 === false) {
@@ -558,7 +558,7 @@ function ReadableByteStreamTee(stream) {
 
           if (forBranch2 === true) {
             if (canceled1 === false) {
-              const clonedChunk = new chunk.constructor(chunk);
+              const clonedChunk = CloneArrayBufferView(chunk);
               ReadableByteStreamControllerEnqueue(branch1._controller, clonedChunk);
             }
             if (canceled2 === true) {
@@ -569,7 +569,7 @@ function ReadableByteStreamTee(stream) {
             }
           } else {
             if (canceled2 === false) {
-              const clonedChunk = new chunk.constructor(chunk);
+              const clonedChunk = CloneArrayBufferView(chunk);
               ReadableByteStreamControllerEnqueue(branch2._controller, clonedChunk);
             }
             if (canceled1 === true) {
