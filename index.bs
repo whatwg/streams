@@ -2240,7 +2240,7 @@ create them does not matter.
        [$ReadableStreamDefaultControllerClose$](|branch1|.[=ReadableStream/[[controller]]=]).
     1. If |canceled2| is false, perform !
        [$ReadableStreamDefaultControllerClose$](|branch2|.[=ReadableStream/[[controller]]=]).
-    1. [=Resolve=] |cancelPromise| with undefined.
+    1. If |canceled1| is false or |canceled2| is false, [=resolve=] |cancelPromise| with undefined.
 
    : [=read request/error steps=]
    ::
