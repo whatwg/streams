@@ -6407,7 +6407,7 @@ reason.
 
  1. Let |transformStream| be a [=new=] {{TransformStream}}.
  1. [=TransformStream/Set up=] |transformStream| with <var
-    ignore>[=TransformStream/create/transformAlgorithm=]</var> set to an algorithm which, given
+    ignore>[=TransformStream/set up/transformAlgorithm=]</var> set to an algorithm which, given
     |chunk|, [=TransformStream/enqueues=] |chunk| in |transformStream|.
  1. Return |transformStream|.
 </div>
@@ -6416,8 +6416,8 @@ reason.
 
 The following algorithms must only be used on {{TransformStream}} instances initialized via the
 above [=TransformStream/set up=] algorithm. Usually they are called as part of
-<var>[=TransformStream/create/transformAlgorithm=]</var> or
-<var>[=TransformStream/create/flushAlgorithm=]</var>.
+<var>[=TransformStream/set up/transformAlgorithm=]</var> or
+<var>[=TransformStream/set up/flushAlgorithm=]</var>.
 
 <p algorithm>To <dfn export for="TransformStream">enqueue</dfn> the JavaScript value |chunk| into a
 {{TransformStream}} |stream|, perform !
@@ -6460,8 +6460,8 @@ Including the {{GenericTransformStream}} mixin will give an IDL interface the ap
 the behavior of the resulting interface, its constructor (or other initialization code) must set
 each instance's [=GenericTransformStream/transform=] to a [=new=] {{TransformStream}}, and then
 [=TransformStream/set up|set it up=] with appropriate customizations via the
-<var>[=TransformStream/create/transformAlgorithm=]</var> and optionally
-<var>[=TransformStream/create/flushAlgorithm=]</var> arguments.
+<var>[=TransformStream/set up/transformAlgorithm=]</var> and optionally
+<var>[=TransformStream/set up/flushAlgorithm=]</var> arguments.
 
 Existing examples of this pattern on the web platform include {{CompressionStream}} and
 {{TextDecoderStream}}. [[COMPRESSION]] [[ENCODING]]
