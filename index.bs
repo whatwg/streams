@@ -60,6 +60,7 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: Type; url: #sec-ecmascript-data-types-and-values
  text: TypeError; url: #sec-native-error-types-used-in-this-standard-typeerror; type: exception
  text: map; url: #sec-array.prototype.map; type: method; for: Array.prototype
+url: https://wicg.github.io/compression/#compressionstream; spec: COMPRESSION; type: interface; text: CompressionStream
 </pre>
 
 <style>
@@ -6108,36 +6109,15 @@ to grow organically as needed.
 
 <h4 id="other-specs-rs-create">Creation and manipulation</h4>
 
-<div algorithm="create a ReadableStream">
- To <dfn export for="ReadableStream" lt="create|creating">create</dfn> a {{ReadableStream}} given an
- optional algorithm <dfn export for="ReadableStream/create"><var>pullAlgorithm</var></dfn>, an
- optional algorithm <dfn export for="ReadableStream/create"><var>cancelAlgorithm</var></dfn>, an
- optional number <dfn export for="ReadableStream/create"><var>highWaterMark</var></dfn> (default 1),
- an optional algorithm <dfn export for="ReadableStream/create"><var>sizeAlgorithm</var></dfn>,
- perform the following steps. If given, |sizeAlgorithm| must be an algorithm accepting [=chunk=]
- objects and returning a number; and if given, |highWaterMark| must be a non-negative, non-NaN
- number.
-
- 1. Let |startAlgorithm| be an algorithm that returns undefined.
- 1. Let |pullAlgorithmWrapper| be an algorithm that runs these steps:
-  1. If |pullAlgorithm| was given, run it.
-  1. Return [=a promise resolved with=] undefined.
- 1. Let |cancelAlgorithmWrapper| be an algorithm that runs these steps:
-  1. If |cancelAlgorithm| was given, run it.
-  1. Return [=a promise resolved with=] undefined.
- 1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
- 1. Return ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithmWrapper|,
-    |cancelAlgorithmWrapper|, |highWaterMark|, |sizeAlgorithm|).
-</div>
-
 <div algorithm="set up a ReadableStream">
- To <dfn export for="ReadableStream">set up</dfn> an existing, but newly-[=new|created-via-Web IDL=]
+ To <dfn export for="ReadableStream">set up</dfn> a newly-[=new|created-via-Web IDL=]
  {{ReadableStream}} object |stream|, given an optional algorithm <dfn export for="ReadableStream/set
  up"><var>pullAlgorithm</var></dfn>, an optional algorithm <dfn export for="ReadableStream/set
  up"><var>cancelAlgorithm</var></dfn>, an optional number <dfn export for="ReadableStream/set
  up"><var>highWaterMark</var></dfn> (default 1), an optional algorithm <dfn export
- for="ReadableStream/set up"><var>sizeAlgorithm</var></dfn>, perform the following steps.
- Constraints on arguments are the same as for [=ReadableStream/create|creation=].
+ for="ReadableStream/set up"><var>sizeAlgorithm</var></dfn>, perform the following steps. If given,
+ |sizeAlgorithm| must be an algorithm accepting [=chunk=] objects and returning a number; and if
+ given, |highWaterMark| must be a non-negative, non-NaN number.
 
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |pullAlgorithmWrapper| be an algorithm that runs these steps:
@@ -6152,14 +6132,21 @@ to grow organically as needed.
  1. Perform ! [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
     |pullAlgorithmWrapper|, |cancelAlgorithmWrapper|, |highWaterMark|, |sizeAlgorithm|).
 
- <p class="note">This algorithm is mainly intended for use in the [=constructor operations=] of any
- {{ReadableStream}} subclasses.
+ <div class="example" id="example-set-up-rs">
+  Creating a {{ReadableStream}} from other specifications is thus a two-step process, like so:
+
+  1. Let |readableStream| be a [=new=] {{ReadableStream}}.
+  1. [=ReadableStream/Set up=] |readableStream| given….
+ </div>
+
+ <p class="note">Subclasses of {{ReadableStream}} will use the [=ReadableStream/set up=] operation
+ directly on the [=this=] value inside their constructor steps.</p>
 </div>
 
 <hr>
 
-The following algorithms must only be used on {{ReadableStream}} instances created via the above
-[=ReadableStream/create|creation=] or [=ReadableStream/set up=] algorithms:
+The following algorithms must only be used on {{ReadableStream}} instances initialized via the above
+[=ReadableStream/set up=] algorithm:
 
 <p algorithm>A {{ReadableStream}} |stream| <dfn export for="ReadableStream" lt="need more
 data|needs more data">needs more data</dfn> if |stream| is [=ReadableStream/readable=] and !
@@ -6304,41 +6291,20 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
 
 <h3 id="other-specs-ws">Writable streams</h3>
 
-<h4 id="other-specs-ws-creation">Creation and manipulation</h4>
-
-<div algorithm="create a WritableStream">
- To <dfn export for="WritableStream" lt="create|creating">create</dfn> a {{WritableStream}} given an
- algorithm <dfn export for="WritableStream/create"><var>writeAlgorithm</var></dfn>, an optional
- algorithm <dfn export for="WritableStream/create"><var>closeAlgorithm</var></dfn>, an optional
- algorithm <dfn export for="WritableStream/create"><var>abortAlgorithm</var></dfn>, an optional
- number <dfn export for="WritableStream/create"><var>highWaterMark</var></dfn> (default 1), an
- optional algorithm <dfn export for="WritableStream/create"><var>sizeAlgorithm</var></dfn>, perform
- the following steps. |writeAlgorithm| must be an algorithm that accepts a [=chunk=] object and
- returns a promise. If given, |closeAlgorithm| and |abortAlgorithm| must return a promise. If
- given, |sizeAlgorithm| must be an algorithm accepting [=chunk=] objects and
- returning a number; and if given, |highWaterMark| must be a non-negative, non-NaN number.
-
- 1. Let |startAlgorithm| be an algorithm that returns undefined.
- 1. Let |closeAlgorithmWrapper| be an algorithm that runs these steps:
-  1. If |closeAlgorithm| was given, return the result of running it.
-  1. Return [=a promise resolved with=] undefined.
- 1. Let |abortAlgorithmWrapper| be an algorithm that runs these steps:
-  1. If |abortAlgorithm| was given, return the result of running it.
-  1. Return [=a promise resolved with=] undefined.
- 1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
- 1. Return ! [$CreateWritableStream$](|startAlgorithm|, |writeAlgorithm|, |closeAlgorithmWrapper|,
-    |abortAlgorithmWrapper|, |highWaterMark|, |sizeAlgorithm|).
-</div>
+<h4 id="other-specs-ws-creation">Creation</h4>
 
 <div algorithm="set up a WritableStream">
- To <dfn export for="WritableStream">set up</dfn> an existing, but newly-[=new|created-via-Web IDL=]
+ To <dfn export for="WritableStream">set up</dfn> a newly-[=new|created-via-Web IDL=]
  {{WritableStream}} object |stream|, given an algorithm <dfn export for="WritableStream/set
  up"><var>writeAlgorithm</var></dfn>, an optional algorithm <dfn export for="WritableStream/set
  up"><var>closeAlgorithm</var></dfn>, an optional algorithm <dfn export for="WritableStream/set
  up"><var>abortAlgorithm</var></dfn>, an optional number <dfn export for="WritableStream/set
  up"><var>highWaterMark</var></dfn> (default 1), an optional algorithm <dfn export
  for="WritableStream/set up"><var>sizeAlgorithm</var></dfn>, perform the following steps.
- Constraints on arguments are the same as for [=WritableStream/create|creation=].
+ |writeAlgorithm| must be an algorithm that accepts a [=chunk=] object and returns a promise. If
+ given, |closeAlgorithm| and |abortAlgorithm| must return a promise. If given, |sizeAlgorithm| must
+ be an algorithm accepting [=chunk=] objects and returning a number; and if given, |highWaterMark|
+ must be a non-negative, non-NaN number.
 
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |closeAlgorithmWrapper| be an algorithm that runs these steps:
@@ -6354,8 +6320,15 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
     |writeAlgorithm|, |closeAlgorithmWrapper|, |abortAlgorithmWrapper|, |highWaterMark|,
     |sizeAlgorithm|).
 
- <p class="note">This algorithm is mainly intended for use in the [=constructor operations=] of any
- {{WritableStream}} subclasses.
+ <div class="example" id="example-set-up-ws">
+  Creating a {{WritableStream}} from other specifications is thus a two-step process, like so:
+
+  1. Let |writableStream| be a [=new=] {{WritableStream}}.
+  1. [=WritableStream/Set up=] |writableStream| given….
+ </div>
+
+ <p class="note">Subclasses of {{WritableStream}} will use the [=WritableStream/set up=] operation
+ directly on the [=this=] value inside their constructor steps.</p>
 </div>
 
 <h4 id="other-specs-ws-writing">Writing</h4>
@@ -6394,9 +6367,10 @@ reason.
 <h4 id="other-specs-ts-creation">Creation and manipulation</h4>
 
 <div algorithm="create a TransformStream">
- To <dfn export for="TransformStream" lt="create|creating">create</dfn> a {{TransformStream}} given
- an algorithm <dfn export for="TransformStream/create"><var>transformAlgorithm</var></dfn> and an
- optional algorithm <dfn export for="TransformStream/create"><var>flushAlgorithm</var></dfn>:
+ To <dfn export for="TransformStream" lt="set up|setting up">set up</dfn> a
+ newly-[=new|created-via-Web IDL=] {{TransformStream}} |stream| given an algorithm <dfn export
+ for="TransformStream/set up"><var>transformAlgorithm</var></dfn> and an optional algorithm <dfn
+ export for="TransformStream/set up"><var>flushAlgorithm</var></dfn>:
 
  1. Let |writableHighWaterMark| be 1.
  1. Let |writableSizeAlgorithm| be an algorithm that returns 1.
@@ -6410,25 +6384,38 @@ reason.
   1. If |flushAlgorithm| was given, run it.
   1. Return [=a promise resolved with=] undefined.
  1. Let |startPromise| be [=a promise resolved with=] undefined.
- 1. Let |stream| be a [=new=] {{TransformStream}}.
  1. Perform ! [$InitializeTransformStream$](|stream|, |startPromise|, |writableHighWaterMark|,
     |writableSizeAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
  1. Let |controller| be a [=new=] {{TransformStreamDefaultController}}.
  1. Perform ! [$SetUpTransformStreamDefaultController$](|stream|, |controller|,
     |transformAlgorithmWrapper|, |flushAlgorithmWrapper|).
- 1. Return |stream|.
+
+ <div class="example" id="example-set-up-ts">
+  Creating a {{TransformStream}} from other specifications is thus a two-step process, like so:
+
+  1. Let |transformStream| be a [=new=] {{TransformStream}}.
+  1. [=TransformStream/Set up=] |transformStream| given….
+ </div>
+
+ <p class="note">Subclasses of {{TransformStream}} will use the [=TransformStream/set up=] operation
+ directly on the [=this=] value inside their constructor steps.</p>
 </div>
 
-<p algorithm>To <dfn export lt="create an identity TransformStream|creating an identity
-TransformStream">create an identity {{TransformStream}}</dfn>, return the result of
-[=TransformStream/creating=] a {{TransformStream}} with <var
-ignore>[=TransformStream/create/transformAlgorithm=]</var> set to an algorithm which, given |chunk|,
-[=TransformStream/enqueues=] |chunk| in the created {{TransformStream}}.
+<div algorithm>
+ To <dfn export lt="create an identity TransformStream|creating an identity TransformStream">create
+ an identity {{TransformStream}}</dfn>:
+
+ 1. Let |transformStream| be a [=new=] {{TransformStream}}.
+ 1. [=TransformStream/Set up=] |transformStream| with <var
+    ignore>[=TransformStream/create/transformAlgorithm=]</var> set to an algorithm which, given
+    |chunk|, [=TransformStream/enqueues=] |chunk| in |transformStream|.
+ 1. Return |transformStream|.
+</div>
 
 <hr>
 
-The following algorithms must only be used on {{TransformStream}} instances created via the above
-[=TransformStream/create|creation=] algorithm. Usually they are called as part of
+The following algorithms must only be used on {{TransformStream}} instances initialized via the
+above [=TransformStream/set up=] algorithm. Usually they are called as part of
 <var>[=TransformStream/create/transformAlgorithm=]</var> or
 <var>[=TransformStream/create/flushAlgorithm=]</var>.
 
@@ -6446,9 +6433,9 @@ JavaScript value |e|, perform !
 
 <h4 id="other-specs-ts-wrapping">Wrapping into a custom class</h4>
 
-Other specifications which mean to define custom [=transform streams=] should not subclass from the
-{{TransformStream}} interface directly. Instead, if they need a new class, they should create their
-own independent Web IDL interfaces, and use the following mixin:
+Other specifications which mean to define custom [=transform streams=] might not want to subclass
+from the {{TransformStream}} interface directly. Instead, if they need a new class, they can create
+their own independent Web IDL interfaces, and use the following mixin:
 
 <xmp class="idl">
 interface mixin GenericTransformStream {
@@ -6471,17 +6458,13 @@ The <dfn attribute for="GenericTransformStream">writable</dfn> getter steps are 
 Including the {{GenericTransformStream}} mixin will give an IDL interface the appropriate
 {{GenericTransformStream/readable}} and {{GenericTransformStream/writable}} properties. To customize
 the behavior of the resulting interface, its constructor (or other initialization code) must set
-each instance's [=GenericTransformStream/transform=] to the result of [=TransformStream/creating=] a
-{{TransformStream}}, with appropriate customizations via the
+each instance's [=GenericTransformStream/transform=] to a [=new=] {{TransformStream}}, and then
+[=TransformStream/set up|set it up=] with appropriate customizations via the
 <var>[=TransformStream/create/transformAlgorithm=]</var> and optionally
 <var>[=TransformStream/create/flushAlgorithm=]</var> arguments.
 
-Existing examples of this pattern on the web platform include `CompressionStream` and
-{{TextDecoderStream}}. [[ENCODING]]
-<!-- TODO cite COMPRESSION and link CompressionStream:
- - https://github.com/tobie/specref/issues/619
- - https://github.com/tabatkins/bikeshed/issues/1756
--->
+Existing examples of this pattern on the web platform include {{CompressionStream}} and
+{{TextDecoderStream}}. [[COMPRESSION]] [[ENCODING]]
 
 <p class="note">There's no need to create a wrapper class if you don't need any API beyond what the
 base {{TransformStream}} class provides. The most common driver for such a wrapper is needing a
@@ -6510,7 +6493,7 @@ The trickiest thing to consider when specifying duplex streams is how to handle 
 stream|aborting=] the writable side. It might make sense to leave duplex streams "half open", with
 such operations one one side not impacting the other side. Or it might be best to carry over their
 effects to the other side, e.g. by specifying that your readable side's
-<var ignore>[=ReadableStream/create/cancelAlgorithm=]</var> will [=WritableStream/close=] the
+<var ignore>[=ReadableStream/set up/cancelAlgorithm=]</var> will [=WritableStream/close=] the
 writable side.
 
 <p class="example" id="example-basic-duplex">A basic example of a duplex stream, created through
