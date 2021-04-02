@@ -4316,7 +4316,7 @@ the {{WritableStream}}'s public API.
   1. Perform ! [$WritableStreamRejectCloseAndClosedPromiseIfNeeded$](|stream|).
   1. Return.
  1. Let |promise| be !
-    stream.[=WritableStream/[[controller]]=].[$WritableStreamController/[[AbortSteps]]$](|abortRequest|'s
+    |stream|.[=WritableStream/[[controller]]=].[$WritableStreamController/[[AbortSteps]]$](|abortRequest|'s
     [=pending abort request/reason=]).
  1. [=Upon fulfillment=] of |promise|,
   1. [=Resolve=] |abortRequest|'s [=pending abort request/promise=] with undefined.
