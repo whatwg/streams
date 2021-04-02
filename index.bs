@@ -4300,7 +4300,8 @@ the {{WritableStream}}'s public API.
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`erroring`".
  1. Assert: ! [$WritableStreamHasOperationMarkedInFlight$](|stream|) is false.
  1. Set |stream|.[=WritableStream/[[state]]=] to "`errored`".
- 1. Perform ! |stream|.[=WritableStream/[[controller]]=].\[[ErrorSteps]]().
+ 1. Perform !
+    |stream|.[=WritableStream/[[controller]]=].[$WritableStreamController/[[ErrorSteps]]$]().
  1. Let |storedError| be |stream|.[=WritableStream/[[storedError]]=].
  1. [=list/For each=] |writeRequest| of |stream|.[=WritableStream/[[writeRequests]]=]:
   1. [=Reject=] |writeRequest| with |storedError|.
@@ -4314,7 +4315,8 @@ the {{WritableStream}}'s public API.
   1. [=Reject=] |abortRequest|'s [=pending abort request/promise=] with |storedError|.
   1. Perform ! [$WritableStreamRejectCloseAndClosedPromiseIfNeeded$](|stream|).
   1. Return.
- 1. Let |promise| be ! stream.[=WritableStream/[[controller]]=].\[[AbortSteps]](|abortRequest|'s
+ 1. Let |promise| be !
+    |stream|.[=WritableStream/[[controller]]=].[$WritableStreamController/[[AbortSteps]]$](|abortRequest|'s
     [=pending abort request/reason=]).
  1. [=Upon fulfillment=] of |promise|,
   1. [=Resolve=] |abortRequest|'s [=pending abort request/promise=] with undefined.
