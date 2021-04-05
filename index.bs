@@ -6166,19 +6166,6 @@ returns a positive number.
 JavaScript value |e|, perform !
 [$ReadableStreamDefaultControllerError$](|stream|.[=ReadableStream/[[controller]]=], |e|).
 
-<div algorithm>
- To <dfn export for="ReadableStream" lt="create a proxy|creating a proxy">create a proxy</dfn> for a
- {{ReadableStream}} |stream|, perform the following steps. The result will be a new
- {{ReadableStream}} object which pulls its data from |stream|, while |stream| itself becomes
- immediately [=ReadableStream/locked=] and [=ReadableStream/disturbed=].
-
- 1. Let |identityTransform| be the result of <a>creating an identity `TransformStream`</a>.
- 1. Let |promise| be ! [$ReadableStreamPipeTo$](|stream|,
-    |identityTransform|.[=TransformStream/[[writable]]=], false, false, false, undefined).
- 1. Set |promise|.\[[PromiseIsHandled]] to true.
- 1. Return |identityTransform|.[=TransformStream/[[readable]]=].
-</div>
-
 <h4 id="other-specs-rs-reading">Reading</h4>
 
 The following algorithms can be used on arbitrary {{ReadableStream}} instances, including ones that
@@ -6547,6 +6534,63 @@ Streams</cite> is an example of this technique, with its `sender.createEncodedSt
 
 Despite such endpoint pairs obeying the `readable`/`writable` property contract, it never makes
 sense to pass them to {{ReadableStream/pipeThrough()}}.
+
+<h3 id="other-specs-piping">Piping</h3>
+
+<div algorithm="ReadableStream pipe to">
+ The result of a {{ReadableStream}} |readable| <dfn export for="ReadableStream" lt="pipe|pipe
+ to|piped to|piping to">piped to</dfn> a {{WritableStream}} |writable|, given an optional boolean
+ <dfn export for="ReadableStream/pipe to,ReadableStream/piped to"><var>preventClose</var></dfn>
+ (default false), an optional boolean <dfn export for="ReadableStream/pipe to,ReadableStream/piped
+ to"><var>preventAbort</var></dfn> (default false), an optional boolean <dfn export
+ for="ReadableStream/pipe to,ReadableStream/piped to"><var>preventCancel</var></dfn> (default
+ false), and an optional {{AbortSignal}} <dfn export for="ReadableStream/pipe
+ to,ReadableStream/piped to"><var>signal</var></dfn>, is given by performing the following steps.
+ They will return a {{Promise}} that fulfills when the pipe completes, or rejects with an exception
+ if it fails.
+
+ 1. Assert: ! [$IsReadableStreamLocked$](|readable|) is false.
+ 1. Assert: ! [$IsWritableStreamLocked$](|writable|) is false.
+ 1. Let |signalArg| be |signal| if |signal| was given, or undefined otherwise.
+ 1. Return ! [$ReadableStreamPipeTo$](|readable|, |writable|, |preventClose|, |preventAbort|,
+    |preventCancel|, |signalArg|).
+
+ <p class="note">If one doesn't care about the promise returned, referencing this concept can be a
+ bit awkward. The best we can suggest is "[=ReadableStream/pipe=] <var ignore>readable</var> to <var
+ ignore>writable</var>".</p>
+</div>
+
+<div algorithm="ReadableStream pipe through">
+ The result of a {{ReadableStream}} |readable| <dfn export for="ReadableStream" lt="pipe
+ through|piped through|piping through">piped through</dfn> a {{TransformStream}} |transform|, given
+ an optional boolean <dfn export for="ReadableStream/pipe through,ReadableStream/piped
+ through"><var>preventClose</var></dfn> (default false), an optional boolean <dfn export
+ for="ReadableStream/pipe through,ReadableStream/piped through"><var>preventAbort</var></dfn>
+ (default false), an optional boolean <dfn export for="ReadableStream/pipe
+ through,ReadableStream/piped through"><var>preventCancel</var></dfn> (default false), and an
+ optional {{AbortSignal}} <dfn export for="ReadableStream/pipe through,ReadableStream/piped
+ through"><var>signal</var></dfn>, is given by performing the following steps. The result will be
+ the [=readable side=] of |transform|.
+
+ 1. Assert: ! [$IsReadableStreamLocked$](|readable|) is false.
+ 1. Assert: ! [$IsWritableStreamLocked$](|transform|.[=TransformStream/[[writable]]=]) is false.
+ 1. Let |signalArg| be |signal| if |signal| was given, or undefined otherwise.
+ 1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|,
+    |transform|.[=TransformStream/[[writable]]=], |preventClose|, |preventAbort|, |preventCancel|,
+    |signalArg|).
+ 1. Set |promise|.\[[PromiseIsHandled]] to true.
+ 1. Return |transform|.[=TransformStream/[[readable]]=].
+</div>
+
+<div algorithm>
+ To <dfn export for="ReadableStream" lt="create a proxy|creating a proxy">create a proxy</dfn> for a
+ {{ReadableStream}} |stream|, perform the following steps. The result will be a new
+ {{ReadableStream}} object which pulls its data from |stream|, while |stream| itself becomes
+ immediately [=ReadableStream/locked=] and [=ReadableStream/disturbed=].
+
+ 1. Let |identityTransform| be the result of <a>creating an identity `TransformStream`</a>.
+ 1. Return the result of |stream| [=ReadableStream/piped through=] |identityTransform|.
+</div>
 
 <h2 id="creating-examples">Examples of creating streams</h2>
 
