@@ -6554,13 +6554,15 @@ sense to pass them to {{ReadableStream/pipeThrough()}}.
 
 <div algorithm="ReadableStream pipe to">
  The result of a {{ReadableStream}} |readable| <dfn export for="ReadableStream" lt="pipe|pipe
- to|piped to|piping to">piped to</dfn>  to a {{WritableStream}} |writable|, given an optional
- boolean <dfn export for="ReadableStream/pipe to"><var>preventClose</var></dfn> (default false), an
- optional boolean <dfn export for="ReadableStream/pipe to"><var>preventAbort</var></dfn> (default
- false), an optional boolean <dfn export for="ReadableStream/pipe to"><var>preventCancel</var></dfn>
- (default false), and an optional {{AbortSignal}} <dfn export for="ReadableStream/pipe
- to"><var>signal</var></dfn>, is given by performing the following steps. They will return a
- {{Promise}} that fulfills when the pipe completes, or rejects with an exception if it fails.
+ to|piped to|piping to">piped to</dfn> a {{WritableStream}} |writable|, given an optional boolean
+ <dfn export for="ReadableStream/pipe to,ReadableStream/piped to"><var>preventClose</var></dfn>
+ (default false), an optional boolean <dfn export for="ReadableStream/pipe to,ReadableStream/piped
+ to"><var>preventAbort</var></dfn> (default false), an optional boolean <dfn export
+ for="ReadableStream/pipe to,ReadableStream/piped to"><var>preventCancel</var></dfn> (default
+ false), and an optional {{AbortSignal}} <dfn export for="ReadableStream/pipe
+ to,ReadableStream/piped to"><var>signal</var></dfn>, is given by performing the following steps.
+ They will return a {{Promise}} that fulfills when the pipe completes, or rejects with an exception
+ if it fails.
 
  1. Assert: ! [$IsReadableStreamLocked$](|readable|) is false.
  1. Assert: ! [$IsWritableStreamLocked$](|writable|) is false.
@@ -6575,13 +6577,15 @@ sense to pass them to {{ReadableStream/pipeThrough()}}.
 
 <div algorithm="ReadableStream pipe through">
  The result of a {{ReadableStream}} |readable| <dfn export for="ReadableStream" lt="pipe
- through|piping through">piped through</dfn> a {{TransformStream}} |transform|, given an optional
- boolean <dfn export for="ReadableStream/pipe through"><var>preventClose</var></dfn> (default
- false), an optional boolean <dfn export for="ReadableStream/pipe
- through"><var>preventAbort</var></dfn> (default false), an optional boolean <dfn export
- for="ReadableStream/pipe through"><var>preventCancel</var></dfn> (default false), and an optional
- {{AbortSignal}} <dfn export for="ReadableStream/pipe through"><var>signal</var></dfn>, perform the
- following steps. The result will the [=readable side=] of |transform|.
+ through|piped through|piping through">piped through</dfn> a {{TransformStream}} |transform|, given
+ an optional boolean <dfn export for="ReadableStream/pipe through,ReadableStream/piped
+ through"><var>preventClose</var></dfn> (default false), an optional boolean <dfn export
+ for="ReadableStream/pipe through,ReadableStream/piped through"><var>preventAbort</var></dfn>
+ (default false), an optional boolean <dfn export for="ReadableStream/pipe
+ through,ReadableStream/piped through"><var>preventCancel</var></dfn> (default false), and an
+ optional {{AbortSignal}} <dfn export for="ReadableStream/pipe through,ReadableStream/piped
+ through"><var>signal</var></dfn>, is given by performing the following steps. The result will be
+ the [=readable side=] of |transform|.
 
  1. Assert: ! [$IsReadableStreamLocked$](|readable|) is false.
  1. Assert: ! [$IsWritableStreamLocked$](|transform|.[=TransformStream/[[writable]]=]) is false.
