@@ -2376,9 +2376,9 @@ create them does not matter.
    ::
     1. Set |reading| to false.
     1. If |canceled1| is false, perform !
-       [$ReadableStreamDefaultControllerClose$](|branch1|.[=ReadableStream/[[controller]]=]).
+       [$ReadableByteStreamControllerClose$](|branch1|.[=ReadableStream/[[controller]]=]).
     1. If |canceled2| is false, perform !
-       [$ReadableStreamDefaultControllerClose$](|branch2|.[=ReadableStream/[[controller]]=]).
+       [$ReadableByteStreamControllerClose$](|branch2|.[=ReadableStream/[[controller]]=]).
     1. If |branch1|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
        is not [=list/is empty|empty=], perform !
        [$ReadableByteStreamControllerRespond$](|branch1|.[=ReadableStream/[[controller]]=], 0).
@@ -2433,9 +2433,9 @@ create them does not matter.
     1. Assert: |chunk|.\[[ByteLength]] is 0.
     1. Set |reading| to false.
     1. If |canceled1| is false, perform !
-       [$ReadableStreamDefaultControllerClose$](|branch1|.[=ReadableStream/[[controller]]=]).
+       [$ReadableByteStreamControllerClose$](|branch1|.[=ReadableStream/[[controller]]=]).
     1. If |canceled2| is false, perform !
-       [$ReadableStreamDefaultControllerClose$](|branch2|.[=ReadableStream/[[controller]]=]).
+       [$ReadableByteStreamControllerClose$](|branch2|.[=ReadableStream/[[controller]]=]).
     1. If |forBranch2| is true,
      1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch2|.[=ReadableStream/[[controller]]=],
         |chunk|).
