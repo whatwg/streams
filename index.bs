@@ -1721,6 +1721,8 @@ has the following [=struct/items=]:
 
 : <dfn for="pull-into descriptor">buffer</dfn>
 :: An {{ArrayBuffer}}
+: <dfn for="pull-into descriptor">buffer byte length</dfn>
+:: A positive integer representing the initial byte length of [=pull-into descriptor/buffer=]
 : <dfn for="pull-into descriptor">byte offset</dfn>
 :: A nonnegative integer byte offset into the [=pull-into descriptor/buffer=] where the
    [=underlying byte source=] will start writing
@@ -1887,8 +1889,9 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
    1. Perform |readRequest|'s [=read request/error steps=], given |buffer|.\[[Value]].
    1. Return.
   1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
-     |buffer|.\[[Value]], [=pull-into descriptor/byte offset=] 0, [=pull-into descriptor/byte
-     length=] |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into
+     |buffer|.\[[Value]], [=pull-into descriptor/buffer byte length=] |autoAllocateChunkSize|,
+     [=pull-into descriptor/byte offset=] 0, [=pull-into descriptor/byte length=]
+     |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into
      descriptor/element size=] 1, [=pull-into descriptor/view constructor=] {{%Uint8Array%}}, and
      [=pull-into descriptor/reader type=] "`default`".
   1. [=list/Append=] |pullIntoDescriptor| to
@@ -3095,9 +3098,10 @@ The following abstract operations support the implementation of the
  1. Let |byteLength| be |view|.\[[ByteLength]].
  1. Let |buffer| be ! [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
  1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
-    |buffer|, [=pull-into descriptor/byte offset=] |byteOffset|, [=pull-into descriptor/byte
-    length=] |byteLength|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/element
-    size=] |elementSize|, [=pull-into descriptor/view constructor=] |ctor|, and [=pull-into
+    |buffer|, [=pull-into descriptor/buffer byte length=] |buffer|.\[[ArrayBufferByteLength]],
+    [=pull-into descriptor/byte offset=] |byteOffset|, [=pull-into descriptor/byte length=]
+    |byteLength|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/element size=]
+    |elementSize|, [=pull-into descriptor/view constructor=] |ctor|, and [=pull-into
     descriptor/reader type=] "`byob`".
  1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty,
   1. [=list/Append=] |pullIntoDescriptor| to
@@ -3214,6 +3218,8 @@ The following abstract operations support the implementation of the
  1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
  1. If |firstDescriptor|'s [=pull-into descriptor/byte offset=] + |firstDescriptor|' [=pull-into
     descriptor/bytes filled=] is not |view|.\[[ByteOffset]], throw a {{RangeError}} exception.
+ 1. If |firstDescriptor|'s [=pull-into descriptor/buffer byte length=] is not
+    |view|.\[[ViewedArrayBuffer]].\[[ByteLength]], throw a {{RangeError}} exception.
  1. If |firstDescriptor|'s [=pull-into descriptor/byte length=] is not |view|.\[[ByteLength]], throw
     a {{RangeError}} exception.
  1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to |view|.\[[ViewedArrayBuffer]].

@@ -123,6 +123,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
 
       const pullIntoDescriptor = {
         buffer,
+        bufferByteLength: autoAllocateChunkSize,
         byteOffset: 0,
         byteLength: autoAllocateChunkSize,
         bytesFilled: 0,
