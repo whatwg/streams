@@ -1587,7 +1587,7 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
  id="rs-default-controller-private-pull">\[[PullSteps]](|readRequest|)</dfn> implements the
  [$ReadableStreamController/[[PullSteps]]$] contract. It performs the following steps:
 
- 1. Let |stream| be [=this=].[=ReadableStreamGenericReader/[[stream]]=].
+ 1. Let |stream| be [=this=].[=ReadableStreamDefaultController/[[stream]]=].
  1. If [=this=].[=ReadableStreamDefaultController/[[queue]]=] is not [=list/is empty|empty=],
   1. Let |chunk| be ! [$DequeueValue$]([=this=]).
   1. If [=this=].[=ReadableStreamDefaultController/[[closeRequested]]=] is true and
@@ -1803,7 +1803,7 @@ has the following [=struct/items=]:
 
  1. If [=this=].[=ReadableByteStreamController/[[closeRequested]]=] is true, throw a {{TypeError}}
     exception.
- 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is not
+ 1. If [=this=].[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=] is not
     "`readable`", throw a {{TypeError}} exception.
  1. If [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
   1. Let |firstDescriptor| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
@@ -1821,7 +1821,7 @@ for="ReadableByteStreamController">enqueue(|chunk|)</dfn> method steps are:
     exception.
  1. If [=this=].[=ReadableByteStreamController/[[closeRequested]]=] is true, throw a {{TypeError}}
     exception.
- 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is not
+ 1. If [=this=].[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=] is not
     "`readable`", throw a {{TypeError}} exception.
  1. If [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
   1. Let |firstDescriptor| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
