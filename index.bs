@@ -1727,8 +1727,7 @@ has the following [=struct/items=]:
 :: A nonnegative integer byte offset into the [=pull-into descriptor/buffer=] where the
    [=underlying byte source=] will start writing
 : <dfn for="pull-into descriptor">byte length</dfn>
-:: A nonnegative integer number of bytes which can be written into the [=pull-into
-   descriptor/buffer=]
+:: A positive integer number of bytes which can be written into the [=pull-into descriptor/buffer=]
 : <dfn for="pull-into descriptor">bytes filled</dfn>
 :: A nonnegative integer number of bytes that have been written into the [=pull-into
    descriptor/buffer=] so far
