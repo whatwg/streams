@@ -1805,6 +1805,10 @@ has the following [=struct/items=]:
     exception.
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is not
     "`readable`", throw a {{TypeError}} exception.
+ 1. If [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
+  1. Let |firstDescriptor| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+  1. If [$IsDetachedBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]) is true,
+     throw a {{TypeError}} exception.
  1. Perform ? [$ReadableByteStreamControllerClose$]([=this=]).
 </div>
 
@@ -1819,6 +1823,10 @@ for="ReadableByteStreamController">enqueue(|chunk|)</dfn> method steps are:
     exception.
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is not
     "`readable`", throw a {{TypeError}} exception.
+ 1. If [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
+  1. Let |firstDescriptor| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+  1. If [$IsDetachedBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]) is true,
+     throw a {{TypeError}} exception.
  1. Return ! [$ReadableByteStreamControllerEnqueue$]([=this=], |chunk|).
 </div>
 
