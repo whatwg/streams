@@ -1992,7 +1992,6 @@ following table:
  The <dfn id="rs-byob-request-respond-with-new-view" method
  for="ReadableStreamBYOBRequest">respondWithNewView(|view|)</dfn> method steps are:
 
- 1. If |view|.\[[ByteLength]] is 0, throw a {{TypeError}} exception.
  1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, throw a {{TypeError}}
     exception.
  1. If [=this=].[=ReadableStreamBYOBRequest/[[controller]]=] is undefined, throw a {{TypeError}}
@@ -3203,6 +3202,7 @@ The following abstract operations support the implementation of the
      |firstDescriptor|).
  1. Otherwise,
   1. Assert: |state| is "`readable`".
+  1. If |bytesWritten| is 0, throw a {{TypeError}} exception.
   1. Perform ? [$ReadableByteStreamControllerRespondInReadableState$](|controller|, |bytesWritten|,
      |firstDescriptor|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$](|controller|).

@@ -25,9 +25,6 @@ exports.implementation = class ReadableStreamBYOBRequestImpl {
   }
 
   respondWithNewView(view) {
-    if (view.byteLength === 0) {
-      throw new TypeError('chunk must have non-zero byteLength');
-    }
     if (view.buffer.byteLength === 0) {
       throw new TypeError('chunk\'s buffer must have non-zero byteLength');
     }

@@ -1275,6 +1275,9 @@ function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
     ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor);
   } else {
     assert(state === 'readable');
+    if (bytesWritten === 0) {
+      throw new TypeError('bytesWritten must be greater than 0 when calling respond() on a readable stream');
+    }
 
     ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, firstDescriptor);
   }
