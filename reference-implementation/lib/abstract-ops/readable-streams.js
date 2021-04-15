@@ -1897,7 +1897,7 @@ function ReadableStreamFromIterable(asyncIterable) {
     const nextPromise = promiseResolvedWith(nextResult);
     return transformPromiseWith(nextPromise, iterResult => {
       if (!typeIsObject(iterResult)) {
-        throw new TypeError();
+        throw new TypeError('The iterator.next() method must return an object');
       }
       const done = IteratorComplete(iterResult);
       if (done === true) {
