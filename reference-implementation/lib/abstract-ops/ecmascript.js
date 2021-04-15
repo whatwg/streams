@@ -56,7 +56,7 @@ exports.GetMethod = (V, P) => {
     return undefined;
   }
   if (typeof func !== 'function') {
-    throw new TypeError();
+    throw new TypeError(`${P} is not a function`);
   }
   return func;
 };
@@ -94,7 +94,7 @@ exports.GetIterator = (obj, hint = 'sync', method) => {
   }
   const iterator = exports.Call(method, obj);
   if (!exports.typeIsObject(iterator)) {
-    throw new TypeError();
+    throw new TypeError('The iterator method must return an object');
   }
   const nextMethod = iterator.next;
   return { iterator, nextMethod, done: false };
@@ -108,7 +108,7 @@ exports.IteratorNext = (iteratorRecord, value) => {
     result = exports.Call(iteratorRecord.nextMethod, iteratorRecord.iterator, [value]);
   }
   if (!exports.typeIsObject(result)) {
-    throw new TypeError();
+    throw new TypeError('The iterator.next() method must return an object');
   }
   return result;
 };
