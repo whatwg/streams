@@ -1296,7 +1296,7 @@ function ReadableByteStreamControllerRespondWithNewView(controller, view) {
   if (firstDescriptor.bufferByteLength !== view.buffer.byteLength) {
     throw new RangeError('The buffer of view has different capacity than byobRequest');
   }
-  if (firstDescriptor.byteLength < view.byteLength) {
+  if (firstDescriptor.bytesFilled + view.byteLength > firstDescriptor.byteLength) {
     throw new RangeError('The region specified by view is larger than byobRequest');
   }
 

@@ -3219,8 +3219,8 @@ The following abstract operations support the implementation of the
     descriptor/bytes filled=] is not |view|.\[[ByteOffset]], throw a {{RangeError}} exception.
  1. If |firstDescriptor|'s [=pull-into descriptor/buffer byte length=] is not
     |view|.\[[ViewedArrayBuffer]].\[[ByteLength]], throw a {{RangeError}} exception.
- 1. If |firstDescriptor|'s [=pull-into descriptor/byte length=] < |view|.\[[ByteLength]], throw
-    a {{RangeError}} exception.
+ 1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] + |view|.\[[ByteLength]] >
+    |firstDescriptor|'s [=pull-into descriptor/byte length=], throw a {{RangeError}} exception.
  1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to |view|.\[[ViewedArrayBuffer]].
  1. Perform ? [$ReadableByteStreamControllerRespondInternal$](|controller|, |view|.\[[ByteLength]]).
 </div>
