@@ -25,10 +25,6 @@ exports.implementation = class ReadableStreamBYOBRequestImpl {
   }
 
   respondWithNewView(view) {
-    if (view.buffer.byteLength === 0) {
-      throw new TypeError('chunk\'s buffer must have non-zero byteLength');
-    }
-
     if (this._controller === undefined) {
       throw new TypeError('This BYOB request has been invalidated');
     }

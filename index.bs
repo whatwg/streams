@@ -1991,8 +1991,6 @@ following table:
  The <dfn id="rs-byob-request-respond-with-new-view" method
  for="ReadableStreamBYOBRequest">respondWithNewView(|view|)</dfn> method steps are:
 
- 1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, throw a {{TypeError}}
-    exception.
  1. If [=this=].[=ReadableStreamBYOBRequest/[[controller]]=] is undefined, throw a {{TypeError}}
     exception.
  1. Return ?
