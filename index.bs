@@ -1821,11 +1821,7 @@ for="ReadableByteStreamController">enqueue(|chunk|)</dfn> method steps are:
     exception.
  1. If [=this=].[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=] is not
     "`readable`", throw a {{TypeError}} exception.
- 1. If [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
-  1. Let |firstDescriptor| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
-  1. If ! [$CanTransferArrayBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]) is false,
-     throw a {{TypeError}} exception.
- 1. Return ! [$ReadableByteStreamControllerEnqueue$]([=this=], |chunk|).
+ 1. Return ? [$ReadableByteStreamControllerEnqueue$]([=this=], |chunk|).
 </div>
 
 <div algorithm>
@@ -2913,6 +2909,15 @@ The following abstract operations support the implementation of the
       |byteOffset|, |byteLength| »).
    1. Perform ! [$ReadableStreamFulfillReadRequest$](|stream|, |transferredView|, false).
  1. Otherwise, if ! [$ReadableStreamHasBYOBReader$](|stream|) is true,
+  1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not
+     [=list/is empty|empty=],
+   1. Let |firstPendingPullInto| be
+      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+   1. If ! [$CanTransferArrayBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=])
+      is false,
+    1. Let |e| be a new {{TypeError}} exception.
+    1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
+    1. Throw |e|.
   1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
      |transferredBuffer|, |byteOffset|, |byteLength|).
   1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).

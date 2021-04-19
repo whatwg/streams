@@ -4,7 +4,8 @@ const assert = require('assert');
 const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise, uponPromise,
         setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment, uponRejection } =
   require('../helpers/webidl.js');
-const { CopyDataBlockBytes, CreateArrayFromList, TransferArrayBuffer } = require('./ecmascript.js');
+const { CanTransferArrayBuffer, CopyDataBlockBytes, CreateArrayFromList, TransferArrayBuffer } =
+  require('./ecmascript.js');
 const { IsNonNegativeNumber } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
@@ -1009,6 +1010,18 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
       ReadableStreamFulfillReadRequest(stream, transferredView, false);
     }
   } else if (ReadableStreamHasBYOBReader(stream) === true) {
+    if (controller._pendingPullIntos.length > 0) {
+      const firstPendingPullInto = controller._pendingPullIntos[0];
+      if (CanTransferArrayBuffer(firstPendingPullInto.buffer) === false) {
+        const e = new TypeError(
+          'The BYOB request\'s buffer has been detached and so cannot be filled with an enqueued chunk'
+        );
+        ReadableByteStreamControllerError(controller, e);
+
+        throw e;
+      }
+    }
+
     // TODO: Ideally in this branch detaching should happen only if the buffer is not consumed fully.
     ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
     ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
