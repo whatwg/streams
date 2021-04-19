@@ -1986,6 +1986,8 @@ following table:
 
  1. If [=this=].[=ReadableStreamBYOBRequest/[[controller]]=] is undefined, throw a {{TypeError}}
     exception.
+ 1. If ! [$CanTransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]) is false,
+    throw a {{TypeError}} exception.
  1. Return ?
     [$ReadableByteStreamControllerRespondWithNewView$]([=this=].[=ReadableStreamBYOBRequest/[[controller]]=],
     |view|).
@@ -3215,6 +3217,7 @@ The following abstract operations support the implementation of the
 
  1. Assert: |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is
     empty|empty=].
+ 1. Assert: ! [$CanTransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]) is true.
  1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
  1. If |firstDescriptor|'s [=pull-into descriptor/byte offset=] + |firstDescriptor|' [=pull-into
     descriptor/bytes filled=] is not |view|.\[[ByteOffset]], throw a {{RangeError}} exception.

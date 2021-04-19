@@ -1301,6 +1301,7 @@ function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
 
 function ReadableByteStreamControllerRespondWithNewView(controller, view) {
   assert(controller._pendingPullIntos.length > 0);
+  assert(CanTransferArrayBuffer(view.buffer) === true);
 
   const firstDescriptor = controller._pendingPullIntos[0];
 

@@ -29,6 +29,10 @@ exports.implementation = class ReadableStreamBYOBRequestImpl {
       throw new TypeError('This BYOB request has been invalidated');
     }
 
+    if (CanTransferArrayBuffer(view.buffer) === false) {
+      throw new TypeError('The given view\'s buffer is not transferable and so cannot be used as a response');
+    }
+
     aos.ReadableByteStreamControllerRespondWithNewView(this._controller, view);
   }
 };
