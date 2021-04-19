@@ -3,7 +3,7 @@ const assert = require('assert');
 
 const { CancelSteps, PullSteps } = require('./abstract-ops/internal-methods.js');
 const { ResetQueue } = require('./abstract-ops/queue-with-sizes.js');
-const { IsDetachedBuffer } = require('./abstract-ops/ecmascript.js');
+const { CanTransferArrayBuffer } = require('./abstract-ops/ecmascript.js');
 const aos = require('./abstract-ops/readable-streams.js');
 
 const ReadableStreamBYOBRequest = require('../generated/ReadableStreamBYOBRequest.js');
@@ -41,7 +41,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
 
     if (this._pendingPullIntos.length > 0) {
       const firstDescriptor = this._pendingPullIntos[0];
-      if (IsDetachedBuffer(firstDescriptor.buffer) === true) {
+      if (CanTransferArrayBuffer(firstDescriptor.buffer) === false) {
         throw new TypeError('The BYOB request\'s buffer has been detached');
       }
     }
@@ -68,7 +68,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
 
     if (this._pendingPullIntos.length > 0) {
       const firstDescriptor = this._pendingPullIntos[0];
-      if (IsDetachedBuffer(firstDescriptor.buffer) === true) {
+      if (CanTransferArrayBuffer(firstDescriptor.buffer) === false) {
         throw new TypeError('The BYOB request\'s buffer has been detached');
       }
     }

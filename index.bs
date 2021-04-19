@@ -1808,7 +1808,7 @@ has the following [=struct/items=]:
     "`readable`", throw a {{TypeError}} exception.
  1. If [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
   1. Let |firstDescriptor| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
-  1. If ! [$IsDetachedBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]) is true,
+  1. If ! [$CanTransferArrayBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]) is false,
      throw a {{TypeError}} exception.
  1. Perform ? [$ReadableByteStreamControllerClose$]([=this=]).
 </div>
@@ -1826,7 +1826,7 @@ for="ReadableByteStreamController">enqueue(|chunk|)</dfn> method steps are:
     "`readable`", throw a {{TypeError}} exception.
  1. If [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
   1. Let |firstDescriptor| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
-  1. If ! [$IsDetachedBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]) is true,
+  1. If ! [$CanTransferArrayBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]) is false,
      throw a {{TypeError}} exception.
  1. Return ! [$ReadableByteStreamControllerEnqueue$]([=this=], |chunk|).
 </div>
@@ -1977,8 +1977,8 @@ following table:
 
  1. If [=this=].[=ReadableStreamBYOBRequest/[[controller]]=] is undefined, throw a {{TypeError}}
     exception.
- 1. If ! [$IsDetachedBuffer$]([=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ArrayBuffer]]) is
-    true, throw a {{TypeError}} exception.
+ 1. If ! [$CanTransferArrayBuffer$]([=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ArrayBuffer]])
+    is false, throw a {{TypeError}} exception.
  1. Assert: [=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ByteLength]] &gt; 0.
  1. Assert: [=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ViewedArrayBuffer]].\[[ByteLength]]
     &gt; 0.
@@ -6080,6 +6080,16 @@ abstract operations are used to implement these "cross-realm transforms".
 The following abstract operations are a grab-bag of utilities.
 
 <div algorithm>
+ <dfn abstract-op lt="CanTransferArrayBuffer"
+ id="can-transfer-array-buffer">CanTransferArrayBuffer(|O|)</dfn> performs the following steps:
+
+ 1. Assert: [$Type$](|O|) is Object.
+ 1. Assert: |O| has an \[[ArrayBufferData]] internal slot.
+ 1. If ! [$IsDetachedBuffer$](|O|) is true, return false.
+ 1. Return true.
+</div>
+
+<div algorithm>
  <dfn abstract-op lt="IsNonNegativeNumber"
  id="is-non-negative-number">IsNonNegativeNumber(|v|)</dfn> performs the following steps:
 
@@ -6093,9 +6103,7 @@ The following abstract operations are a grab-bag of utilities.
  <dfn abstract-op lt="TransferArrayBuffer"
  id="transfer-array-buffer">TransferArrayBuffer(|O|)</dfn> performs the following steps:
 
- 1. Assert: [$Type$](|O|) is Object.
- 1. Assert: |O| has an \[[ArrayBufferData]] internal slot.
- 1. Assert: ! [$IsDetachedBuffer$](|O|) is false.
+ 1. Assert: ! [$CanTransferArrayBuffer$](|O|) is true.
  1. Let |arrayBufferData| be |O|.\[[ArrayBufferData]].
  1. Let |arrayBufferByteLength| be |O|.\[[ArrayBufferByteLength]].
  1. Perform ! [$DetachArrayBuffer$](|O|).
