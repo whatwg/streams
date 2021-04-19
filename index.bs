@@ -1397,6 +1397,8 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
  1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
  1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, return [=a promise rejected
     with=] a {{TypeError}} exception.
+ 1. If ! [$CanTransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]) is false, return
+    [=a promise rejected with=] a {{TypeError}} exception.
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected
     with=] a {{TypeError}} exception.
  1. Let |promise| be [=a new promise=].

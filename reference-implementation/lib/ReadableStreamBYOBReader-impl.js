@@ -1,6 +1,7 @@
 'use strict';
 
 const { newPromise, resolvePromise, rejectPromise, promiseRejectedWith } = require('./helpers/webidl.js');
+const { CanTransferArrayBuffer } = require('./abstract-ops/ecmascript.js');
 const aos = require('./abstract-ops/readable-streams.js');
 const { mixin } = require('./helpers/miscellaneous.js');
 const ReadableStreamGenericReaderImpl = require('./ReadableStreamGenericReader-impl.js').implementation;
@@ -16,6 +17,9 @@ class ReadableStreamBYOBReaderImpl {
     }
     if (view.buffer.byteLength === 0) {
       return promiseRejectedWith(new TypeError('view\'s buffer must have non-zero byteLength'));
+    }
+    if (CanTransferArrayBuffer(view.buffer) === false) {
+      return promiseRejectedWith(new TypeError('view\'s buffer is not transferable'));
     }
 
     if (this._stream === undefined) {
