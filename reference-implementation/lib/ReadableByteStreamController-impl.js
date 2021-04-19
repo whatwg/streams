@@ -50,7 +50,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
       throw new TypeError('chunk\'s buffer must have non-zero byteLength');
     }
     if (CanTransferArrayBuffer(chunk.buffer) === false) {
-      throw new TypeError('The given view\'s buffer is not transferable and so cannot be enqueued');
+      throw new TypeError('chunk\'s buffer is not transferable and so cannot be enqueued');
     }
 
     if (this._closeRequested === true) {
