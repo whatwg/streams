@@ -2918,10 +2918,7 @@ The following abstract operations support the implementation of the
    1. Let |firstPendingPullInto| be
       |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
    1. If ! [$CanTransferArrayBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=])
-      is false,
-    1. Let |e| be a new {{TypeError}} exception.
-    1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
-    1. Throw |e|.
+      is false, throw a {{TypeError}} exception.
   1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
      |transferredBuffer|, |byteOffset|, |byteLength|).
   1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).

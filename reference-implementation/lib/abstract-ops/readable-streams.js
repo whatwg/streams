@@ -1013,12 +1013,9 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
     if (controller._pendingPullIntos.length > 0) {
       const firstPendingPullInto = controller._pendingPullIntos[0];
       if (CanTransferArrayBuffer(firstPendingPullInto.buffer) === false) {
-        const e = new TypeError(
+        throw new TypeError(
           'The BYOB request\'s buffer has been detached and so cannot be filled with an enqueued chunk'
         );
-        ReadableByteStreamControllerError(controller, e);
-
-        throw e;
       }
     }
 
