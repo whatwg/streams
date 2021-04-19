@@ -1277,6 +1277,7 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
 
 function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
   const firstDescriptor = controller._pendingPullIntos[0];
+  assert(CanTransferArrayBuffer(firstDescriptor.buffer) === true);
 
   const state = controller._stream._state;
 

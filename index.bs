@@ -3193,6 +3193,7 @@ The following abstract operations support the implementation of the
  |bytesWritten|)</dfn> performs the following steps:
 
  1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+ 1. Assert: ! [$CanTransferArrayBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]) is true.
  1. Let |state| be
     |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
  1. If |state| is "`closed`",
