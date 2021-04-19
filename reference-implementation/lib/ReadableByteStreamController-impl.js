@@ -39,13 +39,6 @@ exports.implementation = class ReadableByteStreamControllerImpl {
       throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be closed`);
     }
 
-    if (this._pendingPullIntos.length > 0) {
-      const firstDescriptor = this._pendingPullIntos[0];
-      if (CanTransferArrayBuffer(firstDescriptor.buffer) === false) {
-        throw new TypeError('The BYOB request\'s buffer has been detached');
-      }
-    }
-
     aos.ReadableByteStreamControllerClose(this);
   }
 
