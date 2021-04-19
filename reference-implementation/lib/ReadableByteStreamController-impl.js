@@ -1,6 +1,7 @@
 'use strict';
 const assert = require('assert');
 
+const { CanTransferArrayBuffer } = require('./abstract-ops/ecmascript.js');
 const { CancelSteps, PullSteps } = require('./abstract-ops/internal-methods.js');
 const { ResetQueue } = require('./abstract-ops/queue-with-sizes.js');
 const aos = require('./abstract-ops/readable-streams.js');
@@ -47,6 +48,9 @@ exports.implementation = class ReadableByteStreamControllerImpl {
     }
     if (chunk.buffer.byteLength === 0) {
       throw new TypeError('chunk\'s buffer must have non-zero byteLength');
+    }
+    if (CanTransferArrayBuffer(chunk.buffer) === false) {
+      throw new TypeError('The given view\'s buffer is not transferable and so cannot be enqueued');
     }
 
     if (this._closeRequested === true) {

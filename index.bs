@@ -1817,6 +1817,8 @@ for="ReadableByteStreamController">enqueue(|chunk|)</dfn> method steps are:
  1. If |chunk|.\[[ByteLength]] is 0, throw a {{TypeError}} exception.
  1. If |chunk|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, throw a {{TypeError}}
     exception.
+ 1. If ! [$CanTransferArrayBuffer$](|chunk|.\[[ViewedArrayBuffer]]) is false,
+    throw a {{TypeError}} exception.
  1. If [=this=].[=ReadableByteStreamController/[[closeRequested]]=] is true, throw a {{TypeError}}
     exception.
  1. If [=this=].[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=] is not
@@ -2894,6 +2896,7 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-enqueue">ReadableByteStreamControllerEnqueue(|controller|,
  |chunk|)</dfn> performs the following steps:
 
+ 1. Assert: ! [$CanTransferArrayBuffer$](|chunk|.\[[ViewedArrayBuffer]]) is true.
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. If |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true or
     |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
