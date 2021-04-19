@@ -1230,6 +1230,23 @@ function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest)
 function ReadableByteStreamControllerRespond(controller, bytesWritten) {
   assert(controller._pendingPullIntos.length > 0);
 
+  const firstDescriptor = controller._pendingPullIntos[0];
+  const state = controller._stream._state;
+
+  if (state === 'closed') {
+    if (bytesWritten !== 0) {
+      throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
+    }
+  } else {
+    assert(state === 'readable');
+    if (bytesWritten === 0) {
+      throw new TypeError('bytesWritten must be greater than 0 when calling respond() on a readable stream');
+    }
+    if (firstDescriptor.bytesFilled + bytesWritten > firstDescriptor.byteLength) {
+      throw new RangeError('bytesWritten out of range');
+    }
+  }
+
   ReadableByteStreamControllerRespondInternal(controller, bytesWritten);
 }
 
@@ -1248,9 +1265,7 @@ function ReadableByteStreamControllerRespondInClosedState(controller, firstDescr
 }
 
 function ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, pullIntoDescriptor) {
-  if (pullIntoDescriptor.bytesFilled + bytesWritten > pullIntoDescriptor.byteLength) {
-    throw new RangeError('bytesWritten out of range');
-  }
+  assert(pullIntoDescriptor.bytesFilled + bytesWritten <= pullIntoDescriptor.byteLength);
 
   ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesWritten, pullIntoDescriptor);
 
@@ -1282,17 +1297,11 @@ function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
   const state = controller._stream._state;
 
   if (state === 'closed') {
-    if (bytesWritten !== 0) {
-      throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
-    }
-
+    assert(bytesWritten === 0);
     ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor);
   } else {
     assert(state === 'readable');
-    if (bytesWritten === 0) {
-      throw new TypeError('bytesWritten must be greater than 0 when calling respond() on a readable stream');
-    }
-
+    assert(bytesWritten > 0);
     ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, firstDescriptor);
   }
 
@@ -1304,6 +1313,20 @@ function ReadableByteStreamControllerRespondWithNewView(controller, view) {
   assert(CanTransferArrayBuffer(view.buffer) === true);
 
   const firstDescriptor = controller._pendingPullIntos[0];
+  const state = controller._stream._state;
+
+  if (state === 'closed') {
+    if (view.byteLength !== 0) {
+      throw new TypeError('The view\'s length must be 0 when calling respondWithNewView() on a closed stream');
+    }
+  } else {
+    assert(state === 'readable');
+    if (view.byteLength === 0) {
+      throw new TypeError(
+        'The view\'s length must be greater than 0 when calling respondWithNewView() on a readable stream'
+      );
+    }
+  }
 
   if (firstDescriptor.byteOffset + firstDescriptor.bytesFilled !== view.byteOffset) {
     throw new RangeError('The region specified by view does not match byobRequest');

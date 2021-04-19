@@ -3140,6 +3140,16 @@ The following abstract operations support the implementation of the
  |bytesWritten|)</dfn> performs the following steps:
 
  1. Assert: |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty.
+ 1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+ 1. Let |state| be
+    |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
+ 1. If |state| is "`closed`",
+  1. If |bytesWritten| is not 0, throw a {{TypeError}} exception.
+ 1. Otherwise,
+  1. Assert: |state| is "`readable`".
+  1. If |bytesWritten| is 0, throw a {{TypeError}} exception.
+  1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] + |bytesWritten| >
+     |firstDescriptor|'s [=pull-into descriptor/byte length=], throw a {{RangeError}} exception.
  1. Perform ? [$ReadableByteStreamControllerRespondInternal$](|controller|, |bytesWritten|).
 </div>
 
@@ -3165,8 +3175,8 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-in-readable-state">ReadableByteStreamControllerRespondInReadableState(|controller|,
  |bytesWritten|, |pullIntoDescriptor|)</dfn> performs the following steps:
 
- 1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] + |bytesWritten| >
-    |pullIntoDescriptor|'s [=pull-into descriptor/byte length=], throw a {{RangeError}} exception.
+ 1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] + |bytesWritten| <=
+    |pullIntoDescriptor|'s [=pull-into descriptor/byte length=].
  1. Perform ! [$ReadableByteStreamControllerFillHeadPullIntoDescriptor$](|controller|,
     |bytesWritten|, |pullIntoDescriptor|).
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
@@ -3201,12 +3211,12 @@ The following abstract operations support the implementation of the
  1. Let |state| be
     |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
  1. If |state| is "`closed`",
-  1. If |bytesWritten| is not 0, throw a {{TypeError}} exception.
+  1. Assert: |bytesWritten| is 0.
   1. Perform ! [$ReadableByteStreamControllerRespondInClosedState$](|controller|,
      |firstDescriptor|).
  1. Otherwise,
   1. Assert: |state| is "`readable`".
-  1. If |bytesWritten| is 0, throw a {{TypeError}} exception.
+  1. Assert: |bytesWritten| > 0.
   1. Perform ? [$ReadableByteStreamControllerRespondInReadableState$](|controller|, |bytesWritten|,
      |firstDescriptor|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$](|controller|).
@@ -3221,6 +3231,13 @@ The following abstract operations support the implementation of the
     empty|empty=].
  1. Assert: ! [$CanTransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]) is true.
  1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+ 1. Let |state| be
+    |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
+ 1. If |state| is "`closed`",
+  1. If |view|.\[[ByteLength]] is not 0, throw a {{TypeError}} exception.
+ 1. Otherwise,
+  1. Assert: |state| is "`readable`".
+  1. If |view|.\[[ByteLength]] is 0, throw a {{TypeError}} exception.
  1. If |firstDescriptor|'s [=pull-into descriptor/byte offset=] + |firstDescriptor|' [=pull-into
     descriptor/bytes filled=] is not |view|.\[[ByteOffset]], throw a {{RangeError}} exception.
  1. If |firstDescriptor|'s [=pull-into descriptor/buffer byte length=] is not
