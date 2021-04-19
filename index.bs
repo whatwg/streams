@@ -55,6 +55,7 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: IsDetachedBuffer; url: #sec-isdetachedbuffer
   text: IsInteger; url: #sec-isinteger
   text: OrdinaryObjectCreate; url: #sec-ordinaryobjectcreate
+  text: SameValue; url: #sec-samevalue
   text: SetFunctionLength; url: #sec-setfunctionlength
   text: SetFunctionName; url: #sec-setfunctionname
   text: Type; url: #sec-ecmascript-data-types-and-values
@@ -6086,6 +6087,7 @@ The following abstract operations are a grab-bag of utilities.
  1. Assert: [$Type$](|O|) is Object.
  1. Assert: |O| has an \[[ArrayBufferData]] internal slot.
  1. If ! [$IsDetachedBuffer$](|O|) is true, return false.
+ 1. If [$SameValue$](|O|.\[[ArrayBufferDetachKey]], undefined) is false, return false.
  1. Return true.
 </div>
 
