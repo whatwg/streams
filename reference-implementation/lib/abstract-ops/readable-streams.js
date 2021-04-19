@@ -989,8 +989,6 @@ function ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescripto
 }
 
 function ReadableByteStreamControllerEnqueue(controller, chunk) {
-  assert(CanTransferArrayBuffer(chunk.buffer) === true);
-
   const stream = controller._stream;
 
   if (controller._closeRequested === true || stream._state !== 'readable') {

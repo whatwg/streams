@@ -2896,7 +2896,6 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-enqueue">ReadableByteStreamControllerEnqueue(|controller|,
  |chunk|)</dfn> performs the following steps:
 
- 1. Assert: ! [$CanTransferArrayBuffer$](|chunk|.\[[ViewedArrayBuffer]]) is true.
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. If |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true or
     |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
