@@ -2888,9 +2888,10 @@ The following abstract operations support the implementation of the
  1. Let |elementSize| be |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. Assert: |bytesFilled| ≤ |pullIntoDescriptor|'s [=pull-into descriptor/byte length=].
  1. Assert: |bytesFilled| mod |elementSize| is 0.
+ 1. Let |buffer| be ! [$TransferArrayBuffer$](|pullIntoDescriptor|'s [=pull-into descriptor/buffer=]).
  1. Return ! [$Construct$](|pullIntoDescriptor|'s [=pull-into descriptor/view constructor=], «
-    |pullIntoDescriptor|'s [=pull-into descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into
-    descriptor/byte offset=], |bytesFilled| ÷ |elementSize| »).
+    |buffer|, |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=],
+    |bytesFilled| ÷ |elementSize| »).
 </div>
 
 <div algorithm>
@@ -3190,8 +3191,6 @@ The following abstract operations support the implementation of the
       descriptor/buffer=], |end| − |remainderSize|, |remainderSize|, {{%ArrayBuffer%}}).
    1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|, |remainder|, 0,
       |remainder|.\[[ByteLength]]).
- 1. Set |pullIntoDescriptor|'s [=pull-into descriptor/buffer=] to !
-    [$TransferArrayBuffer$](|pullIntoDescriptor|'s [=pull-into descriptor/buffer=]).
  1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to |pullIntoDescriptor|'s
     [=pull-into descriptor/bytes filled=] − |remainderSize|.
  1. Perform !

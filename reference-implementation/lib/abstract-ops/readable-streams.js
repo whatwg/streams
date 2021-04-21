@@ -984,8 +984,8 @@ function ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescripto
   assert(bytesFilled <= pullIntoDescriptor.byteLength);
   assert(bytesFilled % elementSize === 0);
 
-  return new pullIntoDescriptor.viewConstructor(
-    pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, bytesFilled / elementSize);
+  const buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
+  return new pullIntoDescriptor.viewConstructor(buffer, pullIntoDescriptor.byteOffset, bytesFilled / elementSize);
 }
 
 function ReadableByteStreamControllerEnqueue(controller, chunk) {
@@ -1280,7 +1280,6 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
     ReadableByteStreamControllerEnqueueChunkToQueue(controller, remainder, 0, remainder.byteLength);
   }
 
-  pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
   pullIntoDescriptor.bytesFilled -= remainderSize;
   ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, pullIntoDescriptor);
 
