@@ -2910,6 +2910,7 @@ The following abstract operations support the implementation of the
      is false, throw a {{TypeError}} exception.
   1. Set |firstPendingPullInto|'s [=pull-into descriptor/buffer=] to !
      [$TransferArrayBuffer$]([=pull-into descriptor/buffer=]).
+ 1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
  1. Let |buffer| be |chunk|.\[[ViewedArrayBuffer]].
  1. Let |byteOffset| be |chunk|.\[[ByteOffset]].
  1. Let |byteLength| be |chunk|.\[[ByteLength]].
@@ -2968,7 +2969,7 @@ The following abstract operations support the implementation of the
  1. Assert: either |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=]
     [=list/is empty=], or |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0]
     is |pullIntoDescriptor|.
- 1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
+ 1. Assert: |controller|.[=ReadableByteStreamController/[[byobRequest]]=] is null.
  1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to [=pull-into
     descriptor/bytes filled=] + |size|.
 </div>
@@ -3208,6 +3209,7 @@ The following abstract operations support the implementation of the
 
  1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
  1. Assert: ! [$CanTransferArrayBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]) is true.
+ 1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
  1. Let |state| be
     |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
  1. If |state| is "`closed`",
@@ -3254,10 +3256,10 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-shift-pending-pull-into">ReadableByteStreamControllerShiftPendingPullInto(|controller|)</dfn>
  performs the following steps:
 
+ 1. Assert: |controller|.[=ReadableByteStreamController/[[byobRequest]]=] is null.
  1. Let |descriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
  1. [=list/Remove=] |descriptor| from
     |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=].
- 1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
  1. Return |descriptor|.
 </div>
 
