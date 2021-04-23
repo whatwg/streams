@@ -1017,6 +1017,7 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
           'The BYOB request\'s buffer has been detached and so cannot be filled with an enqueued chunk'
         );
       }
+      firstPendingPullInto.buffer = TransferArrayBuffer(firstPendingPullInto.buffer);
     }
 
     // TODO: Ideally in this branch detaching should happen only if the buffer is not consumed fully.
@@ -1244,12 +1245,12 @@ function ReadableByteStreamControllerRespond(controller, bytesWritten) {
     }
   }
 
+  firstDescriptor.buffer = TransferArrayBuffer(firstDescriptor.buffer);
+
   ReadableByteStreamControllerRespondInternal(controller, bytesWritten);
 }
 
 function ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor) {
-  firstDescriptor.buffer = TransferArrayBuffer(firstDescriptor.buffer);
-
   assert(firstDescriptor.bytesFilled === 0);
 
   const stream = controller._stream;
@@ -1267,7 +1268,6 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
   ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesWritten, pullIntoDescriptor);
 
   if (pullIntoDescriptor.bytesFilled < pullIntoDescriptor.elementSize) {
-    // TODO: Figure out whether we should detach the buffer or not here.
     return;
   }
 
@@ -1334,7 +1334,7 @@ function ReadableByteStreamControllerRespondWithNewView(controller, view) {
     throw new RangeError('The region specified by view is larger than byobRequest');
   }
 
-  firstDescriptor.buffer = view.buffer;
+  firstDescriptor.buffer = TransferArrayBuffer(view.buffer);
 
   ReadableByteStreamControllerRespondInternal(controller, view.byteLength);
 }

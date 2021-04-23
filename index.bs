@@ -2922,6 +2922,8 @@ The following abstract operations support the implementation of the
       |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
    1. If ! [$CanTransferArrayBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=])
       is false, throw a {{TypeError}} exception.
+   1. Set |firstPendingPullInto|'s [=pull-into descriptor/buffer=] to !
+      [$TransferArrayBuffer$]([=pull-into descriptor/buffer=]).
   1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
      |transferredBuffer|, |byteOffset|, |byteLength|).
   1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
@@ -3150,6 +3152,8 @@ The following abstract operations support the implementation of the
   1. If |bytesWritten| is 0, throw a {{TypeError}} exception.
   1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] + |bytesWritten| >
      |firstDescriptor|'s [=pull-into descriptor/byte length=], throw a {{RangeError}} exception.
+ 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to !
+    [$TransferArrayBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]).
  1. Perform ? [$ReadableByteStreamControllerRespondInternal$](|controller|, |bytesWritten|).
 </div>
 
@@ -3158,8 +3162,6 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-in-closed-state">ReadableByteStreamControllerRespondInClosedState(|controller|,
  |firstDescriptor|)</dfn> performs the following steps:
 
- 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to !
-    [$TransferArrayBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]).
  1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. If ! [$ReadableStreamHasBYOBReader$](|stream|) is true,
@@ -3242,7 +3244,8 @@ The following abstract operations support the implementation of the
     |view|.\[[ViewedArrayBuffer]].\[[ByteLength]], throw a {{RangeError}} exception.
  1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] + |view|.\[[ByteLength]] >
     |firstDescriptor|'s [=pull-into descriptor/byte length=], throw a {{RangeError}} exception.
- 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to |view|.\[[ViewedArrayBuffer]].
+ 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to !
+    [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
  1. Perform ? [$ReadableByteStreamControllerRespondInternal$](|controller|, |view|.\[[ByteLength]]).
 </div>
 
