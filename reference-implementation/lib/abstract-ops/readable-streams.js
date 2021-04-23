@@ -995,6 +995,16 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
     return;
   }
 
+  if (controller._pendingPullIntos.length > 0) {
+    const firstPendingPullInto = controller._pendingPullIntos[0];
+    if (CanTransferArrayBuffer(firstPendingPullInto.buffer) === false) {
+      throw new TypeError(
+        'The BYOB request\'s buffer has been detached and so cannot be filled with an enqueued chunk'
+      );
+    }
+    firstPendingPullInto.buffer = TransferArrayBuffer(firstPendingPullInto.buffer);
+  }
+
   const buffer = chunk.buffer;
   const byteOffset = chunk.byteOffset;
   const byteLength = chunk.byteLength;
@@ -1010,16 +1020,6 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
       ReadableStreamFulfillReadRequest(stream, transferredView, false);
     }
   } else if (ReadableStreamHasBYOBReader(stream) === true) {
-    if (controller._pendingPullIntos.length > 0) {
-      const firstPendingPullInto = controller._pendingPullIntos[0];
-      if (CanTransferArrayBuffer(firstPendingPullInto.buffer) === false) {
-        throw new TypeError(
-          'The BYOB request\'s buffer has been detached and so cannot be filled with an enqueued chunk'
-        );
-      }
-      firstPendingPullInto.buffer = TransferArrayBuffer(firstPendingPullInto.buffer);
-    }
-
     // TODO: Ideally in this branch detaching should happen only if the buffer is not consumed fully.
     ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
     ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);

@@ -2902,6 +2902,14 @@ The following abstract operations support the implementation of the
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. If |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true or
     |stream|.[=ReadableStream/[[state]]=] is not "`readable`", return.
+ 1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not
+    [=list/is empty|empty=],
+  1. Let |firstPendingPullInto| be
+     |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+  1. If ! [$CanTransferArrayBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=])
+     is false, throw a {{TypeError}} exception.
+  1. Set |firstPendingPullInto|'s [=pull-into descriptor/buffer=] to !
+     [$TransferArrayBuffer$]([=pull-into descriptor/buffer=]).
  1. Let |buffer| be |chunk|.\[[ViewedArrayBuffer]].
  1. Let |byteOffset| be |chunk|.\[[ByteOffset]].
  1. Let |byteLength| be |chunk|.\[[ByteLength]].
@@ -2916,14 +2924,6 @@ The following abstract operations support the implementation of the
       |byteOffset|, |byteLength| »).
    1. Perform ! [$ReadableStreamFulfillReadRequest$](|stream|, |transferredView|, false).
  1. Otherwise, if ! [$ReadableStreamHasBYOBReader$](|stream|) is true,
-  1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not
-     [=list/is empty|empty=],
-   1. Let |firstPendingPullInto| be
-      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
-   1. If ! [$CanTransferArrayBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=])
-      is false, throw a {{TypeError}} exception.
-   1. Set |firstPendingPullInto|'s [=pull-into descriptor/buffer=] to !
-      [$TransferArrayBuffer$]([=pull-into descriptor/buffer=]).
   1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
      |transferredBuffer|, |byteOffset|, |byteLength|).
   1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
