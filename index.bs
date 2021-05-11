@@ -4294,7 +4294,7 @@ the {{WritableStream}}'s public API.
 
 <div algorithm>
  <dfn abstract-op lt="WritableStreamFinishErroring"
- id="writable-stream-finish-erroring">WritableStreamFinishErroring(|stream|, |reason|)</dfn>
+ id="writable-stream-finish-erroring">WritableStreamFinishErroring(|stream|)</dfn>
  performs the following steps:
 
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`erroring`".
