@@ -6280,7 +6280,7 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
 
 <h3 id="other-specs-ws">Writable streams</h3>
 
-<h4 id="other-specs-ws-creation">Creation</h4>
+<h4 id="other-specs-ws-creation">Creation and manipulation</h4>
 
 <div algorithm="set up a WritableStream">
  To <dfn export for="WritableStream">set up</dfn> a newly-[=new|created-via-Web IDL=]
@@ -6319,6 +6319,13 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
  <p class="note">Subclasses of {{WritableStream}} will use the [=WritableStream/set up=] operation
  directly on the [=this=] value inside their constructor steps.</p>
 </div>
+
+The following algorithm must only be used on {{WritableStream}} instances initialized via the above
+[=WritableStream/set up=] algorithm:
+
+<p algorithm>To <dfn export for="WritableStream" lt="error|erroring">error</dfn> a
+{{WritableStream}} |stream| given a JavaScript value |e|, perform !
+[$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.[=WritableStream/[[controller]]=], |e|).
 
 <h4 id="other-specs-ws-writing">Writing</h4>
 
