@@ -15,7 +15,7 @@ exports.CopyDataBlockBytes = (dest, destOffset, src, srcOffset, n) => {
 
 // Not implemented correctly
 exports.TransferArrayBuffer = O => {
-  assert(exports.CanTransferArrayBuffer(O));
+  assert(!exports.IsDetachedBuffer(O));
   const transferredIshVersion = O.slice();
 
   // This is specifically to fool tests that test "is transferred" by taking a non-zero-length

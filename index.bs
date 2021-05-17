@@ -6132,10 +6132,10 @@ The following abstract operations are a grab-bag of utilities.
  <dfn abstract-op lt="TransferArrayBuffer"
  id="transfer-array-buffer">TransferArrayBuffer(|O|)</dfn> performs the following steps:
 
- 1. Assert: ! [$CanTransferArrayBuffer$](|O|) is true.
+ 1. Assert: ! [$IsDetachedBuffer$](|O|) is false.
  1. Let |arrayBufferData| be |O|.\[[ArrayBufferData]].
  1. Let |arrayBufferByteLength| be |O|.\[[ArrayBufferByteLength]].
- 1. Perform ! [$DetachArrayBuffer$](|O|).
+ 1. Perform ? [$DetachArrayBuffer$](|O|).
  1. Return a new {{ArrayBuffer}} object, created in [=the current Realm=], whose
     \[[ArrayBufferData]] internal slot value is |arrayBufferData| and whose
     \[[ArrayBufferByteLength]] internal slot value is |arrayBufferByteLength|.
