@@ -61,6 +61,11 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: Type; url: #sec-ecmascript-data-types-and-values
  text: TypeError; url: #sec-native-error-types-used-in-this-standard-typeerror; type: exception
  text: map; url: #sec-array.prototype.map; type: method; for: Array.prototype
+urlPrefix: https://webassembly.github.io/spec/js-api/; spec: WASM-JS-API-1
+ type: interface
+  text: WebAssembly.Memory; url: #memory
+ type: attribute
+  text: buffer; for: WebAssembly.Memory; url: #dom-memory-buffer
 url: https://wicg.github.io/compression/#compressionstream; spec: COMPRESSION; type: interface; text: CompressionStream
 </pre>
 
@@ -6136,6 +6141,9 @@ The following abstract operations are a grab-bag of utilities.
  1. Let |arrayBufferData| be |O|.\[[ArrayBufferData]].
  1. Let |arrayBufferByteLength| be |O|.\[[ArrayBufferByteLength]].
  1. Perform ? [$DetachArrayBuffer$](|O|).
+    <p class="note">This will throw an exception if |O| has an \[[ArrayBufferDetachKey]]
+    that is not undefined, such as a {{WebAssembly.Memory}}'s {{WebAssembly.Memory/buffer}}.
+    [[WASM-JS-API-1]]</p>
  1. Return a new {{ArrayBuffer}} object, created in [=the current Realm=], whose
     \[[ArrayBufferData]] internal slot value is |arrayBufferData| and whose
     \[[ArrayBufferByteLength]] internal slot value is |arrayBufferByteLength|.
