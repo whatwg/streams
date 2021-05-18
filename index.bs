@@ -1993,7 +1993,7 @@ following table:
 
  1. If [=this=].[=ReadableStreamBYOBRequest/[[controller]]=] is undefined, throw a {{TypeError}}
     exception.
- 1. If ! [$CanTransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]) is false,
+ 1. If ! [$IsDetachedBuffer$](|view|.\[[ViewedArrayBuffer]]) is true,
     throw a {{TypeError}} exception.
  1. Return ?
     [$ReadableByteStreamControllerRespondWithNewView$]([=this=].[=ReadableStreamBYOBRequest/[[controller]]=],
@@ -3235,7 +3235,7 @@ The following abstract operations support the implementation of the
 
  1. Assert: |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is
     empty|empty=].
- 1. Assert: ! [$CanTransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]) is true.
+ 1. Assert: ! [$IsDetachedBuffer$](|view|.\[[ViewedArrayBuffer]]) is false.
  1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
  1. Let |state| be
     |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
@@ -3250,7 +3250,7 @@ The following abstract operations support the implementation of the
     |view|.\[[ViewedArrayBuffer]].\[[ByteLength]], throw a {{RangeError}} exception.
  1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] + |view|.\[[ByteLength]] >
     |firstDescriptor|'s [=pull-into descriptor/byte length=], throw a {{RangeError}} exception.
- 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to !
+ 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to ?
     [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
  1. Perform ? [$ReadableByteStreamControllerRespondInternal$](|controller|, |view|.\[[ByteLength]]).
 </div>
