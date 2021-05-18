@@ -2914,8 +2914,8 @@ The following abstract operations support the implementation of the
     [=list/is empty|empty=],
   1. Let |firstPendingPullInto| be
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
-  1. If ! [$CanTransferArrayBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=])
-     is false, throw a {{TypeError}} exception.
+  1. If ! [$IsDetachedBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=])
+     is true, throw a {{TypeError}} exception.
   1. Set |firstPendingPullInto|'s [=pull-into descriptor/buffer=] to !
      [$TransferArrayBuffer$]([=pull-into descriptor/buffer=]).
  1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
