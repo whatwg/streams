@@ -1175,7 +1175,14 @@ function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest)
 
   const ctor = view.constructor;
 
-  const buffer = TransferArrayBuffer(view.buffer);
+  let buffer;
+  try {
+    buffer = TransferArrayBuffer(view.buffer);
+  } catch (e) {
+    readIntoRequest.errorSteps(e);
+    return;
+  }
+
   const pullIntoDescriptor = {
     buffer,
     bufferByteLength: buffer.byteLength,

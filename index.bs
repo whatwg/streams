@@ -1402,7 +1402,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
  1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
  1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, return [=a promise rejected
     with=] a {{TypeError}} exception.
- 1. If ! [$CanTransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]) is false, return
+ 1. If ! [$IsDetachedBuffer$](|view|.\[[ViewedArrayBuffer]]) is true, return
     [=a promise rejected with=] a {{TypeError}} exception.
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected
     with=] a {{TypeError}} exception.
@@ -3105,7 +3105,11 @@ The following abstract operations support the implementation of the
      |view|.\[[TypedArrayName]].
  1. Let |byteOffset| be |view|.\[[ByteOffset]].
  1. Let |byteLength| be |view|.\[[ByteLength]].
- 1. Let |buffer| be ! [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
+ 1. Let |bufferResult| be [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
+ 1. If |bufferResult| is an abrupt completion,
+  1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |bufferResult|.\[[Value]].
+  1. Return.
+ 1. Let |buffer| be |bufferResult|.\[[Value]].
  1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
     |buffer|, [=pull-into descriptor/buffer byte length=] |buffer|.\[[ArrayBufferByteLength]],
     [=pull-into descriptor/byte offset=] |byteOffset|, [=pull-into descriptor/byte length=]
