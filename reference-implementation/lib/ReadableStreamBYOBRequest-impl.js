@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('assert');
 
-const { CanTransferArrayBuffer } = require('./abstract-ops/ecmascript.js');
+const { CanTransferArrayBuffer, IsDetachedBuffer } = require('./abstract-ops/ecmascript.js');
 const aos = require('./abstract-ops/readable-streams.js');
 
 exports.implementation = class ReadableStreamBYOBRequestImpl {
@@ -14,7 +14,7 @@ exports.implementation = class ReadableStreamBYOBRequestImpl {
       throw new TypeError('This BYOB request has been invalidated');
     }
 
-    if (CanTransferArrayBuffer(this._view.buffer) === false) {
+    if (IsDetachedBuffer(this._view.buffer) === true) {
       throw new TypeError('The BYOB request\'s buffer has been detached and so cannot be used as a response');
     }
 
