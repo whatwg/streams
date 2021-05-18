@@ -4,7 +4,7 @@ const assert = require('assert');
 const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise, uponPromise,
         setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment, uponRejection } =
   require('../helpers/webidl.js');
-const { CanTransferArrayBuffer, CopyDataBlockBytes, CreateArrayFromList, TransferArrayBuffer } =
+const { CanTransferArrayBuffer, CopyDataBlockBytes, CreateArrayFromList, IsDetachedBuffer, TransferArrayBuffer } =
   require('./ecmascript.js');
 const { IsNonNegativeNumber } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
@@ -995,6 +995,14 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
     return;
   }
 
+  const buffer = chunk.buffer;
+  const byteOffset = chunk.byteOffset;
+  const byteLength = chunk.byteLength;
+  if (IsDetachedBuffer(buffer) === true) {
+    throw new TypeError('chunk\'s buffer is detached and so cannot be enqueued');
+  }
+  const transferredBuffer = TransferArrayBuffer(buffer);
+
   if (controller._pendingPullIntos.length > 0) {
     const firstPendingPullInto = controller._pendingPullIntos[0];
     if (CanTransferArrayBuffer(firstPendingPullInto.buffer) === false) {
@@ -1006,11 +1014,6 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
   }
 
   ReadableByteStreamControllerInvalidateBYOBRequest(controller);
-
-  const buffer = chunk.buffer;
-  const byteOffset = chunk.byteOffset;
-  const byteLength = chunk.byteLength;
-  const transferredBuffer = TransferArrayBuffer(buffer);
 
   if (ReadableStreamHasDefaultReader(stream) === true) {
     if (ReadableStreamGetNumReadRequests(stream) === 0) {
