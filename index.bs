@@ -1960,6 +1960,13 @@ following table:
   {{ReadableStreamBYOBRequest/view}}, the [=underlying byte source=] is providing a new
   {{ArrayBufferView}}, which will be given to the [=consumer=] of the [=readable byte stream=].
 
+  <p>The new |view| has to be a view onto the same backing memory region as
+  {{ReadableStreamBYOBRequest/view}}, i.e. its buffer has to equal (or be a
+  <a href="#transfer-array-buffer">transferred</a> version of) {{ReadableStreamBYOBRequest/view}}'s
+  buffer. Its <code>byteOffset</code> has to equal {{ReadableStreamBYOBRequest/view}}'s
+  <code>byteOffset</code>, and its <code>byteLength</code> (representing the number of bytes written)
+  has to be less than or equal to that of {{ReadableStreamBYOBRequest/view}}.
+
   <p>After this method is called, <var ignore>view</var> will be <a
   href="#transfer-array-buffer">transferred</a> and no longer modifiable.
 </dl>
