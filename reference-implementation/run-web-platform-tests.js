@@ -33,6 +33,11 @@ async function main() {
   const testsPath = path.resolve(wptPath, 'streams');
 
   const filterGlobs = process.argv.length >= 3 ? process.argv.slice(2) : ['**/*.html'];
+  const excludeGlobs = [
+    // These tests use ArrayBuffers backed by WebAssembly.Memory objects, which *should* be non-transferable.
+    // However, our TransferArrayBuffer implementation cannot detect these, and will incorrectly "transfer" them anyway.
+    'readable-byte-streams/non-transferable-buffers.any.html'
+  ];
   const anyTestPattern = /\.any\.html$/;
 
   const bundledJS = await bundle(entryPath);
@@ -61,7 +66,8 @@ async function main() {
         return false;
       }
 
-      return filterGlobs.some(glob => minimatch(testPath, glob));
+      return filterGlobs.some(glob => minimatch(testPath, glob)) &&
+        !excludeGlobs.some(glob => minimatch(testPath, glob));
     }
   });
 

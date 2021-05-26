@@ -25,15 +25,12 @@ exports.implementation = class ReadableStreamBYOBRequestImpl {
   }
 
   respondWithNewView(view) {
-    if (view.byteLength === 0) {
-      throw new TypeError('chunk must have non-zero byteLength');
-    }
-    if (view.buffer.byteLength === 0) {
-      throw new TypeError('chunk\'s buffer must have non-zero byteLength');
-    }
-
     if (this._controller === undefined) {
       throw new TypeError('This BYOB request has been invalidated');
+    }
+
+    if (IsDetachedBuffer(view.buffer) === true) {
+      throw new TypeError('The given view\'s buffer has been detached and so cannot be used as a response');
     }
 
     aos.ReadableByteStreamControllerRespondWithNewView(this._controller, view);

@@ -55,11 +55,17 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: IsDetachedBuffer; url: #sec-isdetachedbuffer
   text: IsInteger; url: #sec-isinteger
   text: OrdinaryObjectCreate; url: #sec-ordinaryobjectcreate
+  text: SameValue; url: #sec-samevalue
   text: SetFunctionLength; url: #sec-setfunctionlength
   text: SetFunctionName; url: #sec-setfunctionname
   text: Type; url: #sec-ecmascript-data-types-and-values
  text: TypeError; url: #sec-native-error-types-used-in-this-standard-typeerror; type: exception
  text: map; url: #sec-array.prototype.map; type: method; for: Array.prototype
+urlPrefix: https://webassembly.github.io/spec/js-api/; spec: WASM-JS-API-1
+ type: interface
+  text: Memory; url: #memory
+ type: attribute
+  text: buffer; for: Memory; url: #dom-memory-buffer
 url: https://wicg.github.io/compression/#compressionstream; spec: COMPRESSION; type: interface; text: CompressionStream
 </pre>
 
@@ -1396,6 +1402,8 @@ value: newViewOnSameMemory, done: true }</code> for closed streams, instead of t
  1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
  1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, return [=a promise rejected
     with=] a {{TypeError}} exception.
+ 1. If ! [$IsDetachedBuffer$](|view|.\[[ViewedArrayBuffer]]) is true, return
+    [=a promise rejected with=] a {{TypeError}} exception.
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected
     with=] a {{TypeError}} exception.
  1. Let |promise| be [=a new promise=].
@@ -1587,7 +1595,7 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
  id="rs-default-controller-private-pull">\[[PullSteps]](|readRequest|)</dfn> implements the
  [$ReadableStreamController/[[PullSteps]]$] contract. It performs the following steps:
 
- 1. Let |stream| be [=this=].[=ReadableStreamGenericReader/[[stream]]=].
+ 1. Let |stream| be [=this=].[=ReadableStreamDefaultController/[[stream]]=].
  1. If [=this=].[=ReadableStreamDefaultController/[[queue]]=] is not [=list/is empty|empty=],
   1. Let |chunk| be ! [$DequeueValue$]([=this=]).
   1. If [=this=].[=ReadableStreamDefaultController/[[closeRequested]]=] is true and
@@ -1721,12 +1729,13 @@ has the following [=struct/items=]:
 
 : <dfn for="pull-into descriptor">buffer</dfn>
 :: An {{ArrayBuffer}}
+: <dfn for="pull-into descriptor">buffer byte length</dfn>
+:: A positive integer representing the initial byte length of [=pull-into descriptor/buffer=]
 : <dfn for="pull-into descriptor">byte offset</dfn>
 :: A nonnegative integer byte offset into the [=pull-into descriptor/buffer=] where the
    [=underlying byte source=] will start writing
 : <dfn for="pull-into descriptor">byte length</dfn>
-:: A nonnegative integer number of bytes which can be written into the [=pull-into
-   descriptor/buffer=]
+:: A positive integer number of bytes which can be written into the [=pull-into descriptor/buffer=]
 : <dfn for="pull-into descriptor">bytes filled</dfn>
 :: A nonnegative integer number of bytes that have been written into the [=pull-into
    descriptor/buffer=] so far
@@ -1803,7 +1812,7 @@ has the following [=struct/items=]:
 
  1. If [=this=].[=ReadableByteStreamController/[[closeRequested]]=] is true, throw a {{TypeError}}
     exception.
- 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is not
+ 1. If [=this=].[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=] is not
     "`readable`", throw a {{TypeError}} exception.
  1. Perform ? [$ReadableByteStreamControllerClose$]([=this=]).
 </div>
@@ -1817,9 +1826,9 @@ for="ReadableByteStreamController">enqueue(|chunk|)</dfn> method steps are:
     exception.
  1. If [=this=].[=ReadableByteStreamController/[[closeRequested]]=] is true, throw a {{TypeError}}
     exception.
- 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is not
+ 1. If [=this=].[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=] is not
     "`readable`", throw a {{TypeError}} exception.
- 1. Return ! [$ReadableByteStreamControllerEnqueue$]([=this=], |chunk|).
+ 1. Return ? [$ReadableByteStreamControllerEnqueue$]([=this=], |chunk|).
 </div>
 
 <div algorithm>
@@ -1879,8 +1888,9 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
    1. Perform |readRequest|'s [=read request/error steps=], given |buffer|.\[[Value]].
    1. Return.
   1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
-     |buffer|.\[[Value]], [=pull-into descriptor/byte offset=] 0, [=pull-into descriptor/byte
-     length=] |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into
+     |buffer|.\[[Value]], [=pull-into descriptor/buffer byte length=] |autoAllocateChunkSize|,
+     [=pull-into descriptor/byte offset=] 0, [=pull-into descriptor/byte length=]
+     |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into
      descriptor/element size=] 1, [=pull-into descriptor/view constructor=] {{%Uint8Array%}}, and
      [=pull-into descriptor/reader type=] "`default`".
   1. [=list/Append=] |pullIntoDescriptor| to
@@ -1950,6 +1960,13 @@ following table:
   {{ReadableStreamBYOBRequest/view}}, the [=underlying byte source=] is providing a new
   {{ArrayBufferView}}, which will be given to the [=consumer=] of the [=readable byte stream=].
 
+  <p>The new |view| has to be a view onto the same backing memory region as
+  {{ReadableStreamBYOBRequest/view}}, i.e. its buffer has to equal (or be a
+  <a href="#transfer-array-buffer">transferred</a> version of) {{ReadableStreamBYOBRequest/view}}'s
+  buffer. Its <code>byteOffset</code> has to equal {{ReadableStreamBYOBRequest/view}}'s
+  <code>byteOffset</code>, and its <code>byteLength</code> (representing the number of bytes written)
+  has to be less than or equal to that of {{ReadableStreamBYOBRequest/view}}.
+
   <p>After this method is called, <var ignore>view</var> will be <a
   href="#transfer-array-buffer">transferred</a> and no longer modifiable.
 </dl>
@@ -1967,8 +1984,8 @@ following table:
 
  1. If [=this=].[=ReadableStreamBYOBRequest/[[controller]]=] is undefined, throw a {{TypeError}}
     exception.
- 1. If [$IsDetachedBuffer$]([=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ArrayBuffer]]) is
-    true, throw a {{TypeError}} exception.
+ 1. If ! [$IsDetachedBuffer$]([=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ArrayBuffer]])
+    is true, throw a {{TypeError}} exception.
  1. Assert: [=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ByteLength]] &gt; 0.
  1. Assert: [=this=].[=ReadableStreamBYOBRequest/[[view]]=].\[[ViewedArrayBuffer]].\[[ByteLength]]
     &gt; 0.
@@ -1981,11 +1998,10 @@ following table:
  The <dfn id="rs-byob-request-respond-with-new-view" method
  for="ReadableStreamBYOBRequest">respondWithNewView(|view|)</dfn> method steps are:
 
- 1. If |view|.\[[ByteLength]] is 0, throw a {{TypeError}} exception.
- 1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, throw a {{TypeError}}
-    exception.
  1. If [=this=].[=ReadableStreamBYOBRequest/[[controller]]=] is undefined, throw a {{TypeError}}
     exception.
+ 1. If ! [$IsDetachedBuffer$](|view|.\[[ViewedArrayBuffer]]) is true,
+    throw a {{TypeError}} exception.
  1. Return ?
     [$ReadableByteStreamControllerRespondWithNewView$]([=this=].[=ReadableStreamBYOBRequest/[[controller]]=],
     |view|).
@@ -2882,9 +2898,10 @@ The following abstract operations support the implementation of the
  1. Let |elementSize| be |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. Assert: |bytesFilled| ≤ |pullIntoDescriptor|'s [=pull-into descriptor/byte length=].
  1. Assert: |bytesFilled| mod |elementSize| is 0.
+ 1. Let |buffer| be ! [$TransferArrayBuffer$](|pullIntoDescriptor|'s [=pull-into descriptor/buffer=]).
  1. Return ! [$Construct$](|pullIntoDescriptor|'s [=pull-into descriptor/view constructor=], «
-    |pullIntoDescriptor|'s [=pull-into descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into
-    descriptor/byte offset=], |bytesFilled| ÷ |elementSize| »).
+    |buffer|, |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=],
+    |bytesFilled| ÷ |elementSize| »).
 </div>
 
 <div algorithm>
@@ -2898,7 +2915,17 @@ The following abstract operations support the implementation of the
  1. Let |buffer| be |chunk|.\[[ViewedArrayBuffer]].
  1. Let |byteOffset| be |chunk|.\[[ByteOffset]].
  1. Let |byteLength| be |chunk|.\[[ByteLength]].
- 1. Let |transferredBuffer| be ! [$TransferArrayBuffer$](|buffer|).
+ 1. If ! [$IsDetachedBuffer$](|buffer|) is true, throw a {{TypeError}} exception.
+ 1. Let |transferredBuffer| be ? [$TransferArrayBuffer$](|buffer|).
+ 1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not
+    [=list/is empty|empty=],
+  1. Let |firstPendingPullInto| be
+     |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+  1. If ! [$IsDetachedBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=])
+     is true, throw a {{TypeError}} exception.
+  1. Set |firstPendingPullInto|'s [=pull-into descriptor/buffer=] to !
+     [$TransferArrayBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=]).
+ 1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
  1. If ! [$ReadableStreamHasDefaultReader$](|stream|) is true
   1. If ! [$ReadableStreamGetNumReadRequests$](|stream|) is 0,
    1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
@@ -2953,7 +2980,7 @@ The following abstract operations support the implementation of the
  1. Assert: either |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=]
     [=list/is empty=], or |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0]
     is |pullIntoDescriptor|.
- 1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
+ 1. Assert: |controller|.[=ReadableByteStreamController/[[byobRequest]]=] is null.
  1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to [=pull-into
     descriptor/bytes filled=] + |size|.
 </div>
@@ -3085,11 +3112,16 @@ The following abstract operations support the implementation of the
      |view|.\[[TypedArrayName]].
  1. Let |byteOffset| be |view|.\[[ByteOffset]].
  1. Let |byteLength| be |view|.\[[ByteLength]].
- 1. Let |buffer| be ! [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
+ 1. Let |bufferResult| be [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
+ 1. If |bufferResult| is an abrupt completion,
+  1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |bufferResult|.\[[Value]].
+  1. Return.
+ 1. Let |buffer| be |bufferResult|.\[[Value]].
  1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
-    |buffer|, [=pull-into descriptor/byte offset=] |byteOffset|, [=pull-into descriptor/byte
-    length=] |byteLength|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/element
-    size=] |elementSize|, [=pull-into descriptor/view constructor=] |ctor|, and [=pull-into
+    |buffer|, [=pull-into descriptor/buffer byte length=] |buffer|.\[[ArrayBufferByteLength]],
+    [=pull-into descriptor/byte offset=] |byteOffset|, [=pull-into descriptor/byte length=]
+    |byteLength|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/element size=]
+    |elementSize|, [=pull-into descriptor/view constructor=] |ctor|, and [=pull-into
     descriptor/reader type=] "`byob`".
  1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty,
   1. [=list/Append=] |pullIntoDescriptor| to
@@ -3126,6 +3158,18 @@ The following abstract operations support the implementation of the
  |bytesWritten|)</dfn> performs the following steps:
 
  1. Assert: |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty.
+ 1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+ 1. Let |state| be
+    |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
+ 1. If |state| is "`closed`",
+  1. If |bytesWritten| is not 0, throw a {{TypeError}} exception.
+ 1. Otherwise,
+  1. Assert: |state| is "`readable`".
+  1. If |bytesWritten| is 0, throw a {{TypeError}} exception.
+  1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] + |bytesWritten| >
+     |firstDescriptor|'s [=pull-into descriptor/byte length=], throw a {{RangeError}} exception.
+ 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to !
+    [$TransferArrayBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]).
  1. Perform ? [$ReadableByteStreamControllerRespondInternal$](|controller|, |bytesWritten|).
 </div>
 
@@ -3134,8 +3178,6 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-in-closed-state">ReadableByteStreamControllerRespondInClosedState(|controller|,
  |firstDescriptor|)</dfn> performs the following steps:
 
- 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to !
-    [$TransferArrayBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]).
  1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. If ! [$ReadableStreamHasBYOBReader$](|stream|) is true,
@@ -3151,8 +3193,8 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-in-readable-state">ReadableByteStreamControllerRespondInReadableState(|controller|,
  |bytesWritten|, |pullIntoDescriptor|)</dfn> performs the following steps:
 
- 1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] + |bytesWritten| >
-    |pullIntoDescriptor|'s [=pull-into descriptor/byte length=], throw a {{RangeError}} exception.
+ 1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] + |bytesWritten| ≤
+    |pullIntoDescriptor|'s [=pull-into descriptor/byte length=].
  1. Perform ! [$ReadableByteStreamControllerFillHeadPullIntoDescriptor$](|controller|,
     |bytesWritten|, |pullIntoDescriptor|).
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
@@ -3167,8 +3209,6 @@ The following abstract operations support the implementation of the
       descriptor/buffer=], |end| − |remainderSize|, |remainderSize|, {{%ArrayBuffer%}}).
    1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|, |remainder|, 0,
       |remainder|.\[[ByteLength]]).
- 1. Set |pullIntoDescriptor|'s [=pull-into descriptor/buffer=] to !
-    [$TransferArrayBuffer$](|pullIntoDescriptor|'s [=pull-into descriptor/buffer=]).
  1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to |pullIntoDescriptor|'s
     [=pull-into descriptor/bytes filled=] − |remainderSize|.
  1. Perform !
@@ -3183,14 +3223,17 @@ The following abstract operations support the implementation of the
  |bytesWritten|)</dfn> performs the following steps:
 
  1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+ 1. Assert: ! [$CanTransferArrayBuffer$](|firstDescriptor|'s [=pull-into descriptor/buffer=]) is true.
+ 1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
  1. Let |state| be
     |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
  1. If |state| is "`closed`",
-  1. If |bytesWritten| is not 0, throw a {{TypeError}} exception.
+  1. Assert: |bytesWritten| is 0.
   1. Perform ! [$ReadableByteStreamControllerRespondInClosedState$](|controller|,
      |firstDescriptor|).
  1. Otherwise,
   1. Assert: |state| is "`readable`".
+  1. Assert: |bytesWritten| > 0.
   1. Perform ? [$ReadableByteStreamControllerRespondInReadableState$](|controller|, |bytesWritten|,
      |firstDescriptor|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$](|controller|).
@@ -3203,12 +3246,23 @@ The following abstract operations support the implementation of the
 
  1. Assert: |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is
     empty|empty=].
+ 1. Assert: ! [$IsDetachedBuffer$](|view|.\[[ViewedArrayBuffer]]) is false.
  1. Let |firstDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+ 1. Let |state| be
+    |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
+ 1. If |state| is "`closed`",
+  1. If |view|.\[[ByteLength]] is not 0, throw a {{TypeError}} exception.
+ 1. Otherwise,
+  1. Assert: |state| is "`readable`".
+  1. If |view|.\[[ByteLength]] is 0, throw a {{TypeError}} exception.
  1. If |firstDescriptor|'s [=pull-into descriptor/byte offset=] + |firstDescriptor|' [=pull-into
     descriptor/bytes filled=] is not |view|.\[[ByteOffset]], throw a {{RangeError}} exception.
- 1. If |firstDescriptor|'s [=pull-into descriptor/byte length=] is not |view|.\[[ByteLength]], throw
-    a {{RangeError}} exception.
- 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to |view|.\[[ViewedArrayBuffer]].
+ 1. If |firstDescriptor|'s [=pull-into descriptor/buffer byte length=] is not
+    |view|.\[[ViewedArrayBuffer]].\[[ByteLength]], throw a {{RangeError}} exception.
+ 1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] + |view|.\[[ByteLength]] >
+    |firstDescriptor|'s [=pull-into descriptor/byte length=], throw a {{RangeError}} exception.
+ 1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to ?
+    [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
  1. Perform ? [$ReadableByteStreamControllerRespondInternal$](|controller|, |view|.\[[ByteLength]]).
 </div>
 
@@ -3217,10 +3271,10 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-shift-pending-pull-into">ReadableByteStreamControllerShiftPendingPullInto(|controller|)</dfn>
  performs the following steps:
 
+ 1. Assert: |controller|.[=ReadableByteStreamController/[[byobRequest]]=] is null.
  1. Let |descriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
  1. [=list/Remove=] |descriptor| from
     |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=].
- 1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
  1. Return |descriptor|.
 </div>
 
@@ -6069,6 +6123,17 @@ abstract operations are used to implement these "cross-realm transforms".
 The following abstract operations are a grab-bag of utilities.
 
 <div algorithm>
+ <dfn abstract-op lt="CanTransferArrayBuffer"
+ id="can-transfer-array-buffer">CanTransferArrayBuffer(|O|)</dfn> performs the following steps:
+
+ 1. Assert: [$Type$](|O|) is Object.
+ 1. Assert: |O| has an \[[ArrayBufferData]] internal slot.
+ 1. If ! [$IsDetachedBuffer$](|O|) is true, return false.
+ 1. If [$SameValue$](|O|.\[[ArrayBufferDetachKey]], undefined) is false, return false.
+ 1. Return true.
+</div>
+
+<div algorithm>
  <dfn abstract-op lt="IsNonNegativeNumber"
  id="is-non-negative-number">IsNonNegativeNumber(|v|)</dfn> performs the following steps:
 
@@ -6082,12 +6147,13 @@ The following abstract operations are a grab-bag of utilities.
  <dfn abstract-op lt="TransferArrayBuffer"
  id="transfer-array-buffer">TransferArrayBuffer(|O|)</dfn> performs the following steps:
 
- 1. Assert: [$Type$](|O|) is Object.
- 1. Assert: |O| has an \[[ArrayBufferData]] internal slot.
  1. Assert: ! [$IsDetachedBuffer$](|O|) is false.
  1. Let |arrayBufferData| be |O|.\[[ArrayBufferData]].
  1. Let |arrayBufferByteLength| be |O|.\[[ArrayBufferByteLength]].
- 1. Perform ! [$DetachArrayBuffer$](|O|).
+ 1. Perform ? [$DetachArrayBuffer$](|O|).
+    <p class="note">This will throw an exception if |O| has an \[[ArrayBufferDetachKey]]
+    that is not undefined, such as a {{Memory|WebAssembly.Memory}}'s {{Memory/buffer}}.
+    [[WASM-JS-API-1]]</p>
  1. Return a new {{ArrayBuffer}} object, created in [=the current Realm=], whose
     \[[ArrayBufferData]] internal slot value is |arrayBufferData| and whose
     \[[ArrayBufferByteLength]] internal slot value is |arrayBufferByteLength|.
