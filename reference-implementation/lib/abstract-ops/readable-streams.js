@@ -576,7 +576,6 @@ function ReadableByteStreamTee(stream) {
         });
       },
       closeSteps: chunk => {
-        assert(chunk.byteLength === 0);
         reading = false;
 
         if (canceled1 === false) {
@@ -586,15 +585,18 @@ function ReadableByteStreamTee(stream) {
           ReadableByteStreamControllerClose(branch2._controller);
         }
 
-        if (forBranch2 === true) {
-          ReadableByteStreamControllerRespondWithNewView(branch2._controller, chunk);
-          if (branch1._controller._pendingPullIntos.length > 0) {
-            ReadableByteStreamControllerRespond(branch1._controller, 0);
-          }
-        } else {
-          ReadableByteStreamControllerRespondWithNewView(branch1._controller, chunk);
-          if (branch2._controller._pendingPullIntos.length > 0) {
-            ReadableByteStreamControllerRespond(branch2._controller, 0);
+        if (chunk !== undefined) {
+          assert(chunk.byteLength === 0);
+          if (forBranch2 === true) {
+            ReadableByteStreamControllerRespondWithNewView(branch2._controller, chunk);
+            if (branch1._controller._pendingPullIntos.length > 0) {
+              ReadableByteStreamControllerRespond(branch1._controller, 0);
+            }
+          } else {
+            ReadableByteStreamControllerRespondWithNewView(branch1._controller, chunk);
+            if (branch2._controller._pendingPullIntos.length > 0) {
+              ReadableByteStreamControllerRespond(branch2._controller, 0);
+            }
           }
         }
 

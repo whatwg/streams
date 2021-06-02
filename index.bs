@@ -2426,24 +2426,25 @@ create them does not matter.
 
    : [=read-into request/close steps=], given |chunk|
    ::
-    1. Assert: |chunk|.\[[ByteLength]] is 0.
     1. Set |reading| to false.
     1. If |canceled1| is false, perform !
        [$ReadableByteStreamControllerClose$](|branch1|.[=ReadableStream/[[controller]]=]).
     1. If |canceled2| is false, perform !
        [$ReadableByteStreamControllerClose$](|branch2|.[=ReadableStream/[[controller]]=]).
-    1. If |forBranch2| is true,
-     1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch2|.[=ReadableStream/[[controller]]=],
-        |chunk|).
-     1. If |branch1|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
-        is not [=list/is empty|empty=], perform !
-        [$ReadableByteStreamControllerRespond$](|branch1|.[=ReadableStream/[[controller]]=], 0).
-    1. Otherwise,
-     1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch1|.[=ReadableStream/[[controller]]=],
-        |chunk|).
-     1. If |branch2|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
-        is not [=list/is empty|empty=], perform !
-        [$ReadableByteStreamControllerRespond$](|branch2|.[=ReadableStream/[[controller]]=], 0).
+    1. If |chunk| is not undefined,
+     1. Assert: |chunk|.\[[ByteLength]] is 0.
+     1. If |forBranch2| is true,
+      1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch2|.[=ReadableStream/[[controller]]=],
+         |chunk|).
+      1. If |branch1|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+         is not [=list/is empty|empty=], perform !
+         [$ReadableByteStreamControllerRespond$](|branch1|.[=ReadableStream/[[controller]]=], 0).
+     1. Otherwise,
+      1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch1|.[=ReadableStream/[[controller]]=],
+         |chunk|).
+      1. If |branch2|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+         is not [=list/is empty|empty=], perform !
+         [$ReadableByteStreamControllerRespond$](|branch2|.[=ReadableStream/[[controller]]=], 0).
     1. If |canceled1| is false or |canceled2| is false, [=resolve=] |cancelPromise| with undefined.
 
    : [=read-into request/error steps=]
