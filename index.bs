@@ -2475,10 +2475,6 @@ create them does not matter.
  1. Let |cancel1Algorithm| be the following steps, taking a |reason| argument:
   1. Set |canceled1| to true.
   1. Set |reason1| to |reason|.
-  1. If |reading| is false and
-     |branch1|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
-     is not [=list/is empty|empty=],
-   1. Perform ! [$ReadableByteStreamControllerRespond$](|branch1|.[=ReadableStream/[[controller]]=], 0).
   1. If |canceled2| is true,
    1. Let |compositeReason| be ! [$CreateArrayFromList$](« |reason1|, |reason2| »).
    1. Let |cancelResult| be ! [$ReadableStreamCancel$](|stream|, |compositeReason|).
@@ -2487,10 +2483,6 @@ create them does not matter.
  1. Let |cancel2Algorithm| be the following steps, taking a |reason| argument:
   1. Set |canceled2| to true.
   1. Set |reason2| to |reason|.
-  1. If |reading| is false and
-     |branch2|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
-     is not [=list/is empty|empty=],
-   1. Perform ! [$ReadableByteStreamControllerRespond$](|branch2|.[=ReadableStream/[[controller]]=], 0).
   1. If |canceled1| is true,
    1. Let |compositeReason| be ! [$CreateArrayFromList$](« |reason1|, |reason2| »).
    1. Let |cancelResult| be ! [$ReadableStreamCancel$](|stream|, |compositeReason|).

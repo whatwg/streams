@@ -648,9 +648,6 @@ function ReadableByteStreamTee(stream) {
   function cancel1Algorithm(reason) {
     canceled1 = true;
     reason1 = reason;
-    if (reading === false && branch1._controller._pendingPullIntos.length > 0) {
-      ReadableByteStreamControllerRespond(branch1._controller, 0);
-    }
     if (canceled2 === true) {
       const compositeReason = CreateArrayFromList([reason1, reason2]);
       const cancelResult = ReadableStreamCancel(stream, compositeReason);
@@ -662,9 +659,6 @@ function ReadableByteStreamTee(stream) {
   function cancel2Algorithm(reason) {
     canceled2 = true;
     reason2 = reason;
-    if (reading === false && branch2._controller._pendingPullIntos.length > 0) {
-      ReadableByteStreamControllerRespond(branch2._controller, 0);
-    }
     if (canceled1 === true) {
       const compositeReason = CreateArrayFromList([reason1, reason2]);
       const cancelResult = ReadableStreamCancel(stream, compositeReason);
