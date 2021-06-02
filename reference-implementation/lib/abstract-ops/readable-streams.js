@@ -548,6 +548,9 @@ function ReadableByteStreamTee(stream) {
       forwardReaderError(reader);
     }
 
+    const byobBranch = forBranch2 ? branch2 : branch1;
+    const otherBranch = forBranch2 ? branch1 : branch2;
+
     const readIntoRequest = {
       chunkSteps: chunk => {
         // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
@@ -556,8 +559,6 @@ function ReadableByteStreamTee(stream) {
         queueMicrotask(() => {
           reading = false;
 
-          const byobBranch = forBranch2 ? branch2 : branch1;
-          const otherBranch = forBranch2 ? branch1 : branch2;
           const byobCanceled = forBranch2 ? canceled2 : canceled1;
           const otherCanceled = forBranch2 ? canceled1 : canceled2;
 
@@ -573,8 +574,6 @@ function ReadableByteStreamTee(stream) {
       closeSteps: chunk => {
         reading = false;
 
-        const byobBranch = forBranch2 ? branch2 : branch1;
-        const otherBranch = forBranch2 ? branch1 : branch2;
         const byobCanceled = forBranch2 ? canceled2 : canceled1;
         const otherCanceled = forBranch2 ? canceled1 : canceled2;
 

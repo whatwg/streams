@@ -2397,13 +2397,13 @@ create them does not matter.
    1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
    1. Set |reader| to ! [$AcquireReadableStreamBYOBReader$](|stream|).
    1. Perform |forwardReaderError|, given |reader|.
+  1. Let |byobBranch| be |branch2| if |forBranch2| is true, and |branch1| otherwise.
+  1. Let |otherBranch| be |branch2| if |forBranch2| is false, and |branch1| otherwise.
   1. Let |readIntoRequest| be a [=read-into request=] with the following [=struct/items=]:
    : [=read-into request/chunk steps=], given |chunk|
    ::
     1. [=Queue a microtask=] to perform the following steps:
      1. Set |reading| to false.
-     1. Let |byobBranch| be |branch2| if |forBranch2| is true, and |branch1| otherwise.
-     1. Let |otherBranch| be |branch2| if |forBranch2| is false, and |branch1| otherwise.
      1. Let |byobCanceled| be |canceled2| if |forBranch2| is true, and |canceled1| otherwise.
      1. Let |otherCanceled| be |canceled2| if |forBranch2| is false, and |canceled1| otherwise.
      1. If |otherCanceled| is false,
@@ -2422,8 +2422,6 @@ create them does not matter.
    : [=read-into request/close steps=], given |chunk|
    ::
     1. Set |reading| to false.
-    1. Let |byobBranch| be |branch2| if |forBranch2| is true, and |branch1| otherwise.
-    1. Let |otherBranch| be |branch2| if |forBranch2| is false, and |branch1| otherwise.
     1. Let |byobCanceled| be |canceled2| if |forBranch2| is true, and |canceled1| otherwise.
     1. Let |otherCanceled| be |canceled2| if |forBranch2| is false, and |canceled1| otherwise.
     1. If |byobCanceled| is false, perform !
