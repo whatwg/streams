@@ -6191,16 +6191,21 @@ to grow organically as needed.
  up"><var>pullAlgorithm</var></dfn>, an optional algorithm <dfn export for="ReadableStream/set
  up"><var>cancelAlgorithm</var></dfn>, an optional number <dfn export for="ReadableStream/set
  up"><var>highWaterMark</var></dfn> (default 1), an optional algorithm <dfn export
- for="ReadableStream/set up"><var>sizeAlgorithm</var></dfn>, perform the following steps. If given,
- |sizeAlgorithm| must be an algorithm accepting [=chunk=] objects and returning a number; and if
- given, |highWaterMark| must be a non-negative, non-NaN number.
+ for="ReadableStream/set up"><var>sizeAlgorithm</var></dfn>, perform the following steps. If
+ given, |pullAlgorithm| and |cancelAlgorithm| may return a promise. If given, |sizeAlgorithm| must
+ be an algorithm accepting [=chunk=] objects and returning a number; and if given, |highWaterMark|
+ must be a non-negative, non-NaN number.
 
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |pullAlgorithmWrapper| be an algorithm that runs these steps:
-  1. If |pullAlgorithm| was given, run it.
+  1. Let |result| be the result of running |pullAlgorithm|, if |pullAlgorithm| was given, or null
+     otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
+  1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
  1. Let |cancelAlgorithmWrapper| be an algorithm that runs these steps:
-  1. If |cancelAlgorithm| was given, run it.
+  1. Let |result| be the result of running |cancelAlgorithm|, if |cancelAlgorithm| was given, or
+     null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
+  1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
  1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
  1. Perform [$InitializeReadableStream$](|stream|).
@@ -6365,16 +6370,21 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
  up"><var>highWaterMark</var></dfn> (default 1), an optional algorithm <dfn export
  for="WritableStream/set up"><var>sizeAlgorithm</var></dfn>, perform the following steps.
  |writeAlgorithm| must be an algorithm that accepts a [=chunk=] object and returns a promise. If
- given, |closeAlgorithm| and |abortAlgorithm| must return a promise. If given, |sizeAlgorithm| must
+ given, |closeAlgorithm| and |abortAlgorithm| may return a promise. If given, |sizeAlgorithm| must
  be an algorithm accepting [=chunk=] objects and returning a number; and if given, |highWaterMark|
  must be a non-negative, non-NaN number.
 
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |closeAlgorithmWrapper| be an algorithm that runs these steps:
-  1. If |closeAlgorithm| was given, return the result of running it.
+  1. Let |result| be the result of running |closeAlgorithm|, if |closeAlgorithm| was given, or
+     null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
+  1. Let |result| be the result of running |closeAlgorithm|, if |closeAlgorithm| was given, or null otherwise.
+  1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
  1. Let |abortAlgorithmWrapper| be an algorithm that runs these steps:
-  1. If |abortAlgorithm| was given, return the result of running it.
+  1. Let |result| be the result of running |abortAlgorithm|, if |abortAlgorithm| was given, or
+     null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
+  1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
  1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
  1. Perform [$InitializeWritableStream$](|stream|).
@@ -6440,18 +6450,22 @@ reason.
  To <dfn export for="TransformStream" lt="set up|setting up">set up</dfn> a
  newly-[=new|created-via-Web IDL=] {{TransformStream}} |stream| given an algorithm <dfn export
  for="TransformStream/set up"><var>transformAlgorithm</var></dfn> and an optional algorithm <dfn
- export for="TransformStream/set up"><var>flushAlgorithm</var></dfn>:
+ export for="TransformStream/set up"><var>flushAlgorithm</var></dfn>, perform the following steps.
+ |transformAlgorithm| and, if given, |flushAlgorithm|, may return a promise.
 
  1. Let |writableHighWaterMark| be 1.
  1. Let |writableSizeAlgorithm| be an algorithm that returns 1.
  1. Let |readableHighWaterMark| be 0.
  1. Let |readableSizeAlgorithm| be an algorithm that returns 1.
  1. Let |transformAlgorithmWrapper| be an algorithm that runs these steps given a value |chunk|:
-  1. Run |transformAlgorithm| given |chunk|. If this throws an exception |e|, return [=a promise
-     rejected with=] |e|.
+  1. Let |result| be the result of running |transformAlgorithm| given |chunk|. If this throws an
+     exception |e|, return [=a promise rejected with=] |e|.
+  1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
  1. Let |flushAlgorithmWrapper| be an algorithm that runs these steps:
-  1. If |flushAlgorithm| was given, run it.
+  1. Let |result| be the result of running |flushAlgorithm|, if |flushAlgorithm| was given, or
+     null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
+  1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
  1. Let |startPromise| be [=a promise resolved with=] undefined.
  1. Perform ! [$InitializeTransformStream$](|stream|, |startPromise|, |writableHighWaterMark|,
