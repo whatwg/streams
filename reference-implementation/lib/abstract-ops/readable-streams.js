@@ -588,8 +588,10 @@ function ReadableByteStreamTee(stream) {
         if (chunk !== undefined) {
           assert(chunk.byteLength === 0);
 
-          ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
-          if (otherBranch._controller._pendingPullIntos.length > 0) {
+          if (byobCanceled === false) {
+            ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
+          }
+          if (otherCanceled === false && otherBranch._controller._pendingPullIntos.length > 0) {
             ReadableByteStreamControllerRespond(otherBranch._controller, 0);
           }
         }

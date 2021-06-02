@@ -2432,9 +2432,11 @@ create them does not matter.
        [$ReadableByteStreamControllerClose$](|otherBranch|.[=ReadableStream/[[controller]]=]).
     1. If |chunk| is not undefined,
      1. Assert: |chunk|.\[[ByteLength]] is 0.
-     1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|byobBranch|.[=ReadableStream/[[controller]]=],
+     1. If |byobCanceled| is false, perform !
+        [$ReadableByteStreamControllerRespondWithNewView$](|byobBranch|.[=ReadableStream/[[controller]]=],
         |chunk|).
-     1. If |otherBranch|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+     1. If |otherCanceled| is false and
+        |otherBranch|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
         is not [=list/is empty|empty=], perform !
         [$ReadableByteStreamControllerRespond$](|otherBranch|.[=ReadableStream/[[controller]]=], 0).
     1. If |byobCanceled| is false or |otherCanceled| is false, [=resolve=] |cancelPromise| with undefined.
