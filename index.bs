@@ -2407,20 +2407,16 @@ create them does not matter.
        1. Let |clonedChunk| be ? [$CloneAsUint8Array$](|chunk|).
        1. Perform ! [$ReadableByteStreamControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
           |clonedChunk|).
-      1. If |canceled2| is true,
-       1. Set |chunk| to ! [$Construct$]({{%Uint8Array%}}, « |chunk|.\[[ViewedArrayBuffer]],
-          chunk.\[[ByteOffset]], 0 »).
-      1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch2|.[=ReadableStream/[[controller]]=],
+      1. If |canceled2| is false,
+       1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch2|.[=ReadableStream/[[controller]]=],
          |chunk|).
      1. Otherwise,
       1. If |canceled2| is false,
        1. Let |clonedChunk| be ? [$CloneAsUint8Array$](|chunk|).
        1. Perform ! [$ReadableByteStreamControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
           |clonedChunk|).
-      1. If |canceled1| is true,
-       1. Set |chunk| to ! [$Construct$]({{%Uint8Array%}}, « |chunk|.\[[ViewedArrayBuffer]],
-          chunk.\[[ByteOffset]], 0 »).
-      1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch1|.[=ReadableStream/[[controller]]=],
+      1. If |canceled1| is false,
+       1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|branch1|.[=ReadableStream/[[controller]]=],
          |chunk|).
 
     <p class="note">The microtask delay here is necessary because it takes at least a microtask to
