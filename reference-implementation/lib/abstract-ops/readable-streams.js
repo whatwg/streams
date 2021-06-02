@@ -556,51 +556,45 @@ function ReadableByteStreamTee(stream) {
         queueMicrotask(() => {
           reading = false;
 
-          if (forBranch2 === true) {
-            if (canceled1 === false) {
-              const clonedChunk = CloneAsUint8Array(chunk);
-              ReadableByteStreamControllerEnqueue(branch1._controller, clonedChunk);
-            }
-            if (canceled2 === false) {
-              ReadableByteStreamControllerRespondWithNewView(branch2._controller, chunk);
-            }
-          } else {
-            if (canceled2 === false) {
-              const clonedChunk = CloneAsUint8Array(chunk);
-              ReadableByteStreamControllerEnqueue(branch2._controller, clonedChunk);
-            }
-            if (canceled1 === false) {
-              ReadableByteStreamControllerRespondWithNewView(branch1._controller, chunk);
-            }
+          const byobBranch = forBranch2 ? branch2 : branch1;
+          const otherBranch = forBranch2 ? branch1 : branch2;
+          const byobCanceled = forBranch2 ? canceled2 : canceled1;
+          const otherCanceled = forBranch2 ? canceled1 : canceled2;
+
+          if (otherCanceled === false) {
+            const clonedChunk = CloneAsUint8Array(chunk);
+            ReadableByteStreamControllerEnqueue(otherBranch._controller, clonedChunk);
+          }
+          if (byobCanceled === false) {
+            ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
           }
         });
       },
       closeSteps: chunk => {
         reading = false;
 
-        if (canceled1 === false) {
-          ReadableByteStreamControllerClose(branch1._controller);
+        const byobBranch = forBranch2 ? branch2 : branch1;
+        const otherBranch = forBranch2 ? branch1 : branch2;
+        const byobCanceled = forBranch2 ? canceled2 : canceled1;
+        const otherCanceled = forBranch2 ? canceled1 : canceled2;
+
+        if (byobCanceled === false) {
+          ReadableByteStreamControllerClose(byobBranch._controller);
         }
-        if (canceled2 === false) {
-          ReadableByteStreamControllerClose(branch2._controller);
+        if (otherCanceled === false) {
+          ReadableByteStreamControllerClose(otherBranch._controller);
         }
 
         if (chunk !== undefined) {
           assert(chunk.byteLength === 0);
-          if (forBranch2 === true) {
-            ReadableByteStreamControllerRespondWithNewView(branch2._controller, chunk);
-            if (branch1._controller._pendingPullIntos.length > 0) {
-              ReadableByteStreamControllerRespond(branch1._controller, 0);
-            }
-          } else {
-            ReadableByteStreamControllerRespondWithNewView(branch1._controller, chunk);
-            if (branch2._controller._pendingPullIntos.length > 0) {
-              ReadableByteStreamControllerRespond(branch2._controller, 0);
-            }
+
+          ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
+          if (otherBranch._controller._pendingPullIntos.length > 0) {
+            ReadableByteStreamControllerRespond(otherBranch._controller, 0);
           }
         }
 
-        if (canceled1 === false || canceled2 === false) {
+        if (byobCanceled === false || otherCanceled === false) {
           resolvePromise(cancelPromise, undefined);
         }
       },
