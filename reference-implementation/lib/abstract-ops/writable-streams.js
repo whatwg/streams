@@ -303,7 +303,7 @@ function WritableStreamFinishInFlightCloseWithError(stream, error) {
   assert(stream._state === 'writable' || stream._state === 'erroring');
 
   // Never execute sink abort() after sink close().
-  if (stream._pendingAbortRequest !== undefined && !(error instanceof AbortError)) {
+  if (stream._pendingAbortRequest !== undefined && !(error instanceof DOMException && error.name == "AbortError")) {
     rejectPromise(stream._pendingAbortRequest.promise, error);
     stream._pendingAbortRequest = undefined;
   }
