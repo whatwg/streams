@@ -5,6 +5,10 @@ const { AbortSteps, ErrorSteps } = require('./abstract-ops/internal-methods.js')
 const { ResetQueue } = require('./abstract-ops/queue-with-sizes.js');
 
 exports.implementation = class WritableStreamDefaultControllerImpl {
+  get signal() {
+    return this._abortController.signal;
+  }
+
   error(e) {
     const state = this._stream._state;
 

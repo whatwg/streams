@@ -4041,6 +4041,7 @@ The Web IDL definition for the {{WritableStreamDefaultController}} class is give
 <xmp class="idl">
 [Exposed=(Window,Worker,Worklet)]
 interface WritableStreamDefaultController {
+  readonly attribute AbortSignal signal;
   undefined error(optional any e);
 };
 </xmp>
@@ -4072,6 +4073,10 @@ the following table:
    <td class="non-normative">The total size of all the chunks stored in
    [=WritableStreamDefaultController/[[queue]]=] (see [[#queue-with-sizes]])
   <tr>
+   <td><dfn>\[[signal]]</dfn>
+   <td class="non-normative">An {{AbortSignal}} that can be used to abort the pending write or
+   close operation when the stream is [=abort a writable stream|aborted=].
+  <tr>
    <td><dfn>\[[started]]</dfn>
    <td class="non-normative">A boolean flag indicating whether the [=underlying sink=] has finished
    starting
@@ -4097,9 +4102,13 @@ The <dfn>close sentinel</dfn> is a unique value enqueued into
 [=WritableStreamDefaultController/[[queue]]=], in lieu of a [=chunk=], to signal that the stream is
 closed. It is only used internally, and is never exposed to web developers.
 
-<h4 id="ws-default-controller-prototype">Methods</h4>
+<h4 id="ws-default-controller-prototype">Methods and properties</h4>
 
 <dl class="domintro non-normative">
+ <dt><code><var ignore>controller</var>.signal</code>
+ <dd>
+  <p>An AbortSignal that can be used to abort the pending write or close operation when the stream is
+  [=abort a writable stream|aborted=].
  <dt><code><var ignore>controller</var>.{{WritableStreamDefaultController/error()|error}}(<var ignore>e</var>)</code>
  <dd>
   <p>Closes the controlled writable stream, making all future interactions with it fail with the
@@ -4110,6 +4119,13 @@ closed. It is only used internally, and is never exposed to web developers.
   in response to an event outside the normal lifecycle of interactions with the [=underlying
   sink=].
 </dl>
+
+<div algorithm>
+ The <dfn id="ws-default-controller-signal" attribute
+ for="WritableStreamDefaultController">signal</dfn> getter steps are:
+
+ 1. Return [=this=].[=WritableStreamDefaultController/[[signal]]=].
+</div>
 
 <div algorithm>
  The <dfn id="ws-default-controller-error" method
@@ -4252,6 +4268,10 @@ The following abstract operations operate on {{WritableStream}} instances at a h
  id="writable-stream-abort">WritableStreamAbort(|stream|, |reason|)</dfn> performs the following
  steps:
 
+ 1. If |stream|.[=WritableStream/[[state]]=] is "`closed`" or "`errored`", return
+    [=a promise resolved with=] undefined.
+ 1. [=Signal abort=] on
+    |stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[signal]]=].
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. If |state| is "`closed`" or "`errored`", return [=a promise resolved with=] undefined.
  1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is not undefined, return
@@ -4421,7 +4441,8 @@ the {{WritableStream}}'s public API.
  1. [=Reject=] |stream|.[=WritableStream/[[inFlightCloseRequest]]=] with |error|.
  1. Set |stream|.[=WritableStream/[[inFlightCloseRequest]]=] to undefined.
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`" or "`erroring`".
- 1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is not undefined,
+ 1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is not undefined and |error| is not an
+    {{AbortError}},
   1. [=Reject=] |stream|.[=WritableStream/[[pendingAbortRequest]]=]'s [=pending abort
      request/promise=] with |error|.
   1. Set |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
@@ -4678,6 +4699,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.[=WritableStreamDefaultController/[[stream]]=] to |stream|.
  1. Set |stream|.[=WritableStream/[[controller]]=] to |controller|.
  1. Perform ! [$ResetQueue$](|controller|).
+ 1. Set |controller|.[=WritableStreamDefaultController/[[signal]]=] to a new {{AbortSignal}}.
  1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to false.
  1. Set |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=] to
     |sizeAlgorithm|.
