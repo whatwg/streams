@@ -2223,9 +2223,8 @@ create them does not matter.
  1. Assert: |stream| [=implements=] {{ReadableStream}}.
  1. Assert: |cloneForBranch2| is a boolean.
  1. If |stream|.[=ReadableStream/[[controller]]=] [=implements=] {{ReadableByteStreamController}},
-  1. Return ? [$ReadableByteStreamTee$](|stream|).
- 1. Otherwise,
-  1. Return ? [$ReadableStreamDefaultTee$](|stream|, |cloneForBranch2|).
+    return ? [$ReadableByteStreamTee$](|stream|).
+ 1. Return ? [$ReadableStreamDefaultTee$](|stream|, |cloneForBranch2|).
 </div>
 
 <div algorithm>
