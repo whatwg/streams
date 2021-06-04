@@ -12,8 +12,10 @@
   "author": "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
   "license": "(CC0-1.0 OR MIT)",
   "devDependencies": {
+    "@babel/core": "^7.14.3",
+    "babel-plugin-istanbul": "^6.0.0",
+    "babelify": "^10.0.0",
     "browserify": "^16.5.1",
-    "browserify-istanbul": "^3.0.1",
     "debug": "^4.1.1",
     "eslint": "^6.8.0",
     "minimatch": "^3.0.4",

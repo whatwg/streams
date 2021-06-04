@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const { promisify } = require('util');
 const browserify = require('browserify');
-const istanbul = require('browserify-istanbul');
+const babelify = require('babelify');
 const wptRunner = require('wpt-runner');
 const minimatch = require('minimatch');
 const readFileAsync = promisify(fs.readFile);
@@ -93,7 +93,7 @@ async function main() {
 
 async function bundle(entryPath) {
   const b = browserify([entryPath]);
-  b.transform(istanbul);
+  b.transform(babelify, { plugins: ['istanbul'] });
   const buffer = await promisify(b.bundle.bind(b))();
   return buffer.toString();
 }
