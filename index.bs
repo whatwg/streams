@@ -2246,19 +2246,19 @@ create them does not matter.
   1. If |reading| is true, return [=a promise resolved with=] undefined.
   1. Set |reading| to true.
   1. Let |readRequest| be a [=read request=] with the following [=struct/items=]:
-   : [=read request/chunk steps=], given |value|
+   : [=read request/chunk steps=], given |chunk|
    ::
     1. [=Queue a microtask=] to perform the following steps:
      1. Set |reading| to false.
-     1. Let |value1| and |value2| be |value|.
-     1. If |canceled2| is false and |cloneForBranch2| is true, set |value2| to ?
-        [$StructuredDeserialize$](? [$StructuredSerialize$](|value2|), [=the current Realm=]).
+     1. Let |chunk1| and |chunk2| be |chunk|.
+     1. If |canceled2| is false and |cloneForBranch2| is true, set |chunk2| to ?
+        [$StructuredDeserialize$](? [$StructuredSerialize$](|chunk2|), [=the current Realm=]).
      1. If |canceled1| is false, perform ?
         [$ReadableStreamDefaultControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
-        |value1|).
+        |chunk1|).
      1. If |canceled2| is false, perform ?
         [$ReadableStreamDefaultControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
-        |value2|).
+        |chunk2|).
 
     <p class="note">The microtask delay here is necessary because it takes at least a microtask to
     detect errors, when we use |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] below.
