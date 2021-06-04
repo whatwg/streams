@@ -6378,7 +6378,6 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
  1. Let |closeAlgorithmWrapper| be an algorithm that runs these steps:
   1. Let |result| be the result of running |closeAlgorithm|, if |closeAlgorithm| was given, or
      null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
-  1. Let |result| be the result of running |closeAlgorithm|, if |closeAlgorithm| was given, or null otherwise.
   1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
  1. Let |abortAlgorithmWrapper| be an algorithm that runs these steps:
