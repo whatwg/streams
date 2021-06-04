@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const { promisify } = require('util');
 const browserify = require('browserify');
+const istanbul = require('browserify-istanbul');
 const wptRunner = require('wpt-runner');
 const minimatch = require('minimatch');
 const readFileAsync = promisify(fs.readFile);
@@ -21,6 +22,11 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('rejectionHandled', promise => {
   rejections.delete(promise);
 });
+
+let coverage = global.__coverage__;
+if (!coverage) {
+  coverage = global.__coverage__ = {};
+}
 
 main().catch(e => {
   console.error(e.stack);
@@ -45,6 +51,7 @@ async function main() {
   const failures = await wptRunner(testsPath, {
     rootURL: 'streams/',
     setup(window) {
+      window.__coverage__ = coverage;
       window.queueMicrotask = queueMicrotask;
       window.fetch = async function (url) {
         const filePath = path.join(wptPath, url);
@@ -86,6 +93,7 @@ async function main() {
 
 async function bundle(entryPath) {
   const b = browserify([entryPath]);
+  b.transform(istanbul);
   const buffer = await promisify(b.bundle.bind(b))();
   return buffer.toString();
 }
