@@ -2043,10 +2043,9 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="CreateReadableByteStream"
- id="create-readable-byte-stream">CreateReadableByteStream(|startAlgorithm|, |pullAlgorithm|,
- |cancelAlgorithm|[, |highWaterMark|, [, |autoAllocateChunkSize|]])</dfn> performs the following
- steps:
+ <dfn abstract-op lt="CreateReadableByteStream">CreateReadableByteStream(|startAlgorithm|,
+ |pullAlgorithm|, |cancelAlgorithm|[, |highWaterMark|, [, |autoAllocateChunkSize|]])</dfn>
+ performs the following steps:
 
  1. If |highWaterMark| was not passed, set it to 0.
  1. If |autoAllocateChunkSize| was not passed, set it to undefined.
@@ -2237,9 +2236,8 @@ create them does not matter.
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableStreamDefaultTee"
- id="readable-stream-default-tee">ReadableStreamDefaultTee(|stream|, |cloneForBranch2|)</dfn>
- performs the following steps:
+ <dfn abstract-op lt="ReadableStreamDefaultTee">ReadableStreamDefaultTee(|stream|,
+ |cloneForBranch2|)</dfn> performs the following steps:
 
  1. Assert: |stream| [=implements=] {{ReadableStream}}.
  1. Assert: |cloneForBranch2| is a boolean.
@@ -2321,8 +2319,7 @@ create them does not matter.
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableByteStreamTee"
- id="readable-byte-stream-tee">ReadableByteStreamTee(|stream|)</dfn>
+ <dfn abstract-op lt="ReadableByteStreamTee">ReadableByteStreamTee(|stream|)</dfn>
  performs the following steps:
 
  1. Assert: |stream| [=implements=] {{ReadableStream}}.
@@ -3234,8 +3231,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableByteStreamControllerGetBYOBRequest"
- id="readable-byte-stream-controller-get-byob-request">ReadableByteStreamControllerGetBYOBRequest(|controller|)</dfn>
+ <dfn abstract-op lt="ReadableByteStreamControllerGetBYOBRequest">ReadableByteStreamControllerGetBYOBRequest(|controller|)</dfn>
  performs the following steps:
 
  1. If |controller|.[=ReadableByteStreamController/[[byobRequest]]=] is null and
@@ -6413,8 +6409,7 @@ The following abstract operations are a grab-bag of utilities.
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="CloneAsUint8Array"
- id="clone-as-uint8-array">CloneAsUint8Array(|O|)</dfn> performs the following steps:
+ <dfn abstract-op lt="CloneAsUint8Array">CloneAsUint8Array(|O|)</dfn> performs the following steps:
 
  1. Assert: [$Type$](|O|) is Object.
  1. Assert: |O| has an \[[ViewedArrayBuffer]] internal slot.
