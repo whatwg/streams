@@ -465,7 +465,7 @@ function ReadableByteStreamTee(stream) {
 
   function forwardReaderError(thisReader) {
     uponRejection(thisReader._closedPromise, r => {
-      if (reader !== thisReader) {
+      if (thisReader !== reader) {
         return;
       }
       ReadableByteStreamControllerError(branch1._controller, r);

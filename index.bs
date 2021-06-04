@@ -2329,7 +2329,7 @@ create them does not matter.
  1. Let |forwardReaderError| be the following steps, taking a |thisReader| argument:
   1. [=Upon rejection=] of |thisReader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with reason
      |r|,
-   1. If |reader| is not |thisReader|, return.
+   1. If |thisReader| is not |reader|, return.
    1. Perform ! [$ReadableByteStreamControllerError$](|branch1|.[=ReadableStream/[[controller]]=],
       |r|).
    1. Perform ! [$ReadableByteStreamControllerError$](|branch2|.[=ReadableStream/[[controller]]=],
