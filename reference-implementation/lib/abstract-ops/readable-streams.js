@@ -557,9 +557,11 @@ function ReadableByteStreamTee(stream) {
 
           if (otherCanceled === false) {
             const clonedChunk = CloneAsUint8Array(chunk);
+            if (byobCanceled === false) {
+              ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
+            }
             ReadableByteStreamControllerEnqueue(otherBranch._controller, clonedChunk);
-          }
-          if (byobCanceled === false) {
+          } else if (byobCanceled === false) {
             ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
           }
         });

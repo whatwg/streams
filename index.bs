@@ -2397,10 +2397,13 @@ create them does not matter.
      1. Let |otherCanceled| be |canceled2| if |forBranch2| is false, and |canceled1| otherwise.
      1. If |otherCanceled| is false,
       1. Let |clonedChunk| be ? [$CloneAsUint8Array$](|chunk|).
+      1. If |byobCanceled| is false, perform !
+         [$ReadableByteStreamControllerRespondWithNewView$](|byobBranch|.[=ReadableStream/[[controller]]=],
+         |chunk|).
       1. Perform ! [$ReadableByteStreamControllerEnqueue$](|otherBranch|.[=ReadableStream/[[controller]]=],
          |clonedChunk|).
-     1. If |byobCanceled| is false,
-      1. Perform ! [$ReadableByteStreamControllerRespondWithNewView$](|byobBranch|.[=ReadableStream/[[controller]]=],
+     1. Otherwise, if |byobCanceled| is false, perform !
+        [$ReadableByteStreamControllerRespondWithNewView$](|byobBranch|.[=ReadableStream/[[controller]]=],
         |chunk|).
 
     <p class="note">The microtask delay here is necessary because it takes at least a microtask to
