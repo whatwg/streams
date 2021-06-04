@@ -4425,7 +4425,7 @@ the {{WritableStream}}'s public API.
   1. [=Reject=] |stream|.[=WritableStream/[[pendingAbortRequest]]=]'s [=pending abort
      request/promise=] with |error|.
   1. Set |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
- 1. Perform ! WritableStreamDealWithRejection(|stream|, |error|).
+ 1. Perform ! [$WritableStreamDealWithRejection$](|stream|, |error|).
 </div>
 
 <div algorithm>
