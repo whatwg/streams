@@ -2044,20 +2044,13 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 
 <div algorithm>
  <dfn abstract-op lt="CreateReadableByteStream">CreateReadableByteStream(|startAlgorithm|,
- |pullAlgorithm|, |cancelAlgorithm|[, |highWaterMark|, [, |autoAllocateChunkSize|]])</dfn>
- performs the following steps:
+ |pullAlgorithm|, |cancelAlgorithm|)</dfn> performs the following steps:
 
- 1. If |highWaterMark| was not passed, set it to 0.
- 1. If |autoAllocateChunkSize| was not passed, set it to undefined.
- 1. Assert: ! [$IsNonNegativeNumber$](|highWaterMark|) is true.
- 1. If |autoAllocateChunkSize| is not undefined,
-  1. Assert: ! [$IsInteger$](|autoAllocateChunkSize|) is true.
-  1. Assert: |autoAllocateChunkSize| is positive.
  1. Let |stream| be a [=new=] {{ReadableStream}}.
  1. Perform ! [$InitializeReadableStream$](|stream|).
  1. Let |controller| be a [=new=] {{ReadableByteStreamController}}.
  1. Perform ? [$SetUpReadableByteStreamController$](|stream|, |controller|, |startAlgorithm|,
-    |pullAlgorithm|, |cancelAlgorithm|, |highWaterMark|, |autoAllocateChunkSize|).
+    |pullAlgorithm|, |cancelAlgorithm|, 0, undefined).
  1. Return |stream|.
 
  <p class="note">This abstract operation will throw an exception if and only if the supplied

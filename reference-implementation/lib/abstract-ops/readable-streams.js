@@ -93,20 +93,13 @@ function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, hi
   return stream;
 }
 
-function CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark = 0,
-                                  autoAllocateChunkSize = undefined) {
-  assert(IsNonNegativeNumber(highWaterMark) === true);
-  if (autoAllocateChunkSize !== undefined) {
-    assert(Number.isInteger(autoAllocateChunkSize) === true);
-    assert(autoAllocateChunkSize > 0);
-  }
-
+function CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancelAlgorithm) {
   const stream = ReadableStream.new(globalThis);
   InitializeReadableStream(stream);
 
   const controller = ReadableByteStreamController.new(globalThis);
   SetUpReadableByteStreamController(
-    stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, autoAllocateChunkSize
+    stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, 0, undefined
   );
 
   return stream;
