@@ -5,8 +5,6 @@
 const path = require('path');
 const fs = require('fs');
 const { promisify } = require('util');
-const browserify = require('browserify');
-const babelify = require('babelify');
 const wptRunner = require('wpt-runner');
 const minimatch = require('minimatch');
 const readFileAsync = promisify(fs.readFile);
@@ -23,18 +21,13 @@ process.on('rejectionHandled', promise => {
   rejections.delete(promise);
 });
 
-let coverage = global.__coverage__;
-if (!coverage) {
-  coverage = global.__coverage__ = {};
-}
-
 main().catch(e => {
   console.error(e.stack);
   process.exitCode = 1;
 });
 
 async function main() {
-  const entryPath = path.resolve(__dirname, 'lib/index.js');
+  const bundlePath = path.resolve(__dirname, 'bundle.js');
   const wptPath = path.resolve(__dirname, 'web-platform-tests');
   const testsPath = path.resolve(wptPath, 'streams');
 
@@ -46,12 +39,12 @@ async function main() {
   ];
   const anyTestPattern = /\.any\.html$/;
 
-  const bundledJS = await bundle(entryPath);
+  let bundledJS = await readFileAsync(bundlePath, { encoding: 'utf8' });
+  bundledJS = `${bundledJS}\n//# sourceURL=file://${bundlePath}`;
 
   const failures = await wptRunner(testsPath, {
     rootURL: 'streams/',
     setup(window) {
-      window.__coverage__ = coverage;
       window.queueMicrotask = queueMicrotask;
       window.fetch = async function (url) {
         const filePath = path.join(wptPath, url);
@@ -89,11 +82,4 @@ async function main() {
       console.error('Unhandled promise rejection: ', reason.stack);
     }
   }
-}
-
-async function bundle(entryPath) {
-  const b = browserify([entryPath]);
-  b.transform(babelify, { plugins: ['istanbul'] });
-  const buffer = await promisify(b.bundle.bind(b))();
-  return buffer.toString();
 }
