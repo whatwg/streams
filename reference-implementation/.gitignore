@@ -5,3 +5,4 @@ package-lock.json
 .nyc_output/
 coverage/
 generated/
+bundle.js
