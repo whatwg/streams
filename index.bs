@@ -4105,7 +4105,7 @@ closed. It is only used internally, and is never exposed to web developers.
 <h4 id="ws-default-controller-prototype">Methods and properties</h4>
 
 <dl class="domintro non-normative">
- <dt><code><var ignore>controller</var>.signal</code>
+ <dt><code><var ignore>controller</var>.{{WritableStreamDefaultController/signal}}</code>
  <dd>
   <p>An AbortSignal that can be used to abort the pending write or close operation when the stream is
   [=abort a writable stream|aborted=].
