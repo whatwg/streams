@@ -4274,6 +4274,10 @@ The following abstract operations operate on {{WritableStream}} instances at a h
     |stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[signal]]=].
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. If |state| is "`closed`" or "`errored`", return [=a promise resolved with=] undefined.
+
+ <p class="note">We re-check the state because [=signaling abort=] runs author code and that might
+ have changed the state.
+
  1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is not undefined, return
     |stream|.[=WritableStream/[[pendingAbortRequest]]=]'s [=pending abort request/promise=].
  1. Assert: |state| is "`writable`" or "`erroring`".
@@ -4441,8 +4445,7 @@ the {{WritableStream}}'s public API.
  1. [=Reject=] |stream|.[=WritableStream/[[inFlightCloseRequest]]=] with |error|.
  1. Set |stream|.[=WritableStream/[[inFlightCloseRequest]]=] to undefined.
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`" or "`erroring`".
- 1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is not undefined and |error| is not an
-    "{{AbortError}}" {{DOMException}},
+ 1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is not undefined,
   1. [=Reject=] |stream|.[=WritableStream/[[pendingAbortRequest]]=]'s [=pending abort
      request/promise=] with |error|.
   1. Set |stream|.[=WritableStream/[[pendingAbortRequest]]=] to undefined.
