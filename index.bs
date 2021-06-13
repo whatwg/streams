@@ -2439,19 +2439,15 @@ create them does not matter.
   1. If |reading| is true, return [=a promise resolved with=] undefined.
   1. Set |reading| to true.
   1. Let |byobRequest| be ! [$ReadableByteStreamControllerGetBYOBRequest$](|branch1|.[=ReadableStream/[[controller]]=]).
-  1. If |byobRequest| is null,
-   1. Perform |pullWithDefaultReader|.
-  1. Otherwise,
-   1. Perform |pullWithBYOBReader|, given |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=] and false.
+  1. If |byobRequest| is null, perform |pullWithDefaultReader|.
+  1. Otherwise, perform |pullWithBYOBReader|, given |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=] and false.
   1. Return [=a promise resolved with=] undefined.
  1. Let |pull2Algorithm| be the following steps:
   1. If |reading| is true, return [=a promise resolved with=] undefined.
   1. Set |reading| to true.
   1. Let |byobRequest| be ! [$ReadableByteStreamControllerGetBYOBRequest$](|branch2|.[=ReadableStream/[[controller]]=]).
-  1. If |byobRequest| is null,
-   1. Perform |pullWithDefaultReader|.
-  1. Otherwise,
-   1. Perform |pullWithBYOBReader|, given |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=] and true.
+  1. If |byobRequest| is null, perform |pullWithDefaultReader|.
+  1. Otherwise, perform |pullWithBYOBReader|, given |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=] and true.
   1. Return [=a promise resolved with=] undefined.
  1. Let |cancel1Algorithm| be the following steps, taking a |reason| argument:
   1. Set |canceled1| to true.
