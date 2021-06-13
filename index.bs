@@ -2252,7 +2252,7 @@ create them does not matter.
      1. Set |reading| to false.
      1. Let |chunk1| and |chunk2| be |chunk|.
      1. If |canceled2| is false and |cloneForBranch2| is true, set |chunk2| to ?
-        [$StructuredDeserialize$](? [$StructuredSerialize$](|chunk2|), [=the current Realm=]).
+        [$StructuredClone$](|chunk2|).
      1. If |canceled1| is false, perform ?
         [$ReadableStreamDefaultControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
         |chunk1|).
@@ -6409,6 +6409,13 @@ The following abstract operations are a grab-bag of utilities.
     |O|.\[[ByteLength]], {{%ArrayBuffer%}}).
  1. Let |array| be ! [$Construct$]({{%Uint8Array%}}, « |buffer| »).
  1. Return |array|.
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="StructuredClone">StructuredClone(|v|)</dfn> performs the following steps:
+
+ 1. Let |serialized| be ? [$StructuredSerialize$](|v|).
+ 1. Return ? [$StructuredDeserialize$](|serialized|, [=the current Realm=]).
 </div>
 
 <h2 id="other-specs">Using streams in other specifications</h2>

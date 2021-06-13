@@ -377,7 +377,7 @@ function ReadableStreamDefaultTee(stream, cloneForBranch2) {
           // There is no way to access the cloning code right now in the reference implementation.
           // If we add one then we'll need an implementation for serializable objects.
           // if (canceled2 === false && cloneForBranch2 === true) {
-          //   chunk2 = StructuredDeserialize(StructuredSerialize(chunk2));
+          //   chunk2 = StructuredClone(chunk2);
           // }
 
           if (canceled1 === false) {
