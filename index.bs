@@ -764,8 +764,9 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
   resulting branches; a composite cancellation reason will then be propagated to the stream's
   [=underlying source=].
 
-  <p>Note that the [=chunks=] seen in each branch will be the same object. If the chunks are not
-  immutable, this could allow interference between the two branches.
+  <p>If this stream is a [=readable byte stream=], then each branch will receive its own copy of
+  each [=chunk=]. If not, then the chunks seen in each branch will be the same object.
+  If the chunks are not immutable, this could allow interference between the two branches.
 </dl>
 
 <div algorithm>
@@ -2214,6 +2215,9 @@ create them does not matter.
  a way that they might otherwise interfere with each other, such as by [=transferable
  objects|transferring=] their [=chunks=]. However, it does introduce a noticeable asymmetry between
  the two branches, and limits the possible [=chunks=] to serializable ones. [[!HTML]]
+
+ If |stream| is a [=readable byte stream=], then |cloneForBranch2| is ignored and chunks are cloned
+ unconditionally.
 
  <p class="note">In this standard ReadableStreamTee is always called with |cloneForBranch2| set to
  false; other specifications pass true via the [=ReadableStream/tee=] wrapper algorithm.
