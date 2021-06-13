@@ -377,7 +377,14 @@ function ReadableStreamDefaultTee(stream, cloneForBranch2) {
           // There is no way to access the cloning code right now in the reference implementation.
           // If we add one then we'll need an implementation for serializable objects.
           // if (canceled2 === false && cloneForBranch2 === true) {
-          //   chunk2 = StructuredClone(chunk2);
+          //   try {
+          //     chunk2 = StructuredClone(chunk2);
+          //   } catch (cloneE) {
+          //     ReadableByteStreamControllerError(branch1._controller, cloneE);
+          //     ReadableByteStreamControllerError(branch2._controller, cloneE);
+          //     resolvePromise(cancelPromise, ReadableStreamCancel(stream, cloneE));
+          //     return;
+          //   }
           // }
 
           if (canceled1 === false) {
@@ -496,7 +503,14 @@ function ReadableByteStreamTee(stream) {
           const chunk1 = chunk;
           let chunk2 = chunk;
           if (canceled1 === false && canceled2 === false) {
-            chunk2 = CloneAsUint8Array(chunk);
+            try {
+              chunk2 = CloneAsUint8Array(chunk);
+            } catch (cloneE) {
+              ReadableByteStreamControllerError(branch1._controller, cloneE);
+              ReadableByteStreamControllerError(branch2._controller, cloneE);
+              resolvePromise(cancelPromise, ReadableStreamCancel(stream, cloneE));
+              return;
+            }
           }
 
           if (canceled1 === false) {
@@ -556,7 +570,15 @@ function ReadableByteStreamTee(stream) {
           const otherCanceled = forBranch2 ? canceled1 : canceled2;
 
           if (otherCanceled === false) {
-            const clonedChunk = CloneAsUint8Array(chunk);
+            let clonedChunk;
+            try {
+              clonedChunk = CloneAsUint8Array(chunk);
+            } catch (cloneE) {
+              ReadableByteStreamControllerError(byobBranch._controller, cloneE);
+              ReadableByteStreamControllerError(otherBranch._controller, cloneE);
+              resolvePromise(cancelPromise, ReadableStreamCancel(stream, cloneE));
+              return;
+            }
             if (byobCanceled === false) {
               ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
             }

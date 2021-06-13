@@ -2251,8 +2251,14 @@ create them does not matter.
     1. [=Queue a microtask=] to perform the following steps:
      1. Set |reading| to false.
      1. Let |chunk1| and |chunk2| be |chunk|.
-     1. If |canceled2| is false and |cloneForBranch2| is true, set |chunk2| to ?
-        [$StructuredClone$](|chunk2|).
+     1. If |canceled2| is false and |cloneForBranch2| is true,
+      1. Let |cloneResult| be [$StructuredClone$](|chunk2|).
+      1. If |cloneResult| is an abrupt completion,
+       1. Perform ! [$ReadableStreamDefaultControllerError$](|branch1|.[=ReadableStream/[[controller]]=], |cloneResult|.\[[Value]]).
+       1. Perform ! [$ReadableStreamDefaultControllerError$](|branch2|.[=ReadableStream/[[controller]]=], |cloneResult|.\[[Value]]).
+       1. [=Resolve=] |cancelPromise| with ! [$ReadableStreamCancel$](|stream|, |cloneResult|.\[[Value]]).
+       1. Return.
+      1. Otherwise, set |chunk2| to |cloneResult|.\[[Value]].
      1. If |canceled1| is false, perform !
         [$ReadableStreamDefaultControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
         |chunk1|).
@@ -2347,8 +2353,14 @@ create them does not matter.
     1. [=Queue a microtask=] to perform the following steps:
      1. Set |reading| to false.
      1. Let |chunk1| and |chunk2| be |chunk|.
-     1. If |canceled1| is false and |canceled2| is false, set |chunk2| to ?
-        [$CloneAsUint8Array$](|chunk|).
+     1. If |canceled1| is false and |canceled2| is false,
+      1. Let |cloneResult| be [$CloneAsUint8Array$](|chunk|).
+      1. If |cloneResult| is an abrupt completion,
+       1. Perform ! [$ReadableByteStreamControllerError$](|branch1|.[=ReadableStream/[[controller]]=], |cloneResult|.\[[Value]]).
+       1. Perform ! [$ReadableByteStreamControllerError$](|branch2|.[=ReadableStream/[[controller]]=], |cloneResult|.\[[Value]]).
+       1. [=Resolve=] |cancelPromise| with ! [$ReadableStreamCancel$](|stream|, |cloneResult|.\[[Value]]).
+       1. Return.
+      1. Otherwise, set |chunk2| to |cloneResult|.\[[Value]].
      1. If |canceled1| is false, perform !
         [$ReadableByteStreamControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
         |chunk1|).
@@ -2396,7 +2408,13 @@ create them does not matter.
      1. Let |byobCanceled| be |canceled2| if |forBranch2| is true, and |canceled1| otherwise.
      1. Let |otherCanceled| be |canceled2| if |forBranch2| is false, and |canceled1| otherwise.
      1. If |otherCanceled| is false,
-      1. Let |clonedChunk| be ? [$CloneAsUint8Array$](|chunk|).
+      1. Let |cloneResult| be [$CloneAsUint8Array$](|chunk|).
+      1. If |cloneResult| is an abrupt completion,
+       1. Perform ! [$ReadableByteStreamControllerError$](|byobBranch|.[=ReadableStream/[[controller]]=], |cloneResult|.\[[Value]]).
+       1. Perform ! [$ReadableByteStreamControllerError$](|otherBranch|.[=ReadableStream/[[controller]]=], |cloneResult|.\[[Value]]).
+       1. [=Resolve=] |cancelPromise| with ! [$ReadableStreamCancel$](|stream|, |cloneResult|.\[[Value]]).
+       1. Return.
+      1. Otherwise, let |clonedChunk| be |cloneResult|.\[[Value]].
       1. If |byobCanceled| is false, perform !
          [$ReadableByteStreamControllerRespondWithNewView$](|byobBranch|.[=ReadableStream/[[controller]]=],
          |chunk|).
