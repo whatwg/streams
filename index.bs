@@ -2253,10 +2253,10 @@ create them does not matter.
      1. Let |chunk1| and |chunk2| be |chunk|.
      1. If |canceled2| is false and |cloneForBranch2| is true, set |chunk2| to ?
         [$StructuredClone$](|chunk2|).
-     1. If |canceled1| is false, perform ?
+     1. If |canceled1| is false, perform !
         [$ReadableStreamDefaultControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
         |chunk1|).
-     1. If |canceled2| is false, perform ?
+     1. If |canceled2| is false, perform !
         [$ReadableStreamDefaultControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
         |chunk2|).
 
