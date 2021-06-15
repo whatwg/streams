@@ -4456,8 +4456,7 @@ the {{WritableStream}}'s public API.
  performs the following steps:
 
  1. If |stream|.[=WritableStream/[[inFlightWriteRequest]]=] is undefined and
-    |stream|.[=WritableStream/[[controller]]=].[=WritableStream/[[inFlightCloseRequest]]=] is
-    undefined, return false.
+    |stream|.[=WritableStream/[[inFlightCloseRequest]]=] is undefined, return false.
  1. Return true.
 </div>
 
