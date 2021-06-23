@@ -4716,6 +4716,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.[=WritableStreamDefaultController/[[stream]]=] to |stream|.
  1. Set |stream|.[=WritableStream/[[controller]]=] to |controller|.
  1. Perform ! [$ResetQueue$](|controller|).
+ 1. Set |controller|.[=WritableStreamDefaultController/[[abortReason]]=] to undefined.
  1. Set |controller|.[=WritableStreamDefaultController/[[signal]]=] to a new {{AbortSignal}}.
  1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to false.
  1. Set |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=] to
