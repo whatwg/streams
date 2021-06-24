@@ -104,6 +104,11 @@ function IsWritableStreamLocked(stream) {
 }
 
 function WritableStreamAbort(stream, reason) {
+  if (stream._state === 'closed' || stream._state === 'errored') {
+    return promiseResolvedWith(undefined);
+  }
+  stream._controller._abortReason = reason;
+  stream._controller._abortController.abort();
   const state = stream._state;
   if (state === 'closed' || state === 'errored') {
     return promiseResolvedWith(undefined);
@@ -537,6 +542,8 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
   controller._queueTotalSize = undefined;
   ResetQueue(controller);
 
+  controller._abortReason = undefined;
+  controller._abortController = new AbortController();
   controller._started = false;
 
   controller._strategySizeAlgorithm = sizeAlgorithm;
