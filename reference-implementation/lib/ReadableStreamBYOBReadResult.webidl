@@ -1,4 +1,4 @@
 dictionary ReadableStreamBYOBReadResult {
-  ArrayBufferView chunk;
+  ArrayBufferView value;
   boolean done;
 };
