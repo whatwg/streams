@@ -56,8 +56,6 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: IsInteger; url: #sec-isinteger
   text: OrdinaryObjectCreate; url: #sec-ordinaryobjectcreate
   text: SameValue; url: #sec-samevalue
-  text: SetFunctionLength; url: #sec-setfunctionlength
-  text: SetFunctionName; url: #sec-setfunctionname
   text: Type; url: #sec-ecmascript-data-types-and-values
  text: TypeError; url: #sec-native-error-types-used-in-this-standard-typeerror; type: exception
  text: map; url: #sec-array.prototype.map; type: method; for: Array.prototype
@@ -5747,9 +5745,8 @@ in the constructor.
 
  1. Let |steps| be the following steps, given |chunk|:
   1. Return ? [$GetV$](|chunk|, "`byteLength`").
- 1. Let |F| be ! [$CreateBuiltinFunction$](|steps|, « », |globalObject|'s [=relevant Realm=]).
- 1. Perform ! [$SetFunctionName$](|F|, "`size`").
- 1. Perform ! [$SetFunctionLength$](|F|, 1).
+ 1. Let |F| be ! [$CreateBuiltinFunction$](|steps|, 1, "`size`", « », |globalObject|'s [=relevant
+    Realm=]).
  1. Set |globalObject|'s [=byte length queuing strategy size function=] to a {{Function}} that
     represents a reference to |F|, with [=callback context=] equal to |globalObject|'s [=relevant
     settings object=].
@@ -5862,9 +5859,8 @@ internal slot, storing the value given in the constructor.
 
  1. Let |steps| be the following steps:
   1. Return 1.
- 1. Let |F| be ! [$CreateBuiltinFunction$](|steps|, « », |globalObject|'s [=relevant Realm=]).
- 1. Perform ! [$SetFunctionName$](|F|, "`size`").
- 1. Perform ! [$SetFunctionLength$](|F|, 0).
+ 1. Let |F| be ! [$CreateBuiltinFunction$](|steps|, 0, "`size`", « », |globalObject|'s [=relevant
+    Realm=]).
  1. Set |globalObject|'s [=count queuing strategy size function=] to a {{Function}} that represents
     a reference to |F|, with [=callback context=] equal to |globalObject|'s [=relevant settings
     object=].
