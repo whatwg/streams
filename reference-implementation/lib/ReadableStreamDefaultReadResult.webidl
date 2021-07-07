@@ -1,4 +1,4 @@
 dictionary ReadableStreamDefaultReadResult {
-  any chunk;
+  any value;
   boolean done;
 };
