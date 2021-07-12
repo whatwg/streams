@@ -6556,7 +6556,7 @@ mark=] is greater than zero.
  1. If |stream|.[=ReadableStream/[[controller]]=] [=implements=] {{ReadableByteStreamController}},
     then perform !
     [$ReadableByteStreamControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
- 1. Perform ! [$ReadableStreamDefaultControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
+ 1. Otherwise, perform ! [$ReadableStreamDefaultControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
 </div>
 
 <div algorithm>
