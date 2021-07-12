@@ -6621,8 +6621,8 @@ The following algorithms must only be used on {{ReadableStream}} instances initi
 </div>
 
 Specifications should, when possible, [=ArrayBufferView/write=] into the [=ReadableStream/current
-BYOB request view=] when it is non-null, and then call [=enqueue bytes=] with that view. They should
-only [=ArrayBufferView/create=] a new {{ArrayBufferView}} to pass to [=enqueue bytes=] when the
+BYOB request view=] when it is non-null, and then call [=enqueue a view=] with that view. They should
+only [=ArrayBufferView/create=] a new {{ArrayBufferView}} to pass to [=enqueue a view=] when the
 [=ReadableStream/current BYOB request view=] is null, or when they have more bytes on hand than the
 [=ReadableStream/current BYOB request view=]'s [=BufferSource/byte length=]. This avoids unnecessary
 copies and better respects the wishes of the stream's [=consumer=].
