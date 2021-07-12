@@ -6575,9 +6575,15 @@ mark=] is greater than zero.
 The following algorithm must only be used on {{ReadableStream}} instances initialized via the above
 [=ReadableStream/set up=] algorithm:
 
-<p algorithm>To <dfn export for="ReadableStream">enqueue</dfn> the JavaScript value |chunk| into a
-{{ReadableStream}} |stream|, perform !
-[$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=], |chunk|).
+<div algorithm>
+ To <dfn export for="ReadableStream">enqueue</dfn> the JavaScript value |chunk| into a
+ {{ReadableStream}} |stream|:
+
+ 1. Assert: |stream|.[=ReadableStream/[[controller]]=] [=implements=]
+    {{ReadableStreamDefaultController}}.
+ 1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
+    |chunk|).
+</div>
 
 <hr>
 
