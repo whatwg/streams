@@ -36,6 +36,31 @@ class ReadableStreamBYOBReaderImpl {
     return promise;
   }
 
+  readFully(view) {
+    if (view.byteLength === 0) {
+      return promiseRejectedWith(new TypeError('view must have non-zero byteLength'));
+    }
+    if (view.buffer.byteLength === 0) {
+      return promiseRejectedWith(new TypeError('view\'s buffer must have non-zero byteLength'));
+    }
+    if (IsDetachedBuffer(view.buffer) === true) {
+      return promiseRejectedWith(new TypeError('view\'s buffer has been detached'));
+    }
+
+    if (this._stream === undefined) {
+      return promiseRejectedWith(readerLockException('readFully'));
+    }
+
+    const promise = newPromise();
+    const readFullyIntoRequest = {
+      chunkSteps: chunk => resolvePromise(promise, { value: chunk, done: false }),
+      closeSteps: chunk => resolvePromise(promise, { value: chunk, done: true }),
+      errorSteps: e => rejectPromise(promise, e)
+    };
+    aos.ReadableStreamBYOBReaderReadFully(this, view, readFullyIntoRequest);
+    return promise;
+  }
+
   releaseLock() {
     if (this._stream === undefined) {
       return;
