@@ -6566,7 +6566,7 @@ mark=] is greater than zero.
  1. If |stream|.[=ReadableStream/[[controller]]=] [=implements=] {{ReadableByteStreamController}},
     then perform ! [$ReadableByteStreamControllerError$](|stream|.[=ReadableStream/[[controller]]=],
     |e|).
- 1. Perform ! [$ReadableStreamDefaultControllerError$](|stream|.[=ReadableStream/[[controller]]=],
+ 1. Otherwise, perform ! [$ReadableStreamDefaultControllerError$](|stream|.[=ReadableStream/[[controller]]=],
     |e|).
 </div>
 
