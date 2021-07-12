@@ -6598,8 +6598,8 @@ The following algorithms must only be used on {{ReadableStream}} instances initi
 </div>
 
 <div algorithm>
- To <dfn export for="ReadableStream">enqueue bytes</dfn> into a {{ReadableStream}} |stream| given an
- {{ArrayBufferView}} |view|:
+ To <dfn export for="ReadableStream">enqueue a view</dfn> into a {{ReadableStream}} |stream| given
+ an {{ArrayBufferView}} |view|:
 
  1. Assert: |stream|.[=ReadableStream/[[controller]]=] [=implements=]
     {{ReadableByteStreamController}}.
