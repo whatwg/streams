@@ -6554,8 +6554,14 @@ mark=] is greater than zero.
  To <dfn export for="ReadableStream">close</dfn> a {{ReadableStream}} |stream|:
 
  1. If |stream|.[=ReadableStream/[[controller]]=] [=implements=] {{ReadableByteStreamController}},
-    then perform !
-    [$ReadableByteStreamControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
+  1. Perform !
+     [$ReadableByteStreamControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
+  1. If |stream|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+     is not [=list/is empty|empty=], perform !
+     [$ReadableByteStreamControllerRespond$](|stream|.[=ReadableStream/[[controller]]=], 0).
+     <p class="note">The caller has to make sure not to write into the
+     [=ReadableStream/current BYOB request view=] or transfer it to a different realm before
+     closing the stream.
  1. Otherwise, perform ! [$ReadableStreamDefaultControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
 </div>
 
