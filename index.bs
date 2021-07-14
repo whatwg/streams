@@ -6576,24 +6576,39 @@ mark=] is greater than zero.
     |e|).
 </div>
 
-<hr>
-
-The following algorithm must only be used on {{ReadableStream}} instances initialized via the above
-[=ReadableStream/set up=] algorithm:
-
 <div algorithm>
  To <dfn export for="ReadableStream">enqueue</dfn> the JavaScript value |chunk| into a
  {{ReadableStream}} |stream|:
 
- 1. Assert: |stream|.[=ReadableStream/[[controller]]=] [=implements=]
-    {{ReadableStreamDefaultController}}.
- 1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
-    |chunk|).
+ 1. If |stream|.[=ReadableStream/[[controller]]=] [=implements=]
+    {{ReadableStreamDefaultController}},
+  1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
+     |chunk|).
+ 1. Otherwise,
+  1. Assert: |stream|.[=ReadableStream/[[controller]]=] [=implements=]
+     {{ReadableByteStreamController}}.
+  1. Assert: |chunk| is an {{ArrayBufferView}}.
+  1. Let |byobRequest| be !
+     [$ReadableByteStreamControllerGetBYOBRequest$](|stream|.[=ReadableStream/[[controller]]=]).
+  1. If |byobRequest| is non-null, and |chunk|.\[[ViewedArrayBuffer]].\[[ArrayBufferData]] is the
+     same [=Data Block=] as |byobRequest|.\[[view]].\[[ViewedArrayBuffer]].\[[ArrayBufferData]],
+     then:
+   1. Assert: |chunk|.\[[ByteOffset]] is |byobRequest|.\[[view]].\[[ByteOffset]].
+   1. Assert: |chunk|.\[[ByteLength]] ≤ |byobRequest|.\[[view]].\[[ByteLength]].
+      <p class="note">These asserts ensure that the caller does not write outside the requested
+      range in the [=ReadableStream/current BYOB request view=].
+   1. Perform ?
+      [$ReadableByteStreamControllerRespondWithNewView$](|stream|.[=ReadableStream/[[controller]]=],
+      |chunk|).
+      <p class="note">This works fine even in the case where |chunk|.\[[ViewedArrayBuffer]] equals
+      |byobRequest|.\[[view]].\[[ViewedArrayBuffer]].
+  1. Otherwise, perform ?
+     [$ReadableByteStreamControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=], |chunk|).
 </div>
 
 <hr>
 
-The following algorithms must only be used on {{ReadableStream}} instances initialized via the above
+The following algorithm must only be used on {{ReadableStream}} instances initialized via the above
 [=ReadableStream/set up with byte reading support=] algorithm:
 
 <div algorithm>
@@ -6609,35 +6624,13 @@ The following algorithms must only be used on {{ReadableStream}} instances initi
  1. Return |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=].
 </div>
 
-<div algorithm>
- To <dfn export for="ReadableStream">enqueue a view</dfn> into a {{ReadableStream}} |stream| given
- an {{ArrayBufferView}} |view|:
-
- 1. Assert: |stream|.[=ReadableStream/[[controller]]=] [=implements=]
-    {{ReadableByteStreamController}}.
- 1. Let |byobRequest| be !
-    [$ReadableByteStreamControllerGetBYOBRequest$](|stream|.[=ReadableStream/[[controller]]=]).
- 1. If |byobRequest| is non-null, and |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferData]] is the same
-    [=Data Block=] as |byobRequest|.\[[view]].\[[ViewedArrayBuffer]].\[[ArrayBufferData]], then:
-  1. Assert: |view|.\[[ByteOffset]] is |byobRequest|.\[[view]].\[[ByteOffset]].
-  1. Assert: |view|.\[[ByteLength]] ≤ |byobRequest|.\[[view]].\[[ByteLength]].
-     <p class="note">These asserts ensure that the caller does not write outside the requested
-     range in the [=ReadableStream/current BYOB request view=].
-  1. Perform ?
-     [$ReadableByteStreamControllerRespondWithNewView$](|stream|.[=ReadableStream/[[controller]]=],
-     |view|).
-     <p class="note">This works fine even in the case where |view|.\[[ViewedArrayBuffer]] equals
-     |byobRequest|.\[[view]].\[[ViewedArrayBuffer]].
- 1. Otherwise, perform ?
-    [$ReadableByteStreamControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=], |view|).
-</div>
-
 Specifications should, when possible, [=ArrayBufferView/write=] into the [=ReadableStream/current
-BYOB request view=] when it is non-null, and then call [=enqueue a view=] with that view. They should
-only [=ArrayBufferView/create=] a new {{ArrayBufferView}} to pass to [=enqueue a view=] when the
-[=ReadableStream/current BYOB request view=] is null, or when they have more bytes on hand than the
-[=ReadableStream/current BYOB request view=]'s [=BufferSource/byte length=]. This avoids unnecessary
-copies and better respects the wishes of the stream's [=consumer=].
+BYOB request view=] when it is non-null, and then call [=ReadableStream/enqueue=] with that view.
+They should only [=ArrayBufferView/create=] a new {{ArrayBufferView}} to pass to
+[=ReadableStream/enqueue=] when the [=ReadableStream/current BYOB request view=] is null, or when
+they have more bytes on hand than the [=ReadableStream/current BYOB request view=]'s
+[=BufferSource/byte length=]. This avoids unnecessary copies and better respects the wishes of the
+stream's [=consumer=].
 
 
 <h4 id="other-specs-rs-reading">Reading</h4>
