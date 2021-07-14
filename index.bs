@@ -6559,9 +6559,6 @@ mark=] is greater than zero.
   1. If |stream|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
      is not [=list/is empty|empty=], perform !
      [$ReadableByteStreamControllerRespond$](|stream|.[=ReadableStream/[[controller]]=], 0).
-     <p class="note">The caller has to make sure not to write into the
-     [=ReadableStream/current BYOB request view=] or transfer it to a different realm before
-     closing the stream.
  1. Otherwise, perform ! [$ReadableStreamDefaultControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
 </div>
 
@@ -6588,20 +6585,16 @@ mark=] is greater than zero.
   1. Assert: |stream|.[=ReadableStream/[[controller]]=] [=implements=]
      {{ReadableByteStreamController}}.
   1. Assert: |chunk| is an {{ArrayBufferView}}.
-  1. Let |byobRequest| be !
-     [$ReadableByteStreamControllerGetBYOBRequest$](|stream|.[=ReadableStream/[[controller]]=]).
-  1. If |byobRequest| is non-null, and |chunk|.\[[ViewedArrayBuffer]].\[[ArrayBufferData]] is the
-     same [=Data Block=] as |byobRequest|.\[[view]].\[[ViewedArrayBuffer]].\[[ArrayBufferData]],
-     then:
-   1. Assert: |chunk|.\[[ByteOffset]] is |byobRequest|.\[[view]].\[[ByteOffset]].
-   1. Assert: |chunk|.\[[ByteLength]] ≤ |byobRequest|.\[[view]].\[[ByteLength]].
+  1. Let |byobView| be the [=current BYOB request view=] for |stream|.
+  1. If |byobView| is non-null, and |chunk|.\[[ViewedArrayBuffer]] is
+     |byobView|.\[[ViewedArrayBuffer]], then:
+   1. Assert: |chunk|.\[[ByteOffset]] is |byobView|.\[[ByteOffset]].
+   1. Assert: |chunk|.\[[ByteLength]] ≤ |byobView|.\[[ByteLength]].
       <p class="note">These asserts ensure that the caller does not write outside the requested
       range in the [=ReadableStream/current BYOB request view=].
    1. Perform ?
-      [$ReadableByteStreamControllerRespondWithNewView$](|stream|.[=ReadableStream/[[controller]]=],
-      |chunk|).
-      <p class="note">This works fine even in the case where |chunk|.\[[ViewedArrayBuffer]] equals
-      |byobRequest|.\[[view]].\[[ViewedArrayBuffer]].
+      [$ReadableByteStreamControllerRespond$](|stream|.[=ReadableStream/[[controller]]=],
+      |chunk|.\[[ByteLength]]).
   1. Otherwise, perform ?
      [$ReadableByteStreamControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=], |chunk|).
 </div>
@@ -6624,6 +6617,14 @@ The following algorithm must only be used on {{ReadableStream}} instances initia
  1. Return |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=].
 </div>
 
+Specifications must not [=ArrayBuffer/transfer=] or [=ArrayBuffer/detach=] the
+[=BufferSource/underlying buffer=] of the [=ReadableStream/current BYOB request view=].
+
+<p class="note">Implementations could do something equivalent to transferring, e.g. if they want to
+write into the memory from another thread. But they would need to make a few adjustments to how they
+implement the [=ReadableStream/enqueue=] and [=ReadableStream/close=] algorithms to keep the same
+observable consequences. In specification-land, transferring and detaching is just disallowed.
+
 Specifications should, when possible, [=ArrayBufferView/write=] into the [=ReadableStream/current
 BYOB request view=] when it is non-null, and then call [=ReadableStream/enqueue=] with that view.
 They should only [=ArrayBufferView/create=] a new {{ArrayBufferView}} to pass to
@@ -6632,6 +6633,8 @@ they have more bytes on hand than the [=ReadableStream/current BYOB request view
 [=BufferSource/byte length=]. This avoids unnecessary copies and better respects the wishes of the
 stream's [=consumer=].
 
+Specifications must not [=ArrayBuffer/write=] into the [=ReadableStream/current BYOB request view=]
+after [=ReadableStream/closing=] the corresponding {{ReadableStream}}.
 
 <h4 id="other-specs-rs-reading">Reading</h4>
 
