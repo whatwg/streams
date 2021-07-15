@@ -158,6 +158,10 @@ exports.implementation = class ReadableStreamImpl {
     aos.ReadableStreamReaderGenericRelease(reader);
     return promiseResolvedWith(undefined);
   }
+
+  static from(asyncIterable) {
+    return aos.ReadableStreamFromIterable(asyncIterable);
+  }
 };
 
 // See pipeTo()/pipeThrough() for why this is needed.
