@@ -42,7 +42,6 @@ Object.assign(exports, {
   ReadableByteStreamControllerRespondWithNewView,
   ReadableStreamAddReadRequest,
   ReadableStreamBYOBReaderRead,
-  ReadableStreamBYOBReaderReadFully,
   ReadableStreamBYOBReaderRelease,
   ReadableStreamCancel,
   ReadableStreamClose,
@@ -721,15 +720,11 @@ function ReadableByteStreamTee(stream) {
 
 // Interfacing with controllers
 
-function ReadableStreamAddReadIntoRequest(stream, readRequest, addToFront = false) {
+function ReadableStreamAddReadIntoRequest(stream, readRequest) {
   assert(ReadableStreamBYOBReader.isImpl(stream._reader));
   assert(stream._state === 'readable' || stream._state === 'closed');
 
-  if (addToFront) {
-    stream._reader._readIntoRequests.unshift(readRequest);
-  } else {
-    stream._reader._readIntoRequests.push(readRequest);
-  }
+  stream._reader._readIntoRequests.push(readRequest);
 }
 
 function ReadableStreamAddReadRequest(stream, readRequest) {
@@ -918,7 +913,7 @@ function ReadableStreamReaderGenericRelease(reader) {
   reader._stream = undefined;
 }
 
-function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest, addToFront = false) {
+function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest) {
   const stream = reader._stream;
 
   assert(stream !== undefined);
@@ -928,48 +923,8 @@ function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest, addToFront 
   if (stream._state === 'errored') {
     readIntoRequest.errorSteps(stream._storedError);
   } else {
-    ReadableByteStreamControllerPullInto(stream._controller, view, readIntoRequest, addToFront);
+    ReadableByteStreamControllerPullInto(stream._controller, view, readIntoRequest);
   }
-}
-
-function ReadableStreamBYOBReaderReadFully(reader, view, readFullyIntoRequest) {
-  const viewConstructor = view.constructor;
-  let elementSize = 1;
-  if (viewConstructor !== DataView) {
-    elementSize = view.constructor.BYTES_PER_ELEMENT;
-  }
-
-  const byteOffset = view.byteOffset;
-  const byteLength = view.byteLength;
-  let bytesFilled = 0;
-  const readIntoRequest = {
-    chunkSteps: chunk => {
-      bytesFilled += chunk.byteLength;
-      if (bytesFilled === byteLength) {
-        const filledView = new viewConstructor(chunk.buffer, byteOffset, bytesFilled / elementSize);
-        readFullyIntoRequest.chunkSteps(filledView);
-      } else {
-        const remainderView = new viewConstructor(
-          chunk.buffer,
-          byteOffset + bytesFilled,
-          (byteLength - bytesFilled) / elementSize
-        );
-        ReadableStreamBYOBReaderRead(reader, remainderView, readIntoRequest, true);
-      }
-    },
-    closeSteps: chunk => {
-      if (chunk === undefined) {
-        readFullyIntoRequest.closeSteps(undefined);
-        return;
-      }
-      bytesFilled += chunk.byteLength;
-      const filledView = new viewConstructor(chunk.buffer, byteOffset, bytesFilled / elementSize);
-      readFullyIntoRequest.closeSteps(filledView);
-    },
-    errorSteps: e => readFullyIntoRequest.errorSteps(e)
-  };
-
-  ReadableStreamBYOBReaderRead(reader, view, readIntoRequest);
 }
 
 function ReadableStreamBYOBReaderRelease(reader) {
@@ -1608,7 +1563,7 @@ function ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller) {
   }
 }
 
-function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest, addToFront = false) {
+function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest) {
   const stream = controller._stream;
 
   let elementSize = 1;
@@ -1638,17 +1593,13 @@ function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest,
   };
 
   if (controller._pendingPullIntos.length > 0) {
-    if (addToFront) {
-      controller._pendingPullIntos.unshift(pullIntoDescriptor);
-    } else {
-      controller._pendingPullIntos.push(pullIntoDescriptor);
-    }
+    controller._pendingPullIntos.push(pullIntoDescriptor);
 
     // No ReadableByteStreamControllerCallPullIfNeeded() call since:
     // - No change happens on desiredSize
     // - The source has already been notified of that there's at least 1 pending read(view)
 
-    ReadableStreamAddReadIntoRequest(stream, readIntoRequest, addToFront);
+    ReadableStreamAddReadIntoRequest(stream, readIntoRequest);
     return;
   }
 
@@ -1677,13 +1628,9 @@ function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest,
     }
   }
 
-  if (addToFront) {
-    controller._pendingPullIntos.unshift(pullIntoDescriptor);
-  } else {
-    controller._pendingPullIntos.push(pullIntoDescriptor);
-  }
+  controller._pendingPullIntos.push(pullIntoDescriptor);
 
-  ReadableStreamAddReadIntoRequest(stream, readIntoRequest, addToFront);
+  ReadableStreamAddReadIntoRequest(stream, readIntoRequest);
   ReadableByteStreamControllerCallPullIfNeeded(controller);
 }
 
