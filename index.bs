@@ -7851,6 +7851,5 @@ above and beyond; we couldn't have done it without you.
 This standard is written by Adam Rice (<a href="https://google.com">Google</a>, <a
 href="mailto:ricea@chromium.org">ricea@chromium.org</a>), <a href="https://domenic.me/">Domenic
 Denicola</a> (<a href="https://google.com">Google</a>, <a
-href="mailto:d@domenic.me">d@domenic.me</a>), and 吉野剛史 (Takeshi Yoshino, <a
-href="https://google.com">Google</a>, <a
+href="mailto:d@domenic.me">d@domenic.me</a>), Mattias Buelens, and 吉野剛史 (Takeshi Yoshino, <a
 href="mailto:tyoshino@chromium.org">tyoshino@chromium.org</a>).
