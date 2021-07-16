@@ -6575,10 +6575,11 @@ mark=] is greater than zero.
 
 <div algorithm>
  To <dfn export for="ReadableStream">enqueue</dfn> the JavaScript value |chunk| into a
- {{ReadableStream}} |stream|:
+ {{ReadableStream}} |stream| and an optional nonnegative integer |bytesWritten|:
 
  1. If |stream|.[=ReadableStream/[[controller]]=] [=implements=]
     {{ReadableStreamDefaultController}},
+  1. Assert: |bytesWritten| was not given.
   1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
      |chunk|).
  1. Otherwise,
@@ -6592,11 +6593,16 @@ mark=] is greater than zero.
    1. Assert: |chunk|.\[[ByteLength]] ≤ |byobView|.\[[ByteLength]].
       <p class="note">These asserts ensure that the caller does not write outside the requested
       range in the [=ReadableStream/current BYOB request view=].
+   1. Let |bytesToRespondWith| be |bytesWritten| if it was given, or |chunk|.\[[ByteLength]]
+      otherwise.
    1. Perform ?
       [$ReadableByteStreamControllerRespond$](|stream|.[=ReadableStream/[[controller]]=],
-      |chunk|.\[[ByteLength]]).
-  1. Otherwise, perform ?
-     [$ReadableByteStreamControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=], |chunk|).
+      |bytesToRespondWith|).
+  1. Otherwise,
+   1. Assert: if |bytesWritten| was given, it's equal to |chunk|.\[[ByteLength]]. (Anything else
+      indicates a logic error in the calling specification.)
+   1. Perform ? [$ReadableByteStreamControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
+      |chunk|).
 </div>
 
 <hr>
