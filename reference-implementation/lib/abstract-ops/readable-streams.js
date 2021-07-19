@@ -1305,8 +1305,9 @@ function ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDe
 
   let done = false;
   if (stream._state === 'closed') {
-    assert(pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize === 0);
-    if (!pullIntoDescriptor.readFully) {
+    if (pullIntoDescriptor.readFully) {
+      assert(pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize === 0);
+    } else {
       assert(pullIntoDescriptor.bytesFilled === 0);
     }
     done = true;
@@ -1685,7 +1686,11 @@ function ReadableByteStreamControllerRespond(controller, bytesWritten) {
 }
 
 function ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor) {
-  assert(firstDescriptor.bytesFilled % firstDescriptor.elementSize === 0);
+  if (firstDescriptor.readFully) {
+    assert(firstDescriptor.bytesFilled % firstDescriptor.elementSize === 0);
+  } else {
+    assert(firstDescriptor.bytesFilled === 0);
+  }
 
   if (firstDescriptor.readerType === 'none') {
     ReadableByteStreamControllerShiftPendingPullInto(controller);
