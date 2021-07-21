@@ -1378,7 +1378,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
 
  <dt><code>{ <var ignore>value</var>, <var ignore>done</var> } = await <var ignore>reader</var>.{{ReadableStreamBYOBReader/read()|read}}(<var ignore>view</var>)</code>
  <dd>
-  <p>Attempts to reads bytes into |view|, and returns a promise resolved with the result:
+  <p>Attempts to read bytes into |view|, and returns a promise resolved with the result:
 
   <ul>
    <li>If the chunk does become available, the promise will be fulfilled with an object of the form
@@ -3371,7 +3371,7 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-fill-pull-into-descriptor-from-queue">ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(|controller|,
  |pullIntoDescriptor|)</dfn> performs the following steps:
 
- 1. Let |elementSize| be |pullIntoDescriptor|.\[[elementSize]].
+ 1. Let |elementSize| be |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. Let |currentAlignedBytes| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] −
     (|pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] mod |elementSize|).
  1. Let |maxBytesToCopy| be min(|controller|.[=ReadableByteStreamController/[[queueTotalSize]]=],
