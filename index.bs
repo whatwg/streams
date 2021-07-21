@@ -447,7 +447,7 @@ particularly important for the data structure described in [[#queue-with-sizes]]
    let offset = 0;
 
    while (offset < buffer.byteLength) {
-     const {value: view, done} =
+     const { value: view, done } =
       await reader.read(new Uint8Array(buffer, offset, buffer.byteLength - offset));
      buffer = view.buffer;
      if (done) {
@@ -467,6 +467,15 @@ particularly important for the data structure described in [[#queue-with-sizes]]
  new {{Uint8Array}}, with that {{ArrayBuffer}} object as its <code>buffer</code> property, the
  offset that bytes were written to as its <code>byteOffset</code> property, and the number of
  bytes that were written as its <code>byteLength</code> property.
+
+ Note that this example is mostly educational. For practical purposes,
+ {{ReadableStreamBYOBReader/readFully()}} provides an easier and more direct way to read an exact
+ number of bytes:
+ <xmp highlight="js">
+ const reader = readableStream.getReader({ mode: "byob" });
+ const { value: view, done } = await reader.readFully(new Uint8Array(1024));
+ console.log("The first 1024 bytes: ", view);
+ </xmp>
 </div>
 
 <h3 id="rs-class">The {{ReadableStream}} class</h3>
