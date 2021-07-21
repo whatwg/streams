@@ -1451,8 +1451,8 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
   let ready = false;
   if (maxAlignedBytes > currentAlignedBytes) {
     totalBytesToCopyRemaining = maxAlignedBytes - pullIntoDescriptor.bytesFilled;
-    // If this is a descriptor from a readFully() request, and it is not yet fully filled, then we keep it
-    // at the head of the queue. It will then be re-used to construct the next BYOB request.
+    // A descriptor for a readFully() request that is not yet completely filled will stay at the head of the queue,
+    // so the underlying source can keep filling it.
     // Otherwise, we remove the descriptor from the queue as soon as we filled it with any (aligned) amount of bytes.
     if (!pullIntoDescriptor.readFully || maxAlignedBytes === pullIntoDescriptor.byteLength) {
       ready = true;
@@ -1724,8 +1724,8 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
   }
 
   if (pullIntoDescriptor.readFully && pullIntoDescriptor.bytesFilled < pullIntoDescriptor.byteLength) {
-    // If this is a descriptor from a readFully() request, and it is not yet fully filled, then we keep it
-    // at the head of the queue. It will then be re-used to construct the next BYOB request.
+    // A descriptor for a readFully() request that is not yet completely filled will stay at the head of the queue,
+    // so the underlying source can keep filling it.
     return;
   }
 
