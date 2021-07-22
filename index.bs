@@ -3459,9 +3459,6 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-fill-pull-into-descriptor-from-queue">ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(|controller|,
  |pullIntoDescriptor|)</dfn> performs the following steps:
 
- 1. Let |elementSize| be |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
- 1. Let |currentAlignedBytes| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] −
-    (|pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] mod |elementSize|).
  1. Let |maxBytesToCopy| be min(|controller|.[=ReadableByteStreamController/[[queueTotalSize]]=],
     |pullIntoDescriptor|'s [=pull-into descriptor/byte length=] − |pullIntoDescriptor|'s [=pull-into
     descriptor/bytes filled=]).
@@ -3470,6 +3467,8 @@ The following abstract operations support the implementation of the
  1. Let |totalBytesToCopyRemaining| be |maxBytesToCopy|.
  1. Let |ready| be false.
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/read fully=] is true,
+  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] < |pullIntoDescriptor|'s
+     [=pull-into descriptor/byte length=].
   1. If |maxBytesFilled| ≥ |pullIntoDescriptor|'s [=pull-into descriptor/byte length=],
    1. Set |totalBytesToCopyRemaining| to |pullIntoDescriptor|'s [=pull-into descriptor/byte length=]
       − |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
@@ -3478,8 +3477,11 @@ The following abstract operations support the implementation of the
       that is not yet completely filled will stay at the head of the queue, so the [=underlying source=]
       can keep filling it.
  1. Otherwise,
-  1. Let |maxAlignedBytes| be |maxBytesFilled| − (|maxBytesFilled| mod |elementSize|).
-  1. If |maxAlignedBytes| > |currentAlignedBytes|,
+  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] < |pullIntoDescriptor|'s
+     [=pull-into descriptor/element size=].
+  1. Let |maxAlignedBytes| be |maxBytesFilled| − (|maxBytesFilled| mod |pullIntoDescriptor|'s
+     [=pull-into descriptor/element size=]).
+  1. If |maxAlignedBytes| > 0,
    1. Set |totalBytesToCopyRemaining| to |maxAlignedBytes| − |pullIntoDescriptor|'s [=pull-into
      descriptor/bytes filled=].
    1. Set |ready| to true.
