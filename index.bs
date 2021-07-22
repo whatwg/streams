@@ -3467,19 +3467,22 @@ The following abstract operations support the implementation of the
     descriptor/bytes filled=]).
  1. Let |maxBytesFilled| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] +
     |maxBytesToCopy|.
- 1. Let |maxAlignedBytes| be |maxBytesFilled| − (|maxBytesFilled| mod |elementSize|).
  1. Let |totalBytesToCopyRemaining| be |maxBytesToCopy|.
  1. Let |ready| be false.
- 1. If |maxAlignedBytes| > |currentAlignedBytes|,
-  1. Set |totalBytesToCopyRemaining| to |maxAlignedBytes| − |pullIntoDescriptor|'s [=pull-into
-     descriptor/bytes filled=].
-  1. If |pullIntoDescriptor|'s [=pull-into descriptor/read fully=] is false or
-     |maxAlignedBytes| is equal to |pullIntoDescriptor|'s [=pull-into descriptor/byte length=],
+ 1. If |pullIntoDescriptor|'s [=pull-into descriptor/read fully=] is true,
+  1. If |maxBytesFilled| ≥ |pullIntoDescriptor|'s [=pull-into descriptor/byte length=],
+   1. Set |totalBytesToCopyRemaining| to |pullIntoDescriptor|'s [=pull-into descriptor/byte length=]
+      − |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
    1. Set |ready| to true.
       <p class="note">A descriptor for a {{ReadableStreamBYOBReader/readFully()}} request
       that is not yet completely filled will stay at the head of the queue, so the [=underlying source=]
-      can keep filling it. Otherwise, we remove the descriptor from the queue as soon as we filled
-      it with any (aligned) amount of bytes.
+      can keep filling it.
+ 1. Otherwise,
+  1. Let |maxAlignedBytes| be |maxBytesFilled| − (|maxBytesFilled| mod |elementSize|).
+  1. If |maxAlignedBytes| > |currentAlignedBytes|,
+   1. Set |totalBytesToCopyRemaining| to |maxAlignedBytes| − |pullIntoDescriptor|'s [=pull-into
+     descriptor/bytes filled=].
+   1. Set |ready| to true.
  1. Let |queue| be |controller|.[=ReadableByteStreamController/[[queue]]=].
  1. [=While=] |totalBytesToCopyRemaining| > 0,
   1. Let |headOfQueue| be |queue|[0].
