@@ -2982,7 +2982,7 @@ The following abstract operations support the implementation of the
 <div algorithm>
  <dfn abstract-op lt="SetUpReadableStreamDefaultControllerFromUnderlyingSource"
  id="set-up-readable-stream-default-controller-from-underlying-source">SetUpReadableStreamDefaultControllerFromUnderlyingSource(|stream|,
- |controller|, |underlyingSource|, |underlyingSourceDict|, |highWaterMark|, |sizeAlgorithm|)</dfn>
+ |underlyingSource|, |underlyingSourceDict|, |highWaterMark|, |sizeAlgorithm|)</dfn>
  performs the following steps:
 
  1. Let |controller| be a [=new=] {{ReadableStreamDefaultController}}.
@@ -7806,6 +7806,7 @@ Brian di Palma,
 Calvin Metcalf,
 Dominic Tarr,
 Ed Hager,
+Eric Skoglund,
 Forbes Lindesay,
 Forrest Norvell,
 Gary Blackwood,
