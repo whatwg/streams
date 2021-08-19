@@ -1419,7 +1419,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
 
   <ul>
    <li>If enough bytes become available to fill |view|, the promise will be fulfilled with an
-   object  of the form <code highlight="js">{ value: newView, done: false }</code>. In this case,
+   object of the form <code highlight="js">{ value: newView, done: false }</code>. In this case,
    |view| will be [=ArrayBuffer/detached=] and no longer usable, but <code>newView</code> will be a
    new view (of the same type) onto the same backing memory region, with the received bytes written
    into it.
