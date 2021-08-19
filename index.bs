@@ -1392,13 +1392,13 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
 
   <ul>
    <li>If the chunk does become available, the promise will be fulfilled with an object of the form
-   <code highlight="js">{ value: theChunk, done: false }</code>. In this case, |view| will be
-   [=ArrayBuffer/detached=] and no longer usable, but <code>theChunk</code> will be a new view (of
+   <code highlight="js">{ value: newView, done: false }</code>. In this case, |view| will be
+   [=ArrayBuffer/detached=] and no longer usable, but <code>newView</code> will be a new view (of
    the same type) onto the same backing memory region, with the chunk's data written into it.
 
    <li>If the stream becomes closed, the promise will be fulfilled with an object of the form
-   <code highlight="js">{ value: theChunk, done: true }</code>. In this case, |view| will be
-   [=ArrayBuffer/detached=] and no longer usable, but <code>theChunk</code> will be a new view (of
+   <code highlight="js">{ value: newView, done: true }</code>. In this case, |view| will be
+   [=ArrayBuffer/detached=] and no longer usable, but <code>newView</code> will be a new view (of
    the same type) onto the same backing memory region, with no modifications, to ensure the memory
    is returned to the caller.
 
@@ -1419,14 +1419,14 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
 
   <ul>
    <li>If enough bytes become available to fill |view|, the promise will be fulfilled with an
-   object  of the form <code highlight="js">{ value: theView, done: false }</code>. In this case,
-   |view| will be [=ArrayBuffer/detached=] and no longer usable, but <code>theView</code> will be a
+   object  of the form <code highlight="js">{ value: newView, done: false }</code>. In this case,
+   |view| will be [=ArrayBuffer/detached=] and no longer usable, but <code>newView</code> will be a
    new view (of the same type) onto the same backing memory region, with the received bytes written
    into it.
 
    <li>If the stream becomes closed before |view| is full, the promise will be fulfilled with an
-   object of the form <code highlight="js">{ value: theView, done: true }</code>. In this case,
-   |view| will be [=ArrayBuffer/detached=] and no longer usable, but <code>theChunk</code> will be a
+   object of the form <code highlight="js">{ value: newView, done: true }</code>. In this case,
+   |view| will be [=ArrayBuffer/detached=] and no longer usable, but <code>newView</code> will be a
    new view (of the same type) onto the same backing memory region, with any received bytes written
    into it.
 
