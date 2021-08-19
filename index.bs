@@ -1422,13 +1422,14 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
    object of the form <code highlight="js">{ value: newView, done: false }</code>. In this case,
    |view| will be [=ArrayBuffer/detached=] and no longer usable, but <code>newView</code> will be a
    new view (of the same type) onto the same backing memory region, with the received bytes written
-   into it.
+   into it. <code>newView</code> will be completely filled, so its <code>byteLength</code> will
+   equal |view|'s <code>byteLength</code>.
 
    <li>If the stream becomes closed before |view| is full, the promise will be fulfilled with an
    object of the form <code highlight="js">{ value: newView, done: true }</code>. In this case,
    |view| will be [=ArrayBuffer/detached=] and no longer usable, but <code>newView</code> will be a
    new view (of the same type) onto the same backing memory region, with any received bytes written
-   into it.
+   into it. <code>newView.byteLength</code> will equal that number of received bytes.
 
    <li>If the reader is [=cancel a readable stream|canceled=], the promise will be fulfilled with
    an object of the form <code highlight="js">{ value: undefined, done: true }</code>. In this case,
