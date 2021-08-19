@@ -469,11 +469,11 @@ particularly important for the data structure described in [[#queue-with-sizes]]
  bytes that were written as its <code>byteLength</code> property.
 
  Note that this example is mostly educational. For practical purposes,
- {{ReadableStreamBYOBReader/readFully()}} provides an easier and more direct way to read an exact
+ {{ReadableStreamBYOBReader/fill()}} provides an easier and more direct way to read an exact
  number of bytes:
  <xmp highlight="js">
  const reader = readableStream.getReader({ mode: "byob" });
- const { value: view, done } = await reader.readFully(new Uint8Array(1024));
+ const { value: view, done } = await reader.fill(new Uint8Array(1024));
  console.log("The first 1024 bytes: ", view);
  </xmp>
 </div>
@@ -1323,7 +1323,7 @@ interface ReadableStreamBYOBReader {
   constructor(ReadableStream stream);
 
   Promise<ReadableStreamReadResult> read(ArrayBufferView view);
-  Promise<ReadableStreamReadResult> readFully(ArrayBufferView view);
+  Promise<ReadableStreamReadResult> fill(ArrayBufferView view);
   undefined releaseLock();
 };
 ReadableStreamBYOBReader includes ReadableStreamGenericReader;
@@ -1412,7 +1412,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
   <p>If reading a chunk causes the queue to become empty, more data will be pulled from the
   [=underlying source=].
 
- <dt><code>{ <var ignore>value</var>, <var ignore>done</var> } = await <var ignore>reader</var>.{{ReadableStreamBYOBReader/readFully()|readFully}}(<var ignore>view</var>)</code>
+ <dt><code>{ <var ignore>value</var>, <var ignore>done</var> } = await <var ignore>reader</var>.{{ReadableStreamBYOBReader/fill()|fill}}(<var ignore>view</var>)</code>
  <dd>
   <p>Attempts to read bytes into |view| until it is completely full, and returns a promise resolved
   with the result:
@@ -1491,7 +1491,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
 </div>
 
 <div algorithm>
- The <dfn id="byob-reader-read-fully" method for="ReadableStreamBYOBReader">readFully(|view|)</dfn>
+ The <dfn id="byob-reader-fill" method for="ReadableStreamBYOBReader">fill(|view|)</dfn>
  method steps are:
 
  1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
@@ -1514,7 +1514,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
   : [=read-into request/error steps=], given |e|
   ::
    1. [=Reject=] |promise| with |e|.
- 1. Perform ! [$ReadableStreamBYOBReaderReadFully$]([=this=], |view|, |readIntoRequest|).
+ 1. Perform ! [$ReadableStreamBYOBReaderFill$]([=this=], |view|, |readIntoRequest|).
  1. Return |promise|.
 </div>
 
@@ -1851,8 +1851,8 @@ has the following [=struct/items=]:
 :: Either "`default`" or "`byob`", indicating what type of [=readable stream reader=] initiated this
    request, or "`none`" if the initiating [=readable stream reader|reader=] was [=release a read
    lock|released=]
-: <dfn for="pull-into descriptor">read fully</dfn>
-:: A boolean flag indicating whether this is a {{ReadableStreamBYOBReader/readFully()}} request.
+: <dfn for="pull-into descriptor">fill</dfn>
+:: A boolean flag indicating whether this is a {{ReadableStreamBYOBReader/fill()}} request.
 
 <h4 id="rbs-controller-prototype">Methods and properties</h4>
 
@@ -1973,7 +1973,7 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
      [=pull-into descriptor/byte offset=] 0, [=pull-into descriptor/byte length=]
      |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into
      descriptor/element size=] 1, [=pull-into descriptor/view constructor=] {{%Uint8Array%}},
-     [=pull-into descriptor/reader type=] "`default`", and [=pull-into descriptor/read fully=]
+     [=pull-into descriptor/reader type=] "`default`", and [=pull-into descriptor/fill=]
      false.
   1. [=list/Append=] |pullIntoDescriptor| to
      [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=].
@@ -2931,8 +2931,8 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableStreamBYOBReaderReadFully"
- id="readable-stream-byob-reader-read-fully">ReadableStreamBYOBReaderReadFully(|reader|, |view|,
+ <dfn abstract-op lt="ReadableStreamBYOBReaderFill"
+ id="readable-stream-byob-reader-fill">ReadableStreamBYOBReaderFill(|reader|, |view|,
  |readIntoRequest|)</dfn> performs the following steps:
 
  1. Let |stream| be |reader|.[=ReadableStreamGenericReader/[[stream]]=].
@@ -3307,7 +3307,7 @@ The following abstract operations support the implementation of the
  1. Assert: |pullIntoDescriptor|.[=pull-into descriptor/reader type=] is not "`none`".
  1. Let |done| be false.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`",
-  1. If |pullIntoDescriptor|'s [=pull-into descriptor/read fully=] is true,
+  1. If |pullIntoDescriptor|'s [=pull-into descriptor/fill=] is true,
    1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]
       mod |pullIntoDescriptor|'s [=pull-into descriptor/element size=] is 0.
   1. Otherwise,
@@ -3467,14 +3467,14 @@ The following abstract operations support the implementation of the
     |maxBytesToCopy|.
  1. Let |totalBytesToCopyRemaining| be |maxBytesToCopy|.
  1. Let |ready| be false.
- 1. If |pullIntoDescriptor|'s [=pull-into descriptor/read fully=] is true,
+ 1. If |pullIntoDescriptor|'s [=pull-into descriptor/fill=] is true,
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] < |pullIntoDescriptor|'s
      [=pull-into descriptor/byte length=].
   1. If |maxBytesFilled| ≥ |pullIntoDescriptor|'s [=pull-into descriptor/byte length=],
    1. Set |totalBytesToCopyRemaining| to |pullIntoDescriptor|'s [=pull-into descriptor/byte length=]
       − |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
    1. Set |ready| to true.
-      <p class="note">A descriptor for a {{ReadableStreamBYOBReader/readFully()}} request
+      <p class="note">A descriptor for a {{ReadableStreamBYOBReader/fill()}} request
       that is not yet completely filled will stay at the head of the queue, so the [=underlying source=]
       can keep filling it.
  1. Otherwise,
@@ -3512,7 +3512,7 @@ The following abstract operations support the implementation of the
  1. If |ready| is false,
   1. Assert: |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0.
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] > 0.
-  1. If |pullIntoDescriptor|'s [=pull-into descriptor/read fully=] is true,
+  1. If |pullIntoDescriptor|'s [=pull-into descriptor/fill=] is true,
    1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt;
       |pullIntoDescriptor|'s [=pull-into descriptor/byte length=].
   1. Otherwise,
@@ -3636,7 +3636,7 @@ The following abstract operations support the implementation of the
 <div algorithm>
  <dfn abstract-op lt="ReadableByteStreamControllerPullInto"
  id="readable-byte-stream-controller-pull-into">ReadableByteStreamControllerPullInto(|controller|,
- |view|, |readIntoRequest|, |readFully|)</dfn> performs the following steps:
+ |view|, |readIntoRequest|, |fill|)</dfn> performs the following steps:
 
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. Let |elementSize| be 1.
@@ -3658,7 +3658,7 @@ The following abstract operations support the implementation of the
     [=pull-into descriptor/byte offset=] |byteOffset|, [=pull-into descriptor/byte length=]
     |byteLength|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/element size=]
     |elementSize|, [=pull-into descriptor/view constructor=] |ctor|, [=pull-into
-    descriptor/reader type=] "`byob`", and [=pull-into descriptor/read fully=] |readFully|.
+    descriptor/reader type=] "`byob`", and [=pull-into descriptor/fill=] |fill|.
  1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty,
   1. [=list/Append=] |pullIntoDescriptor| to
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=].
@@ -3714,7 +3714,7 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-in-closed-state">ReadableByteStreamControllerRespondInClosedState(|controller|,
  |firstDescriptor|)</dfn> performs the following steps:
 
- 1. If |firstDescriptor|'s [=pull-into descriptor/read fully=] is true,
+ 1. If |firstDescriptor|'s [=pull-into descriptor/fill=] is true,
   1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] mod |firstDescriptor|'s
      [=pull-into descriptor/element size=] is 0.
  1. Otherwise,
@@ -3746,10 +3746,10 @@ The following abstract operations support the implementation of the
   1. Return.
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
     [=pull-into descriptor/element size=], return.
- 1. If |pullIntoDescriptor|'s [=pull-into descriptor/read fully=] is true and |pullIntoDescriptor|'s
+ 1. If |pullIntoDescriptor|'s [=pull-into descriptor/fill=] is true and |pullIntoDescriptor|'s
     [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
     [=pull-into descriptor/byte length=], return.
-    <p class="note">A descriptor for a {{ReadableStreamBYOBReader/readFully()}} request
+    <p class="note">A descriptor for a {{ReadableStreamBYOBReader/fill()}} request
     that is not yet completely filled will stay at the head of the queue, so the [=underlying source=]
     can keep filling it.
  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).

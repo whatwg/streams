@@ -36,7 +36,7 @@ class ReadableStreamBYOBReaderImpl {
     return promise;
   }
 
-  readFully(view) {
+  fill(view) {
     if (view.byteLength === 0) {
       return promiseRejectedWith(new TypeError('view must have non-zero byteLength'));
     }
@@ -48,7 +48,7 @@ class ReadableStreamBYOBReaderImpl {
     }
 
     if (this._stream === undefined) {
-      return promiseRejectedWith(readerLockException('readFully'));
+      return promiseRejectedWith(readerLockException('fill'));
     }
 
     const promise = newPromise();
@@ -57,7 +57,7 @@ class ReadableStreamBYOBReaderImpl {
       closeSteps: chunk => resolvePromise(promise, { value: chunk, done: true }),
       errorSteps: e => rejectPromise(promise, e)
     };
-    aos.ReadableStreamBYOBReaderReadFully(this, view, readIntoRequest);
+    aos.ReadableStreamBYOBReaderFill(this, view, readIntoRequest);
     return promise;
   }
 
