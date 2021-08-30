@@ -4,8 +4,9 @@ const assert = require('assert');
 const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise, uponPromise,
         setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment, uponRejection } =
   require('../helpers/webidl.js');
-const { CopyDataBlockBytes, CreateArrayFromList, TransferArrayBuffer } = require('./ecmascript.js');
-const { IsNonNegativeNumber } = require('./miscellaneous.js');
+const { CanTransferArrayBuffer, CopyDataBlockBytes, CreateArrayFromList, IsDetachedBuffer, TransferArrayBuffer } =
+  require('./ecmascript.js');
+const { CloneAsUint8Array, IsNonNegativeNumber } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
         WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
@@ -14,6 +15,7 @@ const { CancelSteps, PullSteps } = require('./internal-methods.js');
 
 const ReadableByteStreamController = require('../../generated/ReadableByteStreamController.js');
 const ReadableStreamBYOBReader = require('../../generated/ReadableStreamBYOBReader.js');
+const ReadableStreamBYOBRequest = require('../../generated/ReadableStreamBYOBRequest.js');
 const ReadableStreamDefaultReader = require('../../generated/ReadableStreamDefaultReader.js');
 const ReadableStreamDefaultController = require('../../generated/ReadableStreamDefaultController.js');
 const ReadableStream = require('../../generated/ReadableStream.js');
@@ -22,14 +24,17 @@ const WritableStream = require('../../generated/WritableStream.js');
 Object.assign(exports, {
   AcquireReadableStreamBYOBReader,
   AcquireReadableStreamDefaultReader,
+  CreateReadableByteStream,
   CreateReadableStream,
   InitializeReadableStream,
   IsReadableStreamLocked,
   ReadableByteStreamControllerCallPullIfNeeded,
   ReadableByteStreamControllerClearAlgorithms,
+  ReadableByteStreamControllerClearPendingPullIntos,
   ReadableByteStreamControllerClose,
   ReadableByteStreamControllerEnqueue,
   ReadableByteStreamControllerError,
+  ReadableByteStreamControllerGetBYOBRequest,
   ReadableByteStreamControllerGetDesiredSize,
   ReadableByteStreamControllerHandleQueueDrain,
   ReadableByteStreamControllerRespond,
@@ -88,7 +93,17 @@ function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, hi
   return stream;
 }
 
-// CreateReadableByteStream is not implemented since it is only meant for external specs.
+function CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancelAlgorithm) {
+  const stream = ReadableStream.new(globalThis);
+  InitializeReadableStream(stream);
+
+  const controller = ReadableByteStreamController.new(globalThis);
+  SetUpReadableByteStreamController(
+    stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, 0, undefined
+  );
+
+  return stream;
+}
 
 function InitializeReadableStream(stream) {
   stream._state = 'readable';
@@ -320,6 +335,15 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
 function ReadableStreamTee(stream, cloneForBranch2) {
   assert(ReadableStream.isImpl(stream));
   assert(typeof cloneForBranch2 === 'boolean');
+  if (ReadableByteStreamController.isImpl(stream._controller)) {
+    return ReadableByteStreamTee(stream);
+  }
+  return ReadableStreamDefaultTee(stream, cloneForBranch2);
+}
+
+function ReadableStreamDefaultTee(stream, cloneForBranch2) {
+  assert(ReadableStream.isImpl(stream));
+  assert(typeof cloneForBranch2 === 'boolean');
 
   const reader = AcquireReadableStreamDefaultReader(stream);
 
@@ -341,27 +365,34 @@ function ReadableStreamTee(stream, cloneForBranch2) {
     reading = true;
 
     const readRequest = {
-      chunkSteps: value => {
+      chunkSteps: chunk => {
         // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
         // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
         // successful synchronously-available reads get ahead of asynchronously-available errors.
         queueMicrotask(() => {
           reading = false;
-          const value1 = value;
-          const value2 = value;
+          const chunk1 = chunk;
+          const chunk2 = chunk;
 
           // There is no way to access the cloning code right now in the reference implementation.
           // If we add one then we'll need an implementation for serializable objects.
           // if (canceled2 === false && cloneForBranch2 === true) {
-          //   value2 = StructuredDeserialize(StructuredSerialize(value2));
+          //   try {
+          //     chunk2 = StructuredClone(chunk2);
+          //   } catch (cloneE) {
+          //     ReadableByteStreamControllerError(branch1._controller, cloneE);
+          //     ReadableByteStreamControllerError(branch2._controller, cloneE);
+          //     resolvePromise(cancelPromise, ReadableStreamCancel(stream, cloneE));
+          //     return;
+          //   }
           // }
 
           if (canceled1 === false) {
-            ReadableStreamDefaultControllerEnqueue(branch1._controller, value1);
+            ReadableStreamDefaultControllerEnqueue(branch1._controller, chunk1);
           }
 
           if (canceled2 === false) {
-            ReadableStreamDefaultControllerEnqueue(branch2._controller, value2);
+            ReadableStreamDefaultControllerEnqueue(branch2._controller, chunk2);
           }
         });
       },
@@ -373,7 +404,9 @@ function ReadableStreamTee(stream, cloneForBranch2) {
         if (canceled2 === false) {
           ReadableStreamDefaultControllerClose(branch2._controller);
         }
-        resolvePromise(cancelPromise, undefined);
+        if (canceled1 === false || canceled2 === false) {
+          resolvePromise(cancelPromise, undefined);
+        }
       },
       errorSteps: () => {
         reading = false;
@@ -414,8 +447,244 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   uponRejection(reader._closedPromise, r => {
     ReadableStreamDefaultControllerError(branch1._controller, r);
     ReadableStreamDefaultControllerError(branch2._controller, r);
-    resolvePromise(cancelPromise, undefined);
+    if (canceled1 === false || canceled2 === false) {
+      resolvePromise(cancelPromise, undefined);
+    }
   });
+
+  return [branch1, branch2];
+}
+
+function ReadableByteStreamTee(stream) {
+  assert(ReadableStream.isImpl(stream));
+  assert(ReadableByteStreamController.isImpl(stream._controller));
+
+  let reader = AcquireReadableStreamDefaultReader(stream);
+  let reading = false;
+  let canceled1 = false;
+  let canceled2 = false;
+  let reason1;
+  let reason2;
+  let branch1;
+  let branch2;
+
+  const cancelPromise = newPromise();
+
+  function forwardReaderError(thisReader) {
+    uponRejection(thisReader._closedPromise, r => {
+      if (thisReader !== reader) {
+        return;
+      }
+      ReadableByteStreamControllerError(branch1._controller, r);
+      ReadableByteStreamControllerError(branch2._controller, r);
+      if (canceled1 === false || canceled2 === false) {
+        resolvePromise(cancelPromise, undefined);
+      }
+    });
+  }
+
+  function pullWithDefaultReader() {
+    if (ReadableStreamBYOBReader.isImpl(reader)) {
+      assert(reader._readIntoRequests.length === 0);
+      ReadableStreamReaderGenericRelease(reader);
+
+      reader = AcquireReadableStreamDefaultReader(stream);
+      forwardReaderError(reader);
+    }
+
+    const readRequest = {
+      chunkSteps: chunk => {
+        // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
+        // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
+        // successful synchronously-available reads get ahead of asynchronously-available errors.
+        queueMicrotask(() => {
+          reading = false;
+
+          const chunk1 = chunk;
+          let chunk2 = chunk;
+          if (canceled1 === false && canceled2 === false) {
+            try {
+              chunk2 = CloneAsUint8Array(chunk);
+            } catch (cloneE) {
+              ReadableByteStreamControllerError(branch1._controller, cloneE);
+              ReadableByteStreamControllerError(branch2._controller, cloneE);
+              resolvePromise(cancelPromise, ReadableStreamCancel(stream, cloneE));
+              return;
+            }
+          }
+
+          if (canceled1 === false) {
+            ReadableByteStreamControllerEnqueue(branch1._controller, chunk1);
+          }
+          if (canceled2 === false) {
+            ReadableByteStreamControllerEnqueue(branch2._controller, chunk2);
+          }
+        });
+      },
+      closeSteps: () => {
+        reading = false;
+        if (canceled1 === false) {
+          ReadableByteStreamControllerClose(branch1._controller);
+        }
+        if (canceled2 === false) {
+          ReadableByteStreamControllerClose(branch2._controller);
+        }
+        if (branch1._controller._pendingPullIntos.length > 0) {
+          ReadableByteStreamControllerRespond(branch1._controller, 0);
+        }
+        if (branch2._controller._pendingPullIntos.length > 0) {
+          ReadableByteStreamControllerRespond(branch2._controller, 0);
+        }
+        if (canceled1 === false || canceled2 === false) {
+          resolvePromise(cancelPromise, undefined);
+        }
+      },
+      errorSteps: () => {
+        reading = false;
+      }
+    };
+    ReadableStreamDefaultReaderRead(reader, readRequest);
+  }
+
+  function pullWithBYOBReader(view, forBranch2) {
+    if (ReadableStreamDefaultReader.isImpl(reader)) {
+      assert(reader._readRequests.length === 0);
+      ReadableStreamReaderGenericRelease(reader);
+
+      reader = AcquireReadableStreamBYOBReader(stream);
+      forwardReaderError(reader);
+    }
+
+    const byobBranch = forBranch2 ? branch2 : branch1;
+    const otherBranch = forBranch2 ? branch1 : branch2;
+
+    const readIntoRequest = {
+      chunkSteps: chunk => {
+        // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
+        // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
+        // successful synchronously-available reads get ahead of asynchronously-available errors.
+        queueMicrotask(() => {
+          reading = false;
+
+          const byobCanceled = forBranch2 ? canceled2 : canceled1;
+          const otherCanceled = forBranch2 ? canceled1 : canceled2;
+
+          if (otherCanceled === false) {
+            let clonedChunk;
+            try {
+              clonedChunk = CloneAsUint8Array(chunk);
+            } catch (cloneE) {
+              ReadableByteStreamControllerError(byobBranch._controller, cloneE);
+              ReadableByteStreamControllerError(otherBranch._controller, cloneE);
+              resolvePromise(cancelPromise, ReadableStreamCancel(stream, cloneE));
+              return;
+            }
+            if (byobCanceled === false) {
+              ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
+            }
+            ReadableByteStreamControllerEnqueue(otherBranch._controller, clonedChunk);
+          } else if (byobCanceled === false) {
+            ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
+          }
+        });
+      },
+      closeSteps: chunk => {
+        reading = false;
+
+        const byobCanceled = forBranch2 ? canceled2 : canceled1;
+        const otherCanceled = forBranch2 ? canceled1 : canceled2;
+
+        if (byobCanceled === false) {
+          ReadableByteStreamControllerClose(byobBranch._controller);
+        }
+        if (otherCanceled === false) {
+          ReadableByteStreamControllerClose(otherBranch._controller);
+        }
+
+        if (chunk !== undefined) {
+          assert(chunk.byteLength === 0);
+
+          if (byobCanceled === false) {
+            ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
+          }
+          if (otherCanceled === false && otherBranch._controller._pendingPullIntos.length > 0) {
+            ReadableByteStreamControllerRespond(otherBranch._controller, 0);
+          }
+        }
+
+        if (byobCanceled === false || otherCanceled === false) {
+          resolvePromise(cancelPromise, undefined);
+        }
+      },
+      errorSteps: () => {
+        reading = false;
+      }
+    };
+    ReadableStreamBYOBReaderRead(reader, view, readIntoRequest);
+  }
+
+  function pull1Algorithm() {
+    if (reading === true) {
+      return promiseResolvedWith(undefined);
+    }
+
+    reading = true;
+
+    const byobRequest = ReadableByteStreamControllerGetBYOBRequest(branch1._controller);
+    if (byobRequest === null) {
+      pullWithDefaultReader();
+    } else {
+      pullWithBYOBReader(byobRequest._view, false);
+    }
+
+    return promiseResolvedWith(undefined);
+  }
+
+  function pull2Algorithm() {
+    if (reading === true) {
+      return promiseResolvedWith(undefined);
+    }
+
+    reading = true;
+
+    const byobRequest = ReadableByteStreamControllerGetBYOBRequest(branch2._controller);
+    if (byobRequest === null) {
+      pullWithDefaultReader();
+    } else {
+      pullWithBYOBReader(byobRequest._view, true);
+    }
+
+    return promiseResolvedWith(undefined);
+  }
+
+  function cancel1Algorithm(reason) {
+    canceled1 = true;
+    reason1 = reason;
+    if (canceled2 === true) {
+      const compositeReason = CreateArrayFromList([reason1, reason2]);
+      const cancelResult = ReadableStreamCancel(stream, compositeReason);
+      resolvePromise(cancelPromise, cancelResult);
+    }
+    return cancelPromise;
+  }
+
+  function cancel2Algorithm(reason) {
+    canceled2 = true;
+    reason2 = reason;
+    if (canceled1 === true) {
+      const compositeReason = CreateArrayFromList([reason1, reason2]);
+      const cancelResult = ReadableStreamCancel(stream, compositeReason);
+      resolvePromise(cancelPromise, cancelResult);
+    }
+    return cancelPromise;
+  }
+
+  function startAlgorithm() {}
+
+  branch1 = CreateReadableByteStream(startAlgorithm, pull1Algorithm, cancel1Algorithm);
+  branch2 = CreateReadableByteStream(startAlgorithm, pull2Algorithm, cancel2Algorithm);
+
+  forwardReaderError(reader);
 
   return [branch1, branch2];
 }
@@ -448,6 +717,14 @@ function ReadableStreamCancel(stream, reason) {
 
   ReadableStreamClose(stream);
 
+  const reader = stream._reader;
+  if (reader !== undefined && ReadableStreamBYOBReader.isImpl(reader)) {
+    for (const readIntoRequest of reader._readIntoRequests) {
+      readIntoRequest.closeSteps(undefined);
+    }
+    reader._readIntoRequests = [];
+  }
+
   const sourceCancelPromise = stream._controller[CancelSteps](reason);
   return transformPromiseWith(sourceCancelPromise, () => undefined);
 }
@@ -463,14 +740,14 @@ function ReadableStreamClose(stream) {
     return;
   }
 
+  resolvePromise(reader._closedPromise, undefined);
+
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     for (const readRequest of reader._readRequests) {
       readRequest.closeSteps();
     }
     reader._readRequests = [];
   }
-
-  resolvePromise(reader._closedPromise, undefined);
 }
 
 function ReadableStreamError(stream, e) {
@@ -484,6 +761,9 @@ function ReadableStreamError(stream, e) {
   if (reader === undefined) {
     return;
   }
+
+  rejectPromise(reader._closedPromise, e);
+  setPromiseIsHandledToTrue(reader._closedPromise);
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     for (const readRequest of reader._readRequests) {
@@ -500,9 +780,6 @@ function ReadableStreamError(stream, e) {
 
     reader._readIntoRequests = [];
   }
-
-  rejectPromise(reader._closedPromise, e);
-  setPromiseIsHandledToTrue(reader._closedPromise);
 }
 
 function ReadableStreamFulfillReadIntoRequest(stream, chunk, done) {
@@ -979,8 +1256,8 @@ function ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescripto
   assert(bytesFilled <= pullIntoDescriptor.byteLength);
   assert(bytesFilled % elementSize === 0);
 
-  return new pullIntoDescriptor.viewConstructor(
-    pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, bytesFilled / elementSize);
+  const buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
+  return new pullIntoDescriptor.viewConstructor(buffer, pullIntoDescriptor.byteOffset, bytesFilled / elementSize);
 }
 
 function ReadableByteStreamControllerEnqueue(controller, chunk) {
@@ -993,7 +1270,22 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
   const buffer = chunk.buffer;
   const byteOffset = chunk.byteOffset;
   const byteLength = chunk.byteLength;
+  if (IsDetachedBuffer(buffer) === true) {
+    throw new TypeError('chunk\'s buffer is detached and so cannot be enqueued');
+  }
   const transferredBuffer = TransferArrayBuffer(buffer);
+
+  if (controller._pendingPullIntos.length > 0) {
+    const firstPendingPullInto = controller._pendingPullIntos[0];
+    if (IsDetachedBuffer(firstPendingPullInto.buffer) === true) {
+      throw new TypeError(
+        'The BYOB request\'s buffer has been detached and so cannot be filled with an enqueued chunk'
+      );
+    }
+    firstPendingPullInto.buffer = TransferArrayBuffer(firstPendingPullInto.buffer);
+  }
+
+  ReadableByteStreamControllerInvalidateBYOBRequest(controller);
 
   if (ReadableStreamHasDefaultReader(stream) === true) {
     if (ReadableStreamGetNumReadRequests(stream) === 0) {
@@ -1037,8 +1329,7 @@ function ReadableByteStreamControllerError(controller, e) {
 
 function ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, size, pullIntoDescriptor) {
   assert(controller._pendingPullIntos.length === 0 || controller._pendingPullIntos[0] === pullIntoDescriptor);
-
-  ReadableByteStreamControllerInvalidateBYOBRequest(controller);
+  assert(controller._byobRequest === null);
   pullIntoDescriptor.bytesFilled += size;
 }
 
@@ -1089,6 +1380,22 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
   }
 
   return ready;
+}
+
+function ReadableByteStreamControllerGetBYOBRequest(controller) {
+  if (controller._byobRequest === null && controller._pendingPullIntos.length > 0) {
+    const firstDescriptor = controller._pendingPullIntos[0];
+    const view = new Uint8Array(firstDescriptor.buffer,
+                                firstDescriptor.byteOffset + firstDescriptor.bytesFilled,
+                                firstDescriptor.byteLength - firstDescriptor.bytesFilled);
+
+    const byobRequest = ReadableStreamBYOBRequest.new(globalThis);
+    byobRequest._controller = controller;
+    byobRequest._view = view;
+    controller._byobRequest = byobRequest;
+  }
+
+  return controller._byobRequest;
 }
 
 function ReadableByteStreamControllerGetDesiredSize(controller) {
@@ -1156,9 +1463,17 @@ function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest)
 
   const ctor = view.constructor;
 
-  const buffer = TransferArrayBuffer(view.buffer);
+  let buffer;
+  try {
+    buffer = TransferArrayBuffer(view.buffer);
+  } catch (e) {
+    readIntoRequest.errorSteps(e);
+    return;
+  }
+
   const pullIntoDescriptor = {
     buffer,
+    bufferByteLength: buffer.byteLength,
     byteOffset: view.byteOffset,
     byteLength: view.byteLength,
     bytesFilled: 0,
@@ -1212,12 +1527,29 @@ function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest)
 function ReadableByteStreamControllerRespond(controller, bytesWritten) {
   assert(controller._pendingPullIntos.length > 0);
 
+  const firstDescriptor = controller._pendingPullIntos[0];
+  const state = controller._stream._state;
+
+  if (state === 'closed') {
+    if (bytesWritten !== 0) {
+      throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
+    }
+  } else {
+    assert(state === 'readable');
+    if (bytesWritten === 0) {
+      throw new TypeError('bytesWritten must be greater than 0 when calling respond() on a readable stream');
+    }
+    if (firstDescriptor.bytesFilled + bytesWritten > firstDescriptor.byteLength) {
+      throw new RangeError('bytesWritten out of range');
+    }
+  }
+
+  firstDescriptor.buffer = TransferArrayBuffer(firstDescriptor.buffer);
+
   ReadableByteStreamControllerRespondInternal(controller, bytesWritten);
 }
 
 function ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor) {
-  firstDescriptor.buffer = TransferArrayBuffer(firstDescriptor.buffer);
-
   assert(firstDescriptor.bytesFilled === 0);
 
   const stream = controller._stream;
@@ -1230,14 +1562,11 @@ function ReadableByteStreamControllerRespondInClosedState(controller, firstDescr
 }
 
 function ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, pullIntoDescriptor) {
-  if (pullIntoDescriptor.bytesFilled + bytesWritten > pullIntoDescriptor.byteLength) {
-    throw new RangeError('bytesWritten out of range');
-  }
+  assert(pullIntoDescriptor.bytesFilled + bytesWritten <= pullIntoDescriptor.byteLength);
 
   ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesWritten, pullIntoDescriptor);
 
   if (pullIntoDescriptor.bytesFilled < pullIntoDescriptor.elementSize) {
-    // TODO: Figure out whether we should detach the buffer or not here.
     return;
   }
 
@@ -1250,7 +1579,6 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
     ReadableByteStreamControllerEnqueueChunkToQueue(controller, remainder, 0, remainder.byteLength);
   }
 
-  pullIntoDescriptor.buffer = TransferArrayBuffer(pullIntoDescriptor.buffer);
   pullIntoDescriptor.bytesFilled -= remainderSize;
   ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, pullIntoDescriptor);
 
@@ -1259,18 +1587,17 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
 
 function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
   const firstDescriptor = controller._pendingPullIntos[0];
+  assert(CanTransferArrayBuffer(firstDescriptor.buffer) === true);
+
+  ReadableByteStreamControllerInvalidateBYOBRequest(controller);
 
   const state = controller._stream._state;
-
   if (state === 'closed') {
-    if (bytesWritten !== 0) {
-      throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
-    }
-
+    assert(bytesWritten === 0);
     ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor);
   } else {
     assert(state === 'readable');
-
+    assert(bytesWritten > 0);
     ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, firstDescriptor);
   }
 
@@ -1279,24 +1606,42 @@ function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
 
 function ReadableByteStreamControllerRespondWithNewView(controller, view) {
   assert(controller._pendingPullIntos.length > 0);
+  assert(IsDetachedBuffer(view.buffer) === false);
 
   const firstDescriptor = controller._pendingPullIntos[0];
+  const state = controller._stream._state;
+
+  if (state === 'closed') {
+    if (view.byteLength !== 0) {
+      throw new TypeError('The view\'s length must be 0 when calling respondWithNewView() on a closed stream');
+    }
+  } else {
+    assert(state === 'readable');
+    if (view.byteLength === 0) {
+      throw new TypeError(
+        'The view\'s length must be greater than 0 when calling respondWithNewView() on a readable stream'
+      );
+    }
+  }
 
   if (firstDescriptor.byteOffset + firstDescriptor.bytesFilled !== view.byteOffset) {
     throw new RangeError('The region specified by view does not match byobRequest');
   }
-  if (firstDescriptor.byteLength !== view.byteLength) {
+  if (firstDescriptor.bufferByteLength !== view.buffer.byteLength) {
     throw new RangeError('The buffer of view has different capacity than byobRequest');
   }
+  if (firstDescriptor.bytesFilled + view.byteLength > firstDescriptor.byteLength) {
+    throw new RangeError('The region specified by view is larger than byobRequest');
+  }
 
-  firstDescriptor.buffer = view.buffer;
+  firstDescriptor.buffer = TransferArrayBuffer(view.buffer);
 
   ReadableByteStreamControllerRespondInternal(controller, view.byteLength);
 }
 
 function ReadableByteStreamControllerShiftPendingPullInto(controller) {
+  assert(controller._byobRequest === null);
   const descriptor = controller._pendingPullIntos.shift();
-  ReadableByteStreamControllerInvalidateBYOBRequest(controller);
   return descriptor;
 }
 
@@ -1401,6 +1746,9 @@ function SetUpReadableByteStreamControllerFromUnderlyingSource(
   }
 
   const autoAllocateChunkSize = underlyingSourceDict.autoAllocateChunkSize;
+  if (autoAllocateChunkSize === 0) {
+    throw new TypeError('autoAllocateChunkSize must be greater than 0');
+  }
 
   SetUpReadableByteStreamController(
     stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, autoAllocateChunkSize

@@ -19,8 +19,7 @@ function initializeSizeFunction(globalObject) {
   }
 
   // We need to set the 'name' property:
-  // eslint-disable-next-line prefer-arrow-callback
-  sizeFunctionWeakMap.set(globalObject, function size(chunk) {
-    return chunk.byteLength;
-  });
+  // The size function must not have a prototype property nor be a constructor
+  const size = chunk => chunk.byteLength;
+  sizeFunctionWeakMap.set(globalObject, size);
 }

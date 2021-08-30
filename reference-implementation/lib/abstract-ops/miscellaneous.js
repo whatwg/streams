@@ -15,3 +15,8 @@ exports.IsNonNegativeNumber = v => {
 
   return true;
 };
+
+exports.CloneAsUint8Array = O => {
+  const buffer = O.buffer.slice(O.byteOffset, O.byteOffset + O.byteLength);
+  return new Uint8Array(buffer);
+};

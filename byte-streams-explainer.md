@@ -116,6 +116,11 @@ a default reader, is all taken care of automatically by the streams implementati
 *   Shared array buffers will not be supported. Currently, we always detach buffers, but shared array buffers
 cannot be detached.
 
+## User Benefits
+
+*   By enabling developers to use the Readable Byte Streams API, this will increase speed and lower memory usage
+for sites that take advantage of it. Specifically, sites that handle streaming binary data will see improved
+performance.
 
 ## Alternatives
 

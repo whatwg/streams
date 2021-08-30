@@ -5,23 +5,9 @@ const { CancelSteps, PullSteps } = require('./abstract-ops/internal-methods.js')
 const { ResetQueue } = require('./abstract-ops/queue-with-sizes.js');
 const aos = require('./abstract-ops/readable-streams.js');
 
-const ReadableStreamBYOBRequest = require('../generated/ReadableStreamBYOBRequest.js');
-
 exports.implementation = class ReadableByteStreamControllerImpl {
   get byobRequest() {
-    if (this._byobRequest === null && this._pendingPullIntos.length > 0) {
-      const firstDescriptor = this._pendingPullIntos[0];
-      const view = new Uint8Array(firstDescriptor.buffer,
-                                  firstDescriptor.byteOffset + firstDescriptor.bytesFilled,
-                                  firstDescriptor.byteLength - firstDescriptor.bytesFilled);
-
-      const byobRequest = ReadableStreamBYOBRequest.new(globalThis);
-      byobRequest._controller = this;
-      byobRequest._view = view;
-      this._byobRequest = byobRequest;
-    }
-
-    return this._byobRequest;
+    return aos.ReadableByteStreamControllerGetBYOBRequest(this);
   }
 
   get desiredSize() {
@@ -66,10 +52,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
   }
 
   [CancelSteps](reason) {
-    if (this._pendingPullIntos.length > 0) {
-      const firstDescriptor = this._pendingPullIntos[0];
-      firstDescriptor.bytesFilled = 0;
-    }
+    aos.ReadableByteStreamControllerClearPendingPullIntos(this);
 
     ResetQueue(this);
 
@@ -108,6 +91,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
 
       const pullIntoDescriptor = {
         buffer,
+        bufferByteLength: autoAllocateChunkSize,
         byteOffset: 0,
         byteLength: autoAllocateChunkSize,
         bytesFilled: 0,

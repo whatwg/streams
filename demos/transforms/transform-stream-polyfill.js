@@ -1,6 +1,6 @@
 // Quick and dirty polyfill for TransformStream.
 // Based on the reference implementation:
-// https://github.com/whatwg/streams/blob/master/reference-implementation/lib/transform-stream.js
+// https://github.com/whatwg/streams/blob/main/reference-implementation/lib/transform-stream.js
 
 (function() {
 'use strict';

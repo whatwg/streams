@@ -31,6 +31,11 @@ exports.TransferArrayBuffer = O => {
 };
 
 // Not implemented correctly
+exports.CanTransferArrayBuffer = O => {
+  return !exports.IsDetachedBuffer(O);
+};
+
+// Not implemented correctly
 exports.IsDetachedBuffer = O => {
   return isFakeDetached in O;
 };
