@@ -46,6 +46,8 @@ const ws = new WritableStream({
       setTimeout(resolve, 1000);
       controller.signal.addEventListener('abort',
         () => reject(controller.abortReason()));
+    });
+  }
 });
 const writer = ws.getWriter();
 
