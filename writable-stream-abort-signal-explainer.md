@@ -1,4 +1,4 @@
-# WritableStream controller AbortSignal Explainer
+# `WritableStream` controller `AbortSignal` Explainer
 
 
 ## Introduction
@@ -21,19 +21,18 @@ streams such as [WebTransport](https://w3c.github.io/webtransport/).
 On [WritableStreamDefaultController](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller)
 (the controller argument that is passed to underlying sinks):
 
-*   [abortReason](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortreason)
-    *   The argument passed to `writable.abort()` or `writer.abort()`. Undefined if no argument was passed or `abort()`
-    hasn't been called.
-*   [signal](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-signal)
-    *   An AbortSignal. By using `signal.addEventListener('abort', …)` an underlying sink can abort the pending write
-    or close operation when the stream is aborted.
+*   [`abortReason`](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortreason): The argument passed
+to `writable.abort()` or `writer.abort()`. Undefined if no argument was passed or `abort()` hasn't been called.
+*   [`signal`](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-signal): An AbortSignal. By using
+`signal.addEventListener('abort', …)` an underlying sink can abort the pending write or close operation when the
+stream is aborted.
 
-The WritableStream API does not change. Instead, the existing `abort()` operation will now signal abort.
+The `WritableStream` API does not change. Instead, the existing `abort()` operation will now signal abort.
 
 
 ## Examples
 
-These are some examples of Javascript which can be used for writable streams once this is implemented:
+These are some examples of JavaScript which can be used for writable streams once this is implemented:
 
 In this example, the underlying sink write waits 1 second to simulate a long-running operation. However, if abort() is
 called it stops immediately.
@@ -45,7 +44,7 @@ const ws = new WritableStream({
     return new Promise((resolve, reject) => {
       setTimeout(resolve, 1000);
       controller.signal.addEventListener('abort',
-        () => reject(controller.abortReason()));
+        () => reject(controller.abortReason));
     });
   }
 });
@@ -56,9 +55,9 @@ await writer.abort();
 ```
 
 
-This example shows integration with an existing API that uses AbortSignal. In this case, each write() triggers a POST
-to a remote endpoint using [the fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API). The signal is
-used to abort the ongoing fetch when the stream is aborted.
+This example shows integration with an existing API that uses `AbortSignal`. In this case, each `write()` triggers a
+POST to a remote endpoint using [the fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API). The signal
+is used to abort the ongoing fetch when the stream is aborted.
 
 
 ```javascript
@@ -98,8 +97,8 @@ await writer.abort();
 
 *   Allow writes to be aborted more quickly and efficiently.
 *   WebTransport will be able to use WritableStreamDefaultController.signal to make
-[SendStream's write](https://w3c.github.io/webtransport/#sendstream-write) and
-[close](https://w3c.github.io/webtransport/#sendstream-close) abortable.
+[`SendStream`'s `write()`](https://w3c.github.io/webtransport/#sendstream-write) and
+[`close()`](https://w3c.github.io/webtransport/#sendstream-close) abortable.
 
 
 ## Non-Goals
@@ -110,7 +109,7 @@ would be unclear and confusing.
 
 ## User Benefits
 
-*   Allows `abort` operation to complete more quickly, which avoids wasted resources for sites that take advantage of it.
+*   Allows the abort operation to complete more quickly, which avoids wasted resources for sites that take advantage of it.
 
 
 ## Alternatives
