@@ -82,7 +82,7 @@ This example shows a use case of this feature with WebTransport.
 ```javascript
 const wt = new WebTransport(...);
 await wt.ready;
-const ws = await wt.createUnidirectiaonalStream();
+const ws = await wt.createUnidirectionalStream();
 // `ws` is a WritableStream.
 
 const reallyBigArrayBuffer = …;
