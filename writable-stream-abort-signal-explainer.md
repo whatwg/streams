@@ -18,12 +18,13 @@ streams such as [WebTransport](https://w3c.github.io/webtransport/).
 
 ## API Proposed
 
-On WritableStreamDefaultController (the controller argument that is passed to underlying sinks)
+On [WritableStreamDefaultController](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller)
+(the controller argument that is passed to underlying sinks):
 
-*   abortReason
+*   [abortReason](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortreason)
     *   The argument passed to `writable.abort()` or `writer.abort()`. Undefined if no argument was passed or `abort()`
     hasn't been called.
-*   signal
+*   [signal](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-signal)
     *   An AbortSignal. By using `signal.addEventListener('abort', …)` an underlying sink can abort the pending write
     or close operation when the stream is aborted.
 
