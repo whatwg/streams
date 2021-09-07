@@ -3,4 +3,4 @@ dictionary QueuingStrategy {
   QueuingStrategySize size;
 };
 
-callback QueuingStrategySize = unrestricted double (optional any chunk);
+callback QueuingStrategySize = unrestricted double (any chunk);
