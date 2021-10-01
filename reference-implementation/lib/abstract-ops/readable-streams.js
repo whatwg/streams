@@ -41,6 +41,7 @@ Object.assign(exports, {
   ReadableByteStreamControllerRespondWithNewView,
   ReadableStreamAddReadRequest,
   ReadableStreamBYOBReaderRead,
+  ReadableStreamBYOBReaderRelease,
   ReadableStreamCancel,
   ReadableStreamClose,
   ReadableStreamDefaultControllerCallPullIfNeeded,
@@ -52,6 +53,7 @@ Object.assign(exports, {
   ReadableStreamDefaultControllerGetDesiredSize,
   ReadableStreamDefaultControllerHasBackpressure,
   ReadableStreamDefaultReaderRead,
+  ReadableStreamDefaultReaderRelease,
   ReadableStreamGetNumReadRequests,
   ReadableStreamHasDefaultReader,
   ReadableStreamPipeTo,
@@ -318,7 +320,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
 
     function finalize(isError, error) {
       WritableStreamDefaultWriterRelease(writer);
-      ReadableStreamReaderGenericRelease(reader);
+      ReadableStreamDefaultReaderRelease(reader);
 
       if (signal !== undefined) {
         signal.removeEventListener('abort', abortAlgorithm);
@@ -493,8 +495,7 @@ function ReadableByteStreamTee(stream) {
 
   function pullWithDefaultReader() {
     if (ReadableStreamBYOBReader.isImpl(reader)) {
-      assert(reader._readIntoRequests.length === 0);
-      ReadableStreamReaderGenericRelease(reader);
+      ReadableStreamBYOBReaderRelease(reader);
 
       reader = AcquireReadableStreamDefaultReader(stream);
       forwardReaderError(reader);
@@ -564,8 +565,7 @@ function ReadableByteStreamTee(stream) {
 
   function pullWithBYOBReader(view, forBranch2) {
     if (ReadableStreamDefaultReader.isImpl(reader)) {
-      assert(reader._readRequests.length === 0);
-      ReadableStreamReaderGenericRelease(reader);
+      ReadableStreamDefaultReaderRelease(reader);
 
       reader = AcquireReadableStreamBYOBReader(stream);
       forwardReaderError(reader);
@@ -928,6 +928,11 @@ function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest) {
   }
 }
 
+function ReadableStreamBYOBReaderRelease(reader) {
+  assert(reader._readIntoRequests.length === 0);
+  ReadableStreamReaderGenericRelease(reader);
+}
+
 function ReadableStreamDefaultReaderRead(reader, readRequest) {
   const stream = reader._stream;
 
@@ -943,6 +948,11 @@ function ReadableStreamDefaultReaderRead(reader, readRequest) {
     assert(stream._state === 'readable');
     stream._controller[PullSteps](readRequest);
   }
+}
+
+function ReadableStreamDefaultReaderRelease(reader) {
+  assert(reader._readRequests.length === 0);
+  ReadableStreamReaderGenericRelease(reader);
 }
 
 function SetUpReadableStreamBYOBReader(reader, stream) {
