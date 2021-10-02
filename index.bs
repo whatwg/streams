@@ -2586,9 +2586,10 @@ the {{ReadableStream}}'s public API.
  1. Perform ! [$ReadableStreamClose$](|stream|).
  1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. If |reader| is not undefined and |reader| [=implements=] {{ReadableStreamBYOBReader}},
-  1. [=list/For each=] |readIntoRequest| of |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=],
-   1. Perform |readIntoRequest|'s [=read-into request/close steps=], given undefined.
+  1. Let |readIntoRequests| be |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=].
   1. Set |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] to an empty [=list=].
+  1. [=list/For each=] |readIntoRequest| of |readIntoRequests|,
+   1. Perform |readIntoRequest|'s [=read-into request/close steps=], given undefined.
  1. Let |sourceCancelPromise| be !
     |stream|.[=ReadableStream/[[controller]]=].[$ReadableStreamController/[[CancelSteps]]$](|reason|).
  1. Return the result of [=reacting=] to |sourceCancelPromise| with a fulfillment step that returns
@@ -2605,9 +2606,10 @@ the {{ReadableStream}}'s public API.
  1. If |reader| is undefined, return.
  1. [=Resolve=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with undefined.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
-  1. [=list/For each=] |readRequest| of |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=],
-   1. Perform |readRequest|'s [=read request/close steps=].
+  1. Let |readRequests| be |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=].
   1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to an empty [=list=].
+  1. [=list/For each=] |readRequest| of |readRequests|,
+   1. Perform |readRequest|'s [=read request/close steps=].
 </div>
 
 <div algorithm>
@@ -2622,15 +2624,16 @@ the {{ReadableStream}}'s public API.
  1. [=Reject=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with |e|.
  1. Set |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=].\[[PromiseIsHandled]] to true.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
-  1. [=list/For each=] |readRequest| of |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=],
-    1. Perform |readRequest|'s [=read request/error steps=], given |e|.
+  1. Let |readRequests| be |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=].
   1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to a new empty [=list=].
+  1. [=list/For each=] |readRequest| of |readRequests|,
+    1. Perform |readRequest|'s [=read request/error steps=], given |e|.
  1. Otherwise,
    1. Assert: |reader| [=implements=] {{ReadableStreamBYOBReader}}.
-   1. [=list/For each=] |readIntoRequest| of
-      |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=],
-    1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
+   1. Let |readIntoRequests| be |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=].
    1. Set |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] to a new empty [=list=].
+   1. [=list/For each=] |readIntoRequest| of |readIntoRequests|,
+    1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
 </div>
 
 <div algorithm>

@@ -745,10 +745,11 @@ function ReadableStreamCancel(stream, reason) {
 
   const reader = stream._reader;
   if (reader !== undefined && ReadableStreamBYOBReader.isImpl(reader)) {
-    for (const readIntoRequest of reader._readIntoRequests) {
+    const readIntoRequests = reader._readIntoRequests;
+    reader._readIntoRequests = [];
+    for (const readIntoRequest of readIntoRequests) {
       readIntoRequest.closeSteps(undefined);
     }
-    reader._readIntoRequests = [];
   }
 
   const sourceCancelPromise = stream._controller[CancelSteps](reason);
@@ -769,10 +770,11 @@ function ReadableStreamClose(stream) {
   resolvePromise(reader._closedPromise, undefined);
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
-    for (const readRequest of reader._readRequests) {
+    const readRequests = reader._readRequests;
+    reader._readRequests = [];
+    for (const readRequest of readRequests) {
       readRequest.closeSteps();
     }
-    reader._readRequests = [];
   }
 }
 
@@ -792,19 +794,19 @@ function ReadableStreamError(stream, e) {
   setPromiseIsHandledToTrue(reader._closedPromise);
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
-    for (const readRequest of reader._readRequests) {
+    const readRequests = reader._readRequests;
+    reader._readRequests = [];
+    for (const readRequest of readRequests) {
       readRequest.errorSteps(e);
     }
-
-    reader._readRequests = [];
   } else {
     assert(ReadableStreamBYOBReader.isImpl(reader));
 
-    for (const readIntoRequest of reader._readIntoRequests) {
+    const readIntoRequests = reader._readIntoRequests;
+    reader._readIntoRequests = [];
+    for (const readIntoRequest of readIntoRequests) {
       readIntoRequest.errorSteps(e);
     }
-
-    reader._readIntoRequests = [];
   }
 }
 
