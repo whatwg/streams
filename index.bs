@@ -3136,6 +3136,13 @@ The following abstract operations support the implementation of the
      [$TransferArrayBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=]).
  1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
  1. If ! [$ReadableStreamHasDefaultReader$](|stream|) is true
+  1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not
+     [=list/is empty|empty=],
+   1. Assert: |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=]'s [=list/size=]
+      is 1.
+   1. Assert: |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0]'s [=pull-into
+      descriptor/reader type=] is "`default`".
+   1. Set |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] to a new empty [=list=].
   1. If ! [$ReadableStreamGetNumReadRequests$](|stream|) is 0,
    1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
       |transferredBuffer|, |byteOffset|, |byteLength|).
