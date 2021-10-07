@@ -1288,16 +1288,15 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
   ReadableByteStreamControllerInvalidateBYOBRequest(controller);
 
   if (ReadableStreamHasDefaultReader(stream) === true) {
-    if (controller._pendingPullIntos.length > 0) {
-      assert(controller._pendingPullIntos.length === 1);
-      assert(controller._pendingPullIntos[0].readerType === 'default');
-      controller._pendingPullIntos = [];
-    }
     if (ReadableStreamGetNumReadRequests(stream) === 0) {
+      assert(controller._pendingPullIntos.length === 0);
       ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
     } else {
       assert(controller._queue.length === 0);
-
+      if (controller._pendingPullIntos.length > 0) {
+        assert(controller._pendingPullIntos[0].readerType === 'default');
+        ReadableByteStreamControllerShiftPendingPullInto(controller);
+      }
       const transferredView = new Uint8Array(transferredBuffer, byteOffset, byteLength);
       ReadableStreamFulfillReadRequest(stream, transferredView, false);
     }
