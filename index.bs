@@ -2241,6 +2241,7 @@ create them does not matter.
  1. Assert: |cloneForBranch2| is a boolean.
  1. Let |reader| be ? [$AcquireReadableStreamDefaultReader$](|stream|).
  1. Let |reading| be false.
+ 1. Let |readAgain| be false.
  1. Let |canceled1| be false.
  1. Let |canceled2| be false.
  1. Let |reason1| be undefined.
@@ -2249,13 +2250,15 @@ create them does not matter.
  1. Let |branch2| be undefined.
  1. Let |cancelPromise| be [=a new promise=].
  1. Let |pullAlgorithm| be the following steps:
-  1. If |reading| is true, return [=a promise resolved with=] undefined.
+  1. If |reading| is true,
+   1. Set |readAgain| to true.
+   1. Return [=a promise resolved with=] undefined.
   1. Set |reading| to true.
   1. Let |readRequest| be a [=read request=] with the following [=struct/items=]:
    : [=read request/chunk steps=], given |chunk|
    ::
     1. [=Queue a microtask=] to perform the following steps:
-     1. Set |reading| to false.
+     1. Set |readAgain| to false.
      1. Let |chunk1| and |chunk2| be |chunk|.
      1. If |canceled2| is false and |cloneForBranch2| is true,
       1. Let |cloneResult| be [$StructuredClone$](|chunk2|).
@@ -2271,6 +2274,9 @@ create them does not matter.
      1. If |canceled2| is false, perform !
         [$ReadableStreamDefaultControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
         |chunk2|).
+     1. Set |reading| to false.
+     1. If |readAgain| is true,
+      1. Perform |pullAlgorithm|.
 
     <p class="note">The microtask delay here is necessary because it takes at least a microtask to
     detect errors, when we use |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] below.
@@ -2331,6 +2337,8 @@ create them does not matter.
     {{ReadableByteStreamController}}.
  1. Let |reader| be ? [$AcquireReadableStreamDefaultReader$](|stream|).
  1. Let |reading| be false.
+ 1. Let |readAgainForBranch1| be false.
+ 1. Let |readAgainForBranch2| be false.
  1. Let |canceled1| be false.
  1. Let |canceled2| be false.
  1. Let |reason1| be undefined.
@@ -2357,7 +2365,8 @@ create them does not matter.
    : [=read request/chunk steps=], given |chunk|
    ::
     1. [=Queue a microtask=] to perform the following steps:
-     1. Set |reading| to false.
+     1. Set |readAgainForBranch1| to false.
+     1. Set |readAgainForBranch2| to false.
      1. Let |chunk1| and |chunk2| be |chunk|.
      1. If |canceled1| is false and |canceled2| is false,
       1. Let |cloneResult| be [$CloneAsUint8Array$](|chunk|).
@@ -2373,6 +2382,11 @@ create them does not matter.
      1. If |canceled2| is false, perform !
         [$ReadableByteStreamControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
         |chunk2|).
+     1. Set |reading| to false.
+     1. If |readAgainForBranch1| is true,
+      1. Perform |pull1Algorithm|.
+     1. Otherwise, if |readAgainForBranch2| is true,
+      1. Perform |pull2Algorithm|.
 
     <p class="note">The microtask delay here is necessary because it takes at least a microtask to
     detect errors, when we use |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] below.
@@ -2410,7 +2424,8 @@ create them does not matter.
    : [=read-into request/chunk steps=], given |chunk|
    ::
     1. [=Queue a microtask=] to perform the following steps:
-     1. Set |reading| to false.
+     1. Set |readAgainForBranch1| to false.
+     1. Set |readAgainForBranch2| to false.
      1. Let |byobCanceled| be |canceled2| if |forBranch2| is true, and |canceled1| otherwise.
      1. Let |otherCanceled| be |canceled2| if |forBranch2| is false, and |canceled1| otherwise.
      1. If |otherCanceled| is false,
@@ -2429,6 +2444,11 @@ create them does not matter.
      1. Otherwise, if |byobCanceled| is false, perform !
         [$ReadableByteStreamControllerRespondWithNewView$](|byobBranch|.[=ReadableStream/[[controller]]=],
         |chunk|).
+     1. Set |reading| to false.
+     1. If |readAgainForBranch1| is true,
+      1. Perform |pull1Algorithm|.
+     1. Otherwise, if |readAgainForBranch2| is true,
+      1. Perform |pull2Algorithm|.
 
     <p class="note">The microtask delay here is necessary because it takes at least a microtask to
     detect errors, when we use |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] below.
@@ -2460,14 +2480,18 @@ create them does not matter.
     1. Set |reading| to false.
   1. Perform ! [$ReadableStreamBYOBReaderRead$](|reader|, |view|, |readIntoRequest|).
  1. Let |pull1Algorithm| be the following steps:
-  1. If |reading| is true, return [=a promise resolved with=] undefined.
+  1. If |reading| is true,
+   1. Set |readAgainForBranch1| to true.
+   1. Return [=a promise resolved with=] undefined.
   1. Set |reading| to true.
   1. Let |byobRequest| be ! [$ReadableByteStreamControllerGetBYOBRequest$](|branch1|.[=ReadableStream/[[controller]]=]).
   1. If |byobRequest| is null, perform |pullWithDefaultReader|.
   1. Otherwise, perform |pullWithBYOBReader|, given |byobRequest|.[=ReadableStreamBYOBRequest/[[view]]=] and false.
   1. Return [=a promise resolved with=] undefined.
  1. Let |pull2Algorithm| be the following steps:
-  1. If |reading| is true, return [=a promise resolved with=] undefined.
+  1. If |reading| is true,
+   1. Set |readAgainForBranch2| to true.
+   1. Return [=a promise resolved with=] undefined.
   1. Set |reading| to true.
   1. Let |byobRequest| be ! [$ReadableByteStreamControllerGetBYOBRequest$](|branch2|.[=ReadableStream/[[controller]]=]).
   1. If |byobRequest| is null, perform |pullWithDefaultReader|.
