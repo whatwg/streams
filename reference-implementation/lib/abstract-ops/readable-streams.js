@@ -397,7 +397,7 @@ function ReadableStreamDefaultTee(stream, cloneForBranch2) {
           }
 
           reading = false;
-          if (readAgain) {
+          if (readAgain === true) {
             pullAlgorithm();
           }
         });
@@ -530,9 +530,9 @@ function ReadableByteStreamTee(stream) {
           }
 
           reading = false;
-          if (readAgainForBranch1) {
+          if (readAgainForBranch1 === true) {
             pull1Algorithm();
-          } else if (readAgainForBranch2) {
+          } else if (readAgainForBranch2 === true) {
             pull2Algorithm();
           }
         });
@@ -605,9 +605,9 @@ function ReadableByteStreamTee(stream) {
           }
 
           reading = false;
-          if (readAgainForBranch1) {
+          if (readAgainForBranch1 === true) {
             pull1Algorithm();
-          } else if (readAgainForBranch2) {
+          } else if (readAgainForBranch2 === true) {
             pull2Algorithm();
           }
         });
