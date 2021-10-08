@@ -466,8 +466,8 @@ function ReadableByteStreamTee(stream) {
   assert(ReadableByteStreamController.isImpl(stream._controller));
 
   let reader = AcquireReadableStreamDefaultReader(stream);
-  let readAgainFromBranch1 = false;
-  let readAgainFromBranch2 = false;
+  let readAgainForBranch1 = false;
+  let readAgainForBranch2 = false;
   let reading = false;
   let canceled1 = false;
   let canceled2 = false;
@@ -506,8 +506,8 @@ function ReadableByteStreamTee(stream) {
         // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
         // successful synchronously-available reads get ahead of asynchronously-available errors.
         queueMicrotask(() => {
-          readAgainFromBranch1 = false;
-          readAgainFromBranch2 = false;
+          readAgainForBranch1 = false;
+          readAgainForBranch2 = false;
 
           const chunk1 = chunk;
           let chunk2 = chunk;
@@ -530,9 +530,9 @@ function ReadableByteStreamTee(stream) {
           }
 
           reading = false;
-          if (readAgainFromBranch1) {
+          if (readAgainForBranch1) {
             pull1Algorithm();
-          } else if (readAgainFromBranch2) {
+          } else if (readAgainForBranch2) {
             pull2Algorithm();
           }
         });
@@ -580,8 +580,8 @@ function ReadableByteStreamTee(stream) {
         // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
         // successful synchronously-available reads get ahead of asynchronously-available errors.
         queueMicrotask(() => {
-          readAgainFromBranch1 = false;
-          readAgainFromBranch2 = false;
+          readAgainForBranch1 = false;
+          readAgainForBranch2 = false;
 
           const byobCanceled = forBranch2 ? canceled2 : canceled1;
           const otherCanceled = forBranch2 ? canceled1 : canceled2;
@@ -605,9 +605,9 @@ function ReadableByteStreamTee(stream) {
           }
 
           reading = false;
-          if (readAgainFromBranch1) {
+          if (readAgainForBranch1) {
             pull1Algorithm();
-          } else if (readAgainFromBranch2) {
+          } else if (readAgainForBranch2) {
             pull2Algorithm();
           }
         });
@@ -649,7 +649,7 @@ function ReadableByteStreamTee(stream) {
 
   function pull1Algorithm() {
     if (reading === true) {
-      readAgainFromBranch1 = true;
+      readAgainForBranch1 = true;
       return promiseResolvedWith(undefined);
     }
 
@@ -667,7 +667,7 @@ function ReadableByteStreamTee(stream) {
 
   function pull2Algorithm() {
     if (reading === true) {
-      readAgainFromBranch2 = true;
+      readAgainForBranch2 = true;
       return promiseResolvedWith(undefined);
     }
 
