@@ -7243,6 +7243,12 @@ function makeUDPSocketStream(host, port) {
 
           if (bytesRead === 0) {
             controller.close();
+            // We must also respond to the *next* BYOB request (if any),
+            // to return control of its buffer back to the reader.
+            // This can happen if there are multiple pending BYOB read requests.
+            if (controller.byobRequest) {
+              controller.byobRequest.respond(0);
+            }
             return;
           }
 
@@ -7336,6 +7342,7 @@ function makeReadableByteFileStream(filename) {
       if (bytesRead === 0) {
         await fileHandle.close();
         controller.close();
+        controller.byobRequest.respond(0);
       } else {
         position += bytesRead;
         controller.byobRequest.respond(bytesRead);
