@@ -7234,21 +7234,21 @@ function makeUDPSocketStream(host, port) {
           if (controller.byobRequest) {
             const v = controller.byobRequest.view;
             bytesRead = socket.readInto(v.buffer, v.byteOffset, v.byteLength);
+            if (bytesRead === 0) {
+              controller.close();
+            }
             controller.byobRequest.respond(bytesRead);
           } else {
             const buffer = new ArrayBuffer(DEFAULT_CHUNK_SIZE);
             bytesRead = socket.readInto(buffer, 0, DEFAULT_CHUNK_SIZE);
-            controller.enqueue(new Uint8Array(buffer, 0, bytesRead));
+            if (bytesRead === 0) {
+              controller.close();
+            } else {
+              controller.enqueue(new Uint8Array(buffer, 0, bytesRead));
+            }
           }
 
           if (bytesRead === 0) {
-            controller.close();
-            // We must also respond to the *next* BYOB request (if any),
-            // to return control of its buffer back to the reader.
-            // This can happen if there are multiple pending BYOB read requests.
-            if (controller.byobRequest) {
-              controller.byobRequest.respond(0);
-            }
             return;
           }
 
