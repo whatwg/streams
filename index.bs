@@ -2275,8 +2275,7 @@ create them does not matter.
         [$ReadableStreamDefaultControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
         |chunk2|).
      1. Set |reading| to false.
-     1. If |readAgain| is true,
-      1. Perform |pullAlgorithm|.
+     1. If |readAgain| is true, perform |pullAlgorithm|.
 
     <p class="note">The microtask delay here is necessary because it takes at least a microtask to
     detect errors, when we use |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] below.
@@ -2383,10 +2382,8 @@ create them does not matter.
         [$ReadableByteStreamControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
         |chunk2|).
      1. Set |reading| to false.
-     1. If |readAgainForBranch1| is true,
-      1. Perform |pull1Algorithm|.
-     1. Otherwise, if |readAgainForBranch2| is true,
-      1. Perform |pull2Algorithm|.
+     1. If |readAgainForBranch1| is true, perform |pull1Algorithm|.
+     1. Otherwise, if |readAgainForBranch2| is true, perform |pull2Algorithm|.
 
     <p class="note">The microtask delay here is necessary because it takes at least a microtask to
     detect errors, when we use |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] below.
@@ -2445,10 +2442,8 @@ create them does not matter.
         [$ReadableByteStreamControllerRespondWithNewView$](|byobBranch|.[=ReadableStream/[[controller]]=],
         |chunk|).
      1. Set |reading| to false.
-     1. If |readAgainForBranch1| is true,
-      1. Perform |pull1Algorithm|.
-     1. Otherwise, if |readAgainForBranch2| is true,
-      1. Perform |pull2Algorithm|.
+     1. If |readAgainForBranch1| is true, perform |pull1Algorithm|.
+     1. Otherwise, if |readAgainForBranch2| is true, perform |pull2Algorithm|.
 
     <p class="note">The microtask delay here is necessary because it takes at least a microtask to
     detect errors, when we use |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] below.
