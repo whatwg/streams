@@ -3489,9 +3489,10 @@ The following abstract operations support the implementation of the
     |view|.\[[ViewedArrayBuffer]].\[[ByteLength]], throw a {{RangeError}} exception.
  1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] + |view|.\[[ByteLength]] >
     |firstDescriptor|'s [=pull-into descriptor/byte length=], throw a {{RangeError}} exception.
+ 1. Let |viewByteLength| be |view|.\[[ByteLength]].
  1. Set |firstDescriptor|'s [=pull-into descriptor/buffer=] to ?
     [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
- 1. Perform ? [$ReadableByteStreamControllerRespondInternal$](|controller|, |view|.\[[ByteLength]]).
+ 1. Perform ? [$ReadableByteStreamControllerRespondInternal$](|controller|, |viewByteLength|).
 </div>
 
 <div algorithm>
