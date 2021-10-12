@@ -1634,9 +1634,11 @@ function ReadableByteStreamControllerRespondWithNewView(controller, view) {
     throw new RangeError('The region specified by view is larger than byobRequest');
   }
 
+  const viewByteLength = view.byteLength;
+
   firstDescriptor.buffer = TransferArrayBuffer(view.buffer);
 
-  ReadableByteStreamControllerRespondInternal(controller, view.byteLength);
+  ReadableByteStreamControllerRespondInternal(controller, viewByteLength);
 }
 
 function ReadableByteStreamControllerShiftPendingPullInto(controller) {
