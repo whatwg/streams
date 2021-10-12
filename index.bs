@@ -4508,10 +4508,8 @@ The following abstract operations operate on {{WritableStream}} instances at a h
     |stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[signal]]=].
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. If |state| is "`closed`" or "`errored`", return [=a promise resolved with=] undefined.
-
- <p class="note">We re-check the state because [=signaling abort=] runs author code and that might
- have changed the state.
-
+    <p class="note">We re-check the state because [=signaling abort=] runs author code and that might
+    have changed the state.
  1. If |stream|.[=WritableStream/[[pendingAbortRequest]]=] is not undefined, return
     |stream|.[=WritableStream/[[pendingAbortRequest]]=]'s [=pending abort request/promise=].
  1. Assert: |state| is "`writable`" or "`erroring`".
@@ -5863,7 +5861,7 @@ dictionary QueuingStrategy {
   QueuingStrategySize size;
 };
 
-callback QueuingStrategySize = unrestricted double (optional any chunk);
+callback QueuingStrategySize = unrestricted double (any chunk);
 </xmp>
 
 <dl>
@@ -7236,15 +7234,21 @@ function makeUDPSocketStream(host, port) {
           if (controller.byobRequest) {
             const v = controller.byobRequest.view;
             bytesRead = socket.readInto(v.buffer, v.byteOffset, v.byteLength);
+            if (bytesRead === 0) {
+              controller.close();
+            }
             controller.byobRequest.respond(bytesRead);
           } else {
             const buffer = new ArrayBuffer(DEFAULT_CHUNK_SIZE);
             bytesRead = socket.readInto(buffer, 0, DEFAULT_CHUNK_SIZE);
-            controller.enqueue(new Uint8Array(buffer, 0, bytesRead));
+            if (bytesRead === 0) {
+              controller.close();
+            } else {
+              controller.enqueue(new Uint8Array(buffer, 0, bytesRead));
+            }
           }
 
           if (bytesRead === 0) {
-            controller.close();
             return;
           }
 
@@ -7338,6 +7342,7 @@ function makeReadableByteFileStream(filename) {
       if (bytesRead === 0) {
         await fileHandle.close();
         controller.close();
+        controller.byobRequest.respond(0);
       } else {
         position += bytesRead;
         controller.byobRequest.respond(bytesRead);
