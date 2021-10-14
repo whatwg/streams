@@ -1322,11 +1322,15 @@ The Web IDL definition for the {{ReadableStreamBYOBReader}} class is given as fo
 interface ReadableStreamBYOBReader {
   constructor(ReadableStream stream);
 
-  Promise<ReadableStreamReadResult> read(ArrayBufferView view);
+  Promise<ReadableStreamReadResult> read(ArrayBufferView view, optional ReadableStreamBYOBReaderReadOptions options = {});
   Promise<ReadableStreamReadResult> fill(ArrayBufferView view);
   undefined releaseLock();
 };
 ReadableStreamBYOBReader includes ReadableStreamGenericReader;
+
+dictionary ReadableStreamBYOBReaderReadOptions {
+  [EnforceRange] unsigned long long atLeast;
+};
 </xmp>
 
 <h4 id="byob-reader-internal-slots">Internal slots</h4>
@@ -1463,7 +1467,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
 </div>
 
 <div algorithm>
- The <dfn id="byob-reader-read" method for="ReadableStreamBYOBReader">read(|view|)</dfn>
+ The <dfn id="byob-reader-read" method for="ReadableStreamBYOBReader">read(|view|, |options|)</dfn>
  method steps are:
 
  1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
@@ -1471,6 +1475,19 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
     with=] a {{TypeError}} exception.
  1. If ! [$IsDetachedBuffer$](|view|.\[[ViewedArrayBuffer]]) is true, return
     [=a promise rejected with=] a {{TypeError}} exception.
+ 1. Let |minimumFill| be undefined.
+ 1. If |options|["{{ReadableStreamBYOBReaderReadOptions/atLeast}}"] was given,
+  1. If |view| has a \[[TypedArrayName]] internal slot,
+   1. If |options|["{{ReadableStreamBYOBReaderReadOptions/atLeast}}"] &gt; |view|.\[[ArrayLength]],
+      return [=a promise rejected with=] a {{RangeError}} exception.
+   1. Let |elementSize| be the element size specified in [=the typed array constructors table=] for
+      |view|.\[[TypedArrayName]].
+   1. Set |minimumFill| to |options|["{{ReadableStreamBYOBReaderReadOptions/atLeast}}"] *
+      |elementSize|.
+  1. Otherwise (i.e., it is a {{DataView}}),
+   1. If |options|["{{ReadableStreamBYOBReaderReadOptions/atLeast}}"] &gt; |view|.\[[ByteLength]],
+      return [=a promise rejected with=] a {{RangeError}} exception.
+   1. Set |minimumFill| to |options|["{{ReadableStreamBYOBReaderReadOptions/atLeast}}"].
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected
     with=] a {{TypeError}} exception.
  1. Let |promise| be [=a new promise=].
@@ -1486,7 +1503,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
   : [=read-into request/error steps=], given |e|
   ::
    1. [=Reject=] |promise| with |e|.
- 1. Perform ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|, |readIntoRequest|).
+ 1. Perform ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|, |readIntoRequest|, |minimumFill|).
  1. Return |promise|.
 </div>
 
