@@ -31,10 +31,6 @@ class ReadableStreamDefaultReaderImpl {
       return;
     }
 
-    if (this._readRequests.length > 0) {
-      throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
-    }
-
     aos.ReadableStreamDefaultReaderRelease(this);
   }
 }
