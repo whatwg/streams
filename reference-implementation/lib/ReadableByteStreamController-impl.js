@@ -87,10 +87,10 @@ exports.implementation = class ReadableByteStreamControllerImpl {
         byteOffset: 0,
         byteLength: autoAllocateChunkSize,
         bytesFilled: 0,
+        minimumFill: 1,
         elementSize: 1,
         viewConstructor: Uint8Array,
-        readerType: 'default',
-        minimumFilled: 1
+        readerType: 'default'
       };
 
       this._pendingPullIntos.push(pullIntoDescriptor);

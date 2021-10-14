@@ -913,25 +913,25 @@ function ReadableStreamReaderGenericRelease(reader) {
   reader._stream = undefined;
 }
 
-function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest, minimumFilled) {
+function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest, minimumFill) {
   const stream = reader._stream;
 
   assert(stream !== undefined);
 
   stream._disturbed = true;
 
-  if (minimumFilled === undefined) {
+  if (minimumFill === undefined) {
     let elementSize = 1;
     if (view.constructor !== DataView) {
       elementSize = view.constructor.BYTES_PER_ELEMENT;
     }
-    minimumFilled = elementSize;
+    minimumFill = elementSize;
   }
 
   if (stream._state === 'errored') {
     readIntoRequest.errorSteps(stream._storedError);
   } else {
-    ReadableByteStreamControllerPullInto(stream._controller, view, readIntoRequest, minimumFilled);
+    ReadableByteStreamControllerPullInto(stream._controller, view, readIntoRequest, minimumFill);
   }
 }
 
@@ -1433,11 +1433,11 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
 
   let totalBytesToCopyRemaining = maxBytesToCopy;
   let ready = false;
-  assert(pullIntoDescriptor.bytesFilled < pullIntoDescriptor.minimumFilled);
+  assert(pullIntoDescriptor.bytesFilled < pullIntoDescriptor.minimumFill);
   const maxAlignedBytes = maxBytesFilled - maxBytesFilled % pullIntoDescriptor.elementSize;
   // A descriptor for a read() request that is not yet filled up to its minimum length will stay at the head
   // of the queue, so the underlying source can keep filling it.
-  if (maxAlignedBytes >= pullIntoDescriptor.minimumFilled) {
+  if (maxAlignedBytes >= pullIntoDescriptor.minimumFill) {
     totalBytesToCopyRemaining = maxAlignedBytes - pullIntoDescriptor.bytesFilled;
     ready = true;
   }
@@ -1468,7 +1468,7 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
   if (ready === false) {
     assert(controller._queueTotalSize === 0);
     assert(pullIntoDescriptor.bytesFilled > 0);
-    assert(pullIntoDescriptor.bytesFilled < pullIntoDescriptor.minimumFilled);
+    assert(pullIntoDescriptor.bytesFilled < pullIntoDescriptor.minimumFill);
   }
 
   return ready;
@@ -1570,15 +1570,16 @@ function ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller) {
   }
 }
 
-function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest, minimumFilled) {
+function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest, minimumFill) {
   const stream = controller._stream;
 
   let elementSize = 1;
   if (view.constructor !== DataView) {
     elementSize = view.constructor.BYTES_PER_ELEMENT;
   }
-  assert(minimumFilled >= elementSize && minimumFilled <= view.byteLength);
-  assert(minimumFilled % elementSize === 0);
+
+  assert(minimumFill >= elementSize && minimumFill <= view.byteLength);
+  assert(minimumFill % elementSize === 0);
 
   const ctor = view.constructor;
 
@@ -1596,10 +1597,10 @@ function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest,
     byteOffset: view.byteOffset,
     byteLength: view.byteLength,
     bytesFilled: 0,
+    minimumFill,
     elementSize,
     viewConstructor: ctor,
-    readerType: 'byob',
-    minimumFilled
+    readerType: 'byob'
   };
 
   if (controller._pendingPullIntos.length > 0) {
@@ -1696,7 +1697,7 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
     return;
   }
 
-  if (pullIntoDescriptor.bytesFilled < pullIntoDescriptor.minimumFilled) {
+  if (pullIntoDescriptor.bytesFilled < pullIntoDescriptor.minimumFill) {
     // A descriptor for a read() request that is not yet filled up to its minimum length will stay at the head
     // of the queue, so the underlying source can keep filling it.
     return;
