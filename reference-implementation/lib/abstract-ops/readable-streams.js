@@ -348,6 +348,7 @@ function ReadableStreamDefaultTee(stream, cloneForBranch2) {
   const reader = AcquireReadableStreamDefaultReader(stream);
 
   let reading = false;
+  let readAgain = false;
   let canceled1 = false;
   let canceled2 = false;
   let reason1;
@@ -359,6 +360,7 @@ function ReadableStreamDefaultTee(stream, cloneForBranch2) {
 
   function pullAlgorithm() {
     if (reading === true) {
+      readAgain = true;
       return promiseResolvedWith(undefined);
     }
 
@@ -370,7 +372,7 @@ function ReadableStreamDefaultTee(stream, cloneForBranch2) {
         // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
         // successful synchronously-available reads get ahead of asynchronously-available errors.
         queueMicrotask(() => {
-          reading = false;
+          readAgain = false;
           const chunk1 = chunk;
           const chunk2 = chunk;
 
@@ -390,9 +392,13 @@ function ReadableStreamDefaultTee(stream, cloneForBranch2) {
           if (canceled1 === false) {
             ReadableStreamDefaultControllerEnqueue(branch1._controller, chunk1);
           }
-
           if (canceled2 === false) {
             ReadableStreamDefaultControllerEnqueue(branch2._controller, chunk2);
+          }
+
+          reading = false;
+          if (readAgain === true) {
+            pullAlgorithm();
           }
         });
       },
@@ -460,6 +466,8 @@ function ReadableByteStreamTee(stream) {
   assert(ReadableByteStreamController.isImpl(stream._controller));
 
   let reader = AcquireReadableStreamDefaultReader(stream);
+  let readAgainForBranch1 = false;
+  let readAgainForBranch2 = false;
   let reading = false;
   let canceled1 = false;
   let canceled2 = false;
@@ -498,7 +506,8 @@ function ReadableByteStreamTee(stream) {
         // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
         // successful synchronously-available reads get ahead of asynchronously-available errors.
         queueMicrotask(() => {
-          reading = false;
+          readAgainForBranch1 = false;
+          readAgainForBranch2 = false;
 
           const chunk1 = chunk;
           let chunk2 = chunk;
@@ -518,6 +527,13 @@ function ReadableByteStreamTee(stream) {
           }
           if (canceled2 === false) {
             ReadableByteStreamControllerEnqueue(branch2._controller, chunk2);
+          }
+
+          reading = false;
+          if (readAgainForBranch1 === true) {
+            pull1Algorithm();
+          } else if (readAgainForBranch2 === true) {
+            pull2Algorithm();
           }
         });
       },
@@ -564,7 +580,8 @@ function ReadableByteStreamTee(stream) {
         // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
         // successful synchronously-available reads get ahead of asynchronously-available errors.
         queueMicrotask(() => {
-          reading = false;
+          readAgainForBranch1 = false;
+          readAgainForBranch2 = false;
 
           const byobCanceled = forBranch2 ? canceled2 : canceled1;
           const otherCanceled = forBranch2 ? canceled1 : canceled2;
@@ -585,6 +602,13 @@ function ReadableByteStreamTee(stream) {
             ReadableByteStreamControllerEnqueue(otherBranch._controller, clonedChunk);
           } else if (byobCanceled === false) {
             ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
+          }
+
+          reading = false;
+          if (readAgainForBranch1 === true) {
+            pull1Algorithm();
+          } else if (readAgainForBranch2 === true) {
+            pull2Algorithm();
           }
         });
       },
@@ -625,6 +649,7 @@ function ReadableByteStreamTee(stream) {
 
   function pull1Algorithm() {
     if (reading === true) {
+      readAgainForBranch1 = true;
       return promiseResolvedWith(undefined);
     }
 
@@ -642,6 +667,7 @@ function ReadableByteStreamTee(stream) {
 
   function pull2Algorithm() {
     if (reading === true) {
+      readAgainForBranch2 = true;
       return promiseResolvedWith(undefined);
     }
 
@@ -1289,10 +1315,14 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
 
   if (ReadableStreamHasDefaultReader(stream) === true) {
     if (ReadableStreamGetNumReadRequests(stream) === 0) {
+      assert(controller._pendingPullIntos.length === 0);
       ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
     } else {
       assert(controller._queue.length === 0);
-
+      if (controller._pendingPullIntos.length > 0) {
+        assert(controller._pendingPullIntos[0].readerType === 'default');
+        ReadableByteStreamControllerShiftPendingPullInto(controller);
+      }
       const transferredView = new Uint8Array(transferredBuffer, byteOffset, byteLength);
       ReadableStreamFulfillReadRequest(stream, transferredView, false);
     }
@@ -1634,9 +1664,11 @@ function ReadableByteStreamControllerRespondWithNewView(controller, view) {
     throw new RangeError('The region specified by view is larger than byobRequest');
   }
 
+  const viewByteLength = view.byteLength;
+
   firstDescriptor.buffer = TransferArrayBuffer(view.buffer);
 
-  ReadableByteStreamControllerRespondInternal(controller, view.byteLength);
+  ReadableByteStreamControllerRespondInternal(controller, viewByteLength);
 }
 
 function ReadableByteStreamControllerShiftPendingPullInto(controller) {
