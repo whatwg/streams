@@ -6963,7 +6963,7 @@ each instance's [=GenericTransformStream/transform=] to a [=new=] {{TransformStr
 <var>[=TransformStream/set up/transformAlgorithm=]</var> and optionally
 <var>[=TransformStream/set up/flushAlgorithm=]</var> arguments.
 
-Existing examples of this pattern on the web platform include {{CompressionStream}} and
+Note: Existing examples of this pattern on the web platform include {{CompressionStream}} and
 {{TextDecoderStream}}. [[COMPRESSION]] [[ENCODING]]
 
 <p class="note">There's no need to create a wrapper class if you don't need any API beyond what the
