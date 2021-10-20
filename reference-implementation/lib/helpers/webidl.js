@@ -106,6 +106,7 @@ Object.assign(exports, {
 
 // https://heycam.github.io/webidl/#wait-for-all
 function waitForAll(promises, successSteps, failureSteps) {
+  let fulfilledCount = 0;
   let rejected = false;
   const rejectionHandler = arg => {
     if (rejected === false) {
@@ -114,7 +115,6 @@ function waitForAll(promises, successSteps, failureSteps) {
     }
   };
   let index = 0;
-  let fulfilledCount = 0;
   const total = promises.length;
   const result = new Array(total);
   if (total === 0) {
@@ -136,34 +136,14 @@ function waitForAll(promises, successSteps, failureSteps) {
 }
 
 // https://heycam.github.io/webidl/#waiting-for-all-promise
-exports.waitForAllPromise = (promises, successSteps, failureSteps = undefined) => {
-  let resolveP;
-  let rejectP;
-  const promise = new Promise((resolve, reject) => {
-    resolveP = resolve;
-    rejectP = reject;
-  });
-  if (failureSteps === undefined) {
-    failureSteps = arg => {
-      throw arg;
-    };
-  }
-  const successStepsWrapper = results => {
-    try {
-      const stepsResult = successSteps(results);
-      resolveP(stepsResult);
-    } catch (e) {
-      rejectP(e);
-    }
+exports.waitForAllPromise = promises => {
+  const promise = newPromise();
+  const successSteps = results => {
+    resolvePromise(promise, results);
   };
-  const failureStepsWrapper = reason => {
-    try {
-      const stepsResult = failureSteps(reason);
-      resolveP(stepsResult);
-    } catch (e) {
-      rejectP(e);
-    }
+  const failureSteps = reason => {
+    rejectPromise(promise, reason);
   };
-  waitForAll(promises, successStepsWrapper, failureStepsWrapper);
+  waitForAll(promises, successSteps, failureSteps);
   return promise;
 };
