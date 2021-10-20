@@ -8,7 +8,7 @@ const originalPromiseReject = Promise.reject;
 
 const promiseSideTable = new WeakMap();
 
-// https://heycam.github.io/webidl/#a-new-promise
+// https://webidl.spec.whatwg.org/#a-new-promise
 function newPromise() {
   // The stateIsPending tracking only works if we never resolve the promises with other promises.
   // In this spec, that happens to be true for the promises in question; they are always resolved with undefined.
@@ -22,7 +22,7 @@ function newPromise() {
   return promise;
 }
 
-// https://heycam.github.io/webidl/#resolve
+// https://webidl.spec.whatwg.org/#resolve
 function resolvePromise(p, value) {
   // We intend to only resolve or reject promises that are still pending.
   // When this is not the case, it usually means there's a bug in the specification that we want to fix.
@@ -33,14 +33,14 @@ function resolvePromise(p, value) {
   promiseSideTable.get(p).stateIsPending = false;
 }
 
-// https://heycam.github.io/webidl/#reject
+// https://webidl.spec.whatwg.org/#reject
 function rejectPromise(p, reason) {
   assert(stateIsPending(p) === true);
   promiseSideTable.get(p).reject(reason);
   promiseSideTable.get(p).stateIsPending = false;
 }
 
-// https://heycam.github.io/webidl/#a-promise-resolved-with
+// https://webidl.spec.whatwg.org/#a-promise-resolved-with
 function promiseResolvedWith(value) {
   // Cannot use original Promise.resolve since that will return value itself sometimes, unlike Web IDL.
   const promise = new originalPromise(resolve => resolve(value));
@@ -48,7 +48,7 @@ function promiseResolvedWith(value) {
   return promise;
 }
 
-// https://heycam.github.io/webidl/#a-promise-rejected-with
+// https://webidl.spec.whatwg.org/#a-promise-rejected-with
 function promiseRejectedWith(reason) {
   const promise = originalPromiseReject.call(originalPromise, reason);
   promiseSideTable.set(promise, { stateIsPending: false });
@@ -61,7 +61,7 @@ function PerformPromiseThen(promise, onFulfilled, onRejected) {
   return originalPromiseThen.call(promise, onFulfilled, onRejected);
 }
 
-// https://heycam.github.io/webidl/#dfn-perform-steps-once-promise-is-settled
+// https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled
 function uponPromise(promise, onFulfilled, onRejected) {
   PerformPromiseThen(
     PerformPromiseThen(promise, onFulfilled, onRejected),
@@ -104,7 +104,7 @@ Object.assign(exports, {
   stateIsPending
 });
 
-// https://heycam.github.io/webidl/#wait-for-all
+// https://webidl.spec.whatwg.org/#wait-for-all
 function waitForAll(promises, successSteps, failureSteps) {
   let fulfilledCount = 0;
   let rejected = false;
@@ -135,7 +135,7 @@ function waitForAll(promises, successSteps, failureSteps) {
   }
 }
 
-// https://heycam.github.io/webidl/#waiting-for-all-promise
+// https://webidl.spec.whatwg.org/#waiting-for-all-promise
 exports.waitForAllPromise = promises => {
   const promise = newPromise();
   const successSteps = results => {
