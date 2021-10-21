@@ -164,7 +164,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
             return promiseResolvedWith(undefined);
           });
         }
-        shutdownWithAction(() => waitForAllPromise(actions.map(action => action()), results => results), true, error);
+        shutdownWithAction(() => waitForAllPromise(actions.map(action => action())), true, error);
       };
 
       if (signal.aborted === true) {
