@@ -21,8 +21,6 @@ streams such as [WebTransport](https://w3c.github.io/webtransport/).
 On [WritableStreamDefaultController](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller)
 (the controller argument that is passed to underlying sinks):
 
-*   [`abortReason`](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortreason): The argument passed
-to `writable.abort()` or `writer.abort()`. Undefined if no argument was passed or `abort()` hasn't been called.
 *   [`signal`](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-signal): An AbortSignal. By using
 `signal.addEventListener('abort', …)` an underlying sink can abort the pending write or close operation when the
 stream is aborted.
@@ -44,7 +42,7 @@ const ws = new WritableStream({
     return new Promise((resolve, reject) => {
       setTimeout(resolve, 1000);
       controller.signal.addEventListener('abort',
-        () => reject(controller.abortReason));
+        () => reject(controller.signal.reason));
     });
   }
 });
@@ -117,3 +115,6 @@ would be unclear and confusing.
 *   It was initially proposed that an `AbortSignal` could be passed to each sink `write()` call. However, since the
 abort signal does not need to change between two `write()` calls, it was thought better to just add a `signal` property
 on `WritableStreamDefaultController`.
+*   Previously, [WritableStreamDefaultController](https://streams.spec.whatwg.org/#writablestreamdefaultcontroller) had
+an `abortReason` property that was an argument given to
+[WritableStreamAbort](https://streams.spec.whatwg.org/#writable-stream-abort). However, after some discussion, it was thought better to just add the `reason` property to the `AbortSignal`.
