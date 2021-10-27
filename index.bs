@@ -4520,7 +4520,8 @@ The following abstract operations operate on {{WritableStream}} instances at a h
  1. If |stream|.[=WritableStream/[[state]]=] is "`closed`" or "`errored`", return
     [=a promise resolved with=] undefined.
  1. [=Signal abort=] on
-    |stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[signal]]=].
+    |stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[signal]]=] with
+    |reason|.
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. If |state| is "`closed`" or "`errored`", return [=a promise resolved with=] undefined.
     <p class="note">We re-check the state because [=signaling abort=] runs author code and that might
