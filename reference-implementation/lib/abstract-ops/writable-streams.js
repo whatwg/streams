@@ -107,7 +107,7 @@ function WritableStreamAbort(stream, reason) {
   if (stream._state === 'closed' || stream._state === 'errored') {
     return promiseResolvedWith(undefined);
   }
-  stream._controller._abortController.abort();
+  stream._controller._abortController.abort(reason);
   const state = stream._state;
   if (state === 'closed' || state === 'errored') {
     return promiseResolvedWith(undefined);
