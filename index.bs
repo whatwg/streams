@@ -4288,7 +4288,6 @@ The Web IDL definition for the {{WritableStreamDefaultController}} class is give
 <xmp class="idl">
 [Exposed=(Window,Worker,Worklet)]
 interface WritableStreamDefaultController {
-  readonly attribute any abortReason;
   readonly attribute AbortSignal signal;
   undefined error(optional any e);
 };
@@ -4309,9 +4308,6 @@ the following table:
    <td><dfn>\[[abortAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm, taking one argument (the abort reason),
    which communicates a requested abort to the [=underlying sink=]
-  <tr>
-   <td><dfn>\[[abortReason]]</dfn>
-   <td class="non-normative">The argument given to [$WritableStreamAbort$], or undefined.
   <tr>
    <td><dfn>\[[closeAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm which communicates a requested close to
@@ -4370,13 +4366,6 @@ closed. It is only used internally, and is never exposed to web developers.
   in response to an event outside the normal lifecycle of interactions with the [=underlying
   sink=].
 </dl>
-
-<div algorithm>
- The <dfn id="ws-default-controller-abort-reason" attribute
- for="WritableStreamDefaultController">abortReason</dfn> getter steps are:
-
- 1. Return [=this=].[=WritableStreamDefaultController/[[abortReason]]=].
-</div>
 
 <div algorithm>
  The <dfn id="ws-default-controller-signal" attribute
@@ -4528,9 +4517,6 @@ The following abstract operations operate on {{WritableStream}} instances at a h
 
  1. If |stream|.[=WritableStream/[[state]]=] is "`closed`" or "`errored`", return
     [=a promise resolved with=] undefined.
- 1. Set
-    |stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[abortReason]]=]
-    to |reason|.
  1. [=Signal abort=] on
     |stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[signal]]=].
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
@@ -4960,7 +4946,6 @@ The following abstract operations support the implementation of the
  1. Set |controller|.[=WritableStreamDefaultController/[[stream]]=] to |stream|.
  1. Set |stream|.[=WritableStream/[[controller]]=] to |controller|.
  1. Perform ! [$ResetQueue$](|controller|).
- 1. Set |controller|.[=WritableStreamDefaultController/[[abortReason]]=] to undefined.
  1. Set |controller|.[=WritableStreamDefaultController/[[signal]]=] to a new {{AbortSignal}}.
  1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to false.
  1. Set |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=] to
@@ -6963,7 +6948,7 @@ each instance's [=GenericTransformStream/transform=] to a [=new=] {{TransformStr
 <var>[=TransformStream/set up/transformAlgorithm=]</var> and optionally
 <var>[=TransformStream/set up/flushAlgorithm=]</var> arguments.
 
-Existing examples of this pattern on the web platform include {{CompressionStream}} and
+Note: Existing examples of this pattern on the web platform include {{CompressionStream}} and
 {{TextDecoderStream}}. [[COMPRESSION]] [[ENCODING]]
 
 <p class="note">There's no need to create a wrapper class if you don't need any API beyond what the
