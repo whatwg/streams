@@ -2101,9 +2101,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
  1. Let |promise| be [=a new promise=].
  1. If |signal| is not undefined,
   1. Let |abortAlgorithm| be the following steps:
-   1. If |signal|'s [=AbortSignal/abort reason=] is not undefined, let |error| be |signal|'s
-      [=AbortSignal/abort reason=].
-   1. Otherwise, let |error| be a new "{{AbortError}}" {{DOMException}}.
+   1. Let |error| be |signal|'s [=AbortSignal/abort reason=].
    1. Let |actions| be an empty [=ordered set=].
    1. If |preventAbort| is false, [=set/append=] the following action to |actions|:
      1. If |dest|.[=WritableStream/[[state]]=] is "`writable`", return !

@@ -146,9 +146,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     let abortAlgorithm;
     if (signal !== undefined) {
       abortAlgorithm = () => {
-        const error = signal.reason !== undefined ?
-          signal.reason :
-          new DOMException('Aborted', 'AbortError');
+        const error = signal.reason;
         const actions = [];
         if (preventAbort === false) {
           actions.push(() => {
