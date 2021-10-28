@@ -29,7 +29,7 @@ Writable streams shine in situations where:
 
 ## Are streams only for byte data?
 
-No! Although streams are designed around I/O use cases, the APIs in the Streams Standard accomodate other types of chunks flowing through the streams just as well. Although usually the original source of or ultimate sink for I/O deals in bytes, there are many steps in between where streaming APIs are important, and they are meant to play well there too.
+No! Although streams are designed around I/O use cases, the APIs in the Streams Standard accommodate other types of chunks flowing through the streams just as well. Although usually the original source of or ultimate sink for I/O deals in bytes, there are many steps in between where streaming APIs are important, and they are meant to play well there too.
 
 For example, your program could easily have readable stream of JavaScript objects representing users. This stream was probably originally derived from a readable stream of bytes coming from a HTTP request; maybe there was even an intermediate stream of decoded text. But the same APIs work for all of these streams: it is only the chunk type that differs.
 
