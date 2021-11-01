@@ -2113,8 +2113,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
      1. Otherwise, return [=a promise resolved with=] undefined.
    1. [=Shutdown with an action=] consisting of [=getting a promise to wait for all=] of the actions
       in |actions|, and with |error|.
-  1. If |signal|'s [=AbortSignal/aborted flag=] is set, perform |abortAlgorithm| and return
-     |promise|.
+  1. If |signal| is [=AbortSignal/aborted=], perform |abortAlgorithm| and return |promise|.
   1. [=AbortSignal/Add=] |abortAlgorithm| to |signal|.
  1. [=In parallel=] <span class="XXX">but not really; see <a
     href="https://github.com/whatwg/streams/issues/905">#905</a></span>, using |reader| and
