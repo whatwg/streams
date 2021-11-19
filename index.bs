@@ -2101,7 +2101,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
  1. Let |promise| be [=a new promise=].
  1. If |signal| is not undefined,
   1. Let |abortAlgorithm| be the following steps:
-   1. Let |error| be a new "{{AbortError}}" {{DOMException}}.
+   1. Let |error| be |signal|'s [=AbortSignal/abort reason=].
    1. Let |actions| be an empty [=ordered set=].
    1. If |preventAbort| is false, [=set/append=] the following action to |actions|:
      1. If |dest|.[=WritableStream/[[state]]=] is "`writable`", return !
@@ -2113,8 +2113,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
      1. Otherwise, return [=a promise resolved with=] undefined.
    1. [=Shutdown with an action=] consisting of [=getting a promise to wait for all=] of the actions
       in |actions|, and with |error|.
-  1. If |signal|'s [=AbortSignal/aborted flag=] is set, perform |abortAlgorithm| and return
-     |promise|.
+  1. If |signal| is [=AbortSignal/aborted=], perform |abortAlgorithm| and return |promise|.
   1. [=AbortSignal/Add=] |abortAlgorithm| to |signal|.
  1. [=In parallel=] <span class="XXX">but not really; see <a
     href="https://github.com/whatwg/streams/issues/905">#905</a></span>, using |reader| and
@@ -4518,7 +4517,8 @@ The following abstract operations operate on {{WritableStream}} instances at a h
  1. If |stream|.[=WritableStream/[[state]]=] is "`closed`" or "`errored`", return
     [=a promise resolved with=] undefined.
  1. [=Signal abort=] on
-    |stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[signal]]=].
+    |stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[signal]]=] with
+    |reason|.
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
  1. If |state| is "`closed`" or "`errored`", return [=a promise resolved with=] undefined.
     <p class="note">We re-check the state because [=signaling abort=] runs author code and that might
