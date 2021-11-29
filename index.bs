@@ -7302,7 +7302,7 @@ function makeReadableFileStream(filename) {
     },
 
     async pull(controller) {
-      const buffer = new ArrayBuffer(CHUNK_SIZE);
+      const buffer = new Uint8Array(CHUNK_SIZE);
 
       const { bytesRead } = await fileHandle.read(buffer, 0, CHUNK_SIZE, position);
       if (bytesRead === 0) {
@@ -7310,7 +7310,7 @@ function makeReadableFileStream(filename) {
         controller.close();
       } else {
         position += bytesRead;
-        controller.enqueue(new Uint8Array(buffer, 0, bytesRead));
+        controller.enqueue(buffer.subarray(0, bytesRead));
       }
     },
 
@@ -7350,7 +7350,7 @@ function makeReadableByteFileStream(filename) {
       // feature allocates a buffer and passes it to us via byobRequest.
       const v = controller.byobRequest.view;
 
-      const { bytesRead } = await fileHandle.read(v.buffer, v.byteOffset, v.byteLength);
+      const { bytesRead } = await fileHandle.read(v, 0, v.byteLength, position);
       if (bytesRead === 0) {
         await fileHandle.close();
         controller.close();
@@ -7362,7 +7362,7 @@ function makeReadableByteFileStream(filename) {
     },
 
     cancel() {
-      return fs.close(fd);
+      return fileHandle.close();
     },
 
     autoAllocateChunkSize: DEFAULT_CHUNK_SIZE
@@ -7470,11 +7470,11 @@ function makeWritableFileStream(filename) {
     },
 
     close() {
-      return fs.close(fd);
+      return fileHandle.close();
     },
 
     abort() {
-      return fs.close(fd);
+      return fileHandle.close();
     }
   });
 }
@@ -7834,6 +7834,7 @@ Isaac Schlueter,
 isonmad,
 Jake Archibald,
 Jake Verbaten,
+James Pryor,
 Janessa Det,
 Jason Orendorff,
 Jeffrey Yasskin,
