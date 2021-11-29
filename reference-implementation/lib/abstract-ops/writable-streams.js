@@ -659,7 +659,7 @@ function WritableStreamDefaultControllerErrorIfNeeded(controller, error) {
 }
 
 function WritableStreamDefaultControllerGetBackpressure(controller) {
-  if (controller._releaseBackpressure === true) {
+  if (controller._releaseBackpressure === true && controller._queue.length === 0) {
     return false;
   }
   const desiredSize = WritableStreamDefaultControllerGetDesiredSize(controller);
