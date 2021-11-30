@@ -542,9 +542,9 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
   controller._queueTotalSize = undefined;
   ResetQueue(controller);
 
+  controller._releaseBackpressure = false;
   controller._abortController = new AbortController();
   controller._started = false;
-  controller._releaseBackpressure = false;
 
   controller._strategySizeAlgorithm = sizeAlgorithm;
   controller._strategyHWM = highWaterMark;

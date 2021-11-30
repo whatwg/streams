@@ -4295,11 +4295,12 @@ following table:
 
  <dt><code>await <var ignore>writer</var>.{{WritableStreamDefaultWriter/ready}}</code>
  <dd>
-  <p>Returns a promise that will be fulfilled when the [=desired size to fill a stream's internal
-  queue|desired size to fill the stream's internal queue=] transitions from non-positive to
-  positive, signaling that it is no longer applying [=backpressure=]. Once the [=desired size to
-  fill a stream's internal queue|desired size=] dips back to zero or below, the getter will return
-  a new promise that stays pending until the next transition.
+  <p>Returns a promise that will be fulfilled when either the [=desired size to fill a stream's
+  internal queue|desired size to fill the stream's internal queue=] transitions from non-positive to
+  positive or when the stream calls {{WritableStreamDefaultController/releaseBackpressure()}},
+  signaling that it is no longer applying [=backpressure=].
+  Once the [=desired size to fill a stream's internal queue|desired size=] dips back to zero or below,
+  the getter will return a new promise that stays pending until the next transition.
 
   <p>If the stream becomes errored or aborted, or the writer's lock is [=release a write
   lock|released=], the returned promise will become rejected.
@@ -4425,6 +4426,7 @@ The Web IDL definition for the {{WritableStreamDefaultController}} class is give
 interface WritableStreamDefaultController {
   readonly attribute AbortSignal signal;
   undefined error(optional any e);
+  undefined releaseBackpressure();
 };
 </xmp>
 
@@ -4454,6 +4456,10 @@ the following table:
    <td><dfn>\[[queueTotalSize]]</dfn>
    <td class="non-normative">The total size of all the chunks stored in
    [=WritableStreamDefaultController/[[queue]]=] (see [[#queue-with-sizes]])
+  <tr>
+   <td><dfn>\[[releaseBackpressure]]</dfn>
+   <td class="non-normative">A boolean flag indicating whether to release backpressure until the
+   next chunk is written
   <tr>
    <td><dfn>\[[signal]]</dfn>
    <td class="non-normative">An {{AbortSignal}} that can be used to abort the pending write or
@@ -4500,6 +4506,17 @@ closed. It is only used internally, and is never exposed to web developers.
   the [=underlying sink=]'s methods. However, it can be useful for suddenly shutting down a stream
   in response to an event outside the normal lifecycle of interactions with the [=underlying
   sink=].
+ <dt><code><var ignore>controller</var>.{{WritableStreamDefaultController/releaseBackpressure()|releaseBackpressure}}()</code>
+ <dd>
+  <p>Releases [=backpressure=] until the next chunk is written. If there are still chunks in the queue,
+  this does nothing.
+
+  <p>Usually, backpressure is automatically released when the [=desired size to fill a stream's
+  internal queue|desired size to fill the stream's internal queue=] becomes positive. However,
+  if the stream is created with a [=high water mark=] of zero, then the desired size is always at or
+  below zero, and the stream would always apply backpressure.
+  This method allows the [=underlying sink=] to manually release backpressure, for example when it
+  knows that now is a good time for the [=producer=] to write a new chunk.
 </dl>
 
 <div algorithm>
@@ -4516,6 +4533,15 @@ closed. It is only used internally, and is never exposed to web developers.
  1. Let |state| be [=this=].[=WritableStreamDefaultController/[[stream]]=].[=WritableStream/[[state]]=].
  1. If |state| is not "`writable`", return.
  1. Perform ! [$WritableStreamDefaultControllerError$]([=this=], |e|).
+</div>
+
+<div algorithm>
+ The <dfn id="ws-default-controller-release-backpressure" method
+ for="WritableStreamDefaultController">releaseBackpressure()</dfn> method steps are:
+
+ 1. Let |state| be [=this=].[=WritableStreamDefaultController/[[stream]]=].[=WritableStream/[[state]]=].
+ 1. If |state| is not "`writable`", return.
+ 1. Perform ! [$WritableStreamDefaultControllerReleaseBackpressure$]([=this=]).
 </div>
 
 <h4 id="ws-default-controller-internal-methods">Internal methods</h4>
@@ -5082,6 +5108,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.[=WritableStreamDefaultController/[[stream]]=] to |stream|.
  1. Set |stream|.[=WritableStream/[[controller]]=] to |controller|.
  1. Perform ! [$ResetQueue$](|controller|).
+ 1. Set |controller|.[=WritableStreamDefaultController/[[releaseBackpressure]]=] to false.
  1. Set |controller|.[=WritableStreamDefaultController/[[signal]]=] to a new {{AbortSignal}}.
  1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to false.
  1. Set |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=] to
@@ -5213,6 +5240,8 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-get-backpressure">WritableStreamDefaultControllerGetBackpressure(|controller|)</dfn>
  performs the following steps:
 
+ 1. If |controller|.[=WritableStreamDefaultController/[[releaseBackpressure]]=] is true and
+    |controller|.[=WritableStreamDefaultController/[[queue]]=] [=list/is empty=], return false.
  1. Let |desiredSize| be ! [$WritableStreamDefaultControllerGetDesiredSize$](|controller|).
  1. Return true if |desiredSize| ≤ 0, or false otherwise.
 </div>
@@ -5284,6 +5313,20 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
+ <dfn abstract-op lt="WritableStreamDefaultControllerReleaseBackpressure"
+ id="writable-stream-default-controller-release-backpressure">WritableStreamDefaultControllerReleaseBackpressure(|controller|)</dfn>
+ performs the following steps:
+
+ 1. Let |stream| be |controller|.[=WritableStreamDefaultController/[[stream]]=].
+ 1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`".
+ 1. Set |controller|.[=WritableStreamDefaultController/[[releaseBackpressure]]=] to true.
+ 1. If ! [$WritableStreamHasOperationMarkedInFlight$](|stream|) is false and
+    [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false,
+  1. Let |backpressure| be ! [$WritableStreamDefaultControllerGetBackpressure$](|controller|).
+  1. Perform ! [$WritableStreamUpdateBackpressure$](|stream|, |backpressure|).
+</div>
+
+<div algorithm>
  <dfn abstract-op lt="WritableStreamDefaultControllerWrite"
  id="writable-stream-default-controller-write">WritableStreamDefaultControllerWrite(|controller|,
  |chunk|, |chunkSize|)</dfn> performs the following steps:
@@ -5293,6 +5336,7 @@ The following abstract operations support the implementation of the
   1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|controller|,
      |enqueueResult|.\[[Value]]).
   1. Return.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[releaseBackpressure]]=] to false.
  1. Let |stream| be |controller|.[=WritableStreamDefaultController/[[stream]]=].
  1. If ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false and
     |stream|.[=WritableStream/[[state]]=] is "`writable`",
@@ -5805,6 +5849,9 @@ The following abstract operations operate on {{TransformStream}} instances at a 
     stream.[=TransformStream/[[backpressureChangePromise]]=] with undefined.
  1. Set |stream|.[=TransformStream/[[backpressureChangePromise]]=] to [=a new promise=].
  1. Set |stream|.[=TransformStream/[[backpressure]]=] to |backpressure|.
+ 1. If |backpressure| is false and |stream|.[=TransformStream/[[writable]]=].[=WritableStream/[[state]]=]
+    is "`writable`", perform !
+    [$WritableStreamDefaultControllerReleaseBackpressure$](|stream|.[=TransformStream/[[writable]]=].[=WritableStream/[[controller]]=]).
 </div>
 
 <h4 id="ts-default-controller-abstract-ops">Default controllers</h4>
