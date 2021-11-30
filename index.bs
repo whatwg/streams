@@ -7083,9 +7083,11 @@ reason.
  an identity {{TransformStream}}</dfn>:
 
  1. Let |transformStream| be a [=new=] {{TransformStream}}.
+ 1. Let |transformAlgorithm| be an algorithm which, given |chunk|, [=TransformStream/enqueues=]
+    |chunk| in |transformStream|.
  1. [=TransformStream/Set up=] |transformStream| with <var
-    ignore>[=TransformStream/set up/transformAlgorithm=]</var> set to an algorithm which, given
-    |chunk|, [=TransformStream/enqueues=] |chunk| in |transformStream|.
+    ignore>[=TransformStream/set up/transformAlgorithm=]</var> set to |transformAlgorithm| and <var
+    ignore>[=TransformStream/set up/writableHighWaterMark=]</var> set to 0.
  1. Return |transformStream|.
 </div>
 
