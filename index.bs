@@ -6953,7 +6953,7 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
  up"><var>writeAlgorithm</var></dfn>, an optional algorithm <dfn export for="WritableStream/set
  up"><var>closeAlgorithm</var></dfn>, an optional algorithm <dfn export for="WritableStream/set
  up"><var>abortAlgorithm</var></dfn>, an optional number <dfn export for="WritableStream/set
- up"><var>highWaterMark</var></dfn> (default 1), an optional algorithm <dfn export
+ up"><var>highWaterMark</var></dfn> (default 1), and an optional algorithm <dfn export
  for="WritableStream/set up"><var>sizeAlgorithm</var></dfn>, perform the following steps.
  |writeAlgorithm| must be an algorithm that accepts a [=chunk=] object and returns a promise. If
  given, |closeAlgorithm| and |abortAlgorithm| may return a promise. If given, |sizeAlgorithm| must
@@ -7034,14 +7034,22 @@ reason.
 <div algorithm="create a TransformStream">
  To <dfn export for="TransformStream" lt="set up|setting up">set up</dfn> a
  newly-[=new|created-via-Web IDL=] {{TransformStream}} |stream| given an algorithm <dfn export
- for="TransformStream/set up"><var>transformAlgorithm</var></dfn> and an optional algorithm <dfn
- export for="TransformStream/set up"><var>flushAlgorithm</var></dfn>, perform the following steps.
+ for="TransformStream/set up"><var>transformAlgorithm</var></dfn>, an optional algorithm <dfn
+ export for="TransformStream/set up"><var>flushAlgorithm</var></dfn>, an optional number <dfn
+ export for="TransformStream/set up"><var>writableHighWaterMark</var></dfn> (default 1), an optional
+ algorithm <dfn export for="TransformStream/set up"><var>writableSizeAlgorithm</var></dfn>, an
+ optional number <dfn export for="TransformStream/set up"><var>readableHighWaterMark</var></dfn>
+ (default 0), and an optional algorithm <dfn export
+ for="TransformStream/set up"><var>readableSizeAlgorithm</var></dfn>, perform the following steps.
  |transformAlgorithm| and, if given, |flushAlgorithm|, may return a promise.
+ If given, |writableSizeAlgorithm| and |readableSizeAlgorithm| must be algorithms accepting
+ [=chunk=] objects and returning a number; and if given, |writableHighWaterMark| and
+ |readableHighWaterMark| must be non-negative, non-NaN numbers.
 
- 1. Let |writableHighWaterMark| be 1.
- 1. Let |writableSizeAlgorithm| be an algorithm that returns 1.
- 1. Let |readableHighWaterMark| be 0.
- 1. Let |readableSizeAlgorithm| be an algorithm that returns 1.
+ 1. If |writableSizeAlgorithm| was not given, let |writableSizeAlgorithm| be an algorithm that
+    returns 1.
+ 1. If |readableSizeAlgorithm| was not given, let |readableSizeAlgorithm| be an algorithm that
+    returns 1.
  1. Let |transformAlgorithmWrapper| be an algorithm that runs these steps given a value |chunk|:
   1. Let |result| be the result of running |transformAlgorithm| given |chunk|. If this throws an
      exception |e|, return [=a promise rejected with=] |e|.
@@ -7086,7 +7094,7 @@ reason.
 The following algorithms must only be used on {{TransformStream}} instances initialized via the
 above [=TransformStream/set up=] algorithm. Usually they are called as part of
 <var>[=TransformStream/set up/transformAlgorithm=]</var> or
-<var>[=TransformStream/set up/flushAlgorithm=]</var>.
+<var ignore>[=TransformStream/set up/flushAlgorithm=]</var>.
 
 <p algorithm>To <dfn export for="TransformStream">enqueue</dfn> the JavaScript value |chunk| into a
 {{TransformStream}} |stream|, perform !
@@ -7129,8 +7137,7 @@ Including the {{GenericTransformStream}} mixin will give an IDL interface the ap
 the behavior of the resulting interface, its constructor (or other initialization code) must set
 each instance's [=GenericTransformStream/transform=] to a [=new=] {{TransformStream}}, and then
 [=TransformStream/set up|set it up=] with appropriate customizations via the
-<var>[=TransformStream/set up/transformAlgorithm=]</var> and optionally
-<var>[=TransformStream/set up/flushAlgorithm=]</var> arguments.
+<var>[=TransformStream/set up/transformAlgorithm=]</var> and any optional arguments.
 
 Note: Existing examples of this pattern on the web platform include {{CompressionStream}} and
 {{TextDecoderStream}}. [[COMPRESSION]] [[ENCODING]]
