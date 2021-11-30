@@ -2,7 +2,7 @@
 interface ReadableStreamDefaultController {
   readonly attribute unrestricted double? desiredSize;
 
-  void close();
-  void enqueue(optional any chunk);
-  void error(optional any e);
+  undefined close();
+  undefined enqueue(optional any chunk);
+  undefined error(optional any e);
 };

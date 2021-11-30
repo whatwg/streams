@@ -1,10 +1,10 @@
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=(Window,Worker,Worklet), Transferable]
 interface WritableStream {
   constructor(optional object underlyingSink, optional QueuingStrategy strategy = {});
 
   readonly attribute boolean locked;
 
-  Promise<void> abort(optional any reason);
-  Promise<void> close();
+  Promise<undefined> abort(optional any reason);
+  Promise<undefined> close();
   WritableStreamDefaultWriter getWriter();
 };

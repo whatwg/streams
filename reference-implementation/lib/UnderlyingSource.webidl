@@ -9,7 +9,7 @@ dictionary UnderlyingSource {
 typedef (ReadableStreamDefaultController or ReadableByteStreamController) ReadableStreamController;
 
 callback UnderlyingSourceStartCallback = any (ReadableStreamController controller);
-callback UnderlyingSourcePullCallback = Promise<void> (ReadableStreamController controller);
-callback UnderlyingSourceCancelCallback = Promise<void> (optional any reason);
+callback UnderlyingSourcePullCallback = Promise<undefined> (ReadableStreamController controller);
+callback UnderlyingSourceCancelCallback = Promise<undefined> (optional any reason);
 
 enum ReadableStreamType { "bytes" };
