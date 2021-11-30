@@ -1,4 +1,4 @@
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=(Window,Worker,Worklet), Transferable]
 interface TransformStream {
   constructor(optional object transformer,
               optional QueuingStrategy writableStrategy = {},

@@ -1,13 +1,13 @@
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=(Window,Worker,Worklet), Transferable]
 interface ReadableStream {
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
   readonly attribute boolean locked;
 
-  Promise<void> cancel(optional any reason);
+  Promise<undefined> cancel(optional any reason);
   ReadableStreamReader getReader(optional ReadableStreamGetReaderOptions options = {});
   ReadableStream pipeThrough(ReadableWritablePair transform, optional StreamPipeOptions options = {});
-  Promise<void> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
+  Promise<undefined> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
   sequence<ReadableStream> tee();
 
   [WebIDL2JSHasReturnSteps] async iterable<any>(optional ReadableStreamIteratorOptions options = {});

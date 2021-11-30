@@ -2,6 +2,6 @@
 interface ReadableStreamBYOBRequest {
   readonly attribute ArrayBufferView? view;
 
-  void respond([EnforceRange] unsigned long long bytesWritten);
-  void respondWithNewView(ArrayBufferView view);
+  undefined respond([EnforceRange] unsigned long long bytesWritten);
+  undefined respondWithNewView(ArrayBufferView view);
 };

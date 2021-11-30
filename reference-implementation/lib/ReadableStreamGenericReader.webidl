@@ -1,5 +1,5 @@
 interface mixin ReadableStreamGenericReader {
-  readonly attribute Promise<void> closed;
+  readonly attribute Promise<undefined> closed;
 
-  Promise<void> cancel(optional any reason);
+  Promise<undefined> cancel(optional any reason);
 };
