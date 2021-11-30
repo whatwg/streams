@@ -5295,6 +5295,7 @@ The following abstract operations support the implementation of the
 
  1. Let |stream| be |controller|.[=WritableStreamDefaultController/[[stream]]=].
  1. Perform ! [$WritableStreamMarkFirstWriteRequestInFlight$](|stream|).
+ 1. Set |controller|.[=WritableStreamDefaultController/[[releaseBackpressure]]=] to false.
  1. Let |sinkWritePromise| be the result of performing
     |controller|.[=WritableStreamDefaultController/[[writeAlgorithm]]=], passing in |chunk|.
  1. [=Upon fulfillment=] of |sinkWritePromise|,

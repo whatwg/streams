@@ -704,6 +704,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   const stream = controller._stream;
 
   WritableStreamMarkFirstWriteRequestInFlight(stream);
+  controller._releaseBackpressure = false;
 
   const sinkWritePromise = controller._writeAlgorithm(chunk);
   uponPromise(
