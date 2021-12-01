@@ -5321,7 +5321,7 @@ The following abstract operations support the implementation of the
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`".
  1. Set |controller|.[=WritableStreamDefaultController/[[releaseBackpressure]]=] to true.
  1. If ! [$WritableStreamHasOperationMarkedInFlight$](|stream|) is false and
-    [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false,
+    ! [$WritableStreamCloseQueuedOrInFlight$](|stream|) is false,
   1. Let |backpressure| be ! [$WritableStreamDefaultControllerGetBackpressure$](|controller|).
   1. Perform ! [$WritableStreamUpdateBackpressure$](|stream|, |backpressure|).
 </div>
