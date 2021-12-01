@@ -5314,8 +5314,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="WritableStreamDefaultControllerReleaseBackpressure"
- id="writable-stream-default-controller-release-backpressure">WritableStreamDefaultControllerReleaseBackpressure(|controller|)</dfn>
+ <dfn abstract-op lt="WritableStreamDefaultControllerReleaseBackpressure">WritableStreamDefaultControllerReleaseBackpressure(|controller|)</dfn>
  performs the following steps:
 
  1. Let |stream| be |controller|.[=WritableStreamDefaultController/[[stream]]=].
