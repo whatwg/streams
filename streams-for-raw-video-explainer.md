@@ -30,23 +30,23 @@ The example creates a processing pipe starting with a camera stream and applying
 
 ```javascript
 // JS transform
+let frameCount = 0;
 const frameCountTransform = new TransformStream({
   transform: async (videoFrame, controller) => {
     try {
       // videoFrame is under the responsibility of the script and must be closed when no longer needed
       controller.enqueue(videoFrame);
       // At this point, videoFrame has been transfered within controller.enqueue call. frameCountTransform cannot mutate it.
-      if (!controller.count)
-        controller.count = 0;
-      if (!(++controller.count % 30) && frameCountTransform.onEach30Frame)
-          frameCountTransform.onEach30Frame(controller.count);
+      if (!(++frameCount % 30) && frameCountTransform.onEach30Frame)
+          frameCountTransform.onEach30Frame(frameCount);
     } catch {
       videoFrame.close();
     }
   },
-  type: 'transfer'
+  readableType: 'transfer',
+  writableType: 'transfer'
 });
-frameCountTransform.onEach30Frame = (count) => {
+frameCountTransform.onEach30Frame = (frameCount) => {
   // Do something periodically.
 };
 // Native transform is of type 'transfer'
