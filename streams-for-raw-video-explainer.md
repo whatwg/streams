@@ -88,16 +88,13 @@ const blurredStream = new MediaStream([getTrackFromReadableStream(blurredVideoFr
 ## Principles
 
 The envisioned changes to the streams specification could look like the following:
-*   Add a new 'transfer' type to `ReadableStream`, `WritableStream` and `TransformStream`.
-    For streams that do not have the 'transfer' type, nothing changes.
-*   Streams of the 'transfer' type can only manipulate Transferable or Serializable objects.
-    If a non Transferable or Serializable object is enqueued or written, the object is ignored as if it was never enqueued/written.
-*   If a Transferable object is enqueueud/written in a 'transfer' type `ReadableStreamDefaultController`, `TransformStreamDefaultController`
+*   Add a new 'transfer' value that can be passed to `ReadableStream` type, `WritableStream` type and `TransformStream` readableType/writableType.
+    For streams that do not use the 'transfer' type, nothing changes.
+*   Streams of the 'transfer' type can only manipulate that are marked both as Transferable and Serializable.
+*   If an object that is either not Transferable or not Serializable is enqueued or written, the object is ignored as if it was never enqueued/written.
+*   If a Transferable and Serializable object is enqueueud/written in a 'transfer' type `ReadableStreamDefaultController`, `TransformStreamDefaultController`
     or `WritableStreamDefaultWriter`, create a transferred version of the object using StructuredSerializeWithTransfer/StructuredDeserializeWithTransfer.
     Proceed with the regular stream algorithm by using the transferred object instead of the object itself.
-*   If a Serializable object is enqueueud/written in a 'transfer' type `ReadableStreamDefaultController`, `TransformStreamDefaultController`
-    or `WritableStreamDefaultWriter`, create a copy of the object using StructuredSerialize/StructuredDeserialize.
-    Proceed with the regular stream algorithm by using the copy of the object instead of the object itself.
 *   Introduce a WhatWG streams 'close-able' concept. An object that is 'close-able' defines closing steps.
     For instance `VideoFrame` closing steps could be defined using https://www.w3.org/TR/webcodecs/#close-videoframe.
     `ArrayBuffer` closing steps could be defined using https://tc39.es/ecma262/#sec-detacharraybuffer.
@@ -116,5 +113,10 @@ The envisioned changes to the streams specification could look like the followin
 
 ## Future Work
 
+*   Evaluate what to do when enqueuing/writing an object that is not Transferable or not Serializable. We might want to reject the related promise without erroring the stream.
+*   Evaluate the usefulness of supporting Serializable but not Transferable objects, we might just need to create a copy through serialization steps then explicitly call closeable steps on the object.
+*   Evaluate the usefulness of supporting Transferable but not Serializable objects, in particular in how to handle `ReadableStream` tee().
+    If `ReadableStream` tee() exposes a parameter to enable structured cloning, it might sometimes fail with such objects and we could piggy back on this behavior.
+*   Evaluate the usefulness of adding a `TransformStream` type to set readableType and writableType to the same value.
 *   Envision extending this support for arbitrary JavaScript objects, for both transferring and explicit closing.
 *   Envision to introduce close-able concept in WebIDL.
