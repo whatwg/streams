@@ -120,3 +120,4 @@ The envisioned changes to the streams specification could look like the followin
 *   Evaluate the usefulness of adding a `TransformStream` type to set readableType and writableType to the same value.
 *   Envision extending this support for arbitrary JavaScript objects, for both transferring and explicit closing.
 *   Envision to introduce close-able concept in WebIDL.
+*   We might want to mention that, if we use detach steps for `ArrayBuffer`, implementations can directly deallocate the corresponding memory.
