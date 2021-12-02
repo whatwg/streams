@@ -71,7 +71,7 @@ const blurredStream = new MediaStream([getTrackFromReadableStream(blurredVideoFr
 
 ## Non-goals
 
-*   Add support for supporting transfer and closing of arbitrary JavaScript objects.
+*   Add support for transferring and closing of arbitrary JavaScript objects.
 
 ## Use cases
 
