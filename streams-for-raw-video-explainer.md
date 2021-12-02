@@ -93,8 +93,8 @@ The envisioned changes to the streams specification could look like the followin
 *   Streams of the 'transfer' type can only manipulate Transferable or Serializable objects.
     If a non Transferable or Serializable object is enqueued or written, the object is ignored as if it was never enqueued/written.
 *   If a Transferable object is enqueueud/written in a 'transfer' type `ReadableStreamDefaultController`, `TransformStreamDefaultController`
-    or `WritableStreamDefaultWriter`, create a copy of the object using StructuredSerializeWithTransfer/StructuredDeserializeWithTransfer.
-    Proceed with the regular stream algorithm by using the copy of the object instead of the object itself.
+    or `WritableStreamDefaultWriter`, create a transferred version of the object using StructuredSerializeWithTransfer/StructuredDeserializeWithTransfer.
+    Proceed with the regular stream algorithm by using the transferred object instead of the object itself.
 *   If a Serializable object is enqueueud/written in a 'transfer' type `ReadableStreamDefaultController`, `TransformStreamDefaultController`
     or `WritableStreamDefaultWriter`, create a copy of the object using StructuredSerialize/StructuredDeserialize.
     Proceed with the regular stream algorithm by using the copy of the object instead of the object itself.
