@@ -38,7 +38,7 @@ const frameCountTransform = new TransformStream({
       // At this point, videoFrame has been transfered within controller.enqueue call. frameCountTransform cannot mutate it.
       if (!controller.count)
         controller.count = 0;
-      if (!(i++controller.count % 30) && frameCountTransform.onEach30Frame)
+      if (!(++controller.count % 30) && frameCountTransform.onEach30Frame)
           frameCountTransform.onEach30Frame(controller.count);
     } catch {
       videoFrame.close();
