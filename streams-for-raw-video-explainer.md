@@ -110,6 +110,7 @@ The envisioned changes to the streams specification could look like the followin
 *   It is difficult to emulate neutering/closing of objects especially in case of teeing or aborting a stream.
 *   As discussed in https://github.com/whatwg/streams/issues/1155, lifetime management of objects could potentially be done at the source level.
     But this is difficult to make it work without introducing tight coupling between producers and consumers.
+*   The main alternative would be to design a VideoFrame specific API outside of WhatWG streams, which is feasible, as examplified by WebCodecs API.
 
 ## Future Work
 
