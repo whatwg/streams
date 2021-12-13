@@ -58,7 +58,6 @@ Object.assign(exports, {
   ReadableStreamHasDefaultReader,
   ReadableStreamPipeTo,
   ReadableStreamReaderGenericCancel,
-  ReadableStreamReaderGenericRelease,
   ReadableStreamTee,
   SetUpReadableByteStreamControllerFromUnderlyingSource,
   SetUpReadableStreamBYOBReader,
