@@ -19,8 +19,9 @@ spec:infra; type:dfn; text:list
 spec:html; type:dfn; text:entangle
 spec:html; type:dfn; text:message port post message steps
 spec:html; type:dfn; text:port message queue
-spec:html; type:interface; text:WebSocket
-spec:html; type:attribute; text:bufferedAmount; for:WebSocket
+# TODO: remove these once whatwg/html#7414 is merged
+spec:websockets; type:interface; text:WebSocket
+spec:websockets; type:attribute; text:bufferedAmount; for:WebSocket
 </pre>
 
 <pre class="anchors">
@@ -7103,7 +7104,7 @@ constructors.
 <h3 id="example-rs-push-no-backpressure">A readable stream with an underlying push source (no
 backpressure support)</h3>
 
-The following function creates [=readable streams=] that wrap {{WebSocket}} instances [[HTML]],
+The following function creates [=readable streams=] that wrap {{WebSocket}} instances [[WEBSOCKETS]],
 which are [=push sources=] that do not support backpressure signals. It illustrates how, when
 adapting a push source, usually most of the work happens in the {{UnderlyingSource/start|start()}}
 method.
@@ -7382,7 +7383,7 @@ the manual branching in [[#example-rbs-push]].
 
 <h3 id="example-ws-no-backpressure">A writable stream with no backpressure or success signals</h3>
 
-The following function returns a [=writable stream=] that wraps a {{WebSocket}} [[HTML]]. Web
+The following function returns a [=writable stream=] that wraps a {{WebSocket}} [[WEBSOCKETS]]. Web
 sockets do not provide any way to tell when a given chunk of data has been successfully sent
 (without awkward polling of {{WebSocket/bufferedAmount}}, which we leave as an exercise to the
 reader). As such, this writable stream has no ability to communicate accurate [=backpressure=]
