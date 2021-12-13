@@ -19,6 +19,8 @@ spec:infra; type:dfn; text:list
 spec:html; type:dfn; text:entangle
 spec:html; type:dfn; text:message port post message steps
 spec:html; type:dfn; text:port message queue
+spec:html; type:interface; text:WebSocket
+spec:html; type:attribute; text:bufferedAmount; for:WebSocket
 </pre>
 
 <pre class="anchors">
