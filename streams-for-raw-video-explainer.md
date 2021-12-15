@@ -26,39 +26,37 @@ Transferring ownership should be opt-in. For that purpose, a new streams type, n
 ## Example
 
 Below is an example of JavaScript that shows how this can be used.
-The example creates a processing pipe starting with a camera stream and applying two transforms, one for doing a processing for every 30 frame, and one for doing background blur.
+The example creates a processing pipe starting with a VideoFrame stream and applying two transforms, one for doing a processing like logging every 30 frame, and one for doing background blur.
 
-```javascript
-// worker.js
-let frameCount = 0;
-const frameCountTransform = new TransformStream({
-  transform: async (videoFrame, controller) => {
-    try {
-      // videoFrame is under the responsibility of the script and must be closed when no longer needed
-      controller.enqueue(videoFrame);
-      // At this point, videoFrame has been transfered within controller.enqueue call. frameCountTransform cannot mutate it.
-      if (!(++frameCount % 30) && frameCountTransform.onEach30Frame)
-          frameCountTransform.onEach30Frame(frameCount);
-    } catch {
-      videoFrame.close();
-    }
-  },
-  readableType: 'transfer',
-  writableType: 'transfer'
-});
-frameCountTransform.onEach30Frame = (frameCount) => {
-  // Do something periodically.
-};
-// Native transform is of type 'transfer'
-const backgroundBlurTransform = new BackgroundBlurTransform();
+```worker.js javascript
+function doBackgroundBlurOnVideoFrames(videoFrameStream, doLogging)
+{
+  // JavaScript custom transform.
+  let frameCount = 0;
+  const frameCountTransform = new TransformStream({
+    transform: async (videoFrame, controller) => {
+      try {
+        // videoFrame is under the responsibility of the script and must be closed when no longer needed.
+        controller.enqueue(videoFrame);
+        // controller.enqueue was called, videoFrame is transferred.
+        if (!(++frameCount % 30) && doLogging)
+            doLogging(frameCount);
+      } catch (e) {
+        // In case of exception, let's make sure videoFrame is closed. This is a no-op if videoFrame was previously transferred.
+        videoFrame.close();
+        // If exception is unrecoverable, let's error the pipe.
+        controller.error(e);
+      }
+    },
+    readableType: 'transfer',
+    writableType: 'transfer'
+  });
+  // Native transform is of type 'transfer'
+  const backgroundBlurTransform = new BackgroundBlurTransform();
 
-const cameraStream = await navigator.mediaDevices.getUserMedia({ video : true });
-const videoFrameStream = getReadableStreamFromTrack(cameraStream.getVideoTracks()[0]);
-const blurredVideoFrameStream = videoFrameStream.pipeThrough(backgroundBlurTransform)
-                                                .pipeThrough(frameCountTransform);
-const blurredStream = new MediaStream([getTrackFromReadableStream(blurredVideoFrameStream)]);
-// Make use of blurredStream.
-...
+  return videoFrameStream.pipeThrough(backgroundBlurTransform)
+                         .pipeThrough(frameCountTransform);
+}
 ```
 
 ## Goals
