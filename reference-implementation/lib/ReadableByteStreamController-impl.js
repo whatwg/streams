@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('assert');
 
-const { CancelSteps, PullSteps } = require('./abstract-ops/internal-methods.js');
+const { CancelSteps, PullSteps, ReleaseSteps } = require('./abstract-ops/internal-methods.js');
 const { ResetQueue } = require('./abstract-ops/queue-with-sizes.js');
 const aos = require('./abstract-ops/readable-streams.js');
 
@@ -67,15 +67,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
 
     if (this._queueTotalSize > 0) {
       assert(aos.ReadableStreamGetNumReadRequests(stream) === 0);
-
-      const entry = this._queue.shift();
-      this._queueTotalSize -= entry.byteLength;
-
-      aos.ReadableByteStreamControllerHandleQueueDrain(this);
-
-      const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
-
-      readRequest.chunkSteps(view);
+      aos.ReadableByteStreamControllerFillReadRequestFromQueue(this, readRequest);
       return;
     }
 
@@ -105,5 +97,14 @@ exports.implementation = class ReadableByteStreamControllerImpl {
 
     aos.ReadableStreamAddReadRequest(stream, readRequest);
     aos.ReadableByteStreamControllerCallPullIfNeeded(this);
+  }
+
+  [ReleaseSteps]() {
+    if (this._pendingPullIntos.length > 0) {
+      const firstPullInto = this._pendingPullIntos[0];
+      firstPullInto.readerType = 'none';
+
+      this._pendingPullIntos.splice(1);
+    }
   }
 };

@@ -11,7 +11,7 @@ const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
         WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
         WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight } = require('./writable-streams.js');
-const { CancelSteps, PullSteps } = require('./internal-methods.js');
+const { CancelSteps, PullSteps, ReleaseSteps } = require('./internal-methods.js');
 
 const ReadableByteStreamController = require('../../generated/ReadableByteStreamController.js');
 const ReadableStreamBYOBReader = require('../../generated/ReadableStreamBYOBReader.js');
@@ -34,6 +34,7 @@ Object.assign(exports, {
   ReadableByteStreamControllerClose,
   ReadableByteStreamControllerEnqueue,
   ReadableByteStreamControllerError,
+  ReadableByteStreamControllerFillReadRequestFromQueue,
   ReadableByteStreamControllerGetBYOBRequest,
   ReadableByteStreamControllerGetDesiredSize,
   ReadableByteStreamControllerHandleQueueDrain,
@@ -911,6 +912,8 @@ function ReadableStreamReaderGenericRelease(reader) {
   }
   setPromiseIsHandledToTrue(reader._closedPromise);
 
+  reader._stream._controller[ReleaseSteps]();
+
   reader._stream._reader = undefined;
   reader._stream = undefined;
 }
@@ -1280,6 +1283,7 @@ function ReadableByteStreamControllerClose(controller) {
 
 function ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDescriptor) {
   assert(stream._state !== 'errored');
+  assert(pullIntoDescriptor.readerType !== 'none');
 
   let done = false;
   if (stream._state === 'closed') {
@@ -1334,7 +1338,15 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
 
   ReadableByteStreamControllerInvalidateBYOBRequest(controller);
 
+  if (controller._pendingPullIntos.length > 0) {
+    const firstPendingPullInto = controller._pendingPullIntos[0];
+    if (firstPendingPullInto.readerType === 'none') {
+      ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller);
+    }
+  }
+
   if (ReadableStreamHasDefaultReader(stream) === true) {
+    ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller);
     if (ReadableStreamGetNumReadRequests(stream) === 0) {
       assert(controller._pendingPullIntos.length === 0);
       ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
@@ -1362,6 +1374,19 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
 function ReadableByteStreamControllerEnqueueChunkToQueue(controller, buffer, byteOffset, byteLength) {
   controller._queue.push({ buffer, byteOffset, byteLength });
   controller._queueTotalSize += byteLength;
+}
+
+function ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, firstDescriptor) {
+  assert(firstDescriptor.readerType === 'none');
+  if (firstDescriptor.bytesFilled > 0) {
+    ReadableByteStreamControllerEnqueueChunkToQueue(
+      controller,
+      firstDescriptor.buffer,
+      firstDescriptor.byteOffset,
+      firstDescriptor.bytesFilled
+    );
+  }
+  ReadableByteStreamControllerShiftPendingPullInto(controller);
 }
 
 function ReadableByteStreamControllerError(controller, e) {
@@ -1433,6 +1458,18 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
   return ready;
 }
 
+function ReadableByteStreamControllerFillReadRequestFromQueue(controller, readRequest) {
+  assert(controller._queueTotalSize > 0);
+
+  const entry = controller._queue.shift();
+  controller._queueTotalSize -= entry.byteLength;
+
+  ReadableByteStreamControllerHandleQueueDrain(controller);
+
+  const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
+  readRequest.chunkSteps(view);
+}
+
 function ReadableByteStreamControllerGetBYOBRequest(controller) {
   if (controller._byobRequest === null && controller._pendingPullIntos.length > 0) {
     const firstDescriptor = controller._pendingPullIntos[0];
@@ -1492,6 +1529,7 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
     }
 
     const pullIntoDescriptor = controller._pendingPullIntos[0];
+    assert(pullIntoDescriptor.readerType !== 'none');
 
     if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) === true) {
       ReadableByteStreamControllerShiftPendingPullInto(controller);
@@ -1501,6 +1539,18 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
         pullIntoDescriptor
       );
     }
+  }
+}
+
+function ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller) {
+  assert(ReadableStreamHasDefaultReader(controller._stream));
+  const reader = controller._stream._reader;
+  while (reader._readRequests.length > 0) {
+    if (controller._queueTotalSize === 0) {
+      return;
+    }
+    const readRequest = reader._readRequests.shift();
+    ReadableByteStreamControllerFillReadRequestFromQueue(controller, readRequest);
   }
 }
 
@@ -1603,6 +1653,10 @@ function ReadableByteStreamControllerRespond(controller, bytesWritten) {
 function ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor) {
   assert(firstDescriptor.bytesFilled === 0);
 
+  if (firstDescriptor.readerType === 'none') {
+    ReadableByteStreamControllerShiftPendingPullInto(controller);
+  }
+
   const stream = controller._stream;
   if (ReadableStreamHasBYOBReader(stream) === true) {
     while (ReadableStreamGetNumReadIntoRequests(stream) > 0) {
@@ -1616,6 +1670,12 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
   assert(pullIntoDescriptor.bytesFilled + bytesWritten <= pullIntoDescriptor.byteLength);
 
   ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesWritten, pullIntoDescriptor);
+
+  if (pullIntoDescriptor.readerType === 'none') {
+    ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller);
+    ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+    return;
+  }
 
   if (pullIntoDescriptor.bytesFilled < pullIntoDescriptor.elementSize) {
     return;
