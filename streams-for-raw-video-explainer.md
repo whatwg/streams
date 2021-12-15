@@ -1,4 +1,4 @@
-# Transfering Ownership Streams Explained
+# Transferring Ownership Streams Explained
 
 
 ## Introduction
