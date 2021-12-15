@@ -938,10 +938,10 @@ function ReadableStreamBYOBReaderRelease(reader) {
   const e = new TypeError('Reader was released');
   const readIntoRequests = reader._readIntoRequests;
   reader._readIntoRequests = [];
+  ReadableStreamReaderGenericRelease(reader);
   for (const readRequest of readIntoRequests) {
     readRequest.errorSteps(e);
   }
-  ReadableStreamReaderGenericRelease(reader);
 }
 
 function ReadableStreamDefaultReaderRead(reader, readRequest) {
@@ -965,10 +965,10 @@ function ReadableStreamDefaultReaderRelease(reader) {
   const e = new TypeError('Reader was released');
   const readRequests = reader._readRequests;
   reader._readRequests = [];
+  ReadableStreamReaderGenericRelease(reader);
   for (const readRequest of readRequests) {
     readRequest.errorSteps(e);
   }
-  ReadableStreamReaderGenericRelease(reader);
 }
 
 function SetUpReadableStreamBYOBReader(reader, stream) {
