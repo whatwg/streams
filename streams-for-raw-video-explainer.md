@@ -90,7 +90,7 @@ const blurredStream = new MediaStream([getTrackFromReadableStream(blurredVideoFr
 The envisioned changes to the streams specification could look like the following:
 *   Add a new 'transfer' value that can be passed to `ReadableStream` type, `WritableStream` type and `TransformStream` readableType/writableType.
     For streams that do not use the 'transfer' type, nothing changes.
-*   Streams of the 'transfer' type can only manipulate that are marked both as Transferable and Serializable.
+*   Streams of the 'transfer' type can only manipulate objects that are marked both as Transferable and Serializable.
 *   If an object that is either not Transferable or not Serializable is enqueued or written, the object is ignored as if it was never enqueued/written.
 *   If a Transferable and Serializable object is enqueueud/written in a 'transfer' type `ReadableStreamDefaultController`, `TransformStreamDefaultController`
     or `WritableStreamDefaultWriter`, create a transferred version of the object using StructuredSerializeWithTransfer/StructuredDeserializeWithTransfer.
