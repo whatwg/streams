@@ -1343,7 +1343,7 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
   if (controller._pendingPullIntos.length > 0) {
     const firstPendingPullInto = controller._pendingPullIntos[0];
     if (firstPendingPullInto.readerType === 'none') {
-      ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller);
+      ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, firstPendingPullInto);
     }
   }
 
@@ -1674,7 +1674,7 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
   ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesWritten, pullIntoDescriptor);
 
   if (pullIntoDescriptor.readerType === 'none') {
-    ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller);
+    ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, pullIntoDescriptor);
     ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
     return;
   }
