@@ -29,7 +29,7 @@ Below is an example of JavaScript that shows how this can be used.
 The example creates a processing pipe starting with a camera stream and applying two transforms, one for doing a processing for every 30 frame, and one for doing background blur.
 
 ```javascript
-// JS transform
+// worker.js
 let frameCount = 0;
 const frameCountTransform = new TransformStream({
   transform: async (videoFrame, controller) => {
