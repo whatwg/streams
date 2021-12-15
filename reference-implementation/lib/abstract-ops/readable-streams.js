@@ -495,6 +495,7 @@ function ReadableByteStreamTee(stream) {
 
   function pullWithDefaultReader() {
     if (ReadableStreamBYOBReader.isImpl(reader)) {
+      assert(reader._readIntoRequests.length === 0);
       ReadableStreamBYOBReaderRelease(reader);
 
       reader = AcquireReadableStreamDefaultReader(stream);
@@ -565,6 +566,7 @@ function ReadableByteStreamTee(stream) {
 
   function pullWithBYOBReader(view, forBranch2) {
     if (ReadableStreamDefaultReader.isImpl(reader)) {
+      assert(reader._readRequests.length === 0);
       ReadableStreamDefaultReaderRelease(reader);
 
       reader = AcquireReadableStreamBYOBReader(stream);
