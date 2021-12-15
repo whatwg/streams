@@ -96,6 +96,7 @@ The envisioned changes to the streams specification could look like the followin
 *   Introduce a WhatWG streams 'close-able' concept. A chunk that is 'close-able' defines closing steps.
     For instance `VideoFrame` closing steps could be defined using https://www.w3.org/TR/webcodecs/#close-videoframe.
     `ArrayBuffer` closing steps could be defined using https://tc39.es/ecma262/#sec-detacharraybuffer.
+    The 'close-able' steps should be a no-op on a transferred chunk.
 *   Execute the closing steps of a 'close-able' chunk for streams with the 'transfer' type when resetting the queue of `ReadableStreamDefaultController`
     or emptying `WritableStream`.[[writeRequests]] in case of abort/error.
 *   When calling tee() on a `ReadableStream` of the 'transfer' type, call ReadableStream with cloneForBranch2 equal to true. 
