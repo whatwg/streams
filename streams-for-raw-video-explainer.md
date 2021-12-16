@@ -65,7 +65,7 @@ function doBackgroundBlurOnVideoFrames(videoFrameStream, doLogging)
 *   Permit to build a safe and optimal video pipeline using `ReadableStream`, `WritableStream` and `TransformStream` objects that manipulate `VideoFrame` objects.
 *   Permit both native and JavaScript-based streams of type 'transfer'.
 *   Permit to optimize streams pipelines of transferable chunks like `ArrayBuffer`, `RTCEncodedVideoFrame` or `RTCEncodedAudioFrame`.
-*   Permit to tee a `ReadableStream` of `VideoFrame` objectss without tight coupling between the teed branches.
+*   Permit to tee a `ReadableStream` of `VideoFrame` objects without tight coupling between the teed branches.
 
 ## Non-goals
 
