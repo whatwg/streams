@@ -625,9 +625,21 @@ enum ReadableStreamType { "bytes" };
   example [[#example-rs-push-no-backpressure]].
 
   <p>If the shutdown process is asynchronous, it can return a promise to signal success or failure;
-  the result will be communicated via the return value of the <code>cancel()</code>
-  method that was called. Additionally, a rejected promise will error the stream, instead of
-  letting it close. Throwing an exception is treated the same as returning a rejected promise.
+  the result will be communicated via the return value of the <code>cancel()</code> method that was
+  called. Throwing an exception is treated the same as returning a rejected promise.
+
+  <div class="note">
+   <p>Even if the cancelation process fails, the stream will still close; it will not be put into
+   an errored state. This is because a failure in the cancelation process doesn't matter to the
+   consumer's view of the stream, once they've expressed disinterest in it by canceling. The
+   failure is only communicated to the immediate caller of the corresponding method.
+
+   <p>This is different from the behavior of the {{UnderlyingSink/close}} and
+   {{UnderlyingSink/abort}} options of a {{WritableStream}}'s [=underlying sink=], which upon
+   failure put the corresponding {{WritableStream}} into an errored state. Those correspond to
+   specific actions the [=producer=] is requesting and, if those actions fail, they indicate
+   something more persistently wrong.
+  </div>
 
  <dt><dfn dict-member for="UnderlyingSource" lt="type"><code>type</code></dfn> (byte streams
  only)</dt>
