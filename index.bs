@@ -1865,16 +1865,7 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
  1. Assert: ! [$ReadableStreamHasDefaultReader$](|stream|) is true.
  1. If [=this=].[=ReadableByteStreamController/[[queueTotalSize]]=] > 0,
   1. Assert: ! [$ReadableStreamGetNumReadRequests$](|stream|) is 0.
-  1. Let |entry| be [=this=].[=ReadableByteStreamController/[[queue]]=][0].
-  1. [=list/Remove=] |entry| from [=this=].[=ReadableByteStreamController/[[queue]]=].
-  1. Set [=this=].[=ReadableByteStreamController/[[queueTotalSize]]=] to
-     [=this=].[=ReadableByteStreamController/[[queueTotalSize]]=] − |entry|'s [=readable byte stream
-     queue entry/byte length=].
-  1. Perform ! [$ReadableByteStreamControllerHandleQueueDrain$]([=this=]).
-  1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |entry|'s [=readable byte stream queue
-     entry/buffer=], |entry|'s [=readable byte stream queue entry/byte offset=], |entry|'s
-     [=readable byte stream queue entry/byte length=] »).
-  1. Perform |readRequest|'s [=read request/chunk steps=], given |view|.
+  1. Perform ! [$ReadableByteStreamControllerFillReadRequestFromQueue$]([=this=], |readRequest|).
   1. Return.
  1. Let |autoAllocateChunkSize| be
     [=this=].[=ReadableByteStreamController/[[autoAllocateChunkSize]]=].
@@ -3290,6 +3281,24 @@ The following abstract operations support the implementation of the
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt;
      |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. Return |ready|.
+</div>
+
+<div algorithm>
+ <dfn abstract-op
+ lt="ReadableByteStreamControllerFillReadRequestFromQueue">ReadableByteStreamControllerFillReadRequestFromQueue(|controller|,
+ |readRequest|)</dfn> performs the following steps:
+
+ 1. Assert: |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] > 0.
+ 1. Let |entry| be |controller|.[=ReadableByteStreamController/[[queue]]=][0].
+ 1. [=list/Remove=] |entry| from |controller|.[=ReadableByteStreamController/[[queue]]=].
+ 1. Set |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] to
+    |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] − |entry|'s [=readable byte stream
+    queue entry/byte length=].
+ 1. Perform ! [$ReadableByteStreamControllerHandleQueueDrain$](|controller|).
+ 1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |entry|'s [=readable byte stream queue
+    entry/buffer=], |entry|'s [=readable byte stream queue entry/byte offset=], |entry|'s
+    [=readable byte stream queue entry/byte length=] »).
+ 1. Perform |readRequest|'s [=read request/chunk steps=], given |view|.
 </div>
 
 <div algorithm>
