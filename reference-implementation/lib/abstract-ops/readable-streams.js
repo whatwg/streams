@@ -1381,10 +1381,11 @@ function ReadableByteStreamControllerEnqueueChunkToQueue(controller, buffer, byt
 function ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, firstDescriptor) {
   assert(firstDescriptor.readerType === 'none');
   if (firstDescriptor.bytesFilled > 0) {
-    const byteOffset = firstDescriptor.byteOffset;
-    const bytesFilled = firstDescriptor.bytesFilled;
-    const chunk = firstDescriptor.buffer.slice(byteOffset, byteOffset + bytesFilled);
-    ReadableByteStreamControllerEnqueueChunkToQueue(controller, chunk, 0, bytesFilled);
+    const chunk = firstDescriptor.buffer.slice(
+      firstDescriptor.byteOffset,
+      firstDescriptor.byteOffset + firstDescriptor.bytesFilled
+    );
+    ReadableByteStreamControllerEnqueueChunkToQueue(controller, chunk, 0, firstDescriptor.bytesFilled);
   }
   ReadableByteStreamControllerShiftPendingPullInto(controller);
 }
@@ -1543,8 +1544,8 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
 }
 
 function ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller) {
-  assert(ReadableStreamHasDefaultReader(controller._stream));
   const reader = controller._stream._reader;
+  assert(ReadableStreamDefaultReader.isImpl(reader));
   while (reader._readRequests.length > 0) {
     if (controller._queueTotalSize === 0) {
       return;
