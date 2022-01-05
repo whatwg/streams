@@ -2366,6 +2366,7 @@ create them does not matter.
    1. If |canceled1| is false or |canceled2| is false, [=resolve=] |cancelPromise| with undefined.
  1. Let |pullWithDefaultReader| be the following steps:
   1. If |reader| [=implements=] {{ReadableStreamBYOBReader}},
+   1. Assert: |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is [=list/is empty|empty=].
    1. Perform ! [$ReadableStreamBYOBReaderRelease$](|reader|).
    1. Set |reader| to ! [$AcquireReadableStreamDefaultReader$](|stream|).
    1. Perform |forwardReaderError|, given |reader|.
@@ -2420,6 +2421,7 @@ create them does not matter.
   1. Perform ! [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
  1. Let |pullWithBYOBReader| be the following steps, given |view| and |forBranch2|:
   1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
+   1. Assert: |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is [=list/is empty|empty=].
    1. Perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
    1. Set |reader| to ! [$AcquireReadableStreamBYOBReader$](|stream|).
    1. Perform |forwardReaderError|, given |reader|.
