@@ -1619,6 +1619,14 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
   1. Perform ! [$ReadableStreamDefaultControllerCallPullIfNeeded$]([=this=]).
 </div>
 
+<div algorithm>
+ <dfn abstract-op lt="[[ReleaseSteps]]" for="ReadableStreamDefaultController">\[[ReleaseSteps]]()</dfn>
+ implements the [$ReadableStreamController/[[ReleaseSteps]]$] contract. It performs the following
+ steps:
+
+ 1. Return.
+</div>
+
 <h3 id="rbs-controller-class">The {{ReadableByteStreamController}} class</h3>
 
 The {{ReadableByteStreamController}} class has methods that allow control of a {{ReadableStream}}'s
@@ -1758,7 +1766,8 @@ has the following [=struct/items=]:
    used for constructing a view with which to write into the [=pull-into descriptor/buffer=]
 : <dfn for="pull-into descriptor">reader type</dfn>
 :: Either "`default`" or "`byob`", indicating what type of [=readable stream reader=] initiated this
-   request
+   request, or "`none`" if the initiating [=readable stream reader|reader=] was [=release a read
+   lock|released=]
 
 <h4 id="rbs-controller-prototype">Methods and properties</h4>
 
@@ -1884,6 +1893,18 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
      [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=].
  1. Perform ! [$ReadableStreamAddReadRequest$](|stream|, |readRequest|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$]([=this=]).
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="[[ReleaseSteps]]" for="ReadableByteStreamController">\[[ReleaseSteps]]()</dfn>
+ implements the [$ReadableStreamController/[[ReleaseSteps]]$] contract. It performs the following
+ steps:
+
+ 1. If [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
+  1. Let |firstPendingPullInto| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+  1. Set |firstPendingPullInto|'s [=pull-into descriptor/reader type=] to "`none`".
+  1. Set [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] to the [=list=]
+     « |firstPendingPullInto| ».
 </div>
 
 <h3 id="rs-byob-request-class">The {{ReadableStreamBYOBRequest}} class</h3>
@@ -2517,7 +2538,7 @@ centralizing most of the potentially-varying logic inside the two controller cla
 of the stateful internal slots and abstract operations for how a stream's [=internal queue=] is
 managed and how it interfaces with its [=underlying source=] or [=underlying byte source=].
 
-Each controller class defines two internal methods, which are called by the {{ReadableStream}}
+Each controller class defines three internal methods, which are called by the {{ReadableStream}}
 algorithms:
 
 <dl>
@@ -2531,6 +2552,10 @@ algorithms:
   ignore>readRequest</var>)</dfn>
   <dd>The controller's steps that run when a [=default reader=] is read from, used to pull from the
   controller any queued [=chunks=], or pull from the [=underlying source=] to get more chunks.
+
+  <dt><dfn abstract-op lt="[[ReleaseSteps]]" for="ReadableStreamController">\[[ReleaseSteps]]()</dfn>
+  <dd>The controller's steps that run when a [=readable stream reader|reader=] is
+  [=release a read lock|released=], used to clean up reader-specific resources stored in the controller.
 </dl>
 
 (These are defined as internal methods, instead of as abstract operations, so that they can be
@@ -2748,6 +2773,7 @@ The following abstract operations support the implementation and manipulation of
  1. Otherwise, set |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] to [=a promise
     rejected with=] a {{TypeError}} exception.
  1. Set |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=].\[[PromiseIsHandled]] to true.
+ 1. Perform ! |stream|.[=ReadableStream/[[controller]]=].[$ReadableStreamController/[[ReleaseSteps]]$]().
  1. Set |stream|.[=ReadableStream/[[reader]]=] to undefined.
  1. Set |reader|.[=ReadableStreamGenericReader/[[stream]]=] to undefined.
 </div>

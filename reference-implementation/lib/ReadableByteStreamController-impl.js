@@ -104,7 +104,7 @@ exports.implementation = class ReadableByteStreamControllerImpl {
       const firstPullInto = this._pendingPullIntos[0];
       firstPullInto.readerType = 'none';
 
-      this._pendingPullIntos.splice(1);
+      this._pendingPullIntos = [firstPullInto];
     }
   }
 };
