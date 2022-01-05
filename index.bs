@@ -1272,8 +1272,6 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
  for="ReadableStreamDefaultReader">releaseLock()</dfn> method steps are:
 
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return.
- 1. If [=this=].[=ReadableStreamDefaultReader/[[readRequests]]=] is not [=list/is empty|empty=],
-    throw a {{TypeError}} exception.
  1. Perform ! [$ReadableStreamDefaultReaderRelease$]([=this=]).
 </div>
 
@@ -1438,8 +1436,6 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
  for="ReadableStreamBYOBReader">releaseLock()</dfn> method steps are:
 
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return.
- 1. If [=this=].[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is not [=list/is empty|empty=],
-    throw a {{TypeError}} exception.
  1. Perform ! [$ReadableStreamBYOBReaderRelease$]([=this=]).
 </div>
 
@@ -2791,8 +2787,10 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-byob-reader-release">ReadableStreamBYOBReaderRelease(|reader|)</dfn>
  performs the following steps:
 
- 1. Assert: |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is [=list/is empty|empty=].
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+ 1. Let |e| be a new {{TypeError}} exception.
+ 1. Perform ! [$ReadableStreamBYOBReaderErrorReadIntoRequests$](|reader|, |e|).
+</div>
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamBYOBReaderErrorReadIntoRequests">ReadableStreamBYOBReaderErrorReadIntoRequests(|reader|, |e|)</dfn>
@@ -2827,8 +2825,10 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-default-reader-release">ReadableStreamDefaultReaderRelease(|reader|)</dfn>
  performs the following steps:
 
- 1. Assert: |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is [=list/is empty|empty=].
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+ 1. Let |e| be a new {{TypeError}} exception.
+ 1. Perform ! [$ReadableStreamDefaultReaderErrorReadRequests$](|reader|, |e|).
+</div>
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamDefaultReaderErrorReadRequests">ReadableStreamDefaultReaderErrorReadRequests(|reader|, |e|)</dfn>
@@ -3152,6 +3152,7 @@ The following abstract operations support the implementation of the
  |pullIntoDescriptor|)</dfn> performs the following steps:
 
  1. Assert: |stream|.[=ReadableStream/[[state]]=] is not "`errored`".
+ 1. Assert: |pullIntoDescriptor|.[=pull-into descriptor/reader type=] is not "`none`".
  1. Let |done| be false.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`",
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
@@ -3202,7 +3203,15 @@ The following abstract operations support the implementation of the
   1. Set |firstPendingPullInto|'s [=pull-into descriptor/buffer=] to !
      [$TransferArrayBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=]).
  1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
- 1. If ! [$ReadableStreamHasDefaultReader$](|stream|) is true
+ 1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not
+    [=list/is empty|empty=],
+  1. Let |firstPendingPullInto| be
+     |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+  1. If |firstPendingPullInto|'s [=pull-into descriptor/reader type=] is "`none`",
+   1. Perform ? [$ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue$](|controller|,
+      |firstPendingPullInto|).
+ 1. If ! [$ReadableStreamHasDefaultReader$](|stream|) is true,
+  1. Perform ! [$ReadableByteStreamControllerProcessReadRequestsUsingQueue$](|controller|).
   1. If ! [$ReadableStreamGetNumReadRequests$](|stream|) is 0,
    1. Assert: |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is
       [=list/is empty|empty=].
@@ -3240,6 +3249,20 @@ The following abstract operations support the implementation of the
     |controller|.[=ReadableByteStreamController/[[queue]]=].
  1. Set |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] to
     |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] + |byteLength|.
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue">ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(|controller|,
+ |firstDescriptor|)</dfn> performs the following steps:
+
+ 1. Assert: |firstDescriptor|'s [=pull-into descriptor/reader type=] is "`none`".
+ 1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] > 0,
+  1. Let |chunk| be ? [$CloneArrayBuffer$](|pullIntoDescriptor|'s [=pull-into
+     descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=],
+     |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=], {{%ArrayBuffer%}}).
+  1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|, |chunk|, 0,
+     |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]).
+ 1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
 </div>
 
 <div algorithm>
@@ -3418,6 +3441,19 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
+ <dfn abstract-op lt="ReadableByteStreamControllerProcessReadRequestsUsingQueue">ReadableByteStreamControllerProcessReadRequestsUsingQueue(|controller|)</dfn>
+ performs the following steps:
+
+ 1. Let |reader| be |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[reader]]=].
+ 1. Assert: |reader| [=implements=] {{ReadableStreamDefaultReader}}.
+ 1. While |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is not [=list/is empty|empty=],
+  1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0, return.
+  1. Let |readRequest| be |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=][0].
+  1. [=list/Remove=] |readRequest| from |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=].
+  1. Perform ! [$ReadableByteStreamControllerFillReadRequestFromQueue$](|controller|, |readRequest|).
+</div>
+
+<div algorithm>
  <dfn abstract-op lt="ReadableByteStreamControllerPullInto"
  id="readable-byte-stream-controller-pull-into">ReadableByteStreamControllerPullInto(|controller|,
  |view|, |readIntoRequest|)</dfn> performs the following steps:
@@ -3499,6 +3535,8 @@ The following abstract operations support the implementation of the
  |firstDescriptor|)</dfn> performs the following steps:
 
  1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
+ 1. If |firstDescriptor|'s [=pull-into descriptor/reader type=] is "`none`",
+  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. If ! [$ReadableStreamHasBYOBReader$](|stream|) is true,
   1. [=While=] ! [$ReadableStreamGetNumReadIntoRequests$](|stream|) > 0,
@@ -3517,6 +3555,11 @@ The following abstract operations support the implementation of the
     |pullIntoDescriptor|'s [=pull-into descriptor/byte length=].
  1. Perform ! [$ReadableByteStreamControllerFillHeadPullIntoDescriptor$](|controller|,
     |bytesWritten|, |pullIntoDescriptor|).
+ 1. If |pullIntoDescriptor|'s [=pull-into descriptor/reader type=] is "`none`",
+  1. Perform ! [$ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue$](|controller|,
+     |pullIntoDescriptor|).
+  1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
+  1. Return.
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
     [=pull-into descriptor/element size=], return.
  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
