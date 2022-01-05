@@ -934,8 +934,8 @@ function ReadableStreamBYOBReaderRelease(reader) {
 function ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e) {
   const readIntoRequests = reader._readIntoRequests;
   reader._readIntoRequests = [];
-  for (const readRequest of readIntoRequests) {
-    readRequest.errorSteps(e);
+  for (const readIntoRequest of readIntoRequests) {
+    readIntoRequest.errorSteps(e);
   }
 }
 
