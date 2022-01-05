@@ -2640,16 +2640,10 @@ the {{ReadableStream}}'s public API.
  1. [=Reject=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with |e|.
  1. Set |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=].\[[PromiseIsHandled]] to true.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
-  1. Let |readRequests| be |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=].
-  1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to a new empty [=list=].
-  1. [=list/For each=] |readRequest| of |readRequests|,
-    1. Perform |readRequest|'s [=read request/error steps=], given |e|.
+  1. Perform ! [$ReadableStreamDefaultReaderErrorReadRequests$](|reader|, |e|).
  1. Otherwise,
-   1. Assert: |reader| [=implements=] {{ReadableStreamBYOBReader}}.
-   1. Let |readIntoRequests| be |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=].
-   1. Set |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] to a new empty [=list=].
-   1. [=list/For each=] |readIntoRequest| of |readIntoRequests|,
-    1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
+  1. Assert: |reader| [=implements=] {{ReadableStreamBYOBReader}}.
+  1. Perform ! [$ReadableStreamBYOBReaderErrorReadIntoRequests$](|reader|, |e|).
 </div>
 
 <div algorithm>
@@ -2799,6 +2793,15 @@ The following abstract operations support the implementation and manipulation of
 
  1. Assert: |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is [=list/is empty|empty=].
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+
+<div algorithm>
+ <dfn abstract-op lt="ReadableStreamBYOBReaderErrorReadIntoRequests">ReadableStreamBYOBReaderErrorReadIntoRequests(|reader|, |e|)</dfn>
+ performs the following steps:
+
+ 1. Let |readIntoRequests| be |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=].
+ 1. Set |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] to a new empty [=list=].
+ 1. [=list/For each=] |readIntoRequest| of |readIntoRequests|,
+  1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
 </div>
 
 <div algorithm>
@@ -2826,6 +2829,15 @@ The following abstract operations support the implementation and manipulation of
 
  1. Assert: |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is [=list/is empty|empty=].
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+
+<div algorithm>
+ <dfn abstract-op lt="ReadableStreamDefaultReaderErrorReadRequests">ReadableStreamDefaultReaderErrorReadRequests(|reader|, |e|)</dfn>
+ performs the following steps:
+
+ 1. Let |readRequests| be |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=].
+ 1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to a new empty [=list=].
+ 1. [=list/For each=] |readRequest| of |readRequests|,
+   1. Perform |readRequest|'s [=read request/error steps=], given |e|.
 </div>
 
 <div algorithm>
