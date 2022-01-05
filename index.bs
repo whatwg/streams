@@ -2740,17 +2740,15 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-reader-generic-release">ReadableStreamReaderGenericRelease(|reader|)</dfn>
  performs the following steps:
 
- 1. Assert: |reader|.[=ReadableStreamGenericReader/[[stream]]=] is not undefined.
- 1. Assert: |reader|.[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[reader]]=] is
-    |reader|.
- 1. If |reader|.[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is
-    "`readable`", [=reject=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with a
-    {{TypeError}} exception.
+ 1. Let |stream| be |reader|.[=ReadableStreamGenericReader/[[stream]]=].
+ 1. Assert: |stream| is not undefined.
+ 1. Assert: |stream|.[=ReadableStream/[[reader]]=] is |reader|.
+ 1. If |stream|.[=ReadableStream/[[state]]=] is "`readable`", [=reject=]
+    |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with a {{TypeError}} exception.
  1. Otherwise, set |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] to [=a promise
     rejected with=] a {{TypeError}} exception.
  1. Set |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=].\[[PromiseIsHandled]] to true.
- 1. Set |reader|.[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[reader]]=] to
-    undefined.
+ 1. Set |stream|.[=ReadableStream/[[reader]]=] to undefined.
  1. Set |reader|.[=ReadableStreamGenericReader/[[stream]]=] to undefined.
 </div>
 

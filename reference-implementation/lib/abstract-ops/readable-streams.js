@@ -890,10 +890,11 @@ function ReadableStreamReaderGenericInitialize(reader, stream) {
 }
 
 function ReadableStreamReaderGenericRelease(reader) {
-  assert(reader._stream !== undefined);
-  assert(reader._stream._reader === reader);
+  const stream = reader._stream;
+  assert(stream !== undefined);
+  assert(stream._reader === reader);
 
-  if (reader._stream._state === 'readable') {
+  if (stream._state === 'readable') {
     rejectPromise(
       reader._closedPromise,
       new TypeError('Reader was released and can no longer be used to monitor the stream\'s closedness')
@@ -905,9 +906,9 @@ function ReadableStreamReaderGenericRelease(reader) {
   }
   setPromiseIsHandledToTrue(reader._closedPromise);
 
-  reader._stream._controller[ReleaseSteps]();
+  stream._controller[ReleaseSteps]();
 
-  reader._stream._reader = undefined;
+  stream._reader = undefined;
   reader._stream = undefined;
 }
 
