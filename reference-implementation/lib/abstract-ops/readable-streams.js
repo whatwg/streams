@@ -796,19 +796,10 @@ function ReadableStreamError(stream, e) {
   setPromiseIsHandledToTrue(reader._closedPromise);
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
-    const readRequests = reader._readRequests;
-    reader._readRequests = [];
-    for (const readRequest of readRequests) {
-      readRequest.errorSteps(e);
-    }
+    ReadableStreamDefaultReaderErrorReadRequests(reader, e);
   } else {
     assert(ReadableStreamBYOBReader.isImpl(reader));
-
-    const readIntoRequests = reader._readIntoRequests;
-    reader._readIntoRequests = [];
-    for (const readIntoRequest of readIntoRequests) {
-      readIntoRequest.errorSteps(e);
-    }
+    ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e);
   }
 }
 
@@ -937,6 +928,10 @@ function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest) {
 function ReadableStreamBYOBReaderRelease(reader) {
   ReadableStreamReaderGenericRelease(reader);
   const e = new TypeError('Reader was released');
+  ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e);
+}
+
+function ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e) {
   const readIntoRequests = reader._readIntoRequests;
   reader._readIntoRequests = [];
   for (const readRequest of readIntoRequests) {
@@ -964,6 +959,10 @@ function ReadableStreamDefaultReaderRead(reader, readRequest) {
 function ReadableStreamDefaultReaderRelease(reader) {
   ReadableStreamReaderGenericRelease(reader);
   const e = new TypeError('Reader was released');
+  ReadableStreamDefaultReaderErrorReadRequests(reader, e);
+}
+
+function ReadableStreamDefaultReaderErrorReadRequests(reader, e) {
   const readRequests = reader._readRequests;
   reader._readRequests = [];
   for (const readRequest of readRequests) {
