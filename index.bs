@@ -3210,8 +3210,8 @@ The following abstract operations support the implementation of the
   1. Let |firstPendingPullInto| be
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
   1. If |firstPendingPullInto|'s [=pull-into descriptor/reader type=] is "`none`",
-   1. Perform ? [$ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue$](|controller|,
-      |firstPendingPullInto|).
+     perform ? [$ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue$](|controller|,
+     |firstPendingPullInto|).
  1. If ! [$ReadableStreamHasDefaultReader$](|stream|) is true,
   1. Perform ! [$ReadableByteStreamControllerProcessReadRequestsUsingQueue$](|controller|).
   1. If ! [$ReadableStreamGetNumReadRequests$](|stream|) is 0,
@@ -3538,7 +3538,7 @@ The following abstract operations support the implementation of the
 
  1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
  1. If |firstDescriptor|'s [=pull-into descriptor/reader type=] is "`none`",
-  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
+    perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. If ! [$ReadableStreamHasBYOBReader$](|stream|) is true,
   1. [=While=] ! [$ReadableStreamGetNumReadIntoRequests$](|stream|) > 0,
