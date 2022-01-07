@@ -2773,6 +2773,16 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
+ <dfn abstract-op lt="ReadableStreamBYOBReaderErrorReadIntoRequests">ReadableStreamBYOBReaderErrorReadIntoRequests(|reader|, |e|)</dfn>
+ performs the following steps:
+
+ 1. Let |readIntoRequests| be |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=].
+ 1. Set |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] to a new empty [=list=].
+ 1. [=list/For each=] |readIntoRequest| of |readIntoRequests|,
+  1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
+</div>
+
+<div algorithm>
  <dfn abstract-op lt="ReadableStreamBYOBReaderRead"
  id="readable-stream-byob-reader-read">ReadableStreamBYOBReaderRead(|reader|, |view|,
  |readIntoRequest|)</dfn> performs the following steps:
@@ -2796,13 +2806,13 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableStreamBYOBReaderErrorReadIntoRequests">ReadableStreamBYOBReaderErrorReadIntoRequests(|reader|, |e|)</dfn>
+ <dfn abstract-op lt="ReadableStreamDefaultReaderErrorReadRequests">ReadableStreamDefaultReaderErrorReadRequests(|reader|, |e|)</dfn>
  performs the following steps:
 
- 1. Let |readIntoRequests| be |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=].
- 1. Set |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] to a new empty [=list=].
- 1. [=list/For each=] |readIntoRequest| of |readIntoRequests|,
-  1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
+ 1. Let |readRequests| be |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=].
+ 1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to a new empty [=list=].
+ 1. [=list/For each=] |readRequest| of |readRequests|,
+   1. Perform |readRequest|'s [=read request/error steps=], given |e|.
 </div>
 
 <div algorithm>
@@ -2830,16 +2840,6 @@ The following abstract operations support the implementation and manipulation of
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
  1. Let |e| be a new {{TypeError}} exception.
  1. Perform ! [$ReadableStreamDefaultReaderErrorReadRequests$](|reader|, |e|).
-</div>
-
-<div algorithm>
- <dfn abstract-op lt="ReadableStreamDefaultReaderErrorReadRequests">ReadableStreamDefaultReaderErrorReadRequests(|reader|, |e|)</dfn>
- performs the following steps:
-
- 1. Let |readRequests| be |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=].
- 1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to a new empty [=list=].
- 1. [=list/For each=] |readRequest| of |readRequests|,
-   1. Perform |readRequest|'s [=read request/error steps=], given |e|.
 </div>
 
 <div algorithm>
