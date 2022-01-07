@@ -1378,14 +1378,26 @@ function ReadableByteStreamControllerEnqueueChunkToQueue(controller, buffer, byt
   controller._queueTotalSize += byteLength;
 }
 
+function ReadableByteStreamControllerEnqueueClonedChunkToQueue(controller, buffer, byteOffset, byteLength) {
+  let clonedChunk;
+  try {
+    clonedChunk = buffer.slice(byteOffset, byteOffset + byteLength);
+  } catch (cloneE) {
+    ReadableByteStreamControllerError(controller, cloneE);
+    throw cloneE;
+  }
+  ReadableByteStreamControllerEnqueueChunkToQueue(controller, clonedChunk, 0, byteLength);
+}
+
 function ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, firstDescriptor) {
   assert(firstDescriptor.readerType === 'none');
   if (firstDescriptor.bytesFilled > 0) {
-    const chunk = firstDescriptor.buffer.slice(
+    ReadableByteStreamControllerEnqueueClonedChunkToQueue(
+      controller,
+      firstDescriptor.buffer,
       firstDescriptor.byteOffset,
-      firstDescriptor.byteOffset + firstDescriptor.bytesFilled
+      firstDescriptor.bytesFilled
     );
-    ReadableByteStreamControllerEnqueueChunkToQueue(controller, chunk, 0, firstDescriptor.bytesFilled);
   }
   ReadableByteStreamControllerShiftPendingPullInto(controller);
 }
@@ -1687,8 +1699,12 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
   const remainderSize = pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize;
   if (remainderSize > 0) {
     const end = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
-    const remainder = pullIntoDescriptor.buffer.slice(end - remainderSize, end);
-    ReadableByteStreamControllerEnqueueChunkToQueue(controller, remainder, 0, remainder.byteLength);
+    ReadableByteStreamControllerEnqueueClonedChunkToQueue(
+      controller,
+      pullIntoDescriptor.buffer,
+      end - remainderSize,
+      remainderSize
+    );
   }
 
   pullIntoDescriptor.bytesFilled -= remainderSize;

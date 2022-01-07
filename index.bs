@@ -3254,16 +3254,26 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
+ <dfn abstract-op lt="ReadableByteStreamControllerEnqueueClonedChunkToQueue">ReadableByteStreamControllerEnqueueClonedChunkToQueue(|controller|,
+ |buffer|, |byteOffset|, |byteLength|)</dfn> performs the following steps:
+
+ 1. Let |cloneResult| be [$CloneArrayBuffer$](|buffer|, |byteOffset|, |byteLength|, {{%ArrayBuffer%}}).
+ 1. If |cloneResult| is an abrupt completion,
+  1. Perform ! [$ReadableByteStreamControllerError$](|cloneResult|.\[[Value]]).
+  1. Return |cloneResult|.
+ 1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
+    |cloneResult|.\[[Value]], 0, |byteLength|).
+</div>
+
+<div algorithm>
  <dfn abstract-op lt="ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue">ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(|controller|,
  |firstDescriptor|)</dfn> performs the following steps:
 
  1. Assert: |firstDescriptor|'s [=pull-into descriptor/reader type=] is "`none`".
- 1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] > 0,
-  1. Let |chunk| be ? [$CloneArrayBuffer$](|pullIntoDescriptor|'s [=pull-into
-     descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=],
-     |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=], {{%ArrayBuffer%}}).
-  1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|, |chunk|, 0,
-     |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]).
+ 1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] > 0, perform ?
+    [$ReadableByteStreamControllerEnqueueClonedChunkToQueue$](|controller|, |pullIntoDescriptor|'s
+    [=pull-into descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into  descriptor/byte offset=],
+    |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]).
  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
 </div>
 
@@ -3570,10 +3580,9 @@ The following abstract operations support the implementation of the
  1. If |remainderSize| > 0,
    1. Let |end| be |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=] +
       |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
-   1. Let |remainder| be ? [$CloneArrayBuffer$](|pullIntoDescriptor|'s [=pull-into
-      descriptor/buffer=], |end| − |remainderSize|, |remainderSize|, {{%ArrayBuffer%}}).
-   1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|, |remainder|, 0,
-      |remainder|.\[[ByteLength]]).
+   1. Perform ? [$ReadableByteStreamControllerEnqueueClonedChunkToQueue$](|controller|,
+      |pullIntoDescriptor|'s [=pull-into descriptor/buffer=], |end| − |remainderSize|,
+      |remainderSize|).
  1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to |pullIntoDescriptor|'s
     [=pull-into descriptor/bytes filled=] − |remainderSize|.
  1. Perform !
