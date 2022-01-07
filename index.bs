@@ -2787,8 +2787,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableStreamBYOBReaderRelease"
- id="readable-stream-byob-reader-release">ReadableStreamBYOBReaderRelease(|reader|)</dfn>
+ <dfn abstract-op lt="ReadableStreamBYOBReaderRelease">ReadableStreamBYOBReaderRelease(|reader|)</dfn>
  performs the following steps:
 
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
@@ -2825,8 +2824,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableStreamDefaultReaderRelease"
- id="readable-stream-default-reader-release">ReadableStreamDefaultReaderRelease(|reader|)</dfn>
+ <dfn abstract-op lt="ReadableStreamDefaultReaderRelease">ReadableStreamDefaultReaderRelease(|reader|)</dfn>
  performs the following steps:
 
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
