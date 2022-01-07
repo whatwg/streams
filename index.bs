@@ -3267,10 +3267,10 @@ The following abstract operations support the implementation of the
 
 <div algorithm>
  <dfn abstract-op lt="ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue">ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(|controller|,
- |firstDescriptor|)</dfn> performs the following steps:
+ |pullIntoDescriptor|)</dfn> performs the following steps:
 
- 1. Assert: |firstDescriptor|'s [=pull-into descriptor/reader type=] is "`none`".
- 1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] > 0, perform ?
+ 1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/reader type=] is "`none`".
+ 1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] > 0, perform ?
     [$ReadableByteStreamControllerEnqueueClonedChunkToQueue$](|controller|, |pullIntoDescriptor|'s
     [=pull-into descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into  descriptor/byte offset=],
     |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]).
