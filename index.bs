@@ -3558,7 +3558,7 @@ The following abstract operations support the implementation of the
  1. Perform ! [$ReadableByteStreamControllerFillHeadPullIntoDescriptor$](|controller|,
     |bytesWritten|, |pullIntoDescriptor|).
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/reader type=] is "`none`",
-  1. Perform ! [$ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue$](|controller|,
+  1. Perform ? [$ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue$](|controller|,
      |pullIntoDescriptor|).
   1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
   1. Return.
