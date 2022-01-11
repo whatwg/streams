@@ -2773,7 +2773,8 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableStreamBYOBReaderErrorReadIntoRequests">ReadableStreamBYOBReaderErrorReadIntoRequests(|reader|, |e|)</dfn>
+ <dfn abstract-op
+ lt="ReadableStreamBYOBReaderErrorReadIntoRequests">ReadableStreamBYOBReaderErrorReadIntoRequests(|reader|, |e|)</dfn>
  performs the following steps:
 
  1. Let |readIntoRequests| be |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=].
@@ -2806,7 +2807,8 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableStreamDefaultReaderErrorReadRequests">ReadableStreamDefaultReaderErrorReadRequests(|reader|, |e|)</dfn>
+ <dfn abstract-op
+ lt="ReadableStreamDefaultReaderErrorReadRequests">ReadableStreamDefaultReaderErrorReadRequests(|reader|, |e|)</dfn>
  performs the following steps:
 
  1. Let |readRequests| be |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=].
@@ -3250,7 +3252,8 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableByteStreamControllerEnqueueClonedChunkToQueue">ReadableByteStreamControllerEnqueueClonedChunkToQueue(|controller|,
+ <dfn abstract-op
+ lt="ReadableByteStreamControllerEnqueueClonedChunkToQueue">ReadableByteStreamControllerEnqueueClonedChunkToQueue(|controller|,
  |buffer|, |byteOffset|, |byteLength|)</dfn> performs the following steps:
 
  1. Let |cloneResult| be [$CloneArrayBuffer$](|buffer|, |byteOffset|, |byteLength|, {{%ArrayBuffer%}}).
@@ -3262,7 +3265,8 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue">ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(|controller|,
+ <dfn abstract-op
+ lt="ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue">ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(|controller|,
  |pullIntoDescriptor|)</dfn> performs the following steps:
 
  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/reader type=] is "`none`".
@@ -3449,7 +3453,8 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableByteStreamControllerProcessReadRequestsUsingQueue">ReadableByteStreamControllerProcessReadRequestsUsingQueue(|controller|)</dfn>
+ <dfn abstract-op
+ lt="ReadableByteStreamControllerProcessReadRequestsUsingQueue">ReadableByteStreamControllerProcessReadRequestsUsingQueue(|controller|)</dfn>
  performs the following steps:
 
  1. Let |reader| be |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[reader]]=].
