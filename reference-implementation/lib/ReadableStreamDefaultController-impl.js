@@ -1,6 +1,6 @@
 'use strict';
 
-const { CancelSteps, PullSteps } = require('./abstract-ops/internal-methods.js');
+const { CancelSteps, PullSteps, ReleaseSteps } = require('./abstract-ops/internal-methods.js');
 const { DequeueValue, ResetQueue } = require('./abstract-ops/queue-with-sizes.js');
 const aos = require('./abstract-ops/readable-streams.js');
 
@@ -55,4 +55,6 @@ exports.implementation = class ReadableStreamDefaultControllerImpl {
       aos.ReadableStreamDefaultControllerCallPullIfNeeded(this);
     }
   }
+
+  [ReleaseSteps]() {}
 };

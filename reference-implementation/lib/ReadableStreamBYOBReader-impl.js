@@ -41,11 +41,7 @@ class ReadableStreamBYOBReaderImpl {
       return;
     }
 
-    if (this._readIntoRequests.length > 0) {
-      throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
-    }
-
-    aos.ReadableStreamReaderGenericRelease(this);
+    aos.ReadableStreamBYOBReaderRelease(this);
   }
 }
 

@@ -1023,11 +1023,11 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
    1. [=Resolve=] |promise| with |chunk|.
   : [=read request/close steps=]
   ::
-   1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+   1. Perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
    1. [=Resolve=] |promise| with [=end of iteration=].
   : [=read request/error steps=], given |e|
   ::
-   1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+   1. Perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
    1. [=Reject=] |promise| with |e|.
  1. Perform ! [$ReadableStreamDefaultReaderRead$]([=this=], |readRequest|).
  1. Return |promise|.
@@ -1045,9 +1045,9 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
     before this is called.
  1. If |iterator|'s [=ReadableStream async iterator/prevent cancel=] is false:
   1. Let |result| be ! [$ReadableStreamReaderGenericCancel$](|reader|, |arg|).
-  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+  1. Perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
   1. Return |result|.
- 1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+ 1. Perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
  1. Return [=a promise resolved with=] undefined.
 </div>
 
@@ -1243,9 +1243,10 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
   when the lock is released, the reader will appear errored in the same way from now on; otherwise,
   the reader will appear closed.
 
-  <p>A reader's lock cannot be released while it still has a pending read request, i.e., if a
-  promise returned by the reader's {{ReadableStreamDefaultReader/read()}} method has not yet been
-  settled. Attempting to do so will throw a {{TypeError}} and leave the reader locked to the stream.
+  <p>If the reader's lock is released while it still has pending read requests, then the
+  promises returned by the reader's {{ReadableStreamDefaultReader/read()}} method are immediately
+  rejected with a {{TypeError}}. Any unread chunks remain in the stream's [=internal queue=] and can
+  be read later by acquiring a new reader.
 </dl>
 
 <div algorithm>
@@ -1284,9 +1285,7 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
  for="ReadableStreamDefaultReader">releaseLock()</dfn> method steps are:
 
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return.
- 1. If [=this=].[=ReadableStreamDefaultReader/[[readRequests]]=] is not [=list/is empty|empty=],
-    throw a {{TypeError}} exception.
- 1. Perform ! [$ReadableStreamReaderGenericRelease$]([=this=]).
+ 1. Perform ! [$ReadableStreamDefaultReaderRelease$]([=this=]).
 </div>
 
 <h3 id="byob-reader-class">The {{ReadableStreamBYOBReader}} class</h3>
@@ -1404,9 +1403,10 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
   when the lock is released, the reader will appear errored in the same way from now on; otherwise,
   the reader will appear closed.
 
-  <p>A reader's lock cannot be released while it still has a pending read request, i.e., if a
-  promise returned by the reader's {{ReadableStreamBYOBReader/read()}} method has not yet been
-  settled. Attempting to do so will throw a {{TypeError}} and leave the reader locked to the stream.
+  <p>If the reader's lock is released while it still has pending read requests, then the
+  promises returned by the reader's {{ReadableStreamBYOBReader/read()}} method are immediately
+  rejected with a {{TypeError}}. Any unread chunks remain in the stream's [=internal queue=] and can
+  be read later by acquiring a new reader.
 </dl>
 
 <div algorithm>
@@ -1450,9 +1450,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
  for="ReadableStreamBYOBReader">releaseLock()</dfn> method steps are:
 
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return.
- 1. If [=this=].[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is not [=list/is empty|empty=],
-    throw a {{TypeError}} exception.
- 1. Perform ! [$ReadableStreamReaderGenericRelease$]([=this=]).
+ 1. Perform ! [$ReadableStreamBYOBReaderRelease$]([=this=]).
 </div>
 
 <h3 id="rs-default-controller-class">The {{ReadableStreamDefaultController}} class</h3>
@@ -1631,6 +1629,14 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
   1. Perform ! [$ReadableStreamDefaultControllerCallPullIfNeeded$]([=this=]).
 </div>
 
+<div algorithm>
+ <dfn abstract-op lt="[[ReleaseSteps]]" for="ReadableStreamDefaultController">\[[ReleaseSteps]]()</dfn>
+ implements the [$ReadableStreamController/[[ReleaseSteps]]$] contract. It performs the following
+ steps:
+
+ 1. Return.
+</div>
+
 <h3 id="rbs-controller-class">The {{ReadableByteStreamController}} class</h3>
 
 The {{ReadableByteStreamController}} class has methods that allow control of a {{ReadableStream}}'s
@@ -1770,7 +1776,8 @@ has the following [=struct/items=]:
    used for constructing a view with which to write into the [=pull-into descriptor/buffer=]
 : <dfn for="pull-into descriptor">reader type</dfn>
 :: Either "`default`" or "`byob`", indicating what type of [=readable stream reader=] initiated this
-   request
+   request, or "`none`" if the initiating [=readable stream reader|reader=] was [=release a read
+   lock|released=]
 
 <h4 id="rbs-controller-prototype">Methods and properties</h4>
 
@@ -1877,16 +1884,7 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
  1. Assert: ! [$ReadableStreamHasDefaultReader$](|stream|) is true.
  1. If [=this=].[=ReadableByteStreamController/[[queueTotalSize]]=] > 0,
   1. Assert: ! [$ReadableStreamGetNumReadRequests$](|stream|) is 0.
-  1. Let |entry| be [=this=].[=ReadableByteStreamController/[[queue]]=][0].
-  1. [=list/Remove=] |entry| from [=this=].[=ReadableByteStreamController/[[queue]]=].
-  1. Set [=this=].[=ReadableByteStreamController/[[queueTotalSize]]=] to
-     [=this=].[=ReadableByteStreamController/[[queueTotalSize]]=] − |entry|'s [=readable byte stream
-     queue entry/byte length=].
-  1. Perform ! [$ReadableByteStreamControllerHandleQueueDrain$]([=this=]).
-  1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |entry|'s [=readable byte stream queue
-     entry/buffer=], |entry|'s [=readable byte stream queue entry/byte offset=], |entry|'s
-     [=readable byte stream queue entry/byte length=] »).
-  1. Perform |readRequest|'s [=read request/chunk steps=], given |view|.
+  1. Perform ! [$ReadableByteStreamControllerFillReadRequestFromQueue$]([=this=], |readRequest|).
   1. Return.
  1. Let |autoAllocateChunkSize| be
     [=this=].[=ReadableByteStreamController/[[autoAllocateChunkSize]]=].
@@ -1905,6 +1903,18 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
      [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=].
  1. Perform ! [$ReadableStreamAddReadRequest$](|stream|, |readRequest|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$]([=this=]).
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="[[ReleaseSteps]]" for="ReadableByteStreamController">\[[ReleaseSteps]]()</dfn>
+ implements the [$ReadableStreamController/[[ReleaseSteps]]$] contract. It performs the following
+ steps:
+
+ 1. If [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
+  1. Let |firstPendingPullInto| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+  1. Set |firstPendingPullInto|'s [=pull-into descriptor/reader type=] to "`none`".
+  1. Set [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] to the [=list=]
+     « |firstPendingPullInto| ».
 </div>
 
 <h3 id="rs-byob-request-class">The {{ReadableStreamBYOBRequest}} class</h3>
@@ -2209,7 +2219,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
   * <dfn id="rs-pipeTo-finalize"><i>Finalize</i></dfn>: both forms of shutdown will eventually ask
     to finalize, optionally with an error |error|, which means to perform the following steps:
    1. Perform ! [$WritableStreamDefaultWriterRelease$](|writer|).
-   1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+   1. Perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
    1. If |signal| is not undefined, [=AbortSignal/remove=] |abortAlgorithm| from |signal|.
    1. If |error| was given, [=reject=] |promise| with |error|.
    1. Otherwise, [=resolve=] |promise| with undefined.
@@ -2371,7 +2381,7 @@ create them does not matter.
  1. Let |pullWithDefaultReader| be the following steps:
   1. If |reader| [=implements=] {{ReadableStreamBYOBReader}},
    1. Assert: |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is [=list/is empty|empty=].
-   1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+   1. Perform ! [$ReadableStreamBYOBReaderRelease$](|reader|).
    1. Set |reader| to ! [$AcquireReadableStreamDefaultReader$](|stream|).
    1. Perform |forwardReaderError|, given |reader|.
   1. Let |readRequest| be a [=read request=] with the following [=struct/items=]:
@@ -2426,7 +2436,7 @@ create them does not matter.
  1. Let |pullWithBYOBReader| be the following steps, given |view| and |forBranch2|:
   1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
    1. Assert: |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is [=list/is empty|empty=].
-   1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+   1. Perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
    1. Set |reader| to ! [$AcquireReadableStreamBYOBReader$](|stream|).
    1. Perform |forwardReaderError|, given |reader|.
   1. Let |byobBranch| be |branch2| if |forBranch2| is true, and |branch1| otherwise.
@@ -2540,7 +2550,7 @@ centralizing most of the potentially-varying logic inside the two controller cla
 of the stateful internal slots and abstract operations for how a stream's [=internal queue=] is
 managed and how it interfaces with its [=underlying source=] or [=underlying byte source=].
 
-Each controller class defines two internal methods, which are called by the {{ReadableStream}}
+Each controller class defines three internal methods, which are called by the {{ReadableStream}}
 algorithms:
 
 <dl>
@@ -2554,6 +2564,10 @@ algorithms:
   ignore>readRequest</var>)</dfn>
   <dd>The controller's steps that run when a [=default reader=] is read from, used to pull from the
   controller any queued [=chunks=], or pull from the [=underlying source=] to get more chunks.
+
+  <dt><dfn abstract-op lt="[[ReleaseSteps]]" for="ReadableStreamController">\[[ReleaseSteps]]()</dfn>
+  <dd>The controller's steps that run when a [=readable stream reader|reader=] is
+  [=release a read lock|released=], used to clean up reader-specific resources stored in the controller.
 </dl>
 
 (These are defined as internal methods, instead of as abstract operations, so that they can be
@@ -2600,9 +2614,10 @@ the {{ReadableStream}}'s public API.
  1. Perform ! [$ReadableStreamClose$](|stream|).
  1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
  1. If |reader| is not undefined and |reader| [=implements=] {{ReadableStreamBYOBReader}},
-  1. [=list/For each=] |readIntoRequest| of |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=],
-   1. Perform |readIntoRequest|'s [=read-into request/close steps=], given undefined.
+  1. Let |readIntoRequests| be |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=].
   1. Set |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] to an empty [=list=].
+  1. [=list/For each=] |readIntoRequest| of |readIntoRequests|,
+   1. Perform |readIntoRequest|'s [=read-into request/close steps=], given undefined.
  1. Let |sourceCancelPromise| be !
     |stream|.[=ReadableStream/[[controller]]=].[$ReadableStreamController/[[CancelSteps]]$](|reason|).
  1. Return the result of [=reacting=] to |sourceCancelPromise| with a fulfillment step that returns
@@ -2619,9 +2634,10 @@ the {{ReadableStream}}'s public API.
  1. If |reader| is undefined, return.
  1. [=Resolve=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with undefined.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
-  1. [=list/For each=] |readRequest| of |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=],
-   1. Perform |readRequest|'s [=read request/close steps=].
+  1. Let |readRequests| be |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=].
   1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to an empty [=list=].
+  1. [=list/For each=] |readRequest| of |readRequests|,
+   1. Perform |readRequest|'s [=read request/close steps=].
 </div>
 
 <div algorithm>
@@ -2636,15 +2652,10 @@ the {{ReadableStream}}'s public API.
  1. [=Reject=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with |e|.
  1. Set |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=].\[[PromiseIsHandled]] to true.
  1. If |reader| [=implements=] {{ReadableStreamDefaultReader}},
-  1. [=list/For each=] |readRequest| of |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=],
-    1. Perform |readRequest|'s [=read request/error steps=], given |e|.
-  1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to a new empty [=list=].
+  1. Perform ! [$ReadableStreamDefaultReaderErrorReadRequests$](|reader|, |e|).
  1. Otherwise,
-   1. Assert: |reader| [=implements=] {{ReadableStreamBYOBReader}}.
-   1. [=list/For each=] |readIntoRequest| of
-      |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=],
-    1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
-   1. Set |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] to a new empty [=list=].
+  1. Assert: |reader| [=implements=] {{ReadableStreamBYOBReader}}.
+  1. Perform ! [$ReadableStreamBYOBReaderErrorReadIntoRequests$](|reader|, |e|).
 </div>
 
 <div algorithm>
@@ -2760,18 +2771,28 @@ The following abstract operations support the implementation and manipulation of
  id="readable-stream-reader-generic-release">ReadableStreamReaderGenericRelease(|reader|)</dfn>
  performs the following steps:
 
- 1. Assert: |reader|.[=ReadableStreamGenericReader/[[stream]]=] is not undefined.
- 1. Assert: |reader|.[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[reader]]=] is
-    |reader|.
- 1. If |reader|.[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[state]]=] is
-    "`readable`", [=reject=] |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with a
-    {{TypeError}} exception.
+ 1. Let |stream| be |reader|.[=ReadableStreamGenericReader/[[stream]]=].
+ 1. Assert: |stream| is not undefined.
+ 1. Assert: |stream|.[=ReadableStream/[[reader]]=] is |reader|.
+ 1. If |stream|.[=ReadableStream/[[state]]=] is "`readable`", [=reject=]
+    |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] with a {{TypeError}} exception.
  1. Otherwise, set |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=] to [=a promise
     rejected with=] a {{TypeError}} exception.
  1. Set |reader|.[=ReadableStreamGenericReader/[[closedPromise]]=].\[[PromiseIsHandled]] to true.
- 1. Set |reader|.[=ReadableStreamGenericReader/[[stream]]=].[=ReadableStream/[[reader]]=] to
-    undefined.
+ 1. Perform ! |stream|.[=ReadableStream/[[controller]]=].[$ReadableStreamController/[[ReleaseSteps]]$]().
+ 1. Set |stream|.[=ReadableStream/[[reader]]=] to undefined.
  1. Set |reader|.[=ReadableStreamGenericReader/[[stream]]=] to undefined.
+</div>
+
+<div algorithm>
+ <dfn abstract-op
+ lt="ReadableStreamBYOBReaderErrorReadIntoRequests">ReadableStreamBYOBReaderErrorReadIntoRequests(|reader|, |e|)</dfn>
+ performs the following steps:
+
+ 1. Let |readIntoRequests| be |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=].
+ 1. Set |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] to a new empty [=list=].
+ 1. [=list/For each=] |readIntoRequest| of |readIntoRequests|,
+  1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
 </div>
 
 <div algorithm>
@@ -2786,6 +2807,26 @@ The following abstract operations support the implementation and manipulation of
     request/error steps=] given |stream|.[=ReadableStream/[[storedError]]=].
  1. Otherwise, perform ! [$ReadableByteStreamControllerPullInto$](|stream|.[=ReadableStream/[[controller]]=],
     |view|, |readIntoRequest|).
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="ReadableStreamBYOBReaderRelease">ReadableStreamBYOBReaderRelease(|reader|)</dfn>
+ performs the following steps:
+
+ 1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+ 1. Let |e| be a new {{TypeError}} exception.
+ 1. Perform ! [$ReadableStreamBYOBReaderErrorReadIntoRequests$](|reader|, |e|).
+</div>
+
+<div algorithm>
+ <dfn abstract-op
+ lt="ReadableStreamDefaultReaderErrorReadRequests">ReadableStreamDefaultReaderErrorReadRequests(|reader|, |e|)</dfn>
+ performs the following steps:
+
+ 1. Let |readRequests| be |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=].
+ 1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to a new empty [=list=].
+ 1. [=list/For each=] |readRequest| of |readRequests|,
+   1. Perform |readRequest|'s [=read request/error steps=], given |e|.
 </div>
 
 <div algorithm>
@@ -2804,6 +2845,15 @@ The following abstract operations support the implementation and manipulation of
   1. Assert: |stream|.[=ReadableStream/[[state]]=] is "`readable`".
   1. Perform !
      |stream|.[=ReadableStream/[[controller]]=].[$ReadableStreamController/[[PullSteps]]$](|readRequest|).
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="ReadableStreamDefaultReaderRelease">ReadableStreamDefaultReaderRelease(|reader|)</dfn>
+ performs the following steps:
+
+ 1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
+ 1. Let |e| be a new {{TypeError}} exception.
+ 1. Perform ! [$ReadableStreamDefaultReaderErrorReadRequests$](|reader|, |e|).
 </div>
 
 <div algorithm>
@@ -3118,6 +3168,7 @@ The following abstract operations support the implementation of the
  |pullIntoDescriptor|)</dfn> performs the following steps:
 
  1. Assert: |stream|.[=ReadableStream/[[state]]=] is not "`errored`".
+ 1. Assert: |pullIntoDescriptor|.[=pull-into descriptor/reader type=] is not "`none`".
  1. Let |done| be false.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`",
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
@@ -3165,10 +3216,14 @@ The following abstract operations support the implementation of the
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
   1. If ! [$IsDetachedBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=])
      is true, throw a {{TypeError}} exception.
+  1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
   1. Set |firstPendingPullInto|'s [=pull-into descriptor/buffer=] to !
      [$TransferArrayBuffer$](|firstPendingPullInto|'s [=pull-into descriptor/buffer=]).
- 1. Perform ! [$ReadableByteStreamControllerInvalidateBYOBRequest$](|controller|).
- 1. If ! [$ReadableStreamHasDefaultReader$](|stream|) is true
+  1. If |firstPendingPullInto|'s [=pull-into descriptor/reader type=] is "`none`",
+     perform ? [$ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue$](|controller|,
+     |firstPendingPullInto|).
+ 1. If ! [$ReadableStreamHasDefaultReader$](|stream|) is true,
+  1. Perform ! [$ReadableByteStreamControllerProcessReadRequestsUsingQueue$](|controller|).
   1. If ! [$ReadableStreamGetNumReadRequests$](|stream|) is 0,
    1. Assert: |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is
       [=list/is empty|empty=].
@@ -3206,6 +3261,32 @@ The following abstract operations support the implementation of the
     |controller|.[=ReadableByteStreamController/[[queue]]=].
  1. Set |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] to
     |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] + |byteLength|.
+</div>
+
+<div algorithm>
+ <dfn abstract-op
+ lt="ReadableByteStreamControllerEnqueueClonedChunkToQueue">ReadableByteStreamControllerEnqueueClonedChunkToQueue(|controller|,
+ |buffer|, |byteOffset|, |byteLength|)</dfn> performs the following steps:
+
+ 1. Let |cloneResult| be [$CloneArrayBuffer$](|buffer|, |byteOffset|, |byteLength|, {{%ArrayBuffer%}}).
+ 1. If |cloneResult| is an abrupt completion,
+  1. Perform ! [$ReadableByteStreamControllerError$](|cloneResult|.\[[Value]]).
+  1. Return |cloneResult|.
+ 1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
+    |cloneResult|.\[[Value]], 0, |byteLength|).
+</div>
+
+<div algorithm>
+ <dfn abstract-op
+ lt="ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue">ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(|controller|,
+ |pullIntoDescriptor|)</dfn> performs the following steps:
+
+ 1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/reader type=] is "`none`".
+ 1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] > 0, perform ?
+    [$ReadableByteStreamControllerEnqueueClonedChunkToQueue$](|controller|, |pullIntoDescriptor|'s
+    [=pull-into descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into  descriptor/byte offset=],
+    |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]).
+ 1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
 </div>
 
 <div algorithm>
@@ -3287,6 +3368,24 @@ The following abstract operations support the implementation of the
 
 <div algorithm>
  <dfn abstract-op
+ lt="ReadableByteStreamControllerFillReadRequestFromQueue">ReadableByteStreamControllerFillReadRequestFromQueue(|controller|,
+ |readRequest|)</dfn> performs the following steps:
+
+ 1. Assert: |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] > 0.
+ 1. Let |entry| be |controller|.[=ReadableByteStreamController/[[queue]]=][0].
+ 1. [=list/Remove=] |entry| from |controller|.[=ReadableByteStreamController/[[queue]]=].
+ 1. Set |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] to
+    |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] − |entry|'s [=readable byte stream
+    queue entry/byte length=].
+ 1. Perform ! [$ReadableByteStreamControllerHandleQueueDrain$](|controller|).
+ 1. Let |view| be ! [$Construct$]({{%Uint8Array%}}, « |entry|'s [=readable byte stream queue
+    entry/buffer=], |entry|'s [=readable byte stream queue entry/byte offset=], |entry|'s
+    [=readable byte stream queue entry/byte length=] »).
+ 1. Perform |readRequest|'s [=read request/chunk steps=], given |view|.
+</div>
+
+<div algorithm>
+ <dfn abstract-op
  lt="ReadableByteStreamControllerGetBYOBRequest">ReadableByteStreamControllerGetBYOBRequest(|controller|)</dfn> performs
  the following steps:
 
@@ -3363,6 +3462,20 @@ The following abstract operations support the implementation of the
    1. Perform !
       [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],
       |pullIntoDescriptor|).
+</div>
+
+<div algorithm>
+ <dfn abstract-op
+ lt="ReadableByteStreamControllerProcessReadRequestsUsingQueue">ReadableByteStreamControllerProcessReadRequestsUsingQueue(|controller|)</dfn>
+ performs the following steps:
+
+ 1. Let |reader| be |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[reader]]=].
+ 1. Assert: |reader| [=implements=] {{ReadableStreamDefaultReader}}.
+ 1. While |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is not [=list/is empty|empty=],
+  1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0, return.
+  1. Let |readRequest| be |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=][0].
+  1. [=list/Remove=] |readRequest| from |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=].
+  1. Perform ! [$ReadableByteStreamControllerFillReadRequestFromQueue$](|controller|, |readRequest|).
 </div>
 
 <div algorithm>
@@ -3447,6 +3560,8 @@ The following abstract operations support the implementation of the
  |firstDescriptor|)</dfn> performs the following steps:
 
  1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
+ 1. If |firstDescriptor|'s [=pull-into descriptor/reader type=] is "`none`",
+    perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. If ! [$ReadableStreamHasBYOBReader$](|stream|) is true,
   1. [=While=] ! [$ReadableStreamGetNumReadIntoRequests$](|stream|) > 0,
@@ -3465,6 +3580,11 @@ The following abstract operations support the implementation of the
     |pullIntoDescriptor|'s [=pull-into descriptor/byte length=].
  1. Perform ! [$ReadableByteStreamControllerFillHeadPullIntoDescriptor$](|controller|,
     |bytesWritten|, |pullIntoDescriptor|).
+ 1. If |pullIntoDescriptor|'s [=pull-into descriptor/reader type=] is "`none`",
+  1. Perform ? [$ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue$](|controller|,
+     |pullIntoDescriptor|).
+  1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
+  1. Return.
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
     [=pull-into descriptor/element size=], return.
  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
@@ -3473,10 +3593,9 @@ The following abstract operations support the implementation of the
  1. If |remainderSize| > 0,
    1. Let |end| be |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=] +
       |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
-   1. Let |remainder| be ? [$CloneArrayBuffer$](|pullIntoDescriptor|'s [=pull-into
-      descriptor/buffer=], |end| − |remainderSize|, |remainderSize|, {{%ArrayBuffer%}}).
-   1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|, |remainder|, 0,
-      |remainder|.\[[ByteLength]]).
+   1. Perform ? [$ReadableByteStreamControllerEnqueueClonedChunkToQueue$](|controller|,
+      |pullIntoDescriptor|'s [=pull-into descriptor/buffer=], |end| − |remainderSize|,
+      |remainderSize|).
  1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to |pullIntoDescriptor|'s
     [=pull-into descriptor/bytes filled=] − |remainderSize|.
  1. Perform !
@@ -6722,7 +6841,7 @@ a chunk</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given a [=read re
 
 <p algorithm>To <dfn export for="ReadableStreamDefaultReader">release</dfn> a
 {{ReadableStreamDefaultReader}} |reader|, perform !
-[$ReadableStreamReaderGenericRelease$](|reader|).
+[$ReadableStreamDefaultReaderRelease$](|reader|).
 
 <p algorithm>To <dfn export for="ReadableStreamDefaultReader">cancel</dfn> a
 {{ReadableStreamDefaultReader}} |reader| with |reason|, perform !

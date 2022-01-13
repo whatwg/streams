@@ -129,11 +129,11 @@ exports.implementation = class ReadableStreamImpl {
     const readRequest = {
       chunkSteps: chunk => resolvePromise(promise, chunk),
       closeSteps: () => {
-        aos.ReadableStreamReaderGenericRelease(reader);
+        aos.ReadableStreamDefaultReaderRelease(reader);
         resolvePromise(promise, idlUtils.asyncIteratorEOI);
       },
       errorSteps: e => {
-        aos.ReadableStreamReaderGenericRelease(reader);
+        aos.ReadableStreamDefaultReaderRelease(reader);
         rejectPromise(promise, e);
       }
     };
@@ -151,11 +151,11 @@ exports.implementation = class ReadableStreamImpl {
 
     if (iterator._preventCancel === false) {
       const result = aos.ReadableStreamReaderGenericCancel(reader, arg);
-      aos.ReadableStreamReaderGenericRelease(reader);
+      aos.ReadableStreamDefaultReaderRelease(reader);
       return result;
     }
 
-    aos.ReadableStreamReaderGenericRelease(reader);
+    aos.ReadableStreamDefaultReaderRelease(reader);
     return promiseResolvedWith(undefined);
   }
 };
