@@ -8,7 +8,8 @@ Folks notice minor and larger issues with the Streams Standard all the time and 
 help fixing those. Pull requests for typographical and grammar errors are also most welcome.
 
 We'd be happy to mentor you through this process. If you're interested and need help getting
-started, leave a comment on the issue or ask around [on IRC](https://whatwg.org/irc).
+started, leave a comment on the issue or ask around
+[in the Matrix chat room](https://whatwg.org/chat).
 
 ## Pull requests
 
