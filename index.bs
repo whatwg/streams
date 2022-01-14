@@ -3270,7 +3270,7 @@ The following abstract operations support the implementation of the
 
  1. Let |cloneResult| be [$CloneArrayBuffer$](|buffer|, |byteOffset|, |byteLength|, {{%ArrayBuffer%}}).
  1. If |cloneResult| is an abrupt completion,
-  1. Perform ! [$ReadableByteStreamControllerError$](|cloneResult|.\[[Value]]).
+  1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |cloneResult|.\[[Value]]).
   1. Return |cloneResult|.
  1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
     |cloneResult|.\[[Value]], 0, |byteLength|).
