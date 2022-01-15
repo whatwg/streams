@@ -2198,6 +2198,9 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
     |originalError|, then:
    1. If |shuttingDown| is true, abort these substeps.
    1. Set |shuttingDown| to true.
+   1. If |reader| [=implements=] {{ReadableStreamBYOBReader}}, perform
+      ! [$ReadableStreamBYOBReaderRelease$](|reader|).
+   1. Otherwise, perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
    1. If |dest|.[=WritableStream/[[state]]=] is "`writable`" and !
       [$WritableStreamCloseQueuedOrInFlight$](|dest|) is false,
      1. If any [=chunks=] have been read but not yet written, write them to |dest|.
@@ -2210,6 +2213,9 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
     ask to shutdown, optionally with an error |error|, then:
    1. If |shuttingDown| is true, abort these substeps.
    1. Set |shuttingDown| to true.
+   1. If |reader| [=implements=] {{ReadableStreamBYOBReader}}, perform
+      ! [$ReadableStreamBYOBReaderRelease$](|reader|).
+   1. Otherwise, perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
    1. If |dest|.[=WritableStream/[[state]]=] is "`writable`" and !
       [$WritableStreamCloseQueuedOrInFlight$](|dest|) is false,
     1. If any [=chunks=] have been read but not yet written, write them to |dest|.
@@ -2218,10 +2224,8 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
    1. [=Finalize=], passing along |error| if it was given.
   * <dfn id="rs-pipeTo-finalize"><i>Finalize</i></dfn>: both forms of shutdown will eventually ask
     to finalize, optionally with an error |error|, which means to perform the following steps:
+   1. Assert: |reader|.[=ReadableStreamGenericReader/[[stream]]=] is undefined.
    1. Perform ! [$WritableStreamDefaultWriterRelease$](|writer|).
-   1. If |reader| [=implements=] {{ReadableStreamBYOBReader}}, perform
-      ! [$ReadableStreamBYOBReaderRelease$](|reader|).
-   1. Otherwise, perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
    1. If |signal| is not undefined, [=AbortSignal/remove=] |abortAlgorithm| from |signal|.
    1. If |error| was given, [=reject=] |promise| with |error|.
    1. Otherwise, [=resolve=] |promise| with undefined.
