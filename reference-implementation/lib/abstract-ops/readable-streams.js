@@ -201,6 +201,9 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       }
 
       return transformPromiseWith(writer._readyPromise, () => {
+        if (shuttingDown === true) {
+          return promiseResolvedWith(true);
+        }
         return new Promise((resolveRead, rejectRead) => {
           ReadableStreamDefaultReaderRead(
             reader,
@@ -290,6 +293,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
         return;
       }
       shuttingDown = true;
+      ReadableStreamDefaultReaderRelease(reader);
 
       if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
         uponFulfillment(waitForWritesToFinish(), doTheRest);
@@ -311,6 +315,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
         return;
       }
       shuttingDown = true;
+      ReadableStreamDefaultReaderRelease(reader);
 
       if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
         uponFulfillment(waitForWritesToFinish(), () => finalize(isError, error));
@@ -320,8 +325,8 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     function finalize(isError, error) {
+      assert(reader._stream === undefined);
       WritableStreamDefaultWriterRelease(writer);
-      ReadableStreamDefaultReaderRelease(reader);
 
       if (signal !== undefined) {
         signal.removeEventListener('abort', abortAlgorithm);
