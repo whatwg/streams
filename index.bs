@@ -3433,8 +3433,8 @@ The following abstract operations support the implementation of the
      descriptor/bytes filled=].
   1. Set |ready| to true.
      <p class="note">A descriptor for a {{ReadableStreamBYOBReader/read()}} request
-     that is not yet completely filled will stay at the head of the queue, so the [=underlying source=]
-     can keep filling it.
+     that is not yet filled up to its minimum length will stay at the head of the queue, so the
+     [=underlying source=] can keep filling it.
  1. Let |queue| be |controller|.[=ReadableByteStreamController/[[queue]]=].
  1. [=While=] |totalBytesToCopyRemaining| > 0,
   1. Let |headOfQueue| be |queue|[0].
@@ -3691,8 +3691,8 @@ The following abstract operations support the implementation of the
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
     [=pull-into descriptor/minimum fill=], return.
     <p class="note">A descriptor for a {{ReadableStreamBYOBReader/read()}} request
-    that is not yet completely filled will stay at the head of the queue, so the [=underlying source=]
-    can keep filling it.
+    that is not yet filled up to its minimum length will stay at the head of the queue, so the
+    [=underlying source=] can keep filling it.
  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
  1. Let |remainderSize| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] mod
     |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
