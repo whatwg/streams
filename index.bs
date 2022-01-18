@@ -1514,7 +1514,8 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
   : [=read-into request/error steps=], given |e|
   ::
    1. [=Reject=] |promise| with |e|.
- 1. Perform ! [$ReadableStreamBYOBReaderFill$]([=this=], |view|, |readIntoRequest|).
+ 1. Perform ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|, |readIntoRequest|,
+    |view|.\[[ByteLength]]).
  1. Return |promise|.
 </div>
 
@@ -1840,6 +1841,10 @@ has the following [=struct/items=]:
 : <dfn for="pull-into descriptor">bytes filled</dfn>
 :: A nonnegative integer number of bytes that have been written into the [=pull-into
    descriptor/buffer=] so far
+: <dfn for="pull-into descriptor">minimum fill</dfn>
+:: A positive integer representing the minimum number of bytes that must be written into the
+   [=pull-into descriptor/buffer=] before the associated {{ReadableStreamBYOBReader/read()}} request
+   may be fulfilled. By default, this equals the [=pull-into descriptor/element size=].
 : <dfn for="pull-into descriptor">element size</dfn>
 :: A positive integer representing the number of bytes that can be written into the [=pull-into
    descriptor/buffer=] at a time, using views of the type described by the [=pull-into
@@ -1851,8 +1856,6 @@ has the following [=struct/items=]:
 :: Either "`default`" or "`byob`", indicating what type of [=readable stream reader=] initiated this
    request, or "`none`" if the initiating [=readable stream reader|reader=] was [=release a read
    lock|released=]
-: <dfn for="pull-into descriptor">fill</dfn>
-:: A boolean flag indicating whether this is a {{ReadableStreamBYOBReader/fill()}} request.
 
 <h4 id="rbs-controller-prototype">Methods and properties</h4>
 
@@ -1971,10 +1974,9 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
   1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
      |buffer|.\[[Value]], [=pull-into descriptor/buffer byte length=] |autoAllocateChunkSize|,
      [=pull-into descriptor/byte offset=] 0, [=pull-into descriptor/byte length=]
-     |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into
-     descriptor/element size=] 1, [=pull-into descriptor/view constructor=] {{%Uint8Array%}},
-     [=pull-into descriptor/reader type=] "`default`", and [=pull-into descriptor/fill=]
-     false.
+     |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/minimum
+     fill=] 1, [=pull-into descriptor/element size=] 1, [=pull-into descriptor/view constructor=]
+     {{%Uint8Array%}}, and [=pull-into descriptor/reader type=] "`default`".
   1. [=list/Append=] |pullIntoDescriptor| to
      [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=].
  1. Perform ! [$ReadableStreamAddReadRequest$](|stream|, |readRequest|).
@@ -2919,29 +2921,21 @@ The following abstract operations support the implementation and manipulation of
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamBYOBReaderRead"
  id="readable-stream-byob-reader-read">ReadableStreamBYOBReaderRead(|reader|, |view|,
- |readIntoRequest|)</dfn> performs the following steps:
+ |readIntoRequest|[, |minimumFill|])</dfn> performs the following steps:
 
  1. Let |stream| be |reader|.[=ReadableStreamGenericReader/[[stream]]=].
  1. Assert: |stream| is not undefined.
  1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
+ 1. If |minimumFill| was not given,
+  1. Let |elementSize| be 1.
+  1. If |view| has a \[[TypedArrayName]] internal slot (i.e., it is not a {{DataView}}), set
+     |elementSize| to the element size specified in [=the typed array constructors table=] for
+     |view|.\[[TypedArrayName]].
+  1. Set |minimumFill| to |elementSize|.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`errored`", perform |readIntoRequest|'s [=read-into
     request/error steps=] given |stream|.[=ReadableStream/[[storedError]]=].
  1. Otherwise, perform ! [$ReadableByteStreamControllerPullInto$](|stream|.[=ReadableStream/[[controller]]=],
-    |view|, |readIntoRequest|, false).
-</div>
-
-<div algorithm>
- <dfn abstract-op lt="ReadableStreamBYOBReaderFill"
- id="readable-stream-byob-reader-fill">ReadableStreamBYOBReaderFill(|reader|, |view|,
- |readIntoRequest|)</dfn> performs the following steps:
-
- 1. Let |stream| be |reader|.[=ReadableStreamGenericReader/[[stream]]=].
- 1. Assert: |stream| is not undefined.
- 1. Set |stream|.[=ReadableStream/[[disturbed]]=] to true.
- 1. If |stream|.[=ReadableStream/[[state]]=] is "`errored`", perform |readIntoRequest|'s [=read-into
-    request/error steps=] given |stream|.[=ReadableStream/[[storedError]]=].
- 1. Otherwise, perform ! [$ReadableByteStreamControllerPullInto$](|stream|.[=ReadableStream/[[controller]]=],
-    |view|, |readIntoRequest|, true).
+    |view|, |readIntoRequest|, |minimumFill|).
 </div>
 
 <div algorithm>
@@ -3307,11 +3301,8 @@ The following abstract operations support the implementation of the
  1. Assert: |pullIntoDescriptor|.[=pull-into descriptor/reader type=] is not "`none`".
  1. Let |done| be false.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`",
-  1. If |pullIntoDescriptor|'s [=pull-into descriptor/fill=] is true,
-   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]
-      mod |pullIntoDescriptor|'s [=pull-into descriptor/element size=] is 0.
-  1. Otherwise,
-   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
+  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]
+     mod |pullIntoDescriptor|'s [=pull-into descriptor/element size=] is 0.
   1. Set |done| to true.
  1. Let |filledView| be !
     [$ReadableByteStreamControllerConvertPullIntoDescriptor$](|pullIntoDescriptor|).
@@ -3467,25 +3458,17 @@ The following abstract operations support the implementation of the
     |maxBytesToCopy|.
  1. Let |totalBytesToCopyRemaining| be |maxBytesToCopy|.
  1. Let |ready| be false.
- 1. If |pullIntoDescriptor|'s [=pull-into descriptor/fill=] is true,
-  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] < |pullIntoDescriptor|'s
-     [=pull-into descriptor/byte length=].
-  1. If |maxBytesFilled| ≥ |pullIntoDescriptor|'s [=pull-into descriptor/byte length=],
-   1. Set |totalBytesToCopyRemaining| to |pullIntoDescriptor|'s [=pull-into descriptor/byte length=]
-      − |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
-   1. Set |ready| to true.
-      <p class="note">A descriptor for a {{ReadableStreamBYOBReader/fill()}} request
-      that is not yet completely filled will stay at the head of the queue, so the [=underlying source=]
-      can keep filling it.
- 1. Otherwise,
-  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] < |pullIntoDescriptor|'s
-     [=pull-into descriptor/element size=].
-  1. Let |maxAlignedBytes| be |maxBytesFilled| − (|maxBytesFilled| mod |pullIntoDescriptor|'s
-     [=pull-into descriptor/element size=]).
-  1. If |maxAlignedBytes| > 0,
-   1. Set |totalBytesToCopyRemaining| to |maxAlignedBytes| − |pullIntoDescriptor|'s [=pull-into
+ 1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] < |pullIntoDescriptor|'s
+    [=pull-into descriptor/minimum fill=].
+ 1. Let |maxAlignedBytes| be |maxBytesFilled| − (|maxBytesFilled| mod |pullIntoDescriptor|'s
+    [=pull-into descriptor/element size=]).
+ 1. If |maxAlignedBytes| ≥ [=pull-into descriptor/minimum fill=],
+  1. Set |totalBytesToCopyRemaining| to |maxAlignedBytes| − |pullIntoDescriptor|'s [=pull-into
      descriptor/bytes filled=].
-   1. Set |ready| to true.
+  1. Set |ready| to true.
+     <p class="note">A descriptor for a {{ReadableStreamBYOBReader/fill()}} request
+     that is not yet completely filled will stay at the head of the queue, so the [=underlying source=]
+     can keep filling it.
  1. Let |queue| be |controller|.[=ReadableByteStreamController/[[queue]]=].
  1. [=While=] |totalBytesToCopyRemaining| > 0,
   1. Let |headOfQueue| be |queue|[0].
@@ -3512,12 +3495,8 @@ The following abstract operations support the implementation of the
  1. If |ready| is false,
   1. Assert: |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0.
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] > 0.
-  1. If |pullIntoDescriptor|'s [=pull-into descriptor/fill=] is true,
-   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt;
-      |pullIntoDescriptor|'s [=pull-into descriptor/byte length=].
-  1. Otherwise,
-   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt;
-      |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
+  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt;
+     |pullIntoDescriptor|'s [=pull-into descriptor/minimum fill=].
  1. Return |ready|.
 </div>
 
@@ -3636,7 +3615,7 @@ The following abstract operations support the implementation of the
 <div algorithm>
  <dfn abstract-op lt="ReadableByteStreamControllerPullInto"
  id="readable-byte-stream-controller-pull-into">ReadableByteStreamControllerPullInto(|controller|,
- |view|, |readIntoRequest|, |fill|)</dfn> performs the following steps:
+ |view|, |readIntoRequest|, |minimumFill|)</dfn> performs the following steps:
 
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. Let |elementSize| be 1.
@@ -3646,6 +3625,8 @@ The following abstract operations support the implementation of the
      |view|.\[[TypedArrayName]].
   1. Set |ctor| to the constructor specified in [=the typed array constructors table=] for
      |view|.\[[TypedArrayName]].
+ 1. Assert: |minimumFill| ≥ 0 and |minimumFill| ≤ |view|.\[[ByteLength]].
+ 1. Assert: |minimumFill| mod |elementSize| is 0.
  1. Let |byteOffset| be |view|.\[[ByteOffset]].
  1. Let |byteLength| be |view|.\[[ByteLength]].
  1. Let |bufferResult| be [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
@@ -3656,9 +3637,9 @@ The following abstract operations support the implementation of the
  1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
     |buffer|, [=pull-into descriptor/buffer byte length=] |buffer|.\[[ArrayBufferByteLength]],
     [=pull-into descriptor/byte offset=] |byteOffset|, [=pull-into descriptor/byte length=]
-    |byteLength|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/element size=]
-    |elementSize|, [=pull-into descriptor/view constructor=] |ctor|, [=pull-into
-    descriptor/reader type=] "`byob`", and [=pull-into descriptor/fill=] |fill|.
+    |byteLength|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/minimum fill=]
+    |minimumFill|, [=pull-into descriptor/element size=] |elementSize|, [=pull-into descriptor/view
+    constructor=] |ctor|, and [=pull-into descriptor/reader type=] "`byob`".
  1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty,
   1. [=list/Append=] |pullIntoDescriptor| to
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=].
@@ -3714,11 +3695,8 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-in-closed-state">ReadableByteStreamControllerRespondInClosedState(|controller|,
  |firstDescriptor|)</dfn> performs the following steps:
 
- 1. If |firstDescriptor|'s [=pull-into descriptor/fill=] is true,
-  1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] mod |firstDescriptor|'s
-     [=pull-into descriptor/element size=] is 0.
- 1. Otherwise,
-  1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
+ 1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] mod |firstDescriptor|'s
+    [=pull-into descriptor/element size=] is 0.
  1. If |firstDescriptor|'s [=pull-into descriptor/reader type=] is "`none`",
     perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
@@ -3745,10 +3723,7 @@ The following abstract operations support the implementation of the
   1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
   1. Return.
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
-    [=pull-into descriptor/element size=], return.
- 1. If |pullIntoDescriptor|'s [=pull-into descriptor/fill=] is true and |pullIntoDescriptor|'s
-    [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
-    [=pull-into descriptor/byte length=], return.
+    [=pull-into descriptor/minimum fill=], return.
     <p class="note">A descriptor for a {{ReadableStreamBYOBReader/fill()}} request
     that is not yet completely filled will stay at the head of the queue, so the [=underlying source=]
     can keep filling it.
