@@ -3,7 +3,6 @@ interface ReadableStreamBYOBReader {
   constructor(ReadableStream stream);
 
   Promise<ReadableStreamReadResult> read(ArrayBufferView view, optional ReadableStreamBYOBReaderReadOptions options = {});
-  Promise<ReadableStreamReadResult> fill(ArrayBufferView view);
   undefined releaseLock();
 };
 ReadableStreamBYOBReader includes ReadableStreamGenericReader;

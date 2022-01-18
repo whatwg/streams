@@ -468,12 +468,12 @@ particularly important for the data structure described in [[#queue-with-sizes]]
  offset that bytes were written to as its <code>byteOffset</code> property, and the number of
  bytes that were written as its <code>byteLength</code> property.
 
- Note that this example is mostly educational. For practical purposes,
- {{ReadableStreamBYOBReader/fill()}} provides an easier and more direct way to read an exact
- number of bytes:
+ Note that this example is mostly educational. For practical purposes, the
+ {{ReadableStreamBYOBReaderReadOptions/atLeast}} option of {{ReadableStreamBYOBReader/read()}}
+ provides an easier and more direct way to read an exact number of bytes:
  <xmp highlight="js">
  const reader = readableStream.getReader({ mode: "byob" });
- const { value: view, done } = await reader.fill(new Uint8Array(1024));
+ const { value: view, done } = await reader.read(new Uint8Array(1024), { atLeast: 1024 });
  console.log("The first 1024 bytes: ", view);
  </xmp>
 </div>
@@ -1323,7 +1323,6 @@ interface ReadableStreamBYOBReader {
   constructor(ReadableStream stream);
 
   Promise<ReadableStreamReadResult> read(ArrayBufferView view, optional ReadableStreamBYOBReaderReadOptions options = {});
-  Promise<ReadableStreamReadResult> fill(ArrayBufferView view);
   undefined releaseLock();
 };
 ReadableStreamBYOBReader includes ReadableStreamGenericReader;
@@ -1390,7 +1389,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
   <p>If the reader is [=active reader|active=], behaves the same
   <code>|stream|.{{ReadableStream/cancel(reason)|cancel}}(<var ignore>reason</var>)</code>.
 
- <dt><code>{ <var ignore>value</var>, <var ignore>done</var> } = await <var ignore>reader</var>.{{ReadableStreamBYOBReader/read()|read}}(<var ignore>view</var>)</code>
+ <dt><code>{ <var ignore>value</var>, <var ignore>done</var> } = await <var ignore>reader</var>.{{ReadableStreamBYOBReader/read()|read}}(<var ignore>view</var>[, { {{ReadableStreamBYOBReaderReadOptions/atLeast}} }])</code>
  <dd>
   <p>Attempts to read bytes into |view|, and returns a promise resolved with the result:
 
@@ -1416,34 +1415,13 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
   <p>If reading a chunk causes the queue to become empty, more data will be pulled from the
   [=underlying source=].
 
- <dt><code>{ <var ignore>value</var>, <var ignore>done</var> } = await <var ignore>reader</var>.{{ReadableStreamBYOBReader/fill()|fill}}(<var ignore>view</var>)</code>
- <dd>
-  <p>Attempts to read bytes into |view| until it is completely full, and returns a promise resolved
-  with the result:
-
-  <ul>
-   <li>If enough bytes become available to fill |view|, the promise will be fulfilled with an
-   object of the form <code highlight="js">{ value: newView, done: false }</code>. In this case,
-   |view| will be [=ArrayBuffer/detached=] and no longer usable, but <code>newView</code> will be a
-   new view (of the same type) onto the same backing memory region, with the received bytes written
-   into it. <code>newView</code> will be completely filled, so its <code>byteLength</code> will
-   equal |view|'s <code>byteLength</code>.
-
-   <li>If the stream becomes closed before |view| is full, the promise will be fulfilled with an
-   object of the form <code highlight="js">{ value: newView, done: true }</code>. In this case,
-   |view| will be [=ArrayBuffer/detached=] and no longer usable, but <code>newView</code> will be a
-   new view (of the same type) onto the same backing memory region, with any received bytes written
-   into it. <code>newView.byteLength</code> will equal that number of received bytes.
-
-   <li>If the reader is [=cancel a readable stream|canceled=], the promise will be fulfilled with
-   an object of the form <code highlight="js">{ value: undefined, done: true }</code>. In this case,
-   the backing memory region of |view| is discarded and not returned to the caller.
-
-   <li>If the stream becomes errored, the promise will be rejected with the relevant error.
-  </ul>
-
-  <p>If filling the view causes the queue to become empty, more data will be pulled from the
-  [=underlying source=]. This process repeats until either |view| is full, or the stream is closed.
+  <p>If {{ReadableStreamBYOBReaderReadOptions/atLeast}} is given, then the promise will only be
+  fulfilled as soon as at least the given number of elements are available. Here, the "number of
+  elements" is given by <code>newView</code>'s <code>length</code> (for typed arrays) or
+  <code>newView</code>'s <code>byteLength</code> (for {{DataView}}s). If the stream becomes closed,
+  then the promise is fulfilled with the remaining elements in the stream, which might be fewer than
+  the initially requested amount. If not given, then the promise resolves when at least one element
+  is available.
 
  <dt><code><var ignore>reader</var>.{{ReadableStreamBYOBReader/releaseLock()|releaseLock}}()</code>
  <dd>
@@ -1504,35 +1482,6 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
   ::
    1. [=Reject=] |promise| with |e|.
  1. Perform ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|, |readIntoRequest|, |minimumFill|).
- 1. Return |promise|.
-</div>
-
-<div algorithm>
- The <dfn id="byob-reader-fill" method for="ReadableStreamBYOBReader">fill(|view|)</dfn>
- method steps are:
-
- 1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
- 1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, return [=a promise rejected
-    with=] a {{TypeError}} exception.
- 1. If ! [$IsDetachedBuffer$](|view|.\[[ViewedArrayBuffer]]) is true, return
-    [=a promise rejected with=] a {{TypeError}} exception.
- 1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected
-    with=] a {{TypeError}} exception.
- 1. Let |promise| be [=a new promise=].
- 1. Let |readIntoRequest| be a new [=read-into request=] with the following [=struct/items=]:
-  : [=read-into request/chunk steps=], given |chunk|
-  ::
-   1. [=Resolve=] |promise| with «[ "{{ReadableStreamReadResult/value}}" → |chunk|,
-      "{{ReadableStreamReadResult/done}}" → false ]».
-  : [=read-into request/close steps=], given |chunk|
-  ::
-   1. [=Resolve=] |promise| with «[ "{{ReadableStreamReadResult/value}}" → |chunk|,
-      "{{ReadableStreamReadResult/done}}" → true ]».
-  : [=read-into request/error steps=], given |e|
-  ::
-   1. [=Reject=] |promise| with |e|.
- 1. Perform ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|, |readIntoRequest|,
-    |view|.\[[ByteLength]]).
  1. Return |promise|.
 </div>
 
@@ -3483,7 +3432,7 @@ The following abstract operations support the implementation of the
   1. Set |totalBytesToCopyRemaining| to |maxAlignedBytes| − |pullIntoDescriptor|'s [=pull-into
      descriptor/bytes filled=].
   1. Set |ready| to true.
-     <p class="note">A descriptor for a {{ReadableStreamBYOBReader/fill()}} request
+     <p class="note">A descriptor for a {{ReadableStreamBYOBReader/read()}} request
      that is not yet completely filled will stay at the head of the queue, so the [=underlying source=]
      can keep filling it.
  1. Let |queue| be |controller|.[=ReadableByteStreamController/[[queue]]=].
@@ -3741,7 +3690,7 @@ The following abstract operations support the implementation of the
   1. Return.
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
     [=pull-into descriptor/minimum fill=], return.
-    <p class="note">A descriptor for a {{ReadableStreamBYOBReader/fill()}} request
+    <p class="note">A descriptor for a {{ReadableStreamBYOBReader/read()}} request
     that is not yet completely filled will stay at the head of the queue, so the [=underlying source=]
     can keep filling it.
  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
