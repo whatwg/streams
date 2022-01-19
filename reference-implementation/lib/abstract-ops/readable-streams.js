@@ -203,6 +203,9 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
         if (shuttingDown === true) {
           return promiseResolvedWith(true);
         }
+        if (dest._state !== 'writable' || WritableStreamCloseQueuedOrInFlight(dest) === true) {
+          return promiseResolvedWith(true);
+        }
         return new Promise((resolveRead, rejectRead) => {
           ReadableStreamDefaultReaderRead(
             reader,
