@@ -135,7 +135,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
   assert(IsReadableStreamLocked(source) === false);
   assert(IsWritableStreamLocked(dest) === false);
 
-  const reader = AcquireReadableStreamDefaultReader(source);
+  let reader = AcquireReadableStreamDefaultReader(source);
   const writer = AcquireWritableStreamDefaultWriter(dest);
 
   source._disturbed = true;
@@ -294,6 +294,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       }
       shuttingDown = true;
       ReadableStreamDefaultReaderRelease(reader);
+      reader = AcquireReadableStreamDefaultReader(source);
 
       if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
         uponFulfillment(waitForWritesToFinish(), doTheRest);
@@ -316,6 +317,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       }
       shuttingDown = true;
       ReadableStreamDefaultReaderRelease(reader);
+      reader = AcquireReadableStreamDefaultReader(source);
 
       if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
         uponFulfillment(waitForWritesToFinish(), () => finalize(isError, error));
@@ -325,8 +327,8 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     function finalize(isError, error) {
-      assert(reader._stream === undefined);
       WritableStreamDefaultWriterRelease(writer);
+      ReadableStreamDefaultReaderRelease(reader);
 
       if (signal !== undefined) {
         signal.removeEventListener('abort', abortAlgorithm);
