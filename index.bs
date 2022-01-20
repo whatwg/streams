@@ -2175,7 +2175,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
        |source|.[=ReadableStream/[[storedError]]=].
     1. Otherwise, [=shutdown=] with |source|.[=ReadableStream/[[storedError]]=].
    1. <strong>Errors must be propagated backward:</strong> if |dest|.[=WritableStream/[[state]]=]
-      is or becomes "`errored`", then
+      is or becomes "`erroring`" or "`errored`", then
     1. If |preventCancel| is false, [=shutdown with an action=] of !
        [$ReadableStreamCancel$](|source|, |dest|.[=WritableStream/[[storedError]]=]) and with
        |dest|.[=WritableStream/[[storedError]]=].
