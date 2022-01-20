@@ -9,8 +9,9 @@ const { CanTransferArrayBuffer, CopyDataBlockBytes, CreateArrayFromList, IsDetac
 const { CloneAsUint8Array, IsNonNegativeNumber } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
-        WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
-        WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight } = require('./writable-streams.js');
+        WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterIsOrBecomesErrored,
+        WritableStreamDefaultWriterRelease, WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight } =
+  require('./writable-streams.js');
 const { CancelSteps, PullSteps, ReleaseSteps } = require('./internal-methods.js');
 
 const ReadableByteStreamController = require('../../generated/ReadableByteStreamController.js');
@@ -234,7 +235,8 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     });
 
     // Errors must be propagated backward
-    isOrBecomesErrored(dest, writer._closedPromise, storedError => {
+    WritableStreamDefaultWriterIsOrBecomesErrored(writer, () => {
+      const storedError = dest._storedError;
       if (preventCancel === false) {
         shutdownWithAction(() => ReadableStreamCancel(source, storedError), true, storedError);
       } else {
