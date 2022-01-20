@@ -31,6 +31,7 @@ Object.assign(exports, {
   WritableStreamDefaultWriterClose,
   WritableStreamDefaultWriterCloseWithErrorPropagation,
   WritableStreamDefaultWriterGetDesiredSize,
+  WritableStreamDefaultWriterIsOrBecomesErrored,
   WritableStreamDefaultWriterRelease,
   WritableStreamDefaultWriterWrite
 });
@@ -142,6 +143,8 @@ function SetUpWritableStreamDefaultWriter(writer, stream) {
 
   writer._stream = stream;
   stream._writer = writer;
+
+  writer._errorListeners = [];
 
   const state = stream._state;
 
@@ -378,6 +381,11 @@ function WritableStreamStartErroring(stream, reason) {
   const writer = stream._writer;
   if (writer !== undefined) {
     WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, reason);
+    const errorListeners = writer._errorListeners;
+    writer._errorListeners = [];
+    for (const errorListener of errorListeners) {
+      errorListener();
+    }
   }
 
   if (WritableStreamHasOperationMarkedInFlight(stream) === false && controller._started === true) {
@@ -475,6 +483,20 @@ function WritableStreamDefaultWriterGetDesiredSize(writer) {
   return WritableStreamDefaultControllerGetDesiredSize(stream._controller);
 }
 
+function WritableStreamDefaultWriterIsOrBecomesErrored(writer, errorListener) {
+  const stream = writer._stream;
+  if (stream === undefined) {
+    return;
+  }
+
+  const state = stream._state;
+  if (state === 'writable') {
+    writer._errorListeners.push(errorListener);
+  } else if (state === 'erroring' || state === 'errored') {
+    errorListener();
+  }
+}
+
 function WritableStreamDefaultWriterRelease(writer) {
   const stream = writer._stream;
   assert(stream !== undefined);
@@ -491,6 +513,8 @@ function WritableStreamDefaultWriterRelease(writer) {
 
   stream._writer = undefined;
   writer._stream = undefined;
+
+  stream._errorListeners = [];
 }
 
 function WritableStreamDefaultWriterWrite(writer, chunk) {
