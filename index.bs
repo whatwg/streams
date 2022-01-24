@@ -476,7 +476,7 @@ by the [=underlying source=] but not yet read by any consumer.
 The Web IDL definition for the {{ReadableStream}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet), Transferable]
+[Exposed=*, Transferable]
 interface ReadableStream {
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
@@ -1155,7 +1155,7 @@ The {{ReadableStreamDefaultReader}} class represents a [=default reader=] design
 The Web IDL definition for the {{ReadableStreamDefaultReader}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=*]
 interface ReadableStreamDefaultReader {
   constructor(ReadableStream stream);
 
@@ -1298,7 +1298,7 @@ The {{ReadableStreamBYOBReader}} class represents a [=BYOB reader=] designed to 
 The Web IDL definition for the {{ReadableStreamBYOBReader}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=*]
 interface ReadableStreamBYOBReader {
   constructor(ReadableStream stream);
 
@@ -1465,7 +1465,7 @@ not a [=readable byte stream=], the [=underlying source=] is given a correspondi
 The Web IDL definition for the {{ReadableStreamDefaultController}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=*]
 interface ReadableStreamDefaultController {
   readonly attribute unrestricted double? desiredSize;
 
@@ -1649,7 +1649,7 @@ instance to manipulate.
 The Web IDL definition for the {{ReadableByteStreamController}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=*]
 interface ReadableByteStreamController {
   readonly attribute ReadableStreamBYOBRequest? byobRequest;
   readonly attribute unrestricted double? desiredSize;
@@ -1927,7 +1927,7 @@ The {{ReadableStreamBYOBRequest}} class represents a pull-into request in a
 The Web IDL definition for the {{ReadableStreamBYOBRequest}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=*]
 interface ReadableStreamBYOBRequest {
   readonly attribute ArrayBufferView? view;
 
@@ -3893,7 +3893,7 @@ The {{WritableStream}} represents a [=writable stream=].
 The Web IDL definition for the {{WritableStream}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet), Transferable]
+[Exposed=*, Transferable]
 interface WritableStream {
   constructor(optional object underlyingSink, optional QueuingStrategy strategy = {});
 
@@ -4231,7 +4231,7 @@ vended by a {{WritableStream}} instance.
 The Web IDL definition for the {{WritableStreamDefaultWriter}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=*]
 interface WritableStreamDefaultWriter {
   constructor(WritableStream stream);
 
@@ -4421,7 +4421,7 @@ given a corresponding {{WritableStreamDefaultController}} instance to manipulate
 The Web IDL definition for the {{WritableStreamDefaultController}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=*]
 interface WritableStreamDefaultController {
   readonly attribute AbortSignal signal;
   undefined error(optional any e);
@@ -5372,7 +5372,7 @@ The {{TransformStream}} class is a concrete instance of the general [=transform 
 The Web IDL definition for the {{TransformStream}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet), Transferable]
+[Exposed=*, Transferable]
 interface TransformStream {
   constructor(optional object transformer,
               optional QueuingStrategy writableStrategy = {},
@@ -5638,7 +5638,7 @@ manipulate.
 The Web IDL definition for the {{TransformStreamDefaultController}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=*]
 interface TransformStreamDefaultController {
   readonly attribute unrestricted double? desiredSize;
 
@@ -6092,7 +6092,7 @@ streams=], as they always measure chunks in bytes. Attempting to construct a byt
 The Web IDL definition for the {{ByteLengthQueuingStrategy}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=*]
 interface ByteLengthQueuingStrategy {
   constructor(QueuingStrategyInit init);
 
@@ -6207,7 +6207,7 @@ high-water mark. As such, this strategy is also provided out of the box.
 The Web IDL definition for the {{CountQueuingStrategy}} class is given as follows:
 
 <xmp class="idl">
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=*]
 interface CountQueuingStrategy {
   constructor(QueuingStrategyInit init);
 
