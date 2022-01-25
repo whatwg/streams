@@ -33,7 +33,7 @@ Object.assign(exports, {
   WritableStreamDefaultWriterGetDesiredSize,
   WritableStreamDefaultWriterRelease,
   WritableStreamDefaultWriterWrite,
-  defaultWriterAddErrorListener
+  defaultWriterAddStateChangeListener
 });
 
 // Working with writable streams
@@ -144,7 +144,7 @@ function SetUpWritableStreamDefaultWriter(writer, stream) {
   writer._stream = stream;
   stream._writer = writer;
 
-  writer._errorListeners = [];
+  writer._stateChangeListeners = [];
 
   const state = stream._state;
 
@@ -242,6 +242,11 @@ function WritableStreamFinishErroring(stream) {
   }
   stream._writeRequests = [];
 
+  const writer = stream._writer;
+  if (writer !== undefined) {
+    defaultWriterRunStateChangeListeners(writer);
+  }
+
   if (stream._pendingAbortRequest === undefined) {
     WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
     return;
@@ -292,6 +297,7 @@ function WritableStreamFinishInFlightClose(stream) {
   const writer = stream._writer;
   if (writer !== undefined) {
     resolvePromise(writer._closedPromise, undefined);
+    defaultWriterRunStateChangeListeners(writer);
   }
 
   assert(stream._pendingAbortRequest === undefined);
@@ -381,7 +387,7 @@ function WritableStreamStartErroring(stream, reason) {
   const writer = stream._writer;
   if (writer !== undefined) {
     WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, reason);
-    defaultWriterRunErrorListeners(writer, reason);
+    defaultWriterRunStateChangeListeners(writer, reason);
   }
 
   if (WritableStreamHasOperationMarkedInFlight(stream) === false && controller._started === true) {
@@ -496,7 +502,7 @@ function WritableStreamDefaultWriterRelease(writer) {
   stream._writer = undefined;
   writer._stream = undefined;
 
-  stream._errorListeners = [];
+  writer._stateChangeListeners = [];
 }
 
 function WritableStreamDefaultWriterWrite(writer, chunk) {
@@ -532,18 +538,18 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
   return promise;
 }
 
-function defaultWriterAddErrorListener(writer, errorListener) {
+function defaultWriterAddStateChangeListener(writer, stateChangeListener) {
   const stream = writer._stream;
   assert(stream !== undefined);
   assert(stream._state === 'writable');
-  writer._errorListeners.push(errorListener);
+  writer._stateChangeListeners.push(stateChangeListener);
 }
 
-function defaultWriterRunErrorListeners(writer, error) {
-  const errorListeners = writer._errorListeners;
-  writer._errorListeners = [];
-  for (const errorListener of errorListeners) {
-    errorListener(error);
+function defaultWriterRunStateChangeListeners(writer) {
+  const stateChangeListeners = writer._stateChangeListeners;
+  writer._stateChangeListeners = [];
+  for (const stateChangeListener of stateChangeListeners) {
+    stateChangeListener();
   }
 }
 
