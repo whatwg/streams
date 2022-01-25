@@ -33,7 +33,7 @@ Object.assign(exports, {
   WritableStreamDefaultWriterGetDesiredSize,
   WritableStreamDefaultWriterRelease,
   WritableStreamDefaultWriterWrite,
-  defaultWriterAddStateChangeListener
+  writerAddStateChangeListener
 });
 
 // Working with writable streams
@@ -244,7 +244,7 @@ function WritableStreamFinishErroring(stream) {
 
   const writer = stream._writer;
   if (writer !== undefined) {
-    defaultWriterRunStateChangeListeners(writer);
+    writerRunStateChangeListeners(writer);
   }
 
   if (stream._pendingAbortRequest === undefined) {
@@ -297,7 +297,7 @@ function WritableStreamFinishInFlightClose(stream) {
   const writer = stream._writer;
   if (writer !== undefined) {
     resolvePromise(writer._closedPromise, undefined);
-    defaultWriterRunStateChangeListeners(writer);
+    writerRunStateChangeListeners(writer);
   }
 
   assert(stream._pendingAbortRequest === undefined);
@@ -387,7 +387,7 @@ function WritableStreamStartErroring(stream, reason) {
   const writer = stream._writer;
   if (writer !== undefined) {
     WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, reason);
-    defaultWriterRunStateChangeListeners(writer, reason);
+    writerRunStateChangeListeners(writer, reason);
   }
 
   if (WritableStreamHasOperationMarkedInFlight(stream) === false && controller._started === true) {
@@ -538,14 +538,14 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
   return promise;
 }
 
-function defaultWriterAddStateChangeListener(writer, stateChangeListener) {
+function writerAddStateChangeListener(writer, stateChangeListener) {
   const stream = writer._stream;
   assert(stream !== undefined);
   assert(stream._state === 'writable');
   writer._stateChangeListeners.push(stateChangeListener);
 }
 
-function defaultWriterRunStateChangeListeners(writer) {
+function writerRunStateChangeListeners(writer) {
   const stateChangeListeners = writer._stateChangeListeners;
   writer._stateChangeListeners = [];
   for (const stateChangeListener of stateChangeListeners) {
