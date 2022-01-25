@@ -541,7 +541,6 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
 function writerAddStateChangeListener(writer, stateChangeListener) {
   const stream = writer._stream;
   assert(stream !== undefined);
-  assert(stream._state === 'writable');
   writer._stateChangeListeners.push(stateChangeListener);
 }
 
