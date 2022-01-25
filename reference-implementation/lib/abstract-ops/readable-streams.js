@@ -226,7 +226,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     // Errors must be propagated forward
-    isOrBecomesErrored(source, reader._closedPromise, storedError => {
+    sourceIsOrBecomesErrored(storedError => {
       if (preventAbort === false) {
         shutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
       } else {
@@ -235,8 +235,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     });
 
     // Errors must be propagated backward
-    defaultWriterAddErrorListener(writer, () => {
-      const storedError = dest._storedError;
+    destIsOrBecomesErroringOrErrored(storedError => {
       if (preventCancel === false) {
         shutdownWithAction(() => ReadableStreamCancel(source, storedError), true, storedError);
       } else {
@@ -245,7 +244,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     });
 
     // Closing must be propagated forward
-    isOrBecomesClosed(source, reader._closedPromise, () => {
+    sourceIsOrBecomesClosed(() => {
       if (preventClose === false) {
         shutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
       } else {
@@ -276,19 +275,31 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       );
     }
 
-    function isOrBecomesErrored(stream, promise, action) {
-      if (stream._state === 'errored') {
-        action(stream._storedError);
+    function sourceIsOrBecomesErrored(action) {
+      if (source._state === 'errored') {
+        action(source._storedError);
       } else {
-        uponRejection(promise, action);
+        uponRejection(reader._closedPromise, action);
       }
     }
 
-    function isOrBecomesClosed(stream, promise, action) {
-      if (stream._state === 'closed') {
+    function sourceIsOrBecomesClosed(action) {
+      if (source._state === 'closed') {
         action();
       } else {
-        uponFulfillment(promise, action);
+        uponFulfillment(reader._closedPromise, action);
+      }
+    }
+
+    function destIsOrBecomesErroringOrErrored(action) {
+      const state = dest._state;
+      if (state === 'erroring' || state === 'errored') {
+        action(dest._storedError);
+      } else if (state === 'writable') {
+        defaultWriterAddErrorListener(writer, action);
+      } else {
+        assert(state === 'closed');
+        // Handled in "closing must be propagated backward"
       }
     }
 
