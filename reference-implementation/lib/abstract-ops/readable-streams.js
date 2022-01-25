@@ -285,9 +285,9 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     if (!shuttingDown) {
       readerAddStateChangeListener(reader, checkState);
       defaultWriterAddStateChangeListener(writer, checkState);
-    }
 
-    setPromiseIsHandledToTrue(pipeLoop());
+      setPromiseIsHandledToTrue(pipeLoop());
+    }
 
     function waitForWritesToFinish() {
       // Another write may have started while we were waiting on this currentWrite, so we have to be sure to wait
