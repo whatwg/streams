@@ -483,20 +483,6 @@ function WritableStreamDefaultWriterGetDesiredSize(writer) {
   return WritableStreamDefaultControllerGetDesiredSize(stream._controller);
 }
 
-function WritableStreamDefaultWriterIsOrBecomesErrored(writer, errorListener) {
-  const stream = writer._stream;
-  if (stream === undefined) {
-    return;
-  }
-
-  const state = stream._state;
-  if (state === 'writable') {
-    writer._errorListeners.push(errorListener);
-  } else if (state === 'erroring' || state === 'errored') {
-    errorListener();
-  }
-}
-
 function WritableStreamDefaultWriterRelease(writer) {
   const stream = writer._stream;
   assert(stream !== undefined);
@@ -548,6 +534,20 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
   WritableStreamDefaultControllerWrite(controller, chunk, chunkSize);
 
   return promise;
+}
+
+function WritableStreamDefaultWriterIsOrBecomesErrored(writer, errorListener) {
+  const stream = writer._stream;
+  if (stream === undefined) {
+    return;
+  }
+
+  const state = stream._state;
+  if (state === 'writable') {
+    writer._errorListeners.push(errorListener);
+  } else if (state === 'erroring' || state === 'errored') {
+    errorListener();
+  }
 }
 
 // Default controllers
