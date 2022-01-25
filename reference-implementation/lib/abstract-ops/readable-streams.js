@@ -10,7 +10,7 @@ const { CanCopyDataBlockBytes, CloneAsUint8Array, IsNonNegativeNumber } = requir
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
         WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
-        WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight, defaultWriterAddStateChangeListener } =
+        WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight, writerAddStateChangeListener } =
   require('./writable-streams.js');
 const { CancelSteps, PullSteps, ReleaseSteps } = require('./internal-methods.js');
 
@@ -285,7 +285,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
 
     if (!shuttingDown) {
       readerAddStateChangeListener(reader, checkState);
-      defaultWriterAddStateChangeListener(writer, checkState);
+      writerAddStateChangeListener(writer, checkState);
 
       setPromiseIsHandledToTrue(pipeLoop());
     }
