@@ -226,33 +226,50 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     // Errors must be propagated forward
-    sourceIsOrBecomesErrored(() => {
+    function sourceIsOrBecomesErrored() {
       const storedError = source._storedError;
       if (preventAbort === false) {
         shutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
       } else {
         shutdown(true, storedError);
       }
-    });
+    }
 
     // Errors must be propagated backward
-    destIsOrBecomesErroringOrErrored(() => {
+    function destIsOrBecomesErroringOrErrored() {
       const storedError = dest._storedError;
       if (preventCancel === false) {
         shutdownWithAction(() => ReadableStreamCancel(source, storedError), true, storedError);
       } else {
         shutdown(true, storedError);
       }
-    });
+    }
 
     // Closing must be propagated forward
-    sourceIsOrBecomesClosed(() => {
+    function sourceIsOrBecomesClosed() {
       if (preventClose === false) {
         shutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
       } else {
         shutdown();
       }
-    });
+    }
+
+    function checkState() {
+      const sourceState = source._state;
+      const destState = dest._state;
+      if (sourceState === 'errored') {
+        // Errors must be propagated forward
+        sourceIsOrBecomesErrored();
+      } else if (destState === 'erroring' || destState === 'errored') {
+        // Errors must be propagated backward
+        destIsOrBecomesErroringOrErrored();
+      } else if (sourceState === 'closed') {
+        // Closing must be propagated forward
+        sourceIsOrBecomesClosed();
+      }
+    }
+
+    checkState();
 
     // Closing must be propagated backward
     if (WritableStreamCloseQueuedOrInFlight(dest) === true || dest._state === 'closed') {
@@ -265,6 +282,11 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       }
     }
 
+    if (!shuttingDown) {
+      readerAddStateChangeListener(reader, checkState);
+      defaultWriterAddStateChangeListener(writer, checkState);
+    }
+
     setPromiseIsHandledToTrue(pipeLoop());
 
     function waitForWritesToFinish() {
@@ -275,42 +297,6 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
         currentWrite,
         () => oldCurrentWrite !== currentWrite ? waitForWritesToFinish() : undefined
       );
-    }
-
-    function sourceIsOrBecomesErrored(action) {
-      const state = source._state;
-      if (state === 'errored') {
-        action();
-      } else if (state === 'readable') {
-        readerAddStateChangeListener(reader, () => sourceIsOrBecomesErrored(action));
-      } else {
-        assert(state === 'closed');
-        // Handled in "closing must be propagated forward"
-      }
-    }
-
-    function sourceIsOrBecomesClosed(action) {
-      const state = source._state;
-      if (source._state === 'closed') {
-        action();
-      } else if (state === 'readable') {
-        readerAddStateChangeListener(reader, () => sourceIsOrBecomesClosed(action));
-      } else {
-        assert(state === 'errored');
-        // Handled in "errors must be propagated forward"
-      }
-    }
-
-    function destIsOrBecomesErroringOrErrored(action) {
-      const state = dest._state;
-      if (state === 'erroring' || state === 'errored') {
-        action(dest._storedError);
-      } else if (state === 'writable') {
-        defaultWriterAddStateChangeListener(writer, () => destIsOrBecomesErroringOrErrored(action));
-      } else {
-        assert(state === 'closed');
-        // Handled in "closing must be propagated backward"
-      }
     }
 
     function shutdownWithAction(action, originalIsError, originalError) {
