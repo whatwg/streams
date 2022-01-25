@@ -283,6 +283,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     if (!shuttingDown) {
+      assert(source._state === 'readable' && dest._state === 'writable');
       readerAddStateChangeListener(reader, checkState);
       writerAddStateChangeListener(writer, checkState);
 
@@ -940,7 +941,6 @@ function ReadableStreamReaderGenericRelease(reader) {
 function readerAddStateChangeListener(reader, stateChangeListener) {
   const stream = reader._stream;
   assert(stream !== undefined);
-  assert(stream._state === 'readable');
   reader._stateChangeListeners.push(stateChangeListener);
 }
 
