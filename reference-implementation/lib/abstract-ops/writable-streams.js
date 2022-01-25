@@ -31,9 +31,9 @@ Object.assign(exports, {
   WritableStreamDefaultWriterClose,
   WritableStreamDefaultWriterCloseWithErrorPropagation,
   WritableStreamDefaultWriterGetDesiredSize,
-  WritableStreamDefaultWriterIsOrBecomesErrored,
   WritableStreamDefaultWriterRelease,
-  WritableStreamDefaultWriterWrite
+  WritableStreamDefaultWriterWrite,
+  defaultWriterAddErrorListener
 });
 
 // Working with writable streams
@@ -536,7 +536,7 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
   return promise;
 }
 
-function WritableStreamDefaultWriterIsOrBecomesErrored(writer, errorListener) {
+function defaultWriterAddErrorListener(writer, errorListener) {
   const stream = writer._stream;
   if (stream === undefined) {
     return;
