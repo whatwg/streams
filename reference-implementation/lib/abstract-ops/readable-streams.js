@@ -9,8 +9,8 @@ const { CanTransferArrayBuffer, Call, CopyDataBlockBytes, CreateArrayFromList, G
 const { CanCopyDataBlockBytes, CloneAsUint8Array, IsNonNegativeNumber } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
-        WritableStreamDefaultWriterCloseWithErrorPropagation,  WritableStreamDefaultWriterRelease,
-        WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight, defaultWriterAddErrorListener } =
+        WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
+        WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight, defaultWriterAddStateChangeListener } =
   require('./writable-streams.js');
 const { CancelSteps, PullSteps, ReleaseSteps } = require('./internal-methods.js');
 
@@ -227,7 +227,8 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     // Errors must be propagated forward
-    sourceIsOrBecomesErrored(storedError => {
+    sourceIsOrBecomesErrored(() => {
+      const storedError = source._storedError;
       if (preventAbort === false) {
         shutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
       } else {
@@ -236,7 +237,8 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     });
 
     // Errors must be propagated backward
-    destIsOrBecomesErroringOrErrored(storedError => {
+    destIsOrBecomesErroringOrErrored(() => {
+      const storedError = dest._storedError;
       if (preventCancel === false) {
         shutdownWithAction(() => ReadableStreamCancel(source, storedError), true, storedError);
       } else {
@@ -277,18 +279,26 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     function sourceIsOrBecomesErrored(action) {
-      if (source._state === 'errored') {
-        action(source._storedError);
+      const state = source._state;
+      if (state === 'errored') {
+        action();
+      } else if (state === 'readable') {
+        readerAddStateChangeListener(reader, () => sourceIsOrBecomesErrored(action));
       } else {
-        uponRejection(reader._closedPromise, action);
+        assert(state === 'closed');
+        // Handled in "closing must be propagated forward"
       }
     }
 
     function sourceIsOrBecomesClosed(action) {
+      const state = source._state;
       if (source._state === 'closed') {
         action();
+      } else if (state === 'readable') {
+        readerAddStateChangeListener(reader, () => sourceIsOrBecomesClosed(action));
       } else {
-        uponFulfillment(reader._closedPromise, action);
+        assert(state === 'errored');
+        // Handled in "errors must be propagated forward"
       }
     }
 
@@ -297,7 +307,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       if (state === 'erroring' || state === 'errored') {
         action(dest._storedError);
       } else if (state === 'writable') {
-        defaultWriterAddErrorListener(writer, action);
+        defaultWriterAddStateChangeListener(writer, () => destIsOrBecomesErroringOrErrored(action));
       } else {
         assert(state === 'closed');
         // Handled in "closing must be propagated backward"
@@ -794,6 +804,7 @@ function ReadableStreamClose(stream) {
   }
 
   resolvePromise(reader._closedPromise, undefined);
+  readerRunStateChangeListeners(reader);
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     const readRequests = reader._readRequests;
@@ -818,6 +829,7 @@ function ReadableStreamError(stream, e) {
 
   rejectPromise(reader._closedPromise, e);
   setPromiseIsHandledToTrue(reader._closedPromise);
+  readerRunStateChangeListeners(reader);
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     ReadableStreamDefaultReaderErrorReadRequests(reader, e);
@@ -901,6 +913,8 @@ function ReadableStreamReaderGenericInitialize(reader, stream) {
   reader._stream = stream;
   stream._reader = reader;
 
+  reader._stateChangeListeners = [];
+
   if (stream._state === 'readable') {
     reader._closedPromise = newPromise();
   } else if (stream._state === 'closed') {
@@ -934,6 +948,23 @@ function ReadableStreamReaderGenericRelease(reader) {
 
   stream._reader = undefined;
   reader._stream = undefined;
+
+  reader._stateChangeListeners = [];
+}
+
+function readerAddStateChangeListener(reader, stateChangeListener) {
+  const stream = reader._stream;
+  assert(stream !== undefined);
+  assert(stream._state === 'readable');
+  reader._stateChangeListeners.push(stateChangeListener);
+}
+
+function readerRunStateChangeListeners(reader) {
+  const stateChangeListeners = reader._stateChangeListeners;
+  reader._stateChangeListeners = [];
+  for (const stateChangeListener of stateChangeListeners) {
+    stateChangeListener();
+  }
 }
 
 function ReadableStreamBYOBReaderRead(reader, view, min, readIntoRequest) {
