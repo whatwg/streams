@@ -340,6 +340,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     function finalize(isError, error) {
+      assert(ReadableStreamDefaultReader.isImpl(reader));
       WritableStreamDefaultWriterRelease(writer);
       ReadableStreamDefaultReaderRelease(reader);
 
