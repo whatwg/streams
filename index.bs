@@ -1308,7 +1308,7 @@ interface ReadableStreamBYOBReader {
 ReadableStreamBYOBReader includes ReadableStreamGenericReader;
 
 dictionary ReadableStreamBYOBReadResult {
-  ArrayBufferView value;
+  (ArrayBufferView or undefined) value;
   boolean done;
 };
 </xmp>
