@@ -6941,12 +6941,27 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
  directly on the [=this=] value inside their constructor steps.</p>
 </div>
 
-The following algorithm must only be used on {{WritableStream}} instances initialized via the above
-[=WritableStream/set up=] algorithm:
+The following definitions must only be used on {{WritableStream}} instances initialized via the
+above [=WritableStream/set up=] algorithm:
 
 <p algorithm>To <dfn export for="WritableStream" lt="error|erroring">error</dfn> a
 {{WritableStream}} |stream| given a JavaScript value |e|, perform !
 [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.[=WritableStream/[[controller]]=], |e|).
+
+<p>The <dfn export for="WritableStream">signal</dfn> of a {{WritableStream}} |stream| is
+|stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[signal]]=].
+Specifications can [=AbortSignal/add=] or [=AbortSignal/remove=] algorithms to this
+{{AbortSignal}}, or consult whether it is [=AbortSignal/aborted=] and its [=AbortSignal/abort
+reason=]. Specifications should not [=AbortSignal/signal abort=] or make it [=AbortSignal/follow=]
+another {{AbortSignal}}, as that would interfere with the normal use of this signal to respond to
+the stream being [=abort a writable stream|aborted=].
+
+<p class="note">The usual usage is, after [=WritableStream/setting up=] the {{WritableStream}},
+[=AbortSignal/add=] an algorithm to its [=WritableStream/signal=], which aborts any ongoing write
+operation to the [=underlying sink=]. Then, inside the <var ignore>[=WritableStream/set
+up/writeAlgorithm=]</var>, once the [=underlying sink=] has responded, check if the
+[=WritableStream/signal=] is [=AbortSignal/aborted=], and [=reject=] the returned promise with the
+signal's [=AbortSignal/abort reason=] if so.
 
 <h4 id="other-specs-ws-writing">Writing</h4>
 
