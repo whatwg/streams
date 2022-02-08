@@ -32,7 +32,8 @@ Object.assign(exports, {
   WritableStreamDefaultWriterCloseWithErrorPropagation,
   WritableStreamDefaultWriterGetDesiredSize,
   WritableStreamDefaultWriterRelease,
-  WritableStreamDefaultWriterWrite
+  WritableStreamDefaultWriterWrite,
+  writerAddStateChangeListener
 });
 
 // Working with writable streams
@@ -143,6 +144,8 @@ function SetUpWritableStreamDefaultWriter(writer, stream) {
   writer._stream = stream;
   stream._writer = writer;
 
+  writer._stateChangeListeners = [];
+
   const state = stream._state;
 
   if (state === 'writable') {
@@ -239,6 +242,11 @@ function WritableStreamFinishErroring(stream) {
   }
   stream._writeRequests = [];
 
+  const writer = stream._writer;
+  if (writer !== undefined) {
+    writerRunStateChangeListeners(writer);
+  }
+
   if (stream._pendingAbortRequest === undefined) {
     WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
     return;
@@ -289,6 +297,7 @@ function WritableStreamFinishInFlightClose(stream) {
   const writer = stream._writer;
   if (writer !== undefined) {
     resolvePromise(writer._closedPromise, undefined);
+    writerRunStateChangeListeners(writer);
   }
 
   assert(stream._pendingAbortRequest === undefined);
@@ -378,6 +387,7 @@ function WritableStreamStartErroring(stream, reason) {
   const writer = stream._writer;
   if (writer !== undefined) {
     WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, reason);
+    writerRunStateChangeListeners(writer, reason);
   }
 
   if (WritableStreamHasOperationMarkedInFlight(stream) === false && controller._started === true) {
@@ -491,6 +501,8 @@ function WritableStreamDefaultWriterRelease(writer) {
 
   stream._writer = undefined;
   writer._stream = undefined;
+
+  writer._stateChangeListeners = [];
 }
 
 function WritableStreamDefaultWriterWrite(writer, chunk) {
@@ -524,6 +536,20 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
   WritableStreamDefaultControllerWrite(controller, chunk, chunkSize);
 
   return promise;
+}
+
+function writerAddStateChangeListener(writer, stateChangeListener) {
+  const stream = writer._stream;
+  assert(stream !== undefined);
+  writer._stateChangeListeners.push(stateChangeListener);
+}
+
+function writerRunStateChangeListeners(writer) {
+  const stateChangeListeners = writer._stateChangeListeners;
+  writer._stateChangeListeners = [];
+  for (const stateChangeListener of stateChangeListeners) {
+    stateChangeListener();
+  }
 }
 
 // Default controllers

@@ -2175,7 +2175,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
        |source|.[=ReadableStream/[[storedError]]=].
     1. Otherwise, [=shutdown=] with |source|.[=ReadableStream/[[storedError]]=].
    1. <strong>Errors must be propagated backward:</strong> if |dest|.[=WritableStream/[[state]]=]
-      is or becomes "`errored`", then
+      is or becomes "`erroring`" or "`errored`", then
     1. If |preventCancel| is false, [=shutdown with an action=] of !
        [$ReadableStreamCancel$](|source|, |dest|.[=WritableStream/[[storedError]]=]) and with
        |dest|.[=WritableStream/[[storedError]]=].
@@ -2198,6 +2198,17 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
     |originalError|, then:
    1. If |shuttingDown| is true, abort these substeps.
    1. Set |shuttingDown| to true.
+   1. If |reader| [=implements=] {{ReadableStreamBYOBReader}}, perform
+      ! [$ReadableStreamBYOBReaderRelease$](|reader|).
+   1. Otherwise, perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
+   1. Set |reader| to ! [$AcquireReadableStreamDefaultReader$](|source|).
+      <p class="note">The initial reader is released to ensure that any pending read requests
+      are immediately aborted, and no more chunks are pulled from |source|. A new reader is
+      acquired in order to keep |source| locked until the shutdown is [=finalized=], for example
+      to [=cancel a readable stream|cancel=] |source| if necessary.
+      This exchange of readers is not observable to author code and the user agent is free to
+      implement this differently, for example by keeping the same reader and internally aborting
+      its pending read requests.
    1. If |dest|.[=WritableStream/[[state]]=] is "`writable`" and !
       [$WritableStreamCloseQueuedOrInFlight$](|dest|) is false,
      1. If any [=chunks=] have been read but not yet written, write them to |dest|.
@@ -2210,6 +2221,10 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
     ask to shutdown, optionally with an error |error|, then:
    1. If |shuttingDown| is true, abort these substeps.
    1. Set |shuttingDown| to true.
+   1. If |reader| [=implements=] {{ReadableStreamBYOBReader}}, perform
+      ! [$ReadableStreamBYOBReaderRelease$](|reader|).
+   1. Otherwise, perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
+   1. Set |reader| to ! [$AcquireReadableStreamDefaultReader$](|source|).
    1. If |dest|.[=WritableStream/[[state]]=] is "`writable`" and !
       [$WritableStreamCloseQueuedOrInFlight$](|dest|) is false,
     1. If any [=chunks=] have been read but not yet written, write them to |dest|.
@@ -2218,10 +2233,9 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
    1. [=Finalize=], passing along |error| if it was given.
   * <dfn id="rs-pipeTo-finalize"><i>Finalize</i></dfn>: both forms of shutdown will eventually ask
     to finalize, optionally with an error |error|, which means to perform the following steps:
+   1. Assert: |reader| [=implements=] {{ReadableStreamDefaultReader}}.
    1. Perform ! [$WritableStreamDefaultWriterRelease$](|writer|).
-   1. If |reader| [=implements=] {{ReadableStreamBYOBReader}}, perform
-      ! [$ReadableStreamBYOBReaderRelease$](|reader|).
-   1. Otherwise, perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
+   1. Perform ! [$ReadableStreamDefaultReaderRelease$](|reader|).
    1. If |signal| is not undefined, [=AbortSignal/remove=] |abortAlgorithm| from |signal|.
    1. If |error| was given, [=reject=] |promise| with |error|.
    1. Otherwise, [=resolve=] |promise| with undefined.
