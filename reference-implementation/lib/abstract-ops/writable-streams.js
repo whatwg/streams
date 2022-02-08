@@ -27,6 +27,7 @@ Object.assign(exports, {
   WritableStreamDefaultControllerClearAlgorithms,
   WritableStreamDefaultControllerError,
   WritableStreamDefaultControllerErrorIfNeeded,
+  WritableStreamDefaultControllerReleaseBackpressure,
   WritableStreamDefaultWriterAbort,
   WritableStreamDefaultWriterClose,
   WritableStreamDefaultWriterCloseWithErrorPropagation,
@@ -541,6 +542,7 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
   controller._queueTotalSize = undefined;
   ResetQueue(controller);
 
+  controller._releaseBackpressure = false;
   controller._abortController = new AbortController();
   controller._started = false;
 
@@ -657,6 +659,9 @@ function WritableStreamDefaultControllerErrorIfNeeded(controller, error) {
 }
 
 function WritableStreamDefaultControllerGetBackpressure(controller) {
+  if (controller._releaseBackpressure === true && controller._queue.length === 0) {
+    return false;
+  }
   const desiredSize = WritableStreamDefaultControllerGetDesiredSize(controller);
   return desiredSize <= 0;
 }
@@ -699,6 +704,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   const stream = controller._stream;
 
   WritableStreamMarkFirstWriteRequestInFlight(stream);
+  controller._releaseBackpressure = false;
 
   const sinkWritePromise = controller._writeAlgorithm(chunk);
   uponPromise(
@@ -727,6 +733,19 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
   );
 }
 
+function WritableStreamDefaultControllerReleaseBackpressure(controller) {
+  const stream = controller._stream;
+  assert(stream._state === 'writable');
+
+  controller._releaseBackpressure = true;
+
+  if (WritableStreamHasOperationMarkedInFlight(stream) === false &&
+    WritableStreamCloseQueuedOrInFlight(stream) === false) {
+    const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
+    WritableStreamUpdateBackpressure(stream, backpressure);
+  }
+}
+
 function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
   try {
     EnqueueValueWithSize(controller, chunk, chunkSize);
@@ -734,6 +753,8 @@ function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
     WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
     return;
   }
+
+  controller._releaseBackpressure = false;
 
   const stream = controller._stream;
   if (WritableStreamCloseQueuedOrInFlight(stream) === false && stream._state === 'writable') {

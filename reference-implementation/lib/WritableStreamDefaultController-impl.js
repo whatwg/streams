@@ -21,6 +21,14 @@ exports.implementation = class WritableStreamDefaultControllerImpl {
     aos.WritableStreamDefaultControllerError(this, e);
   }
 
+  releaseBackpressure() {
+    const state = this._stream._state;
+    if (state !== 'writable') {
+      return;
+    }
+    aos.WritableStreamDefaultControllerReleaseBackpressure(this);
+  }
+
   [AbortSteps](reason) {
     const result = this._abortAlgorithm(reason);
     aos.WritableStreamDefaultControllerClearAlgorithms(this);

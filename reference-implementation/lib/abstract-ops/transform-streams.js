@@ -7,7 +7,8 @@ const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, tr
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerHasBackpressure,
         ReadableStreamDefaultControllerCanCloseOrEnqueue } = require('./readable-streams.js');
-const { CreateWritableStream, WritableStreamDefaultControllerErrorIfNeeded } = require('./writable-streams.js');
+const { CreateWritableStream, WritableStreamDefaultControllerErrorIfNeeded,
+        WritableStreamDefaultControllerReleaseBackpressure } = require('./writable-streams.js');
 
 const TransformStream = require('../../generated/TransformStream.js');
 const TransformStreamDefaultController = require('../../generated/TransformStreamDefaultController.js');
@@ -98,6 +99,10 @@ function TransformStreamSetBackpressure(stream, backpressure) {
   stream._backpressureChangePromise = newPromise();
 
   stream._backpressure = backpressure;
+
+  if (backpressure === false && stream._writable._state === 'writable') {
+    WritableStreamDefaultControllerReleaseBackpressure(stream._writable._controller);
+  }
 }
 
 // Default controllers
