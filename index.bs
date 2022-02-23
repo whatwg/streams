@@ -277,7 +277,7 @@ producer, but not yet processed and acknowledged by the [=underlying sink=].
 A <dfn>queuing strategy</dfn> is an object that determines how a stream should signal
 [=backpressure=] based on the state of its [=internal queue=]. The queuing strategy assigns a size
 to each [=chunk=], and compares the total size of all chunks in the queue to a specified number,
-known as the <dfn>high water mark</dfn>. The resulting difference, high water mark minus total size,
+known as the <dfn export>high water mark</dfn>. The resulting difference, high water mark minus total size,
 is used to determine the <dfn lt="desired size to fill a stream's internal queue">desired size to
 fill the stream's queue</dfn>.
 
