@@ -813,13 +813,13 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
 <div algorithm>
  The <dfn id="rs-locked" attribute for="ReadableStream">locked</dfn> getter steps are:
 
- 1. Return ! [$IsReadableStreamLocked$]([=this=]).
+ 1. Return [$IsReadableStreamLocked$]([=this=]).
 </div>
 
 <div algorithm>
  The <dfn id="rs-cancel" method for="ReadableStream">cancel(|reason|)</dfn> method steps are:
 
- 1. If ! [$IsReadableStreamLocked$]([=this=]) is true, return [=a promise rejected with=] a
+ 1. If [$IsReadableStreamLocked$]([=this=]) is true, return [=a promise rejected with=] a
     {{TypeError}} exception.
  1. Return ! [$ReadableStreamCancel$]([=this=], |reason|).
 </div>
@@ -869,8 +869,8 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
  The <dfn id="rs-pipe-through" method for="ReadableStream">pipeThrough(|transform|, |options|)</dfn>
  method steps are:
 
- 1. If ! [$IsReadableStreamLocked$]([=this=]) is true, throw a {{TypeError}} exception.
- 1. If ! [$IsWritableStreamLocked$](|transform|["{{ReadableWritablePair/writable}}"]) is true, throw
+ 1. If [$IsReadableStreamLocked$]([=this=]) is true, throw a {{TypeError}} exception.
+ 1. If [$IsWritableStreamLocked$](|transform|["{{ReadableWritablePair/writable}}"]) is true, throw
     a {{TypeError}} exception.
  1. Let |signal| be |options|["{{StreamPipeOptions/signal}}"] if it [=map/exists=], or undefined
     otherwise.
@@ -899,9 +899,9 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
  The <dfn id="rs-pipe-to" method for="ReadableStream">pipeTo(|destination|, |options|)</dfn>
  method steps are:
 
- 1. If ! [$IsReadableStreamLocked$]([=this=]) is true, return [=a promise rejected with=] a
+ 1. If [$IsReadableStreamLocked$]([=this=]) is true, return [=a promise rejected with=] a
     {{TypeError}} exception.
- 1. If ! [$IsWritableStreamLocked$](|destination|) is true, return [=a promise rejected with=] a
+ 1. If [$IsWritableStreamLocked$](|destination|) is true, return [=a promise rejected with=] a
     {{TypeError}} exception.
  1. Let |signal| be |options|["{{StreamPipeOptions/signal}}"] if it [=map/exists=], or undefined
     otherwise.
@@ -1067,7 +1067,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  {{ReadableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
  and |dataHolder|, are:
 
- 1. If ! [$IsReadableStreamLocked$](|value|) is true, throw a "{{DataCloneError}}" {{DOMException}}.
+ 1. If [$IsReadableStreamLocked$](|value|) is true, throw a "{{DataCloneError}}" {{DOMException}}.
  1. Let |port1| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. Let |port2| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. [=Entangle=] |port1| and |port2|.
@@ -2114,8 +2114,8 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
  1. Assert: |preventClose|, |preventAbort|, and |preventCancel| are all booleans.
  1. If |signal| was not given, let |signal| be undefined.
  1. Assert: either |signal| is undefined, or |signal| [=implements=] {{AbortSignal}}.
- 1. Assert: ! [$IsReadableStreamLocked$](|source|) is false.
- 1. Assert: ! [$IsWritableStreamLocked$](|dest|) is false.
+ 1. Assert: [$IsReadableStreamLocked$](|source|) is false.
+ 1. Assert: [$IsWritableStreamLocked$](|dest|) is false.
  1. If |source|.[=ReadableStream/[[controller]]=] [=implements=] {{ReadableByteStreamController}},
     let |reader| be either ! [$AcquireReadableStreamBYOBReader$](|source|) or !
     [$AcquireReadableStreamDefaultReader$](|source|), at the user agent's discretion.
@@ -2863,7 +2863,7 @@ The following abstract operations support the implementation and manipulation of
  id="set-up-readable-stream-byob-reader">SetUpReadableStreamBYOBReader(|reader|, |stream|)</dfn>
  performs the following steps:
 
- 1. If ! [$IsReadableStreamLocked$](|stream|) is true, throw a {{TypeError}} exception.
+ 1. If [$IsReadableStreamLocked$](|stream|) is true, throw a {{TypeError}} exception.
  1. If |stream|.[=ReadableStream/[[controller]]=] does not [=implement=]
     {{ReadableByteStreamController}}, throw a {{TypeError}} exception.
  1. Perform ! [$ReadableStreamReaderGenericInitialize$](|reader|, |stream|).
@@ -2875,7 +2875,7 @@ The following abstract operations support the implementation and manipulation of
  id="set-up-readable-stream-default-reader">SetUpReadableStreamDefaultReader(|reader|,
  |stream|)</dfn> performs the following steps:
 
- 1. If ! [$IsReadableStreamLocked$](|stream|) is true, throw a {{TypeError}} exception.
+ 1. If [$IsReadableStreamLocked$](|stream|) is true, throw a {{TypeError}} exception.
  1. Perform ! [$ReadableStreamReaderGenericInitialize$](|reader|, |stream|).
  1. Set |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] to a new empty [=list=].
 </div>
@@ -2916,7 +2916,7 @@ The following abstract operations support the implementation of the
  1. Let |stream| be |controller|.[=ReadableStreamDefaultController/[[stream]]=].
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is false, return false.
  1. If |controller|.[=ReadableStreamDefaultController/[[started]]=] is false, return false.
- 1. If ! [$IsReadableStreamLocked$](|stream|) is true and !
+ 1. If [$IsReadableStreamLocked$](|stream|) is true and !
     [$ReadableStreamGetNumReadRequests$](|stream|) > 0, return true.
  1. Let |desiredSize| be ! [$ReadableStreamDefaultControllerGetDesiredSize$](|controller|).
  1. Assert: |desiredSize| is not null.
@@ -2963,7 +2963,7 @@ The following abstract operations support the implementation of the
 
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is false, return.
  1. Let |stream| be |controller|.[=ReadableStreamDefaultController/[[stream]]=].
- 1. If ! [$IsReadableStreamLocked$](|stream|) is true and !
+ 1. If [$IsReadableStreamLocked$](|stream|) is true and !
     [$ReadableStreamGetNumReadRequests$](|stream|) > 0, perform !
     [$ReadableStreamFulfillReadRequest$](|stream|, |chunk|, false).
  1. Otherwise,
@@ -3246,7 +3246,7 @@ The following abstract operations support the implementation of the
      |transferredBuffer|, |byteOffset|, |byteLength|).
   1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
  1. Otherwise,
-  1. Assert: ! [$IsReadableStreamLocked$](|stream|) is false.
+  1. Assert: [$IsReadableStreamLocked$](|stream|) is false.
   1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
      |transferredBuffer|, |byteOffset|, |byteLength|).
  1. Perform ! [$ReadableByteStreamControllerCallPullIfNeeded$](|controller|).
@@ -4158,13 +4158,13 @@ as seen for example in [[#example-ws-no-backpressure]].
 <div algorithm>
  The <dfn id="ws-locked" attribute for="WritableStream">locked</dfn> getter steps are:
 
- 1. Return ! [$IsWritableStreamLocked$]([=this=]).
+ 1. Return [$IsWritableStreamLocked$]([=this=]).
 </div>
 
 <div algorithm>
  The <dfn id="ws-abort" method for="WritableStream">abort(|reason|)</dfn> method steps are:
 
- 1. If ! [$IsWritableStreamLocked$]([=this=]) is true, return [=a promise rejected with=] a
+ 1. If [$IsWritableStreamLocked$]([=this=]) is true, return [=a promise rejected with=] a
     {{TypeError}} exception.
  1. Return ! [$WritableStreamAbort$]([=this=], |reason|).
 </div>
@@ -4172,7 +4172,7 @@ as seen for example in [[#example-ws-no-backpressure]].
 <div algorithm>
  The <dfn id="ws-close" method for="WritableStream">close()</dfn> method steps are:
 
- 1. If ! [$IsWritableStreamLocked$]([=this=]) is true, return [=a promise rejected with=] a
+ 1. If [$IsWritableStreamLocked$]([=this=]) is true, return [=a promise rejected with=] a
     {{TypeError}} exception.
  1. If ! [$WritableStreamCloseQueuedOrInFlight$]([=this=]) is true, return [=a promise rejected
     with=] a {{TypeError}} exception.
@@ -4201,7 +4201,7 @@ as seen for example in [[#example-ws-no-backpressure]].
  {{WritableStream}} objects are [=transferable objects=]. Their [=transfer steps=], given |value|
  and |dataHolder|, are:
 
- 1. If ! [$IsWritableStreamLocked$](|value|) is true, throw a "{{DataCloneError}}" {{DOMException}}.
+ 1. If [$IsWritableStreamLocked$](|value|) is true, throw a "{{DataCloneError}}" {{DOMException}}.
  1. Let |port1| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. Let |port2| be a [=new=] {{MessagePort}} in [=the current Realm=].
  1. [=Entangle=] |port1| and |port2|.
@@ -4613,7 +4613,7 @@ The following abstract operations operate on {{WritableStream}} instances at a h
  id="set-up-writable-stream-default-writer">SetUpWritableStreamDefaultWriter(|writer|,
  |stream|)</dfn> performs the following steps:
 
- 1. If ! [$IsWritableStreamLocked$](|stream|) is true, throw a {{TypeError}} exception.
+ 1. If [$IsWritableStreamLocked$](|stream|) is true, throw a {{TypeError}} exception.
  1. Set |writer|.[=WritableStreamDefaultWriter/[[stream]]=] to |stream|.
  1. Set |stream|.[=WritableStream/[[writer]]=] to |writer|.
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
@@ -4729,7 +4729,7 @@ the {{WritableStream}}'s public API.
  id="writable-stream-add-write-request">WritableStreamAddWriteRequest(|stream|)</dfn> performs the
  following steps:
 
- 1. Assert: ! [$IsWritableStreamLocked$](|stream|) is true.
+ 1. Assert: [$IsWritableStreamLocked$](|stream|) is true.
  1. Assert: |stream|.[=WritableStream/[[state]]=] is "`writable`".
  1. Let |promise| be [=a new promise=].
  1. [=list/Append=] |promise| to |stream|.[=WritableStream/[[writeRequests]]=].
@@ -5598,9 +5598,9 @@ side=], or to terminate or error the stream.
 
  1. Let |readable| be |value|.[=TransformStream/[[readable]]=].
  1. Let |writable| be |value|.[=TransformStream/[[writable]]=].
- 1. If ! [$IsReadableStreamLocked$](|readable|) is true, throw a "{{DataCloneError}}"
+ 1. If [$IsReadableStreamLocked$](|readable|) is true, throw a "{{DataCloneError}}"
     {{DOMException}}.
- 1. If ! [$IsWritableStreamLocked$](|writable|) is true, throw a "{{DataCloneError}}"
+ 1. If [$IsWritableStreamLocked$](|writable|) is true, throw a "{{DataCloneError}}"
     {{DOMException}}.
  1. Set |dataHolder|.\[[readable]] to ! [$StructuredSerializeWithTransfer$](|readable|,
     « |readable| »).
@@ -6882,7 +6882,7 @@ use the algorithms in [[#other-specs-rs-reading]]. (For example, instead of test
 |stream|.[=ReadableStream/[[state]]=] is "`errored`".
 
 <p algorithm="ReadableStream locked">A {{ReadableStream}} |stream| is <dfn export
-for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) returns true.
+for="ReadableStream">locked</dfn> if [$IsReadableStreamLocked$](|stream|) returns true.
 
 <div algorithm>
  <p>A {{ReadableStream}} |stream| is <dfn export for="ReadableStream"
@@ -7196,8 +7196,8 @@ sense to pass them to {{ReadableStream/pipeThrough()}}.
  They will return a {{Promise}} that fulfills when the pipe completes, or rejects with an exception
  if it fails.
 
- 1. Assert: ! [$IsReadableStreamLocked$](|readable|) is false.
- 1. Assert: ! [$IsWritableStreamLocked$](|writable|) is false.
+ 1. Assert: [$IsReadableStreamLocked$](|readable|) is false.
+ 1. Assert: [$IsWritableStreamLocked$](|writable|) is false.
  1. Let |signalArg| be |signal| if |signal| was given, or undefined otherwise.
  1. Return ! [$ReadableStreamPipeTo$](|readable|, |writable|, |preventClose|, |preventAbort|,
     |preventCancel|, |signalArg|).
@@ -7219,8 +7219,8 @@ sense to pass them to {{ReadableStream/pipeThrough()}}.
  through"><var>signal</var></dfn>, is given by performing the following steps. The result will be
  the [=readable side=] of |transform|.
 
- 1. Assert: ! [$IsReadableStreamLocked$](|readable|) is false.
- 1. Assert: ! [$IsWritableStreamLocked$](|transform|.[=TransformStream/[[writable]]=]) is false.
+ 1. Assert: [$IsReadableStreamLocked$](|readable|) is false.
+ 1. Assert: [$IsWritableStreamLocked$](|transform|.[=TransformStream/[[writable]]=]) is false.
  1. Let |signalArg| be |signal| if |signal| was given, or undefined otherwise.
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|,
     |transform|.[=TransformStream/[[writable]]=], |preventClose|, |preventAbort|, |preventCancel|,
