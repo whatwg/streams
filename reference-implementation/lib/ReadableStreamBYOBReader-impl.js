@@ -24,6 +24,11 @@ class ReadableStreamBYOBReaderImpl {
 
     let minimumFill;
     if ('atLeast' in options) {
+      if (options.atLeast === 0) {
+        return promiseRejectedWith(
+          new TypeError('options.atLeast must be greater than 0')
+        );
+      }
       if (view.constructor !== DataView) {
         if (options.atLeast > view.length) {
           return promiseRejectedWith(

@@ -1455,6 +1455,8 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
     [=a promise rejected with=] a {{TypeError}} exception.
  1. Let |minimumFill| be undefined.
  1. If |options|["{{ReadableStreamBYOBReaderReadOptions/atLeast}}"] was given,
+  1. If |options|["{{ReadableStreamBYOBReaderReadOptions/atLeast}}"] is 0, return [=a promise
+     rejected with=] a {{TypeError}} exception.
   1. If |view| has a \[[TypedArrayName]] internal slot,
    1. If |options|["{{ReadableStreamBYOBReaderReadOptions/atLeast}}"] &gt; |view|.\[[ArrayLength]],
       return [=a promise rejected with=] a {{RangeError}} exception.
