@@ -2,7 +2,7 @@
 interface ReadableStreamDefaultReader {
   constructor(ReadableStream stream);
 
-  Promise<ReadableStreamDefaultReadResult> read();
+  Promise<ReadableStreamReadResult> read();
   undefined releaseLock();
 };
 ReadableStreamDefaultReader includes ReadableStreamGenericReader;

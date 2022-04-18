@@ -1159,12 +1159,12 @@ The Web IDL definition for the {{ReadableStreamDefaultReader}} class is given as
 interface ReadableStreamDefaultReader {
   constructor(ReadableStream stream);
 
-  Promise<ReadableStreamDefaultReadResult> read();
+  Promise<ReadableStreamReadResult> read();
   undefined releaseLock();
 };
 ReadableStreamDefaultReader includes ReadableStreamGenericReader;
 
-dictionary ReadableStreamDefaultReadResult {
+dictionary ReadableStreamReadResult {
   any value;
   boolean done;
 };
@@ -1267,12 +1267,12 @@ to filling the [=readable stream=]'s [=internal queue=] or changing its state. I
  1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
   : [=read request/chunk steps=], given |chunk|
   ::
-   1. [=Resolve=] |promise| with «[ "{{ReadableStreamDefaultReadResult/value}}" → |chunk|,
-      "{{ReadableStreamDefaultReadResult/done}}" → false ]».
+   1. [=Resolve=] |promise| with «[ "{{ReadableStreamReadResult/value}}" → |chunk|,
+      "{{ReadableStreamReadResult/done}}" → false ]».
   : [=read request/close steps=]
   ::
-   1. [=Resolve=] |promise| with «[ "{{ReadableStreamDefaultReadResult/value}}" → undefined,
-      "{{ReadableStreamDefaultReadResult/done}}" → true ]».
+   1. [=Resolve=] |promise| with «[ "{{ReadableStreamReadResult/value}}" → undefined,
+      "{{ReadableStreamReadResult/done}}" → true ]».
   : [=read request/error steps=], given |e|
   ::
    1. [=Reject=] |promise| with |e|.
@@ -1302,15 +1302,10 @@ The Web IDL definition for the {{ReadableStreamBYOBReader}} class is given as fo
 interface ReadableStreamBYOBReader {
   constructor(ReadableStream stream);
 
-  Promise<ReadableStreamBYOBReadResult> read(ArrayBufferView view);
+  Promise<ReadableStreamReadResult> read(ArrayBufferView view);
   undefined releaseLock();
 };
 ReadableStreamBYOBReader includes ReadableStreamGenericReader;
-
-dictionary ReadableStreamBYOBReadResult {
-  (ArrayBufferView or undefined) value;
-  boolean done;
-};
 </xmp>
 
 <h4 id="byob-reader-internal-slots">Internal slots</h4>
@@ -1432,12 +1427,12 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
  1. Let |readIntoRequest| be a new [=read-into request=] with the following [=struct/items=]:
   : [=read-into request/chunk steps=], given |chunk|
   ::
-   1. [=Resolve=] |promise| with «[ "{{ReadableStreamBYOBReadResult/value}}" → |chunk|,
-      "{{ReadableStreamBYOBReadResult/done}}" → false ]».
+   1. [=Resolve=] |promise| with «[ "{{ReadableStreamReadResult/value}}" → |chunk|,
+      "{{ReadableStreamReadResult/done}}" → false ]».
   : [=read-into request/close steps=], given |chunk|
   ::
-   1. [=Resolve=] |promise| with «[ "{{ReadableStreamBYOBReadResult/value}}" → |chunk|,
-      "{{ReadableStreamBYOBReadResult/done}}" → true ]».
+   1. [=Resolve=] |promise| with «[ "{{ReadableStreamReadResult/value}}" → |chunk|,
+      "{{ReadableStreamReadResult/done}}" → true ]».
   : [=read-into request/error steps=], given |e|
   ::
    1. [=Reject=] |promise| with |e|.
