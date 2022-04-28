@@ -8,5 +8,5 @@ interface ReadableStreamBYOBReader {
 ReadableStreamBYOBReader includes ReadableStreamGenericReader;
 
 dictionary ReadableStreamBYOBReaderReadOptions {
-  [EnforceRange] unsigned long long atLeast;
+  [EnforceRange] unsigned long long min;
 };

@@ -23,27 +23,27 @@ class ReadableStreamBYOBReaderImpl {
     }
 
     let minimumFill;
-    if ('atLeast' in options) {
-      if (options.atLeast === 0) {
+    if ('min' in options) {
+      if (options.min === 0) {
         return promiseRejectedWith(
-          new TypeError('options.atLeast must be greater than 0')
+          new TypeError('options.min must be greater than 0')
         );
       }
       if (view.constructor !== DataView) {
-        if (options.atLeast > view.length) {
+        if (options.min > view.length) {
           return promiseRejectedWith(
-            new RangeError('options.atLeast must be less than or equal to view\'s length')
+            new RangeError('options.min must be less than or equal to view\'s length')
           );
         }
         const elementSize = view.constructor.BYTES_PER_ELEMENT;
-        minimumFill = options.atLeast * elementSize;
+        minimumFill = options.min * elementSize;
       } else {
-        if (options.atLeast > view.byteLength) {
+        if (options.min > view.byteLength) {
           return promiseRejectedWith(
-            new RangeError('options.atLeast must be less than or equal to view\'s byteLength')
+            new RangeError('options.min must be less than or equal to view\'s byteLength')
           );
         }
-        minimumFill = options.atLeast;
+        minimumFill = options.min;
       }
     }
 
