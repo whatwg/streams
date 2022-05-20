@@ -5860,8 +5860,9 @@ The following abstract operations support the implementaiton of the
     algorithm which returns the result of [=invoking=] |transformerDict|["{{Transformer/flush}}"]
     with argument list «&nbsp;|controller|&nbsp;» and [=callback this value=] |transformer|.
  1. If |transformerDict|["{{Transformer/cancel}}"] [=map/exists=], set |cancelAlgorithm| to an
-    algorithm which returns the result of [=invoking=] |transformerDict|["{{Transformer/cancel}}"]
-    with argument list «&nbsp;|reason|&nbsp;» and [=callback this value=] |transformer|.
+    algorithm which takes an argument |reason| and returns the result of [=invoking=]
+    |transformerDict|["{{Transformer/cancel}}"] with argument list «&nbsp;|reason|&nbsp;» and
+    [=callback this value=] |transformer|.
  1. Perform ! [$SetUpTransformStreamDefaultController$](|stream|, |controller|,
     |transformAlgorithm|, |flushAlgorithm|, |cancelAlgorithm|).
 </div>
