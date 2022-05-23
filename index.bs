@@ -5422,14 +5422,14 @@ dictionary Transformer {
   TransformerStartCallback start;
   TransformerTransformCallback transform;
   TransformerFlushCallback flush;
-  TransformerCancelCallback cancel;
+  TransformerFinallyCallback finally;
   any readableType;
   any writableType;
 };
 
 callback TransformerStartCallback = any (TransformStreamDefaultController controller);
 callback TransformerFlushCallback = Promise<undefined> (TransformStreamDefaultController controller);
-callback TransformerCancelCallback = Promise<undefined> (optional any reason);
+callback TransformerFinallyCallback = Promise<undefined> ();
 callback TransformerTransformCallback = Promise<undefined> (any chunk, TransformStreamDefaultController controller);
 </xmp>
 
@@ -5488,16 +5488,9 @@ callback TransformerTransformCallback = Promise<undefined> (any chunk, Transform
    {{Transformer/flush|flush()}}; the stream is already in the process of successfully closing down,
    and terminating it would be counterproductive.)
 
-  <dt><dfn dict-member for="Transformer" lt="cancel">cancel(<var ignore>reason</var>)</dfn></dt>
+  <dt><dfn dict-member for="Transformer" lt="finally">finally()</dfn></dt>
   <dd>
-  <p>A function that is called whenever either the [=readable side=] is cancelled via
-  {{ReadableStream/cancel()|stream.cancel()}} or {{ReadableStreamGenericReader/cancel()|reader.cancel()}},
-  or the [=writable side=] via {{WritableStream/abort()|stream.abort()}} or
-  {{WritableStreamDefaultWriter/abort()|writer.abort()}}. It takes as its argument the same
-  value as was passed to those methods by the consumer.
-
-  <p>For more cancel causes, see {{UnderlyingSource/cancel|cancel()}} for more details.
-  For more abort causes, see {{UnderlyingSink/abort|abort()}} for more details.
+  <p>A function that is called when the transformer ends, be it through closing, erroring, or terminating.
 
  <dt><dfn dict-member for="Transformer">readableType</dfn></dt>
  <dd>
@@ -5672,9 +5665,9 @@ the following table:
    <td class="non-normative">A promise-returning algorithm which communicates a requested close to
    the [=transformer=]
   <tr>
-   <td><dfn>\[[cancelAlgorithm]]</dfn>
-   <td class="non-normative">A promise-returning algorithm, taking one argument (the cancel reason),
-    which communicates a requested cancelation to the [=transformer=]
+   <td><dfn>\[[finallyAlgorithm]]</dfn>
+   <td class="non-normative">A promise-returning algorithm, which communicates a requested closing
+   or cancellation to the [=transformer=]
   <tr>
    <td><dfn>\[[stream]]</dfn>
    <td class="non-normative">The {{TransformStream}} instance controlled
@@ -5796,12 +5789,12 @@ The following abstract operations operate on {{TransformStream}} instances at a 
  id="transform-stream-error-writable-and-unblock-write">TransformStreamErrorWritableAndUnblockWrite(|stream|,
  |e|)</dfn> performs the following steps:
 
- 1. Perform ! |stream|.[=TransformStream/[[controller]]=].[=TransformStreamDefaultController/[[cancelAlgorithm]]=](|e|).
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|stream|.[=TransformStream/[[controller]]=]).
  1. Perform !
     [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.[=TransformStream/[[writable]]=].[=WritableStream/[[controller]]=], |e|).
  1. If |stream|.[=TransformStream/[[backpressure]]=] is true, perform ! [$TransformStreamSetBackpressure$](|stream|,
     false).
+ 1. Perform ! |stream|.[=TransformStream/[[controller]]=].[=TransformStreamDefaultController/[[finallyAlgorithm]]=]().
 
  <p class="note">The [$TransformStreamDefaultSinkWriteAlgorithm$] abstract operation could be
  waiting for the promise stored in the [=TransformStream/[[backpressureChangePromise]]=] slot to
@@ -5828,7 +5821,7 @@ The following abstract operations support the implementaiton of the
 <div algorithm>
  <dfn abstract-op lt="SetUpTransformStreamDefaultController"
  id="set-up-transform-stream-default-controller">SetUpTransformStreamDefaultController(|stream|,
- |controller|, |transformAlgorithm|, |flushAlgorithm|, |cancelAlgorithm|)</dfn> performs the following steps:
+ |controller|, |transformAlgorithm|, |flushAlgorithm|, |finallyAlgorithm|)</dfn> performs the following steps:
 
  1. Assert: |stream| [=implements=] {{TransformStream}}.
  1. Assert: |stream|.[=TransformStream/[[controller]]=] is undefined.
@@ -5837,7 +5830,7 @@ The following abstract operations support the implementaiton of the
  1. Set |controller|.[=TransformStreamDefaultController/[[transformAlgorithm]]=] to
     |transformAlgorithm|.
  1. Set |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=] to |flushAlgorithm|.
- 1. Set |controller|.[=TransformStreamDefaultController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
+ 1. Set |controller|.[=TransformStreamDefaultController/[[finallyAlgorithm]]=] to |finallyAlgorithm|.
 </div>
 
 <div algorithm>
@@ -5851,7 +5844,7 @@ The following abstract operations support the implementaiton of the
   1. If |result| is an abrupt completion, return [=a promise rejected with=] |result|.\[[Value]].
   1. Otherwise, return [=a promise resolved with=] undefined.
  1. Let |flushAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
- 1. Let |cancelAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
+ 1. Let |finallyAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
  1. If |transformerDict|["{{Transformer/transform}}"] [=map/exists=], set |transformAlgorithm| to an
     algorithm which takes an argument |chunk| and returns the result of [=invoking=]
     |transformerDict|["{{Transformer/transform}}"] with argument list «&nbsp;|chunk|,
@@ -5859,12 +5852,11 @@ The following abstract operations support the implementaiton of the
  1. If |transformerDict|["{{Transformer/flush}}"] [=map/exists=], set |flushAlgorithm| to an
     algorithm which returns the result of [=invoking=] |transformerDict|["{{Transformer/flush}}"]
     with argument list «&nbsp;|controller|&nbsp;» and [=callback this value=] |transformer|.
- 1. If |transformerDict|["{{Transformer/cancel}}"] [=map/exists=], set |cancelAlgorithm| to an
-    algorithm which takes an argument |reason| and returns the result of [=invoking=]
-    |transformerDict|["{{Transformer/cancel}}"] with argument list «&nbsp;|reason|&nbsp;» and
-    [=callback this value=] |transformer|.
+ 1. If |transformerDict|["{{Transformer/finally}}"] [=map/exists=], set |finallyAlgorithm| to an
+    algorithm which returns the result of [=invoking=] |transformerDict|["{{Transformer/finally}}"]
+    with [=callback this value=] |transformer|.
  1. Perform ! [$SetUpTransformStreamDefaultController$](|stream|, |controller|,
-    |transformAlgorithm|, |flushAlgorithm|, |cancelAlgorithm|).
+    |transformAlgorithm|, |flushAlgorithm|, |finallyAlgorithm|).
 </div>
 
 <div algorithm>
@@ -5883,7 +5875,6 @@ The following abstract operations support the implementaiton of the
 
  1. Set |controller|.[=TransformStreamDefaultController/[[transformAlgorithm]]=] to undefined.
  1. Set |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=] to undefined.
- 1. Set |controller|.[=TransformStreamDefaultController/[[cancelAlgorithm]]=] to undefined.
 </div>
 
 <div algorithm>
@@ -5990,6 +5981,7 @@ side=] of [=transform streams=].
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|controller|).
  1. Return the result of [=reacting=] to |flushPromise|:
   1. If |flushPromise| was fulfilled, then:
+   1. Perform ! |stream|.[=TransformStream/[[controller]]=].[=TransformStreamDefaultController/[[finallyAlgorithm]]=]().
    1. If |readable|.[=ReadableStream/[[state]]=] is "`errored`", throw
       |readable|.[=ReadableStream/[[storedError]]=].
    1. Perform !
