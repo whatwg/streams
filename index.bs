@@ -2073,7 +2073,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
  1. Perform ! [$InitializeReadableStream$](|stream|).
  1. Let |controller| be a [=new=] {{ReadableByteStreamController}}.
  1. Perform ? [$SetUpReadableByteStreamController$](|stream|, |controller|, |startAlgorithm|,
-    |pullAlgorithm|, |cancelAlgorithm|, 0, undefined).
+    |pullAlgorithm|, |cancelAlgorithm|, 1, undefined).
  1. Return |stream|.
 
  <p class="note">This abstract operation will throw an exception if and only if the supplied
@@ -6459,7 +6459,7 @@ abstract operations are used to implement these "cross-realm transforms".
   1. Otherwise, return [=a promise resolved with=] undefined.
  1. Let |sizeAlgorithm| be an algorithm that returns 1.
  1. Perform ! [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
-    |pullAlgorithm|, |cancelAlgorithm|, 0, |sizeAlgorithm|).
+    |pullAlgorithm|, |cancelAlgorithm|, 1, |sizeAlgorithm|).
 
  <p class="note">Implementations are encouraged to explicitly handle failures from the asserts in
  this algorithm, as the input might come from an untrusted context. Failure to do so could lead to
