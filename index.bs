@@ -34,6 +34,7 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: ArrayBuffer; url: #sec-arraybuffer-objects
   text: DataView; url: #sec-dataview-objects
   text: Number; url: #sec-ecmascript-language-types-number-type
+  text: SharedArrayBuffer; url: #sec-sharedarraybuffer-objects
   text: Uint8Array; url: #sec-typedarray-objects
   text: %Object.prototype%; url: #sec-properties-of-the-object-prototype-object
  type: dfn
@@ -4032,6 +4033,29 @@ callback UnderlyingSinkAbortCallback = Promise<undefined> (optional any reason);
    its previous value, only increasing to signal the desire for more chunks once the write
    succeeds.
 
+   <div class="warning" id="warning-async-processing-of-written-chunks">
+    <p>Asynchronous processing of the passed [=chunk=] can be problematic, since the caller of
+    {{WritableStreamDefaultWriter/write()|writer.write()}} might still keep a reference to the
+    chunk and mutate it even after it reaches this {{UnderlyingSink/write|write()}} function. The
+    best practice is to synchronously take a copy of, or possibly
+    [$StructuredSerializeWithTransfer|transfer$], the passed chunk, so that the data written is
+    exactly the same as the data that was supplied by the [=producer=] when they called
+    {{WritableStreamDefaultWriter/write()|writer.write()}}. This is usually done by passing off the
+    chunk to some other web platform API that will create such a copy, but if the underlying sink
+    implementation does not synchronously call such an API itself, it should defensively make a
+    copy (perhaps using {{WindowOrWorkerGlobalScope/structuredClone()}}).
+
+    <p><a href="https://github.com/whatwg/streams/issues/495">Issue #495</a> discusses future
+    extensions to the writable stream API which could formalize the process of transferring, and
+    then reusing the backing memory of, {{Uint8Array}} chunks.
+
+    <p>Alternately, if the stream explicitly accepts shared memory via {{SharedArrayBuffer}}
+    [=chunks=] (or [=chunks=] that are {{BufferSource}} objects backed by a {{SharedArrayBuffer}}),
+    then this is an advertisement that racy behavior is to be expected and that the [=producer=]
+    needs to be extra careful. In such cases, the underlying sink implementer does not need to copy
+    or transfer the {{SharedArrayBuffer}}.
+   </div>
+
   <dt><dfn dict-member for="UnderlyingSink" lt="close">close()</dfn></dt>
   <dd>
    <p>A function that is called after the [=producer=] signals, via
@@ -5465,6 +5489,9 @@ callback TransformerTransformCallback = Promise<undefined> (any chunk, Transform
 
   <p>If no {{Transformer/transform|transform()}} method is supplied, the identity transform is
   used, which enqueues chunks unchanged from the writable side to the readable side.
+
+  <p class="warning">A similar warning applies for asynchronous processing of the given [=chunk=]
+  as was given <a href="#warning-async-processing-of-written-chunks">for writable streams</a>.
 
   <dt><dfn dict-member for="Transformer" lt="flush">flush(<var ignore>controller</var>)</dfn></dt>
   <dd>
