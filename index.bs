@@ -6938,12 +6938,14 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
     |writeAlgorithm|, |closeAlgorithmWrapper|, |abortAlgorithmWrapper|, |highWaterMark|,
     |sizeAlgorithm|).
 
- Other specificatons should be careful when constructing their
+ Other specifications should be careful when constructing their
  <i>[=WritableStream/set up/writeAlgorithm=]</i> to avoid [=in parallel=] reads from the given
  [=chunk=], as such reads can violate the run-to-completion semantics of JavaScript. To avoid this,
  they can make a synchronous copy or transfer of the given value, using operations such as
  [$StructuredSerializeWithTransfer$], [=get a copy of the bytes held by the buffer source=], or
- <a for="ArrayBuffer" lt="transfer">transferring an `ArrayBuffer`</a>.
+ <a for="ArrayBuffer" lt="transfer">transferring an `ArrayBuffer`</a>. An exception is when the
+ [=chunk=] is a {{SharedArrayBuffer}}, for which it is understood that parallel mutations are a fact
+ of life.
 
  <div class="example" id="example-set-up-ws">
   Creating a {{WritableStream}} from other specifications is thus a two-step process, like so:
@@ -7043,12 +7045,14 @@ reason.
  1. Perform ! [$SetUpTransformStreamDefaultController$](|stream|, |controller|,
     |transformAlgorithmWrapper|, |flushAlgorithmWrapper|).
 
- Other specificatons should be careful when constructing their
+ Other specifications should be careful when constructing their
  <i>[=TransformStream/set up/transformAlgorithm=]</i> to avoid [=in parallel=] reads from the given
  [=chunk=], as such reads can violate the run-to-completion semantics of JavaScript. To avoid this,
  they can make a synchronous copy or transfer of the given value, using operations such as
  [$StructuredSerializeWithTransfer$], [=get a copy of the bytes held by the buffer source=], or
- <a for="ArrayBuffer" lt="transfer">transferring an `ArrayBuffer`</a>.
+ <a for="ArrayBuffer" lt="transfer">transferring an `ArrayBuffer`</a>.  An exception is when the
+ [=chunk=] is a {{SharedArrayBuffer}}, for which it is understood that parallel mutations are a fact
+ of life.
 
  <div class="example" id="example-set-up-ts">
   Creating a {{TransformStream}} from other specifications is thus a two-step process, like so:
