@@ -31,6 +31,7 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: ArrayBuffer; url: #sec-arraybuffer-objects
   text: DataView; url: #sec-dataview-objects
   text: Number; url: #sec-ecmascript-language-types-number-type
+  text: SharedArrayBuffer; url: #sec-sharedarraybuffer-objects
   text: Uint8Array; url: #sec-typedarray-objects
   text: %Object.prototype%; url: #sec-properties-of-the-object-prototype-object
  type: dfn
