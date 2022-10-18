@@ -1012,8 +1012,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  ignore>stream</var> and |iterator|, are:
 
  1. Let |reader| be |iterator|'s [=ReadableStream async iterator/reader=].
- 1. If |reader|.[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected
-    with=] a {{TypeError}}.
+ 1. Assert: |reader|.[=ReadableStreamGenericReader/[[stream]]=] is not undefined.
  1. Let |promise| be [=a new promise=].
  1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
   : [=read request/chunk steps=], given |chunk|
@@ -1036,8 +1035,7 @@ default-reader-asynciterator-prototype-internal-slots">Asynchronous iteration</h
  ignore>stream</var>, |iterator|, and |arg|, are:
 
  1. Let |reader| be |iterator|'s [=ReadableStream async iterator/reader=].
- 1. If |reader|.[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise resolved
-    with=] undefined.
+ 1. Assert: |reader|.[=ReadableStreamGenericReader/[[stream]]=] is not undefined.
  1. Assert: |reader|.[=ReadableStreamDefaultReader/[[readRequests]]=] is [=list/is empty|empty=],
     as the async iterator machinery guarantees that any previous calls to `next()` have settled
     before this is called.
