@@ -6821,9 +6821,10 @@ a chunk</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given a [=read re
   1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
    : [=read request/chunk steps=], given |chunk|
    ::
-    1. [=get a copy of the bytes held by the buffer source|Get a copy of the bytes held by=] |chunk|
-       and append the result to |bytes|.
-    1. [=Read-loop=] given |reader|, |bytes|, |successSteps| and |failureSteps|.
+    1. If |chunk| is not a {{Uint8Array}} object, [=reject=] |promise| with a {{TypeError}} and
+       abort these steps.
+    1. Append the bytes represented by |chunk| to |bytes|.
+    1. [=Read-loop=] given |reader|, |bytes|, |successSteps|, and |failureSteps|.
        <p class="note">This recursion could potentially cause a stack overflow if implemented
        directly. Implementations will need to mitigate this, e.g. by using a non-recursive variant
        of this algorithm, or [=queue a microtask|queuing a microtask=], or using a more direct
