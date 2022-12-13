@@ -6809,7 +6809,7 @@ a chunk</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given a [=read re
 
 <div algorithm="read all bytes">
  <p>To <dfn export for="ReadableStreamDefaultReader" lt="read all bytes|reading all bytes">read all
- bytes as a promise</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given |successSteps|,
+ bytes</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given |successSteps|,
  which is an algorithm accepting a [=byte sequence=], and |failureSteps|, which is an algorithm
  accepting a JavaScript value: [=read-loop=] given |reader|, a new [=byte sequence=],
  |successSteps|, and |failureSteps|.
