@@ -6809,25 +6809,22 @@ a chunk</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given a [=read re
 
 <div algorithm="read all bytes">
  <p>To <dfn export for="ReadableStreamDefaultReader" lt="read all bytes|reading all bytes">read all
- bytes</dfn> from a {{ReadableStreamDefaultReader}} |reader|, perform the following steps. The
- result will be a {{Promise}} for a [=byte sequence=].
-
- 1. Let |promise| be [=a new promise=].
- 1. Let |bytes| be an empty [=byte sequence=].
- 1. [=Read-loop=] given |reader|, |bytes|, and |promise|.
- 1. Return |promise|.
+ bytes</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given |successSteps|,
+ which is an algorithm accepting a [=byte sequence=], and |failureSteps|, which is an algorithm
+ accepting a JavaScript value: [=read-loop=] given |reader|, a new [=byte sequence=],
+ |successSteps|, and |failureSteps|.
 
  <div algorithm="read-loop">
-  For the purposes of the above algorithm, to <dfn>read-loop</dfn> given |reader|, |bytes|, and
-  |promise|:
+  For the purposes of the above algorithm, to <dfn>read-loop</dfn> given |reader|, |bytes|,
+  |successSteps|, and |failureSteps|:
 
   1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
    : [=read request/chunk steps=], given |chunk|
    ::
-    1. If |chunk| is not a {{Uint8Array}} object, [=reject=] |promise| with a {{TypeError}} and
+    1. If |chunk| is not a {{Uint8Array}} object, call |failureSteps| with a {{TypeError}} and
        abort these steps.
     1. Append the bytes represented by |chunk| to |bytes|.
-    1. [=Read-loop=] given |reader|, |bytes|, and |promise|.
+    1. [=Read-loop=] given |reader|, |bytes|, |successSteps|, and |failureSteps|.
        <p class="note">This recursion could potentially cause a stack overflow if implemented
        directly. Implementations will need to mitigate this, e.g. by using a non-recursive variant
        of this algorithm, or [=queue a microtask|queuing a microtask=], or using a more direct
@@ -6835,10 +6832,10 @@ a chunk</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given a [=read re
 
    : [=read request/close steps=]
    ::
-    1. [=Resolve=] |promise| with |bytes|.
+    1. Call |successSteps| with |bytes|.
    : [=read request/error steps=], given |e|
    ::
-    1. [=Reject=] |promise| with |e|.
+    1. Call |failureSteps| with |e|.
   1. Perform ! [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
  </div>
 
