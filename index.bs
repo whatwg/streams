@@ -6816,7 +6816,7 @@ a chunk</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given a [=read re
 
  <div algorithm="read-loop">
   For the purposes of the above algorithm, to <dfn>read-loop</dfn> given |reader|, |bytes|,
-  |successSteps|, and |failureSteps:
+  |successSteps|, and |failureSteps|:
 
   1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
    : [=read request/chunk steps=], given |chunk|
