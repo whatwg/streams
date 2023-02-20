@@ -5339,9 +5339,9 @@ The following abstract operations support the implementation of the
 
 <div class="example" id="example-transform-identity">
  One use of [=identity transform streams=] is to easily convert between readable and writable
- streams. For example, the {{fetch()}} API accepts a readable stream [=request/body|request body=],
- but it can be more convenient to write data for uploading via a writable stream interface. Using
- an identity transform stream addresses this:
+ streams. For example, the {{fetch(input)|fetch()}} API accepts a readable stream
+ [=request/body|request body=], but it can be more convenient to write data for uploading via a
+ writable stream interface. Using an identity transform stream addresses this:
 
  <xmp highlight="js">
  const { writable, readable } = new TransformStream();
@@ -7127,9 +7127,9 @@ Note: Existing examples of this pattern on the web platform include {{Compressio
 {{TextDecoderStream}}. [[COMPRESSION]] [[ENCODING]]
 
 <p class="note">There's no need to create a wrapper class if you don't need any API beyond what the
-base {{TransformStream}} class provides. The most common driver for such a wrapper is needing a
-custom [=constructor operation=], but if your conceptual transform stream isn't meant to be
-constructed, then using {{TransformStream}} directly is fine.
+base {{TransformStream}} class provides. The most common driver for such a wrapper is needing custom
+[=constructor steps=], but if your conceptual transform stream isn't meant to be constructed, then
+using {{TransformStream}} directly is fine.
 
 <h3 id="other-specs-pairs">Other stream pairs</h3>
 
