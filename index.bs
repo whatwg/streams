@@ -6752,6 +6752,29 @@ mark=] is greater than zero.
      [$ReadableByteStreamControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=], |chunk|).
 </div>
 
+<div algorithm>
+ To <dfn export for="ReadableStream">pull from buffer</dfn> |buffer| into a
+ {{ReadableStream}} |stream|:
+
+ 1. Let |available| be the size of |buffer|.
+ 1. Let |desiredSize| be |available|.
+ 1. If |stream|'s [=ReadableStream/current BYOB request view=] is non-null, then set
+    |desiredSize| to |stream|'s [=ReadableStream/current BYOB request view=]'s
+    [=BufferSource/byte length=].
+ 1. Let |extractSize| be the smaller value of |available| and |desiredSize|.
+ 1. Let |bytes| be the result of extracting |extractSize| of bytes from |buffer|.
+ 1. If |stream|s [=ReadableStream/current BYOB request view=] is non-null, then:
+  1. [=ArrayBufferView/write=] |bytes| into |stream|'s
+     [=ReadableStream/current BYOB request view=].
+  1. Perform ? [$ReadableByteStreamControllerRespond$](|stream|.[=ReadableStream/[[controller]]=],
+     |bytes|).
+ 1. Otherwise,
+  1. Set |view| to the result of [=ArrayBufferView/create|creating=] a
+     {{Uint8Array}} from |bytes| in |stream|'s [=relevant Realm=].
+  1. Perform ?
+     [$ReadableByteStreamControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=], |view|).
+</div>
+
 <hr>
 
 The following algorithm must only be used on {{ReadableStream}} instances initialized via the above
