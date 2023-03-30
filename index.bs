@@ -6764,7 +6764,7 @@ mark=] is greater than zero.
  1. Let |extractSize| be the smaller value of |available| and |desiredSize|.
  1. Let |bytes| be the result of extracting |extractSize| of bytes from |buffer|.
  1. If |stream|s [=ReadableStream/current BYOB request view=] is non-null, then:
-  1. [=ArrayBufferView/write=] |bytes| into |stream|'s
+  1. [=ArrayBufferView/Write=] |bytes| into |stream|'s
      [=ReadableStream/current BYOB request view=].
   1. Perform ? [$ReadableByteStreamControllerRespond$](|stream|.[=ReadableStream/[[controller]]=],
      |bytes|).
