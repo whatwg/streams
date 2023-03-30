@@ -6753,8 +6753,8 @@ mark=] is greater than zero.
 </div>
 
 <div algorithm>
- To <dfn export for="ReadableStream">pull from buffer</dfn> |buffer| into a
- {{ReadableStream}} |stream|:
+ To <dfn export for="ReadableStream">pull from buffer</dfn> |buffer| into a {{ReadableStream}}
+ |stream|:
 
  1. Let |available| be the size of |buffer|.
  1. Let |desiredSize| be |available|.
