@@ -1910,9 +1910,10 @@ function ReadableStreamFromIterable(asyncIterable) {
   }
 
   function cancelAlgorithm(reason) {
+    const iterator = iteratorRecord.iterator;
     let returnMethod;
     try {
-      returnMethod = GetMethod(iteratorRecord.iterator, 'return');
+      returnMethod = GetMethod(iterator, 'return');
     } catch (e) {
       return promiseRejectedWith(e);
     }
@@ -1921,11 +1922,17 @@ function ReadableStreamFromIterable(asyncIterable) {
     }
     let returnResult;
     try {
-      returnResult = Call(returnMethod, iteratorRecord.iterator, [reason]);
+      returnResult = Call(returnMethod, iterator, [reason]);
     } catch (e) {
       return promiseRejectedWith(e);
     }
-    return promiseResolvedWith(returnResult);
+    const returnPromise = promiseResolvedWith(returnResult);
+    return transformPromiseWith(returnPromise, iterResult => {
+      if (!typeIsObject(iterResult)) {
+        throw new TypeError('The promise returned by the iterator.return() method must fulfill with an object');
+      }
+      return undefined;
+    });
   }
 
   stream = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, 0);
