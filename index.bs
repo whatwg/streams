@@ -6784,9 +6784,13 @@ They should only [=ArrayBufferView/create=] a new {{ArrayBufferView}} to pass to
 [=ReadableStream/enqueue=] when the [=ReadableStream/current BYOB request view=] is null, or when
 they have more bytes on hand than the [=ReadableStream/current BYOB request view=]'s
 [=BufferSource/byte length=]. This avoids unnecessary copies and better respects the wishes of the
-stream's [=consumer=]. The following [=ReadableStream/pull from bytes=] algorithm implements these
-requirements, for the common case where bytes are derived from a [=byte sequence=] that serves as
-the specification-level representation of an [=underlying byte source=].
+stream's [=consumer=].
+
+The following [=ReadableStream/pull from bytes=] algorithm implements these requirements, for the
+common case where bytes are derived from a [=byte sequence=] that serves as the specification-level
+representation of an [=underlying byte source=]. Note that it is conservative and leaves bytes in
+the [=byte sequence=], instead of aggressively [=ReadableStream/enqueueing=] them, so callers of
+this algorithm might want to use the number of remaining bytes as a [=backpressure=] signal.
 
 <div algorithm>
  To <dfn export for="ReadableStream">pull from bytes</dfn> with a [=byte sequence=] |bytes| into a
