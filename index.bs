@@ -6754,7 +6754,7 @@ mark=] is greater than zero.
 
 <hr>
 
-The following algorithm must only be used on {{ReadableStream}} instances initialized via the above
+The following algorithms must only be used on {{ReadableStream}} instances initialized via the above
 [=ReadableStream/set up with byte reading support=] algorithm:
 
 <div algorithm>
@@ -6786,8 +6786,40 @@ they have more bytes on hand than the [=ReadableStream/current BYOB request view
 [=BufferSource/byte length=]. This avoids unnecessary copies and better respects the wishes of the
 stream's [=consumer=].
 
+The following [=ReadableStream/pull from bytes=] algorithm implements these requirements, for the
+common case where bytes are derived from a [=byte sequence=] that serves as the specification-level
+representation of an [=underlying byte source=]. Note that it is conservative and leaves bytes in
+the [=byte sequence=], instead of aggressively [=ReadableStream/enqueueing=] them, so callers of
+this algorithm might want to use the number of remaining bytes as a [=backpressure=] signal.
+
+<div algorithm>
+ To <dfn export for="ReadableStream">pull from bytes</dfn> with a [=byte sequence=] |bytes| into a
+ {{ReadableStream}} |stream|:
+
+ 1. Assert: |stream|.[=ReadableStream/[[controller]]=] [=implements=]
+    {{ReadableByteStreamController}}.
+ 1. Let |available| be |bytes|'s [=byte sequence/length=].
+ 1. Let |desiredSize| be |available|.
+ 1. If |stream|'s [=ReadableStream/current BYOB request view=] is non-null, then set |desiredSize|
+    to |stream|'s [=ReadableStream/current BYOB request view=]'s [=BufferSource/byte length=].
+ 1. Let |pullSize| be the smaller value of |available| and |desiredSize|.
+ 1. Let |pulled| be the first |pullSize| bytes of |bytes|.
+ 1. Remove the first |pullSize| bytes from |bytes|.
+ 1. If |stream|'s [=ReadableStream/current BYOB request view=] is non-null, then:
+  1. [=ArrayBufferView/Write=] |pulled| into |stream|'s [=ReadableStream/current BYOB request
+     view=].
+  1. Perform ? [$ReadableByteStreamControllerRespond$](|stream|.[=ReadableStream/[[controller]]=],
+     |pullSize|).
+ 1. Otherwise,
+  1. Set |view| to the result of [=ArrayBufferView/create|creating=] a {{Uint8Array}} from |pulled|
+     in |stream|'s [=relevant Realm=].
+  1. Perform ? [$ReadableByteStreamControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
+     |view|).
+</div>
+
 Specifications must not [=ArrayBuffer/write=] into the [=ReadableStream/current BYOB request view=]
-after [=ReadableStream/closing=] the corresponding {{ReadableStream}}.
+or [=ReadableStream/pull from bytes=] after [=ReadableStream/closing=] the corresponding
+{{ReadableStream}}.
 
 <h4 id="other-specs-rs-reading">Reading</h4>
 
