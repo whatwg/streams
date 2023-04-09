@@ -29,7 +29,7 @@ exports.implementation = class ReadableStreamImpl {
         this, underlyingSource, underlyingSourceDict, highWaterMark
       );
     } else {
-      assert(!('type' in underlyingSourceDict));
+      assert(!('type' in underlyingSourceDict) || underlyingSourceDict.type === 'owning');
       const sizeAlgorithm = ExtractSizeAlgorithm(strategy);
       const highWaterMark = ExtractHighWaterMark(strategy, 1);
       aos.SetUpReadableStreamDefaultControllerFromUnderlyingSource(

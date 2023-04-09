@@ -35,7 +35,9 @@ async function main() {
   const excludeGlobs = [
     // These tests use ArrayBuffers backed by WebAssembly.Memory objects, which *should* be non-transferable.
     // However, our TransferArrayBuffer implementation cannot detect these, and will incorrectly "transfer" them anyway.
-    'readable-byte-streams/non-transferable-buffers.any.html'
+    'readable-byte-streams/non-transferable-buffers.any.html',
+    'readable-streams/owning-type-message-port.any.html', // MessagePort is not defined.
+    'readable-streams/owning-type-video-frame.any.html' // VideoFrame is not defined.
   ];
   const anyTestPattern = /\.any\.html$/;
 
@@ -58,6 +60,7 @@ async function main() {
           }
         };
       };
+      window.structuredClone = globalThis.structuredClone;
       window.eval(bundledJS);
     },
     filter(testPath) {
