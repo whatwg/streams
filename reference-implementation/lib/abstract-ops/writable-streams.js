@@ -637,7 +637,7 @@ function WritableStreamDefaultControllerClearAlgorithms(controller) {
 }
 
 function WritableStreamDefaultControllerClose(controller) {
-  EnqueueValueWithSize(controller, closeSentinel, 0);
+  EnqueueValueWithSize(controller, closeSentinel, 0, undefined);
   WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
 }
 
@@ -729,7 +729,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
 
 function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
   try {
-    EnqueueValueWithSize(controller, chunk, chunkSize);
+    EnqueueValueWithSize(controller, chunk, chunkSize, undefined);
   } catch (enqueueE) {
     WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
     return;
