@@ -6636,7 +6636,7 @@ The following abstract operations are a grab-bag of utilities.
     performs the following steps:
  1. Let |serialized| be ! [$StructuredSerializeWithTransfer$](|value|, |transferList|).
  1. Let |deserialized| be ! [$StructuredDeserializeWithTransfer$](|serialized|, [=the current Realm=]).
- 1. return |deserialized|.\[[Deserialized]].
+ 1. Return |deserialized|.\[[Deserialized]].
 </div>
 
 <h2 id="other-specs">Using streams in other specifications</h2>
