@@ -340,7 +340,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   if (ReadableByteStreamController.isImpl(stream._controller)) {
     return ReadableByteStreamTee(stream);
   }
-  return ReadableStreamDefaultTee(stream, stream._controller.isOwning ? true : cloneForBranch2);
+  return ReadableStreamDefaultTee(stream, stream._controller._isOwning ? true : cloneForBranch2);
 }
 
 function ReadableStreamDefaultTee(stream, cloneForBranch2) {
@@ -1082,7 +1082,7 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk, transferList)
   const stream = controller._stream;
 
   if (IsReadableStreamLocked(stream) === true && ReadableStreamGetNumReadRequests(stream) > 0) {
-    if (controller.isOwning) {
+    if (controller._isOwning) {
       try {
         chunk = StructuredTransferOrClone(chunk, transferList);
       } catch (chunkCloneError) {
@@ -1177,7 +1177,7 @@ function SetUpReadableStreamDefaultController(
   controller._pullAlgorithm = pullAlgorithm;
   controller._cancelAlgorithm = cancelAlgorithm;
 
-  controller.isOwning = isOwning;
+  controller._isOwning = isOwning;
 
   stream._controller = controller;
 

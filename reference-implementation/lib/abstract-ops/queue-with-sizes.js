@@ -24,7 +24,7 @@ exports.EnqueueValueWithSize = (container, value, size, transferList) => {
   if (size === Infinity) {
     throw new RangeError('Size must be a finite, non-NaN, non-negative number.');
   }
-  if (container.isOwning) {
+  if (container._isOwning) {
     value = StructuredTransferOrClone(value, transferList);
   }
   container._queue.push({ value, size });
@@ -42,7 +42,7 @@ exports.PeekQueueValue = container => {
 exports.ResetQueue = container => {
   assert('_queue' in container && '_queueTotalSize' in container);
 
-  if (container.isOwning) {
+  if (container._isOwning) {
     while (container._queue.length > 0) {
       const value = exports.DequeueValue(container);
       if (typeof value.close === 'function') {
