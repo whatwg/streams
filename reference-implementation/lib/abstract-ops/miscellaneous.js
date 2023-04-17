@@ -24,3 +24,14 @@ exports.CloneAsUint8Array = O => {
 exports.StructuredTransferOrClone = (value, transferList) => {
   return globalThis.structuredClone(value, { transfer: transferList });
 };
+
+exports.RunCloseSteps = value => {
+  if (typeof value.close === 'function') {
+    return;
+  }
+  try {
+    value.close();
+  } catch (closeException) {
+    // Nothing to do.
+  }
+};

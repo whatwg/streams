@@ -6,7 +6,8 @@ const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, re
   require('../helpers/webidl.js');
 const { CanTransferArrayBuffer, CopyDataBlockBytes, CreateArrayFromList, IsDetachedBuffer, TransferArrayBuffer } =
   require('./ecmascript.js');
-const { CloneAsUint8Array, IsNonNegativeNumber, StructuredTransferOrClone } = require('./miscellaneous.js');
+const { CloneAsUint8Array, IsNonNegativeNumber, RunCloseSteps, StructuredTransferOrClone } =
+  require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
         WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
@@ -136,6 +137,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
 
   const reader = AcquireReadableStreamDefaultReader(source);
   const writer = AcquireWritableStreamDefaultWriter(dest);
+  writer._stream._controller._isPipeToOptimizedTransfer = source._controller._isOwning && dest._controller._isOwning;
 
   source._disturbed = true;
 
@@ -206,7 +208,11 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
             {
               chunkSteps: chunk => {
                 currentWrite = transformPromiseWith(
-                  WritableStreamDefaultWriterWrite(writer, chunk), undefined, () => {}
+                  WritableStreamDefaultWriterWrite(writer, chunk), undefined, () => {
+                    if (reader._stream._controller._isOwning) {
+                      RunCloseSteps(chunk);
+                    }
+                  }
                 );
                 resolveRead(false);
               },
@@ -319,6 +325,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     function finalize(isError, error) {
+      writer._stream._controller._isPipeToOptimizedTransfer = undefined;
       WritableStreamDefaultWriterRelease(writer);
       ReadableStreamDefaultReaderRelease(reader);
 
