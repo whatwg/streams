@@ -12,7 +12,7 @@ exports.implementation = class WritableStreamImpl {
       underlyingSink = null;
     }
     const underlyingSinkDict = UnderlyingSink.convert(underlyingSink);
-    if ('type' in underlyingSinkDict) {
+    if ('type' in underlyingSinkDict && underlyingSinkDict.type !== 'owning') {
       throw new RangeError('Invalid type is specified');
     }
 
