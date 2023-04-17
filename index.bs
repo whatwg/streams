@@ -2155,6 +2155,26 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
     the operations below, the JavaScript-modifiable reader, writer, and stream APIs (i.e. methods
     on the appropriate prototypes) must not be used. Instead, the streams must be manipulated
     directly.
+     <p class="note">
+       {{WritableStream}} "{{WritableStreamType/owning}}" and {{ReadableStream}} "{{ReadableStreamType/owning}}"
+       has some impact on the piping operation:
+     - Piping a not owning {{ReadableStream}} to a not owning {{WritableStream}} will enqueue
+       the exact samne JavaScript values.
+     - Piping an owning {{ReadableStream}} to an owning {{WritableStream}} is similar to the above case,
+       as ownership will be transferred from the {{ReadableStream}} to the {{WritableStream}}.
+       In case of error during the piping operation, the user Agent is responsible to call the
+       necessary [=closing steps=] of the JavaScript values that were dequeud from the
+       {{ReadableStream}} but not successfully enqueued in the {{WritableStream}}.
+     - Piping an owning {{ReadableStream}} to a not owning {{WritableStream}} will enqueue
+       the serialized/transfered JavaScript values.
+       In case of error during the piping operation, the user Agent is responsible to call the
+       necessary [=closing steps=] of the JavaScript values that were dequeud from the
+       {{ReadableStream}} but not successfully enqueued in the {{WritableStream}}.
+       Note that [=closing steps=] of the enqueued JavaScript values in the {{WritableStream}}
+       will not be called automatically. It is up to the application to handle this.
+     - Piping a not owning {{ReadableStream}} to an owning {{WritableStream}} will trigger
+       serialization of the {{ReadableStream}} chunks when enqueued in {{WritableStream}}.
+       Piping may fail if the serialization fails, say in case of transferable-only JavaScript values.
   * <strong>Backpressure must be enforced:</strong>
    * While [$WritableStreamDefaultWriterGetDesiredSize$](|writer|) is ≤ 0 or is null, the user
      agent must not read from |reader|.
@@ -4004,13 +4024,14 @@ dictionary UnderlyingSink {
   UnderlyingSinkWriteCallback write;
   UnderlyingSinkCloseCallback close;
   UnderlyingSinkAbortCallback abort;
-  any type;
+  WritableStreamType type;
 };
 
 callback UnderlyingSinkStartCallback = any (WritableStreamDefaultController controller);
 callback UnderlyingSinkWriteCallback = Promise<undefined> (any chunk, WritableStreamDefaultController controller);
 callback UnderlyingSinkCloseCallback = Promise<undefined> ();
 callback UnderlyingSinkAbortCallback = Promise<undefined> (optional any reason);
+enum WritableStreamType { "owning" };
 </xmp>
 
 <dl>
@@ -4096,8 +4117,15 @@ callback UnderlyingSinkAbortCallback = Promise<undefined> (optional any reason);
 
   <dt><dfn dict-member for="UnderlyingSink">type</dfn></dt>
   <dd>
-   <p>This property is reserved for future use, so any attempts to supply a value will throw an
-   exception.
+   <p>Can be set to "<dfn enum-value for="WritaleStreamType">owning</dfn>" to signal that the
+  constructed {{WritableStream}} will own chunks (via transfer or serialization) before enqueuing them.
+  This ensures that enqueued chunks are not mutable by the source.
+  Transferred or serialized chunks may have [=closing steps=]] which are executed if
+  enqueued chunks are dequeued without being provided to the application, for instance when
+  a {{WritableStream}} is errored.
+
+  <p>Setting any value other than "{{WritableStreamType/owning}}" or undefined will cause the
+  {{WritableStream()}} constructor to throw an exception.
 </dl>
 
 The <code>controller</code> argument passed to {{UnderlyingSink/start|start()}} and
@@ -4166,10 +4194,6 @@ as seen for example in [[#example-ws-no-backpressure]].
     <p class="note">We cannot declare the |underlyingSink| argument as having the {{UnderlyingSink}}
     type directly, because doing so would lose the reference to the original object. We need to
     retain the object so we can [=invoke=] the various methods on it.
- 1. If |underlyingSinkDict|["{{UnderlyingSink/type}}"] [=map/exists=], throw a {{RangeError}}
-    exception.
-    <p class="note">This is to allow us to add new potential types in the future, without
-    backward-compatibility concerns.
  1. Perform ! [$InitializeWritableStream$]([=this=]).
  1. Let |sizeAlgorithm| be ! [$ExtractSizeAlgorithm$](|strategy|).
  1. Let |highWaterMark| be ? [$ExtractHighWaterMark$](|strategy|, 1).
@@ -4264,7 +4288,7 @@ interface WritableStreamDefaultWriter {
   Promise<undefined> abort(optional any reason);
   Promise<undefined> close();
   undefined releaseLock();
-  Promise<undefined> write(optional any chunk);
+  Promise<undefined> write(optional any chunk, optional StructuredSerializeOptions options = { });
 };
 </xmp>
 
@@ -4349,19 +4373,23 @@ following table:
   lock on the writer for the duration of the write; the lock instead simply prevents other
   [=producers=] from writing in an interleaved manner.
 
- <dt><code>await <var ignore>writer</var>.{{WritableStreamDefaultWriter/write(chunk)|write}}(<var ignore>chunk</var>)</code>
+ <dt><code>await <var ignore>writer</var>.{{WritableStreamDefaultWriter/write(chunk, options)|write}}(<var ignore>chunk</var>, <var ignore>options</var>)</code>
  <dd>
   <p>Writes the given [=chunk=] to the writable stream, by waiting until any previous writes have
   finished successfully, and then sending the [=chunk=] to the [=underlying sink=]'s
   {{UnderlyingSink/write|write()}} method. It will return a promise that fulfills with undefined
   upon a successful write, or rejects if the write fails or stream becomes errored before the
   writing process is initiated.
+  <p>If the writable stream has its type set to "{{WritableStreamType/owning}}", the given [=chunk=]
+    is serialized with [=options=], which ensures that mutating [=chunk=] will have no impact on what
+    is written by the writable stream.
 
   <p>Note that what "success" means is up to the [=underlying sink=]; it might indicate simply that
   the [=chunk=] has been accepted, and not necessarily that it is safely saved to its ultimate
   destination.
 
-  <p id="write-mutable-chunks">If <var ignore>chunk</var> is mutable, [=producers=] are advised to
+  <p id="write-mutable-chunks">If <var ignore>chunk</var> is mutable and the writable stream type is
+  not "{{WritableStreamType/owning}}", [=producers=] are advised to
   avoid mutating it after passing it to {{WritableStreamDefaultWriter/write()}}, until after the
   promise returned by {{WritableStreamDefaultWriter/write()}} settles. This ensures that the
   [=underlying sink=] receives and processes the same value that was passed in.
@@ -4429,12 +4457,13 @@ following table:
 </div>
 
 <div algorithm>
- The <dfn id="default-writer-write" method for="WritableStreamDefaultWriter">write(|chunk|)</dfn>
+ The <dfn id="default-writer-write" method for="WritableStreamDefaultWriter">write(|chunk|, |options|)</dfn>
  method steps are:
 
+ 1. Let |transferList| be |options|["transfer"].
  1. If [=this=].[=WritableStreamDefaultWriter/[[stream]]=] is undefined, return [=a promise rejected
     with=] a {{TypeError}} exception.
- 1. Return ! [$WritableStreamDefaultWriterWrite$]([=this=], |chunk|).
+ 1. Return ! [$WritableStreamDefaultWriterWrite$]([=this=], |chunk|, |transferList|).
 </div>
 
 <h3 id="ws-default-controller-class">The {{WritableStreamDefaultController}} class</h3>
@@ -4505,6 +4534,10 @@ the following table:
    <td><dfn>\[[writeAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm, taking one argument (the [=chunk=] to
    write), which writes data to the [=underlying sink=]
+  <tr>
+   <td><dfn>\[[isOwning]]</dfn>
+   <td class="non-normative">A boolean flag indicating whether to take ownership of enqueued chunks
+   via transfer or serialization.
 </table>
 
 The <dfn>close sentinel</dfn> is a unique value enqueued into
@@ -5069,7 +5102,7 @@ The following abstract operations support the implementation and manipulation of
 
 <div algorithm>
  <dfn abstract-op lt="WritableStreamDefaultWriterWrite"
- id="writable-stream-default-writer-write">WritableStreamDefaultWriterWrite(|writer|, |chunk|)</dfn>
+ id="writable-stream-default-writer-write">WritableStreamDefaultWriterWrite(|writer|, |chunk|, |transferList|)</dfn>
  performs the following steps:
 
  1. Let |stream| be |writer|.[=WritableStreamDefaultWriter/[[stream]]=].
@@ -5088,7 +5121,7 @@ The following abstract operations support the implementation and manipulation of
     |stream|.[=WritableStream/[[storedError]]=].
  1. Assert: |state| is "`writable`".
  1. Let |promise| be ! [$WritableStreamAddWriteRequest$](|stream|).
- 1. Perform ! [$WritableStreamDefaultControllerWrite$](|controller|, |chunk|, |chunkSize|).
+ 1. Perform ! [$WritableStreamDefaultControllerWrite$](|controller|, |chunk|, |chunkSize|, |transferList|).
  1. Return |promise|.
 </div>
 
@@ -5102,7 +5135,7 @@ The following abstract operations support the implementation of the
  <dfn abstract-op lt="SetUpWritableStreamDefaultController"
  id="set-up-writable-stream-default-controller">SetUpWritableStreamDefaultController(|stream|,
  |controller|, |startAlgorithm|, |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|,
- |highWaterMark|, |sizeAlgorithm|)</dfn> performs the following steps:
+ |highWaterMark|, |sizeAlgorithm|, |isOwning|)</dfn> performs the following steps:
 
  1. Assert: |stream| [=implements=] {{WritableStream}}.
  1. Assert: |stream|.[=WritableStream/[[controller]]=] is undefined.
@@ -5113,6 +5146,7 @@ The following abstract operations support the implementation of the
  1. Set |controller|.[=WritableStreamDefaultController/[[started]]=] to false.
  1. Set |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=] to
     |sizeAlgorithm|.
+ 1. Set |controller|.[=WritableStreamDefaultController/[[isOwning]]=] to |isOwning|.
  1. Set |controller|.[=WritableStreamDefaultController/[[strategyHWM]]=] to |highWaterMark|.
  1. Set |controller|.[=WritableStreamDefaultController/[[writeAlgorithm]]=] to |writeAlgorithm|.
  1. Set |controller|.[=WritableStreamDefaultController/[[closeAlgorithm]]=] to |closeAlgorithm|.
@@ -5142,6 +5176,8 @@ The following abstract operations support the implementation of the
  1. Let |writeAlgorithm| be an algorithm that returns [=a promise resolved with=] undefined.
  1. Let |closeAlgorithm| be an algorithm that returns [=a promise resolved with=] undefined.
  1. Let |abortAlgorithm| be an algorithm that returns [=a promise resolved with=] undefined.
+ 1. Let |isOwning| be true if |underlyingSinkDict|["{{UnderlyingSink/type}}"] is
+    "{{WritableStreamType/owning}}" and false otherwise.
  1. If |underlyingSinkDict|["{{UnderlyingSink/start}}"] [=map/exists=], then set |startAlgorithm| to
     an algorithm which returns the result of [=invoking=]
     |underlyingSinkDict|["{{UnderlyingSink/start}}"] with argument list «&nbsp;|controller|&nbsp;»
@@ -5159,7 +5195,7 @@ The following abstract operations support the implementation of the
     |underlyingSinkDict|["{{UnderlyingSink/abort}}"] with argument list «&nbsp;|reason|&nbsp;» and
     [=callback this value=] |underlyingSink|.
  1. Perform ? [$SetUpWritableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
-    |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|, |highWaterMark|, |sizeAlgorithm|).
+    |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|, |highWaterMark|, |sizeAlgorithm|, |isOwning|).
 </div>
 
 <div algorithm>
@@ -5313,9 +5349,9 @@ The following abstract operations support the implementation of the
 <div algorithm>
  <dfn abstract-op lt="WritableStreamDefaultControllerWrite"
  id="writable-stream-default-controller-write">WritableStreamDefaultControllerWrite(|controller|,
- |chunk|, |chunkSize|)</dfn> performs the following steps:
+ |chunk|, |chunkSize|, |transferList|)</dfn> performs the following steps:
 
- 1. Let |enqueueResult| be [$EnqueueValueWithSize$](|controller|, |chunk|, |chunkSize|, undefined).
+ 1. Let |enqueueResult| be [$EnqueueValueWithSize$](|controller|, |chunk|, |chunkSize|, |transferList|).
  1. If |enqueueResult| is an abrupt completion,
   1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|controller|,
      |enqueueResult|.\[[Value]]).
