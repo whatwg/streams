@@ -1554,9 +1554,10 @@ the following table:
   previously-enqueued [=chunks=] from the stream, but once those are read, the stream will become
   closed.
 
- <dt><code><var ignore>controller</var>.{{ReadableStreamDefaultController/enqueue()|enqueue}}(<var ignore>chunk</var>)</code>
+ <dt><code><var ignore>controller</var>.{{ReadableStreamDefaultController/enqueue()|enqueue}}(<var ignore>chunk</var>, <var ignore>options</var>)</code>
  <dd>
-  <p>Enqueues the given [=chunk=] <var ignore>chunk</var> in the controlled readable stream.
+  <p>Enqueues the given [=chunk=] <var ignore>chunk</var> in the controlled readable stream,
+    with <var ignore>options</var>.
 
  <dt><code><var ignore>controller</var>.{{ReadableStreamDefaultController/error()|error}}(<var ignore>e</var>)</code>
  <dd>
