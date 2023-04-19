@@ -2059,7 +2059,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 <div algorithm>
  <dfn abstract-op lt="CreateReadableStream"
  id="create-readable-stream">CreateReadableStream(|startAlgorithm|, |pullAlgorithm|,
- |cancelAlgorithm|[, |highWaterMark|, [, |sizeAlgorithm|]])</dfn> performs the following steps:
+ |cancelAlgorithm|[, |highWaterMark|[, |sizeAlgorithm|[, |type|]]])</dfn> performs the following steps:
 
  1. If |highWaterMark| was not passed, set it to 1.
  1. If |sizeAlgorithm| was not passed, set it to an algorithm that returns 1.
@@ -2067,8 +2067,9 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
  1. Let |stream| be a [=new=] {{ReadableStream}}.
  1. Perform ! [$InitializeReadableStream$](|stream|).
  1. Let |controller| be a [=new=] {{ReadableStreamDefaultController}}.
+ 1. Let |isOwning| be true if |type| is "{{ReadableStreamType/owning}}" and false otherwise.
  1. Perform ? [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
-    |pullAlgorithm|, |cancelAlgorithm|, |highWaterMark|, |sizeAlgorithm|).
+    |pullAlgorithm|, |cancelAlgorithm|, |highWaterMark|, |sizeAlgorithm|, |isOwning|).
  1. Return |stream|.
 
  <p class="note">This abstract operation will throw an exception if and only if the supplied
@@ -4629,15 +4630,16 @@ The following abstract operations operate on {{WritableStream}} instances at a h
 <div algorithm>
  <dfn abstract-op lt="CreateWritableStream"
  id="create-writable-stream">CreateWritableStream(|startAlgorithm|, |writeAlgorithm|,
- |closeAlgorithm|, |abortAlgorithm|, |highWaterMark|, |sizeAlgorithm|)</dfn> performs the following
+ |closeAlgorithm|, |abortAlgorithm|, |highWaterMark|, |sizeAlgorithm|[, |type|])</dfn> performs the following
  steps:
 
  1. Assert: ! [$IsNonNegativeNumber$](|highWaterMark|) is true.
  1. Let |stream| be a [=new=] {{WritableStream}}.
  1. Perform ! [$InitializeWritableStream$](|stream|).
  1. Let |controller| be a [=new=] {{WritableStreamDefaultController}}.
+ 1. Let |isOwning| be true if |type| is "{{WritableStreamType/owning}}" and false otherwise.
  1. Perform ? [$SetUpWritableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
-    |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|, |highWaterMark|, |sizeAlgorithm|).
+    |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|, |highWaterMark|, |sizeAlgorithm|, |isOwning|).
  1. Return |stream|.
 
  <p class="note">This abstract operation will throw an exception if and only if the supplied
@@ -5490,8 +5492,8 @@ dictionary Transformer {
   TransformerStartCallback start;
   TransformerTransformCallback transform;
   TransformerFlushCallback flush;
-  any readableType;
-  any writableType;
+  ReadableStreamType readableType;
+  WritableStreamType writableType;
 };
 
 callback TransformerStartCallback = any (TransformStreamDefaultController controller);
@@ -5561,13 +5563,12 @@ callback TransformerTransformCallback = Promise<undefined> (any chunk, Transform
 
  <dt><dfn dict-member for="Transformer">readableType</dfn></dt>
  <dd>
-  <p>This property is reserved for future use, so any attempts to supply a value will throw an
-  exception.
+  <p>This property allows specializing the [=readable side=]. Only "{{ReadableStreamType/owning}}" is allowed.
+   Any other value will throw an exception.
 
  <dt><dfn dict-member for="Transformer">writableType</dfn></dt>
  <dd>
-  <p>This property is reserved for future use, so any attempts to supply a value will throw an
-  exception.
+  <p>This property allows specializing the [=writable side=]. Only "{{WritableStreamType/owning}}" is allowed.
 </dl>
 
 The <code>controller</code> object passed to {{Transformer/start|start()}},
@@ -5614,17 +5615,17 @@ side=], or to terminate or error the stream.
     <p class="note">We cannot declare the |transformer| argument as having the {{Transformer}} type
     directly, because doing so would lose the reference to the original object. We need to retain
     the object so we can [=invoke=] the various methods on it.
- 1. If |transformerDict|["{{Transformer/readableType}}"] [=map/exists=], throw a {{RangeError}}
-    exception.
- 1. If |transformerDict|["{{Transformer/writableType}}"] [=map/exists=], throw a {{RangeError}}
-    exception.
+ 1. If |transformerDict|["{{Transformer/readableType}}"] [=map/exists=]
+    and is not "{{ReadableStreamType/owning}}", throw a {{TypeError}} exception.
+ 1. Assert: |transformerDict|["{{Transformer/writableType}}"] [=map/exists|does not exit=]
+    or its value is "{{WritableStreamType/owning}}".
  1. Let |readableHighWaterMark| be ? [$ExtractHighWaterMark$](|readableStrategy|, 0).
  1. Let |readableSizeAlgorithm| be ! [$ExtractSizeAlgorithm$](|readableStrategy|).
  1. Let |writableHighWaterMark| be ? [$ExtractHighWaterMark$](|writableStrategy|, 1).
  1. Let |writableSizeAlgorithm| be ! [$ExtractSizeAlgorithm$](|writableStrategy|).
  1. Let |startPromise| be [=a new promise=].
  1. Perform ! [$InitializeTransformStream$]([=this=], |startPromise|, |writableHighWaterMark|,
-    |writableSizeAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
+    |writableSizeAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|, |transformerDict|).
  1. Perform ? [$SetUpTransformStreamDefaultControllerFromTransformer$]([=this=], |transformer|,
     |transformerDict|).
  1. If |transformerDict|["{{Transformer/start}}"] [=map/exists=], then [=resolve=] |startPromise|
@@ -5710,7 +5711,7 @@ The Web IDL definition for the {{TransformStreamDefaultController}} class is giv
 interface TransformStreamDefaultController {
   readonly attribute unrestricted double? desiredSize;
 
-  undefined enqueue(optional any chunk);
+  undefined enqueue(optional any chunk, optional StructuredSerializeOptions options = { });
   undefined error(optional any reason);
   undefined terminate();
 };
@@ -5748,10 +5749,10 @@ the following table:
   <p>Returns the [=desired size to fill a stream's internal queue|desired size to fill the
   readable side's internal queue=]. It can be negative, if the queue is over-full.
 
- <dt><code><var ignore>controller</var>.{{TransformStreamDefaultController/enqueue()|enqueue}}(<var ignore>chunk</var>)</code>
+ <dt><code><var ignore>controller</var>.{{TransformStreamDefaultController/enqueue()|enqueue}}(<var ignore>chunk</var>, <var ignore>options</var>)</code>
  <dd>
   <p>Enqueues the given [=chunk=] <var ignore>chunk</var> in the [=readable side=] of the controlled
-  transform stream.
+  transform stream with <var ignore>options</var>.
 
  <dt><code><var ignore>controller</var>.{{TransformStreamDefaultController/error()|error}}(<var ignore>e</var>)</code>
  <dd>
@@ -5776,9 +5777,9 @@ the following table:
 
 <div algorithm>
  The <dfn id="ts-default-controller-enqueue" method
- for="TransformStreamDefaultController">enqueue(|chunk|)</dfn> method steps are:
-
- 1. Perform ? [$TransformStreamDefaultControllerEnqueue$]([=this=], |chunk|).
+ for="TransformStreamDefaultController">enqueue(|chunk|, |options|)</dfn> method steps are:
+ 1. Let |transferList| be |options|["transfer"].
+ 1. Perform ? [$TransformStreamDefaultControllerEnqueue$]([=this=], |chunk|, |transferList|).
 </div>
 
 <div algorithm>
@@ -5805,7 +5806,7 @@ The following abstract operations operate on {{TransformStream}} instances at a 
  <dfn abstract-op lt="InitializeTransformStream"
  id="initialize-transform-stream">InitializeTransformStream(|stream|, |startPromise|,
  |writableHighWaterMark|, |writableSizeAlgorithm|, |readableHighWaterMark|,
- |readableSizeAlgorithm|)</dfn> performs the following steps:
+ |readableSizeAlgorithm|, |transformerDict|)</dfn> performs the following steps:
 
  1. Let |startAlgorithm| be an algorithm that returns |startPromise|.
  1. Let |writeAlgorithm| be the following steps, taking a |chunk| argument:
@@ -5816,14 +5817,14 @@ The following abstract operations operate on {{TransformStream}} instances at a 
   1. Return ! [$TransformStreamDefaultSinkCloseAlgorithm$](|stream|).
  1. Set |stream|.[=TransformStream/[[writable]]=] to ! [$CreateWritableStream$](|startAlgorithm|,
     |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|, |writableHighWaterMark|,
-    |writableSizeAlgorithm|).
+    |writableSizeAlgorithm|, |transformerDict|.["writableType"]).
  1. Let |pullAlgorithm| be the following steps:
   1. Return ! [$TransformStreamDefaultSourcePullAlgorithm$](|stream|).
  1. Let |cancelAlgorithm| be the following steps, taking a |reason| argument:
   1. Perform ! [$TransformStreamErrorWritableAndUnblockWrite$](|stream|, |reason|).
   1. Return [=a promise resolved with=] undefined.
  1. Set |stream|.[=TransformStream/[[readable]]=] to ! [$CreateReadableStream$](|startAlgorithm|,
-    |pullAlgorithm|, |cancelAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
+    |pullAlgorithm|, |cancelAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|, |transformerDict|.["readableType"]).
  1. Set |stream|.[=TransformStream/[[backpressure]]=] and
     |stream|.[=TransformStream/[[backpressureChangePromise]]=] to undefined.
     <p class="note">The [=TransformStream/[[backpressure]]=] slot is set to undefined so that it can
@@ -5901,7 +5902,28 @@ The following abstract operations support the implementaiton of the
 
  1. Let |controller| be a [=new=] {{TransformStreamDefaultController}}.
  1. Let |transformAlgorithm| be the following steps, taking a |chunk| argument:
-  1. Let |result| be [$TransformStreamDefaultControllerEnqueue$](|controller|, |chunk|).
+  1. Let |result| be [$TransformStreamDefaultControllerEnqueue$](|controller|, |chunk|, undefined).
+     <div class="note">
+         {{WritableStream}} "{{WritableStreamType/owning}}" and {{ReadableStream}} "{{ReadableStreamType/owning}}"
+         have some impact on the identity transform, similar to [$ReadableStreamPipeTo$].
+        - Enqueuing a chunk from a not owning {{WritableStream}} to a not owning {{ReadableStream}} will enqueue
+          the exact same JavaScript values.
+        - Enqueuing a chunk from an owning {{WritableStream}} to an owning {{ReadableStream}} is similar to the above case,
+          as ownership will be transferred from the {{WritableStream}} to the {{ReadableStream}}.
+          In case of error during the enqueuing operation, the user agent is responsible to call the
+          necessary [=closing steps=] of the JavaScript values that were unsuccessfully enqueud on the
+          {{ReadableStream}}.
+        - Enqueuing a chunk from an owning {{WritableStream}} to a not owning {{ReadableStream}} will enqueue
+          the serialized/transfered JavaScript values.
+          In case of error during the enqueuing operation, the user agent is responsible to call the
+          necessary [=closing steps=] of the JavaScript values that were unsuccessfully enqueued on the
+          {{ReadableStream}}.
+          Note that [=closing steps=] of the enqueued JavaScript values in the {{ReadableStream}}
+          will not be called automatically. It is up to the application to handle this.
+        - Enqueuing a chunk from a not owning {{WritableStream}} to an owning {{ReadableStream}} will trigger
+          serialization of the {{WritableStream}} chunks when enqueued in {{ReadableStream}}.
+          Enqueuing may fail if the serialization fails, say in case of transferable-only JavaScript values.
+     </div>
   1. If |result| is an abrupt completion, return [=a promise rejected with=] |result|.\[[Value]].
   1. Otherwise, return [=a promise resolved with=] undefined.
  1. Let |flushAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
@@ -5937,7 +5959,7 @@ The following abstract operations support the implementaiton of the
 <div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultControllerEnqueue"
  id="transform-stream-default-controller-enqueue">TransformStreamDefaultControllerEnqueue(|controller|,
- |chunk|)</dfn> performs the following steps:
+ |chunk|, |transferList|)</dfn> performs the following steps:
 
  1. Let |stream| be |controller|.[=TransformStreamDefaultController/[[stream]]=].
  1. Let |readableController| be
@@ -5945,7 +5967,7 @@ The following abstract operations support the implementaiton of the
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|readableController|) is false, throw
     a {{TypeError}} exception.
  1. Let |enqueueResult| be [$ReadableStreamDefaultControllerEnqueue$](|readableController|,
-    |chunk|, undefined).
+    |chunk|, |transferList|).
  1. If |enqueueResult| is an abrupt completion,
    1. Perform ! [$TransformStreamErrorWritableAndUnblockWrite$](|stream|,
       |enqueueResult|.\[[Value]]).
