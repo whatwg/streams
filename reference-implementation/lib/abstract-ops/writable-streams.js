@@ -44,16 +44,17 @@ function AcquireWritableStreamDefaultWriter(stream) {
 }
 
 function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark = 1,
-                              sizeAlgorithm = () => 1) {
+                              sizeAlgorithm = () => 1, type = undefined) {
   assert(IsNonNegativeNumber(highWaterMark) === true);
 
   const stream = WritableStream.new(globalThis);
   InitializeWritableStream(stream);
 
   const controller = WritableStreamDefaultController.new(globalThis);
+  const isOwning = type === 'owning';
 
   SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
-                                       abortAlgorithm, highWaterMark, sizeAlgorithm);
+                                       abortAlgorithm, highWaterMark, sizeAlgorithm, isOwning);
   return stream;
 }
 

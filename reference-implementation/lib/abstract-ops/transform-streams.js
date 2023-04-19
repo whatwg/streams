@@ -25,7 +25,7 @@ Object.assign(exports, {
 // CreateTransformStream is not implemented since it is only meant for external specs.
 
 function InitializeTransformStream(
-  stream, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm) {
+  stream, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm, transformDict) {
   function startAlgorithm() {
     return startPromise;
   }
@@ -43,7 +43,8 @@ function InitializeTransformStream(
   }
 
   stream._writable = CreateWritableStream(
-    startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, writableHighWaterMark, writableSizeAlgorithm
+    startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, writableHighWaterMark, writableSizeAlgorithm,
+    transformDict['writableType']
   );
 
   function pullAlgorithm() {
@@ -56,7 +57,8 @@ function InitializeTransformStream(
   }
 
   stream._readable = CreateReadableStream(
-    startAlgorithm, pullAlgorithm, cancelAlgorithm, readableHighWaterMark, readableSizeAlgorithm
+    startAlgorithm, pullAlgorithm, cancelAlgorithm, readableHighWaterMark, readableSizeAlgorithm,
+    transformDict['readableType']
   );
 
   // The [[backpressure]] slot is set to undefined so that it can be initialised by TransformStreamSetBackpressure.
@@ -116,11 +118,17 @@ function SetUpTransformStreamDefaultController(stream, controller, transformAlgo
 function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer, transformerDict) {
   const controller = TransformStreamDefaultController.new(globalThis);
 
+  const readableController = stream.readable._controller;
+  const writableController = stream.writable._controller;
+
   let transformAlgorithm = chunk => {
     try {
       TransformStreamDefaultControllerEnqueue(controller, chunk);
       return promiseResolvedWith(undefined);
     } catch (transformResultE) {
+       if (writableController._isOwning) {
+         RunCloseSteps(chunk);
+      }
       return promiseRejectedWith(transformResultE);
     }
   };
@@ -129,6 +137,8 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
 
   if ('transform' in transformerDict) {
     transformAlgorithm = chunk => transformerDict.transform.call(transformer, chunk, controller);
+  } else {
+    readableController._isPipeToOptimizedTransfer = writableController._isOwning && readableController._isOwning;
   }
   if ('flush' in transformerDict) {
     flushAlgorithm = () => transformerDict.flush.call(transformer, controller);
@@ -142,7 +152,7 @@ function TransformStreamDefaultControllerClearAlgorithms(controller) {
   controller._flushAlgorithm = undefined;
 }
 
-function TransformStreamDefaultControllerEnqueue(controller, chunk) {
+function TransformStreamDefaultControllerEnqueue(controller, chunk, transferList) {
   verbose('TransformStreamDefaultControllerEnqueue()');
 
   const stream = controller._stream;
@@ -155,7 +165,7 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
   // accept TransformStreamDefaultControllerEnqueue() calls.
 
   try {
-    ReadableStreamDefaultControllerEnqueue(readableController, chunk, undefined);
+    ReadableStreamDefaultControllerEnqueue(readableController, chunk, transferList);
   } catch (e) {
     // This happens when readableStrategy.size() throws.
     TransformStreamErrorWritableAndUnblockWrite(stream, e);

@@ -12,11 +12,11 @@ exports.implementation = class TransformStreamImpl {
       transformer = null;
     }
     const transformerDict = Transformer.convert(transformer);
-    if ('readableType' in transformerDict) {
-      throw new RangeError('Invalid readableType specified');
+    if ('readableType' in transformerDict && transformerDict['readableType'] !== 'owning') {
+      throw new TypeError('Invalid readableType specified');
     }
     if ('writableType' in transformerDict) {
-      throw new RangeError('Invalid writableType specified');
+      assert(transformerDict['writableType'] !== 'owning');
     }
 
     const readableHighWaterMark = ExtractHighWaterMark(readableStrategy, 0);
@@ -27,7 +27,8 @@ exports.implementation = class TransformStreamImpl {
     const startPromise = newPromise();
 
     aos.InitializeTransformStream(
-      this, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm
+      this, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm,
+      transformerDict
     );
     aos.SetUpTransformStreamDefaultControllerFromTransformer(this, transformer, transformerDict);
 

@@ -2,8 +2,8 @@ dictionary Transformer {
   TransformerStartCallback start;
   TransformerTransformCallback transform;
   TransformerFlushCallback flush;
-  any readableType;
-  any writableType;
+  ReadableStreamType readableType;
+  WritableStreamType writableType;
 };
 
 callback TransformerStartCallback = any (TransformStreamDefaultController controller);

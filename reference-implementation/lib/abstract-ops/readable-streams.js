@@ -82,15 +82,17 @@ function AcquireReadableStreamDefaultReader(stream) {
 }
 
 function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark = 1,
-                              sizeAlgorithm = () => 1) {
+                              sizeAlgorithm = () => 1, type = undefined) {
   assert(IsNonNegativeNumber(highWaterMark) === true);
 
   const stream = ReadableStream.new(globalThis);
   InitializeReadableStream(stream);
 
   const controller = ReadableStreamDefaultController.new(globalThis);
+  const isOwning = type === 'owning';
+
   SetUpReadableStreamDefaultController(
-    stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm, false
+    stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm, isOwning
   );
 
   return stream;
