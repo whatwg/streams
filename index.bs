@@ -2306,7 +2306,7 @@ create them does not matter.
       1. Otherwise, set |chunk2| to |cloneResult|.\[[Value]].
      1. If |canceled1| is false, perform !
         [$ReadableStreamDefaultControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
-        |chunk1|, undefined).
+        |chunk1|, « »).
      1. If |canceled2| is false, perform !
         [$ReadableStreamDefaultControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
         |chunk2|, undefined).
