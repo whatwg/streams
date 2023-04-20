@@ -2978,10 +2978,11 @@ The following abstract operations support the implementation of the
     [$ReadableStreamGetNumReadRequests$](|stream|) > 0, perform the following steps:
     1. Let |internalChunk| be |chunk|.
     1. If |controller|.[=ReadableStreamDefaultController/[[isOwning]]=] is true, perform the following steps:
-       1. Set |internalChunk| to [$StructuredTransferOrClone$](|chunk|, |transferList|).
-       1. If |internalChunk| is an abrupt completion,
-          1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |internalChunk|.\[[Value]]).
-          1. Return |internalChunk|.
+       1. Let |result| be [$StructuredTransferOrClone$](|chunk|, |transferList|).
+       1. If |result| is an abrupt completion,
+          1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |result|.\[[Value]]).
+          1. Return |result|.
+       1. Set |internalChunk| to |result|.\[[Value]].
     1. Perform ! [$ReadableStreamFulfillReadRequest$](|stream|, |internalChunk|, false).
  1. Otherwise,
   1. Let |result| be the result of performing
