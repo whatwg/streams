@@ -1586,7 +1586,7 @@ the following table:
  for="ReadableStreamDefaultController">enqueue(|chunk|, |options|)</dfn> method steps are:
 
  1. Let |transferList| be |options|["transfer"].
- 1. If |transferList| is not [=list/is empty|empty=] and [=this=].[=ReadableStreamDefaultController/[[isOwning]]=] is false
+ 1. If |transferList| is not [=list/is empty|empty=] and [=this=].[=ReadableStreamDefaultController/[[isOwning]]=] is false,
     throw a {{TypeError}} exception.
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$]([=this=]) is false, throw a
     {{TypeError}} exception.
