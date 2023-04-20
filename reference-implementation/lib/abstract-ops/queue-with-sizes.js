@@ -39,7 +39,7 @@ exports.PeekQueueValue = container => {
   return pair.value;
 };
 
-const closingStepsSymbol = Symbol('closing-steps');
+const disposeStepsSymbol = Symbol('dispose-steps');
 
 exports.ResetQueue = container => {
   assert('_queue' in container && '_queueTotalSize' in container);
@@ -47,9 +47,9 @@ exports.ResetQueue = container => {
   if (container._isOwning) {
     while (container._queue.length > 0) {
       const value = exports.DequeueValue(container);
-      if (typeof value[closingStepsSymbol] === 'function') {
+      if (typeof value[disposeStepsSymbol] === 'function') {
         try {
-          value[closingStepsSymbol]();
+          value[disposeStepsSymbol]();
         } catch (closeException) {
           // Nothing to do.
         }
