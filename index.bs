@@ -6422,7 +6422,7 @@ for="value-with-size">value</dfn> and <dfn for="value-with-size">size</dfn>.
  performs the following steps:
 
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
- 1. If |container| has a \[[isOwning]] internal slot whose value is true, perform the following steps until |container|.\[[queue]]
+ 1. If |container| has an \[[isOwning]] internal slot whose value is true, perform the following steps until |container|.\[[queue]]
     is [=list/is empty|empty=]:
     1. Let |chunk| be ! [$DequeueValue$]([=this=]).
     1. If |chunk| has [=closing steps=], perform the [=closing steps=] given |chunk|.
