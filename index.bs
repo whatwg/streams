@@ -2971,7 +2971,7 @@ The following abstract operations support the implementation of the
  id="readable-stream-default-controller-enqueue">ReadableStreamDefaultControllerEnqueue(|controller|,
  |chunk|, |transferList|)</dfn> performs the following steps:
 
- 1. Assert: |transferList| is empty or |controller|.[=ReadableStreamDefaultController/[[isOwning]]=] is true.
+ 1. Assert: |transferList| [=list/is empty=] or |controller|.[=ReadableStreamDefaultController/[[isOwning]]=] is true.
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is false, return.
  1. Let |stream| be |controller|.[=ReadableStreamDefaultController/[[stream]]=].
  1. If ! [$IsReadableStreamLocked$](|stream|) is true and !
