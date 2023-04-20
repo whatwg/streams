@@ -6486,7 +6486,7 @@ abstract operations are used to implement these "cross-realm transforms".
   1. Let |value| be ! [$Get$](|data|, "`value`").
   1. Assert: [$Type$](|type|) is String.
   1. If |type| is "`chunk`",
-   1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|controller|, |value|, undefined).
+   1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|controller|, |value|, « »).
   1. Otherwise, if |type| is "`close`",
     1. Perform ! [$ReadableStreamDefaultControllerClose$](|controller|).
     1. Disentangle |port|.
