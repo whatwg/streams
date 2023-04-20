@@ -395,7 +395,7 @@ function ReadableStreamDefaultTee(stream, cloneForBranch2) {
             ReadableStreamDefaultControllerEnqueue(branch1._controller, chunk1, undefined);
           }
           if (canceled2 === false) {
-            ReadableStreamDefaultControllerEnqueue(branch2._controller, chunk2, undefined);
+            ReadableStreamDefaultControllerEnqueue(branch2._controller, chunk2, []);
           }
 
           reading = false;
