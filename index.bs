@@ -6637,8 +6637,8 @@ The following abstract operations are a grab-bag of utilities.
 <div algorithm>
  <dfn abstract-op lt="StructuredTransferOrClone">StructuredTransferOrClone(|value|, |transferList|)</dfn>
     performs the following steps:
- 1. Let |serialized| be ! [$StructuredSerializeWithTransfer$](|value|, |transferList|).
- 1. Let |deserialized| be ! [$StructuredDeserializeWithTransfer$](|serialized|, [=the current Realm=]).
+ 1. Let |serialized| be ? [$StructuredSerializeWithTransfer$](|value|, |transferList|).
+ 1. Let |deserialized| be ? [$StructuredDeserializeWithTransfer$](|serialized|, [=the current Realm=]).
  1. Return |deserialized|.\[[Deserialized]].
 </div>
 
