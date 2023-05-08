@@ -6999,9 +6999,8 @@ above [=WritableStream/set up=] algorithm:
 |stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[signal]]=].
 Specifications can [=AbortSignal/add=] or [=AbortSignal/remove=] algorithms to this
 {{AbortSignal}}, or consult whether it is [=AbortSignal/aborted=] and its [=AbortSignal/abort
-reason=]. Specifications should not [=AbortSignal/signal abort=] or make it [=AbortSignal/follow=]
-another {{AbortSignal}}, as that would interfere with the normal use of this signal to respond to
-the stream being [=abort a writable stream|aborted=].
+reason=]. Specifications must not [=AbortSignal/signal abort=], as that would interfere with the
+normal use of this signal to respond to the stream being [=abort a writable stream|aborted=].
 
 <p class="note">The usual usage is, after [=WritableStream/setting up=] the {{WritableStream}},
 [=AbortSignal/add=] an algorithm to its [=WritableStream/signal=], which aborts any ongoing write
