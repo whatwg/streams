@@ -21,7 +21,7 @@ The proposed solution is to transfer ownership of a chunk to the stream when it 
 By doing so, the processing unit that enqueues/writes chunks will not be able to mutate chunks manipulated by the stream and is relieved of the lifetime management of these chunks.
 Conversely, processing units take ownership of chunks when they receive them from a stream.
 
-Transferring ownership should be opt-in. For that purpose, a new streams type, named 'transfer' in this document,  would be added.
+Transferring ownership should be opt-in. For that purpose, a new streams type, named 'owning' in this document,  would be added.
 
 ## Example
 
@@ -37,7 +37,7 @@ function doBackgroundBlurOnVideoFrames(videoFrameStream, doLogging)
     transform: async (videoFrame, controller) => {
       try {
         // videoFrame is under the responsibility of the script and must be closed when no longer needed.
-        controller.enqueue(videoFrame);
+        controller.enqueue(videoFrame, { transfer: [videoFrame] });
         // controller.enqueue was called, videoFrame is transferred.
         if (!(++frameCount % 30) && doLogging)
             doLogging(frameCount);
@@ -48,10 +48,10 @@ function doBackgroundBlurOnVideoFrames(videoFrameStream, doLogging)
         controller.error(e);
       }
     },
-    readableType: 'transfer',
-    writableType: 'transfer'
+    readableType: 'owning',
+    writableType: 'owning'
   });
-  // Native transform is of type 'transfer'
+  // Native transform is of type 'owning'
   const backgroundBlurTransform = new BackgroundBlurTransform();
 
   return videoFrameStream.pipeThrough(backgroundBlurTransform)
@@ -63,7 +63,7 @@ function doBackgroundBlurOnVideoFrames(videoFrameStream, doLogging)
 
 *   Permit `ReadableStream`, `WritableStream` and `TransformStream` objects to take ownership of chunks they manipulate.
 *   Permit to build a safe and optimal video pipeline using `ReadableStream`, `WritableStream` and `TransformStream` objects that manipulate `VideoFrame` objects.
-*   Permit both native and JavaScript-based streams of type 'transfer'.
+*   Permit both native and JavaScript-based streams of type 'owning'.
 *   Permit to optimize streams pipelines of transferable chunks like `ArrayBuffer`, `RTCEncodedVideoFrame` or `RTCEncodedAudioFrame`.
 *   Permit to tee a `ReadableStream` of `VideoFrame` objects without tight coupling between the teed branches.
 
@@ -86,21 +86,21 @@ function doBackgroundBlurOnVideoFrames(videoFrameStream, doLogging)
 ## Principles
 
 The envisioned changes to the streams specification could look like the following:
-*   Add a new 'transfer' value that can be passed to `ReadableStream` type, `WritableStream` type and `TransformStream` readableType/writableType.
-    For streams that do not use the 'transfer' type, nothing changes.
+*   Add a new 'owning' value that can be passed to `ReadableStream` type, `WritableStream` type and `TransformStream` readableType/writableType.
+    For streams that do not use the 'owning' type, nothing changes.
 *   Streams of the 'transfer' type can only manipulate chunks that are marked both as Transferable and Serializable.
 *   If a chunk that is either not Transferable or not Serializable is enqueued or written, the chunk is ignored as if it was never enqueued/written.
-*   If a Transferable and Serializable chunk is enqueueud/written in a 'transfer' type `ReadableStreamDefaultController`, `TransformStreamDefaultController`
+*   If a Transferable and Serializable chunk is enqueueud/written in a 'owning' type `ReadableStreamDefaultController`, `TransformStreamDefaultController`
     or `WritableStreamDefaultWriter`, create a transferred version of the chunk using StructuredSerializeWithTransfer/StructuredDeserializeWithTransfer.
     Proceed with the regular stream algorithm by using the transferred chunk instead of the chunk itself.
 *   Introduce a WhatWG streams 'close-able' concept. A chunk that is 'close-able' defines closing steps.
     For instance `VideoFrame` closing steps could be defined using https://www.w3.org/TR/webcodecs/#close-videoframe.
     `ArrayBuffer` closing steps could be defined using https://tc39.es/ecma262/#sec-detacharraybuffer.
     The 'close-able' steps should be a no-op on a transferred chunk.
-*   Execute the closing steps of a 'close-able' chunk for streams with the 'transfer' type when resetting the queue of `ReadableStreamDefaultController`
+*   Execute the closing steps of a 'close-able' chunk for streams with the 'owning' type when resetting the queue of `ReadableStreamDefaultController`
     or emptying `WritableStream`.[[writeRequests]] in case of abort/error.
-*   When calling tee() on a `ReadableStream` of the 'transfer' type, call ReadableStream with cloneForBranch2 equal to true. 
-*   To solve https://github.com/whatwg/streams/issues/1186, tee() on a `ReadableStream` of the 'transfer' type can take a 'realtime' parameter.
+*   When calling tee() on a `ReadableStream` of the 'owning' type, call ReadableStream with cloneForBranch2 equal to true.
+*   To solve https://github.com/whatwg/streams/issues/1186, tee() on a `ReadableStream` of the 'owning' type can take a 'realtime' parameter.
     When the 'realtime' parameter is used, chunks will be dropped on the branch that consumes more slowly to keep buffering limited to one chunk.
     The closing steps should be called for any chunk that gets dropped in that situation.
 
