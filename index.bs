@@ -1557,7 +1557,7 @@ the following table:
  <dt><code><var ignore>controller</var>.{{ReadableStreamDefaultController/enqueue()|enqueue}}(|chunk|, |options|)</code>
  <dd>
   <p>Enqueues the given [=chunk=] |chunk| in the controlled readable stream,
-    with <var ignore>options</var>.
+    with |options|.
 
  <dt><code><var ignore>controller</var>.{{ReadableStreamDefaultController/error()|error}}(<var ignore>e</var>)</code>
  <dd>
