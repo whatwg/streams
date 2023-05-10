@@ -6424,7 +6424,7 @@ for="value-with-size">value</dfn> and <dfn for="value-with-size">size</dfn>.
 
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
  1. If |container| has an \[[isOwning]] internal slot whose value is true, perform the following steps until |container|.\[[queue]]
-    is [=list/is empty|empty=]:
+    [=list/is empty=]:
     1. Let |chunk| be ! [$DequeueValue$]([=this=]).
     1. If |chunk| has [=dispose steps=], perform the [=dispose steps=] given |chunk|.
  1. Set |container|.\[[queue]] to a new empty [=list=].
