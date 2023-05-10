@@ -654,9 +654,8 @@ enum ReadableStreamType { "bytes", "owning" };
   <p>Can be set to "<dfn enum-value for="ReadableStreamType">owning</dfn>" to signal that the
   constructed {{ReadableStream}} will own chunks (via transfer or serialization) before enqueuing them.
   This ensures that enqueued chunks are not mutable by the source.
-  Transferred or serialized chunks may have <dfn>dispose steps</dfn> which are executed if
-  enqueued chunks are dequeued without being provided to the application, for instance when
-  a {{ReadableStream}} is errored.
+  Chunks may have <dfn export>dispose steps</dfn> which are executed if enqueued chunks are dequeued
+  without being provided to the application, for instance when a {{ReadableStream}} is errored.
   </p>
 
   <p>Setting any value other than "{{ReadableStreamType/bytes}}", "{{ReadableStreamType/owning}}"
@@ -6779,6 +6778,7 @@ mark=] is greater than zero.
 
  1. If |stream|.[=ReadableStream/[[controller]]=] [=implements=]
     {{ReadableStreamDefaultController}},
+  1. If |transferList| is null, set |transferList| to an [=list/is empty|empty=] list.
   1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
      |chunk|, |transferList|).
  1. Otherwise,
