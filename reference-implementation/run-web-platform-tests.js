@@ -36,6 +36,8 @@ async function main() {
     // These tests use ArrayBuffers backed by WebAssembly.Memory objects, which *should* be non-transferable.
     // However, our TransferArrayBuffer implementation cannot detect these, and will incorrectly "transfer" them anyway.
     'readable-byte-streams/non-transferable-buffers.any.html'
+    'readable-streams/garbage-collection.any.html', // FIXME: We should reenable this test, once the server provides common/gc.js.
+    'piping/general-addition.any.html' // FIXME: reenable this test as part of https://github.com/whatwg/streams/issues/1243.
   ];
   const anyTestPattern = /\.any\.html$/;
 
