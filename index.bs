@@ -4446,6 +4446,10 @@ the following table:
    <td class="non-normative">A promise-returning algorithm, taking one argument (the abort reason),
    which communicates a requested abort to the [=underlying sink=]
   <tr>
+   <td><dfn>\[[abortController]]</dfn>
+   <td class="non-normative">An {{AbortController}} that can be used to abort the pending write or
+   close operation when the stream is [=abort a writable stream|aborted=].
+  <tr>
    <td><dfn>\[[closeAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm which communicates a requested close to
    the [=underlying sink=]
@@ -4456,10 +4460,6 @@ the following table:
    <td><dfn>\[[queueTotalSize]]</dfn>
    <td class="non-normative">The total size of all the chunks stored in
    [=WritableStreamDefaultController/[[queue]]=] (see [[#queue-with-sizes]])
-  <tr>
-   <td><dfn>\[[abortController]]</dfn>
-   <td class="non-normative">An {{AbortController}} that can be used to abort the pending write or
-   close operation when the stream is [=abort a writable stream|aborted=].
   <tr>
    <td><dfn>\[[started]]</dfn>
    <td class="non-normative">A boolean flag indicating whether the [=underlying sink=] has finished
@@ -4508,7 +4508,8 @@ closed. It is only used internally, and is never exposed to web developers.
  The <dfn id="ws-default-controller-signal" attribute
  for="WritableStreamDefaultController">signal</dfn> getter steps are:
 
- 1. Return [=this=].[=WritableStreamDefaultController/[[abortController]]=].{{AbortController/signal}}.
+ 1. Return [=this=].[=WritableStreamDefaultController/[[abortController]]=]'s
+    [=AbortController/signal=].
 </div>
 
 <div algorithm>
@@ -6997,9 +6998,10 @@ above [=WritableStream/set up=] algorithm:
 [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.[=WritableStream/[[controller]]=], |e|).
 
 <p>The <dfn export for="WritableStream">signal</dfn> of a {{WritableStream}} |stream| is
-|stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[abortController]]=].{{AbortController/signal}}.
-Specifications can [=AbortSignal/add=] or [=AbortSignal/remove=] algorithms to this {{AbortSignal}},
-or consult whether it is [=AbortSignal/aborted=] and its [=AbortSignal/abort reason=].
+|stream|.[=WritableStream/[[controller]]=].[=WritableStreamDefaultController/[[abortController]]=]'s
+[=AbortController/signal=]. Specifications can [=AbortSignal/add=] or [=AbortSignal/remove=]
+algorithms to this {{AbortSignal}}, or consult whether it is [=AbortSignal/aborted=] and its
+[=AbortSignal/abort reason=].
 
 <p class="note">The usual usage is, after [=WritableStream/setting up=] the {{WritableStream}},
 [=AbortSignal/add=] an algorithm to its [=WritableStream/signal=], which aborts any ongoing write
