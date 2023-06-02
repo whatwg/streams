@@ -44,16 +44,17 @@ function AcquireWritableStreamDefaultWriter(stream) {
 }
 
 function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark = 1,
-                              sizeAlgorithm = () => 1) {
+                              sizeAlgorithm = () => 1, type = undefined) {
   assert(IsNonNegativeNumber(highWaterMark) === true);
 
   const stream = WritableStream.new(globalThis);
   InitializeWritableStream(stream);
 
   const controller = WritableStreamDefaultController.new(globalThis);
+  const isOwning = type === 'owning';
 
   SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
-                                       abortAlgorithm, highWaterMark, sizeAlgorithm);
+                                       abortAlgorithm, highWaterMark, sizeAlgorithm, isOwning);
   return stream;
 }
 
@@ -529,7 +530,7 @@ function WritableStreamDefaultWriterWrite(writer, chunk) {
 // Default controllers
 
 function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
-                                              abortAlgorithm, highWaterMark, sizeAlgorithm) {
+                                              abortAlgorithm, highWaterMark, sizeAlgorithm, isOwning) {
   assert(WritableStream.isImpl(stream));
   assert(stream._controller === undefined);
 
@@ -550,6 +551,8 @@ function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm
   controller._writeAlgorithm = writeAlgorithm;
   controller._closeAlgorithm = closeAlgorithm;
   controller._abortAlgorithm = abortAlgorithm;
+
+  controller._isOwning = isOwning;
 
   const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
   WritableStreamUpdateBackpressure(stream, backpressure);
@@ -579,6 +582,7 @@ function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyi
   let writeAlgorithm = () => promiseResolvedWith(undefined);
   let closeAlgorithm = () => promiseResolvedWith(undefined);
   let abortAlgorithm = () => promiseResolvedWith(undefined);
+  const isOwning = underlyingSinkDict.type === 'owning';
 
   if ('start' in underlyingSinkDict) {
     startAlgorithm = () => underlyingSinkDict.start.call(underlyingSink, controller);
@@ -594,8 +598,8 @@ function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyi
   }
 
   SetUpWritableStreamDefaultController(
-    stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark, sizeAlgorithm
-  );
+    stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark, sizeAlgorithm,
+    isOwning);
 }
 
 function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
@@ -637,7 +641,7 @@ function WritableStreamDefaultControllerClearAlgorithms(controller) {
 }
 
 function WritableStreamDefaultControllerClose(controller) {
-  EnqueueValueWithSize(controller, closeSentinel, 0);
+  EnqueueValueWithSize(controller, closeSentinel, 0, undefined);
   WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
 }
 
@@ -729,7 +733,7 @@ function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
 
 function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
   try {
-    EnqueueValueWithSize(controller, chunk, chunkSize);
+    EnqueueValueWithSize(controller, chunk, chunkSize, undefined);
   } catch (enqueueE) {
     WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
     return;

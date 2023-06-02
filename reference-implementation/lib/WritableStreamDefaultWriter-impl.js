@@ -59,12 +59,13 @@ exports.implementation = class WritableStreamDefaultWriterImpl {
     aos.WritableStreamDefaultWriterRelease(this);
   }
 
-  write(chunk) {
+  write(chunk, options) {
+    const transferList = options ? options.transfer : undefined;
     if (this._stream === undefined) {
       return promiseRejectedWith(defaultWriterLockException('write to'));
     }
 
-    return aos.WritableStreamDefaultWriterWrite(this, chunk);
+    return aos.WritableStreamDefaultWriterWrite(this, chunk, transferList);
   }
 };
 

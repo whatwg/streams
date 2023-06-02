@@ -9,8 +9,9 @@ exports.implementation = class TransformStreamDefaultController {
     return rsAOs.ReadableStreamDefaultControllerGetDesiredSize(readableController);
   }
 
-  enqueue(chunk) {
-    aos.TransformStreamDefaultControllerEnqueue(this, chunk);
+  enqueue(chunk, options) {
+    const transferList = options ? options.transfer : undefined;
+    aos.TransformStreamDefaultControllerEnqueue(this, chunk, transferList);
   }
 
   error(reason) {
