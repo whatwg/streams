@@ -6,7 +6,8 @@ const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, re
   require('../helpers/webidl.js');
 const { CanTransferArrayBuffer, CopyDataBlockBytes, CreateArrayFromList, IsDetachedBuffer, TransferArrayBuffer } =
   require('./ecmascript.js');
-const { CloneAsUint8Array, IsNonNegativeNumber } = require('./miscellaneous.js');
+const { CloneAsUint8Array, IsNonNegativeNumber, RunCloseSteps, StructuredTransferOrClone } =
+  require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
         WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
@@ -89,7 +90,7 @@ function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, hi
 
   const controller = ReadableStreamDefaultController.new(globalThis);
   SetUpReadableStreamDefaultController(
-    stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
+    stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm, false
   );
 
   return stream;
@@ -136,6 +137,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
 
   const reader = AcquireReadableStreamDefaultReader(source);
   const writer = AcquireWritableStreamDefaultWriter(dest);
+  writer._stream._controller._isPipeToOptimizedTransfer = source._controller._isOwning && dest._controller._isOwning;
 
   source._disturbed = true;
 
@@ -206,7 +208,11 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
             {
               chunkSteps: chunk => {
                 currentWrite = transformPromiseWith(
-                  WritableStreamDefaultWriterWrite(writer, chunk), undefined, () => {}
+                  WritableStreamDefaultWriterWrite(writer, chunk), undefined, () => {
+                    if (reader._stream._controller._isOwning) {
+                      RunCloseSteps(chunk);
+                    }
+                  }
                 );
                 resolveRead(false);
               },
@@ -319,6 +325,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     function finalize(isError, error) {
+      writer._stream._controller._isPipeToOptimizedTransfer = undefined;
       WritableStreamDefaultWriterRelease(writer);
       ReadableStreamDefaultReaderRelease(reader);
 
@@ -340,7 +347,7 @@ function ReadableStreamTee(stream, cloneForBranch2) {
   if (ReadableByteStreamController.isImpl(stream._controller)) {
     return ReadableByteStreamTee(stream);
   }
-  return ReadableStreamDefaultTee(stream, cloneForBranch2);
+  return ReadableStreamDefaultTee(stream, stream._controller._isOwning ? true : cloneForBranch2);
 }
 
 function ReadableStreamDefaultTee(stream, cloneForBranch2) {
@@ -392,10 +399,10 @@ function ReadableStreamDefaultTee(stream, cloneForBranch2) {
           // }
 
           if (canceled1 === false) {
-            ReadableStreamDefaultControllerEnqueue(branch1._controller, chunk1);
+            ReadableStreamDefaultControllerEnqueue(branch1._controller, chunk1, undefined);
           }
           if (canceled2 === false) {
-            ReadableStreamDefaultControllerEnqueue(branch2._controller, chunk2);
+            ReadableStreamDefaultControllerEnqueue(branch2._controller, chunk2, undefined);
           }
 
           reading = false;
@@ -1074,7 +1081,7 @@ function ReadableStreamDefaultControllerClose(controller) {
   }
 }
 
-function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
+function ReadableStreamDefaultControllerEnqueue(controller, chunk, transferList) {
   if (ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) === false) {
     return;
   }
@@ -1082,6 +1089,14 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
   const stream = controller._stream;
 
   if (IsReadableStreamLocked(stream) === true && ReadableStreamGetNumReadRequests(stream) > 0) {
+    if (controller._isOwning) {
+      try {
+        chunk = StructuredTransferOrClone(chunk, transferList);
+      } catch (chunkCloneError) {
+        ReadableStreamDefaultControllerError(controller, chunkCloneError);
+        throw chunkCloneError;
+      }
+    }
     ReadableStreamFulfillReadRequest(stream, chunk, false);
   } else {
     let chunkSize;
@@ -1093,7 +1108,7 @@ function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
     }
 
     try {
-      EnqueueValueWithSize(controller, chunk, chunkSize);
+      EnqueueValueWithSize(controller, chunk, chunkSize, transferList);
     } catch (enqueueE) {
       ReadableStreamDefaultControllerError(controller, enqueueE);
       throw enqueueE;
@@ -1148,7 +1163,7 @@ function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
 }
 
 function SetUpReadableStreamDefaultController(
-  stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm) {
+  stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm, isOwning) {
   assert(stream._controller === undefined);
 
   controller._stream = stream;
@@ -1168,6 +1183,8 @@ function SetUpReadableStreamDefaultController(
 
   controller._pullAlgorithm = pullAlgorithm;
   controller._cancelAlgorithm = cancelAlgorithm;
+
+  controller._isOwning = isOwning;
 
   stream._controller = controller;
 
@@ -1195,7 +1212,7 @@ function SetUpReadableStreamDefaultControllerFromUnderlyingSource(
   let startAlgorithm = () => undefined;
   let pullAlgorithm = () => promiseResolvedWith(undefined);
   let cancelAlgorithm = () => promiseResolvedWith(undefined);
-
+  const isOwning = underlyingSourceDict.type === 'owning';
   if ('start' in underlyingSourceDict) {
     startAlgorithm = () => underlyingSourceDict.start.call(underlyingSource, controller);
   }
@@ -1207,8 +1224,8 @@ function SetUpReadableStreamDefaultControllerFromUnderlyingSource(
   }
 
   SetUpReadableStreamDefaultController(
-    stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm
-  );
+    stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm,
+    isOwning);
 }
 
 // Byte stream controllers

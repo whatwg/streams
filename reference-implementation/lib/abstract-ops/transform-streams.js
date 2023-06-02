@@ -155,7 +155,7 @@ function TransformStreamDefaultControllerEnqueue(controller, chunk) {
   // accept TransformStreamDefaultControllerEnqueue() calls.
 
   try {
-    ReadableStreamDefaultControllerEnqueue(readableController, chunk);
+    ReadableStreamDefaultControllerEnqueue(readableController, chunk, undefined);
   } catch (e) {
     // This happens when readableStrategy.size() throws.
     TransformStreamErrorWritableAndUnblockWrite(stream, e);
