@@ -33,9 +33,14 @@ async function main() {
 
   const filterGlobs = process.argv.length >= 3 ? process.argv.slice(2) : ['**/*.html'];
   const excludeGlobs = [
+    'piping/general-addition.any.html', // FIXME: reenable this test as part of https://github.com/whatwg/streams/issues/1243.
     // These tests use ArrayBuffers backed by WebAssembly.Memory objects, which *should* be non-transferable.
     // However, our TransferArrayBuffer implementation cannot detect these, and will incorrectly "transfer" them anyway.
-    'readable-byte-streams/non-transferable-buffers.any.html'
+    'readable-byte-streams/non-transferable-buffers.any.html',
+    'readable-streams/owning-type-message-port.any.html', // disabled due to MessagePort use.
+    'readable-streams/owning-type-video-frame.any.html', // disabled due to VideoFrame use.
+    'readable-streams/owning-type.any.html', // FIXME: reenable this test once owning type PR lands.
+    'transferable/transform-stream-members.any.html' // FIXME: reenable if structuredClone is aligned.
   ];
   const anyTestPattern = /\.any\.html$/;
 
@@ -46,6 +51,7 @@ async function main() {
     rootURL: 'streams/',
     setup(window) {
       window.queueMicrotask = queueMicrotask;
+      window.structuredClone = globalThis.structuredClone;
       window.fetch = async function (url) {
         const filePath = path.join(wptPath, url);
         if (!filePath.startsWith(wptPath)) {
