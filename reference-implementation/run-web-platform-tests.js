@@ -52,7 +52,7 @@ async function main() {
     rootURL: 'streams/',
     setup(window) {
       window.queueMicrotask = queueMicrotask;
-      window.structuredClone = structuredClone;
+      window.structuredClone = globalThis.structuredClone;
       window.fetch = async function (url) {
         const filePath = path.join(wptPath, url);
         if (!filePath.startsWith(wptPath)) {
