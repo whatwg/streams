@@ -51,8 +51,7 @@ function InitializeTransformStream(
   }
 
   function cancelAlgorithm(reason) {
-    TransformStreamErrorWritableAndUnblockWrite(stream, reason);
-    return promiseResolvedWith(undefined);
+    return TransformStreamDefaultSourceCancelAlgorithm(stream, reason);
   }
 
   stream._readable = CreateReadableStream(
@@ -77,6 +76,10 @@ function TransformStreamError(stream, e) {
 function TransformStreamErrorWritableAndUnblockWrite(stream, e) {
   TransformStreamDefaultControllerClearAlgorithms(stream._controller);
   WritableStreamDefaultControllerErrorIfNeeded(stream._writable._controller, e);
+  TransformStreamUnblockWrite(stream);
+}
+
+function TransformStreamUnblockWrite(stream) {
   if (stream._backpressure === true) {
     // Pretend that pull() was called to permit any pending write() calls to complete. TransformStreamSetBackpressure()
     // cannot be called from enqueue() or pull() once the ReadableStream is errored, so this will will be the final time
@@ -102,7 +105,8 @@ function TransformStreamSetBackpressure(stream, backpressure) {
 
 // Default controllers
 
-function SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm) {
+function SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm,
+                                               cancelAlgorithm) {
   assert(TransformStream.isImpl(stream));
   assert(stream._controller === undefined);
 
@@ -111,6 +115,7 @@ function SetUpTransformStreamDefaultController(stream, controller, transformAlgo
 
   controller._transformAlgorithm = transformAlgorithm;
   controller._flushAlgorithm = flushAlgorithm;
+  controller._cancelAlgorithm = cancelAlgorithm;
 }
 
 function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer, transformerDict) {
@@ -126,6 +131,7 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
   };
 
   let flushAlgorithm = () => promiseResolvedWith(undefined);
+  let cancelAlgorithm = () => promiseResolvedWith(undefined);
 
   if ('transform' in transformerDict) {
     transformAlgorithm = chunk => transformerDict.transform.call(transformer, chunk, controller);
@@ -133,13 +139,17 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
   if ('flush' in transformerDict) {
     flushAlgorithm = () => transformerDict.flush.call(transformer, controller);
   }
+  if ('cancel' in transformerDict) {
+    cancelAlgorithm = reason => transformerDict.cancel.call(transformer, reason, controller);
+  }
 
-  SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm);
+  SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm, cancelAlgorithm);
 }
 
 function TransformStreamDefaultControllerClearAlgorithms(controller) {
   controller._transformAlgorithm = undefined;
   controller._flushAlgorithm = undefined;
+  controller._cancelAlgorithm = undefined;
 }
 
 function TransformStreamDefaultControllerEnqueue(controller, chunk) {
@@ -221,10 +231,17 @@ function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
 }
 
 function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {
-  // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
-  // errored.
-  TransformStreamError(stream, reason);
-  return promiseResolvedWith(undefined);
+  verbose('TransformStreamDefaultSinkAbortAlgorithm()');
+
+  // stream._readable cannot change after construction, so caching it across a call to user code is safe.
+  const readable = stream._readable;
+  ReadableStreamDefaultControllerError(readable._controller, reason);
+
+  const controller = stream._controller;
+  const cancelPromise = controller._cancelAlgorithm(reason);
+  TransformStreamDefaultControllerClearAlgorithms(controller);
+
+  return cancelPromise;
 }
 
 function TransformStreamDefaultSinkCloseAlgorithm(stream) {
@@ -263,4 +280,22 @@ function TransformStreamDefaultSourcePullAlgorithm(stream) {
 
   // Prevent the next pull() call until there is backpressure.
   return stream._backpressureChangePromise;
+}
+
+function TransformStreamDefaultSourceCancelAlgorithm(stream, reason) {
+  verbose('TransformStreamDefaultSourceCancelAlgorithm()');
+
+  // stream._writable cannot change after construction, so caching it across a call to user code is safe.
+  const writable = stream._writable;
+  if (writable._state !== 'writable') {
+    return promiseResolvedWith(undefined);
+  }
+  WritableStreamDefaultControllerErrorIfNeeded(writable._controller, reason);
+  TransformStreamUnblockWrite(stream);
+
+  const controller = stream._controller;
+  const cancelPromise = controller._cancelAlgorithm(reason);
+  TransformStreamDefaultControllerClearAlgorithms(controller);
+
+  return cancelPromise;
 }
