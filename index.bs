@@ -45,6 +45,7 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: Number type; url: #sec-ecmascript-language-types-number-type
   text: Data Block; url: #sec-data-blocks
  type: abstract-op
+  text: Call; url: #sec-call
   text: CloneArrayBuffer; url: #sec-clonearraybuffer
   text: CopyDataBlockBytes; url: #sec-copydatablockbytes
   text: CreateArrayFromList; url: #sec-createarrayfromlist
@@ -53,9 +54,14 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: Construct; url: #sec-construct
   text: DetachArrayBuffer; url: #sec-detacharraybuffer
   text: Get; url: #sec-get-o-p
+  text: GetIterator; url: #sec-getiterator
+  text: GetMethod; url: #sec-getmethod
   text: GetV; url: #sec-getv
   text: IsDetachedBuffer; url: #sec-isdetachedbuffer
   text: IsInteger; url: #sec-isinteger
+  text: IteratorComplete; url: #sec-iteratorcomplete
+  text: IteratorNext; url: #sec-iteratornext
+  text: IteratorValue; url: #sec-iteratorvalue
   text: OrdinaryObjectCreate; url: #sec-ordinaryobjectcreate
   text: SameValue; url: #sec-samevalue
   text: Type; url: #sec-ecmascript-data-types-and-values
@@ -478,6 +484,8 @@ The Web IDL definition for the {{ReadableStream}} class is given as follows:
 interface ReadableStream {
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
+  static ReadableStream from(any asyncIterable);
+
   readonly attribute boolean locked;
 
   Promise<undefined> cancel(optional any reason);
@@ -806,6 +814,13 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
   1. Let |highWaterMark| be ? [$ExtractHighWaterMark$](|strategy|, 1).
   1. Perform ? [$SetUpReadableStreamDefaultControllerFromUnderlyingSource$]([=this=],
      |underlyingSource|, |underlyingSourceDict|, |highWaterMark|, |sizeAlgorithm|).
+</div>
+
+<div algorithm>
+ The static <dfn id="rs-from" method for="ReadableStream">from(|asyncIterable|)</dfn> method steps
+ are:
+
+ 1. Return ? [$ReadableStreamFromIterable$](|asyncIterable|).
 </div>
 
 <div algorithm>
@@ -2093,6 +2108,49 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 
  1. If |stream|.[=ReadableStream/[[reader]]=] is undefined, return false.
  1. Return true.
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="ReadableStreamFromIterable" id="readable-stream-from-iterable">
+ ReadableStreamFromIterable(|asyncIterable|)</dfn> performs the following steps:
+
+ 1. Let |stream| be undefined.
+ 1. Let |iteratorRecord| be ? [$GetIterator$](|asyncIterable|, async).
+ 1. Let |startAlgorithm| be an algorithm that returns undefined.
+ 1. Let |pullAlgorithm| be the following steps:
+  1. Let |nextResult| be [$IteratorNext$](|iteratorRecord|).
+  1. If |nextResult| is an abrupt completion, return [=a promise rejected with=]
+     |nextResult|.\[[Value]].
+  1. Let |nextPromise| be [=a promise resolved with=] |nextResult|.\[[Value]].
+  1. Return the result of [=reacting=] to |nextPromise| with the following fulfillment steps,
+     given |iterResult|:
+   1. If [$Type$](|iterResult|) is not Object, throw a {{TypeError}}.
+   1. Let |done| be ? [$IteratorComplete$](|iterResult|).
+   1. If |done| is true:
+    1. Perform ! [$ReadableStreamDefaultControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
+   1. Otherwise:
+    1. Let |value| be ? [$IteratorValue$](|iterResult|).
+    1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
+       |value|).
+       <!-- TODO (future): If we allow changing the queuing strategy, this Enqueue might throw.
+             We'll then need to catch the error and close the async iterator. -->
+ 1. Let |cancelAlgorithm| be the following steps, given |reason|:
+  1. Let |iterator| be |iteratorRecord|.\[[Iterator]].
+  1. Let |returnMethod| be [$GetMethod$](|iterator|, "`return`").
+  1. If |returnMethod| is an abrupt completion, return [=a promise rejected with=]
+     |returnMethod|.\[[Value]].
+  1. If |returnMethod|.\[[Value]] is undefined, return [=a promise resolved with=] undefined.
+  1. Let |returnResult| be [$Call$](|returnMethod|.\[[Value]], |iterator|, « |reason| »).
+  1. If |returnResult| is an abrupt completion, return [=a promise rejected with=]
+     |returnResult|.\[[Value]].
+  1. Let |returnPromise| be [=a promise resolved with=] |returnResult|.\[[Value]].
+  1. Return the result of [=reacting=] to |returnPromise| with the following fulfillment steps,
+     given |iterResult|:
+   1. If [$Type$](|iterResult|) is not Object, throw a {{TypeError}}.
+   1. Return undefined.
+ 1. Set |stream| to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|, |cancelAlgorithm|,
+    0).
+ 1. Return |stream|.
 </div>
 
 <div algorithm="ReadableStreamPipeTo">
