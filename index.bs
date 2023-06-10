@@ -5497,7 +5497,7 @@ dictionary Transformer {
 callback TransformerStartCallback = any (TransformStreamDefaultController controller);
 callback TransformerFlushCallback = Promise<undefined> (TransformStreamDefaultController controller);
 callback TransformerTransformCallback = Promise<undefined> (any chunk, TransformStreamDefaultController controller);
-callback TransformerCancelCallback = Promise<undefined> (any reason, TransformStreamDefaultController controller);
+callback TransformerCancelCallback = Promise<undefined> (any reason);
 </xmp>
 
 <dl>
@@ -5560,7 +5560,7 @@ callback TransformerCancelCallback = Promise<undefined> (any reason, TransformSt
    {{Transformer/flush|flush()}}; the stream is already in the process of successfully closing down,
    and terminating it would be counterproductive.)
 
-  <dt><dfn dict-member for="Transformer" lt="cancel">cancel(<var ignore>reason</var>, <var ignore>controller</var>)</dfn></dt>
+  <dt><dfn dict-member for="Transformer" lt="cancel">cancel(<var ignore>reason</var>)</dfn></dt>
   <dd>
    <p>A function called when the [=writable side=] is aborted, or when the [=readable side=] is
    cancelled.
@@ -5948,8 +5948,8 @@ The following abstract operations support the implementaiton of the
     with argument list «&nbsp;|controller|&nbsp;» and [=callback this value=] |transformer|.
  1. If |transformerDict|["{{Transformer/cancel}}"] [=map/exists=], set |cancelAlgorithm| to an
     algorithm which takes an argument |reason| and returns the result of [=invoking=]
-    |transformerDict|["{{Transformer/cancel}}"] with argument list «&nbsp;|reason|,
-    |controller|&nbsp;» and [=callback this value=] |transformer|.
+    |transformerDict|["{{Transformer/cancel}}"] with argument list «&nbsp;|reason|&nbsp;» and
+    [=callback this value=] |transformer|.
  1. Perform ! [$SetUpTransformStreamDefaultController$](|stream|, |controller|,
     |transformAlgorithm|, |flushAlgorithm|, |cancelAlgorithm|).
 </div>

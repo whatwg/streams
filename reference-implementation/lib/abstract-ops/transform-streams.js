@@ -140,7 +140,7 @@ function SetUpTransformStreamDefaultControllerFromTransformer(stream, transforme
     flushAlgorithm = () => transformerDict.flush.call(transformer, controller);
   }
   if ('cancel' in transformerDict) {
-    cancelAlgorithm = reason => transformerDict.cancel.call(transformer, reason, controller);
+    cancelAlgorithm = reason => transformerDict.cancel.call(transformer, reason);
   }
 
   SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm, cancelAlgorithm);
