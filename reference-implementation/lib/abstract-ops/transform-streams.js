@@ -2,8 +2,8 @@
 const assert = require('assert');
 const verbose = require('debug')('streams:transform-stream:verbose');
 
-const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, transformPromiseWith } =
-  require('../helpers/webidl.js');
+const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise, uponPromise,
+        transformPromiseWith } = require('../helpers/webidl.js');
 const { CreateReadableStream, ReadableStreamDefaultControllerClose, ReadableStreamDefaultControllerEnqueue,
         ReadableStreamDefaultControllerError, ReadableStreamDefaultControllerHasBackpressure,
         ReadableStreamDefaultControllerCanCloseOrEnqueue } = require('./readable-streams.js');
@@ -233,37 +233,59 @@ function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
 function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {
   verbose('TransformStreamDefaultSinkAbortAlgorithm()');
 
+  const controller = stream._controller;
+  if (controller._finishPromise) {
+    return controller._finishPromise;
+  }
+
   // stream._readable cannot change after construction, so caching it across a call to user code is safe.
   const readable = stream._readable;
-  ReadableStreamDefaultControllerError(readable._controller, reason);
 
-  const controller = stream._controller;
+  // Assign the _finishPromise now so that if _cancelAlgorithm calls readable.cancel() internally,
+  // we don't run the _cancelAlgorithm again.
+  controller._finishPromise = newPromise();
+
   const cancelPromise = controller._cancelAlgorithm(reason);
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
-  return cancelPromise;
+  uponPromise(cancelPromise, () => {
+    ReadableStreamDefaultControllerError(readable._controller, reason);
+    resolvePromise(controller._finishPromise);
+  }, r => {
+    ReadableStreamDefaultControllerError(readable._controller, r);
+    rejectPromise(controller._finishPromise, r);
+  });
+
+  return controller._finishPromise;
 }
 
 function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   verbose('TransformStreamDefaultSinkCloseAlgorithm()');
 
+  const controller = stream._controller;
+  if (controller._finishPromise) {
+    return controller._finishPromise;
+  }
+
   // stream._readable cannot change after construction, so caching it across a call to user code is safe.
   const readable = stream._readable;
 
-  const controller = stream._controller;
+  // Assign the _finishPromise now so that if _flushAlgorithm calls readable.cancel() internally,
+  // we don't also run the _cancelAlgorithm.
+  controller._finishPromise = newPromise();
+
   const flushPromise = controller._flushAlgorithm();
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
-  // Return a promise that is fulfilled with undefined on success.
-  return transformPromiseWith(flushPromise, () => {
-    if (readable._state === 'errored') {
-      throw readable._storedError;
-    }
+  uponPromise(flushPromise, () => {
     ReadableStreamDefaultControllerClose(readable._controller);
+    resolvePromise(controller._finishPromise);
   }, r => {
-    TransformStreamError(stream, r);
-    throw readable._storedError;
+    ReadableStreamDefaultControllerError(readable._controller, r);
+    rejectPromise(controller._finishPromise, r);
   });
+
+  return controller._finishPromise;
 }
 
 // Default sources
@@ -285,17 +307,31 @@ function TransformStreamDefaultSourcePullAlgorithm(stream) {
 function TransformStreamDefaultSourceCancelAlgorithm(stream, reason) {
   verbose('TransformStreamDefaultSourceCancelAlgorithm()');
 
+  const controller = stream._controller;
+  if (controller._finishPromise) {
+    return controller._finishPromise;
+  }
+
   // stream._writable cannot change after construction, so caching it across a call to user code is safe.
   const writable = stream._writable;
-  if (writable._state !== 'writable') {
-    return promiseResolvedWith(undefined);
-  }
-  WritableStreamDefaultControllerErrorIfNeeded(writable._controller, reason);
-  TransformStreamUnblockWrite(stream);
 
-  const controller = stream._controller;
+  // Assign the _finishPromise now so that if _flushAlgorithm calls writable.abort() or
+  // writable.cancel() internally, we don't run the _cancelAlgorithm again, or also run the
+  // _flushAlgorithm.
+  controller._finishPromise = newPromise();
+
   const cancelPromise = controller._cancelAlgorithm(reason);
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
-  return cancelPromise;
+  uponPromise(cancelPromise, () => {
+    WritableStreamDefaultControllerErrorIfNeeded(writable._controller, reason);
+    TransformStreamUnblockWrite(stream);
+    resolvePromise(controller._finishPromise);
+  }, r => {
+    WritableStreamDefaultControllerErrorIfNeeded(writable._controller, r);
+    TransformStreamUnblockWrite(stream);
+    rejectPromise(controller._finishPromise, r);
+  });
+
+  return controller._finishPromise;
 }

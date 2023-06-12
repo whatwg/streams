@@ -5752,6 +5752,12 @@ the following table:
    <td class="non-normative">A promise-returning algorithm, taking one argument (the [=reason=] for
    cancellation), which communicates a requested cancellation to the [=transformer=]
   <tr>
+   <td><dfn>\[[finishPromise]]</dfn>
+   <td class="non-normative">A promise which resolves on completion of either the
+   [=TransformStreamDefaultController/[[cancelAlgorithm]]=] or the
+   [=TransformStreamDefaultController/[[flushAlgorithm]]=]. If this field is unpopulated (that is,
+   undefined), then neither of those algorithms have been [=invoked=] yet
+  <tr>
    <td><dfn>\[[flushAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm which communicates a requested close to
    the [=transformer=]
@@ -6061,13 +6067,22 @@ side=] of [=transform streams=].
  id="transform-stream-default-sink-abort-algorithm">TransformStreamDefaultSinkAbortAlgorithm(|stream|,
  |reason|)</dfn> performs the following steps:
 
- 1. Let |readable| be |stream|.[=TransformStream/[[readable]]=].
- 1. [$ReadableStreamDefaultControllerError$](|readable|.[=ReadableStream/[[controller]]=], |reason|).
  1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
+ 1. If |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] is not undefined, return
+    |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
+ 1. Let |readable| be |stream|.[=TransformStream/[[readable]]=].
+ 1. Let |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] be a new promise.
  1. Let |cancelPromise| be the result of performing
     |controller|.[=TransformStreamDefaultController/[[cancelAlgorithm]]=], passing |reason|.
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|controller|).
- 1. Return |cancelPromise|.
+ 1. [=React=] to |cancelPromise|:
+  1. If |cancelPromise| was fulfilled, then:
+   1. Perform ! [$ReadableStreamDefaultControllerError$](|readable|.[=ReadableStream/[[controller]]=], |reason|).
+   1. [=Resolve=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with undefined.
+  1. If |cancelPromise| was rejected with reason |r|, then:
+   1. Perform ! [$ReadableStreamDefaultControllerError$](|readable|.[=ReadableStream/[[controller]]=], |r|).
+   1. [=Reject=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with |r|.
+ 1. Return |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
 </div>
 
 <div algorithm>
@@ -6075,22 +6090,22 @@ side=] of [=transform streams=].
  id="transform-stream-default-sink-close-algorithm">TransformStreamDefaultSinkCloseAlgorithm(|stream|)</dfn>
  performs the following steps:
 
- 1. Let |readable| be |stream|.[=TransformStream/[[readable]]=].
- 1. If |readable|.[=ReadableStream/[[state]]=] is not "`readable`", return
-    [=a promise resolved with=] undefined.
  1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
+ 1. If |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] is not undefined, return
+    |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
+ 1. Let |readable| be |stream|.[=TransformStream/[[readable]]=].
+ 1. Let |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] be a new promise.
  1. Let |flushPromise| be the result of performing
     |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=].
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|controller|).
- 1. Return the result of [=reacting=] to |flushPromise|:
+ 1. [=React=] to |flushPromise|:
   1. If |flushPromise| was fulfilled, then:
-   1. If |readable|.[=ReadableStream/[[state]]=] is "`errored`", throw
-      |readable|.[=ReadableStream/[[storedError]]=].
-   1. Perform !
-      [$ReadableStreamDefaultControllerClose$](|readable|.[=ReadableStream/[[controller]]=]).
+   1. Perform ! [$ReadableStreamDefaultControllerClose$](|readable|.[=ReadableStream/[[controller]]=]).
+   1. [=Resolve=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with undefined.
   1. If |flushPromise| was rejected with reason |r|, then:
-   1. Perform ! [$TransformStreamError$](|stream|, |r|).
-   1. Throw |readable|.[=ReadableStream/[[storedError]]=].
+   1. Perform ! [$ReadableStreamDefaultControllerError$](|readable|.[=ReadableStream/[[controller]]=], |r|).
+   1. [=Reject=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with |r|.
+ 1. Return |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
 </div>
 
 <h4 id="ts-default-source-abstract-ops">Default sources</h4>
@@ -6115,22 +6130,24 @@ side=] of [=transform streams=].
  id="transform-stream-default-source-cancel">TransformStreamDefaultSourceCancelAlgorithm(|reason|,
  |stream|)</dfn> performs the following steps:
 
- 1. Let |writable| be |stream|.[=TransformStream/[[writable]]=].
- 1. If |writable|.[=WritableStream/[[state]]=] is not "`writable`", return
-    [=a promise resolved with=] undefined.
- 1. Perform !
-    [$WritableStreamDefaultControllerErrorIfNeeded$](|writable|.[=WritableStream/[[controller]]=], |reason|).
- 1. Perform ! [$TransformStreamUnblockWrite$](|stream|).
  1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
+ 1. If |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] is not undefined, return
+    |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
+ 1. Let |writable| be |stream|.[=TransformStream/[[writable]]=].
+ 1. Let |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] be a new promise.
  1. Let |cancelPromise| be the result of performing
     |controller|.[=TransformStreamDefaultController/[[cancelAlgorithm]]=], passing |reason|.
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|controller|).
- 1. Return |cancelPromise|.
-
- <p class="note">The early return prevents the cancellation algorithm from being called if the
- writable side is already (in the process of being) closed. This is important, because the
- cancellation algorithm <span class=allow-2119>must</span> not run if the flush algorithm has
- already been run.
+ 1. [=React=] to |cancelPromise|:
+  1. If |cancelPromise| was fulfilled, then:
+   1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|writable|.[=WritableStream/[[controller]]=], |reason|).
+   1. Perform ! [$TransformStreamUnblockWrite$](|stream|).
+   1. [=Resolve=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with undefined.
+  1. If |cancelPromise| was rejected with reason |r|, then:
+   1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|writable|.[=WritableStream/[[controller]]=], |r|).
+   1. Perform ! [$TransformStreamUnblockWrite$](|stream|).
+   1. [=Reject=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with |r|.
+ 1. Return |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
 </div>
 
 <h2 id="qs">Queuing strategies</h2>
