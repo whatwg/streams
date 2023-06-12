@@ -5591,9 +5591,9 @@ callback TransformerCancelCallback = Promise<undefined> (any reason);
 </dl>
 
 The <code>controller</code> object passed to {{Transformer/start|start()}},
-{{Transformer/transform|transform()}}, {{Transformer/flush|flush()}}, and
-{{Transformer/cancel|cancel()}} is an instance of {{TransformStreamDefaultController}}, and has the
-ability to enqueue [=chunks=] to the [=readable side=], or to terminate or error the stream.
+{{Transformer/transform|transform()}}, and {{Transformer/flush|flush()}} is an instance of
+{{TransformStreamDefaultController}}, and has the ability to enqueue [=chunks=] to the
+[=readable side=], or to terminate or error the stream.
 
 <h4 id="ts-prototype">Constructor and properties</h4>
 
