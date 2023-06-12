@@ -653,7 +653,7 @@ enum ReadableStreamType { "bytes", "owning" };
 
   <p>Can be set to "<dfn enum-value for="ReadableStreamType">owning</dfn>" to signal that the
   constructed {{ReadableStream}} will own chunks (via transfer or serialization) before enqueuing them.
-  This ensures that enqueued chunks are not mutable by the source.
+  This ensures that enqueued chunks cannot be mutated by the source.
   Chunks may have <dfn export>dispose steps</dfn> which are executed if enqueued chunks are dequeued
   without being provided to the application, for instance when a {{ReadableStream}} is errored.
   </p>
@@ -5217,7 +5217,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-close">WritableStreamDefaultControllerClose(|controller|)</dfn>
  performs the following steps:
 
- 1. Perform ! [$EnqueueValueWithSize$](|controller|, [=close sentinel=], 0, undefined).
+ 1. Perform ! [$EnqueueValueWithSize$](|controller|, [=close sentinel=], 0, « »).
  1. Perform ! [$WritableStreamDefaultControllerAdvanceQueueIfNeeded$](|controller|).
 </div>
 
@@ -5321,7 +5321,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-write">WritableStreamDefaultControllerWrite(|controller|,
  |chunk|, |chunkSize|)</dfn> performs the following steps:
 
- 1. Let |enqueueResult| be [$EnqueueValueWithSize$](|controller|, |chunk|, |chunkSize|, undefined).
+ 1. Let |enqueueResult| be [$EnqueueValueWithSize$](|controller|, |chunk|, |chunkSize|, « »).
  1. If |enqueueResult| is an abrupt completion,
   1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|controller|,
      |enqueueResult|.\[[Value]]).
