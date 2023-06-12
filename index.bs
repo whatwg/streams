@@ -1510,6 +1510,10 @@ the following table:
    [=underlying source=], but still has [=chunks=] in its internal queue that have not yet been
    read
   <tr>
+   <td><dfn>\[[isOwning]]</dfn>
+   <td class="non-normative">A boolean flag indicating whether to take ownership of enqueued chunks
+   via transfer or serialization.
+  <tr>
    <td><dfn>\[[pullAgain]]</dfn>
    <td class="non-normative">A boolean flag set to true if the stream's mechanisms requested a call
    to the [=underlying source=]'s pull algorithm to pull more data, but the pull could not yet be
@@ -1546,10 +1550,6 @@ the following table:
   <tr>
    <td><dfn>\[[stream]]</dfn>
    <td class="non-normative">The {{ReadableStream}} instance controlled
-  <tr>
-   <td><dfn>\[[isOwning]]</dfn>
-   <td class="non-normative">A boolean flag indicating whether to take ownership of enqueued chunks
-   via transfer or serialization.
 </table>
 
 <h4 id="rs-default-controller-prototype">Methods and properties</h4>
