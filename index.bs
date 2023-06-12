@@ -5562,11 +5562,11 @@ callback TransformerCancelCallback = Promise<undefined> (any reason);
 
   <dt><dfn dict-member for="Transformer" lt="cancel">cancel(<var ignore>reason</var>)</dfn></dt>
   <dd>
-   <p>A function called when the [=writable side=] is aborted, or when the [=readable side=] is
-   cancelled.
+   <p>A function called when the [=readable side=] is cancelled, or when the [=writable side=] is
+   aborted.
 
-   <p>Typically this is used to clean up underlying transformer resources when the  stream is
-   aborted or cancelled.
+   <p>Typically this is used to clean up underlying transformer resources when the stream is aborted
+   or cancelled.
 
    <p>If the cancellation process is asynchronous, the function can return a promise to signal
    success or failure; the result will be communicated to the caller of
@@ -6076,6 +6076,8 @@ side=] of [=transform streams=].
  performs the following steps:
 
  1. Let |readable| be |stream|.[=TransformStream/[[readable]]=].
+ 1. If |readable|.[=ReadableStream/[[state]]=] is not "`readable`", return
+    [=a promise resolved with=] undefined.
  1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
  1. Let |flushPromise| be the result of performing
     |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=].
