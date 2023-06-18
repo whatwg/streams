@@ -7197,8 +7197,7 @@ reason.
  for="TransformStream/set up"><var>transformAlgorithm</var></dfn>, an optional algorithm <dfn
  export for="TransformStream/set up"><var>flushAlgorithm</var></dfn>, and an optional algorithm <dfn
  export for="TransformStream/set up"><var>cancelAlgorithm</var></dfn>, perform the following steps.
- |transformAlgorithm|, if given, |flushAlgorithm|, and, if given, |cancelAlgorithm|, may return a
- promise.
+ |transformAlgorithm|, if given, |flushAlgorithm| and |cancelAlgorithm|, may return a promise.
 
  1. Let |writableHighWaterMark| be 1.
  1. Let |writableSizeAlgorithm| be an algorithm that returns 1.
