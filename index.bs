@@ -36,8 +36,12 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: %Object.prototype%; url: #sec-properties-of-the-object-prototype-object
  type: dfn
   text: abstract operation; url: #sec-algorithm-conventions-abstract-operations
+  text: array; url: #sec-array-objects
+  text: async generator; url: #sec-asyncgenerator-objects
+  text: async iterable; url: #sec-asynciterable-interface
   text: completion record; url: #sec-completion-record-specification-type
   text: internal slot; url: #sec-object-internal-methods-and-internal-slots
+  text: iterable; url: #sec-iterable-interface
   text: realm; url: #sec-code-realms
   text: the current Realm; url: #current-realm
   text: the typed array constructors table; url: #table-49
@@ -693,6 +697,14 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
    <p>The |strategy| argument represents the stream's [=queuing strategy=], as described in
    [[#qs-api]]. If it is not provided, the default behavior will be the same as a
    {{CountQueuingStrategy}} with a [=high water mark=] of 1.
+
+ <dt><code><var ignore>stream</var> = {{ReadableStream/from(asyncIterable)|ReadableStream.from}}(<var ignore>asyncIterable</var>)</code>
+  <dd>
+   <p>Creates a new {{ReadableStream}} wrapping the provided [=iterable=] or [=async iterable=].
+
+   <p>This can be used to adapt various kinds of objects into a [=readable stream=], such as an
+   [=array=], an [=async generator=], or a <a
+   href="https://nodejs.org/api/stream.html#class-streamreadable">Node.js readable stream</a>.
 
  <dt><code><var ignore>isLocked</var> = <var ignore>stream</var>.{{ReadableStream/locked}}</code>
  <dd>
