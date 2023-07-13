@@ -703,7 +703,7 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
    <p>Creates a new {{ReadableStream}} wrapping the provided [=iterable=] or [=async iterable=].
 
    <p>This can be used to adapt various kinds of objects into a [=readable stream=], such as an
-   [=array=], an [=async generator=] or a <a
+   [=array=], an [=async generator=], or a <a
    href="https://nodejs.org/api/stream.html#class-streamreadable">Node.js readable stream</a>.
 
  <dt><code><var ignore>isLocked</var> = <var ignore>stream</var>.{{ReadableStream/locked}}</code>
