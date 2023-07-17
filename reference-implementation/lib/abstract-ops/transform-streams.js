@@ -286,7 +286,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
       rejectPromise(controller._finishPromise, readable._storedError);
     } else {
       ReadableStreamDefaultControllerClose(readable._controller);
-      resolvePromise(controller._finishPromise);    
+      resolvePromise(controller._finishPromise);
     }
   }, r => {
     ReadableStreamDefaultControllerError(readable._controller, r);
