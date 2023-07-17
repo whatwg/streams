@@ -249,8 +249,12 @@ function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
   uponPromise(cancelPromise, () => {
-    ReadableStreamDefaultControllerError(readable._controller, reason);
-    resolvePromise(controller._finishPromise);
+    if (readable._state === 'errored') {
+      rejectPromise(controller._finishPromise, readable._storedError);
+    } else {
+      ReadableStreamDefaultControllerError(readable._controller, reason);
+      resolvePromise(controller._finishPromise);
+    }
   }, r => {
     ReadableStreamDefaultControllerError(readable._controller, r);
     rejectPromise(controller._finishPromise, r);
@@ -278,8 +282,12 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
   uponPromise(flushPromise, () => {
-    ReadableStreamDefaultControllerClose(readable._controller);
-    resolvePromise(controller._finishPromise);
+    if (readable._state === 'errored') {
+      rejectPromise(controller._finishPromise, readable._storedError);
+    } else {
+      ReadableStreamDefaultControllerClose(readable._controller);
+      resolvePromise(controller._finishPromise);    
+    }
   }, r => {
     ReadableStreamDefaultControllerError(readable._controller, r);
     rejectPromise(controller._finishPromise, r);
@@ -324,9 +332,13 @@ function TransformStreamDefaultSourceCancelAlgorithm(stream, reason) {
   TransformStreamDefaultControllerClearAlgorithms(controller);
 
   uponPromise(cancelPromise, () => {
-    WritableStreamDefaultControllerErrorIfNeeded(writable._controller, reason);
-    TransformStreamUnblockWrite(stream);
-    resolvePromise(controller._finishPromise);
+    if (writable._state === 'errored') {
+      rejectPromise(controller._finishPromise, writable._storedError);
+    } else {
+      WritableStreamDefaultControllerErrorIfNeeded(writable._controller, reason);
+      TransformStreamUnblockWrite(stream);
+      resolvePromise(controller._finishPromise);
+    }
   }, r => {
     WritableStreamDefaultControllerErrorIfNeeded(writable._controller, r);
     TransformStreamUnblockWrite(stream);
