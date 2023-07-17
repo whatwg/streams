@@ -6078,7 +6078,7 @@ side=] of [=transform streams=].
  1. [=React=] to |cancelPromise|:
   1. If |cancelPromise| was fulfilled, then:
    1. If |readable|.[=ReadableStream/[[state]]=] is "`errored`", [=reject=]
-      |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with 
+      |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with
       |readable|.[=ReadableStream/[[storedError]]=].
    1. Otherwise:
     1. Perform ! [$ReadableStreamDefaultControllerError$](|readable|.[=ReadableStream/[[controller]]=], |reason|).
@@ -6105,7 +6105,7 @@ side=] of [=transform streams=].
  1. [=React=] to |flushPromise|:
   1. If |flushPromise| was fulfilled, then:
    1. If |readable|.[=ReadableStream/[[state]]=] is "`errored`", [=reject=]
-      |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with 
+      |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with
       |readable|.[=ReadableStream/[[storedError]]=].
    1. Otherwise:
     1. Perform ! [$ReadableStreamDefaultControllerClose$](|readable|.[=ReadableStream/[[controller]]=]).
@@ -6149,7 +6149,7 @@ side=] of [=transform streams=].
  1. [=React=] to |cancelPromise|:
   1. If |cancelPromise| was fulfilled, then:
    1. If |writable|.[=WritableStream/[[state]]=] is "`errored`", [=reject=]
-      |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with 
+      |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with
       |writable|.[=WritableStream/[[storedError]]=].
    1. Otherwise:
     1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|writable|.[=WritableStream/[[controller]]=], |reason|).
