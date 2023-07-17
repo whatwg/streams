@@ -234,7 +234,7 @@ function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {
   verbose('TransformStreamDefaultSinkAbortAlgorithm()');
 
   const controller = stream._controller;
-  if (controller._finishPromise) {
+  if (controller._finishPromise !== undefined) {
     return controller._finishPromise;
   }
 
@@ -263,7 +263,7 @@ function TransformStreamDefaultSinkCloseAlgorithm(stream) {
   verbose('TransformStreamDefaultSinkCloseAlgorithm()');
 
   const controller = stream._controller;
-  if (controller._finishPromise) {
+  if (controller._finishPromise !== undefined) {
     return controller._finishPromise;
   }
 
@@ -308,7 +308,7 @@ function TransformStreamDefaultSourceCancelAlgorithm(stream, reason) {
   verbose('TransformStreamDefaultSourceCancelAlgorithm()');
 
   const controller = stream._controller;
-  if (controller._finishPromise) {
+  if (controller._finishPromise !== undefined) {
     return controller._finishPromise;
   }
 
