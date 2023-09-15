@@ -6135,8 +6135,8 @@ side=] of [=transform streams=].
 
 <div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultSourceCancelAlgorithm"
- id="transform-stream-default-source-cancel">TransformStreamDefaultSourceCancelAlgorithm(|reason|,
- |stream|)</dfn> performs the following steps:
+ id="transform-stream-default-source-cancel">TransformStreamDefaultSourceCancelAlgorithm(|stream|,
+ |reason|)</dfn> performs the following steps:
 
  1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
  1. If |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] is not undefined, return
