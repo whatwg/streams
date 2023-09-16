@@ -1476,7 +1476,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
   : [=read-into request/error steps=], given |e|
   ::
    1. [=Reject=] |promise| with |e|.
- 1. Perform ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|, |readIntoRequest|, |options|["{{ReadableStreamBYOBReaderReadOptions/min}}"]).
+ 1. Perform ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|, |options|["{{ReadableStreamBYOBReaderReadOptions/min}}"], |readIntoRequest|).
  1. Return |promise|.
 </div>
 
@@ -2581,7 +2581,7 @@ create them does not matter.
    : [=read-into request/error steps=]
    ::
     1. Set |reading| to false.
-  1. Perform ! [$ReadableStreamBYOBReaderRead$](|reader|, |view|, |readIntoRequest|, 1).
+  1. Perform ! [$ReadableStreamBYOBReaderRead$](|reader|, |view|, 1, |readIntoRequest|).
  1. Let |pull1Algorithm| be the following steps:
   1. If |reading| is true,
    1. Set |readAgainForBranch1| to true.
@@ -2881,8 +2881,8 @@ The following abstract operations support the implementation and manipulation of
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamBYOBReaderRead"
- id="readable-stream-byob-reader-read">ReadableStreamBYOBReaderRead(|reader|, |view|,
- |readIntoRequest|, |min|)</dfn> performs the following steps:
+ id="readable-stream-byob-reader-read">ReadableStreamBYOBReaderRead(|reader|, |view|, |min|,
+ |readIntoRequest|)</dfn> performs the following steps:
 
  1. Let |stream| be |reader|.[=ReadableStreamGenericReader/[[stream]]=].
  1. Assert: |stream| is not undefined.
@@ -2890,7 +2890,7 @@ The following abstract operations support the implementation and manipulation of
  1. If |stream|.[=ReadableStream/[[state]]=] is "`errored`", perform |readIntoRequest|'s [=read-into
     request/error steps=] given |stream|.[=ReadableStream/[[storedError]]=].
  1. Otherwise, perform ! [$ReadableByteStreamControllerPullInto$](|stream|.[=ReadableStream/[[controller]]=],
-    |view|, |readIntoRequest|, |min|).
+    |view|, |min|, |readIntoRequest|).
 </div>
 
 <div algorithm>
@@ -3570,7 +3570,7 @@ The following abstract operations support the implementation of the
 <div algorithm>
  <dfn abstract-op lt="ReadableByteStreamControllerPullInto"
  id="readable-byte-stream-controller-pull-into">ReadableByteStreamControllerPullInto(|controller|,
- |view|, |readIntoRequest|, |min|)</dfn> performs the following steps:
+ |view|, |min|, |readIntoRequest|)</dfn> performs the following steps:
 
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. Let |elementSize| be 1.

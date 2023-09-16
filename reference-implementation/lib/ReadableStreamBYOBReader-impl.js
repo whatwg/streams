@@ -51,7 +51,7 @@ class ReadableStreamBYOBReaderImpl {
       closeSteps: chunk => resolvePromise(promise, { value: chunk, done: true }),
       errorSteps: e => rejectPromise(promise, e)
     };
-    aos.ReadableStreamBYOBReaderRead(this, view, readIntoRequest, options.min);
+    aos.ReadableStreamBYOBReaderRead(this, view, options.min, readIntoRequest);
     return promise;
   }
 

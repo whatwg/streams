@@ -647,7 +647,7 @@ function ReadableByteStreamTee(stream) {
         reading = false;
       }
     };
-    ReadableStreamBYOBReaderRead(reader, view, readIntoRequest, 1);
+    ReadableStreamBYOBReaderRead(reader, view, 1, readIntoRequest);
   }
 
   function pull1Algorithm() {
@@ -913,7 +913,7 @@ function ReadableStreamReaderGenericRelease(reader) {
   reader._stream = undefined;
 }
 
-function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest, min) {
+function ReadableStreamBYOBReaderRead(reader, view, min, readIntoRequest) {
   const stream = reader._stream;
 
   assert(stream !== undefined);
@@ -923,7 +923,7 @@ function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest, min) {
   if (stream._state === 'errored') {
     readIntoRequest.errorSteps(stream._storedError);
   } else {
-    ReadableByteStreamControllerPullInto(stream._controller, view, readIntoRequest, min);
+    ReadableByteStreamControllerPullInto(stream._controller, view, min, readIntoRequest);
   }
 }
 
@@ -1562,7 +1562,7 @@ function ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller) {
   }
 }
 
-function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest, min) {
+function ReadableByteStreamControllerPullInto(controller, view, min, readIntoRequest) {
   const stream = controller._stream;
 
   let elementSize = 1;
