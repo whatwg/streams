@@ -33,12 +33,10 @@ class ReadableStreamBYOBReaderImpl {
           new RangeError('options.min must be less than or equal to view\'s length')
         );
       }
-    } else {
-      if (options.min > view.byteLength) {
-        return promiseRejectedWith(
-          new RangeError('options.min must be less than or equal to view\'s byteLength')
-        );
-      }
+    } else if (options.min > view.byteLength) {
+      return promiseRejectedWith(
+        new RangeError('options.min must be less than or equal to view\'s byteLength')
+      );
     }
 
     if (this._stream === undefined) {
