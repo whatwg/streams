@@ -22,7 +22,6 @@ class ReadableStreamBYOBReaderImpl {
       return promiseRejectedWith(new TypeError('view\'s buffer has been detached'));
     }
 
-    let minimumFill;
     if (options.min === 0) {
       return promiseRejectedWith(
         new TypeError('options.min must be greater than 0')
@@ -34,15 +33,12 @@ class ReadableStreamBYOBReaderImpl {
           new RangeError('options.min must be less than or equal to view\'s length')
         );
       }
-      const elementSize = view.constructor.BYTES_PER_ELEMENT;
-      minimumFill = options.min * elementSize;
     } else {
       if (options.min > view.byteLength) {
         return promiseRejectedWith(
           new RangeError('options.min must be less than or equal to view\'s byteLength')
         );
       }
-      minimumFill = options.min;
     }
 
     if (this._stream === undefined) {
@@ -55,7 +51,7 @@ class ReadableStreamBYOBReaderImpl {
       closeSteps: chunk => resolvePromise(promise, { value: chunk, done: true }),
       errorSteps: e => rejectPromise(promise, e)
     };
-    aos.ReadableStreamBYOBReaderRead(this, view, readIntoRequest, minimumFill);
+    aos.ReadableStreamBYOBReaderRead(this, view, readIntoRequest, options.min);
     return promise;
   }
 

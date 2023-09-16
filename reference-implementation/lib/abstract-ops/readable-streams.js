@@ -647,7 +647,7 @@ function ReadableByteStreamTee(stream) {
         reading = false;
       }
     };
-    ReadableStreamBYOBReaderRead(reader, view, readIntoRequest);
+    ReadableStreamBYOBReaderRead(reader, view, readIntoRequest, 1);
   }
 
   function pull1Algorithm() {
@@ -913,25 +913,17 @@ function ReadableStreamReaderGenericRelease(reader) {
   reader._stream = undefined;
 }
 
-function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest, minimumFill) {
+function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest, min) {
   const stream = reader._stream;
 
   assert(stream !== undefined);
 
   stream._disturbed = true;
 
-  if (minimumFill === undefined) {
-    let elementSize = 1;
-    if (view.constructor !== DataView) {
-      elementSize = view.constructor.BYTES_PER_ELEMENT;
-    }
-    minimumFill = elementSize;
-  }
-
   if (stream._state === 'errored') {
     readIntoRequest.errorSteps(stream._storedError);
   } else {
-    ReadableByteStreamControllerPullInto(stream._controller, view, readIntoRequest, minimumFill);
+    ReadableByteStreamControllerPullInto(stream._controller, view, readIntoRequest, min);
   }
 }
 
@@ -1570,7 +1562,7 @@ function ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller) {
   }
 }
 
-function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest, minimumFill) {
+function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest, min) {
   const stream = controller._stream;
 
   let elementSize = 1;
@@ -1578,6 +1570,7 @@ function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest,
     elementSize = view.constructor.BYTES_PER_ELEMENT;
   }
 
+  const minimumFill = min * elementSize;
   assert(minimumFill >= elementSize && minimumFill <= view.byteLength);
   assert(minimumFill % elementSize === 0);
 
