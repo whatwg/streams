@@ -471,6 +471,7 @@ particularly important for the data structure described in [[#queue-with-sizes]]
  Note that this example is mostly educational. For practical purposes, the
  {{ReadableStreamBYOBReaderReadOptions/min}} option of {{ReadableStreamBYOBReader/read()}}
  provides an easier and more direct way to read an exact number of bytes:
+
  <xmp highlight="js">
  const reader = readableStream.getReader({ mode: "byob" });
  const { value: view, done } = await reader.read(new Uint8Array(1024), { min: 1024 });
@@ -1932,12 +1933,35 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
   1. If |buffer| is an abrupt completion,
    1. Perform |readRequest|'s [=read request/error steps=], given |buffer|.\[[Value]].
    1. Return.
-  1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
-     |buffer|.\[[Value]], [=pull-into descriptor/buffer byte length=] |autoAllocateChunkSize|,
-     [=pull-into descriptor/byte offset=] 0, [=pull-into descriptor/byte length=]
-     |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/minimum
-     fill=] 1, [=pull-into descriptor/element size=] 1, [=pull-into descriptor/view constructor=]
-     {{%Uint8Array%}}, and [=pull-into descriptor/reader type=] "`default`".
+  1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with
+     <dl class="props">
+      <dt>[=pull-into descriptor/buffer=]
+      <dd>|buffer|.\[[Value]]
+
+      <dt>[=pull-into descriptor/buffer byte length=]
+      <dd>|autoAllocateChunkSize|
+
+      <dt>[=pull-into descriptor/byte offset=]
+      <dd>0
+
+      <dt>[=pull-into descriptor/byte length=]
+      <dd>|autoAllocateChunkSize|
+
+      <dt>[=pull-into descriptor/bytes filled=]
+      <dd>0
+
+      <dt>[=pull-into descriptor/minimum fill=]
+      <dd>1
+
+      <dt>[=pull-into descriptor/element size=]
+      <dd>1
+
+      <dt>[=pull-into descriptor/view constructor=]
+      <dd>{{%Uint8Array%}}
+
+      <dt>[=pull-into descriptor/reader type=]
+      <dd>"`default`"
+     </dl>
   1. [=list/Append=] |pullIntoDescriptor| to
      [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=].
  1. Perform ! [$ReadableStreamAddReadRequest$](|stream|, |readRequest|).
@@ -3580,7 +3604,7 @@ The following abstract operations support the implementation of the
      |view|.\[[TypedArrayName]].
   1. Set |ctor| to the constructor specified in [=the typed array constructors table=] for
      |view|.\[[TypedArrayName]].
- 1. Let |minimumFill| be |min| * |elementSize|.
+ 1. Let |minimumFill| be |min| &times; |elementSize|.
  1. Assert: |minimumFill| ≥ 0 and |minimumFill| ≤ |view|.\[[ByteLength]].
  1. Assert: |minimumFill| mod |elementSize| is 0.
  1. Let |byteOffset| be |view|.\[[ByteOffset]].
@@ -3590,12 +3614,35 @@ The following abstract operations support the implementation of the
   1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |bufferResult|.\[[Value]].
   1. Return.
  1. Let |buffer| be |bufferResult|.\[[Value]].
- 1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
-    |buffer|, [=pull-into descriptor/buffer byte length=] |buffer|.\[[ArrayBufferByteLength]],
-    [=pull-into descriptor/byte offset=] |byteOffset|, [=pull-into descriptor/byte length=]
-    |byteLength|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/minimum fill=]
-    |minimumFill|, [=pull-into descriptor/element size=] |elementSize|, [=pull-into descriptor/view
-    constructor=] |ctor|, and [=pull-into descriptor/reader type=] "`byob`".
+ 1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with
+    <dl class="props">
+     <dt>[=pull-into descriptor/buffer=]
+     <dd>|buffer|
+
+     <dt>[=pull-into descriptor/buffer byte length=]
+     <dd>|buffer|.\[[ArrayBufferByteLength]]
+
+     <dt>[=pull-into descriptor/byte offset=]
+     <dd>|byteOffset|
+
+     <dt>[=pull-into descriptor/byte length=]
+     <dd>|byteLength|
+
+     <dt>[=pull-into descriptor/bytes filled=]
+     <dd>0
+
+     <dt>[=pull-into descriptor/minimum fill=]
+     <dd>|minimumFill|
+
+     <dt>[=pull-into descriptor/element size=]
+     <dd>|elementSize|
+
+     <dt>[=pull-into descriptor/view constructor=]
+     <dd>|ctor|
+
+     <dt>[=pull-into descriptor/reader type=]
+     <dd>"`byob`"
+    </dl>
  1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty,
   1. [=list/Append=] |pullIntoDescriptor| to
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=].
