@@ -5749,7 +5749,7 @@ the following table:
  <tbody>
   <tr>
    <td><dfn>\[[cancelAlgorithm]]</dfn>
-   <td class="non-normative">A promise-returning algorithm, taking one argument (the [=reason=] for
+   <td class="non-normative">A promise-returning algorithm, taking one argument (the reason for
    cancellation), which communicates a requested cancellation to the [=transformer=]
   <tr>
    <td><dfn>\[[finishPromise]]</dfn>
@@ -6122,18 +6122,6 @@ The following abstract operation is used to implement the [=underlying source=] 
 side=] of [=transform streams=].
 
 <div algorithm>
- <dfn abstract-op lt="TransformStreamDefaultSourcePullAlgorithm"
- id="transform-stream-default-source-pull">TransformStreamDefaultSourcePullAlgorithm(|stream|)</dfn>
- performs the following steps:
-
- 1. Assert: |stream|.[=TransformStream/[[backpressure]]=] is true.
- 1. Assert: |stream|.[=TransformStream/[[backpressureChangePromise]]=] is not undefined.
- 1. Perform ! [$TransformStreamSetBackpressure$](|stream|, false).
- 1. Return |stream|.[=TransformStream/[[backpressureChangePromise]]=].
-</div>
-
-
-<div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultSourceCancelAlgorithm"
  id="transform-stream-default-source-cancel">TransformStreamDefaultSourceCancelAlgorithm(|stream|,
  |reason|)</dfn> performs the following steps:
@@ -6160,6 +6148,17 @@ side=] of [=transform streams=].
    1. Perform ! [$TransformStreamUnblockWrite$](|stream|).
    1. [=Reject=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with |r|.
  1. Return |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="TransformStreamDefaultSourcePullAlgorithm"
+ id="transform-stream-default-source-pull">TransformStreamDefaultSourcePullAlgorithm(|stream|)</dfn>
+ performs the following steps:
+
+ 1. Assert: |stream|.[=TransformStream/[[backpressure]]=] is true.
+ 1. Assert: |stream|.[=TransformStream/[[backpressureChangePromise]]=] is not undefined.
+ 1. Perform ! [$TransformStreamSetBackpressure$](|stream|, false).
+ 1. Return |stream|.[=TransformStream/[[backpressureChangePromise]]=].
 </div>
 
 <h2 id="qs">Queuing strategies</h2>
@@ -7209,7 +7208,7 @@ reason.
  for="TransformStream/set up"><var>transformAlgorithm</var></dfn>, an optional algorithm <dfn
  export for="TransformStream/set up"><var>flushAlgorithm</var></dfn>, and an optional algorithm <dfn
  export for="TransformStream/set up"><var>cancelAlgorithm</var></dfn>, perform the following steps.
- |transformAlgorithm|, if given, |flushAlgorithm| and |cancelAlgorithm|, may return a promise.
+ |transformAlgorithm| and, if given, |flushAlgorithm| and |cancelAlgorithm|, may return a promise.
 
  1. Let |writableHighWaterMark| be 1.
  1. Let |writableSizeAlgorithm| be an algorithm that returns 1.
