@@ -3274,8 +3274,8 @@ The following abstract operations support the implementation of the
  1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty,
   1. Let |firstPendingPullInto| be
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
-  1. If |firstPendingPullInto|'s [=pull-into descriptor/bytes filled=]
-     mod |firstPendingPullInto|'s [=pull-into descriptor/element size=] is not 0,
+  1. If the remainder after dividing |firstPendingPullInto|'s [=pull-into descriptor/bytes filled=]
+     by |firstPendingPullInto|'s [=pull-into descriptor/element size=] is not 0,
    1. Let |e| be a new {{TypeError}} exception.
    1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
    1. Throw |e|.
@@ -3292,8 +3292,8 @@ The following abstract operations support the implementation of the
  1. Assert: |pullIntoDescriptor|.[=pull-into descriptor/reader type=] is not "`none`".
  1. Let |done| be false.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`",
-  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]
-     mod |pullIntoDescriptor|'s [=pull-into descriptor/element size=] is 0.
+  1. Assert: the remainder after dividing |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]
+     by |pullIntoDescriptor|'s [=pull-into descriptor/element size=] is 0.
   1. Set |done| to true.
  1. Let |filledView| be !
     [$ReadableByteStreamControllerConvertPullIntoDescriptor$](|pullIntoDescriptor|).
@@ -3312,7 +3312,7 @@ The following abstract operations support the implementation of the
  1. Let |bytesFilled| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
  1. Let |elementSize| be |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. Assert: |bytesFilled| ≤ |pullIntoDescriptor|'s [=pull-into descriptor/byte length=].
- 1. Assert: |bytesFilled| mod |elementSize| is 0.
+ 1. Assert: the remainder after dividing |bytesFilled| by |elementSize| is 0.
  1. Let |buffer| be ! [$TransferArrayBuffer$](|pullIntoDescriptor|'s [=pull-into descriptor/buffer=]).
  1. Return ! [$Construct$](|pullIntoDescriptor|'s [=pull-into descriptor/view constructor=], «
     |buffer|, |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=],
@@ -3451,8 +3451,9 @@ The following abstract operations support the implementation of the
  1. Let |ready| be false.
  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] < |pullIntoDescriptor|'s
     [=pull-into descriptor/minimum fill=].
- 1. Let |maxAlignedBytes| be |maxBytesFilled| − (|maxBytesFilled| mod |pullIntoDescriptor|'s
-    [=pull-into descriptor/element size=]).
+ 1. Let |remainderBytes| be the remainder after dividing |maxBytesFilled| by |pullIntoDescriptor|'s
+    [=pull-into descriptor/element size=].
+ 1. Let |maxAlignedBytes| be |maxBytesFilled| − |remainderBytes|.
  1. If |maxAlignedBytes| ≥ |pullIntoDescriptor|'s [=pull-into descriptor/minimum fill=],
   1. Set |totalBytesToCopyRemaining| to |maxAlignedBytes| − |pullIntoDescriptor|'s [=pull-into
      descriptor/bytes filled=].
@@ -3618,7 +3619,7 @@ The following abstract operations support the implementation of the
      |view|.\[[TypedArrayName]].
  1. Let |minimumFill| be |min| &times; |elementSize|.
  1. Assert: |minimumFill| ≥ 0 and |minimumFill| ≤ |view|.\[[ByteLength]].
- 1. Assert: |minimumFill| mod |elementSize| is 0.
+ 1. Assert: the remainder after dividing |minimumFill| by |elementSize| is 0.
  1. Let |byteOffset| be |view|.\[[ByteOffset]].
  1. Let |byteLength| be |view|.\[[ByteLength]].
  1. Let |bufferResult| be [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
@@ -3710,8 +3711,8 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-in-closed-state">ReadableByteStreamControllerRespondInClosedState(|controller|,
  |firstDescriptor|)</dfn> performs the following steps:
 
- 1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] mod |firstDescriptor|'s
-    [=pull-into descriptor/element size=] is 0.
+ 1. Assert: the remainder after dividing |firstDescriptor|'s [=pull-into descriptor/bytes filled=]
+    by |firstDescriptor|'s [=pull-into descriptor/element size=] is 0.
  1. If |firstDescriptor|'s [=pull-into descriptor/reader type=] is "`none`",
     perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
@@ -3743,8 +3744,8 @@ The following abstract operations support the implementation of the
     that is not yet filled up to its minimum length will stay at the head of the queue, so the
     [=underlying source=] can keep filling it.
  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
- 1. Let |remainderSize| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] mod
-    |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
+ 1. Let |remainderSize| be the remainder after dividing |pullIntoDescriptor|'s
+    [=pull-into descriptor/bytes filled=] by |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. If |remainderSize| > 0,
    1. Let |end| be |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=] +
       |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
