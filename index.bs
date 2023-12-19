@@ -6895,8 +6895,8 @@ to grow organically as needed.
      otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
   1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
- 1. Let |cancelAlgorithmWrapper| be an algorithm that runs these steps:
-  1. Let |result| be the result of running |cancelAlgorithm|, if |cancelAlgorithm| was given, or
+ 1. Let |cancelAlgorithmWrapper| be an algorithm that runs these steps given |reason|:
+  1. Let |result| be the result of running |cancelAlgorithm| given |reason|, if |cancelAlgorithm| was given, or
      null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
   1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
@@ -7218,8 +7218,8 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
      null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
   1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
- 1. Let |abortAlgorithmWrapper| be an algorithm that runs these steps:
-  1. Let |result| be the result of running |abortAlgorithm|, if |abortAlgorithm| was given, or
+ 1. Let |abortAlgorithmWrapper| be an algorithm that runs these steps given |reason|:
+  1. Let |result| be the result of running |abortAlgorithm| given |reason|, if |abortAlgorithm| was given, or
      null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
   1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
@@ -8314,6 +8314,7 @@ James Pryor,
 Janessa Det,
 Jason Orendorff,
 Jeffrey Yasskin,
+Jeremy Roman,
 Jens Nockert,
 Lennart Grahl,
 Luca Casonato,
