@@ -20,7 +20,7 @@ Use cross-reference [autolinking](https://speced.github.io/bikeshed/#autolinking
 
 When writing examples or notes, JavaScript variables and values are enclosed in `<code>` tags, not in `<var>` tags.
 
-Use abstract operations in the following scenarios to factor out shared logic used by multiple public APIs, or by multiple other abstract operations.
+Use abstract operations to factor out shared logic used by multiple public APIs, or by multiple other abstract operations.
 
 ## Reference implementation style
 
