@@ -177,8 +177,8 @@ readable stream tee">branches</dfn>, which can be consumed independently.
 For streams representing bytes, an extended version of the [=readable stream=] is provided to handle
 bytes efficiently, in particular by minimizing copies. The [=underlying source=] for such a readable
 stream is called an <dfn>underlying byte source</dfn>. A readable stream whose underlying source is
-an underlying byte source is sometimes called a <dfn export>readable byte stream</dfn>. Consumers of
-a readable byte stream can acquire a [=BYOB reader=] using the stream's
+an underlying byte source is sometimes called a <dfn export for="ReadableStream">readable byte stream</dfn>.
+Consumers of a readable byte stream can acquire a [=BYOB reader=] using the stream's
 {{ReadableStream/getReader()}} method.
 
 <h3 id="ws-model">Writable streams</h3>
@@ -322,8 +322,8 @@ stream|canceling=] the stream, or [=piping=] the readable stream to a writable s
 acquired via the stream's {{ReadableStream/getReader()}} method.
 
 A [=readable byte stream=] has the ability to vend two types of readers: <dfn export lt="default
-reader">default readers</dfn> and <dfn export lt="BYOB reader">BYOB readers</dfn>. BYOB ("bring your
-own buffer") readers allow reading into a developer-supplied buffer, thus minimizing copies. A
+reader">default readers</dfn> and <dfn export lt="BYOB reader" for="ReadableStream">BYOB readers</dfn>.
+BYOB ("bring your own buffer") readers allow reading into a developer-supplied buffer, thus minimizing copies. A
 non-byte readable stream can only vend default readers. Default readers are instances of the
 {{ReadableStreamDefaultReader}} class, while BYOB readers are instances of
 {{ReadableStreamBYOBReader}}.
