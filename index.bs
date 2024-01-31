@@ -328,7 +328,7 @@ non-byte readable stream can only vend default readers. Default readers are inst
 {{ReadableStreamDefaultReader}} class, while BYOB readers are instances of
 {{ReadableStreamBYOBReader}}.
 
-Similarly, a <dfn lt="writer|writable stream writer">writable stream writer</dfn>, or simply
+Similarly, a <dfn export lt="writer|writable stream writer">writable stream writer</dfn>, or simply
 writer, is an object that allows direct writing of [=chunks=] to a [=writable stream=]. Without a
 writer, a [=producer=] can only perform the high-level operations of [=abort a writable
 stream|aborting=] the stream or [=piping=] a readable stream to the writable stream. Writers are
