@@ -20,3 +20,7 @@ exports.CloneAsUint8Array = O => {
   const buffer = O.buffer.slice(O.byteOffset, O.byteOffset + O.byteLength);
   return new Uint8Array(buffer);
 };
+
+exports.StructuredTransferOrClone = (value, transferList) => {
+  return globalThis.structuredClone(value, { transfer: transferList });
+};
