@@ -2134,6 +2134,8 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
   1. Return the result of [=reacting=] to |nextPromise|:
    - If |next| was fulfilled with value |v|:
     1. If |v| is [=end of iteration=], perform ! [$ReadableStreamDefaultControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
+       <!-- TODO (future): If we allow changing the queuing strategy, this Enqueue might throw.
+          We'll then need to catch the error and close the async iterator. -->
     1. Otherwise, perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=], |v|).
    - If |next| was rejected with reason |r|, perform ! [$ReadableStreamDefaultControllerError$](|stream|.[=ReadableStream/[[controller]]=], |r|).
  1. Let |cancelAlgorithm| be the following steps, given |reason|:
