@@ -2123,7 +2123,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op lt="ReadableStreamFromIterable" id="readable-stream-from-iterable">
+ <dfn abstract-op export lt="ReadableStreamFromIterable" id="readable-stream-from-iterable">
  ReadableStreamFromIterable(|asyncIterable|)</dfn> performs the following steps:
 
  1. Let |stream| be undefined.
@@ -2137,8 +2137,8 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
     1. Otherwise, perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=], |v|).
    - If |next| was rejected with reason |r|, perform ! [$ReadableStreamDefaultControllerError$](|stream|.[=ReadableStream/[[controller]]=], |r|).
  1. Let |cancelAlgorithm| be the following steps, given |reason|:
-  1. Let |finishPromise| be the result of [=finishing iteration/finish iterating an async iterable=]
-     of |asyncIterable|.
+  1. Let |finishPromise| be the result of [=closing/close an async iterable=] |asyncIterable| with
+     reason |reason|.
   1. Return the result of [=reacting=] to |finishPromise|:
     - If |finishPromise| was fulfilled, return undefined.
     - If |finishPromise| was rejected with reason |r|, throw |r|.
