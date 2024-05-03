@@ -1921,7 +1921,7 @@ function ReadableStreamFromIterable(asyncIterable) {
         ReadableStreamDefaultControllerClose(stream._controller);
       } else {
         const value = IteratorValue(iterResult);
-        ReadableStreamDefaultControllerEnqueue(stream._controller, value);
+        ReadableStreamDefaultControllerEnqueue(stream._controller, value, []);
       }
     });
   }

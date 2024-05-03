@@ -2216,7 +2216,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
    1. Otherwise:
     1. Let |value| be ? [$IteratorValue$](|iterResult|).
     1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
-       |value|).
+       |value|, « »).
        <!-- TODO (future): If we allow changing the queuing strategy, this Enqueue might throw.
              We'll then need to catch the error and close the async iterator. -->
  1. Let |cancelAlgorithm| be the following steps, given |reason|:
