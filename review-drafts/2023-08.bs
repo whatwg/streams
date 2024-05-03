@@ -1,9 +1,11 @@
 <pre class=metadata>
 Group: WHATWG
+Status: RD
+Date: 2023-08-21
 H1: Streams
 Shortname: streams
 Text Macro: TWITTER streamsstandard
-Text Macro: LATESTRD 2024-02
+Text Macro: LATESTRD 2023-08
 Abstract: This specification provides APIs for creating, composing, and consuming streams of data
 Abstract: that map efficiently to low-level I/O primitives.
 Translation: ja https://triple-underscore.github.io/Streams-ja.html
@@ -19,7 +21,6 @@ spec:infra; type:dfn; text:list
 spec:html; type:dfn; text:entangle
 spec:html; type:dfn; text:message port post message steps
 spec:html; type:dfn; text:port message queue
-spec:html; type:dfn; text:transferable objects
 </pre>
 
 <pre class="anchors">
@@ -329,7 +330,7 @@ non-byte readable stream can only vend default readers. Default readers are inst
 {{ReadableStreamDefaultReader}} class, while BYOB readers are instances of
 {{ReadableStreamBYOBReader}}.
 
-Similarly, a <dfn export lt="writer|writable stream writer">writable stream writer</dfn>, or simply
+Similarly, a <dfn lt="writer|writable stream writer">writable stream writer</dfn>, or simply
 writer, is an object that allows direct writing of [=chunks=] to a [=writable stream=]. Without a
 writer, a [=producer=] can only perform the high-level operations of [=abort a writable
 stream|aborting=] the stream or [=piping=] a readable stream to the writable stream. Writers are
@@ -452,7 +453,7 @@ particularly important for the data structure described in [[#queue-with-sizes]]
    let offset = 0;
 
    while (offset < buffer.byteLength) {
-     const { value: view, done } =
+     const {value: view, done} =
       await reader.read(new Uint8Array(buffer, offset, buffer.byteLength - offset));
      buffer = view.buffer;
      if (done) {
@@ -472,16 +473,6 @@ particularly important for the data structure described in [[#queue-with-sizes]]
  new {{Uint8Array}}, with that {{ArrayBuffer}} object as its <code>buffer</code> property, the
  offset that bytes were written to as its <code>byteOffset</code> property, and the number of
  bytes that were written as its <code>byteLength</code> property.
-
- Note that this example is mostly educational. For practical purposes, the
- {{ReadableStreamBYOBReaderReadOptions/min}} option of {{ReadableStreamBYOBReader/read()}}
- provides an easier and more direct way to read an exact number of bytes:
-
- <xmp highlight="js">
- const reader = readableStream.getReader({ mode: "byob" });
- const { value: view, done } = await reader.read(new Uint8Array(1024), { min: 1024 });
- console.log("The first 1024 bytes: ", view);
- </xmp>
 </div>
 
 <h3 id="rs-class">The {{ReadableStream}} class</h3>
@@ -594,7 +585,7 @@ callback UnderlyingSourceStartCallback = any (ReadableStreamController controlle
 callback UnderlyingSourcePullCallback = Promise<undefined> (ReadableStreamController controller);
 callback UnderlyingSourceCancelCallback = Promise<undefined> (optional any reason);
 
-enum ReadableStreamType { "bytes", "owning" };
+enum ReadableStreamType { "bytes" };
 </xmp>
 
 <dl>
@@ -662,7 +653,8 @@ enum ReadableStreamType { "bytes", "owning" };
    something more persistently wrong.
   </div>
 
- <dt><dfn dict-member for="UnderlyingSource" lt="type"><code>type</code></dfn></dt>
+ <dt><dfn dict-member for="UnderlyingSource" lt="type"><code>type</code></dfn> (byte streams
+ only)</dt>
  <dd>
   <p>Can be set to "<dfn enum-value for="ReadableStreamType">bytes</dfn>" to signal that the
   constructed {{ReadableStream}} is a <a>readable byte stream</a>. This ensures that the resulting
@@ -673,15 +665,8 @@ enum ReadableStreamType { "bytes", "owning" };
   <p>For an example of how to set up a readable byte stream, including using the different
   controller interface, see [[#example-rbs-push]].
 
-  <p>Can be set to "<dfn enum-value for="ReadableStreamType">owning</dfn>" to signal that the
-  constructed {{ReadableStream}} will own chunks (via transfer or serialization) before enqueuing them.
-  This ensures that enqueued chunks cannot be mutated by the source.
-  Chunks may have <dfn export>dispose steps</dfn> which are executed if enqueued chunks are dequeued
-  without being provided to the application, for instance when a {{ReadableStream}} is errored.
-  </p>
-
-  <p>Setting any value other than "{{ReadableStreamType/bytes}}", "{{ReadableStreamType/owning}}"
-  or undefined will cause the {{ReadableStream()}} constructor to throw an exception.
+  <p>Setting any value other than "{{ReadableStreamType/bytes}}" or undefined will cause the
+  {{ReadableStream()}} constructor to throw an exception.
 
  <dt><dfn dict-member for="UnderlyingSource"
  lt="autoAllocateChunkSize"><code>autoAllocateChunkSize</code></dfn> (byte streams only)</dt>
@@ -838,8 +823,7 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
   1. Perform ? [$SetUpReadableByteStreamControllerFromUnderlyingSource$]([=this=],
      |underlyingSource|, |underlyingSourceDict|, |highWaterMark|).
  1. Otherwise,
-  1. Assert: |underlyingSourceDict|["{{UnderlyingSource/type}}"] does not [=map/exist=] or
-     is "{{ReadableStreamType/owning}}".
+  1. Assert: |underlyingSourceDict|["{{UnderlyingSource/type}}"] does not [=map/exist=].
   1. Let |sizeAlgorithm| be ! [$ExtractSizeAlgorithm$](|strategy|).
   1. Let |highWaterMark| be ? [$ExtractHighWaterMark$](|strategy|, 1).
   1. Perform ? [$SetUpReadableStreamDefaultControllerFromUnderlyingSource$]([=this=],
@@ -1343,14 +1327,10 @@ The Web IDL definition for the {{ReadableStreamBYOBReader}} class is given as fo
 interface ReadableStreamBYOBReader {
   constructor(ReadableStream stream);
 
-  Promise<ReadableStreamReadResult> read(ArrayBufferView view, optional ReadableStreamBYOBReaderReadOptions options = {});
+  Promise<ReadableStreamReadResult> read(ArrayBufferView view);
   undefined releaseLock();
 };
 ReadableStreamBYOBReader includes ReadableStreamGenericReader;
-
-dictionary ReadableStreamBYOBReaderReadOptions {
-  [EnforceRange] unsigned long long min = 1;
-};
 </xmp>
 
 <h4 id="byob-reader-internal-slots">Internal slots</h4>
@@ -1410,19 +1390,19 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
   <p>If the reader is [=active reader|active=], behaves the same
   <code>|stream|.{{ReadableStream/cancel(reason)|cancel}}(<var ignore>reason</var>)</code>.
 
- <dt><code>{ <var ignore>value</var>, <var ignore>done</var> } = await <var ignore>reader</var>.{{ReadableStreamBYOBReader/read()|read}}(<var ignore>view</var>[, { {{ReadableStreamBYOBReaderReadOptions/min}} }])</code>
+ <dt><code>{ <var ignore>value</var>, <var ignore>done</var> } = await <var ignore>reader</var>.{{ReadableStreamBYOBReader/read()|read}}(<var ignore>view</var>)</code>
  <dd>
-  <p>Attempts to read bytes into |view|, and returns a promise resolved with the result:
+  <p>Attempts to reads bytes into |view|, and returns a promise resolved with the result:
 
   <ul>
    <li>If the chunk does become available, the promise will be fulfilled with an object of the form
-   <code highlight="js">{ value: newView, done: false }</code>. In this case, |view| will be
-   [=ArrayBuffer/detached=] and no longer usable, but <code>newView</code> will be a new view (of
+   <code highlight="js">{ value: theChunk, done: false }</code>. In this case, |view| will be
+   [=ArrayBuffer/detached=] and no longer usable, but <code>theChunk</code> will be a new view (of
    the same type) onto the same backing memory region, with the chunk's data written into it.
 
    <li>If the stream becomes closed, the promise will be fulfilled with an object of the form
-   <code highlight="js">{ value: newView, done: true }</code>. In this case, |view| will be
-   [=ArrayBuffer/detached=] and no longer usable, but <code>newView</code> will be a new view (of
+   <code highlight="js">{ value: theChunk, done: true }</code>. In this case, |view| will be
+   [=ArrayBuffer/detached=] and no longer usable, but <code>theChunk</code> will be a new view (of
    the same type) onto the same backing memory region, with no modifications, to ensure the memory
    is returned to the caller.
 
@@ -1435,14 +1415,6 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
 
   <p>If reading a chunk causes the queue to become empty, more data will be pulled from the
   [=underlying source=].
-
-  <p>If {{ReadableStreamBYOBReaderReadOptions/min}} is given, then the promise will only be
-  fulfilled as soon as the given minimum number of elements are available. Here, the "number of
-  elements" is given by <code>newView</code>'s <code>length</code> (for typed arrays) or
-  <code>newView</code>'s <code>byteLength</code> (for {{DataView}}s). If the stream becomes closed,
-  then the promise is fulfilled with the remaining elements in the stream, which might be fewer than
-  the initially requested amount. If not given, then the promise resolves when at least one element
-  is available.
 
  <dt><code><var ignore>reader</var>.{{ReadableStreamBYOBReader/releaseLock()|releaseLock}}()</code>
  <dd>
@@ -1466,7 +1438,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
 </div>
 
 <div algorithm>
- The <dfn id="byob-reader-read" method for="ReadableStreamBYOBReader">read(|view|, |options|)</dfn>
+ The <dfn id="byob-reader-read" method for="ReadableStreamBYOBReader">read(|view|)</dfn>
  method steps are:
 
  1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
@@ -1474,14 +1446,6 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
     with=] a {{TypeError}} exception.
  1. If ! [$IsDetachedBuffer$](|view|.\[[ViewedArrayBuffer]]) is true, return
     [=a promise rejected with=] a {{TypeError}} exception.
- 1. If |options|["{{ReadableStreamBYOBReaderReadOptions/min}}"] is 0, return [=a promise
-     rejected with=] a {{TypeError}} exception.
- 1. If |view| has a \[[TypedArrayName]] internal slot,
-  1. If |options|["{{ReadableStreamBYOBReaderReadOptions/min}}"] &gt; |view|.\[[ArrayLength]],
-     return [=a promise rejected with=] a {{RangeError}} exception.
- 1. Otherwise (i.e., it is a {{DataView}}),
-  1. If |options|["{{ReadableStreamBYOBReaderReadOptions/min}}"] &gt; |view|.\[[ByteLength]],
-     return [=a promise rejected with=] a {{RangeError}} exception.
  1. If [=this=].[=ReadableStreamGenericReader/[[stream]]=] is undefined, return [=a promise rejected
     with=] a {{TypeError}} exception.
  1. Let |promise| be [=a new promise=].
@@ -1497,7 +1461,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
   : [=read-into request/error steps=], given |e|
   ::
    1. [=Reject=] |promise| with |e|.
- 1. Perform ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|, |options|["{{ReadableStreamBYOBReaderReadOptions/min}}"], |readIntoRequest|).
+ 1. Perform ! [$ReadableStreamBYOBReaderRead$]([=this=], |view|, |readIntoRequest|).
  1. Return |promise|.
 </div>
 
@@ -1526,7 +1490,7 @@ interface ReadableStreamDefaultController {
   readonly attribute unrestricted double? desiredSize;
 
   undefined close();
-  undefined enqueue(optional any chunk, optional StructuredSerializeOptions options = {});
+  undefined enqueue(optional any chunk);
   undefined error(optional any e);
 };
 </xmp>
@@ -1551,10 +1515,6 @@ the following table:
    <td class="non-normative">A boolean flag indicating whether the stream has been closed by its
    [=underlying source=], but still has [=chunks=] in its internal queue that have not yet been
    read
-  <tr>
-   <td><dfn>\[[isOwning]]</dfn>
-   <td class="non-normative">A boolean flag indicating whether to take ownership of enqueued chunks
-   via transfer or serialization.
   <tr>
    <td><dfn>\[[pullAgain]]</dfn>
    <td class="non-normative">A boolean flag set to true if the stream's mechanisms requested a call
@@ -1610,10 +1570,9 @@ the following table:
   previously-enqueued [=chunks=] from the stream, but once those are read, the stream will become
   closed.
 
- <dt><code><var ignore>controller</var>.{{ReadableStreamDefaultController/enqueue()|enqueue}}(|chunk|, |options|)</code>
+ <dt><code><var ignore>controller</var>.{{ReadableStreamDefaultController/enqueue()|enqueue}}(<var ignore>chunk</var>)</code>
  <dd>
-  <p>Enqueues the given [=chunk=] |chunk| in the controlled readable stream,
-    with |options|.
+  <p>Enqueues the given [=chunk=] <var ignore>chunk</var> in the controlled readable stream.
 
  <dt><code><var ignore>controller</var>.{{ReadableStreamDefaultController/error()|error}}(<var ignore>e</var>)</code>
  <dd>
@@ -1639,14 +1598,11 @@ the following table:
 
 <div algorithm>
  The <dfn id="rs-default-controller-enqueue" method
- for="ReadableStreamDefaultController">enqueue(|chunk|, |options|)</dfn> method steps are:
+ for="ReadableStreamDefaultController">enqueue(|chunk|)</dfn> method steps are:
 
- 1. Let |transferList| be |options|["transfer"].
- 1. If |transferList| is not [=list/is empty|empty=] and [=this=].[=ReadableStreamDefaultController/[[isOwning]]=] is false,
-    throw a {{TypeError}} exception.
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$]([=this=]) is false, throw a
     {{TypeError}} exception.
- 1. Perform ? [$ReadableStreamDefaultControllerEnqueue$]([=this=], |chunk|, |transferList|).
+ 1. Perform ? [$ReadableStreamDefaultControllerEnqueue$]([=this=], |chunk|).
 </div>
 
 <div algorithm>
@@ -1831,10 +1787,6 @@ has the following [=struct/items=]:
 : <dfn for="pull-into descriptor">bytes filled</dfn>
 :: A nonnegative integer number of bytes that have been written into the [=pull-into
    descriptor/buffer=] so far
-: <dfn for="pull-into descriptor">minimum fill</dfn>
-:: A positive integer representing the minimum number of bytes that must be written into the
-   [=pull-into descriptor/buffer=] before the associated {{ReadableStreamBYOBReader/read()}} request
-   may be fulfilled. By default, this equals the [=pull-into descriptor/element size=].
 : <dfn for="pull-into descriptor">element size</dfn>
 :: A positive integer representing the number of bytes that can be written into the [=pull-into
    descriptor/buffer=] at a time, using views of the type described by the [=pull-into
@@ -1961,35 +1913,12 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
   1. If |buffer| is an abrupt completion,
    1. Perform |readRequest|'s [=read request/error steps=], given |buffer|.\[[Value]].
    1. Return.
-  1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with
-     <dl class="props">
-      <dt>[=pull-into descriptor/buffer=]
-      <dd>|buffer|.\[[Value]]
-
-      <dt>[=pull-into descriptor/buffer byte length=]
-      <dd>|autoAllocateChunkSize|
-
-      <dt>[=pull-into descriptor/byte offset=]
-      <dd>0
-
-      <dt>[=pull-into descriptor/byte length=]
-      <dd>|autoAllocateChunkSize|
-
-      <dt>[=pull-into descriptor/bytes filled=]
-      <dd>0
-
-      <dt>[=pull-into descriptor/minimum fill=]
-      <dd>1
-
-      <dt>[=pull-into descriptor/element size=]
-      <dd>1
-
-      <dt>[=pull-into descriptor/view constructor=]
-      <dd>{{%Uint8Array%}}
-
-      <dt>[=pull-into descriptor/reader type=]
-      <dd>"`default`"
-     </dl>
+  1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
+     |buffer|.\[[Value]], [=pull-into descriptor/buffer byte length=] |autoAllocateChunkSize|,
+     [=pull-into descriptor/byte offset=] 0, [=pull-into descriptor/byte length=]
+     |autoAllocateChunkSize|, [=pull-into descriptor/bytes filled=] 0, [=pull-into
+     descriptor/element size=] 1, [=pull-into descriptor/view constructor=] {{%Uint8Array%}}, and
+     [=pull-into descriptor/reader type=] "`default`".
   1. [=list/Append=] |pullIntoDescriptor| to
      [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=].
  1. Perform ! [$ReadableStreamAddReadRequest$](|stream|, |readRequest|).
@@ -2378,8 +2307,8 @@ create them does not matter.
  objects|transferring=] their [=chunks=]. However, it does introduce a noticeable asymmetry between
  the two branches, and limits the possible [=chunks=] to serializable ones. [[!HTML]]
 
- If |stream| is a [=readable byte stream=], or if |stream| type is "{{ReadableStreamType/owning}}",
- then |cloneForBranch2| is ignored and chunks are cloned unconditionally.
+ If |stream| is a [=readable byte stream=], then |cloneForBranch2| is ignored and chunks are cloned
+ unconditionally.
 
  <p class="note">In this standard ReadableStreamTee is always called with |cloneForBranch2| set to
  false; other specifications pass true via the [=ReadableStream/tee=] wrapper algorithm.
@@ -2390,8 +2319,6 @@ create them does not matter.
  1. Assert: |cloneForBranch2| is a boolean.
  1. If |stream|.[=ReadableStream/[[controller]]=] [=implements=] {{ReadableByteStreamController}},
     return ? [$ReadableByteStreamTee$](|stream|).
- 1. If |stream|.[=ReadableStream/[[controller]]=].[=ReadableStreamDefaultController/[[isOwning]]=]
-    is true, return ? [$ReadableStreamDefaultTee$](|stream|, true).
  1. Return ? [$ReadableStreamDefaultTee$](|stream|, |cloneForBranch2|).
 </div>
 
@@ -2432,10 +2359,10 @@ create them does not matter.
       1. Otherwise, set |chunk2| to |cloneResult|.\[[Value]].
      1. If |canceled1| is false, perform !
         [$ReadableStreamDefaultControllerEnqueue$](|branch1|.[=ReadableStream/[[controller]]=],
-        |chunk1|, « »).
+        |chunk1|).
      1. If |canceled2| is false, perform !
         [$ReadableStreamDefaultControllerEnqueue$](|branch2|.[=ReadableStream/[[controller]]=],
-        |chunk2|, « »).
+        |chunk2|).
      1. Set |reading| to false.
      1. If |readAgain| is true, perform |pullAlgorithm|.
 
@@ -2635,7 +2562,7 @@ create them does not matter.
    : [=read-into request/error steps=]
    ::
     1. Set |reading| to false.
-  1. Perform ! [$ReadableStreamBYOBReaderRead$](|reader|, |view|, 1, |readIntoRequest|).
+  1. Perform ! [$ReadableStreamBYOBReaderRead$](|reader|, |view|, |readIntoRequest|).
  1. Let |pull1Algorithm| be the following steps:
   1. If |reading| is true,
    1. Set |readAgainForBranch1| to true.
@@ -2935,7 +2862,7 @@ The following abstract operations support the implementation and manipulation of
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamBYOBReaderRead"
- id="readable-stream-byob-reader-read">ReadableStreamBYOBReaderRead(|reader|, |view|, |min|,
+ id="readable-stream-byob-reader-read">ReadableStreamBYOBReaderRead(|reader|, |view|,
  |readIntoRequest|)</dfn> performs the following steps:
 
  1. Let |stream| be |reader|.[=ReadableStreamGenericReader/[[stream]]=].
@@ -2944,7 +2871,7 @@ The following abstract operations support the implementation and manipulation of
  1. If |stream|.[=ReadableStream/[[state]]=] is "`errored`", perform |readIntoRequest|'s [=read-into
     request/error steps=] given |stream|.[=ReadableStream/[[storedError]]=].
  1. Otherwise, perform ! [$ReadableByteStreamControllerPullInto$](|stream|.[=ReadableStream/[[controller]]=],
-    |view|, |min|, |readIntoRequest|).
+    |view|, |readIntoRequest|).
 </div>
 
 <div algorithm>
@@ -3095,21 +3022,13 @@ The following abstract operations support the implementation of the
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamDefaultControllerEnqueue"
  id="readable-stream-default-controller-enqueue">ReadableStreamDefaultControllerEnqueue(|controller|,
- |chunk|, |transferList|)</dfn> performs the following steps:
+ |chunk|)</dfn> performs the following steps:
 
- 1. Assert: |transferList| [=list/is empty=] or |controller|.[=ReadableStreamDefaultController/[[isOwning]]=] is true.
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|controller|) is false, return.
  1. Let |stream| be |controller|.[=ReadableStreamDefaultController/[[stream]]=].
  1. If ! [$IsReadableStreamLocked$](|stream|) is true and !
-    [$ReadableStreamGetNumReadRequests$](|stream|) > 0, perform the following steps:
-    1. Let |internalChunk| be |chunk|.
-    1. If |controller|.[=ReadableStreamDefaultController/[[isOwning]]=] is true, perform the following steps:
-       1. Let |result| be [$StructuredTransferOrClone$](|chunk|, |transferList|).
-       1. If |result| is an abrupt completion,
-          1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |result|.\[[Value]]).
-          1. Return |result|.
-       1. Set |internalChunk| to |result|.\[[Value]].
-    1. Perform ! [$ReadableStreamFulfillReadRequest$](|stream|, |internalChunk|, false).
+    [$ReadableStreamGetNumReadRequests$](|stream|) > 0, perform !
+    [$ReadableStreamFulfillReadRequest$](|stream|, |chunk|, false).
  1. Otherwise,
   1. Let |result| be the result of performing
      |controller|.[=ReadableStreamDefaultController/[[strategySizeAlgorithm]]=], passing in |chunk|,
@@ -3118,7 +3037,7 @@ The following abstract operations support the implementation of the
    1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |result|.\[[Value]]).
    1. Return |result|.
   1. Let |chunkSize| be |result|.\[[Value]].
-  1. Let |enqueueResult| be [$EnqueueValueWithSize$](|controller|, |chunk|, |chunkSize|, |transferList|).
+  1. Let |enqueueResult| be [$EnqueueValueWithSize$](|controller|, |chunk|, |chunkSize|).
   1. If |enqueueResult| is an abrupt completion,
    1. Perform ! [$ReadableStreamDefaultControllerError$](|controller|, |enqueueResult|.\[[Value]]).
    1. Return |enqueueResult|.
@@ -3182,7 +3101,7 @@ The following abstract operations support the implementation of the
  <dfn abstract-op lt="SetUpReadableStreamDefaultController"
  id="set-up-readable-stream-default-controller">SetUpReadableStreamDefaultController(|stream|,
  |controller|, |startAlgorithm|, |pullAlgorithm|, |cancelAlgorithm|, |highWaterMark|,
- |sizeAlgorithm|, |isOwning|)</dfn> performs the following steps:
+ |sizeAlgorithm|)</dfn> performs the following steps:
 
  1. Assert: |stream|.[=ReadableStream/[[controller]]=] is undefined.
  1. Set |controller|.[=ReadableStreamDefaultController/[[stream]]=] to |stream|.
@@ -3192,9 +3111,8 @@ The following abstract operations support the implementation of the
     |controller|.[=ReadableStreamDefaultController/[[pullAgain]]=], and
     |controller|.[=ReadableStreamDefaultController/[[pulling]]=] to false.
  1. Set |controller|.[=ReadableStreamDefaultController/[[strategySizeAlgorithm]]=] to
-    |sizeAlgorithm|, |controller|.[=ReadableStreamDefaultController/[[strategyHWM]]=] to
-    |highWaterMark| and |controller|.[=ReadableStreamDefaultController/[[isOwning]]=] to
-    |isOwning|.
+    |sizeAlgorithm| and |controller|.[=ReadableStreamDefaultController/[[strategyHWM]]=] to
+    |highWaterMark|.
  1. Set |controller|.[=ReadableStreamDefaultController/[[pullAlgorithm]]=] to |pullAlgorithm|.
  1. Set |controller|.[=ReadableStreamDefaultController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
  1. Set |stream|.[=ReadableStream/[[controller]]=] to |controller|.
@@ -3219,8 +3137,6 @@ The following abstract operations support the implementation of the
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |pullAlgorithm| be an algorithm that returns [=a promise resolved with=] undefined.
  1. Let |cancelAlgorithm| be an algorithm that returns [=a promise resolved with=] undefined.
- 1. Let |isOwning| be true if |underlyingSourceDict|["{{UnderlyingSource/type}}"] is
-    "{{ReadableStreamType/owning}}" and false otherwise.
  1. If |underlyingSourceDict|["{{UnderlyingSource/start}}"] [=map/exists=], then set
     |startAlgorithm| to an algorithm which returns the result of [=invoking=]
     |underlyingSourceDict|["{{UnderlyingSource/start}}"] with argument list
@@ -3234,7 +3150,7 @@ The following abstract operations support the implementation of the
     [=invoking=] |underlyingSourceDict|["{{UnderlyingSource/cancel}}"] with argument list
     «&nbsp;|reason|&nbsp;» and [=callback this value=] |underlyingSource|.
  1. Perform ? [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
-    |pullAlgorithm|, |cancelAlgorithm|, |highWaterMark|, |sizeAlgorithm|, |isOwning|).
+    |pullAlgorithm|, |cancelAlgorithm|, |highWaterMark|, |sizeAlgorithm|).
 </div>
 
 <h4 id="rbs-controller-abstract-ops">Byte stream controllers</h4>
@@ -3303,8 +3219,7 @@ The following abstract operations support the implementation of the
  1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty,
   1. Let |firstPendingPullInto| be
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
-  1. If the remainder after dividing |firstPendingPullInto|'s [=pull-into descriptor/bytes filled=]
-     by |firstPendingPullInto|'s [=pull-into descriptor/element size=] is not 0,
+  1. If |firstPendingPullInto|'s [=pull-into descriptor/bytes filled=] > 0,
    1. Let |e| be a new {{TypeError}} exception.
    1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
    1. Throw |e|.
@@ -3321,8 +3236,7 @@ The following abstract operations support the implementation of the
  1. Assert: |pullIntoDescriptor|.[=pull-into descriptor/reader type=] is not "`none`".
  1. Let |done| be false.
  1. If |stream|.[=ReadableStream/[[state]]=] is "`closed`",
-  1. Assert: the remainder after dividing |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]
-     by |pullIntoDescriptor|'s [=pull-into descriptor/element size=] is 0.
+  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
   1. Set |done| to true.
  1. Let |filledView| be !
     [$ReadableByteStreamControllerConvertPullIntoDescriptor$](|pullIntoDescriptor|).
@@ -3341,7 +3255,7 @@ The following abstract operations support the implementation of the
  1. Let |bytesFilled| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
  1. Let |elementSize| be |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. Assert: |bytesFilled| ≤ |pullIntoDescriptor|'s [=pull-into descriptor/byte length=].
- 1. Assert: the remainder after dividing |bytesFilled| by |elementSize| is 0.
+ 1. Assert: |bytesFilled| mod |elementSize| is 0.
  1. Let |buffer| be ! [$TransferArrayBuffer$](|pullIntoDescriptor|'s [=pull-into descriptor/buffer=]).
  1. Return ! [$Construct$](|pullIntoDescriptor|'s [=pull-into descriptor/view constructor=], «
     |buffer|, |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=],
@@ -3471,25 +3385,21 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-fill-pull-into-descriptor-from-queue">ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(|controller|,
  |pullIntoDescriptor|)</dfn> performs the following steps:
 
+ 1. Let |elementSize| be |pullIntoDescriptor|.\[[elementSize]].
+ 1. Let |currentAlignedBytes| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] −
+    (|pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] mod |elementSize|).
  1. Let |maxBytesToCopy| be min(|controller|.[=ReadableByteStreamController/[[queueTotalSize]]=],
     |pullIntoDescriptor|'s [=pull-into descriptor/byte length=] − |pullIntoDescriptor|'s [=pull-into
     descriptor/bytes filled=]).
  1. Let |maxBytesFilled| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] +
     |maxBytesToCopy|.
+ 1. Let |maxAlignedBytes| be |maxBytesFilled| − (|maxBytesFilled| mod |elementSize|).
  1. Let |totalBytesToCopyRemaining| be |maxBytesToCopy|.
  1. Let |ready| be false.
- 1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] < |pullIntoDescriptor|'s
-    [=pull-into descriptor/minimum fill=].
- 1. Let |remainderBytes| be the remainder after dividing |maxBytesFilled| by |pullIntoDescriptor|'s
-    [=pull-into descriptor/element size=].
- 1. Let |maxAlignedBytes| be |maxBytesFilled| − |remainderBytes|.
- 1. If |maxAlignedBytes| ≥ |pullIntoDescriptor|'s [=pull-into descriptor/minimum fill=],
+ 1. If |maxAlignedBytes| > |currentAlignedBytes|,
   1. Set |totalBytesToCopyRemaining| to |maxAlignedBytes| − |pullIntoDescriptor|'s [=pull-into
      descriptor/bytes filled=].
   1. Set |ready| to true.
-     <p class="note">A descriptor for a {{ReadableStreamBYOBReader/read()}} request
-     that is not yet filled up to its minimum length will stay at the head of the queue, so the
-     [=underlying source=] can keep filling it.
  1. Let |queue| be |controller|.[=ReadableByteStreamController/[[queue]]=].
  1. [=While=] |totalBytesToCopyRemaining| > 0,
   1. Let |headOfQueue| be |queue|[0].
@@ -3517,7 +3427,7 @@ The following abstract operations support the implementation of the
   1. Assert: |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0.
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] > 0.
   1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt;
-     |pullIntoDescriptor|'s [=pull-into descriptor/minimum fill=].
+     |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. Return |ready|.
 </div>
 
@@ -3636,7 +3546,7 @@ The following abstract operations support the implementation of the
 <div algorithm>
  <dfn abstract-op lt="ReadableByteStreamControllerPullInto"
  id="readable-byte-stream-controller-pull-into">ReadableByteStreamControllerPullInto(|controller|,
- |view|, |min|, |readIntoRequest|)</dfn> performs the following steps:
+ |view|, |readIntoRequest|)</dfn> performs the following steps:
 
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. Let |elementSize| be 1.
@@ -3646,9 +3556,6 @@ The following abstract operations support the implementation of the
      |view|.\[[TypedArrayName]].
   1. Set |ctor| to the constructor specified in [=the typed array constructors table=] for
      |view|.\[[TypedArrayName]].
- 1. Let |minimumFill| be |min| &times; |elementSize|.
- 1. Assert: |minimumFill| ≥ 0 and |minimumFill| ≤ |view|.\[[ByteLength]].
- 1. Assert: the remainder after dividing |minimumFill| by |elementSize| is 0.
  1. Let |byteOffset| be |view|.\[[ByteOffset]].
  1. Let |byteLength| be |view|.\[[ByteLength]].
  1. Let |bufferResult| be [$TransferArrayBuffer$](|view|.\[[ViewedArrayBuffer]]).
@@ -3656,35 +3563,12 @@ The following abstract operations support the implementation of the
   1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |bufferResult|.\[[Value]].
   1. Return.
  1. Let |buffer| be |bufferResult|.\[[Value]].
- 1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with
-    <dl class="props">
-     <dt>[=pull-into descriptor/buffer=]
-     <dd>|buffer|
-
-     <dt>[=pull-into descriptor/buffer byte length=]
-     <dd>|buffer|.\[[ArrayBufferByteLength]]
-
-     <dt>[=pull-into descriptor/byte offset=]
-     <dd>|byteOffset|
-
-     <dt>[=pull-into descriptor/byte length=]
-     <dd>|byteLength|
-
-     <dt>[=pull-into descriptor/bytes filled=]
-     <dd>0
-
-     <dt>[=pull-into descriptor/minimum fill=]
-     <dd>|minimumFill|
-
-     <dt>[=pull-into descriptor/element size=]
-     <dd>|elementSize|
-
-     <dt>[=pull-into descriptor/view constructor=]
-     <dd>|ctor|
-
-     <dt>[=pull-into descriptor/reader type=]
-     <dd>"`byob`"
-    </dl>
+ 1. Let |pullIntoDescriptor| be a new [=pull-into descriptor=] with [=pull-into descriptor/buffer=]
+    |buffer|, [=pull-into descriptor/buffer byte length=] |buffer|.\[[ArrayBufferByteLength]],
+    [=pull-into descriptor/byte offset=] |byteOffset|, [=pull-into descriptor/byte length=]
+    |byteLength|, [=pull-into descriptor/bytes filled=] 0, [=pull-into descriptor/element size=]
+    |elementSize|, [=pull-into descriptor/view constructor=] |ctor|, and [=pull-into
+    descriptor/reader type=] "`byob`".
  1. If |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not empty,
   1. [=list/Append=] |pullIntoDescriptor| to
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=].
@@ -3740,8 +3624,7 @@ The following abstract operations support the implementation of the
  id="readable-byte-stream-controller-respond-in-closed-state">ReadableByteStreamControllerRespondInClosedState(|controller|,
  |firstDescriptor|)</dfn> performs the following steps:
 
- 1. Assert: the remainder after dividing |firstDescriptor|'s [=pull-into descriptor/bytes filled=]
-    by |firstDescriptor|'s [=pull-into descriptor/element size=] is 0.
+ 1. Assert: |firstDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
  1. If |firstDescriptor|'s [=pull-into descriptor/reader type=] is "`none`",
     perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
@@ -3768,13 +3651,10 @@ The following abstract operations support the implementation of the
   1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
   1. Return.
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
-    [=pull-into descriptor/minimum fill=], return.
-    <p class="note">A descriptor for a {{ReadableStreamBYOBReader/read()}} request
-    that is not yet filled up to its minimum length will stay at the head of the queue, so the
-    [=underlying source=] can keep filling it.
+    [=pull-into descriptor/element size=], return.
  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
- 1. Let |remainderSize| be the remainder after dividing |pullIntoDescriptor|'s
-    [=pull-into descriptor/bytes filled=] by |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
+ 1. Let |remainderSize| be |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] mod
+    |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
  1. If |remainderSize| > 0,
    1. Let |end| be |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=] +
       |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
@@ -5380,7 +5260,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-close">WritableStreamDefaultControllerClose(|controller|)</dfn>
  performs the following steps:
 
- 1. Perform ! [$EnqueueValueWithSize$](|controller|, [=close sentinel=], 0, « »).
+ 1. Perform ! [$EnqueueValueWithSize$](|controller|, [=close sentinel=], 0).
  1. Perform ! [$WritableStreamDefaultControllerAdvanceQueueIfNeeded$](|controller|).
 </div>
 
@@ -5484,7 +5364,7 @@ The following abstract operations support the implementation of the
  id="writable-stream-default-controller-write">WritableStreamDefaultControllerWrite(|controller|,
  |chunk|, |chunkSize|)</dfn> performs the following steps:
 
- 1. Let |enqueueResult| be [$EnqueueValueWithSize$](|controller|, |chunk|, |chunkSize|, « »).
+ 1. Let |enqueueResult| be [$EnqueueValueWithSize$](|controller|, |chunk|, |chunkSize|).
  1. If |enqueueResult| is an abrupt completion,
   1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|controller|,
      |enqueueResult|.\[[Value]]).
@@ -5623,7 +5503,6 @@ dictionary Transformer {
   TransformerStartCallback start;
   TransformerTransformCallback transform;
   TransformerFlushCallback flush;
-  TransformerCancelCallback cancel;
   any readableType;
   any writableType;
 };
@@ -5631,7 +5510,6 @@ dictionary Transformer {
 callback TransformerStartCallback = any (TransformStreamDefaultController controller);
 callback TransformerFlushCallback = Promise<undefined> (TransformStreamDefaultController controller);
 callback TransformerTransformCallback = Promise<undefined> (any chunk, TransformStreamDefaultController controller);
-callback TransformerCancelCallback = Promise<undefined> (any reason);
 </xmp>
 
 <dl>
@@ -5694,25 +5572,6 @@ callback TransformerCancelCallback = Promise<undefined> (any reason);
    {{Transformer/flush|flush()}}; the stream is already in the process of successfully closing down,
    and terminating it would be counterproductive.)
 
-  <dt><dfn dict-member for="Transformer" lt="cancel">cancel(<var ignore>reason</var>)</dfn></dt>
-  <dd>
-   <p>A function called when the [=readable side=] is cancelled, or when the [=writable side=] is
-   aborted.
-
-   <p>Typically this is used to clean up underlying transformer resources when the stream is aborted
-   or cancelled.
-
-   <p>If the cancellation process is asynchronous, the function can return a promise to signal
-   success or failure; the result will be communicated to the caller of
-   {{WritableStream/abort()|stream.writable.abort()}} or
-   {{ReadableStream/cancel()|stream.readable.cancel()}}. Throwing an exception is treated the same
-   as returning a rejected promise.
-
-   <p>(Note that there is no need to call
-   {{TransformStreamDefaultController/terminate()|controller.terminate()}} inside
-   {{Transformer/cancel|cancel()}}; the stream is already in the process of cancelling/aborting, and
-   terminating it would be counterproductive.)
-
  <dt><dfn dict-member for="Transformer">readableType</dfn></dt>
  <dd>
   <p>This property is reserved for future use, so any attempts to supply a value will throw an
@@ -5726,8 +5585,8 @@ callback TransformerCancelCallback = Promise<undefined> (any reason);
 
 The <code>controller</code> object passed to {{Transformer/start|start()}},
 {{Transformer/transform|transform()}}, and {{Transformer/flush|flush()}} is an instance of
-{{TransformStreamDefaultController}}, and has the ability to enqueue [=chunks=] to the
-[=readable side=], or to terminate or error the stream.
+{{TransformStreamDefaultController}}, and has the ability to enqueue [=chunks=] to the [=readable
+side=], or to terminate or error the stream.
 
 <h4 id="ts-prototype">Constructor and properties</h4>
 
@@ -5882,16 +5741,6 @@ the following table:
    <th>Description (<em>non-normative</em>)</th>
  <tbody>
   <tr>
-   <td><dfn>\[[cancelAlgorithm]]</dfn>
-   <td class="non-normative">A promise-returning algorithm, taking one argument (the reason for
-   cancellation), which communicates a requested cancellation to the [=transformer=]
-  <tr>
-   <td><dfn>\[[finishPromise]]</dfn>
-   <td class="non-normative">A promise which resolves on completion of either the
-   [=TransformStreamDefaultController/[[cancelAlgorithm]]=] or the
-   [=TransformStreamDefaultController/[[flushAlgorithm]]=]. If this field is unpopulated (that is,
-   undefined), then neither of those algorithms have been [=invoked=] yet
-  <tr>
    <td><dfn>\[[flushAlgorithm]]</dfn>
    <td class="non-normative">A promise-returning algorithm which communicates a requested close to
    the [=transformer=]
@@ -5984,7 +5833,8 @@ The following abstract operations operate on {{TransformStream}} instances at a 
  1. Let |pullAlgorithm| be the following steps:
   1. Return ! [$TransformStreamDefaultSourcePullAlgorithm$](|stream|).
  1. Let |cancelAlgorithm| be the following steps, taking a |reason| argument:
-  1. Return ! [$TransformStreamDefaultSourceCancelAlgorithm$](|stream|, |reason|).
+  1. Perform ! [$TransformStreamErrorWritableAndUnblockWrite$](|stream|, |reason|).
+  1. Return [=a promise resolved with=] undefined.
  1. Set |stream|.[=TransformStream/[[readable]]=] to ! [$CreateReadableStream$](|startAlgorithm|,
     |pullAlgorithm|, |cancelAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
  1. Set |stream|.[=TransformStream/[[backpressure]]=] and
@@ -6018,7 +5868,12 @@ The following abstract operations operate on {{TransformStream}} instances at a 
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|stream|.[=TransformStream/[[controller]]=]).
  1. Perform !
     [$WritableStreamDefaultControllerErrorIfNeeded$](|stream|.[=TransformStream/[[writable]]=].[=WritableStream/[[controller]]=], |e|).
- 1. Perform ! [$TransformStreamUnblockWrite$](|stream|).
+ 1. If |stream|.[=TransformStream/[[backpressure]]=] is true, perform ! [$TransformStreamSetBackpressure$](|stream|,
+    false).
+
+ <p class="note">The [$TransformStreamDefaultSinkWriteAlgorithm$] abstract operation could be
+ waiting for the promise stored in the [=TransformStream/[[backpressureChangePromise]]=] slot to
+ resolve. The call to [$TransformStreamSetBackpressure$] ensures that the promise always resolves.
 </div>
 
 <div algorithm>
@@ -6033,19 +5888,6 @@ The following abstract operations operate on {{TransformStream}} instances at a 
  1. Set |stream|.[=TransformStream/[[backpressure]]=] to |backpressure|.
 </div>
 
-<div algorithm>
- <dfn abstract-op lt="TransformStreamUnblockWrite"
- id="transform-stream-unblock-write">TransformStreamUnblockWrite(|stream|)</dfn> performs the
- following steps:
-
- 1. If |stream|.[=TransformStream/[[backpressure]]=] is true, perform ! [$TransformStreamSetBackpressure$](|stream|,
-    false).
-
- <p class="note">The [$TransformStreamDefaultSinkWriteAlgorithm$] abstract operation could be
- waiting for the promise stored in the [=TransformStream/[[backpressureChangePromise]]=] slot to
- resolve. The call to [$TransformStreamSetBackpressure$] ensures that the promise always resolves.
-</div>
-
 <h4 id="ts-default-controller-abstract-ops">Default controllers</h4>
 
 The following abstract operations support the implementaiton of the
@@ -6054,8 +5896,7 @@ The following abstract operations support the implementaiton of the
 <div algorithm>
  <dfn abstract-op lt="SetUpTransformStreamDefaultController"
  id="set-up-transform-stream-default-controller">SetUpTransformStreamDefaultController(|stream|,
- |controller|, |transformAlgorithm|, |flushAlgorithm|, |cancelAlgorithm|)</dfn> performs the
- following steps:
+ |controller|, |transformAlgorithm|, |flushAlgorithm|)</dfn> performs the following steps:
 
  1. Assert: |stream| [=implements=] {{TransformStream}}.
  1. Assert: |stream|.[=TransformStream/[[controller]]=] is undefined.
@@ -6064,7 +5905,6 @@ The following abstract operations support the implementaiton of the
  1. Set |controller|.[=TransformStreamDefaultController/[[transformAlgorithm]]=] to
     |transformAlgorithm|.
  1. Set |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=] to |flushAlgorithm|.
- 1. Set |controller|.[=TransformStreamDefaultController/[[cancelAlgorithm]]=] to |cancelAlgorithm|.
 </div>
 
 <div algorithm>
@@ -6078,7 +5918,6 @@ The following abstract operations support the implementaiton of the
   1. If |result| is an abrupt completion, return [=a promise rejected with=] |result|.\[[Value]].
   1. Otherwise, return [=a promise resolved with=] undefined.
  1. Let |flushAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
- 1. Let |cancelAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
  1. If |transformerDict|["{{Transformer/transform}}"] [=map/exists=], set |transformAlgorithm| to an
     algorithm which takes an argument |chunk| and returns the result of [=invoking=]
     |transformerDict|["{{Transformer/transform}}"] with argument list «&nbsp;|chunk|,
@@ -6086,12 +5925,8 @@ The following abstract operations support the implementaiton of the
  1. If |transformerDict|["{{Transformer/flush}}"] [=map/exists=], set |flushAlgorithm| to an
     algorithm which returns the result of [=invoking=] |transformerDict|["{{Transformer/flush}}"]
     with argument list «&nbsp;|controller|&nbsp;» and [=callback this value=] |transformer|.
- 1. If |transformerDict|["{{Transformer/cancel}}"] [=map/exists=], set |cancelAlgorithm| to an
-    algorithm which takes an argument |reason| and returns the result of [=invoking=]
-    |transformerDict|["{{Transformer/cancel}}"] with argument list «&nbsp;|reason|&nbsp;» and
-    [=callback this value=] |transformer|.
  1. Perform ! [$SetUpTransformStreamDefaultController$](|stream|, |controller|,
-    |transformAlgorithm|, |flushAlgorithm|, |cancelAlgorithm|).
+    |transformAlgorithm|, |flushAlgorithm|).
 </div>
 
 <div algorithm>
@@ -6110,7 +5945,6 @@ The following abstract operations support the implementaiton of the
 
  1. Set |controller|.[=TransformStreamDefaultController/[[transformAlgorithm]]=] to undefined.
  1. Set |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=] to undefined.
- 1. Set |controller|.[=TransformStreamDefaultController/[[cancelAlgorithm]]=] to undefined.
 </div>
 
 <div algorithm>
@@ -6124,7 +5958,7 @@ The following abstract operations support the implementaiton of the
  1. If ! [$ReadableStreamDefaultControllerCanCloseOrEnqueue$](|readableController|) is false, throw
     a {{TypeError}} exception.
  1. Let |enqueueResult| be [$ReadableStreamDefaultControllerEnqueue$](|readableController|,
-    |chunk|, « »).
+    |chunk|).
  1. If |enqueueResult| is an abrupt completion,
    1. Perform ! [$TransformStreamErrorWritableAndUnblockWrite$](|stream|,
       |enqueueResult|.\[[Value]]).
@@ -6201,26 +6035,8 @@ side=] of [=transform streams=].
  id="transform-stream-default-sink-abort-algorithm">TransformStreamDefaultSinkAbortAlgorithm(|stream|,
  |reason|)</dfn> performs the following steps:
 
- 1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
- 1. If |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] is not undefined, return
-    |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
- 1. Let |readable| be |stream|.[=TransformStream/[[readable]]=].
- 1. Let |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] be a new promise.
- 1. Let |cancelPromise| be the result of performing
-    |controller|.[=TransformStreamDefaultController/[[cancelAlgorithm]]=], passing |reason|.
- 1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|controller|).
- 1. [=React=] to |cancelPromise|:
-  1. If |cancelPromise| was fulfilled, then:
-   1. If |readable|.[=ReadableStream/[[state]]=] is "`errored`", [=reject=]
-      |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with
-      |readable|.[=ReadableStream/[[storedError]]=].
-   1. Otherwise:
-    1. Perform ! [$ReadableStreamDefaultControllerError$](|readable|.[=ReadableStream/[[controller]]=], |reason|).
-    1. [=Resolve=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with undefined.
-  1. If |cancelPromise| was rejected with reason |r|, then:
-   1. Perform ! [$ReadableStreamDefaultControllerError$](|readable|.[=ReadableStream/[[controller]]=], |r|).
-   1. [=Reject=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with |r|.
- 1. Return |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
+ 1. Perform ! [$TransformStreamError$](|stream|, |reason|).
+ 1. Return [=a promise resolved with=] undefined.
 </div>
 
 <div algorithm>
@@ -6228,61 +6044,26 @@ side=] of [=transform streams=].
  id="transform-stream-default-sink-close-algorithm">TransformStreamDefaultSinkCloseAlgorithm(|stream|)</dfn>
  performs the following steps:
 
- 1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
- 1. If |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] is not undefined, return
-    |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
  1. Let |readable| be |stream|.[=TransformStream/[[readable]]=].
- 1. Let |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] be a new promise.
+ 1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
  1. Let |flushPromise| be the result of performing
     |controller|.[=TransformStreamDefaultController/[[flushAlgorithm]]=].
  1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|controller|).
- 1. [=React=] to |flushPromise|:
+ 1. Return the result of [=reacting=] to |flushPromise|:
   1. If |flushPromise| was fulfilled, then:
-   1. If |readable|.[=ReadableStream/[[state]]=] is "`errored`", [=reject=]
-      |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with
+   1. If |readable|.[=ReadableStream/[[state]]=] is "`errored`", throw
       |readable|.[=ReadableStream/[[storedError]]=].
-   1. Otherwise:
-    1. Perform ! [$ReadableStreamDefaultControllerClose$](|readable|.[=ReadableStream/[[controller]]=]).
-    1. [=Resolve=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with undefined.
+   1. Perform !
+      [$ReadableStreamDefaultControllerClose$](|readable|.[=ReadableStream/[[controller]]=]).
   1. If |flushPromise| was rejected with reason |r|, then:
-   1. Perform ! [$ReadableStreamDefaultControllerError$](|readable|.[=ReadableStream/[[controller]]=], |r|).
-   1. [=Reject=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with |r|.
- 1. Return |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
+   1. Perform ! [$TransformStreamError$](|stream|, |r|).
+   1. Throw |readable|.[=ReadableStream/[[storedError]]=].
 </div>
 
 <h4 id="ts-default-source-abstract-ops">Default sources</h4>
 
 The following abstract operation is used to implement the [=underlying source=] for the [=readable
 side=] of [=transform streams=].
-
-<div algorithm>
- <dfn abstract-op lt="TransformStreamDefaultSourceCancelAlgorithm"
- id="transform-stream-default-source-cancel">TransformStreamDefaultSourceCancelAlgorithm(|stream|,
- |reason|)</dfn> performs the following steps:
-
- 1. Let |controller| be |stream|.[=TransformStream/[[controller]]=].
- 1. If |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] is not undefined, return
-    |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
- 1. Let |writable| be |stream|.[=TransformStream/[[writable]]=].
- 1. Let |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] be a new promise.
- 1. Let |cancelPromise| be the result of performing
-    |controller|.[=TransformStreamDefaultController/[[cancelAlgorithm]]=], passing |reason|.
- 1. Perform ! [$TransformStreamDefaultControllerClearAlgorithms$](|controller|).
- 1. [=React=] to |cancelPromise|:
-  1. If |cancelPromise| was fulfilled, then:
-   1. If |writable|.[=WritableStream/[[state]]=] is "`errored`", [=reject=]
-      |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with
-      |writable|.[=WritableStream/[[storedError]]=].
-   1. Otherwise:
-    1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|writable|.[=WritableStream/[[controller]]=], |reason|).
-    1. Perform ! [$TransformStreamUnblockWrite$](|stream|).
-    1. [=Resolve=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with undefined.
-  1. If |cancelPromise| was rejected with reason |r|, then:
-   1. Perform ! [$WritableStreamDefaultControllerErrorIfNeeded$](|writable|.[=WritableStream/[[controller]]=], |r|).
-   1. Perform ! [$TransformStreamUnblockWrite$](|stream|).
-   1. [=Reject=] |controller|.[=TransformStreamDefaultController/[[finishPromise]]=] with |r|.
- 1. Return |controller|.[=TransformStreamDefaultController/[[finishPromise]]=].
-</div>
 
 <div algorithm>
  <dfn abstract-op lt="TransformStreamDefaultSourcePullAlgorithm"
@@ -6655,16 +6436,13 @@ for="value-with-size">value</dfn> and <dfn for="value-with-size">size</dfn>.
 
 <div algorithm>
  <dfn abstract-op lt="EnqueueValueWithSize"
- id="enqueue-value-with-size">EnqueueValueWithSize(|container|, |value|, |size|, |transferList|)</dfn> performs the
+ id="enqueue-value-with-size">EnqueueValueWithSize(|container|, |value|, |size|)</dfn> performs the
  following steps:
 
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
  1. If ! [$IsNonNegativeNumber$](|size|) is false, throw a {{RangeError}} exception.
  1. If |size| is +∞, throw a {{RangeError}} exception.
- 1. Let |enqueuedValue| be |value|.
- 1. If |container| has an \[[isOwning]] internal slot whose value is true, perform the following steps:
-    1. Set |enqueuedValue| to ? [$StructuredTransferOrClone$](|value|, |transferList|).
- 1. [=list/Append=] a new [=value-with-size=] with [=value-with-size/value=] |enqueuedValue| and
+ 1. [=list/Append=] a new [=value-with-size=] with [=value-with-size/value=] |value| and
     [=value-with-size/size=] |size| to |container|.\[[queue]].
  1. Set |container|.\[[queueTotalSize]] to |container|.\[[queueTotalSize]] + |size|.
 </div>
@@ -6684,10 +6462,6 @@ for="value-with-size">value</dfn> and <dfn for="value-with-size">size</dfn>.
  performs the following steps:
 
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
- 1. If |container| has an \[[isOwning]] internal slot whose value is true, perform the following steps until |container|.\[[queue]]
-    [=list/is empty=]:
-    1. Let |chunk| be ! [$DequeueValue$]([=this=]).
-    1. If |chunk| has [=dispose steps=], perform the [=dispose steps=] given |chunk|.
  1. Set |container|.\[[queue]] to a new empty [=list=].
  1. Set |container|.\[[queueTotalSize]] to 0.
 </div>
@@ -6747,7 +6521,7 @@ abstract operations are used to implement these "cross-realm transforms".
   1. Let |value| be ! [$Get$](|data|, "`value`").
   1. Assert: [$Type$](|type|) is String.
   1. If |type| is "`chunk`",
-   1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|controller|, |value|, « »).
+   1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|controller|, |value|).
   1. Otherwise, if |type| is "`close`",
     1. Perform ! [$ReadableStreamDefaultControllerClose$](|controller|).
     1. Disentangle |port|.
@@ -6896,14 +6670,6 @@ The following abstract operations are a grab-bag of utilities.
  1. Return ? [$StructuredDeserialize$](|serialized|, [=the current Realm=]).
 </div>
 
-<div algorithm>
- <dfn abstract-op lt="StructuredTransferOrClone">StructuredTransferOrClone(|value|, |transferList|)</dfn>
-    performs the following steps:
- 1. Let |serialized| be ? [$StructuredSerializeWithTransfer$](|value|, |transferList|).
- 1. Let |deserialized| be ? [$StructuredDeserializeWithTransfer$](|serialized|, [=the current Realm=]).
- 1. Return |deserialized|.\[[Deserialized]].
-</div>
-
 <h2 id="other-specs">Using streams in other specifications</h2>
 
 Much of this standard concerns itself with the internal machinery of streams. Other specifications
@@ -6939,10 +6705,9 @@ to grow organically as needed.
      otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
   1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
- 1. Let |cancelAlgorithmWrapper| be an algorithm that runs these steps given |reason|:
-  1. Let |result| be the result of running |cancelAlgorithm| given |reason|, if |cancelAlgorithm|
-     was given, or null otherwise. If this throws an exception |e|, return
-     [=a promise rejected with=] |e|.
+ 1. Let |cancelAlgorithmWrapper| be an algorithm that runs these steps:
+  1. Let |result| be the result of running |cancelAlgorithm|, if |cancelAlgorithm| was given, or
+     null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
   1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
  1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
@@ -7036,14 +6801,13 @@ mark=] is greater than zero.
 </div>
 
 <div algorithm>
- To <dfn export for="ReadableStream">enqueue</dfn> the JavaScript value |chunk|
- with an optional |transferList| into a {{ReadableStream}} |stream|:
+ To <dfn export for="ReadableStream">enqueue</dfn> the JavaScript value |chunk| into a
+ {{ReadableStream}} |stream|:
 
  1. If |stream|.[=ReadableStream/[[controller]]=] [=implements=]
     {{ReadableStreamDefaultController}},
-  1. If |transferList| is null, set |transferList| to an [=list/is empty|empty=] list.
   1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
-     |chunk|, |transferList|).
+     |chunk|).
  1. Otherwise,
   1. Assert: |stream|.[=ReadableStream/[[controller]]=] [=implements=]
      {{ReadableByteStreamController}}.
@@ -7264,10 +7028,9 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
      null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
   1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
- 1. Let |abortAlgorithmWrapper| be an algorithm that runs these steps given |reason|:
-  1. Let |result| be the result of running |abortAlgorithm| given |reason|, if |abortAlgorithm| was
-     given, or null otherwise. If this throws an exception |e|, return [=a promise rejected with=]
-     |e|.
+ 1. Let |abortAlgorithmWrapper| be an algorithm that runs these steps:
+  1. Let |result| be the result of running |abortAlgorithm|, if |abortAlgorithm| was given, or
+     null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
   1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
  1. If |sizeAlgorithm| was not given, then set it to an algorithm that returns 1.
@@ -7357,10 +7120,9 @@ reason.
 <div algorithm="create a TransformStream">
  To <dfn export for="TransformStream" lt="set up|setting up">set up</dfn> a
  newly-[=new|created-via-Web IDL=] {{TransformStream}} |stream| given an algorithm <dfn export
- for="TransformStream/set up"><var>transformAlgorithm</var></dfn>, an optional algorithm <dfn
- export for="TransformStream/set up"><var>flushAlgorithm</var></dfn>, and an optional algorithm <dfn
- export for="TransformStream/set up"><var>cancelAlgorithm</var></dfn>, perform the following steps.
- |transformAlgorithm| and, if given, |flushAlgorithm| and |cancelAlgorithm|, may return a promise.
+ for="TransformStream/set up"><var>transformAlgorithm</var></dfn> and an optional algorithm <dfn
+ export for="TransformStream/set up"><var>flushAlgorithm</var></dfn>, perform the following steps.
+ |transformAlgorithm| and, if given, |flushAlgorithm|, may return a promise.
 
  1. Let |writableHighWaterMark| be 1.
  1. Let |writableSizeAlgorithm| be an algorithm that returns 1.
@@ -7376,18 +7138,12 @@ reason.
      null otherwise. If this throws an exception |e|, return [=a promise rejected with=] |e|.
   1. If |result| is a {{Promise}}, then return |result|.
   1. Return [=a promise resolved with=] undefined.
- 1. Let |cancelAlgorithmWrapper| be an algorithm that runs these steps given a value |reason|:
-  1. Let |result| be the result of running |cancelAlgorithm| given |reason|, if |cancelAlgorithm|
-     was given, or null otherwise. If this throws an exception |e|, return
-     [=a promise rejected with=] |e|.
-  1. If |result| is a {{Promise}}, then return |result|.
-  1. Return [=a promise resolved with=] undefined.
  1. Let |startPromise| be [=a promise resolved with=] undefined.
  1. Perform ! [$InitializeTransformStream$](|stream|, |startPromise|, |writableHighWaterMark|,
     |writableSizeAlgorithm|, |readableHighWaterMark|, |readableSizeAlgorithm|).
  1. Let |controller| be a [=new=] {{TransformStreamDefaultController}}.
  1. Perform ! [$SetUpTransformStreamDefaultController$](|stream|, |controller|,
-    |transformAlgorithmWrapper|, |flushAlgorithmWrapper|, |cancelAlgorithmWrapper|).
+    |transformAlgorithmWrapper|, |flushAlgorithmWrapper|).
 
  Other specifications should be careful when constructing their
  <i>[=TransformStream/set up/transformAlgorithm=]</i> to avoid [=in parallel=] reads from the given
@@ -8361,7 +8117,6 @@ James Pryor,
 Janessa Det,
 Jason Orendorff,
 Jeffrey Yasskin,
-Jeremy Roman,
 Jens Nockert,
 Lennart Grahl,
 Luca Casonato,
