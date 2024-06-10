@@ -34,6 +34,7 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: async generator; url: #sec-asyncgenerator-objects
   text: async iterable; url: #sec-asynciterable-interface
   text: internal slot; url: #sec-object-internal-methods-and-internal-slots
+  text: iterable; url: #sec-iterable-interface
   text: realm; url: #sec-code-realms
   text: the current Realm; url: #current-realm
   text: the typed array constructors table; url: #table-49
