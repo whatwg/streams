@@ -23,60 +23,26 @@ spec:html; type:dfn; text:port message queue
 
 <pre class="anchors">
 urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
- type: constructor
-  text: %Uint8Array%; url: #sec-typedarray-objects
-  text: %DataView%; url: #sec-dataview-constructor
-  text: %ArrayBuffer%; url: #sec-arraybuffer-constructor
  type: interface
   text: ArrayBuffer; url: #sec-arraybuffer-objects
   text: DataView; url: #sec-dataview-objects
-  text: Number; url: #sec-ecmascript-language-types-number-type
   text: SharedArrayBuffer; url: #sec-sharedarraybuffer-objects
   text: Uint8Array; url: #sec-typedarray-objects
-  text: %Object.prototype%; url: #sec-properties-of-the-object-prototype-object
  type: dfn
   text: abstract operation; url: #sec-algorithm-conventions-abstract-operations
   text: array; url: #sec-array-objects
   text: async generator; url: #sec-asyncgenerator-objects
   text: async iterable; url: #sec-asynciterable-interface
-  text: completion record; url: #sec-completion-record-specification-type
   text: internal slot; url: #sec-object-internal-methods-and-internal-slots
-  text: iterable; url: #sec-iterable-interface
   text: realm; url: #sec-code-realms
   text: the current Realm; url: #current-realm
   text: the typed array constructors table; url: #table-49
   text: typed array; url: #sec-typedarray-objects
-  text: Number type; url: #sec-ecmascript-language-types-number-type
-  text: Data Block; url: #sec-data-blocks
  type: abstract-op
-  text: Call; url: #sec-call
-  text: CloneArrayBuffer; url: #sec-clonearraybuffer
-  text: CopyDataBlockBytes; url: #sec-copydatablockbytes
-  text: CreateArrayFromList; url: #sec-createarrayfromlist
-  text: CreateBuiltinFunction; url: #sec-createbuiltinfunction
-  text: CreateDataProperty; url: #sec-createdataproperty
-  text: Construct; url: #sec-construct
-  text: DetachArrayBuffer; url: #sec-detacharraybuffer
-  text: Get; url: #sec-get-o-p
-  text: GetIterator; url: #sec-getiterator
-  text: GetMethod; url: #sec-getmethod
-  text: GetV; url: #sec-getv
-  text: IsDetachedBuffer; url: #sec-isdetachedbuffer
   text: IsInteger; url: #sec-isinteger
-  text: IteratorComplete; url: #sec-iteratorcomplete
-  text: IteratorNext; url: #sec-iteratornext
-  text: IteratorValue; url: #sec-iteratorvalue
-  text: OrdinaryObjectCreate; url: #sec-ordinaryobjectcreate
-  text: SameValue; url: #sec-samevalue
   text: Type; url: #sec-ecmascript-data-types-and-values
  text: TypeError; url: #sec-native-error-types-used-in-this-standard-typeerror; type: exception
  text: map; url: #sec-array.prototype.map; type: method; for: Array.prototype
-urlPrefix: https://webassembly.github.io/spec/js-api/; spec: WASM-JS-API-1
- type: interface
-  text: Memory; url: #memory
- type: attribute
-  text: buffer; for: Memory; url: #dom-memory-buffer
-url: https://wicg.github.io/compression/#compressionstream; spec: COMPRESSION; type: interface; text: CompressionStream
 </pre>
 
 <style>
