@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-const { IsNonNegativeNumber } = require('./miscellaneous.js');
+const { IsNonNegativeNumber, StructuredTransferOrClone } = require('./miscellaneous.js');
 
 exports.DequeueValue = container => {
   assert('_queue' in container && '_queueTotalSize' in container);
@@ -15,7 +15,7 @@ exports.DequeueValue = container => {
   return pair.value;
 };
 
-exports.EnqueueValueWithSize = (container, value, size) => {
+exports.EnqueueValueWithSize = (container, value, size, transferList) => {
   assert('_queue' in container && '_queueTotalSize' in container);
 
   if (!IsNonNegativeNumber(size)) {
@@ -24,7 +24,9 @@ exports.EnqueueValueWithSize = (container, value, size) => {
   if (size === Infinity) {
     throw new RangeError('Size must be a finite, non-NaN, non-negative number.');
   }
-
+  if (container._isOwning) {
+    value = StructuredTransferOrClone(value, transferList);
+  }
   container._queue.push({ value, size });
   container._queueTotalSize += size;
 };
@@ -37,9 +39,23 @@ exports.PeekQueueValue = container => {
   return pair.value;
 };
 
+const disposeStepsSymbol = Symbol('dispose-steps');
+
 exports.ResetQueue = container => {
   assert('_queue' in container && '_queueTotalSize' in container);
 
+  if (container._isOwning) {
+    while (container._queue.length > 0) {
+      const value = exports.DequeueValue(container);
+      if (typeof value[disposeStepsSymbol] === 'function') {
+        try {
+          value[disposeStepsSymbol]();
+        } catch (closeException) {
+          // Nothing to do.
+        }
+      }
+    }
+  }
   container._queue = [];
   container._queueTotalSize = 0;
 };
