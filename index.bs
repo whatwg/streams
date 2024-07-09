@@ -7459,19 +7459,19 @@ readable and writable streams represent the two ends of a longer pipeline, with 
 web developer code insert [=transform streams=] into the middle of them.
 
 <div class="example" id="example-endpoint-pair-usage">
- Assuming we had a web-platform-provided function `createEndpointPair()`, web developers would write
- code like so:
+ Assuming we had a web-platform-provided interface `Transformer` that had `readable` and
+ `writable` attributes, web developers would write code like so:
 
  <xmp highlight="js">
- const { readable, writable } = createEndpointPair();
- readable.pipeThrough(new TransformStream(...)).pipeTo(writable);
+ async function handleTransformer({transformer: {readable, writable}}) {
+   await readable.pipeThrough(new TransformStream(...)).pipeTo(writable);
+ }
  </xmp>
 </div>
 
-<p class="example" id="example-endpoint-pair-webrtc"><cite>WebRTC Insertable Media using
-Streams</cite> is an example of this technique, with its `sender.createEncodedStreams()` and
-`receiver.createEncodedStreams()` methods.
-<!-- TODO cite it and cross-link to it https://github.com/tobie/specref/issues/620 -->
+<p class="example" id="example-endpoint-pair-webrtc"><cite>WebRTC Encoded Transform</cite>
+is an example of this technique, with its {{RTCRtpScriptTransformer}} interface which has
+both `readable` and `writable` attributes.
 
 Despite such endpoint pairs obeying the `readable`/`writable` property contract, it never makes
 sense to pass them to {{ReadableStream/pipeThrough()}}.
