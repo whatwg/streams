@@ -7463,7 +7463,7 @@ web developer code insert [=transform streams=] into the middle of them.
  `writable` attributes, web developers would write code like so:
 
  <xmp highlight="js">
- async function handleTransformer({transformer: {readable, writable}}) {
+ async function handleTransformer({readable, writable}) {
    await readable.pipeThrough(new TransformStream(...)).pipeTo(writable);
  }
  </xmp>
