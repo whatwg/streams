@@ -7459,15 +7459,13 @@ readable and writable streams represent the two ends of a longer pipeline, with 
 web developer code insert [=transform streams=] into the middle of them.
 
 <div class="example" id="example-endpoint-pair-usage">
- Assuming a web-platform-fired "transform" event with a `transformer` attribute that is a
- `Transformer` interface with `readable` and `writable` attributes, web developers would
- write code like so:
+ Assuming we had a web-platform-provided interface `Transformer` that had `readable` and
+ `writable` attributes, web developers would write code like so:
 
  <xmp highlight="js">
- addEventListener("transform", ({transformer}) => {
-   const {readable, writable} = transformer;
+ async function handleTransformer({readable, writable}) {
    await readable.pipeThrough(new TransformStream(...)).pipeTo(writable);
- });
+ }
  </xmp>
 </div>
 
