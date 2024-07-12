@@ -7464,14 +7464,13 @@ web developer code insert [=transform streams=] into the middle of them.
 
  <xmp highlight="js">
  const { readable, writable } = createEndpointPair();
- readable.pipeThrough(new TransformStream(...)).pipeTo(writable);
+ await readable.pipeThrough(new TransformStream(...)).pipeTo(writable);
  </xmp>
 </div>
 
-<p class="example" id="example-endpoint-pair-webrtc"><cite>WebRTC Insertable Media using
-Streams</cite> is an example of this technique, with its `sender.createEncodedStreams()` and
-`receiver.createEncodedStreams()` methods.
-<!-- TODO cite it and cross-link to it https://github.com/tobie/specref/issues/620 -->
+<p class="example" id="example-endpoint-pair-webrtc"><cite>WebRTC Encoded Transform</cite>
+is an example of this technique, with its {{RTCRtpScriptTransformer}} interface which has
+both `readable` and `writable` attributes.
 
 Despite such endpoint pairs obeying the `readable`/`writable` property contract, it never makes
 sense to pass them to {{ReadableStream/pipeThrough()}}.
