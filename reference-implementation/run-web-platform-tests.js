@@ -39,7 +39,6 @@ async function main() {
     'readable-byte-streams/non-transferable-buffers.any.html',
     'readable-streams/owning-type-message-port.any.html', // disabled due to MessagePort use.
     'readable-streams/owning-type-video-frame.any.html', // disabled due to VideoFrame use.
-    'readable-streams/owning-type.any.html', // FIXME: reenable this test once owning type PR lands.
     'transferable/transform-stream-members.any.html' // FIXME: reenable if structuredClone is aligned.
   ];
   const anyTestPattern = /\.any\.html$/;
@@ -64,6 +63,7 @@ async function main() {
           }
         };
       };
+      window.structuredClone = globalThis.structuredClone;
       window.eval(bundledJS);
     },
     filter(testPath) {
