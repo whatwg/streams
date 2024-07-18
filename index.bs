@@ -2141,9 +2141,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
  1. Let |cancelAlgorithm| be the following steps, given |reason|:
   1. Let |finishPromise| be the result of [=closing/close an async iterable=] |asyncIterable| with
      reason |reason|.
-  1. Return the result of [=reacting=] to |finishPromise|:
-    - If |finishPromise| was fulfilled, return undefined.
-    - If |finishPromise| was rejected with reason |r|, throw |r|.
+  1. Return |finishPromise|.
  1. Set |stream| to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|, |cancelAlgorithm|,
     0).
  1. Return |stream|.
