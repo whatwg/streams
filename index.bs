@@ -5251,8 +5251,8 @@ The following abstract operations support the implementation of the
  1. Let |abortAlgorithm| be an algorithm that returns [=a promise resolved with=] undefined.
  1. If |underlyingSinkDict|["{{UnderlyingSink/start}}"] [=map/exists=], then set |startAlgorithm| to
     an algorithm which returns the result of [=invoking=]
-    |underlyingSinkDict|["{{UnderlyingSink/start}}"] with argument list «&nbsp;|controller|&nbsp;»
-    and [=callback this value=] |underlyingSink|.
+    |underlyingSinkDict|["{{UnderlyingSink/start}}"] with argument list «&nbsp;|controller|&nbsp;»,
+    exception behavior "<code>rethrow</code>", and [=callback this value=] |underlyingSink|.
  1. If |underlyingSinkDict|["{{UnderlyingSink/write}}"] [=map/exists=], then set |writeAlgorithm| to
     an algorithm which takes an argument |chunk| and returns the result of [=invoking=]
     |underlyingSinkDict|["{{UnderlyingSink/write}}"] with argument list «&nbsp;|chunk|,
