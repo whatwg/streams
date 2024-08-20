@@ -6016,7 +6016,8 @@ The following abstract operations support the implementaiton of the
   1. If |result| is an abrupt completion, return [=a promise rejected with=] |result|.\[[Value]].
   1. Otherwise, return [=a promise resolved with=] undefined.
  1. Let |flushAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
- 1. Let |cancelAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
+ 1. Let |cancelAlgorithm| be an algorithm which takes an argument |reason| and returns
+    [=a promise resolved with=] |reason|.
  1. If |transformerDict|["{{Transformer/transform}}"] [=map/exists=], set |transformAlgorithm| to an
     algorithm which takes an argument |chunk| and returns the result of [=invoking=]
     |transformerDict|["{{Transformer/transform}}"] with argument list «&nbsp;|chunk|,
