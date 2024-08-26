@@ -2123,7 +2123,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op export lt="ReadableStreamFromIterable" id="readable-stream-from-iterable">
+ <dfn abstract-op lt="ReadableStreamFromIterable" id="readable-stream-from-iterable">
  ReadableStreamFromIterable(|asyncIterable|)</dfn> performs the following steps:
 
  1. Let |stream| be undefined.
