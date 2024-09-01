@@ -12,4 +12,4 @@ callback UnderlyingSourceStartCallback = any (ReadableStreamController controlle
 callback UnderlyingSourcePullCallback = Promise<undefined> (ReadableStreamController controller);
 callback UnderlyingSourceCancelCallback = Promise<undefined> (optional any reason);
 
-enum ReadableStreamType { "bytes" };
+enum ReadableStreamType { "bytes", "owning" };
