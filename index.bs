@@ -3331,7 +3331,12 @@ The following abstract operations support the implementation of the
  1. Otherwise, if ! [$ReadableStreamHasBYOBReader$](|stream|) is true,
   1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
      |transferredBuffer|, |byteOffset|, |byteLength|).
-  1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
+  1. Let |filledPullIntos| be the result of performing
+     ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
+  1. [=list/For each=] |filledPullInto| of |filledPullIntos|,
+    1. Perform !
+       [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],
+       |filledPullInto|).
  1. Otherwise,
   1. Assert: ! [$IsReadableStreamLocked$](|stream|) is false.
   1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
@@ -3555,10 +3560,7 @@ The following abstract operations support the implementation of the
      |pullIntoDescriptor|) is true,
    1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
    1. [=list/Append=] |pullIntoDescriptor| to |filledPullIntos|.
- 1. [=list/For each=] |pullIntoDescriptor| of |filledPullIntos|,
-  1. Perform !
-     [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],
-     |pullIntoDescriptor|).
+ 1. Return |filledPullIntos|.
 </div>
 
 <div algorithm>
@@ -3707,7 +3709,12 @@ The following abstract operations support the implementation of the
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/reader type=] is "`none`",
   1. Perform ? [$ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue$](|controller|,
      |pullIntoDescriptor|).
-  1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
+  1. Let |filledPullIntos| be the result of performing
+     ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
+  1. [=list/For each=] |filledPullInto| of |filledPullIntos|,
+    1. Perform !
+       [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],
+       |filledPullInto|).
   1. Return.
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
     [=pull-into descriptor/minimum fill=], return.
@@ -3728,7 +3735,12 @@ The following abstract operations support the implementation of the
  1. Perform !
     [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],
     |pullIntoDescriptor|).
- 1. Perform ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
+ 1. Let |filledPullIntos| be the result of performing
+    ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
+ 1. [=list/For each=] |filledPullInto| of |filledPullIntos|,
+   1. Perform !
+      [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],
+      |filledPullInto|).
 </div>
 
 <div algorithm>

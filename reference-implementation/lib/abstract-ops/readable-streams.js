@@ -1360,7 +1360,10 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
   } else if (ReadableStreamHasBYOBReader(stream) === true) {
     // TODO: Ideally in this branch detaching should happen only if the buffer is not consumed fully.
     ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
-    ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+    const filledPullIntos = ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+    for (const filledPullInto of filledPullIntos) {
+      ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, filledPullInto);
+    }
   } else {
     assert(IsReadableStreamLocked(stream) === false);
     ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
@@ -1548,9 +1551,7 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
     }
   }
 
-  for (const pullIntoDescriptor of filledPullIntos) {
-    ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, pullIntoDescriptor);
-  }
+  return filledPullIntos;
 }
 
 function ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller) {
@@ -1689,7 +1690,10 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
 
   if (pullIntoDescriptor.readerType === 'none') {
     ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, pullIntoDescriptor);
-    ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+    const filledPullIntos = ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+    for (const filledPullInto of filledPullIntos) {
+      ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, filledPullInto);
+    }
     return;
   }
 
@@ -1715,7 +1719,10 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
   pullIntoDescriptor.bytesFilled -= remainderSize;
   ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, pullIntoDescriptor);
 
-  ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+  const filledPullIntos = ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+  for (const filledPullInto of filledPullIntos) {
+    ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, filledPullInto);
+  }
 }
 
 function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
