@@ -1425,6 +1425,7 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
 
   let totalBytesToCopyRemaining = maxBytesToCopy;
   let ready = false;
+  assert(!IsDetachedBuffer(pullIntoDescriptor.buffer));
   assert(pullIntoDescriptor.bytesFilled < pullIntoDescriptor.minimumFill);
   const remainderBytes = maxBytesFilled % pullIntoDescriptor.elementSize;
   const maxAlignedBytes = maxBytesFilled - remainderBytes;

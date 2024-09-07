@@ -3416,6 +3416,7 @@ The following abstract operations support the implementation of the
     |maxBytesToCopy|.
  1. Let |totalBytesToCopyRemaining| be |maxBytesToCopy|.
  1. Let |ready| be false.
+ 1. Assert: ! [$IsDetachedBuffer$](|pullIntoDescriptor|'s [=pull-into descriptor/buffer=]) is false.
  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] < |pullIntoDescriptor|'s
     [=pull-into descriptor/minimum fill=].
  1. Let |remainderBytes| be the remainder after dividing |maxBytesFilled| by |pullIntoDescriptor|'s
