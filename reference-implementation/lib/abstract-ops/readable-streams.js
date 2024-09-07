@@ -1533,9 +1533,10 @@ function ReadableByteStreamControllerInvalidateBYOBRequest(controller) {
 function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller) {
   assert(controller._closeRequested === false);
 
+  const filledPullIntos = [];
   while (controller._pendingPullIntos.length > 0) {
     if (controller._queueTotalSize === 0) {
-      return;
+      break;
     }
 
     const pullIntoDescriptor = controller._pendingPullIntos[0];
@@ -1543,12 +1544,12 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
 
     if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) === true) {
       ReadableByteStreamControllerShiftPendingPullInto(controller);
-
-      ReadableByteStreamControllerCommitPullIntoDescriptor(
-        controller._stream,
-        pullIntoDescriptor
-      );
+      filledPullIntos.push(pullIntoDescriptor);
     }
+  }
+
+  for (const pullIntoDescriptor of filledPullIntos) {
+    ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, pullIntoDescriptor);
   }
 }
 

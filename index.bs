@@ -3545,17 +3545,20 @@ The following abstract operations support the implementation of the
  performs the following steps:
 
  1. Assert: |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is false.
+ 1. Let |filledPullIntos| be a new empty [=list=].
  1. [=While=] |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not
     [=list/is empty|empty=],
-  1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0, return.
+  1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0, then [=break=].
   1. Let |pullIntoDescriptor| be
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
   1. If ! [$ReadableByteStreamControllerFillPullIntoDescriptorFromQueue$](|controller|,
      |pullIntoDescriptor|) is true,
    1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
-   1. Perform !
-      [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],
-      |pullIntoDescriptor|).
+   1. [=list/Append=] |pullIntoDescriptor| to |filledPullIntos|.
+ 1. [=list/For each=] |pullIntoDescriptor| of |filledPullIntos|,
+  1. Perform !
+     [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],
+     |pullIntoDescriptor|).
 </div>
 
 <div algorithm>
