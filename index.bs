@@ -3690,11 +3690,14 @@ The following abstract operations support the implementation of the
     perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. If ! [$ReadableStreamHasBYOBReader$](|stream|) is true,
+  1. Let |filledPullIntos| be a new empty [=list=].
   1. [=While=] ! [$ReadableStreamGetNumReadIntoRequests$](|stream|) > 0,
    1. Let |pullIntoDescriptor| be !
       [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
+   1. [=list/Append=] |pullIntoDescriptor| to |filledPullIntos|.
+  1. [=list/For each=] |filledPullInto| of |filledPullIntos|,
    1. Perform ! [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|stream|,
-      |pullIntoDescriptor|).
+      |filledPullInto|).
 </div>
 
 <div algorithm>
