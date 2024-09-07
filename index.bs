@@ -3732,11 +3732,11 @@ The following abstract operations support the implementation of the
       |remainderSize|).
  1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to |pullIntoDescriptor|'s
     [=pull-into descriptor/bytes filled=] − |remainderSize|.
+ 1. Let |filledPullIntos| be the result of performing
+    ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
  1. Perform !
     [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],
     |pullIntoDescriptor|).
- 1. Let |filledPullIntos| be the result of performing
-    ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
  1. [=list/For each=] |filledPullInto| of |filledPullIntos|,
    1. Perform !
       [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],

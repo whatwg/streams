@@ -1717,9 +1717,9 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
   }
 
   pullIntoDescriptor.bytesFilled -= remainderSize;
-  ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, pullIntoDescriptor);
-
   const filledPullIntos = ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+
+  ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, pullIntoDescriptor);
   for (const filledPullInto of filledPullIntos) {
     ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, filledPullInto);
   }
