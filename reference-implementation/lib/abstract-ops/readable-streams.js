@@ -1677,9 +1677,11 @@ function ReadableByteStreamControllerRespondInClosedState(controller, firstDescr
   const stream = controller._stream;
   if (ReadableStreamHasBYOBReader(stream) === true) {
     const filledPullIntos = [];
-    while (ReadableStreamGetNumReadIntoRequests(stream) > 0) {
+    let i = 0;
+    while (i < ReadableStreamGetNumReadIntoRequests(stream)) {
       const pullIntoDescriptor = ReadableByteStreamControllerShiftPendingPullInto(controller);
       filledPullIntos.push(pullIntoDescriptor);
+      ++i;
     }
     for (const filledPullInto of filledPullIntos) {
       ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto);
