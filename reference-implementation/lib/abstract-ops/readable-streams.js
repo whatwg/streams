@@ -4,9 +4,9 @@ const assert = require('assert');
 const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise, uponPromise,
         setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment, uponRejection } =
   require('../helpers/webidl.js');
-const { CanTransferArrayBuffer, Call, CopyDataBlockBytes, CreateArrayFromList, GetIterator, GetMethod, IsDetachedBuffer,
+const { CanTransferArrayBuffer, Call, CreateArrayFromList, GetIterator, GetMethod, IsDetachedBuffer,
         IteratorComplete, IteratorNext, IteratorValue, TransferArrayBuffer, typeIsObject } = require('./ecmascript.js');
-const { CloneAsUint8Array, IsNonNegativeNumber } = require('./miscellaneous.js');
+const { CloneAsUint8Array, IsNonNegativeNumber, SafeCopyDataBlockBytes } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
         WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
@@ -1447,7 +1447,14 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
     const bytesToCopy = Math.min(totalBytesToCopyRemaining, headOfQueue.byteLength);
 
     const destStart = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
-    CopyDataBlockBytes(pullIntoDescriptor.buffer, destStart, headOfQueue.buffer, headOfQueue.byteOffset, bytesToCopy);
+
+    if (SafeCopyDataBlockBytes(pullIntoDescriptor.buffer, destStart, headOfQueue.buffer, headOfQueue.byteOffset,
+                               bytesToCopy) === false) {
+      // This should never happen. Please report an issue if it does! https://github.com/whatwg/streams/issues
+      const e = new TypeError('Invalid buffer');
+      ReadableByteStreamControllerError(controller, e);
+      return false;
+    }
 
     if (headOfQueue.byteLength === bytesToCopy) {
       queue.shift();
