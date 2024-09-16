@@ -1,5 +1,5 @@
 'use strict';
-const { CopyDataBlockBytes, IsDetachedBuffer } = require('./ecmascript');
+const { IsDetachedBuffer } = require('./ecmascript');
 
 exports.IsNonNegativeNumber = v => {
   if (typeof v !== 'number') {
@@ -22,7 +22,7 @@ exports.CloneAsUint8Array = O => {
   return new Uint8Array(buffer);
 };
 
-exports.SafeCopyDataBlockBytes = (toBuffer, toIndex, fromBuffer, fromIndex, count) => {
+exports.CanCopyDataBlockBytes = (toBuffer, toIndex, fromBuffer, fromIndex, count) => {
   if (toBuffer === fromBuffer) {
     return false;
   }
@@ -38,6 +38,5 @@ exports.SafeCopyDataBlockBytes = (toBuffer, toIndex, fromBuffer, fromIndex, coun
   if (fromIndex + count > fromBuffer.byteLength) {
     return false;
   }
-  CopyDataBlockBytes(toBuffer, toIndex, fromBuffer, fromIndex, count);
   return true;
 };
