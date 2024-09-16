@@ -3444,6 +3444,11 @@ The following abstract operations support the implementation of the
   1. Assert: ! [$CanCopyDataBlockBytes$](|pullIntoDescriptor|'s [=pull-into descriptor/buffer=],
      |destStart|, |headOfQueue|'s [=readable byte stream queue entry/buffer=],
      |headOfQueue|'s [=readable byte stream queue entry/byte offset=], |bytesToCopy|) is true.
+     <p class="warning">If this assertion were to fail (due to a bug in this specification or
+     its implementation), then the next step may read from or write to potentially invalid memory.
+     The user agent should always check this assertion, and stop in an [=implementation-defined=]
+     manner if it fails (e.g. by crashing the process, or by
+     <a abstract-op lt="ReadableByteStreamControllerError">erroring the stream</a>).
   1. Perform ! [$CopyDataBlockBytes$](|pullIntoDescriptor|'s [=pull-into
      descriptor/buffer=].\[[ArrayBufferData]], |destStart|,
      |headOfQueue|'s [=readable byte stream queue entry/buffer=].\[[ArrayBufferData]],
