@@ -39,9 +39,26 @@ urlPrefix: https://tc39.es/ecma262/; spec: ECMASCRIPT
   text: the current Realm; url: #current-realm
   text: the typed array constructors table; url: #table-49
   text: typed array; url: #sec-typedarray-objects
+  url: sec-ecmascript-language-types-bigint-type
+   text: is a BigInt
+   text: is not a BigInt
+  url: sec-ecmascript-language-types-boolean-type
+   text: is a Boolean
+   text: is not a Boolean
+  url: sec-ecmascript-language-types-number-type
+   text: is a Number
+   text: is not a Number
+  url: sec-ecmascript-language-types-string-type
+   text: is a String
+   text: is not a String
+  url: sec-ecmascript-language-types-symbol-type
+   text: is a Symbol
+   text: is not a Symbol
+  url: sec-object-type
+   text: is an Object
+   text: is not an Object
  type: abstract-op
   text: IsInteger; url: #sec-isinteger
-  text: Type; url: #sec-ecmascript-data-types-and-values
  text: TypeError; url: #sec-native-error-types-used-in-this-standard-typeerror; type: exception
  text: map; url: #sec-array.prototype.map; type: method; for: Array.prototype
 </pre>
@@ -2160,7 +2177,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
   1. Let |nextPromise| be [=a promise resolved with=] |nextResult|.\[[Value]].
   1. Return the result of [=reacting=] to |nextPromise| with the following fulfillment steps,
      given |iterResult|:
-   1. If [$Type$](|iterResult|) is not Object, throw a {{TypeError}}.
+   1. If |iterResult| [=is not an Object=], throw a {{TypeError}}.
    1. Let |done| be ? [$IteratorComplete$](|iterResult|).
    1. If |done| is true:
     1. Perform ! [$ReadableStreamDefaultControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
@@ -2182,7 +2199,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
   1. Let |returnPromise| be [=a promise resolved with=] |returnResult|.\[[Value]].
   1. Return the result of [=reacting=] to |returnPromise| with the following fulfillment steps,
      given |iterResult|:
-   1. If [$Type$](|iterResult|) is not Object, throw a {{TypeError}}.
+   1. If |iterResult| [=is not an Object=], throw a {{TypeError}}.
    1. Return undefined.
  1. Set |stream| to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|, |cancelAlgorithm|,
     0).
@@ -6673,10 +6690,10 @@ abstract operations are used to implement these "cross-realm transforms".
  1. Let |controller| be a [=new=] {{ReadableStreamDefaultController}}.
  1. Add a handler for |port|'s {{MessagePort/message}} event with the following steps:
   1. Let |data| be the data of the message.
-  1. Assert: [$Type$](|data|) is Object.
+  1. Assert: |data| [=is an Object=].
   1. Let |type| be ! [$Get$](|data|, "`type`").
   1. Let |value| be ! [$Get$](|data|, "`value`").
-  1. Assert: [$Type$](|type|) is String.
+  1. Assert: |type| [=is a String=].
   1. If |type| is "`chunk`",
    1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|controller|, |value|).
   1. Otherwise, if |type| is "`close`",
@@ -6718,10 +6735,10 @@ abstract operations are used to implement these "cross-realm transforms".
  1. Let |backpressurePromise| be [=a new promise=].
  1. Add a handler for |port|'s {{MessagePort/message}} event with the following steps:
   1. Let |data| be the data of the message.
-  1. Assert: [$Type$](|data|) is Object.
+  1. Assert: |data| [=is an Object=].
   1. Let |type| be ! [$Get$](|data|, "`type`").
   1. Let |value| be ! [$Get$](|data|, "`value`").
-  1. Assert: [$Type$](|type|) is String.
+  1. Assert: |type| [=is a String=].
   1. If |type| is "`pull`",
    1. If |backpressurePromise| is not undefined,
     1. [=Resolve=] |backpressurePromise| with undefined.
@@ -6775,7 +6792,7 @@ The following abstract operations are a grab-bag of utilities.
  <dfn abstract-op lt="CanTransferArrayBuffer"
  id="can-transfer-array-buffer">CanTransferArrayBuffer(|O|)</dfn> performs the following steps:
 
- 1. Assert: [$Type$](|O|) is Object.
+ 1. Assert: |O| [=is an Object=].
  1. Assert: |O| has an \[[ArrayBufferData]] internal slot.
  1. If ! [$IsDetachedBuffer$](|O|) is true, return false.
  1. If [$SameValue$](|O|.\[[ArrayBufferDetachKey]], undefined) is false, return false.
@@ -6786,7 +6803,7 @@ The following abstract operations are a grab-bag of utilities.
  <dfn abstract-op lt="IsNonNegativeNumber"
  id="is-non-negative-number">IsNonNegativeNumber(|v|)</dfn> performs the following steps:
 
- 1. If [$Type$](|v|) is not Number, return false.
+ 1. If |v| [=is not a Number=], return false.
  1. If |v| is NaN, return false.
  1. If |v| &lt; 0, return false.
  1. Return true.
@@ -6811,7 +6828,7 @@ The following abstract operations are a grab-bag of utilities.
 <div algorithm>
  <dfn abstract-op lt="CloneAsUint8Array">CloneAsUint8Array(|O|)</dfn> performs the following steps:
 
- 1. Assert: [$Type$](|O|) is Object.
+ 1. Assert: |O| [=is an Object=].
  1. Assert: |O| has an \[[ViewedArrayBuffer]] internal slot.
  1. Assert: ! [$IsDetachedBuffer$](|O|.\[[ViewedArrayBuffer]]) is false.
  1. Let |buffer| be ? [$CloneArrayBuffer$](|O|.\[[ViewedArrayBuffer]], |O|.\[[ByteOffset]],
