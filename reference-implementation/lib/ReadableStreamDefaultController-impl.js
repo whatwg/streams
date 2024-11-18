@@ -17,12 +17,16 @@ exports.implementation = class ReadableStreamDefaultControllerImpl {
     aos.ReadableStreamDefaultControllerClose(this);
   }
 
-  enqueue(chunk) {
+  enqueue(chunk, options) {
+    const transferList = options.transfer;
+    if (transferList.length && !this._isOwning) {
+      throw new TypeError('The stream is not an owning stream and cannot make use of options');
+    }
     if (aos.ReadableStreamDefaultControllerCanCloseOrEnqueue(this) === false) {
       throw new TypeError('The stream is not in a state that permits enqueue');
     }
 
-    return aos.ReadableStreamDefaultControllerEnqueue(this, chunk);
+    return aos.ReadableStreamDefaultControllerEnqueue(this, chunk, transferList);
   }
 
   error(e) {
