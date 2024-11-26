@@ -662,6 +662,11 @@ function WritableStreamDefaultControllerGetBackpressure(controller) {
 }
 
 function WritableStreamDefaultControllerGetChunkSize(controller, chunk) {
+  if (controller._strategySizeAlgorithm === undefined) {
+    assert(controller._stream._state === 'erroring' || controller._stream._state === 'errored');
+    return 1;
+  }
+
   try {
     return controller._strategySizeAlgorithm(chunk);
   } catch (chunkSizeE) {
