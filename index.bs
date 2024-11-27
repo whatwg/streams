@@ -2696,7 +2696,7 @@ the {{ReadableStream}}'s public API.
 
 <div algorithm>
  <dfn abstract-op lt="ReadableStreamAddReadRequest"
- id="readable-stream-add-read-request">ReadableStreamAddReadRequest(|stream|, |readRequest|</dfn>
+ id="readable-stream-add-read-request">ReadableStreamAddReadRequest(|stream|, |readRequest|)</dfn>
  performs the following steps:
 
  1. Assert: |stream|.[=ReadableStream/[[reader]]=] [=implements=] {{ReadableStreamDefaultReader}}.
