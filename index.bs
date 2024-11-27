@@ -6881,9 +6881,9 @@ The following abstract operations are a grab-bag of utilities.
  <dfn abstract-op lt="CanCopyDataBlockBytes">CanCopyDataBlockBytes(|toBuffer|, |toIndex|,
  |fromBuffer|, |fromIndex|, |count|)</dfn> performs the following steps:
 
- 1. Assert: [$Type$](|toBuffer|) is Object.
+ 1. Assert: |toBuffer| [=is an Object=].
  1. Assert: |toBuffer| has an \[[ArrayBufferData]] internal slot.
- 1. Assert: [$Type$](|fromBuffer|) is Object.
+ 1. Assert: |fromBuffer| [=is an Object=].
  1. Assert: |fromBuffer| has an \[[ArrayBufferData]] internal slot.
  1. If |toBuffer| is |fromBuffer|, return false.
  1. If ! [$IsDetachedBuffer$](|toBuffer|) is true, return false.
