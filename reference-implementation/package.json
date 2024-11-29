@@ -12,12 +12,12 @@
   "author": "Domenic Denicola <d@domenic.me> (https://domenic.me/)",
   "license": "(CC0-1.0 OR MIT)",
   "devDependencies": {
-    "browserify": "^16.5.1",
-    "c8": "^7.7.2",
+    "browserify": "^17.0.1",
+    "c8": "^10.1.2",
     "debug": "^4.1.1",
     "eslint": "^6.8.0",
-    "minimatch": "^3.0.4",
-    "opener": "^1.5.1",
+    "minimatch": "^10.0.1",
+    "opener": "^1.5.2",
     "webidl2js": "^18.0.0",
     "wpt-runner": "^5.0.0"
   }
