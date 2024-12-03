@@ -19,6 +19,6 @@
     "minimatch": "^10.0.1",
     "opener": "^1.5.2",
     "webidl2js": "^18.0.0",
-    "wpt-runner": "^5.0.0"
+    "wpt-runner": "^6.0.0"
   }
 }
