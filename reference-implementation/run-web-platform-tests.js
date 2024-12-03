@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const { promisify } = require('util');
 const wptRunner = require('wpt-runner');
-const minimatch = require('minimatch');
+const { minimatch } = require('minimatch');
 const readFileAsync = promisify(fs.readFile);
 
 // wpt-runner does not yet support unhandled rejection tracking a la
