@@ -3352,8 +3352,7 @@ The following abstract operations support the implementation of the
      ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
   1. [=list/For each=] |filledPullInto| of |filledPullIntos|,
     1. Perform !
-       [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],
-       |filledPullInto|).
+       [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|stream|, |filledPullInto|).
  1. Otherwise,
   1. Assert: ! [$IsReadableStreamLocked$](|stream|) is false.
   1. Perform ! [$ReadableByteStreamControllerEnqueueChunkToQueue$](|controller|,
@@ -3458,18 +3457,18 @@ The following abstract operations support the implementation of the
      queue entry/byte length=]).
   1. Let |destStart| be |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=] +
      |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
-  1. Assert: ! [$CanCopyDataBlockBytes$](|pullIntoDescriptor|'s [=pull-into descriptor/buffer=],
-     |destStart|, |headOfQueue|'s [=readable byte stream queue entry/buffer=],
-     |headOfQueue|'s [=readable byte stream queue entry/byte offset=], |bytesToCopy|) is true.
+  1. Let |descriptorBuffer| be |pullIntoDescriptor|'s [=pull-into descriptor/buffer=].
+  1. Let |queueBuffer| be |headOfQueue|'s [=readable byte stream queue entry/buffer=].
+  1. Let |queueByteOffset| be |headOfQueue|'s [=readable byte stream queue entry/byte offset=].
+  1. Assert: ! [$CanCopyDataBlockBytes$](|descriptorBuffer|, |destStart|, |queueBuffer|,
+     |queueByteOffset|, |bytesToCopy|) is true.
      <p class="warning">If this assertion were to fail (due to a bug in this specification or
      its implementation), then the next step may read from or write to potentially invalid memory.
      The user agent should always check this assertion, and stop in an [=implementation-defined=]
      manner if it fails (e.g. by crashing the process, or by
      <a abstract-op lt="ReadableByteStreamControllerError">erroring the stream</a>).
-  1. Perform ! [$CopyDataBlockBytes$](|pullIntoDescriptor|'s [=pull-into
-     descriptor/buffer=].\[[ArrayBufferData]], |destStart|,
-     |headOfQueue|'s [=readable byte stream queue entry/buffer=].\[[ArrayBufferData]],
-     |headOfQueue|'s [=readable byte stream queue entry/byte offset=], |bytesToCopy|).
+  1. Perform ! [$CopyDataBlockBytes$](|descriptorBuffer|.\[[ArrayBufferData]], |destStart|,
+     |queueBuffer|.\[[ArrayBufferData]], |queueByteOffset|, |bytesToCopy|).
   1. If |headOfQueue|'s [=readable byte stream queue entry/byte length=] is |bytesToCopy|,
    1. [=list/Remove=] |queue|[0].
   1. Otherwise,
@@ -3716,12 +3715,11 @@ The following abstract operations support the implementation of the
  1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
  1. If ! [$ReadableStreamHasBYOBReader$](|stream|) is true,
   1. Let |filledPullIntos| be a new empty [=list=].
-  1. Let |i| be 0.
-  1. [=While=] |i| < ! [$ReadableStreamGetNumReadIntoRequests$](|stream|),
+  1. [=While=] |filledPullIntos|'s [=list/size=] < !
+     [$ReadableStreamGetNumReadIntoRequests$](|stream|),
    1. Let |pullIntoDescriptor| be !
       [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
    1. [=list/Append=] |pullIntoDescriptor| to |filledPullIntos|.
-   1. Set |i| to |i| + 1.
   1. [=list/For each=] |filledPullInto| of |filledPullIntos|,
    1. Perform ! [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|stream|,
       |filledPullInto|).

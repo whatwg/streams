@@ -1362,7 +1362,7 @@ function ReadableByteStreamControllerEnqueue(controller, chunk) {
     ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
     const filledPullIntos = ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
     for (const filledPullInto of filledPullIntos) {
-      ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, filledPullInto);
+      ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto);
     }
   } else {
     assert(IsReadableStreamLocked(stream) === false);
@@ -1448,9 +1448,12 @@ function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
 
     const destStart = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
 
-    assert(CanCopyDataBlockBytes(pullIntoDescriptor.buffer, destStart, headOfQueue.buffer, headOfQueue.byteOffset,
+    const descriptorBuffer = pullIntoDescriptor.buffer;
+    const queueBuffer = headOfQueue.buffer;
+    const queueByteOffset = headOfQueue.byteOffset;
+    assert(CanCopyDataBlockBytes(descriptorBuffer, destStart, queueBuffer, queueByteOffset,
                                  bytesToCopy));
-    CopyDataBlockBytes(pullIntoDescriptor.buffer, destStart, headOfQueue.buffer, headOfQueue.byteOffset, bytesToCopy);
+    CopyDataBlockBytes(descriptorBuffer, destStart, queueBuffer, queueByteOffset, bytesToCopy);
 
     if (headOfQueue.byteLength === bytesToCopy) {
       queue.shift();
@@ -1680,11 +1683,9 @@ function ReadableByteStreamControllerRespondInClosedState(controller, firstDescr
   const stream = controller._stream;
   if (ReadableStreamHasBYOBReader(stream) === true) {
     const filledPullIntos = [];
-    let i = 0;
-    while (i < ReadableStreamGetNumReadIntoRequests(stream)) {
+    while (filledPullIntos.length < ReadableStreamGetNumReadIntoRequests(stream)) {
       const pullIntoDescriptor = ReadableByteStreamControllerShiftPendingPullInto(controller);
       filledPullIntos.push(pullIntoDescriptor);
-      ++i;
     }
     for (const filledPullInto of filledPullIntos) {
       ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto);
