@@ -6977,7 +6977,43 @@ to grow organically as needed.
 [=ReadableStream/set up with byte reading support=] operations directly on the [=this=] value inside
 their constructor steps.
 
-<hr>
+<div algorithm>
+ To <dfn export>create an errored {{ReadableStream}}</dfn> given a JavaScript value |e|:
+
+ 1. Let |stream| be a [=new=] {{ReadableStream}}.
+ 1. Perform ! [$InitializeReadableStream$](|stream|).
+ 1. Let |startAlgorithm| be an algorithm which returns [=a promise rejected with=] |e|.
+ 1. Let |pullAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
+ 1. Let |cancelAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
+ 1. Let |sizeAlgorithm| be an algorithm that returns 1.
+ 1. Let |controller| be a [=new=] {{ReadableStreamDefaultController}}.
+ 1. Perform ! [$SetUpReadableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
+    |pullAlgorithm|, |cancelAlgorithm|, 1, |sizeAlgorithm|).
+ 1. Return |stream|.
+</div>
+
+<div algorithm>
+ To <dfn export>create an errored {{ReadableStream}} with byte reading support</dfn> given a
+ JavaScript value |e|:
+
+ 1. Let |stream| be a [=new=] {{ReadableStream}}.
+ 1. Perform ! [$InitializeReadableStream$](|stream|).
+ 1. Let |startAlgorithm| be an algorithm which returns [=a promise rejected with=] |e|.
+ 1. Let |pullAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
+ 1. Let |cancelAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
+ 1. Let |controller| be a [=new=] {{ReadableByteStreamController}}.
+ 1. Perform ! [$SetUpReadableByteStreamController$](|stream|, |controller|, |startAlgorithm|,
+    |pullAlgorithm|, |cancelAlgorithm|, 0, undefined).
+ 1. Return |stream|.
+</div>
+
+<div class="note">
+ <p>These two algorithms can be used when specifying methods that return {{ReadableStream}} instances, to immediately signal error cases. For such methods, this is preferred to throwing an exception, since then all error cases go through the single error channel of the {{ReadableStream}}, instead of forcing the caller to handle both exceptions and errored streams.
+
+ <p>The difference between the two algorithms is minor, but it affects whether calling <code highlight="js">stream.getReader({ mode: "byob" })</code> will succeed (giving access to an errored {{ReadableStreamBYOBReader}}) or fail (throwing an exception). If the success case would normally return a readable byte stream, then it's best to align the error case with that by using <a>create an errored `ReadableStream` with byte reading support</a> instead of <a>create an errored `ReadableStream`</a>.
+</div>
+
+<h4 id="other-specs-rs-manipulate">Manipulation</h4>
 
 The following algorithms must only be used on {{ReadableStream}} instances initialized via the above
 [=ReadableStream/set up=] or [=ReadableStream/set up with byte reading support=] algorithms (not,
@@ -7281,6 +7317,22 @@ for="ReadableStream">locked</dfn> if ! [$IsReadableStreamLocked$](|stream|) retu
 
  <p class="note">Subclasses of {{WritableStream}} will use the [=WritableStream/set up=] operation
  directly on the [=this=] value inside their constructor steps.</p>
+</div>
+
+<div algorithm>
+ To <dfn export>create an errored {{WritableStream}}</dfn> given a JavaScript value |e|:
+
+ 1. Let |stream| be a [=new=] {{WritableStream}}.
+ 1. Perform ! [$InitializeWritableStream$](|stream|).
+ 1. Let |startAlgorithm| be an algorithm which returns [=a promise rejected with=] |e|.
+ 1. Let |writeAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
+ 1. Let |closeAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
+ 1. Let |abortAlgorithm| be an algorithm which returns [=a promise resolved with=] undefined.
+ 1. Let |sizeAlgorithm| be an algorithm that returns 1.
+ 1. Let |controller| be a [=new=] {{WritableStreamDefaultController}}.
+ 1. Perform ! [$SetUpWritableStreamDefaultController$](|stream|, |controller|, |startAlgorithm|,
+    |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|, 1, |sizeAlgorithm|).
+ 1. Return |stream|.
 </div>
 
 <hr>
