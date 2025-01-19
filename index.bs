@@ -1446,7 +1446,7 @@ value: newViewOnSameMemory, done: true }</code> for closed streams. If the strea
  method steps are:
 
  1. If |view|.\[[ByteLength]] is 0, return [=a promise rejected with=] a {{TypeError}} exception.
- 1. If |view|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, return [=a promise rejected
+ 1. If |view|.\[[ViewedArrayBuffer]].\[[ByteLength]] is 0, return [=a promise rejected
     with=] a {{TypeError}} exception.
  1. If ! [$IsDetachedBuffer$](|view|.\[[ViewedArrayBuffer]]) is true, return
     [=a promise rejected with=] a {{TypeError}} exception.
@@ -1876,7 +1876,7 @@ has the following [=struct/items=]:
 for="ReadableByteStreamController">enqueue(|chunk|)</dfn> method steps are:
 
  1. If |chunk|.\[[ByteLength]] is 0, throw a {{TypeError}} exception.
- 1. If |chunk|.\[[ViewedArrayBuffer]].\[[ArrayBufferByteLength]] is 0, throw a {{TypeError}}
+ 1. If |chunk|.\[[ViewedArrayBuffer]].\[[ByteLength]] is 0, throw a {{TypeError}}
     exception.
  1. If [=this=].[=ReadableByteStreamController/[[closeRequested]]=] is true, throw a {{TypeError}}
     exception.
