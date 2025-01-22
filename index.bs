@@ -5242,7 +5242,7 @@ The following abstract operations support the implementation and manipulation of
  1. Return |promise|.
 </div>
 
-<h4 id="ws-default-controller-abstract-ops">Default controllers</h3>
+<h4 id="ws-default-controller-abstract-ops">Default controllers</h4>
 
 The following abstract operations support the implementation of the
 {{WritableStreamDefaultController}} class.
@@ -6599,7 +6599,7 @@ a {{QueuingStrategy}} dictionary.
      list «&nbsp;|chunk|&nbsp;».
 </div>
 
-<h2 id="other-stuff">Supporting abstract operations</h4>
+<h2 id="other-stuff">Supporting abstract operations</h2>
 
 The following abstract operations each support the implementation of more than one type of stream,
 and as such are not grouped under the major sections above.
@@ -6815,7 +6815,7 @@ abstract operations are used to implement these "cross-realm transforms".
  security issues.</p>
 </div>
 
-<h3 id="misc-abstract-ops">Miscellaneous</h4>
+<h3 id="misc-abstract-ops">Miscellaneous</h3>
 
 The following abstract operations are a grab-bag of utilities.
 
