@@ -4350,13 +4350,13 @@ as seen for example in [[#example-ws-no-backpressure]].
  1. Let |result| be ? [$AcquireWritableStreamDefaultWriter$]([=this=]).
  1. If |result| is an abrupt completion, return [=a promise rejected with=] |result|.\[[Value]].
  1. Let |writer| be |result|.\[[Value]].
- 1. Let |writePromise| be ! [$WritableStreamDefaultWriterWrite$]([=this=], |chunk|).
+ 1. Let |writePromise| be ! [$WritableStreamDefaultWriterWrite$](|writer|, |chunk|).
  1. Return the result of [=reacting=] to |writePromise|:
   1. If |writePromise| is fulfilled with a value |v|, then:
-   1. Perform ! [$WritableStreamDefaultWriterRelease$]([=this=]).
+   1. Perform ! [$WritableStreamDefaultWriterRelease$](|writer|).
    1. Return |v|.
   1. If |writePromise| is rejected with a value |r|, then:
-   1. Perform ! [$WritableStreamDefaultWriterRelease$]([=this=]).
+   1. Perform ! [$WritableStreamDefaultWriterRelease$](|writer|).
    1. Return [=a promise rejected with=] |r|.
 </div>
 
