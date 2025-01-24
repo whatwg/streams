@@ -4276,11 +4276,11 @@ as seen for example in [[#example-ws-no-backpressure]].
   <p>Writes a [=chunk=] of data to the stream just like the {{WritableStreamDefaultWriter/write()}}
    method.
 
-  <p>This is a convenience method that first acquires a writer, then writes the chunk, and releases
-   the writer (regardless of the outcome of the write). The returned promise will fulfill if the
-   write was successful, or reject if the write failed. Additionally, it will reject with a
-   {{TypeError}} if the stream is currently [=locked to a writer|locked=] (without attempting to
-   write).
+  <p>This is a convenience method that first acquires a writer, queues the chunk to be written,
+   releases the writer (without waiting on the write to complete), and returns a promise that
+   fulfills if the write was successful, or reject if the write failed. Additionally, if the stream
+   is currently [=locked to a writer|locked=], a promise rejecting with a {{TypeError}} is returned,
+   and no attempt to write will be made.
 
  <dt><code>await <var ignore>stream</var>.{{WritableStream/abort(reason)|abort}}([ <var ignore>reason</var> ])</code>
  <dd>
@@ -4351,13 +4351,8 @@ as seen for example in [[#example-ws-no-backpressure]].
  1. If |result| is an abrupt completion, return [=a promise rejected with=] |result|.\[[Value]].
  1. Let |writer| be |result|.\[[Value]].
  1. Let |writePromise| be ! [$WritableStreamDefaultWriterWrite$](|writer|, |chunk|).
- 1. Return the result of [=reacting=] to |writePromise|:
-  1. If |writePromise| is fulfilled with a value |v|, then:
-   1. Perform ! [$WritableStreamDefaultWriterRelease$](|writer|).
-   1. Return |v|.
-  1. If |writePromise| is rejected with a value |r|, then:
-   1. Perform ! [$WritableStreamDefaultWriterRelease$](|writer|).
-   1. Return [=a promise rejected with=] |r|.
+ 1. Perform ! [$WritableStreamDefaultWriterRelease$](|writer|).
+ 1. Return |writePromise|.
 </div>
 
 <div algorithm>
