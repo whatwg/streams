@@ -1,5 +1,7 @@
 <pre class=metadata>
 Group: WHATWG
+Status: RD
+Date: 2025-02-17
 H1: Streams
 Shortname: streams
 Text Macro: TWITTER streamsstandard
