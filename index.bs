@@ -5401,8 +5401,8 @@ The following abstract operations support the implementation of the
  |chunk|)</dfn> performs the following steps:
 
  1. If |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=] is undefined, then:
-  1. Assert: |controller|.[=WritableStreamDefaultController/[[stream]]=].[=WritableStream/[[state]]=] is "`erroring`" or
-     "`errored`".
+  1. Assert: |controller|.[=WritableStreamDefaultController/[[stream]]=].[=WritableStream/[[state]]=] is not
+     "`writable`".
   1. Return 1.
  1. Let |returnValue| be the result of performing
     |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=], passing in |chunk|,
