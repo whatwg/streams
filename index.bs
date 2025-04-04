@@ -492,6 +492,10 @@ interface ReadableStream {
   Promise<undefined> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
   sequence<ReadableStream> tee();
 
+  Promise<USVString> text(optional ConsumeBytesOptions options = {});
+  Promise<Uint8Array> bytes(optional ConsumeBytesOptions options = {});
+  Promise<Blob> blob(optional ConsumeBytesOptions options = {});
+
   async iterable<any>(optional ReadableStreamIteratorOptions options = {});
 };
 
@@ -517,6 +521,11 @@ dictionary StreamPipeOptions {
   boolean preventAbort = false;
   boolean preventCancel = false;
   AbortSignal signal;
+};
+
+dictionary ConsumeBytesOptions {
+  AbortSignal signal;
+  USVString type = "";
 };
 </xmp>
 
@@ -996,6 +1005,24 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
   .catch(e => console.error("Either caching or uploading failed: ", e));
   </xmp>
  </div>
+</div>
+
+<div algorithm>
+ The <dfn id="rs-text" method for="ReadableStream">text(options)</div> method steps are:
+
+  1. Return ? [$ReadableStreamConsumeAsText$]([=this=], |options|).
+</div>
+
+<div algorithm>
+ The <dfn id="rs-bytes" method for="ReadableStream">bytes(options)</div> method steps are:
+
+  1. Return ? [$ReadableStreamConsumeAsBytes$]([=this=], |options|).
+</div>
+
+<div algorithm>
+ The <dfn id="rs-blob" method for="ReadableStream">blob(options)</div> method steps are:
+
+ 1. Return ? [$ReadableStreamConsumeAsBlob$]([=this=], |options|).
 </div>
 
 <h4 id="rs-asynciterator" oldids="rs-asynciterator-prototype,
@@ -2643,6 +2670,99 @@ create them does not matter.
     |cancel2Algorithm|).
  1. Perform |forwardReaderError|, given |reader|.
  1. Return « |branch1|, |branch2| ».
+</div>
+
+<div algorithm>
+To <dfn lt="fully read">fully read</dfn> a {{ReadableStream}} |stream|, given an algorithm |processBody|, and an algorithm |processBodyError|, run these steps. |processBody| must be an algorithm accepting a [=byte sequence=]. |processBodyError| must be an algorithm optionally accepting an exception.
+
+ 1. Let |successSteps| given a [=byte sequence=] |bytes| be to run |processBody| given |bytes|.
+ 1. Let |errorSteps| optionally given an exception |exception| be to run |processBodyError| given |exception|.
+ 1. Let |reader| be the result of getting a reader for |stream|. If that threw an exception, then run |errorSteps| with that exception and return.
+ 1. [=read all bytes|Read all bytes=] from |reader|, given |successSteps| and |errorSteps|.
+</div>
+
+<div algorithm>
+The <dfn lt="consume fully with abort">consume fully with abort</dfn> algorithm, given a {{ReadableStream}} |stream|, an optional {{AbortSignal}} |signal|, and an algorithm that takes a [=byte sequence=] and returns a JavaScript or throws an exception |convertBytesToJSValue|, runs these steps:
+
+ 1. Let |promise| be [=a new promise=].
+ 1. Let |errorSteps| given |error| to be [=reject=] |promise| with |error|.
+ 1. Let |successSteps| given a [=byte sequence=] |data| be to [=resolve=] |promise| with the result of running |convertBytesToJSValue| with |data|. If that threw an exception, then run |errorSteps| with that exception.
+ 1. If |signal| is not undefined,
+  1. Let |abortAlgorithm| be the following steps:
+   1. Let |error| be |signal|'s [=AbortSignal/abort reason=].
+   1. Run |errorSteps| with |error|.
+   1. Let |actions| be an empty [=ordered set=].
+   1. If |stream|.[=ReadableStream/[[state]]=] is "`readable`", [=set/append=] the following action action to |actions|:
+     1. return ! [$ReadableStreamCancel$](|stream|, |error|).
+     1. Otherwise, return [=a promise resolved with=] undefined.
+   1. [=Shutdown with an action=] consisting of [=getting a promise to wait for all=] of the actions
+      in |actions|, and with |error|.
+  1. If |signal| is [=AbortSignal/aborted=], perform the following steps:
+    1. perform |abortAlgorithm|.
+    1. return |promise|.
+  1. [=AbortSignal/Add=] |abortAlgorithm| to |signal|.
+ 1. [=fully read=] |stream| given |successSteps|, |errorSteps|, and |stream|’s relevant global object.
+ 1. Return promise.
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="ReadableStreamConsumeAsText" id="ReadableStreamConsumeAsText">ReadableStreamConsumeAsText(|stream|, |options|})</dfn> will
+ consume all bytes produced by a given readable stream and return a promise that resolves with a string containing the UTF-8-decoded text.
+
+ It performs the following steps:
+
+ 1. Assert: |stream| [=implements=] {{ReadableStream}}.
+ 1. If ! [$IsReadableStreamLocked$]([=stream=]) is true, return [=a promise rejected with=] a
+    {{TypeError}} exception.
+ 1. If ! |stream|.[=ReadableStream/[[disturbed]]=] is true, return [=a promise rejected with=] a
+    {{TypeError}} exception.
+ 1. Let |signal| be |options|["{{ConsumeBytesOptions/signal}}"] if it [=map/exists=], or undefined
+    otherwise.
+ 1. Assert: either |signal| is undefined, or |signal| [=implements=] {{AbortSignal}}.
+ 1. Return the result of running [=consume fully with abort=] with |stream|, |signal|, and <a>UTF-8 decode</a>.
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="ReadableStreamConsumeAsBytes" id="ReadableStreamConsumeAsBytes">ReadableStreamConsumeAsBytes(|stream|, |options|})</dfn> will
+ consume all bytes produced by a given readable stream and return a promise that resolves with a single Uint8Array containing the read bytes.
+
+ It performs the following steps:
+
+ 1. Assert: |stream| [=implements=] {{ReadableStream}}.
+ 1. If ! [$IsReadableStreamLocked$]([=stream=]) is true, return [=a promise rejected with=] a
+    {{TypeError}} exception.
+ 1. If ! |stream|.[=ReadableStream/[[disturbed]]=] is true, return [=a promise rejected with=] a
+    {{TypeError}} exception.
+ 1. Let |signal| be |options|["{{ConsumeBytesOptions/signal}}"] if it [=map/exists=], or undefined
+    otherwise.
+ 1. Assert: either |signal| is undefined, or |signal| [=implements=] {{AbortSignal}}.
+ 1. Let |decode as Uint8Array| be an algorithm that takes a [=byte sequence=] |bytes| and runs the steps:
+  1. Let |arrayBuffer| be a new {{ArrayBuffer}} whose contents are |bytes|.
+  1. Let |view| be the result of [=ArrayBufferView/create|creating=] a {{Uint8Array}} from |arrayBuffer|.
+  1. Return |view|.
+ 1. Return the result of running [=consume fully with abort=] with |stream|, |signal|, and |decode as Uint8Array|.
+</div>
+
+<div algorithm>
+ <dfn abstract-op lt="ReadableStreamConsumeAsBlob" id="ReadableStreamConsumeAsBlob">ReadableStreamConsumeAsBlob(|stream|, |options|})</dfn> will
+ consume all bytes produced by a given readable stream and return a promise that resolves with a Blob.
+
+ It performs the following steps:
+
+ 1. Assert: |stream| [=implements=] {{ReadableStream}}.
+ 1. If ! [$IsReadableStreamLocked$]([=stream=]) is true, return [=a promise rejected with=] a
+    {{TypeError}} exception.
+ 1. If ! |stream|.[=ReadableStream/[[disturbed]]=] is true, return [=a promise rejected with=] a
+    {{TypeError}} exception.
+ 1. Let |signal| be |options|["{{ConsumeBytesOptions/signal}}"] if it [=map/exists=], or undefined
+    otherwise.
+ 1. Let |type| be |options|["{{ConsumeBytesOptions/type}}"] if it [=map/exists=], or an empty string
+    otherwise.
+ 1. Assert: either |signal| is undefined, or |signal| [=implements=] {{AbortSignal}}.
+ 1. Let |decode as Blob| be an algorithm that takes a [=byte sequence=] |bytes| and a string |type| and runs the steps:
+  1. Let |blob| be a new {{Blob}} whose contents are |bytes| and whose {{Blob/type}} attribute is |type|.
+  1. Return |blob|.
+ 1. Return the result of running [=consume fully with abort=] with |stream|, |signal|, and |decode as Blob|.
 </div>
 
 <h4 id="rs-abstract-ops-used-by-controllers">Interfacing with controllers</h4>
