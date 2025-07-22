@@ -7,6 +7,7 @@ Text Macro: LATESTRD 2025-02
 Abstract: This specification provides APIs for creating, composing, and consuming streams of data
 Abstract: that map efficiently to low-level I/O primitives.
 Translation: ja https://triple-underscore.github.io/Streams-ja.html
+Translation: zh-Hans https://htmlspecs.com/streams/
 !Demos: <a href="https://streams.spec.whatwg.org/demos/">streams.spec.whatwg.org/demos</a>
 Indent: 1
 Markup Shorthands: markdown yes
@@ -492,7 +493,7 @@ interface ReadableStream {
   Promise<undefined> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
   sequence<ReadableStream> tee();
 
-  async iterable<any>(optional ReadableStreamIteratorOptions options = {});
+  async_iterable<any>(optional ReadableStreamIteratorOptions options = {});
 };
 
 typedef (ReadableStreamDefaultReader or ReadableStreamBYOBReader) ReadableStreamReader;
