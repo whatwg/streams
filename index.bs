@@ -8,6 +8,7 @@ Abstract: This specification provides APIs for creating, composing, and consumin
 Abstract: that map efficiently to low-level I/O primitives.
 Translation: ja https://triple-underscore.github.io/Streams-ja.html
 Translation: zh-Hans https://htmlspecs.com/streams/
+Translation: ko https://ko.htmlspecs.com/streams/
 !Demos: <a href="https://streams.spec.whatwg.org/demos/">streams.spec.whatwg.org/demos</a>
 Indent: 1
 Markup Shorthands: markdown yes
