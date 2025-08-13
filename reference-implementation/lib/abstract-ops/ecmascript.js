@@ -1,7 +1,8 @@
 'use strict';
 const assert = require('assert');
 
-const isFakeDetached = Symbol('is "detached" for our purposes');
+const ArrayBufferPrototypeTransferToFixedLength = ArrayBuffer.prototype.transferToFixedLength;
+const ArrayBufferPrototypeDetachedGetter = Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'detached').get;
 
 exports.typeIsObject = x => (typeof x === 'object' && x !== null) || typeof x === 'function';
 
@@ -15,31 +16,17 @@ exports.CopyDataBlockBytes = (dest, destOffset, src, srcOffset, n) => {
   new Uint8Array(dest).set(new Uint8Array(src, srcOffset, n), destOffset);
 };
 
-// Not implemented correctly
 exports.TransferArrayBuffer = O => {
   assert(!exports.IsDetachedBuffer(O));
-  const transferredIshVersion = O.slice();
-
-  // This is specifically to fool tests that test "is transferred" by taking a non-zero-length
-  // ArrayBuffer and checking if its byteLength starts returning 0.
-  Object.defineProperty(O, 'byteLength', {
-    get() {
-      return 0;
-    }
-  });
-  O[isFakeDetached] = true;
-
-  return transferredIshVersion;
+  return ArrayBufferPrototypeTransferToFixedLength.call(O);
 };
 
-// Not implemented correctly
 exports.CanTransferArrayBuffer = O => {
   return !exports.IsDetachedBuffer(O);
 };
 
-// Not implemented correctly
 exports.IsDetachedBuffer = O => {
-  return isFakeDetached in O;
+  return ArrayBufferPrototypeDetachedGetter.call(O) === true;
 };
 
 exports.Call = (F, V, args = []) => {
