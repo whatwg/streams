@@ -1584,6 +1584,8 @@ function ReadableByteStreamControllerPullInto(controller, view, min, readIntoReq
   assert(minimumFill >= elementSize && minimumFill <= view.byteLength);
   assert(minimumFill % elementSize === 0);
 
+  const byteOffset = view.byteOffset;
+  const byteLength = view.byteLength;
   const ctor = view.constructor;
 
   let buffer;
@@ -1597,8 +1599,8 @@ function ReadableByteStreamControllerPullInto(controller, view, min, readIntoReq
   const pullIntoDescriptor = {
     buffer,
     bufferByteLength: buffer.byteLength,
-    byteOffset: view.byteOffset,
-    byteLength: view.byteLength,
+    byteOffset,
+    byteLength,
     bytesFilled: 0,
     minimumFill,
     elementSize,
