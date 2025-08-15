@@ -6847,15 +6847,10 @@ The following abstract operations are a grab-bag of utilities.
  id="transfer-array-buffer">TransferArrayBuffer(|O|)</dfn> performs the following steps:
 
  1. Assert: ! [$IsDetachedBuffer$](|O|) is false.
- 1. Let |arrayBufferData| be |O|.\[[ArrayBufferData]].
- 1. Let |arrayBufferByteLength| be |O|.\[[ArrayBufferByteLength]].
- 1. Perform ? [$DetachArrayBuffer$](|O|).
+ 1. Return ? [$ArrayBufferCopyAndDetach$](|O|, undefined, `FIXED-LENGTH`).
     <p class="note">This will throw an exception if |O| has an \[[ArrayBufferDetachKey]]
     that is not undefined, such as a {{Memory|WebAssembly.Memory}}'s {{Memory/buffer}}.
     [[WASM-JS-API-1]]</p>
- 1. Return a new {{ArrayBuffer}} object, created in [=the current Realm=], whose
-    \[[ArrayBufferData]] internal slot value is |arrayBufferData| and whose
-    \[[ArrayBufferByteLength]] internal slot value is |arrayBufferByteLength|.
 </div>
 
 <div algorithm>
