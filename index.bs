@@ -158,7 +158,8 @@ execute any cancellation mechanism of the [=underlying source=].
 Consumers can also <dfn lt="tee a readable stream">tee</dfn> a readable stream using its
 {{ReadableStream/tee()}} method. This will [=locked to a reader|lock=] the stream, making it
 no longer directly usable; however, it will create two new streams, called <dfn lt="branches of a
-readable stream tee">branches</dfn>, which can be consumed independently.
+readable stream tee">branches</dfn>, which can be consumed independently or in sequence,
+so long as the unconsumed data at the branch that is consumed more slowly fits in memory.
 
 For streams representing bytes, an extended version of the [=readable stream=] is provided to handle
 bytes efficiently, in particular by minimizing copies. The [=underlying source=] for such a readable
@@ -251,9 +252,10 @@ sink=], which gets updated as the ultimate sink finishes writing [=chunks=]. The
 {{ReadableStream/pipeTo()}} method used to construct the chain automatically ensures this
 information propagates back through the [=pipe chain=].
 
-When [=tee a readable stream|teeing=] a readable stream, the [=backpressure=] signals from its two
-[=branches of a readable stream tee|branches=] will aggregate, such that if neither branch is read
+When [=tee a readable stream|teeing=] a readable stream, the [=backpressure=] signals from the
+faster [=branches of a readable stream tee|branch=] will propagate. If neither branch is read
 from, a backpressure signal will be sent to the [=underlying source=] of the original stream.
+Unread data will accumulate without limit onto the buffer of the slower consumed branch.
 
 Piping [=locks=] the readable and writable streams, preventing them from being manipulated for the
 duration of the pipe operation. This allows the implementation to perform important optimizations,
@@ -981,11 +983,13 @@ option. If {{UnderlyingSource/type}} is set to undefined (including via omission
  1. Return ? [$ReadableStreamTee$]([=this=], false).
 
  <div class="example" id="example-tee-and-pipe">
-  Teeing a stream is most useful when you wish to let two independent consumers read from the stream
-  in parallel, perhaps even at different speeds. For example, given a writable stream
+  Teeing a stream is most useful when you wish to let two consumers read from the stream
+  in parallel or in sequence, perhaps even at different speeds,
+  so long as the difference in consumption fits in memory.
+  For example, given a writable stream
   <code>cacheEntry</code> representing an on-disk file, and another writable stream
   <code>httpRequestBody</code> representing an upload to a remote server, you could pipe the same
-  readable stream to both destinations at once:
+  readable stream to both destinations at once assuming that the data fits in memory:
 
   <xmp highlight="js">
   const [forLocal, forRemote] = readableStream.tee();
