@@ -6799,7 +6799,7 @@ abstract operations are used to implement these "cross-realm transforms".
     1. Disentangle |port|.
     1. Return [=a promise rejected with=] |result|.\[[Value]].
    1. Otherwise, return [=a promise resolved with=] undefined.
- 1. Let |closeAlgorithm| be the folowing steps:
+ 1. Let |closeAlgorithm| be the following steps:
   1. Perform ! [$PackAndPostMessage$](|port|, "`close`", undefined).
   1. Disentangle |port|.
   1. Return [=a promise resolved with=] undefined.
@@ -8360,6 +8360,7 @@ Michael Mior,
 Mihai Potra,
 Nidhi Jaju,
 Romain Bellessort, <!-- rombel on GitHub -->
+Shivendra Kumar,
 Simon Menke,
 Stephen Sugden,
 Surma,
