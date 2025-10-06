@@ -4066,6 +4066,7 @@ interface WritableStream {
 
   readonly attribute boolean locked;
 
+  Promise<undefined> write(optional any chunk);
   Promise<undefined> abort(optional any reason);
   Promise<undefined> close();
   WritableStreamDefaultWriter getWriter();
@@ -4272,6 +4273,17 @@ as seen for example in [[#example-ws-no-backpressure]].
  <dd>
   <p>Returns whether or not the writable stream is [=locked to a writer=].
 
+ <dt><code>await <var ignore>stream</var>.{{WritableStream/write(chunk)|write}}([ <var ignore>chunk</var> ])</code>
+ <dd>
+  <p>Writes a [=chunk=] of data to the stream just like the {{WritableStreamDefaultWriter/write()}}
+   method.
+
+  <p>This is a convenience method that first acquires a writer, queues the chunk to be written,
+   releases the writer (without waiting on the write to complete), and returns a promise that
+   fulfills if the write was successful, or reject if the write failed. Additionally, if the stream
+   is currently [=locked to a writer|locked=], a promise rejecting with a {{TypeError}} is returned,
+   and no attempt to write will be made.
+
  <dt><code>await <var ignore>stream</var>.{{WritableStream/abort(reason)|abort}}([ <var ignore>reason</var> ])</code>
  <dd>
   <p>[=abort a writable stream|Aborts=] the stream, signaling that the producer can no longer
@@ -4332,6 +4344,17 @@ as seen for example in [[#example-ws-no-backpressure]].
  The <dfn id="ws-locked" attribute for="WritableStream">locked</dfn> getter steps are:
 
  1. Return ! [$IsWritableStreamLocked$]([=this=]).
+</div>
+
+<div algorithm>
+ The <dfn id="ws-write" method for="WritableStream">write(|chunk|)</dfn> method steps are:
+
+ 1. Let |result| be ? [$AcquireWritableStreamDefaultWriter$]([=this=]).
+ 1. If |result| is an abrupt completion, return [=a promise rejected with=] |result|.\[[Value]].
+ 1. Let |writer| be |result|.\[[Value]].
+ 1. Let |writePromise| be ! [$WritableStreamDefaultWriterWrite$](|writer|, |chunk|).
+ 1. Perform ! [$WritableStreamDefaultWriterRelease$](|writer|).
+ 1. Return |writePromise|.
 </div>
 
 <div algorithm>
