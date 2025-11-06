@@ -7139,20 +7139,23 @@ a chunk</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given a [=read re
 
 <div algorithm="read all bytes">
  <p>To <dfn export for="ReadableStreamDefaultReader" lt="read all bytes|reading all bytes">read all
- bytes</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given |successSteps|,
- which is an algorithm accepting a [=byte sequence=], and |failureSteps|, which is an algorithm
- accepting a JavaScript value: [=read-loop=] given |reader|, a new [=byte sequence=],
- |successSteps|, and |failureSteps|.
+ bytes</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given |maxByteLength|, which is an
+ optional number, |successSteps|, which is an algorithm accepting a [=byte sequence=], and
+ |failureSteps|, which is an algorithm accepting a JavaScript value: [=read-loop=] given |reader|, a
+ new [=byte sequence=], |maxByteLength|, |successSteps|, and |failureSteps|.
 
  <div algorithm="read-loop">
   For the purposes of the above algorithm, to <dfn>read-loop</dfn> given |reader|, |bytes|,
-  |successSteps|, and |failureSteps|:
+  |maxBytesLength|, |successSteps|, and |failureSteps|:
 
   1. Let |readRequest| be a new [=read request=] with the following [=struct/items=]:
    : [=read request/chunk steps=], given |chunk|
    ::
     1. If |chunk| is not a {{Uint8Array}} object, call |failureSteps| with a {{TypeError}} and
        abort these steps.
+    1. If |maxBytesLength| is defined, and |bytes|'s [=byte sequence/length=] +
+       [=byte sequence/length=] of the bytes represented by |chunk| is greater than
+       |maxBytesLength|, call |failureSteps| with a {{QuotaExceededError}} and abort these steps.
     1. Append the bytes represented by |chunk| to |bytes|.
     1. [=Read-loop=] given |reader|, |bytes|, |successSteps|, and |failureSteps|.
        <p class="note">This recursion could potentially cause a stack overflow if implemented
