@@ -18,7 +18,6 @@ Markup Shorthands: markdown yes
 spec:webidl; type:dfn; text:resolve
 spec:webidl; type:dfn; text:new
 spec:infra; type:dfn; text:list
-spec:infra; type:dfn; text:break
 spec:html; type:dfn; text:entangle
 spec:html; type:dfn; text:message port post message steps
 spec:html; type:dfn; text:port message queue
