@@ -82,11 +82,39 @@ if (done) {
 ## Non-Goals
 
 *   Growable shared array buffers are not part of this proposal.
+    Adding BYOB support for `SharedArrayBuffer` in general can become its own separate proposal.
 
 ## End-user Benefits
 
-*   ...
+*   Allows web developers to use resizable `ArrayBuffer`s in their stream processing,
+    which can help to make their code more memory efficient.
+    *   Without resizable buffers, developers need to repeatedly allocate a new buffer
+        and copy the old data into it, which can lead to memory fragmentation.
+    *   With a resizable buffer, developers can grow their existing buffer and make better use of
+        the available memory (which could be very limited).
 
 ## Alternatives
 
-*   ...
+### Non-resizable `ArrayBuffer` subarrays of a resizable `ArrayBuffer`
+
+Rather than changing the Streams standard to accept a resizable buffer,
+we could extend `ArrayBuffer` itself to allow creating a non-resizable `ArrayBuffer` view
+on part of its data, while still allowing the original resizable `ArrayBuffer` to be resized.
+
+```javascript
+const buffer = new ArrayBuffer(1024, { maxByteLength: 8192 });
+// Create a non-resizable `ArrayBuffer` that is backed by the same buffer,
+// but cannot be resized.
+// (This API does not currently exist.)
+const readBuffer = buffer.subarray(0, 1024);
+console.assert(readBuffer.resizable === false);
+const { value, done } = await reader.read(new Uint8Array(readBuffer, 0, readBuffer.byteLength));
+```
+
+However, this raises a lot more questions:
+*   `ArrayBuffer`s generally "own" their backing data, but now multiple `ArrayBuffer`s
+    may share (parts of) their backing data. This raises questions about transferability:
+    *   What happens to the subarray buffer if the parent buffer is transferred? Or vice versa?
+*   Can the parent buffer still shrink to a smaller size, and what happens to its subarray buffers?
+*   What makes an `ArrayBuffer` backed by a larger `ArrayBuffer` different from
+    an `ArrayBufferView` backed by an `ArrayBuffer`?
