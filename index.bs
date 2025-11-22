@@ -3579,7 +3579,7 @@ The following abstract operations support the implementation of the
  1. Let |filledPullIntos| be a new empty [=list=].
  1. [=While=] |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not
     [=list/is empty|empty=],
-  1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0, then [=break=].
+  1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0, then [=iteration/break=].
   1. Let |pullIntoDescriptor| be
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
   1. If ! [$ReadableByteStreamControllerFillPullIntoDescriptorFromQueue$](|controller|,
