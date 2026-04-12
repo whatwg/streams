@@ -18,7 +18,7 @@
     "eslint": "^6.8.0",
     "minimatch": "^10.0.1",
     "opener": "^1.5.2",
-    "webidl2js": "^18.0.0",
-    "wpt-runner": "^6.0.0"
+    "webidl2js": "^19.1.0",
+    "wpt-runner": "^7.0.0"
   }
 }
