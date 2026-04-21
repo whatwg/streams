@@ -7133,6 +7133,16 @@ failures should be handled by the calling specification.
  <p class="note">This will throw an exception if |stream| is already [=ReadableStream/locked=].
 </div>
 
+<div algorithm>
+ <p>To <dfn export for="ReadableStreamDefaultReader">set up</dfn> a newly-[=new|created-via-Web IDL=]
+ {{ReadableStreamDefaultReader}} |reader| for a {{ReadableStream}} |stream|,
+ perform ? [$SetUpReadableStreamDefaultReader$](|reader|, |stream|).
+
+ <p class="note">Subclasses of {{ReadableStreamDefaultReader}} will use the
+ [=ReadableStreamDefaultReader/set up=] operation directly on the [=this=] value inside their
+ constructor steps.</p>
+</div>
+
 <p algorithm>To <dfn export for="ReadableStreamDefaultReader" lt="read a chunk|reading a chunk">read
 a chunk</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given a [=read request=]
 |readRequest|, perform ! [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
@@ -7319,6 +7329,16 @@ failures should be handled by the calling specification.
  will be a {{WritableStreamDefaultWriter}}.
 
  <p class="note">This will throw an exception if |stream| is already locked.
+</div>
+
+<div algorithm>
+ <p>To <dfn export for="WritableStreamDefaultWriter">set up</dfn> a newly-[=new|created-via-Web IDL=]
+ {{WritableStreamDefaultWriter}} |writer| for a {{WritableStream}} |stream|,
+ perform ? [$SetUpWritableStreamDefaultWriter$](|writer|, |stream|).
+
+ <p class="note">Subclasses of {{WritableStreamDefaultWriter}} will use the
+ [=WritableStreamDefaultWriter/set up=] operation directly on the [=this=] value inside their
+ constructor steps.</p>
 </div>
 
 <p algorithm>To <dfn export for="WritableStreamDefaultWriter" lt="write a chunk|writing a
