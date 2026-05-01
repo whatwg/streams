@@ -11,7 +11,7 @@ exports.implementation = class TransformStreamImpl {
     if (transformer === undefined) {
       transformer = null;
     }
-    const transformerDict = Transformer.convert(transformer);
+    const transformerDict = Transformer.convert(globalObject, transformer);
     if ('readableType' in transformerDict) {
       throw new RangeError('Invalid readableType specified');
     }

@@ -1,14 +1,14 @@
 <pre class=metadata>
 Group: WHATWG
+Status: RD
+Date: 2025-02-17
 H1: Streams
 Shortname: streams
 Text Macro: TWITTER streamsstandard
-Text Macro: LATESTRD 2026-02
+Text Macro: LATESTRD 2025-02
 Abstract: This specification provides APIs for creating, composing, and consuming streams of data
 Abstract: that map efficiently to low-level I/O primitives.
 Translation: ja https://triple-underscore.github.io/Streams-ja.html
-Translation: zh-Hans https://htmlspecs.com/streams/
-Translation: ko https://ko.htmlspecs.com/streams/
 !Demos: <a href="https://streams.spec.whatwg.org/demos/">streams.spec.whatwg.org/demos</a>
 Indent: 1
 Markup Shorthands: markdown yes
@@ -484,7 +484,7 @@ The Web IDL definition for the {{ReadableStream}} class is given as follows:
 interface ReadableStream {
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
-  static ReadableStream from(async iterable<any> asyncIterable);
+  static ReadableStream from(any asyncIterable);
 
   readonly attribute boolean locked;
 
@@ -494,7 +494,7 @@ interface ReadableStream {
   Promise<undefined> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
   sequence<ReadableStream> tee();
 
-  async_iterable<any>(optional ReadableStreamIteratorOptions options = {});
+  async iterable<any>(optional ReadableStreamIteratorOptions options = {});
 };
 
 typedef (ReadableStreamDefaultReader or ReadableStreamBYOBReader) ReadableStreamReader;
@@ -1633,7 +1633,7 @@ The readable stream implementation will polymorphically call to either these, or
 counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-controllers]].
 
 <div algorithm>
- <dfn abstract-op noexport lt="[[CancelSteps]]" for="ReadableStreamDefaultController"
+ <dfn abstract-op lt="[[CancelSteps]]" for="ReadableStreamDefaultController"
  id="rs-default-controller-private-cancel">\[[CancelSteps]](|reason|)</dfn> implements the
  [$ReadableStreamController/[[CancelSteps]]$] contract. It performs the following steps:
 
@@ -1645,7 +1645,7 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="[[PullSteps]]" for="ReadableStreamDefaultController"
+ <dfn abstract-op lt="[[PullSteps]]" for="ReadableStreamDefaultController"
  id="rs-default-controller-private-pull">\[[PullSteps]](|readRequest|)</dfn> implements the
  [$ReadableStreamController/[[PullSteps]]$] contract. It performs the following steps:
 
@@ -1664,9 +1664,9 @@ counterparts for BYOB controllers, as discussed in [[#rs-abstract-ops-used-by-co
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="[[ReleaseSteps]]" for="ReadableStreamDefaultController"
- >\[[ReleaseSteps]]()</dfn> implements the [$ReadableStreamController/[[ReleaseSteps]]$] contract.
- It performs the following steps:
+ <dfn abstract-op lt="[[ReleaseSteps]]" for="ReadableStreamDefaultController">\[[ReleaseSteps]]()</dfn>
+ implements the [$ReadableStreamController/[[ReleaseSteps]]$] contract. It performs the following
+ steps:
 
  1. Return.
 </div>
@@ -1901,7 +1901,7 @@ The readable stream implementation will polymorphically call to either these, or
 counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by-controllers]].
 
 <div algorithm>
- <dfn abstract-op noexport lt="[[CancelSteps]]" for="ReadableByteStreamController"
+ <dfn abstract-op lt="[[CancelSteps]]" for="ReadableByteStreamController"
  id="rbs-controller-private-cancel">\[[CancelSteps]](|reason|)</dfn> implements the
  [$ReadableStreamController/[[CancelSteps]]$] contract. It performs the following steps:
 
@@ -1914,7 +1914,7 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="[[PullSteps]]" for="ReadableByteStreamController"
+ <dfn abstract-op lt="[[PullSteps]]" for="ReadableByteStreamController"
  id="rbs-controller-private-pull">\[[PullSteps]](|readRequest|)</dfn> implements the
  [$ReadableStreamController/[[PullSteps]]$] contract. It performs the following steps:
 
@@ -1967,9 +1967,9 @@ counterparts for default controllers, as discussed in [[#rs-abstract-ops-used-by
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="[[ReleaseSteps]]" for="ReadableByteStreamController"
- >\[[ReleaseSteps]]()</dfn> implements the [$ReadableStreamController/[[ReleaseSteps]]$] contract.
- It performs the following steps:
+ <dfn abstract-op lt="[[ReleaseSteps]]" for="ReadableByteStreamController">\[[ReleaseSteps]]()</dfn>
+ implements the [$ReadableStreamController/[[ReleaseSteps]]$] contract. It performs the following
+ steps:
 
  1. If [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is empty|empty=],
   1. Let |firstPendingPullInto| be [=this=].[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
@@ -1990,7 +1990,7 @@ The Web IDL definition for the {{ReadableStreamBYOBRequest}} class is given as f
 <xmp class="idl">
 [Exposed=*]
 interface ReadableStreamBYOBRequest {
-  readonly attribute Uint8Array? view;
+  readonly attribute ArrayBufferView? view;
 
   undefined respond([EnforceRange] unsigned long long bytesWritten);
   undefined respondWithNewView(ArrayBufferView view);
@@ -2093,7 +2093,7 @@ following table:
 The following abstract operations operate on {{ReadableStream}} instances at a higher level.
 
 <div algorithm>
- <dfn abstract-op noexport lt="AcquireReadableStreamBYOBReader"
+ <dfn abstract-op lt="AcquireReadableStreamBYOBReader"
  id="acquire-readable-stream-byob-reader">AcquireReadableStreamBYOBReader(|stream|)</dfn> performs
  the following steps:
 
@@ -2103,7 +2103,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="AcquireReadableStreamDefaultReader"
+ <dfn abstract-op lt="AcquireReadableStreamDefaultReader"
  id="acquire-readable-stream-reader">AcquireReadableStreamDefaultReader(|stream|)</dfn> performs the
  following steps:
 
@@ -2113,7 +2113,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="CreateReadableStream"
+ <dfn abstract-op lt="CreateReadableStream"
  id="create-readable-stream">CreateReadableStream(|startAlgorithm|, |pullAlgorithm|,
  |cancelAlgorithm|[, |highWaterMark|, [, |sizeAlgorithm|]])</dfn> performs the following steps:
 
@@ -2132,7 +2132,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="CreateReadableByteStream">CreateReadableByteStream(|startAlgorithm|,
+ <dfn abstract-op lt="CreateReadableByteStream">CreateReadableByteStream(|startAlgorithm|,
  |pullAlgorithm|, |cancelAlgorithm|)</dfn> performs the following steps:
 
  1. Let |stream| be a [=new=] {{ReadableStream}}.
@@ -2147,7 +2147,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="InitializeReadableStream"
+ <dfn abstract-op lt="InitializeReadableStream"
  id="initialize-readable-stream">InitializeReadableStream(|stream|)</dfn> performs the following
  steps:
 
@@ -2158,7 +2158,7 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="IsReadableStreamLocked"
+ <dfn abstract-op lt="IsReadableStreamLocked"
  id="is-readable-stream-locked">IsReadableStreamLocked(|stream|)</dfn> performs the following steps:
 
  1. If |stream|.[=ReadableStream/[[reader]]=] is undefined, return false.
@@ -2166,32 +2166,50 @@ The following abstract operations operate on {{ReadableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamFromIterable" id="readable-stream-from-iterable">
+ <dfn abstract-op lt="ReadableStreamFromIterable" id="readable-stream-from-iterable">
  ReadableStreamFromIterable(|asyncIterable|)</dfn> performs the following steps:
 
  1. Let |stream| be undefined.
+ 1. Let |iteratorRecord| be ? [$GetIterator$](|asyncIterable|, async).
  1. Let |startAlgorithm| be an algorithm that returns undefined.
  1. Let |pullAlgorithm| be the following steps:
-  1. Let |nextPromise| be the result of [=getting the next value/get an async iterable next value=]
-     from |asyncIterable|.
-  1. Return the result of [=reacting=] to |nextPromise|:
-   - If |next| was fulfilled with value |v|:
-    1. If |v| is [=end of iteration=], perform ! [$ReadableStreamDefaultControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
+  1. Let |nextResult| be [$IteratorNext$](|iteratorRecord|).
+  1. If |nextResult| is an abrupt completion, return [=a promise rejected with=]
+     |nextResult|.\[[Value]].
+  1. Let |nextPromise| be [=a promise resolved with=] |nextResult|.\[[Value]].
+  1. Return the result of [=reacting=] to |nextPromise| with the following fulfillment steps,
+     given |iterResult|:
+   1. If |iterResult| [=is not an Object=], throw a {{TypeError}}.
+   1. Let |done| be ? [$IteratorComplete$](|iterResult|).
+   1. If |done| is true:
+    1. Perform ! [$ReadableStreamDefaultControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
+   1. Otherwise:
+    1. Let |value| be ? [$IteratorValue$](|iterResult|).
+    1. Perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=],
+       |value|).
        <!-- TODO (future): If we allow changing the queuing strategy, this Enqueue might throw.
-          We'll then need to catch the error and close the async iterator. -->
-    1. Otherwise, perform ! [$ReadableStreamDefaultControllerEnqueue$](|stream|.[=ReadableStream/[[controller]]=], |v|).
-   - If |next| was rejected with reason |r|, perform ! [$ReadableStreamDefaultControllerError$](|stream|.[=ReadableStream/[[controller]]=], |r|).
+             We'll then need to catch the error and close the async iterator. -->
  1. Let |cancelAlgorithm| be the following steps, given |reason|:
-  1. Let |finishPromise| be the result of [=closing/close an async iterable=] |asyncIterable| with
-     reason |reason|.
-  1. Return |finishPromise|.
+  1. Let |iterator| be |iteratorRecord|.\[[Iterator]].
+  1. Let |returnMethod| be [$GetMethod$](|iterator|, "`return`").
+  1. If |returnMethod| is an abrupt completion, return [=a promise rejected with=]
+     |returnMethod|.\[[Value]].
+  1. If |returnMethod|.\[[Value]] is undefined, return [=a promise resolved with=] undefined.
+  1. Let |returnResult| be [$Call$](|returnMethod|.\[[Value]], |iterator|, « |reason| »).
+  1. If |returnResult| is an abrupt completion, return [=a promise rejected with=]
+     |returnResult|.\[[Value]].
+  1. Let |returnPromise| be [=a promise resolved with=] |returnResult|.\[[Value]].
+  1. Return the result of [=reacting=] to |returnPromise| with the following fulfillment steps,
+     given |iterResult|:
+   1. If |iterResult| [=is not an Object=], throw a {{TypeError}}.
+   1. Return undefined.
  1. Set |stream| to ! [$CreateReadableStream$](|startAlgorithm|, |pullAlgorithm|, |cancelAlgorithm|,
     0).
  1. Return |stream|.
 </div>
 
 <div algorithm="ReadableStreamPipeTo">
- <dfn abstract-op noexport lt="ReadableStreamPipeTo"
+ <dfn abstract-op lt="ReadableStreamPipeTo"
  id="readable-stream-pipe-to">ReadableStreamPipeTo(|source|, |dest|, |preventClose|, |preventAbort|,
  |preventCancel|[, |signal|])</dfn> performs the following steps:
 
@@ -2320,9 +2338,8 @@ of the locking, none of these objects can be observed by author code. As such, t
 create them does not matter.
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamTee" id="readable-stream-tee"
- >ReadableStreamTee(|stream|, |cloneForBranch2|)</dfn> will [=tee a readable stream|tee=] a given
- readable stream.
+ <dfn abstract-op lt="ReadableStreamTee" id="readable-stream-tee">ReadableStreamTee(|stream|,
+ |cloneForBranch2|)</dfn> will [=tee a readable stream|tee=] a given readable stream.
 
  The second argument, |cloneForBranch2|, governs whether or not the data from the original stream
  will be cloned (using HTML's [=serializable objects=] framework) before appearing in the second of
@@ -2347,7 +2364,7 @@ create them does not matter.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultTee">ReadableStreamDefaultTee(|stream|,
+ <dfn abstract-op lt="ReadableStreamDefaultTee">ReadableStreamDefaultTee(|stream|,
  |cloneForBranch2|)</dfn> performs the following steps:
 
  1. Assert: |stream| [=implements=] {{ReadableStream}}.
@@ -2441,7 +2458,7 @@ create them does not matter.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamTee">ReadableByteStreamTee(|stream|)</dfn>
+ <dfn abstract-op lt="ReadableByteStreamTee">ReadableByteStreamTee(|stream|)</dfn>
  performs the following steps:
 
  1. Assert: |stream| [=implements=] {{ReadableStream}}.
@@ -2643,19 +2660,18 @@ Each controller class defines three internal methods, which are called by the {{
 algorithms:
 
 <dl>
-  <dt><dfn abstract-op noexport lt="[[CancelSteps]]"
+  <dt><dfn abstract-op lt="[[CancelSteps]]"
   for="ReadableStreamController">\[[CancelSteps]](<var ignore>reason</var>)</dfn>
   <dd>The controller's steps that run in reaction to the stream being [=cancel a readable
   stream|canceled=], used to clean up the state stored in the controller and inform the
   [=underlying source=].
 
-  <dt><dfn abstract-op noexport lt="[[PullSteps]]" for="ReadableStreamController"
-  >\[[PullSteps]](<var ignore>readRequest</var>)</dfn>
+  <dt><dfn abstract-op lt="[[PullSteps]]" for="ReadableStreamController">\[[PullSteps]](<var
+  ignore>readRequest</var>)</dfn>
   <dd>The controller's steps that run when a [=default reader=] is read from, used to pull from the
   controller any queued [=chunks=], or pull from the [=underlying source=] to get more chunks.
 
-  <dt><dfn abstract-op noexport lt="[[ReleaseSteps]]" for="ReadableStreamController"
-  >\[[ReleaseSteps]]()</dfn>
+  <dt><dfn abstract-op lt="[[ReleaseSteps]]" for="ReadableStreamController">\[[ReleaseSteps]]()</dfn>
   <dd>The controller's steps that run when a [=readable stream reader|reader=] is
   [=release a read lock|released=], used to clean up reader-specific resources stored in the controller.
 </dl>
@@ -2670,7 +2686,7 @@ translates internal state changes of the controller into developer-facing result
 the {{ReadableStream}}'s public API.
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamAddReadIntoRequest"
+ <dfn abstract-op lt="ReadableStreamAddReadIntoRequest"
  id="readable-stream-add-read-into-request">ReadableStreamAddReadIntoRequest(|stream|,
  |readRequest|)</dfn> performs the following steps:
 
@@ -2681,7 +2697,7 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamAddReadRequest"
+ <dfn abstract-op lt="ReadableStreamAddReadRequest"
  id="readable-stream-add-read-request">ReadableStreamAddReadRequest(|stream|, |readRequest|)</dfn>
  performs the following steps:
 
@@ -2692,7 +2708,7 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamCancel"
+ <dfn abstract-op lt="ReadableStreamCancel"
  id="readable-stream-cancel">ReadableStreamCancel(|stream|, |reason|)</dfn> performs the following
  steps:
 
@@ -2715,7 +2731,7 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamClose"
+ <dfn abstract-op lt="ReadableStreamClose"
  id="readable-stream-close">ReadableStreamClose(|stream|)</dfn> performs the following steps:
 
  1. Assert: |stream|.[=ReadableStream/[[state]]=] is "`readable`".
@@ -2731,8 +2747,8 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamError" id="readable-stream-error"
- >ReadableStreamError(|stream|, |e|)</dfn> performs the following steps:
+ <dfn abstract-op lt="ReadableStreamError" id="readable-stream-error">ReadableStreamError(|stream|,
+ |e|)</dfn> performs the following steps:
 
  1. Assert: |stream|.[=ReadableStream/[[state]]=] is "`readable`".
  1. Set |stream|.[=ReadableStream/[[state]]=] to "`errored`".
@@ -2749,7 +2765,7 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamFulfillReadIntoRequest"
+ <dfn abstract-op lt="ReadableStreamFulfillReadIntoRequest"
  id="readable-stream-fulfill-read-into-request">ReadableStreamFulfillReadIntoRequest(|stream|,
  |chunk|, |done|)</dfn> performs the following steps:
 
@@ -2765,7 +2781,7 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamFulfillReadRequest"
+ <dfn abstract-op lt="ReadableStreamFulfillReadRequest"
  id="readable-stream-fulfill-read-request">ReadableStreamFulfillReadRequest(|stream|, |chunk|,
  |done|)</dfn> performs the following steps:
 
@@ -2780,7 +2796,7 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamGetNumReadIntoRequests"
+ <dfn abstract-op lt="ReadableStreamGetNumReadIntoRequests"
  id="readable-stream-get-num-read-into-requests">ReadableStreamGetNumReadIntoRequests(|stream|)</dfn>
  performs the following steps:
 
@@ -2791,7 +2807,7 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamGetNumReadRequests"
+ <dfn abstract-op lt="ReadableStreamGetNumReadRequests"
  id="readable-stream-get-num-read-requests">ReadableStreamGetNumReadRequests(|stream|)</dfn>
  performs the following steps:
 
@@ -2801,7 +2817,7 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamHasBYOBReader"
+ <dfn abstract-op lt="ReadableStreamHasBYOBReader"
  id="readable-stream-has-byob-reader">ReadableStreamHasBYOBReader(|stream|)</dfn> performs the
  following steps:
 
@@ -2812,7 +2828,7 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamHasDefaultReader"
+ <dfn abstract-op lt="ReadableStreamHasDefaultReader"
  id="readable-stream-has-default-reader">ReadableStreamHasDefaultReader(|stream|)</dfn> performs the
  following steps:
 
@@ -2828,7 +2844,7 @@ The following abstract operations support the implementation and manipulation of
 {{ReadableStreamDefaultReader}} and {{ReadableStreamBYOBReader}} instances.
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamReaderGenericCancel"
+ <dfn abstract-op lt="ReadableStreamReaderGenericCancel"
  id="readable-stream-reader-generic-cancel">ReadableStreamReaderGenericCancel(|reader|,
  |reason|)</dfn> performs the following steps:
 
@@ -2838,7 +2854,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamReaderGenericInitialize"
+ <dfn abstract-op lt="ReadableStreamReaderGenericInitialize"
  id="readable-stream-reader-generic-initialize">ReadableStreamReaderGenericInitialize(|reader|,
  |stream|)</dfn> performs the following steps:
 
@@ -2857,7 +2873,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamReaderGenericRelease"
+ <dfn abstract-op lt="ReadableStreamReaderGenericRelease"
  id="readable-stream-reader-generic-release">ReadableStreamReaderGenericRelease(|reader|)</dfn>
  performs the following steps:
 
@@ -2875,7 +2891,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport
+ <dfn abstract-op
  lt="ReadableStreamBYOBReaderErrorReadIntoRequests">ReadableStreamBYOBReaderErrorReadIntoRequests(|reader|, |e|)</dfn>
  performs the following steps:
 
@@ -2886,7 +2902,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamBYOBReaderRead"
+ <dfn abstract-op lt="ReadableStreamBYOBReaderRead"
  id="readable-stream-byob-reader-read">ReadableStreamBYOBReaderRead(|reader|, |view|, |min|,
  |readIntoRequest|)</dfn> performs the following steps:
 
@@ -2900,8 +2916,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamBYOBReaderRelease"
- >ReadableStreamBYOBReaderRelease(|reader|)</dfn>
+ <dfn abstract-op lt="ReadableStreamBYOBReaderRelease">ReadableStreamBYOBReaderRelease(|reader|)</dfn>
  performs the following steps:
 
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
@@ -2910,7 +2925,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport
+ <dfn abstract-op
  lt="ReadableStreamDefaultReaderErrorReadRequests">ReadableStreamDefaultReaderErrorReadRequests(|reader|, |e|)</dfn>
  performs the following steps:
 
@@ -2921,7 +2936,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultReaderRead"
+ <dfn abstract-op lt="ReadableStreamDefaultReaderRead"
  id="readable-stream-default-reader-read">ReadableStreamDefaultReaderRead(|reader|,
  |readRequest|)</dfn> performs the following steps:
 
@@ -2939,8 +2954,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultReaderRelease"
- >ReadableStreamDefaultReaderRelease(|reader|)</dfn>
+ <dfn abstract-op lt="ReadableStreamDefaultReaderRelease">ReadableStreamDefaultReaderRelease(|reader|)</dfn>
  performs the following steps:
 
  1. Perform ! [$ReadableStreamReaderGenericRelease$](|reader|).
@@ -2949,7 +2963,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpReadableStreamBYOBReader"
+ <dfn abstract-op lt="SetUpReadableStreamBYOBReader"
  id="set-up-readable-stream-byob-reader">SetUpReadableStreamBYOBReader(|reader|, |stream|)</dfn>
  performs the following steps:
 
@@ -2961,7 +2975,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpReadableStreamDefaultReader"
+ <dfn abstract-op lt="SetUpReadableStreamDefaultReader"
  id="set-up-readable-stream-default-reader">SetUpReadableStreamDefaultReader(|reader|,
  |stream|)</dfn> performs the following steps:
 
@@ -2976,7 +2990,7 @@ The following abstract operations support the implementation of the
 {{ReadableStreamDefaultController}} class.
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultControllerCallPullIfNeeded"
+ <dfn abstract-op lt="ReadableStreamDefaultControllerCallPullIfNeeded"
  id="readable-stream-default-controller-call-pull-if-needed">ReadableStreamDefaultControllerCallPullIfNeeded(|controller|)</dfn>
  performs the following steps:
 
@@ -2999,7 +3013,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultControllerShouldCallPull"
+ <dfn abstract-op lt="ReadableStreamDefaultControllerShouldCallPull"
  id="readable-stream-default-controller-should-call-pull">ReadableStreamDefaultControllerShouldCallPull(|controller|)</dfn>
  performs the following steps:
 
@@ -3015,7 +3029,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultControllerClearAlgorithms"
+ <dfn abstract-op lt="ReadableStreamDefaultControllerClearAlgorithms"
  id="readable-stream-default-controller-clear-algorithms">ReadableStreamDefaultControllerClearAlgorithms(|controller|)</dfn>
  is called once the stream is closed or errored and the algorithms will not be executed any more. By
  removing the algorithm references it permits the [=underlying source=] object to be garbage
@@ -3034,7 +3048,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultControllerClose"
+ <dfn abstract-op lt="ReadableStreamDefaultControllerClose"
  id="readable-stream-default-controller-close">ReadableStreamDefaultControllerClose(|controller|)</dfn>
  performs the following steps:
 
@@ -3047,7 +3061,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultControllerEnqueue"
+ <dfn abstract-op lt="ReadableStreamDefaultControllerEnqueue"
  id="readable-stream-default-controller-enqueue">ReadableStreamDefaultControllerEnqueue(|controller|,
  |chunk|)</dfn> performs the following steps:
 
@@ -3072,7 +3086,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultControllerError"
+ <dfn abstract-op lt="ReadableStreamDefaultControllerError"
  id="readable-stream-default-controller-error">ReadableStreamDefaultControllerError(|controller|,
  |e|)</dfn> performs the following steps:
 
@@ -3084,7 +3098,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultControllerGetDesiredSize"
+ <dfn abstract-op lt="ReadableStreamDefaultControllerGetDesiredSize"
  id="readable-stream-default-controller-get-desired-size">ReadableStreamDefaultControllerGetDesiredSize(|controller|)</dfn>
  performs the following steps:
 
@@ -3097,7 +3111,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultControllerHasBackpressure"
+ <dfn abstract-op lt="ReadableStreamDefaultControllerHasBackpressure"
  id="rs-default-controller-has-backpressure">ReadableStreamDefaultControllerHasBackpressure(|controller|)</dfn>
  is used in the implementation of {{TransformStream}}. It performs the following steps:
 
@@ -3106,7 +3120,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableStreamDefaultControllerCanCloseOrEnqueue"
+ <dfn abstract-op lt="ReadableStreamDefaultControllerCanCloseOrEnqueue"
  id="readable-stream-default-controller-can-close-or-enqueue">ReadableStreamDefaultControllerCanCloseOrEnqueue(|controller|)</dfn>
  performs the following steps:
 
@@ -3125,7 +3139,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpReadableStreamDefaultController"
+ <dfn abstract-op lt="SetUpReadableStreamDefaultController"
  id="set-up-readable-stream-default-controller">SetUpReadableStreamDefaultController(|stream|,
  |controller|, |startAlgorithm|, |pullAlgorithm|, |cancelAlgorithm|, |highWaterMark|,
  |sizeAlgorithm|)</dfn> performs the following steps:
@@ -3155,7 +3169,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpReadableStreamDefaultControllerFromUnderlyingSource"
+ <dfn abstract-op lt="SetUpReadableStreamDefaultControllerFromUnderlyingSource"
  id="set-up-readable-stream-default-controller-from-underlying-source">SetUpReadableStreamDefaultControllerFromUnderlyingSource(|stream|,
  |underlyingSource|, |underlyingSourceDict|, |highWaterMark|, |sizeAlgorithm|)</dfn>
  performs the following steps:
@@ -3183,7 +3197,7 @@ The following abstract operations support the implementation of the
 <h4 id="rbs-controller-abstract-ops">Byte stream controllers</h4>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerCallPullIfNeeded"
+ <dfn abstract-op lt="ReadableByteStreamControllerCallPullIfNeeded"
  id="readable-byte-stream-controller-call-pull-if-needed">ReadableByteStreamControllerCallPullIfNeeded(|controller|)</dfn>
  performs the following steps:
 
@@ -3206,7 +3220,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerClearAlgorithms"
+ <dfn abstract-op lt="ReadableByteStreamControllerClearAlgorithms"
  id="readable-byte-stream-controller-clear-algorithms">ReadableByteStreamControllerClearAlgorithms(|controller|)</dfn>
  is called once the stream is closed or errored and the algorithms will not be executed any more. By
  removing the algorithm references it permits the [=underlying byte source=] object to be garbage
@@ -3224,7 +3238,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerClearPendingPullIntos"
+ <dfn abstract-op lt="ReadableByteStreamControllerClearPendingPullIntos"
  id="readable-byte-stream-controller-clear-pending-pull-intos">ReadableByteStreamControllerClearPendingPullIntos(|controller|)</dfn>
  performs the following steps:
 
@@ -3233,7 +3247,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerClose"
+ <dfn abstract-op lt="ReadableByteStreamControllerClose"
  id="readable-byte-stream-controller-close">ReadableByteStreamControllerClose(|controller|)</dfn>
  performs the following steps:
 
@@ -3256,7 +3270,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerCommitPullIntoDescriptor"
+ <dfn abstract-op lt="ReadableByteStreamControllerCommitPullIntoDescriptor"
  id="readable-byte-stream-controller-commit-pull-into-descriptor">ReadableByteStreamControllerCommitPullIntoDescriptor(|stream|,
  |pullIntoDescriptor|)</dfn> performs the following steps:
 
@@ -3277,7 +3291,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerConvertPullIntoDescriptor"
+ <dfn abstract-op lt="ReadableByteStreamControllerConvertPullIntoDescriptor"
  id="readable-byte-stream-controller-convert-pull-into-descriptor">ReadableByteStreamControllerConvertPullIntoDescriptor(|pullIntoDescriptor|)</dfn>
  performs the following steps:
 
@@ -3292,7 +3306,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerEnqueue"
+ <dfn abstract-op lt="ReadableByteStreamControllerEnqueue"
  id="readable-byte-stream-controller-enqueue">ReadableByteStreamControllerEnqueue(|controller|,
  |chunk|)</dfn> performs the following steps:
 
@@ -3349,7 +3363,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerEnqueueChunkToQueue"
+ <dfn abstract-op lt="ReadableByteStreamControllerEnqueueChunkToQueue"
  id="readable-byte-stream-controller-enqueue-chunk-to-queue">ReadableByteStreamControllerEnqueueChunkToQueue(|controller|,
  |buffer|, |byteOffset|, |byteLength|)</dfn> performs the following steps:
 
@@ -3362,7 +3376,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport
+ <dfn abstract-op
  lt="ReadableByteStreamControllerEnqueueClonedChunkToQueue">ReadableByteStreamControllerEnqueueClonedChunkToQueue(|controller|,
  |buffer|, |byteOffset|, |byteLength|)</dfn> performs the following steps:
 
@@ -3375,7 +3389,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport
+ <dfn abstract-op
  lt="ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue">ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(|controller|,
  |pullIntoDescriptor|)</dfn> performs the following steps:
 
@@ -3388,7 +3402,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerError"
+ <dfn abstract-op lt="ReadableByteStreamControllerError"
  id="readable-byte-stream-controller-error">ReadableByteStreamControllerError(|controller|,
  |e|)</dfn> performs the following steps:
 
@@ -3401,7 +3415,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerFillHeadPullIntoDescriptor"
+ <dfn abstract-op lt="ReadableByteStreamControllerFillHeadPullIntoDescriptor"
  id="readable-byte-stream-controller-fill-head-pull-into-descriptor">ReadableByteStreamControllerFillHeadPullIntoDescriptor(|controller|,
  |size|, |pullIntoDescriptor|)</dfn> performs the following steps:
 
@@ -3414,7 +3428,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerFillPullIntoDescriptorFromQueue"
+ <dfn abstract-op lt="ReadableByteStreamControllerFillPullIntoDescriptorFromQueue"
  id="readable-byte-stream-controller-fill-pull-into-descriptor-from-queue">ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(|controller|,
  |pullIntoDescriptor|)</dfn> performs the following steps:
 
@@ -3478,7 +3492,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport
+ <dfn abstract-op
  lt="ReadableByteStreamControllerFillReadRequestFromQueue">ReadableByteStreamControllerFillReadRequestFromQueue(|controller|,
  |readRequest|)</dfn> performs the following steps:
 
@@ -3496,7 +3510,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport
+ <dfn abstract-op
  lt="ReadableByteStreamControllerGetBYOBRequest">ReadableByteStreamControllerGetBYOBRequest(|controller|)</dfn> performs
  the following steps:
 
@@ -3515,7 +3529,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerGetDesiredSize"
+ <dfn abstract-op lt="ReadableByteStreamControllerGetDesiredSize"
  id="readable-byte-stream-controller-get-desired-size">ReadableByteStreamControllerGetDesiredSize(|controller|)</dfn>
  performs the following steps:
 
@@ -3527,7 +3541,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerHandleQueueDrain"
+ <dfn abstract-op lt="ReadableByteStreamControllerHandleQueueDrain"
  id="readable-byte-stream-controller-handle-queue-drain">ReadableByteStreamControllerHandleQueueDrain(|controller|)</dfn>
  performs the following steps:
 
@@ -3542,7 +3556,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerInvalidateBYOBRequest"
+ <dfn abstract-op lt="ReadableByteStreamControllerInvalidateBYOBRequest"
  id="readable-byte-stream-controller-invalidate-byob-request">ReadableByteStreamControllerInvalidateBYOBRequest(|controller|)</dfn>
  performs the following steps:
 
@@ -3557,7 +3571,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue"
+ <dfn abstract-op lt="ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue"
  id="readable-byte-stream-controller-process-pull-into-descriptors-using-queue">ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(|controller|)</dfn>
  performs the following steps:
 
@@ -3565,7 +3579,7 @@ The following abstract operations support the implementation of the
  1. Let |filledPullIntos| be a new empty [=list=].
  1. [=While=] |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not
     [=list/is empty|empty=],
-  1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0, then [=iteration/break=].
+  1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0, then [=break=].
   1. Let |pullIntoDescriptor| be
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
   1. If ! [$ReadableByteStreamControllerFillPullIntoDescriptorFromQueue$](|controller|,
@@ -3576,7 +3590,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport
+ <dfn abstract-op
  lt="ReadableByteStreamControllerProcessReadRequestsUsingQueue">ReadableByteStreamControllerProcessReadRequestsUsingQueue(|controller|)</dfn>
  performs the following steps:
 
@@ -3590,7 +3604,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerPullInto"
+ <dfn abstract-op lt="ReadableByteStreamControllerPullInto"
  id="readable-byte-stream-controller-pull-into">ReadableByteStreamControllerPullInto(|controller|,
  |view|, |min|, |readIntoRequest|)</dfn> performs the following steps:
 
@@ -3671,7 +3685,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerRespond"
+ <dfn abstract-op lt="ReadableByteStreamControllerRespond"
  id="readable-byte-stream-controller-respond">ReadableByteStreamControllerRespond(|controller|,
  |bytesWritten|)</dfn> performs the following steps:
 
@@ -3692,7 +3706,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerRespondInClosedState"
+ <dfn abstract-op lt="ReadableByteStreamControllerRespondInClosedState"
  id="readable-byte-stream-controller-respond-in-closed-state">ReadableByteStreamControllerRespondInClosedState(|controller|,
  |firstDescriptor|)</dfn> performs the following steps:
 
@@ -3714,7 +3728,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerRespondInReadableState"
+ <dfn abstract-op lt="ReadableByteStreamControllerRespondInReadableState"
  id="readable-byte-stream-controller-respond-in-readable-state">ReadableByteStreamControllerRespondInReadableState(|controller|,
  |bytesWritten|, |pullIntoDescriptor|)</dfn> performs the following steps:
 
@@ -3760,7 +3774,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerRespondInternal"
+ <dfn abstract-op lt="ReadableByteStreamControllerRespondInternal"
  id="readable-byte-stream-controller-respond-internal">ReadableByteStreamControllerRespondInternal(|controller|,
  |bytesWritten|)</dfn> performs the following steps:
 
@@ -3782,7 +3796,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerRespondWithNewView"
+ <dfn abstract-op lt="ReadableByteStreamControllerRespondWithNewView"
  id="readable-byte-stream-controller-respond-with-new-view">ReadableByteStreamControllerRespondWithNewView(|controller|,
  |view|)</dfn> performs the following steps:
 
@@ -3810,7 +3824,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerShiftPendingPullInto"
+ <dfn abstract-op lt="ReadableByteStreamControllerShiftPendingPullInto"
  id="readable-byte-stream-controller-shift-pending-pull-into">ReadableByteStreamControllerShiftPendingPullInto(|controller|)</dfn>
  performs the following steps:
 
@@ -3822,7 +3836,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ReadableByteStreamControllerShouldCallPull"
+ <dfn abstract-op lt="ReadableByteStreamControllerShouldCallPull"
  id="readable-byte-stream-controller-should-call-pull">ReadableByteStreamControllerShouldCallPull(|controller|)</dfn>
  performs the following steps:
 
@@ -3841,7 +3855,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpReadableByteStreamController"
+ <dfn abstract-op lt="SetUpReadableByteStreamController"
  id="set-up-readable-byte-stream-controller">SetUpReadableByteStreamController(|stream|,
  |controller|, |startAlgorithm|, |pullAlgorithm|, |cancelAlgorithm|, |highWaterMark|,
  |autoAllocateChunkSize|)</dfn> performs the following steps:
@@ -3876,7 +3890,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpReadableByteStreamControllerFromUnderlyingSource"
+ <dfn abstract-op lt="SetUpReadableByteStreamControllerFromUnderlyingSource"
  id="set-up-readable-byte-stream-controller-from-underlying-source">SetUpReadableByteStreamControllerFromUnderlyingSource(|stream|,
  |underlyingSource|, |underlyingSourceDict|, |highWaterMark|)</dfn> performs the following steps:
 
@@ -4696,7 +4710,7 @@ implemented such internal methods. A similar scenario is seen for readable strea
 as such the counterpart internal methods are used polymorphically.
 
 <div algorithm>
- <dfn abstract-op noexport lt="[[AbortSteps]]" for="WritableStreamDefaultController"
+ <dfn abstract-op lt="[[AbortSteps]]" for="WritableStreamDefaultController"
  id="ws-default-controller-private-abort"
  oldids="writable-stream-default-controller-abort">\[[AbortSteps]](|reason|)</dfn> implements the
  [$WritableStreamController/[[AbortSteps]]$] contract. It performs the following steps:
@@ -4708,7 +4722,7 @@ as such the counterpart internal methods are used polymorphically.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="[[ErrorSteps]]" for="WritableStreamDefaultController"
+ <dfn abstract-op lt="[[ErrorSteps]]" for="WritableStreamDefaultController"
  id="ws-default-controller-private-error">\[[ErrorSteps]]()</dfn> implements the
  [$WritableStreamController/[[ErrorSteps]]$] contract. It performs the following steps:
 
@@ -4722,7 +4736,7 @@ as such the counterpart internal methods are used polymorphically.
 The following abstract operations operate on {{WritableStream}} instances at a higher level.
 
 <div algorithm>
- <dfn abstract-op noexport lt="AcquireWritableStreamDefaultWriter"
+ <dfn abstract-op lt="AcquireWritableStreamDefaultWriter"
  id="acquire-writable-stream-default-writer">AcquireWritableStreamDefaultWriter(|stream|)</dfn>
  performs the following steps:
 
@@ -4732,7 +4746,7 @@ The following abstract operations operate on {{WritableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="CreateWritableStream"
+ <dfn abstract-op lt="CreateWritableStream"
  id="create-writable-stream">CreateWritableStream(|startAlgorithm|, |writeAlgorithm|,
  |closeAlgorithm|, |abortAlgorithm|, |highWaterMark|, |sizeAlgorithm|)</dfn> performs the following
  steps:
@@ -4750,7 +4764,7 @@ The following abstract operations operate on {{WritableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="InitializeWritableStream"
+ <dfn abstract-op lt="InitializeWritableStream"
  id="initialize-writable-stream">InitializeWritableStream(|stream|)</dfn> performs the following
  steps:
 
@@ -4766,7 +4780,7 @@ The following abstract operations operate on {{WritableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="IsWritableStreamLocked"
+ <dfn abstract-op lt="IsWritableStreamLocked"
  id="is-writable-stream-locked">IsWritableStreamLocked(|stream|)</dfn> performs the following steps:
 
  1. If |stream|.[=WritableStream/[[writer]]=] is undefined, return false.
@@ -4774,7 +4788,7 @@ The following abstract operations operate on {{WritableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpWritableStreamDefaultWriter"
+ <dfn abstract-op lt="SetUpWritableStreamDefaultWriter"
  id="set-up-writable-stream-default-writer">SetUpWritableStreamDefaultWriter(|writer|,
  |stream|)</dfn> performs the following steps:
 
@@ -4811,7 +4825,7 @@ The following abstract operations operate on {{WritableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamAbort"
+ <dfn abstract-op lt="WritableStreamAbort"
  id="writable-stream-abort">WritableStreamAbort(|stream|, |reason|)</dfn> performs the following
  steps:
 
@@ -4840,7 +4854,7 @@ The following abstract operations operate on {{WritableStream}} instances at a h
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamClose"
+ <dfn abstract-op lt="WritableStreamClose"
  id="writable-stream-close">WritableStreamClose(|stream|)</dfn> performs the following steps:
 
  1. Let |state| be |stream|.[=WritableStream/[[state]]=].
@@ -4868,14 +4882,13 @@ Each controller class defines two internal methods, which are called by the {{Wr
 algorithms:
 
 <dl>
-  <dt><dfn abstract-op noexport lt="[[AbortSteps]]"
+  <dt><dfn abstract-op lt="[[AbortSteps]]"
   for="WritableStreamController">\[[AbortSteps]](<var ignore>reason</var>)</dfn>
   <dd>The controller's steps that run in reaction to the stream being [=abort a writable
   stream|aborted=], used to clean up the state stored in the controller and inform the
   [=underlying sink=].
 
-  <dt><dfn abstract-op noexport lt="[[ErrorSteps]]" for="WritableStreamController"
-  >\[[ErrorSteps]]()</dfn>
+  <dt><dfn abstract-op lt="[[ErrorSteps]]" for="WritableStreamController">\[[ErrorSteps]]()</dfn>
   <dd>The controller's steps that run in reaction to the stream being errored, used to clean up the
    state stored in the controller.
 </dl>
@@ -4891,7 +4904,7 @@ translates internal state changes of the controllerinto developer-facing results
 the {{WritableStream}}'s public API.
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamAddWriteRequest"
+ <dfn abstract-op lt="WritableStreamAddWriteRequest"
  id="writable-stream-add-write-request">WritableStreamAddWriteRequest(|stream|)</dfn> performs the
  following steps:
 
@@ -4903,7 +4916,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamCloseQueuedOrInFlight"
+ <dfn abstract-op lt="WritableStreamCloseQueuedOrInFlight"
  id="writable-stream-close-queued-or-in-flight">WritableStreamCloseQueuedOrInFlight(|stream|)</dfn>
  performs the following steps:
 
@@ -4913,7 +4926,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDealWithRejection"
+ <dfn abstract-op lt="WritableStreamDealWithRejection"
  id="writable-stream-deal-with-rejection">WritableStreamDealWithRejection(|stream|, |error|)</dfn>
  performs the following steps:
 
@@ -4926,7 +4939,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamFinishErroring"
+ <dfn abstract-op lt="WritableStreamFinishErroring"
  id="writable-stream-finish-erroring">WritableStreamFinishErroring(|stream|)</dfn>
  performs the following steps:
 
@@ -4960,7 +4973,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamFinishInFlightClose"
+ <dfn abstract-op lt="WritableStreamFinishInFlightClose"
  id="writable-stream-finish-in-flight-close">WritableStreamFinishInFlightClose(|stream|)</dfn>
  performs the following steps:
 
@@ -4984,7 +4997,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamFinishInFlightCloseWithError"
+ <dfn abstract-op lt="WritableStreamFinishInFlightCloseWithError"
  id="writable-stream-finish-in-flight-close-with-error">WritableStreamFinishInFlightCloseWithError(|stream|,
  |error|)</dfn> performs the following steps:
 
@@ -5000,7 +5013,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamFinishInFlightWrite"
+ <dfn abstract-op lt="WritableStreamFinishInFlightWrite"
  id="writable-stream-finish-in-flight-write">WritableStreamFinishInFlightWrite(|stream|)</dfn>
  performs the following steps:
 
@@ -5010,7 +5023,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamFinishInFlightWriteWithError"
+ <dfn abstract-op lt="WritableStreamFinishInFlightWriteWithError"
  id="writable-stream-finish-in-flight-write-with-error">WritableStreamFinishInFlightWriteWithError(|stream|,
  |error|)</dfn> performs the following steps:
 
@@ -5022,7 +5035,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamHasOperationMarkedInFlight"
+ <dfn abstract-op lt="WritableStreamHasOperationMarkedInFlight"
  id="writable-stream-has-operation-marked-in-flight">WritableStreamHasOperationMarkedInFlight(|stream|)</dfn>
  performs the following steps:
 
@@ -5032,7 +5045,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamMarkCloseRequestInFlight"
+ <dfn abstract-op lt="WritableStreamMarkCloseRequestInFlight"
  id="writable-stream-mark-close-request-in-flight">WritableStreamMarkCloseRequestInFlight(|stream|)</dfn>
  performs the following steps:
 
@@ -5044,7 +5057,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamMarkFirstWriteRequestInFlight"
+ <dfn abstract-op lt="WritableStreamMarkFirstWriteRequestInFlight"
  id="writable-stream-mark-first-write-request-in-flight">WritableStreamMarkFirstWriteRequestInFlight(|stream|)</dfn>
  performs the following steps:
 
@@ -5056,7 +5069,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamRejectCloseAndClosedPromiseIfNeeded"
+ <dfn abstract-op lt="WritableStreamRejectCloseAndClosedPromiseIfNeeded"
  id="writable-stream-reject-close-and-closed-promise-if-needed">WritableStreamRejectCloseAndClosedPromiseIfNeeded(|stream|)</dfn>
  performs the following steps:
 
@@ -5074,7 +5087,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamStartErroring"
+ <dfn abstract-op lt="WritableStreamStartErroring"
  id="writable-stream-start-erroring">WritableStreamStartErroring(|stream|, |reason|)</dfn>
  performs the following steps:
 
@@ -5093,7 +5106,7 @@ the {{WritableStream}}'s public API.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamUpdateBackpressure"
+ <dfn abstract-op lt="WritableStreamUpdateBackpressure"
  id="writable-stream-update-backpressure">WritableStreamUpdateBackpressure(|stream|,
  |backpressure|)</dfn> performs the following steps:
 
@@ -5116,7 +5129,7 @@ The following abstract operations support the implementation and manipulation of
 {{WritableStreamDefaultWriter}} instances.
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultWriterAbort"
+ <dfn abstract-op lt="WritableStreamDefaultWriterAbort"
  id="writable-stream-default-writer-abort">WritableStreamDefaultWriterAbort(|writer|,
  |reason|)</dfn> performs the following steps:
 
@@ -5126,7 +5139,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultWriterClose"
+ <dfn abstract-op lt="WritableStreamDefaultWriterClose"
  id="writable-stream-default-writer-close">WritableStreamDefaultWriterClose(|writer|)</dfn> performs
  the following steps:
 
@@ -5136,7 +5149,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultWriterCloseWithErrorPropagation"
+ <dfn abstract-op lt="WritableStreamDefaultWriterCloseWithErrorPropagation"
  id="writable-stream-default-writer-close-with-error-propagation">WritableStreamDefaultWriterCloseWithErrorPropagation(|writer|)</dfn>
  performs the following steps:
 
@@ -5155,7 +5168,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultWriterEnsureClosedPromiseRejected"
+ <dfn abstract-op lt="WritableStreamDefaultWriterEnsureClosedPromiseRejected"
  id="writable-stream-default-writer-ensure-closed-promise-rejected">WritableStreamDefaultWriterEnsureClosedPromiseRejected(|writer|,
  |error|)</dfn> performs the following steps:
 
@@ -5167,7 +5180,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultWriterEnsureReadyPromiseRejected"
+ <dfn abstract-op lt="WritableStreamDefaultWriterEnsureReadyPromiseRejected"
  id="writable-stream-default-writer-ensure-ready-promise-rejected">WritableStreamDefaultWriterEnsureReadyPromiseRejected(|writer|,
  |error|)</dfn> performs the following steps:
 
@@ -5179,7 +5192,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultWriterGetDesiredSize"
+ <dfn abstract-op lt="WritableStreamDefaultWriterGetDesiredSize"
  id="writable-stream-default-writer-get-desired-size">WritableStreamDefaultWriterGetDesiredSize(|writer|)</dfn>
  performs the following steps:
 
@@ -5192,7 +5205,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultWriterRelease"
+ <dfn abstract-op lt="WritableStreamDefaultWriterRelease"
  id="writable-stream-default-writer-release">WritableStreamDefaultWriterRelease(|writer|)</dfn>
  performs the following steps:
 
@@ -5207,7 +5220,7 @@ The following abstract operations support the implementation and manipulation of
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultWriterWrite"
+ <dfn abstract-op lt="WritableStreamDefaultWriterWrite"
  id="writable-stream-default-writer-write">WritableStreamDefaultWriterWrite(|writer|, |chunk|)</dfn>
  performs the following steps:
 
@@ -5238,7 +5251,7 @@ The following abstract operations support the implementation of the
 
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpWritableStreamDefaultController"
+ <dfn abstract-op lt="SetUpWritableStreamDefaultController"
  id="set-up-writable-stream-default-controller">SetUpWritableStreamDefaultController(|stream|,
  |controller|, |startAlgorithm|, |writeAlgorithm|, |closeAlgorithm|, |abortAlgorithm|,
  |highWaterMark|, |sizeAlgorithm|)</dfn> performs the following steps:
@@ -5272,7 +5285,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpWritableStreamDefaultControllerFromUnderlyingSink"
+ <dfn abstract-op lt="SetUpWritableStreamDefaultControllerFromUnderlyingSink"
  id="set-up-writable-stream-default-controller-from-underlying-sink">SetUpWritableStreamDefaultControllerFromUnderlyingSink(|stream|,
  |underlyingSink|, |underlyingSinkDict|, |highWaterMark|, |sizeAlgorithm|)</dfn> performs the
  following steps:
@@ -5303,7 +5316,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultControllerAdvanceQueueIfNeeded"
+ <dfn abstract-op lt="WritableStreamDefaultControllerAdvanceQueueIfNeeded"
  id="writable-stream-default-controller-advance-queue-if-needed">WritableStreamDefaultControllerAdvanceQueueIfNeeded(|controller|)</dfn>
  performs the following steps:
 
@@ -5324,7 +5337,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultControllerClearAlgorithms"
+ <dfn abstract-op lt="WritableStreamDefaultControllerClearAlgorithms"
  id="writable-stream-default-controller-clear-algorithms">WritableStreamDefaultControllerClearAlgorithms(|controller|)</dfn>
  is called once the stream is closed or errored and the algorithms will not be executed any more. By
  removing the algorithm references it permits the [=underlying sink=] object to be garbage
@@ -5347,7 +5360,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultControllerClose"
+ <dfn abstract-op lt="WritableStreamDefaultControllerClose"
  id="writable-stream-default-controller-close">WritableStreamDefaultControllerClose(|controller|)</dfn>
  performs the following steps:
 
@@ -5356,7 +5369,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultControllerError"
+ <dfn abstract-op lt="WritableStreamDefaultControllerError"
  id="writable-stream-default-controller-error">WritableStreamDefaultControllerError(|controller|,
  |error|)</dfn> performs the following steps:
 
@@ -5367,7 +5380,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultControllerErrorIfNeeded"
+ <dfn abstract-op lt="WritableStreamDefaultControllerErrorIfNeeded"
  id="writable-stream-default-controller-error-if-needed">WritableStreamDefaultControllerErrorIfNeeded(|controller|,
  |error|)</dfn> performs the following steps:
 
@@ -5376,7 +5389,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultControllerGetBackpressure"
+ <dfn abstract-op lt="WritableStreamDefaultControllerGetBackpressure"
  id="writable-stream-default-controller-get-backpressure">WritableStreamDefaultControllerGetBackpressure(|controller|)</dfn>
  performs the following steps:
 
@@ -5385,13 +5398,13 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultControllerGetChunkSize"
+ <dfn abstract-op lt="WritableStreamDefaultControllerGetChunkSize"
  id="writable-stream-default-controller-get-chunk-size">WritableStreamDefaultControllerGetChunkSize(|controller|,
  |chunk|)</dfn> performs the following steps:
 
  1. If |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=] is undefined, then:
-  1. Assert: |controller|.[=WritableStreamDefaultController/[[stream]]=].[=WritableStream/[[state]]=] is not
-     "`writable`".
+  1. Assert: |controller|.[=WritableStreamDefaultController/[[stream]]=].[=WritableStream/[[state]]=] is "`erroring`" or
+     "`errored`".
   1. Return 1.
  1. Let |returnValue| be the result of performing
     |controller|.[=WritableStreamDefaultController/[[strategySizeAlgorithm]]=], passing in |chunk|,
@@ -5404,7 +5417,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultControllerGetDesiredSize"
+ <dfn abstract-op lt="WritableStreamDefaultControllerGetDesiredSize"
  id="writable-stream-default-controller-get-desired-size">WritableStreamDefaultControllerGetDesiredSize(|controller|)</dfn>
  performs the following steps:
 
@@ -5413,7 +5426,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultControllerProcessClose"
+ <dfn abstract-op lt="WritableStreamDefaultControllerProcessClose"
  id="writable-stream-default-controller-process-close">WritableStreamDefaultControllerProcessClose(|controller|)</dfn>
  performs the following steps:
 
@@ -5431,7 +5444,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultControllerProcessWrite"
+ <dfn abstract-op lt="WritableStreamDefaultControllerProcessWrite"
  id="writable-stream-default-controller-process-write">WritableStreamDefaultControllerProcessWrite(|controller|,
  |chunk|)</dfn> performs the following steps:
 
@@ -5455,7 +5468,7 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="WritableStreamDefaultControllerWrite"
+ <dfn abstract-op lt="WritableStreamDefaultControllerWrite"
  id="writable-stream-default-controller-write">WritableStreamDefaultControllerWrite(|controller|,
  |chunk|, |chunkSize|)</dfn> performs the following steps:
 
@@ -5941,7 +5954,7 @@ the following table:
 The following abstract operations operate on {{TransformStream}} instances at a higher level.
 
 <div algorithm>
- <dfn abstract-op noexport lt="InitializeTransformStream"
+ <dfn abstract-op lt="InitializeTransformStream"
  id="initialize-transform-stream">InitializeTransformStream(|stream|, |startPromise|,
  |writableHighWaterMark|, |writableSizeAlgorithm|, |readableHighWaterMark|,
  |readableSizeAlgorithm|)</dfn> performs the following steps:
@@ -5974,7 +5987,7 @@ The following abstract operations operate on {{TransformStream}} instances at a 
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamError"
+ <dfn abstract-op lt="TransformStreamError"
  id="transform-stream-error">TransformStreamError(|stream|, |e|)</dfn> performs the following steps:
 
  1. Perform ! [$ReadableStreamDefaultControllerError$](|stream|.[=TransformStream/[[readable]]=].[=ReadableStream/[[controller]]=], |e|).
@@ -5986,7 +5999,7 @@ The following abstract operations operate on {{TransformStream}} instances at a 
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamErrorWritableAndUnblockWrite"
+ <dfn abstract-op lt="TransformStreamErrorWritableAndUnblockWrite"
  id="transform-stream-error-writable-and-unblock-write">TransformStreamErrorWritableAndUnblockWrite(|stream|,
  |e|)</dfn> performs the following steps:
 
@@ -5997,7 +6010,7 @@ The following abstract operations operate on {{TransformStream}} instances at a 
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamSetBackpressure"
+ <dfn abstract-op lt="TransformStreamSetBackpressure"
  id="transform-stream-set-backpressure">TransformStreamSetBackpressure(|stream|,
  |backpressure|)</dfn> performs the following steps:
 
@@ -6009,7 +6022,7 @@ The following abstract operations operate on {{TransformStream}} instances at a 
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamUnblockWrite"
+ <dfn abstract-op lt="TransformStreamUnblockWrite"
  id="transform-stream-unblock-write">TransformStreamUnblockWrite(|stream|)</dfn> performs the
  following steps:
 
@@ -6027,7 +6040,7 @@ The following abstract operations support the implementaiton of the
 {{TransformStreamDefaultController}} class.
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpTransformStreamDefaultController"
+ <dfn abstract-op lt="SetUpTransformStreamDefaultController"
  id="set-up-transform-stream-default-controller">SetUpTransformStreamDefaultController(|stream|,
  |controller|, |transformAlgorithm|, |flushAlgorithm|, |cancelAlgorithm|)</dfn> performs the
  following steps:
@@ -6043,7 +6056,7 @@ The following abstract operations support the implementaiton of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpTransformStreamDefaultControllerFromTransformer"
+ <dfn abstract-op lt="SetUpTransformStreamDefaultControllerFromTransformer"
  id="set-up-transform-stream-default-controller-from-transformer">SetUpTransformStreamDefaultControllerFromTransformer(|stream|,
  |transformer|, |transformerDict|)</dfn> performs the following steps:
 
@@ -6070,7 +6083,7 @@ The following abstract operations support the implementaiton of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamDefaultControllerClearAlgorithms"
+ <dfn abstract-op lt="TransformStreamDefaultControllerClearAlgorithms"
  id="transform-stream-default-controller-clear-algorithms">TransformStreamDefaultControllerClearAlgorithms(|controller|)</dfn>
  is called once the stream is closed or errored and the algorithms will not be executed any more.
  By removing the algorithm references it permits the [=transformer=] object to be garbage collected
@@ -6089,7 +6102,7 @@ The following abstract operations support the implementaiton of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamDefaultControllerEnqueue"
+ <dfn abstract-op lt="TransformStreamDefaultControllerEnqueue"
  id="transform-stream-default-controller-enqueue">TransformStreamDefaultControllerEnqueue(|controller|,
  |chunk|)</dfn> performs the following steps:
 
@@ -6111,7 +6124,7 @@ The following abstract operations support the implementaiton of the
    1. Perform ! [$TransformStreamSetBackpressure$](|stream|, true).
 </div>
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamDefaultControllerError"
+ <dfn abstract-op lt="TransformStreamDefaultControllerError"
  id="transform-stream-default-controller-error">TransformStreamDefaultControllerError(|controller|,
  |e|)</dfn> performs the following steps:
 
@@ -6120,7 +6133,7 @@ The following abstract operations support the implementaiton of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamDefaultControllerPerformTransform"
+ <dfn abstract-op lt="TransformStreamDefaultControllerPerformTransform"
  id="transform-stream-default-controller-perform-transform">TransformStreamDefaultControllerPerformTransform(|controller|,
  |chunk|)</dfn> performs the following steps:
 
@@ -6134,7 +6147,7 @@ The following abstract operations support the implementaiton of the
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamDefaultControllerTerminate"
+ <dfn abstract-op lt="TransformStreamDefaultControllerTerminate"
  id="transform-stream-default-controller-terminate">TransformStreamDefaultControllerTerminate(|controller|)</dfn>
  performs the following steps:
 
@@ -6152,7 +6165,7 @@ The following abstract operations are used to implement the [=underlying sink=] 
 side=] of [=transform streams=].
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamDefaultSinkWriteAlgorithm"
+ <dfn abstract-op lt="TransformStreamDefaultSinkWriteAlgorithm"
  id="transform-stream-default-sink-write-algorithm">TransformStreamDefaultSinkWriteAlgorithm(|stream|,
  |chunk|)</dfn> performs the following steps:
 
@@ -6172,7 +6185,7 @@ side=] of [=transform streams=].
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamDefaultSinkAbortAlgorithm"
+ <dfn abstract-op lt="TransformStreamDefaultSinkAbortAlgorithm"
  id="transform-stream-default-sink-abort-algorithm">TransformStreamDefaultSinkAbortAlgorithm(|stream|,
  |reason|)</dfn> performs the following steps:
 
@@ -6199,7 +6212,7 @@ side=] of [=transform streams=].
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamDefaultSinkCloseAlgorithm"
+ <dfn abstract-op lt="TransformStreamDefaultSinkCloseAlgorithm"
  id="transform-stream-default-sink-close-algorithm">TransformStreamDefaultSinkCloseAlgorithm(|stream|)</dfn>
  performs the following steps:
 
@@ -6231,7 +6244,7 @@ The following abstract operation is used to implement the [=underlying source=] 
 side=] of [=transform streams=].
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamDefaultSourceCancelAlgorithm"
+ <dfn abstract-op lt="TransformStreamDefaultSourceCancelAlgorithm"
  id="transform-stream-default-source-cancel">TransformStreamDefaultSourceCancelAlgorithm(|stream|,
  |reason|)</dfn> performs the following steps:
 
@@ -6260,7 +6273,7 @@ side=] of [=transform streams=].
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransformStreamDefaultSourcePullAlgorithm"
+ <dfn abstract-op lt="TransformStreamDefaultSourcePullAlgorithm"
  id="transform-stream-default-source-pull">TransformStreamDefaultSourcePullAlgorithm(|stream|)</dfn>
  performs the following steps:
 
@@ -6563,7 +6576,7 @@ The following algorithms are used by the stream constructors to extract the rele
 a {{QueuingStrategy}} dictionary.
 
 <div algorithm>
- <dfn abstract-op noexport lt="ExtractHighWaterMark"
+ <dfn abstract-op lt="ExtractHighWaterMark"
  id="validate-and-normalize-high-water-mark">ExtractHighWaterMark(|strategy|, |defaultHWM|)</dfn>
  performs the following steps:
 
@@ -6577,7 +6590,7 @@ a {{QueuingStrategy}} dictionary.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ExtractSizeAlgorithm"
+ <dfn abstract-op lt="ExtractSizeAlgorithm"
  id="make-size-algorithm-from-size-function">ExtractSizeAlgorithm(|strategy|)</dfn>
  performs the following steps:
 
@@ -6614,8 +6627,8 @@ In what follows, a <dfn>value-with-size</dfn> is a [=struct=] with the two [=str
 for="value-with-size">value</dfn> and <dfn for="value-with-size">size</dfn>.
 
 <div algorithm>
- <dfn abstract-op noexport lt="DequeueValue" id="dequeue-value">DequeueValue(|container|)</dfn>
- performs the following steps:
+ <dfn abstract-op lt="DequeueValue" id="dequeue-value">DequeueValue(|container|)</dfn> performs the
+ following steps:
 
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
  1. Assert: |container|.\[[queue]] is not [=list/is empty|empty=].
@@ -6629,7 +6642,7 @@ for="value-with-size">value</dfn> and <dfn for="value-with-size">size</dfn>.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="EnqueueValueWithSize"
+ <dfn abstract-op lt="EnqueueValueWithSize"
  id="enqueue-value-with-size">EnqueueValueWithSize(|container|, |value|, |size|)</dfn> performs the
  following steps:
 
@@ -6642,8 +6655,8 @@ for="value-with-size">value</dfn> and <dfn for="value-with-size">size</dfn>.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="PeekQueueValue" id="peek-queue-value"
- >PeekQueueValue(|container|)</dfn> performs the following steps:
+ <dfn abstract-op lt="PeekQueueValue" id="peek-queue-value">PeekQueueValue(|container|)</dfn>
+ performs the following steps:
 
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
  1. Assert: |container|.\[[queue]] is not [=list/is empty|empty=].
@@ -6652,7 +6665,7 @@ for="value-with-size">value</dfn> and <dfn for="value-with-size">size</dfn>.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="ResetQueue" id="reset-queue">ResetQueue(|container|)</dfn>
+ <dfn abstract-op lt="ResetQueue" id="reset-queue">ResetQueue(|container|)</dfn>
  performs the following steps:
 
  1. Assert: |container| has \[[queue]] and \[[queueTotalSize]] internal slots.
@@ -6667,7 +6680,7 @@ Transferable streams are implemented using a special kind of identity transform 
 abstract operations are used to implement these "cross-realm transforms".
 
 <div algorithm>
- <dfn abstract-op noexport lt="CrossRealmTransformSendError">CrossRealmTransformSendError(|port|,
+ <dfn abstract-op lt="CrossRealmTransformSendError">CrossRealmTransformSendError(|port|,
  |error|)</dfn> performs the following steps:
 
  1. Perform [$PackAndPostMessage$](|port|, "`error`", |error|), discarding the result.
@@ -6677,8 +6690,8 @@ abstract operations are used to implement these "cross-realm transforms".
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="PackAndPostMessage"
- >PackAndPostMessage(|port|, |type|, |value|)</dfn> performs the following steps:
+ <dfn abstract-op lt="PackAndPostMessage">PackAndPostMessage(|port|, |type|, |value|)</dfn> performs
+ the following steps:
 
  1. Let |message| be [$OrdinaryObjectCreate$](null).
  1. Perform ! [$CreateDataProperty$](|message|, "`type`", |type|).
@@ -6693,8 +6706,8 @@ abstract operations are used to implement these "cross-realm transforms".
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="PackAndPostMessageHandlingError"
- >PackAndPostMessageHandlingError(|port|, |type|, |value|)</dfn> performs the following steps:
+ <dfn abstract-op lt="PackAndPostMessageHandlingError">PackAndPostMessageHandlingError(|port|,
+ |type|, |value|)</dfn> performs the following steps:
 
  1. Let |result| be [$PackAndPostMessage$](|port|, |type|, |value|).
  1. If |result| is an abrupt completion,
@@ -6703,8 +6716,8 @@ abstract operations are used to implement these "cross-realm transforms".
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpCrossRealmTransformReadable"
- >SetUpCrossRealmTransformReadable(|stream|, |port|)</dfn> performs the following steps:
+ <dfn abstract-op lt="SetUpCrossRealmTransformReadable">SetUpCrossRealmTransformReadable(|stream|,
+ |port|)</dfn> performs the following steps:
 
  1. Perform ! [$InitializeReadableStream$](|stream|).
  1. Let |controller| be a [=new=] {{ReadableStreamDefaultController}}.
@@ -6747,8 +6760,8 @@ abstract operations are used to implement these "cross-realm transforms".
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="SetUpCrossRealmTransformWritable">
- SetUpCrossRealmTransformWritable(|stream|, |port|)</dfn> performs the following steps:
+ <dfn abstract-op lt="SetUpCrossRealmTransformWritable">SetUpCrossRealmTransformWritable(|stream|,
+ |port|)</dfn> performs the following steps:
 
  1. Perform ! [$InitializeWritableStream$](|stream|).
  1. Let |controller| be a [=new=] {{WritableStreamDefaultController}}.
@@ -6786,7 +6799,7 @@ abstract operations are used to implement these "cross-realm transforms".
     1. Disentangle |port|.
     1. Return [=a promise rejected with=] |result|.\[[Value]].
    1. Otherwise, return [=a promise resolved with=] undefined.
- 1. Let |closeAlgorithm| be the following steps:
+ 1. Let |closeAlgorithm| be the folowing steps:
   1. Perform ! [$PackAndPostMessage$](|port|, "`close`", undefined).
   1. Disentangle |port|.
   1. Return [=a promise resolved with=] undefined.
@@ -6809,7 +6822,7 @@ abstract operations are used to implement these "cross-realm transforms".
 The following abstract operations are a grab-bag of utilities.
 
 <div algorithm>
- <dfn abstract-op noexport lt="CanTransferArrayBuffer"
+ <dfn abstract-op lt="CanTransferArrayBuffer"
  id="can-transfer-array-buffer">CanTransferArrayBuffer(|O|)</dfn> performs the following steps:
 
  1. Assert: |O| [=is an Object=].
@@ -6820,7 +6833,7 @@ The following abstract operations are a grab-bag of utilities.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="IsNonNegativeNumber"
+ <dfn abstract-op lt="IsNonNegativeNumber"
  id="is-non-negative-number">IsNonNegativeNumber(|v|)</dfn> performs the following steps:
 
  1. If |v| [=is not a Number=], return false.
@@ -6830,7 +6843,7 @@ The following abstract operations are a grab-bag of utilities.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="TransferArrayBuffer"
+ <dfn abstract-op lt="TransferArrayBuffer"
  id="transfer-array-buffer">TransferArrayBuffer(|O|)</dfn> performs the following steps:
 
  1. Assert: ! [$IsDetachedBuffer$](|O|) is false.
@@ -6846,8 +6859,7 @@ The following abstract operations are a grab-bag of utilities.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="CloneAsUint8Array">CloneAsUint8Array(|O|)</dfn> performs the
- following steps:
+ <dfn abstract-op lt="CloneAsUint8Array">CloneAsUint8Array(|O|)</dfn> performs the following steps:
 
  1. Assert: |O| [=is an Object=].
  1. Assert: |O| has an \[[ViewedArrayBuffer]] internal slot.
@@ -6859,15 +6871,14 @@ The following abstract operations are a grab-bag of utilities.
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="StructuredClone">StructuredClone(|v|)</dfn> performs the following
- steps:
+ <dfn abstract-op lt="StructuredClone">StructuredClone(|v|)</dfn> performs the following steps:
 
  1. Let |serialized| be ? [$StructuredSerialize$](|v|).
  1. Return ? [$StructuredDeserialize$](|serialized|, [=the current Realm=]).
 </div>
 
 <div algorithm>
- <dfn abstract-op noexport lt="CanCopyDataBlockBytes">CanCopyDataBlockBytes(|toBuffer|, |toIndex|,
+ <dfn abstract-op lt="CanCopyDataBlockBytes">CanCopyDataBlockBytes(|toBuffer|, |toIndex|,
  |fromBuffer|, |fromIndex|, |count|)</dfn> performs the following steps:
 
  1. Assert: |toBuffer| [=is an Object=].
@@ -7122,16 +7133,6 @@ failures should be handled by the calling specification.
  <p class="note">This will throw an exception if |stream| is already [=ReadableStream/locked=].
 </div>
 
-<div algorithm>
- <p>To <dfn export for="ReadableStreamDefaultReader">set up</dfn> a newly-[=new|created-via-Web IDL=]
- {{ReadableStreamDefaultReader}} |reader| for a {{ReadableStream}} |stream|,
- perform ? [$SetUpReadableStreamDefaultReader$](|reader|, |stream|).
-
- <p class="note">Subclasses of {{ReadableStreamDefaultReader}} will use the
- [=ReadableStreamDefaultReader/set up=] operation directly on the [=this=] value inside their
- constructor steps.</p>
-</div>
-
 <p algorithm>To <dfn export for="ReadableStreamDefaultReader" lt="read a chunk|reading a chunk">read
 a chunk</dfn> from a {{ReadableStreamDefaultReader}} |reader|, given a [=read request=]
 |readRequest|, perform ! [$ReadableStreamDefaultReaderRead$](|reader|, |readRequest|).
@@ -7318,16 +7319,6 @@ failures should be handled by the calling specification.
  will be a {{WritableStreamDefaultWriter}}.
 
  <p class="note">This will throw an exception if |stream| is already locked.
-</div>
-
-<div algorithm>
- <p>To <dfn export for="WritableStreamDefaultWriter">set up</dfn> a newly-[=new|created-via-Web IDL=]
- {{WritableStreamDefaultWriter}} |writer| for a {{WritableStream}} |stream|,
- perform ? [$SetUpWritableStreamDefaultWriter$](|writer|, |stream|).
-
- <p class="note">Subclasses of {{WritableStreamDefaultWriter}} will use the
- [=WritableStreamDefaultWriter/set up=] operation directly on the [=this=] value inside their
- constructor steps.</p>
 </div>
 
 <p algorithm>To <dfn export for="WritableStreamDefaultWriter" lt="write a chunk|writing a
@@ -8369,7 +8360,6 @@ Michael Mior,
 Mihai Potra,
 Nidhi Jaju,
 Romain Bellessort, <!-- rombel on GitHub -->
-Shivendra Kumar,
 Simon Menke,
 Stephen Sugden,
 Surma,

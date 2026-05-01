@@ -11,7 +11,7 @@ exports.implementation = class WritableStreamImpl {
     if (underlyingSink === undefined) {
       underlyingSink = null;
     }
-    const underlyingSinkDict = UnderlyingSink.convert(underlyingSink);
+    const underlyingSinkDict = UnderlyingSink.convert(globalObject, underlyingSink);
     if ('type' in underlyingSinkDict) {
       throw new RangeError('Invalid type is specified');
     }

@@ -11,7 +11,7 @@ class ReadableStreamBYOBReaderImpl {
     aos.SetUpReadableStreamBYOBReader(this, stream);
   }
 
-  read(view) {
+  read(view, options) {
     if (view.byteLength === 0) {
       return promiseRejectedWith(new TypeError('view must have non-zero byteLength'));
     }
@@ -20,6 +20,23 @@ class ReadableStreamBYOBReaderImpl {
     }
     if (IsDetachedBuffer(view.buffer) === true) {
       return promiseRejectedWith(new TypeError('view\'s buffer has been detached'));
+    }
+
+    if (options.min === 0) {
+      return promiseRejectedWith(
+        new TypeError('options.min must be greater than 0')
+      );
+    }
+    if (view.constructor !== DataView) {
+      if (options.min > view.length) {
+        return promiseRejectedWith(
+          new RangeError('options.min must be less than or equal to view\'s length')
+        );
+      }
+    } else if (options.min > view.byteLength) {
+      return promiseRejectedWith(
+        new RangeError('options.min must be less than or equal to view\'s byteLength')
+      );
     }
 
     if (this._stream === undefined) {
@@ -32,7 +49,7 @@ class ReadableStreamBYOBReaderImpl {
       closeSteps: chunk => resolvePromise(promise, { value: chunk, done: true }),
       errorSteps: e => rejectPromise(promise, e)
     };
-    aos.ReadableStreamBYOBReaderRead(this, view, readIntoRequest);
+    aos.ReadableStreamBYOBReaderRead(this, view, options.min, readIntoRequest);
     return promise;
   }
 
