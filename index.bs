@@ -6967,6 +6967,13 @@ to grow organically as needed.
 [=ReadableStream/set up with byte reading support=] operations directly on the [=this=] value inside
 their constructor steps.
 
+<div algorithm="create a ReadableStream from an async sequence">
+ To <dfn export lt="create from async sequence|create from an async sequence" for="ReadableStream">create</dfn>
+ a {{ReadableStream}} from an [=async sequence=] |sequence|:
+
+ 1. Return ? [$ReadableStreamFromIterable$](|sequence|).
+</div>
+
 <hr>
 
 The following algorithms must only be used on {{ReadableStream}} instances initialized via the above
