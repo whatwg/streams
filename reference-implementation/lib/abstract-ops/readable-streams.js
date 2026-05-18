@@ -10,7 +10,7 @@ const { CanCopyDataBlockBytes, CloneAsUint8Array, IsNonNegativeNumber } = requir
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
         WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
-        WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight, writerAddStateChangeListener } =
+        WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight, writerSetStateChangeListener } =
   require('./writable-streams.js');
 const { CancelSteps, PullSteps, ReleaseSteps } = require('./internal-methods.js');
 
@@ -285,8 +285,8 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
 
     if (!shuttingDown) {
       assert(source._state === 'readable' && dest._state === 'writable');
-      readerAddStateChangeListener(reader, checkState);
-      writerAddStateChangeListener(writer, checkState);
+      readerSetStateChangeListener(reader, checkState);
+      writerSetStateChangeListener(writer, checkState);
 
       setPromiseIsHandledToTrue(pipeLoop());
     }
@@ -792,7 +792,7 @@ function ReadableStreamClose(stream) {
   }
 
   resolvePromise(reader._closedPromise, undefined);
-  readerRunStateChangeListeners(reader);
+  readerRunStateChangeListener(reader);
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     const readRequests = reader._readRequests;
@@ -817,7 +817,7 @@ function ReadableStreamError(stream, e) {
 
   rejectPromise(reader._closedPromise, e);
   setPromiseIsHandledToTrue(reader._closedPromise);
-  readerRunStateChangeListeners(reader);
+  readerRunStateChangeListener(reader);
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     ReadableStreamDefaultReaderErrorReadRequests(reader, e);
@@ -901,7 +901,7 @@ function ReadableStreamReaderGenericInitialize(reader, stream) {
   reader._stream = stream;
   stream._reader = reader;
 
-  reader._stateChangeListeners = [];
+  reader._stateChangeListener = undefined;
 
   if (stream._state === 'readable') {
     reader._closedPromise = newPromise();
@@ -937,19 +937,20 @@ function ReadableStreamReaderGenericRelease(reader) {
   stream._reader = undefined;
   reader._stream = undefined;
 
-  reader._stateChangeListeners = [];
+  reader._stateChangeListener = undefined;
 }
 
-function readerAddStateChangeListener(reader, stateChangeListener) {
+function readerSetStateChangeListener(reader, stateChangeListener) {
   const stream = reader._stream;
   assert(stream !== undefined);
-  reader._stateChangeListeners.push(stateChangeListener);
+  assert(reader._stateChangeListener === undefined);
+  reader._stateChangeListener = stateChangeListener;
 }
 
-function readerRunStateChangeListeners(reader) {
-  const stateChangeListeners = reader._stateChangeListeners;
-  reader._stateChangeListeners = [];
-  for (const stateChangeListener of stateChangeListeners) {
+function readerRunStateChangeListener(reader) {
+  const stateChangeListener = reader._stateChangeListener;
+  reader._stateChangeListener = undefined;
+  if (stateChangeListener !== undefined) {
     stateChangeListener();
   }
 }
