@@ -4,13 +4,15 @@ const assert = require('assert');
 const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise, uponPromise,
         setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment, uponRejection } =
   require('../helpers/webidl.js');
+const { rethrowAssertionErrorRejection } = require('../helpers/miscellaneous.js');
 const { CanTransferArrayBuffer, Call, CopyDataBlockBytes, CreateArrayFromList, GetIterator, GetMethod, IsDetachedBuffer,
         IteratorComplete, IteratorNext, IteratorValue, TransferArrayBuffer, typeIsObject } = require('./ecmascript.js');
 const { CanCopyDataBlockBytes, CloneAsUint8Array, IsNonNegativeNumber } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
         WritableStreamDefaultWriterCloseWithErrorPropagation, WritableStreamDefaultWriterRelease,
-        WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight } = require('./writable-streams.js');
+        WritableStreamDefaultWriterWrite, WritableStreamCloseQueuedOrInFlight, writerSetStateChangeListener } =
+  require('./writable-streams.js');
 const { CancelSteps, PullSteps, ReleaseSteps } = require('./internal-methods.js');
 
 const ReadableByteStreamController = require('../../generated/ReadableByteStreamController.js');
@@ -135,7 +137,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
   assert(IsReadableStreamLocked(source) === false);
   assert(IsWritableStreamLocked(dest) === false);
 
-  const reader = AcquireReadableStreamDefaultReader(source);
+  let reader = AcquireReadableStreamDefaultReader(source);
   const writer = AcquireWritableStreamDefaultWriter(dest);
 
   source._disturbed = true;
@@ -201,13 +203,19 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       }
 
       return transformPromiseWith(writer._readyPromise, () => {
+        if (shuttingDown === true) {
+          return promiseResolvedWith(true);
+        }
+        if (dest._state !== 'writable' || WritableStreamCloseQueuedOrInFlight(dest) === true) {
+          return promiseResolvedWith(true);
+        }
         return new Promise((resolveRead, rejectRead) => {
           ReadableStreamDefaultReaderRead(
             reader,
             {
               chunkSteps: chunk => {
                 currentWrite = transformPromiseWith(
-                  WritableStreamDefaultWriterWrite(writer, chunk), undefined, () => {}
+                  WritableStreamDefaultWriterWrite(writer, chunk), undefined, rethrowAssertionErrorRejection
                 );
                 resolveRead(false);
               },
@@ -220,31 +228,50 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     // Errors must be propagated forward
-    isOrBecomesErrored(source, reader._closedPromise, storedError => {
+    function sourceIsOrBecomesErrored() {
+      const storedError = source._storedError;
       if (preventAbort === false) {
         shutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
       } else {
         shutdown(true, storedError);
       }
-    });
+    }
 
     // Errors must be propagated backward
-    isOrBecomesErrored(dest, writer._closedPromise, storedError => {
+    function destIsOrBecomesErroringOrErrored() {
+      const storedError = dest._storedError;
       if (preventCancel === false) {
         shutdownWithAction(() => ReadableStreamCancel(source, storedError), true, storedError);
       } else {
         shutdown(true, storedError);
       }
-    });
+    }
 
     // Closing must be propagated forward
-    isOrBecomesClosed(source, reader._closedPromise, () => {
+    function sourceIsOrBecomesClosed() {
       if (preventClose === false) {
         shutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
       } else {
         shutdown();
       }
-    });
+    }
+
+    function checkState() {
+      const sourceState = source._state;
+      const destState = dest._state;
+      if (sourceState === 'errored') {
+        // Errors must be propagated forward
+        sourceIsOrBecomesErrored();
+      } else if (destState === 'erroring' || destState === 'errored') {
+        // Errors must be propagated backward
+        destIsOrBecomesErroringOrErrored();
+      } else if (sourceState === 'closed') {
+        // Closing must be propagated forward
+        sourceIsOrBecomesClosed();
+      }
+    }
+
+    checkState();
 
     // Closing must be propagated backward
     if (WritableStreamCloseQueuedOrInFlight(dest) === true || dest._state === 'closed') {
@@ -257,7 +284,13 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       }
     }
 
-    setPromiseIsHandledToTrue(pipeLoop());
+    if (!shuttingDown) {
+      assert(source._state === 'readable' && dest._state === 'writable');
+      readerSetStateChangeListener(reader, checkState);
+      writerSetStateChangeListener(writer, checkState);
+
+      setPromiseIsHandledToTrue(pipeLoop());
+    }
 
     function waitForWritesToFinish() {
       // Another write may have started while we were waiting on this currentWrite, so we have to be sure to wait
@@ -269,27 +302,13 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
       );
     }
 
-    function isOrBecomesErrored(stream, promise, action) {
-      if (stream._state === 'errored') {
-        action(stream._storedError);
-      } else {
-        uponRejection(promise, action);
-      }
-    }
-
-    function isOrBecomesClosed(stream, promise, action) {
-      if (stream._state === 'closed') {
-        action();
-      } else {
-        uponFulfillment(promise, action);
-      }
-    }
-
     function shutdownWithAction(action, originalIsError, originalError) {
       if (shuttingDown === true) {
         return;
       }
       shuttingDown = true;
+      ReadableStreamDefaultReaderRelease(reader);
+      reader = AcquireReadableStreamDefaultReader(source);
 
       if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
         uponFulfillment(waitForWritesToFinish(), doTheRest);
@@ -311,6 +330,8 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
         return;
       }
       shuttingDown = true;
+      ReadableStreamDefaultReaderRelease(reader);
+      reader = AcquireReadableStreamDefaultReader(source);
 
       if (dest._state === 'writable' && WritableStreamCloseQueuedOrInFlight(dest) === false) {
         uponFulfillment(waitForWritesToFinish(), () => finalize(isError, error));
@@ -320,6 +341,7 @@ function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventC
     }
 
     function finalize(isError, error) {
+      assert(ReadableStreamDefaultReader.isImpl(reader));
       WritableStreamDefaultWriterRelease(writer);
       ReadableStreamDefaultReaderRelease(reader);
 
@@ -771,6 +793,7 @@ function ReadableStreamClose(stream) {
   }
 
   resolvePromise(reader._closedPromise, undefined);
+  readerRunStateChangeListener(reader);
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     const readRequests = reader._readRequests;
@@ -795,6 +818,7 @@ function ReadableStreamError(stream, e) {
 
   rejectPromise(reader._closedPromise, e);
   setPromiseIsHandledToTrue(reader._closedPromise);
+  readerRunStateChangeListener(reader);
 
   if (ReadableStreamDefaultReader.isImpl(reader)) {
     ReadableStreamDefaultReaderErrorReadRequests(reader, e);
@@ -878,6 +902,8 @@ function ReadableStreamReaderGenericInitialize(reader, stream) {
   reader._stream = stream;
   stream._reader = reader;
 
+  reader._stateChangeListener = undefined;
+
   if (stream._state === 'readable') {
     reader._closedPromise = newPromise();
   } else if (stream._state === 'closed') {
@@ -911,6 +937,23 @@ function ReadableStreamReaderGenericRelease(reader) {
 
   stream._reader = undefined;
   reader._stream = undefined;
+
+  reader._stateChangeListener = undefined;
+}
+
+function readerSetStateChangeListener(reader, stateChangeListener) {
+  const stream = reader._stream;
+  assert(stream !== undefined);
+  assert(reader._stateChangeListener === undefined);
+  reader._stateChangeListener = stateChangeListener;
+}
+
+function readerRunStateChangeListener(reader) {
+  const stateChangeListener = reader._stateChangeListener;
+  reader._stateChangeListener = undefined;
+  if (stateChangeListener !== undefined) {
+    stateChangeListener();
+  }
 }
 
 function ReadableStreamBYOBReaderRead(reader, view, min, readIntoRequest) {
