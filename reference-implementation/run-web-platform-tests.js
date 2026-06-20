@@ -37,9 +37,9 @@ async function main() {
     // These tests use ArrayBuffers backed by WebAssembly.Memory objects, which *should* be non-transferable.
     // However, our TransferArrayBuffer implementation cannot detect these, and will incorrectly "transfer" them anyway.
     'readable-byte-streams/non-transferable-buffers.any.html',
-    'readable-streams/owning-type-message-port.any.html', // disabled due to MessagePort use.
-    'readable-streams/owning-type-video-frame.any.html', // disabled due to VideoFrame use.
-    'readable-streams/owning-type.any.html', // FIXME: reenable this test once owning type PR lands.
+    'readable-streams/owning-type-message-port.tentative.any.html', // disabled due to MessagePort use.
+    'readable-streams/owning-type-video-frame.tentative.any.html', // disabled due to VideoFrame use.
+    'readable-streams/owning-type.tentative.any.html', // FIXME: reenable this test once owning type PR lands.
     'transferable/transform-stream-members.any.html' // FIXME: reenable if structuredClone is aligned.
   ];
   const anyTestPattern = /\.any\.html$/;
