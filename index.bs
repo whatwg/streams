@@ -7605,8 +7605,6 @@ sense to pass them to {{ReadableStream/pipeThrough()}}.
  through"><var>signal</var></dfn>, is given by performing the following steps. The result will be
  the [=readable side=] of |transform|.
 
- 1. Assert: ! [$IsReadableStreamLocked$](|readable|) is false.
- 1. Assert: ! [$IsWritableStreamLocked$](|transform|.[=TransformStream/[[writable]]=]) is false.
  1. Let |signalArg| be |signal| if |signal| was given, or undefined otherwise.
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|,
     |transform|.[=TransformStream/[[writable]]=], |preventClose|, |preventAbort|, |preventCancel|,
