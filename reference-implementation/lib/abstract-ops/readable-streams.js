@@ -4,8 +4,8 @@ const assert = require('assert');
 const { promiseResolvedWith, promiseRejectedWith, newPromise, resolvePromise, rejectPromise, uponPromise,
         setPromiseIsHandledToTrue, waitForAllPromise, transformPromiseWith, uponFulfillment, uponRejection } =
   require('../helpers/webidl.js');
-const { CanTransferArrayBuffer, Call, CopyDataBlockBytes, CreateArrayFromList, GetIterator, GetMethod, IsDetachedBuffer,
-        IteratorComplete, IteratorNext, IteratorValue, TransferArrayBuffer, typeIsObject } = require('./ecmascript.js');
+const { CanTransferArrayBuffer, CopyDataBlockBytes, CreateArrayFromList, IsDetachedBuffer,
+        IteratorComplete, IteratorValue, TransferArrayBuffer } = require('./ecmascript.js');
 const { CanCopyDataBlockBytes, CloneAsUint8Array, IsNonNegativeNumber } = require('./miscellaneous.js');
 const { EnqueueValueWithSize, ResetQueue } = require('./queue-with-sizes.js');
 const { AcquireWritableStreamDefaultWriter, IsWritableStreamLocked, WritableStreamAbort,
@@ -1911,22 +1911,13 @@ function SetUpReadableByteStreamControllerFromUnderlyingSource(
 
 function ReadableStreamFromIterable(asyncIterable) {
   let stream;
-  const iteratorRecord = GetIterator(asyncIterable, 'async');
+  const iterator = asyncIterable[Symbol.asyncIterator]();
 
   const startAlgorithm = () => undefined;
 
   function pullAlgorithm() {
-    let nextResult;
-    try {
-      nextResult = IteratorNext(iteratorRecord);
-    } catch (e) {
-      return promiseRejectedWith(e);
-    }
-    const nextPromise = promiseResolvedWith(nextResult);
+    const nextPromise = iterator.next();
     return transformPromiseWith(nextPromise, iterResult => {
-      if (!typeIsObject(iterResult)) {
-        throw new TypeError('The promise returned by the iterator.next() method must fulfill with an object');
-      }
       const done = IteratorComplete(iterResult);
       if (done === true) {
         ReadableStreamDefaultControllerClose(stream._controller);
@@ -1938,27 +1929,8 @@ function ReadableStreamFromIterable(asyncIterable) {
   }
 
   function cancelAlgorithm(reason) {
-    const iterator = iteratorRecord.iterator;
-    let returnMethod;
-    try {
-      returnMethod = GetMethod(iterator, 'return');
-    } catch (e) {
-      return promiseRejectedWith(e);
-    }
-    if (returnMethod === undefined) {
-      return promiseResolvedWith(undefined);
-    }
-    let returnResult;
-    try {
-      returnResult = Call(returnMethod, iterator, [reason]);
-    } catch (e) {
-      return promiseRejectedWith(e);
-    }
-    const returnPromise = promiseResolvedWith(returnResult);
-    return transformPromiseWith(returnPromise, iterResult => {
-      if (!typeIsObject(iterResult)) {
-        throw new TypeError('The promise returned by the iterator.return() method must fulfill with an object');
-      }
+    const returnPromise = iterator.return(reason);
+    return transformPromiseWith(returnPromise, () => {
       return undefined;
     });
   }
