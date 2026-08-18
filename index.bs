@@ -7570,8 +7570,6 @@ sense to pass them to {{ReadableStream/pipeThrough()}}.
  They will return a {{Promise}} that fulfills when the pipe completes, or rejects with an exception
  if it fails.
 
- 1. Assert: ! [$IsReadableStreamLocked$](|readable|) is false.
- 1. Assert: ! [$IsWritableStreamLocked$](|writable|) is false.
  1. Let |signalArg| be |signal| if |signal| was given, or undefined otherwise.
  1. Return ! [$ReadableStreamPipeTo$](|readable|, |writable|, |preventClose|, |preventAbort|,
     |preventCancel|, |signalArg|).
@@ -7593,8 +7591,6 @@ sense to pass them to {{ReadableStream/pipeThrough()}}.
  through"><var>signal</var></dfn>, is given by performing the following steps. The result will be
  the [=readable side=] of |transform|.
 
- 1. Assert: ! [$IsReadableStreamLocked$](|readable|) is false.
- 1. Assert: ! [$IsWritableStreamLocked$](|transform|.[=TransformStream/[[writable]]=]) is false.
  1. Let |signalArg| be |signal| if |signal| was given, or undefined otherwise.
  1. Let |promise| be ! [$ReadableStreamPipeTo$](|readable|,
     |transform|.[=TransformStream/[[writable]]=], |preventClose|, |preventAbort|, |preventCancel|,
