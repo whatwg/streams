@@ -817,15 +817,6 @@ function ReadableStreamFulfillReadIntoRequest(stream, chunk, done) {
   }
 }
 
-function ReadableStreamRejectReadIntoRequest(stream, e) {
-  const reader = stream._reader;
-
-  assert(reader._readIntoRequests.length > 0);
-
-  const readIntoRequest = reader._readIntoRequests.shift();
-  readIntoRequest.errorSteps(e);
-}
-
 function ReadableStreamFulfillReadRequest(stream, chunk, done) {
   const reader = stream._reader;
 
@@ -1301,6 +1292,12 @@ function ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDe
   if (stream._state === 'closed') {
     assert(pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize === 0);
     done = true;
+  } else if (pullIntoDescriptor.bytesFilled === 0) {
+    // Not even a single element could be filled before the stream was closed.
+    assert(pullIntoDescriptor.readerType === 'byob');
+    const readIntoRequest = stream._reader._readIntoRequests.shift();
+    readIntoRequest.errorSteps(new TypeError('Insufficient bytes to fill elements in the given buffer'));
+    return;
   }
 
   const filledView = ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor);
@@ -1563,8 +1560,6 @@ function ReadableByteStreamControllerInvalidateBYOBRequest(controller) {
 }
 
 function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller) {
-  assert(controller._closeRequested === false);
-
   const filledPullIntos = [];
   while (controller._pendingPullIntos.length > 0) {
     if (controller._queueTotalSize === 0) {
@@ -1576,6 +1571,11 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
 
     if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) === true) {
       ReadableByteStreamControllerShiftPendingPullInto(controller);
+      filledPullIntos.push(pullIntoDescriptor);
+    } else if (controller._closeRequested === true) {
+      // No more bytes will be enqueued, so give up on the minimum fill. Keep the incomplete element in the queue.
+      ReadableByteStreamControllerShiftPendingPullInto(controller);
+      ReadableByteStreamControllerEnqueueRemainderToQueue(controller, pullIntoDescriptor);
       filledPullIntos.push(pullIntoDescriptor);
     }
   }
@@ -1649,17 +1649,10 @@ function ReadableByteStreamControllerPullInto(controller, view, min, readIntoReq
   }
 
   if (controller._queueTotalSize > 0) {
-    if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) === true) {
-      const filledView = ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor);
+    let ready = ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor);
 
-      ReadableByteStreamControllerHandleQueueDrain(controller);
-
-      readIntoRequest.chunkSteps(filledView);
-      return;
-    }
-
-    if (controller._closeRequested === true) {
-      assert(controller._queueTotalSize === 0);
+    if (ready === false && controller._closeRequested === true) {
+      // No more bytes will be enqueued, so give up on the minimum fill. Keep the incomplete element in the queue.
       try {
         ReadableByteStreamControllerEnqueueRemainderToQueue(controller, pullIntoDescriptor);
       } catch (e) {
@@ -1672,8 +1665,14 @@ function ReadableByteStreamControllerPullInto(controller, view, min, readIntoReq
         return;
       }
 
+      ready = true;
+    }
+
+    if (ready === true) {
       const filledView = ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor);
+
       ReadableByteStreamControllerHandleQueueDrain(controller);
+
       readIntoRequest.chunkSteps(filledView);
       return;
     }
@@ -1691,14 +1690,9 @@ function ReadableByteStreamControllerRespond(controller, bytesWritten) {
   const firstDescriptor = controller._pendingPullIntos[0];
   const state = controller._stream._state;
 
-  if (state === 'closed') {
+  if (state === 'closed' || controller._closeRequested === true) {
     if (bytesWritten !== 0) {
       throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
-    }
-  } else if (controller._closeRequested === true) {
-    assert(state === 'readable');
-    if (bytesWritten !== 0) {
-      throw new TypeError('bytesWritten must be 0 when calling respond() on a stream that is closing');
     }
   } else {
     assert(state === 'readable');
@@ -1739,55 +1733,23 @@ function ReadableByteStreamControllerRespondInCloseRequestedState(controller, fi
   assert(controller._queueTotalSize === 0);
   assert(firstDescriptor.bytesFilled % firstDescriptor.elementSize !== 0);
 
-  const stream = controller._stream;
-
+  // Put the incomplete element back in the queue, and handle all pending pull-into descriptors as if their
+  // read requests were made after close() was called.
   if (firstDescriptor.readerType === 'none') {
     ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, firstDescriptor);
   } else {
-    assert(firstDescriptor.readerType === 'byob');
-    ReadableByteStreamControllerShiftPendingPullInto(controller);
     ReadableByteStreamControllerEnqueueRemainderToQueue(controller, firstDescriptor);
-    if (firstDescriptor.bytesFilled > 0) {
-      ReadableByteStreamControllerCommitPullIntoDescriptor(stream, firstDescriptor);
-    } else {
-      ReadableStreamRejectReadIntoRequest(stream,
-                                          new TypeError('Insufficient bytes to fill elements in the given buffer'));
-    }
   }
 
-  // Treat the remaining pull-into descriptors as if their read requests were made after close() was called.
-  while (controller._pendingPullIntos.length > 0 && controller._queueTotalSize > 0) {
-    const pullIntoDescriptor = controller._pendingPullIntos[0];
-    assert(pullIntoDescriptor.readerType === 'byob');
-    assert(pullIntoDescriptor.bytesFilled === 0);
-
-    if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) === false) {
-      assert(controller._queueTotalSize === 0);
-      if (pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize === 0) {
-        // Committed with done = true below.
-        break;
-      }
-      ReadableByteStreamControllerEnqueueRemainderToQueue(controller, pullIntoDescriptor);
-      if (pullIntoDescriptor.bytesFilled === 0) {
-        ReadableByteStreamControllerShiftPendingPullInto(controller);
-        ReadableStreamRejectReadIntoRequest(stream,
-                                            new TypeError('Insufficient bytes to fill elements in the given buffer'));
-        continue;
-      }
-    }
-
-    ReadableByteStreamControllerShiftPendingPullInto(controller);
-    ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDescriptor);
+  const stream = controller._stream;
+  const filledPullIntos = ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+  for (const filledPullInto of filledPullIntos) {
+    ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto);
   }
 
-  if (controller._queueTotalSize === 0) {
-    ReadableByteStreamControllerClearAlgorithms(controller);
-    ReadableStreamClose(stream);
-
-    while (controller._pendingPullIntos.length > 0) {
-      const pullIntoDescriptor = ReadableByteStreamControllerShiftPendingPullInto(controller);
-      ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDescriptor);
-    }
+  ReadableByteStreamControllerHandleQueueDrain(controller);
+  if (stream._state === 'closed' && controller._pendingPullIntos.length > 0) {
+    ReadableByteStreamControllerRespondInClosedState(controller, controller._pendingPullIntos[0]);
   }
 }
 
@@ -1852,16 +1814,9 @@ function ReadableByteStreamControllerRespondWithNewView(controller, view) {
   const firstDescriptor = controller._pendingPullIntos[0];
   const state = controller._stream._state;
 
-  if (state === 'closed') {
+  if (state === 'closed' || controller._closeRequested === true) {
     if (view.byteLength !== 0) {
       throw new TypeError('The view\'s length must be 0 when calling respondWithNewView() on a closed stream');
-    }
-  } else if (controller._closeRequested === true) {
-    assert(state === 'readable');
-    if (view.byteLength !== 0) {
-      throw new TypeError(
-        'The view\'s length must be 0 when calling respondWithNewView() on a stream that is closing'
-      );
     }
   } else {
     assert(state === 'readable');
