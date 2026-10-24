@@ -25,6 +25,10 @@ exports.implementation = class ReadableByteStreamControllerImpl {
     }
 
     aos.ReadableByteStreamControllerClose(this);
+
+    if (this._stream._state === 'errored') {
+      throw this._stream._storedError;
+    }
   }
 
   enqueue(chunk) {

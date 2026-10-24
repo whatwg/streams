@@ -631,7 +631,7 @@ function ReadableByteStreamTee(stream) {
         if (chunk !== undefined) {
           assert(chunk.byteLength === 0);
 
-          if (byobCanceled === false) {
+          if (byobCanceled === false && byobBranch._controller._pendingPullIntos.length > 0) {
             ReadableByteStreamControllerRespondWithNewView(byobBranch._controller, chunk);
           }
           if (otherCanceled === false && otherBranch._controller._pendingPullIntos.length > 0) {
@@ -1276,7 +1276,7 @@ function ReadableByteStreamControllerClose(controller) {
       const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
       ReadableByteStreamControllerError(controller, e);
 
-      throw e;
+      return;
     }
   }
 
