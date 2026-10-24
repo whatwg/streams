@@ -1870,7 +1870,7 @@ has the following [=struct/items=]:
     exception.
  1. If [=this=].[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=] is not
     "`readable`", throw a {{TypeError}} exception.
- 1. Perform ? [$ReadableByteStreamControllerClose$]([=this=]).
+ 1. Perform ! [$ReadableByteStreamControllerClose$]([=this=]).
 </div>
 
 <div algorithm>
@@ -2764,6 +2764,21 @@ the {{ReadableStream}}'s public API.
 </div>
 
 <div algorithm>
+ <dfn abstract-op noexport lt="ReadableStreamRejectReadIntoRequest"
+ id="readable-stream-reject-read-into-request">ReadableStreamRejectReadIntoRequest(|stream|,
+ |e|)</dfn> performs the following steps:
+
+ 1. Assert: ! [$ReadableStreamHasBYOBReader$](|stream|) is true.
+ 1. Let |reader| be |stream|.[=ReadableStream/[[reader]]=].
+ 1. Assert: |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=] is not [=list/is
+    empty|empty=].
+ 1. Let |readIntoRequest| be |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=][0].
+ 1. [=list/Remove=] |readIntoRequest| from
+    |reader|.[=ReadableStreamBYOBReader/[[readIntoRequests]]=].
+ 1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
+</div>
+
+<div algorithm>
  <dfn abstract-op noexport lt="ReadableStreamFulfillReadRequest"
  id="readable-stream-fulfill-read-request">ReadableStreamFulfillReadRequest(|stream|, |chunk|,
  |done|)</dfn> performs the following steps:
@@ -3247,9 +3262,14 @@ The following abstract operations support the implementation of the
      |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
   1. If the remainder after dividing |firstPendingPullInto|'s [=pull-into descriptor/bytes filled=]
      by |firstPendingPullInto|'s [=pull-into descriptor/element size=] is not 0,
-   1. Let |e| be a new {{TypeError}} exception.
-   1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
-   1. Throw |e|.
+   1. Set |controller|.[=ReadableByteStreamController/[[closeRequested]]=] to true.
+   1. Return.
+
+   <p class="note">The stream cannot become closed yet, since the bytes filled so far cannot be
+   handed out as whole elements. Once the [=underlying byte source=] responds to the pending
+   {{ReadableStreamBYOBRequest}}, these bytes are put back into the queue (see
+   [$ReadableByteStreamControllerRespondInCloseRequestedState$]) where they can be read with a
+   smaller view.
  1. Perform ! [$ReadableByteStreamControllerClearAlgorithms$](|controller|).
  1. Perform ! [$ReadableStreamClose$](|stream|).
 </div>
@@ -3384,6 +3404,23 @@ The following abstract operations support the implementation of the
     [=pull-into descriptor/buffer=], |pullIntoDescriptor|'s [=pull-into  descriptor/byte offset=],
     |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]).
  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
+</div>
+
+<div algorithm>
+ <dfn abstract-op noexport lt="ReadableByteStreamControllerEnqueueRemainderToQueue"
+ id="readable-byte-stream-controller-enqueue-remainder-to-queue">ReadableByteStreamControllerEnqueueRemainderToQueue(|controller|,
+ |pullIntoDescriptor|)</dfn> performs the following steps:
+
+ 1. Let |remainderSize| be the remainder after dividing |pullIntoDescriptor|'s
+    [=pull-into descriptor/bytes filled=] by |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
+ 1. If |remainderSize| > 0,
+   1. Let |end| be |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=] +
+      |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
+   1. Perform ? [$ReadableByteStreamControllerEnqueueClonedChunkToQueue$](|controller|,
+      |pullIntoDescriptor|'s [=pull-into descriptor/buffer=], |end| − |remainderSize|,
+      |remainderSize|).
+ 1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to |pullIntoDescriptor|'s
+    [=pull-into descriptor/bytes filled=] − |remainderSize|.
 </div>
 
 <div algorithm>
@@ -3659,10 +3696,26 @@ The following abstract operations support the implementation of the
    1. Perform |readIntoRequest|'s [=read-into request/chunk steps=], given |filledView|.
    1. Return.
   1. If |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true,
-   1. Let |e| be a {{TypeError}} exception.
-   1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
-   1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |e|.
+   1. Assert: |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0.
+   1. Let |result| be [$ReadableByteStreamControllerEnqueueRemainderToQueue$](|controller|,
+      |pullIntoDescriptor|).
+   1. If |result| is an abrupt completion,
+    1. Perform |readIntoRequest|'s [=read-into request/error steps=], given |result|.\[[Value]].
+    1. Return.
+   1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] is 0,
+    1. Perform |readIntoRequest|'s [=read-into request/error steps=], given a new {{TypeError}}.
+    1. Return.
+   1. Let |filledView| be !
+      [$ReadableByteStreamControllerConvertPullIntoDescriptor$](|pullIntoDescriptor|).
+   1. Perform ! [$ReadableByteStreamControllerHandleQueueDrain$](|controller|).
+   1. Perform |readIntoRequest|'s [=read-into request/chunk steps=], given |filledView|.
    1. Return.
+
+   <p class="note">No more bytes will be enqueued, so the [=pull-into descriptor/minimum fill=]
+   can no longer be reached. Fulfill the request with as many whole elements as are available, and
+   keep the remaining bytes in the queue. If not even a single element is available, the request
+   fails but the stream stays readable, so the remaining bytes can still be read with a smaller
+   view.
  1. [=list/Append=] |pullIntoDescriptor| to
     |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=].
  1. Perform ! [$ReadableStreamAddReadIntoRequest$](|stream|, |readIntoRequest|).
@@ -3679,6 +3732,9 @@ The following abstract operations support the implementation of the
  1. Let |state| be
     |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
  1. If |state| is "`closed`",
+  1. If |bytesWritten| is not 0, throw a {{TypeError}} exception.
+ 1. Otherwise, if |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true,
+  1. Assert: |state| is "`readable`".
   1. If |bytesWritten| is not 0, throw a {{TypeError}} exception.
  1. Otherwise,
   1. Assert: |state| is "`readable`".
@@ -3713,6 +3769,61 @@ The following abstract operations support the implementation of the
 </div>
 
 <div algorithm>
+ <dfn abstract-op noexport lt="ReadableByteStreamControllerRespondInCloseRequestedState"
+ id="readable-byte-stream-controller-respond-in-close-requested-state">ReadableByteStreamControllerRespondInCloseRequestedState(|controller|,
+ |firstDescriptor|)</dfn> performs the following steps:
+
+ 1. Assert: |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0.
+ 1. Assert: the remainder after dividing |firstDescriptor|'s [=pull-into descriptor/bytes filled=]
+    by |firstDescriptor|'s [=pull-into descriptor/element size=] is not 0.
+ 1. Let |stream| be |controller|.[=ReadableByteStreamController/[[stream]]=].
+ 1. If |firstDescriptor|'s [=pull-into descriptor/reader type=] is "`none`",
+  1. Perform ? [$ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue$](|controller|,
+     |firstDescriptor|).
+ 1. Otherwise,
+  1. Assert: |firstDescriptor|'s [=pull-into descriptor/reader type=] is "`byob`".
+  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
+  1. Perform ? [$ReadableByteStreamControllerEnqueueRemainderToQueue$](|controller|,
+     |firstDescriptor|).
+  1. If |firstDescriptor|'s [=pull-into descriptor/bytes filled=] > 0, perform !
+     [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|stream|, |firstDescriptor|).
+  1. Otherwise, perform ! [$ReadableStreamRejectReadIntoRequest$](|stream|, a new {{TypeError}}).
+ 1. [=While=] |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is
+    empty|empty=] and |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] > 0,
+  1. Let |pullIntoDescriptor| be |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=][0].
+  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/reader type=] is "`byob`".
+  1. Assert: |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] is 0.
+  1. If ! [$ReadableByteStreamControllerFillPullIntoDescriptorFromQueue$](|controller|,
+     |pullIntoDescriptor|) is false,
+   1. Assert: |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0.
+   1. If the remainder after dividing |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=]
+      by |pullIntoDescriptor|'s [=pull-into descriptor/element size=] is 0, [=iteration/break=].
+   1. Perform ? [$ReadableByteStreamControllerEnqueueRemainderToQueue$](|controller|,
+      |pullIntoDescriptor|).
+   1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] is 0,
+    1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
+    1. Perform ! [$ReadableStreamRejectReadIntoRequest$](|stream|, a new {{TypeError}}).
+    1. [=iteration/Continue=].
+  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
+  1. Perform ! [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|stream|,
+     |pullIntoDescriptor|).
+ 1. If |controller|.[=ReadableByteStreamController/[[queueTotalSize]]=] is 0,
+  1. Perform ! [$ReadableByteStreamControllerClearAlgorithms$](|controller|).
+  1. Perform ! [$ReadableStreamClose$](|stream|).
+  1. [=While=] |controller|.[=ReadableByteStreamController/[[pendingPullIntos]]=] is not [=list/is
+     empty|empty=],
+   1. Let |pullIntoDescriptor| be !
+      [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
+   1. Perform ! [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|stream|,
+      |pullIntoDescriptor|).
+
+ <p class="note">The remaining pull-into descriptors are handled as if their
+ {{ReadableStreamBYOBReader/read()}} requests were made after {{ReadableByteStreamController/close()}}
+ was called: they are filled from the queue with as many whole elements as possible, or fail if the
+ queue cannot fill a single element. Once the queue is drained, the stream becomes closed.
+</div>
+
+<div algorithm>
  <dfn abstract-op noexport lt="ReadableByteStreamControllerRespondInReadableState"
  id="readable-byte-stream-controller-respond-in-readable-state">ReadableByteStreamControllerRespondInReadableState(|controller|,
  |bytesWritten|, |pullIntoDescriptor|)</dfn> performs the following steps:
@@ -3737,16 +3848,8 @@ The following abstract operations support the implementation of the
     that is not yet filled up to its minimum length will stay at the head of the queue, so the
     [=underlying source=] can keep filling it.
  1. Perform ! [$ReadableByteStreamControllerShiftPendingPullInto$](|controller|).
- 1. Let |remainderSize| be the remainder after dividing |pullIntoDescriptor|'s
-    [=pull-into descriptor/bytes filled=] by |pullIntoDescriptor|'s [=pull-into descriptor/element size=].
- 1. If |remainderSize| > 0,
-   1. Let |end| be |pullIntoDescriptor|'s [=pull-into descriptor/byte offset=] +
-      |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=].
-   1. Perform ? [$ReadableByteStreamControllerEnqueueClonedChunkToQueue$](|controller|,
-      |pullIntoDescriptor|'s [=pull-into descriptor/buffer=], |end| − |remainderSize|,
-      |remainderSize|).
- 1. Set |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] to |pullIntoDescriptor|'s
-    [=pull-into descriptor/bytes filled=] − |remainderSize|.
+ 1. Perform ? [$ReadableByteStreamControllerEnqueueRemainderToQueue$](|controller|,
+    |pullIntoDescriptor|).
  1. Let |filledPullIntos| be the result of performing
     ! [$ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue$](|controller|).
  1. Perform !
@@ -3772,6 +3875,11 @@ The following abstract operations support the implementation of the
   1. Assert: |bytesWritten| is 0.
   1. Perform ! [$ReadableByteStreamControllerRespondInClosedState$](|controller|,
      |firstDescriptor|).
+ 1. Otherwise, if |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true,
+  1. Assert: |state| is "`readable`".
+  1. Assert: |bytesWritten| is 0.
+  1. Perform ? [$ReadableByteStreamControllerRespondInCloseRequestedState$](|controller|,
+     |firstDescriptor|).
  1. Otherwise,
   1. Assert: |state| is "`readable`".
   1. Assert: |bytesWritten| > 0.
@@ -3792,6 +3900,9 @@ The following abstract operations support the implementation of the
  1. Let |state| be
     |controller|.[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=].
  1. If |state| is "`closed`",
+  1. If |view|.\[[ByteLength]] is not 0, throw a {{TypeError}} exception.
+ 1. Otherwise, if |controller|.[=ReadableByteStreamController/[[closeRequested]]=] is true,
+  1. Assert: |state| is "`readable`".
   1. If |view|.\[[ByteLength]] is not 0, throw a {{TypeError}} exception.
  1. Otherwise,
   1. Assert: |state| is "`readable`".
