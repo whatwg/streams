@@ -7000,8 +7000,13 @@ mark=] is greater than zero.
  To <dfn export for="ReadableStream">close</dfn> a {{ReadableStream}} |stream|:
 
  1. If |stream|.[=ReadableStream/[[controller]]=] [=implements=] {{ReadableByteStreamController}},
-  1. Perform !
+  1. Let |result| be
      [$ReadableByteStreamControllerClose$](|stream|.[=ReadableStream/[[controller]]=]).
+  1. If |result| is an abrupt completion, return.
+     <p class="note">This happens when the first [=pull-into descriptor=] in
+     |stream|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+     has been filled with only part of an element, in which case |stream| has already been errored
+     with |result|.\[[Value]].
   1. If |stream|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
      is not [=list/is empty|empty=], perform !
      [$ReadableByteStreamControllerRespond$](|stream|.[=ReadableStream/[[controller]]=], 0).
