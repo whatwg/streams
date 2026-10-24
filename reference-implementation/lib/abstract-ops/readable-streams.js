@@ -1293,7 +1293,7 @@ function ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDe
     assert(pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize === 0);
     done = true;
   } else if (pullIntoDescriptor.bytesFilled === 0) {
-    // Not even a single element could be filled before the stream was closed.
+    // Close was requested before a single element could be filled.
     assert(pullIntoDescriptor.readerType === 'byob');
     const readIntoRequest = stream._reader._readIntoRequests.shift();
     readIntoRequest.errorSteps(new TypeError('Insufficient bytes to fill elements in the given buffer'));
