@@ -8334,7 +8334,7 @@ The error handling here is subtle because canceling the concatenated stream has 
 input streams. However, the success case is simple enough. We just pipe each stream in the
 <code>readables</code> iterable one at a time to the [=identity transform stream=]'s [=writable
 side=], and then close it when we are done. The [=readable side=] is then a concatenation of all the
-chunks from all of of the streams. We return it from the function. Backpressure is applied as usual.
+chunks from all of the streams. We return it from the function. Backpressure is applied as usual.
 
 <h2 id="acks" class="no-num">Acknowledgments</h2>
 
