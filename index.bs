@@ -5513,7 +5513,7 @@ The following abstract operations support the implementation of the
 
  <xmp highlight="js">
  const { writable, readable } = new TransformStream();
- fetch("...", { body: readable }).then(response => /* ... */);
+ fetch("...", { method: "POST", body: readable, duplex: "half" }).then(response => { /* ... */ });
 
  const writer = writable.getWriter();
  writer.write(new Uint8Array([0x73, 0x74, 0x72, 0x65, 0x61, 0x6D, 0x73, 0x21]));
