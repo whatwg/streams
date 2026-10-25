@@ -3730,6 +3730,10 @@ The following abstract operations support the implementation of the
     1. Perform !
        [$ReadableByteStreamControllerCommitPullIntoDescriptor$](|controller|.[=ReadableByteStreamController/[[stream]]=],
        |filledPullInto|).
+  1. If !
+     [$ReadableStreamHasDefaultReader$](|controller|.[=ReadableByteStreamController/[[stream]]=]) is
+     true, perform !
+     [$ReadableByteStreamControllerProcessReadRequestsUsingQueue$](|controller|).
   1. Return.
  1. If |pullIntoDescriptor|'s [=pull-into descriptor/bytes filled=] &lt; |pullIntoDescriptor|'s
     [=pull-into descriptor/minimum fill=], return.

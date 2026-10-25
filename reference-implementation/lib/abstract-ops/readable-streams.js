@@ -1702,9 +1702,13 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
 
   if (pullIntoDescriptor.readerType === 'none') {
     ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, pullIntoDescriptor);
+    const stream = controller._stream;
     const filledPullIntos = ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
     for (const filledPullInto of filledPullIntos) {
-      ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, filledPullInto);
+      ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto);
+    }
+    if (ReadableStreamHasDefaultReader(stream) === true) {
+      ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller);
     }
     return;
   }
