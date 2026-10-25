@@ -1273,10 +1273,10 @@ function ReadableByteStreamControllerClose(controller) {
   if (controller._pendingPullIntos.length > 0) {
     const firstPendingPullInto = controller._pendingPullIntos[0];
     if (firstPendingPullInto.bytesFilled % firstPendingPullInto.elementSize !== 0) {
-      const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
-      ReadableByteStreamControllerError(controller, e);
+      // The partially filled bytes will be put back in the queue once the underlying byte source responds.
+      controller._closeRequested = true;
 
-      throw e;
+      return;
     }
   }
 
@@ -1292,6 +1292,12 @@ function ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDe
   if (stream._state === 'closed') {
     assert(pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize === 0);
     done = true;
+  } else if (pullIntoDescriptor.bytesFilled === 0) {
+    // Close was requested before a single element could be filled.
+    assert(pullIntoDescriptor.readerType === 'byob');
+    const readIntoRequest = stream._reader._readIntoRequests.shift();
+    readIntoRequest.errorSteps(new TypeError('Insufficient bytes to fill elements in the given buffer'));
+    return;
   }
 
   const filledView = ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor);
@@ -1399,6 +1405,20 @@ function ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, 
     );
   }
   ReadableByteStreamControllerShiftPendingPullInto(controller);
+}
+
+function ReadableByteStreamControllerEnqueueRemainderToQueue(controller, pullIntoDescriptor) {
+  const remainderSize = pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize;
+  if (remainderSize > 0) {
+    const end = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
+    ReadableByteStreamControllerEnqueueClonedChunkToQueue(
+      controller,
+      pullIntoDescriptor.buffer,
+      end - remainderSize,
+      remainderSize
+    );
+  }
+  pullIntoDescriptor.bytesFilled -= remainderSize;
 }
 
 function ReadableByteStreamControllerError(controller, e) {
@@ -1540,8 +1560,6 @@ function ReadableByteStreamControllerInvalidateBYOBRequest(controller) {
 }
 
 function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller) {
-  assert(controller._closeRequested === false);
-
   const filledPullIntos = [];
   while (controller._pendingPullIntos.length > 0) {
     if (controller._queueTotalSize === 0) {
@@ -1553,6 +1571,11 @@ function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(contro
 
     if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) === true) {
       ReadableByteStreamControllerShiftPendingPullInto(controller);
+      filledPullIntos.push(pullIntoDescriptor);
+    } else if (controller._closeRequested === true) {
+      // No more bytes will be enqueued, so give up on the minimum fill. Keep the incomplete element in the queue.
+      ReadableByteStreamControllerShiftPendingPullInto(controller);
+      ReadableByteStreamControllerEnqueueRemainderToQueue(controller, pullIntoDescriptor);
       filledPullIntos.push(pullIntoDescriptor);
     }
   }
@@ -1626,20 +1649,31 @@ function ReadableByteStreamControllerPullInto(controller, view, min, readIntoReq
   }
 
   if (controller._queueTotalSize > 0) {
-    if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) === true) {
+    let ready = ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor);
+
+    if (ready === false && controller._closeRequested === true) {
+      // No more bytes will be enqueued, so give up on the minimum fill. Keep the incomplete element in the queue.
+      try {
+        ReadableByteStreamControllerEnqueueRemainderToQueue(controller, pullIntoDescriptor);
+      } catch (e) {
+        readIntoRequest.errorSteps(e);
+        return;
+      }
+
+      if (pullIntoDescriptor.bytesFilled === 0) {
+        readIntoRequest.errorSteps(new TypeError('Insufficient bytes to fill elements in the given buffer'));
+        return;
+      }
+
+      ready = true;
+    }
+
+    if (ready === true) {
       const filledView = ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor);
 
       ReadableByteStreamControllerHandleQueueDrain(controller);
 
       readIntoRequest.chunkSteps(filledView);
-      return;
-    }
-
-    if (controller._closeRequested === true) {
-      const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
-      ReadableByteStreamControllerError(controller, e);
-
-      readIntoRequest.errorSteps(e);
       return;
     }
   }
@@ -1656,7 +1690,7 @@ function ReadableByteStreamControllerRespond(controller, bytesWritten) {
   const firstDescriptor = controller._pendingPullIntos[0];
   const state = controller._stream._state;
 
-  if (state === 'closed') {
+  if (state === 'closed' || controller._closeRequested === true) {
     if (bytesWritten !== 0) {
       throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
     }
@@ -1695,6 +1729,30 @@ function ReadableByteStreamControllerRespondInClosedState(controller, firstDescr
   }
 }
 
+function ReadableByteStreamControllerRespondInCloseRequestedState(controller, firstDescriptor) {
+  assert(controller._queueTotalSize === 0);
+  assert(firstDescriptor.bytesFilled % firstDescriptor.elementSize !== 0);
+
+  // Put the incomplete element back in the queue, and handle all pending pull-into descriptors as if their
+  // read requests were made after close() was called.
+  if (firstDescriptor.readerType === 'none') {
+    ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, firstDescriptor);
+  } else {
+    ReadableByteStreamControllerEnqueueRemainderToQueue(controller, firstDescriptor);
+  }
+
+  const stream = controller._stream;
+  const filledPullIntos = ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+  for (const filledPullInto of filledPullIntos) {
+    ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto);
+  }
+
+  ReadableByteStreamControllerHandleQueueDrain(controller);
+  if (stream._state === 'closed' && controller._pendingPullIntos.length > 0) {
+    ReadableByteStreamControllerRespondInClosedState(controller, controller._pendingPullIntos[0]);
+  }
+}
+
 function ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, pullIntoDescriptor) {
   assert(pullIntoDescriptor.bytesFilled + bytesWritten <= pullIntoDescriptor.byteLength);
 
@@ -1716,19 +1774,8 @@ function ReadableByteStreamControllerRespondInReadableState(controller, bytesWri
   }
 
   ReadableByteStreamControllerShiftPendingPullInto(controller);
+  ReadableByteStreamControllerEnqueueRemainderToQueue(controller, pullIntoDescriptor);
 
-  const remainderSize = pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize;
-  if (remainderSize > 0) {
-    const end = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
-    ReadableByteStreamControllerEnqueueClonedChunkToQueue(
-      controller,
-      pullIntoDescriptor.buffer,
-      end - remainderSize,
-      remainderSize
-    );
-  }
-
-  pullIntoDescriptor.bytesFilled -= remainderSize;
   const filledPullIntos = ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
 
   ReadableByteStreamControllerCommitPullIntoDescriptor(controller._stream, pullIntoDescriptor);
@@ -1747,6 +1794,10 @@ function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
   if (state === 'closed') {
     assert(bytesWritten === 0);
     ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor);
+  } else if (controller._closeRequested === true) {
+    assert(state === 'readable');
+    assert(bytesWritten === 0);
+    ReadableByteStreamControllerRespondInCloseRequestedState(controller, firstDescriptor);
   } else {
     assert(state === 'readable');
     assert(bytesWritten > 0);
@@ -1763,7 +1814,7 @@ function ReadableByteStreamControllerRespondWithNewView(controller, view) {
   const firstDescriptor = controller._pendingPullIntos[0];
   const state = controller._stream._state;
 
-  if (state === 'closed') {
+  if (state === 'closed' || controller._closeRequested === true) {
     if (view.byteLength !== 0) {
       throw new TypeError('The view\'s length must be 0 when calling respondWithNewView() on a closed stream');
     }
