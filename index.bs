@@ -1870,7 +1870,9 @@ has the following [=struct/items=]:
     exception.
  1. If [=this=].[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=] is not
     "`readable`", throw a {{TypeError}} exception.
- 1. Perform ? [$ReadableByteStreamControllerClose$]([=this=]).
+ 1. Perform ! [$ReadableByteStreamControllerClose$]([=this=]).
+ 1. If [=this=].[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[state]]=] is
+    "`errored`", throw [=this=].[=ReadableByteStreamController/[[stream]]=].[=ReadableStream/[[storedError]]=].
 </div>
 
 <div algorithm>
@@ -2573,7 +2575,9 @@ create them does not matter.
        [$ReadableByteStreamControllerClose$](|otherBranch|.[=ReadableStream/[[controller]]=]).
     1. If |chunk| is not undefined,
      1. Assert: |chunk|.\[[ByteLength]] is 0.
-     1. If |byobCanceled| is false, perform !
+     1. If |byobCanceled| is false and
+        |byobBranch|.[=ReadableStream/[[controller]]=].[=ReadableByteStreamController/[[pendingPullIntos]]=]
+        is not [=list/is empty|empty=], perform !
         [$ReadableByteStreamControllerRespondWithNewView$](|byobBranch|.[=ReadableStream/[[controller]]=],
         |chunk|).
      1. If |otherCanceled| is false and
@@ -3249,7 +3253,7 @@ The following abstract operations support the implementation of the
      by |firstPendingPullInto|'s [=pull-into descriptor/element size=] is not 0,
    1. Let |e| be a new {{TypeError}} exception.
    1. Perform ! [$ReadableByteStreamControllerError$](|controller|, |e|).
-   1. Throw |e|.
+   1. Return.
  1. Perform ! [$ReadableByteStreamControllerClearAlgorithms$](|controller|).
  1. Perform ! [$ReadableStreamClose$](|stream|).
 </div>
